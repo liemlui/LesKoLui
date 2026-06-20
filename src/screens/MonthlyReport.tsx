@@ -1,6 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { listStudents, getStudent, listSessionsByStudentMonth, getReport, upsertReport, updateSession } from "../db/repos";
+import {
+  listStudents, getStudent, getSettings,
+  listSessionsByStudentMonth, listSessionsForMonth,
+  getReport, upsertReport, updateSession,
+} from "../db/repos";
 import { pickTemplate } from "../lib/rotation";
 import { generateNarratives } from "../lib/aiClient";
 import { getTheme, THEMES } from "../template/themes";
@@ -9,11 +13,16 @@ import { ReportRenderer } from "../template/ReportRenderer";
 import { dayLabel, monthLabel, formatRupiah, todayWIB, monthOf } from "../lib/format";
 import { exportPng, exportPdf, shareFiles } from "../lib/exportReport";
 
+type Tab = "laporan" | "rekap";
+
 export default function MonthlyReportPage() {
   const students = useLiveQuery(() => listStudents(true), []);
+  const settings = useLiveQuery(() => getSettings(), []);
 
+  const [activeTab, setActiveTab] = useState<Tab>("laporan");
   const [studentId, setStudentId] = useState("");
   const [month, setMonth] = useState(() => monthOf(todayWIB()));
+
   const [editingNarrative, setEditingNarrative] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [editingSummary, setEditingSummary] = useState(false);
@@ -25,42 +34,46 @@ export default function MonthlyReportPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  const student = useLiveQuery(() => (studentId ? getStudent(studentId) : undefined), [studentId]);
+  const student  = useLiveQuery(() => (studentId ? getStudent(studentId) : undefined), [studentId]);
   const sessions = useLiveQuery(() => (studentId ? listSessionsByStudentMonth(studentId, month) : []), [studentId, month]);
-  const report = useLiveQuery(() => (studentId ? getReport(studentId, month) : undefined), [studentId, month]);
+  const report   = useLiveQuery(() => (studentId ? getReport(studentId, month) : undefined), [studentId, month]);
+
+  // Rekap keuangan: semua sesi semua murid di bulan ini
+  const rekapSessions = useLiveQuery(() => (activeTab === "rekap" ? listSessionsForMonth(month) : []), [activeTab, month]);
 
   const totalHours = useMemo(() => sessions?.reduce((s, x) => s + x.durationHours, 0) ?? 0, [sessions]);
-  const totalCost = useMemo(() => sessions?.reduce((s, x) => s + x.cost, 0) ?? 0, [sessions]);
+  const totalCost  = useMemo(() => sessions?.reduce((s, x) => s + x.cost, 0) ?? 0, [sessions]);
 
   const theme = report ? getTheme(report.templateKey.themeId) : THEMES[0];
 
-  // reportData as state — useEffect handles blob URL lifecycle to prevent memory leaks
+  // ReportData state + blob URL lifecycle management
   const [reportData, setReportData] = useState<{
-    studentName: string;
-    period: string;
-    tutorName: string;
+    studentName: string; period: string; tutorName: string; logoUrl?: string;
     entries: { date: string; subject: string; photoUrl?: string; narrative: string }[];
-    summary: string;
-    teacherNote?: string;
-    quote?: string;
+    summary: string; teacherNote?: string; quote?: string;
   } | null>(null);
 
   useEffect(() => {
-    if (!student || !sessions) {
-      setReportData(null);
-      return;
-    }
+    if (!student || !sessions) { setReportData(null); return; }
     const urls: string[] = [];
+
+    let logoUrl: string | undefined;
+    if (settings?.logo) {
+      logoUrl = URL.createObjectURL(settings.logo);
+      urls.push(logoUrl);
+    }
+
     const data = {
       studentName: student.name,
       period: monthLabel(month),
-      tutorName: "",
+      tutorName: settings?.tutorProfile?.name ?? "",
+      logoUrl,
       entries: sessions.map((s) => {
         const photoUrl = s.photo ? URL.createObjectURL(s.photo) : undefined;
         if (photoUrl) urls.push(photoUrl);
         return {
           date: dayLabel(s.date).split(",")[1]?.trim() ?? s.date.slice(5),
-          subject: s.subject,
+          subject: s.subjects.join(", "),
           photoUrl,
           narrative: s.narrative ?? s.shortNote,
         };
@@ -71,116 +84,152 @@ export default function MonthlyReportPage() {
     };
     setReportData(data);
     return () => urls.forEach(URL.revokeObjectURL);
-  }, [student, sessions, month, report]);
+  }, [student, sessions, month, report, settings]);
+
+  // Rekap: group by student
+  const rekapByStudent = useMemo(() => {
+    if (!rekapSessions || !students) return [];
+    const map = new Map<string, { count: number; hours: number; cost: number }>();
+    rekapSessions.forEach((s) => {
+      const curr = map.get(s.studentId) ?? { count: 0, hours: 0, cost: 0 };
+      map.set(s.studentId, { count: curr.count + 1, hours: curr.hours + s.durationHours, cost: curr.cost + s.cost });
+    });
+    const studentMap = new Map(students.map((s) => [s.id, s.name]));
+    return [...map.entries()]
+      .map(([sid, data]) => ({ name: studentMap.get(sid) ?? "(dihapus)", ...data }))
+      .sort((a, b) => b.cost - a.cost);
+  }, [rekapSessions, students]);
+
+  const rekapTotal = useMemo(() =>
+    rekapByStudent.reduce((sum, r) => ({ cost: sum.cost + r.cost, hours: sum.hours + r.hours, count: sum.count + r.count }),
+      { cost: 0, hours: 0, count: 0 }),
+    [rekapByStudent]);
 
   const handleCreateOrSwitch = async (newLayoutId?: string) => {
     if (!studentId) return;
     try {
-      let r = await getReport(studentId, month);
+      const r = await getReport(studentId, month);
       if (!r) {
-        const templateKey = newLayoutId
-          ? { themeId: theme.id, layoutId: newLayoutId }
-          : await pickTemplate(studentId);
-        const id = crypto.randomUUID();
+        const templateKey = newLayoutId ? { themeId: theme.id, layoutId: newLayoutId } : await pickTemplate(studentId);
         await upsertReport({
-          id, studentId, month, sessionIds: sessions?.map((s) => s.id) ?? [],
+          id: crypto.randomUUID(), studentId, month,
+          sessionIds: sessions?.map((s) => s.id) ?? [],
           templateKey, summaryText: "", totalHours, totalCost,
           createdAt: new Date().toISOString(),
         });
-        setMessage("Laporan baru dibuat!");
+        setMessage("Laporan dibuat!");
       } else if (newLayoutId) {
-        await upsertReport({
-          ...r, templateKey: { themeId: r.templateKey.themeId, layoutId: newLayoutId },
-        });
-        setMessage("Desain diganti!");
+        await upsertReport({ ...r, templateKey: { themeId: r.templateKey.themeId, layoutId: newLayoutId } });
+        setMessage("Layout diganti!");
       } else {
-        setMessage("Laporan sudah ada untuk bulan ini.");
+        setMessage("Laporan sudah ada — klik 'Ganti Desain' untuk tema baru.");
       }
-    } catch (e) {
-      setMessage("Error: " + (e as Error).message);
-    }
+    } catch (e) { setMessage("Error: " + (e as Error).message); }
   };
 
   const handleRegenerate = async () => {
-    if (!studentId || !report) return;
-    const newKey = await pickTemplate(studentId);
-    await upsertReport({ ...report, templateKey: newKey });
+    if (!report) return;
+    await upsertReport({ ...report, templateKey: await pickTemplate(studentId) });
     setMessage("Desain diganti!");
   };
 
   const handlePolish = async () => {
-    if (!student || !sessions || sessions.length === 0) return;
-    if (!navigator.onLine) { setMessage("Offline — narasi akan dibuat saat online."); return; }
+    if (!student || !sessions?.length) return;
+    if (!navigator.onLine) { setMessage("Offline."); return; }
     setAiLoading(true);
     try {
       const out = await generateNarratives({
         student: { name: student.name, level: student.level },
         month: monthLabel(month),
         sessions: sessions.map((s) => ({
-          id: s.id, date: dayLabel(s.date), subject: s.subject,
+          id: s.id, date: dayLabel(s.date), subject: s.subjects.join(", "),
           shortNote: s.shortNote, mood: s.mood, topic: s.topic,
           needsWork: s.needsWork, predictedGrade: s.predictedGrade,
         })),
       });
       for (const e of out.entries) await updateSession(e.id, { narrative: e.narrative });
       const r = await getReport(studentId, month);
-      if (r) await upsertReport({
-        ...r, summaryText: out.summary, teacherNote: out.teacherNote, quote: out.quote,
-      });
-      setMessage("Narasi berhasil dibuat ✓");
-    } catch (e) {
-      setMessage("Gagal: " + (e as Error).message);
-    } finally {
-      setAiLoading(false);
-    }
+      if (r) await upsertReport({ ...r, summaryText: out.summary, teacherNote: out.teacherNote, quote: out.quote });
+      setMessage("Narasi AI selesai ✓");
+    } catch (e) { setMessage("Gagal: " + (e as Error).message); }
+    finally { setAiLoading(false); }
   };
 
-  const saveNarrative = async (sessionId: string) => {
-    await updateSession(sessionId, { narrative: editText });
-    setEditingNarrative(null);
+  const doExport = async (type: "png" | "pdf") => {
+    if (!student || !report) return;
+    const base = `Laporan-${student.name}-${monthLabel(month)}`.replace(/\s+/g, "-");
+    try {
+      if (type === "png") await shareFiles(await exportPng(base), base);
+      else await shareFiles([await exportPdf(base)], base);
+      await upsertReport({ ...report, pdfGeneratedAt: new Date().toISOString() });
+      setMessage("Diekspor ✓");
+    } catch (e) { setMessage("Gagal ekspor: " + (e as Error).message); }
   };
 
+  const saveNarrative   = async (sid: string) => { await updateSession(sid, { narrative: editText }); setEditingNarrative(null); };
   const saveReportField = async (field: "summaryText" | "teacherNote" | "quote", value: string) => {
     if (!report) return;
     await upsertReport({ ...report, [field]: value });
-    setEditingSummary(false);
-    setEditingNote(false);
-    setEditingQuote(false);
+    setEditingSummary(false); setEditingNote(false); setEditingQuote(false);
   };
 
   if (!students) return <div className="p-4 text-gray-500">Memuat...</div>;
 
   return (
-    <div className="p-4 space-y-4 pb-20">
-      <h1 className="text-2xl font-bold">Laporan Bulanan</h1>
+    <div className="pb-20">
+      {/* Tabs */}
+      <div className="grid grid-cols-2 bg-gray-100 mx-4 mt-4 rounded-xl p-1">
+        <button onClick={() => setActiveTab("laporan")}
+          className={`py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === "laporan" ? "bg-white shadow text-blue-700" : "text-gray-500"}`}>
+          Laporan Murid
+        </button>
+        <button onClick={() => setActiveTab("rekap")}
+          className={`py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === "rekap" ? "bg-white shadow text-green-700" : "text-gray-500"}`}>
+          Rekap Keuangan
+        </button>
+      </div>
 
+      <div className="p-4 space-y-4">
       {message && (
-        <div className={`p-3 rounded-lg text-sm ${message.includes("✓") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
+        <div onClick={() => setMessage("")}
+          className={`p-3 rounded-lg text-sm cursor-pointer ${message.includes("✓") ? "bg-green-50 text-green-700" : "bg-blue-50 text-blue-700"}`}>
           {message}
         </div>
       )}
 
-      {/* Student + Month picker */}
-      <div className="flex gap-3">
-        <select className="input flex-1" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
-          <option value="">Pilih murid...</option>
-          {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </select>
-        <input className="input w-40" type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
+      {/* Bulan picker — shared */}
+      <div className="flex gap-3 items-center">
+        <label className="text-sm text-gray-500 flex-shrink-0">Bulan:</label>
+        <input className="input flex-1" type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
       </div>
 
-      {!studentId && <p className="text-gray-400 text-center py-8">Pilih murid dan bulan untuk memulai.</p>}
+      {activeTab === "laporan" && (
+      <div className="space-y-4">
+      {/* Pilih murid */}
+      <select className="input" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
+        <option value="">Pilih murid...</option>
+        {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+      </select>
 
+      {/* ── PER-MURID: Laporan untuk Orang Tua ── */}
       {student && sessions && (
         <>
-          {/* Stats */}
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex justify-around text-center">
             <div><p className="text-lg font-bold">{sessions.length}</p><p className="text-xs text-gray-500">Sesi</p></div>
             <div><p className="text-lg font-bold">{totalHours}j</p><p className="text-xs text-gray-500">Jam</p></div>
             <div><p className="text-lg font-bold">{formatRupiah(totalCost)}</p><p className="text-xs text-gray-500">Biaya</p></div>
           </div>
 
-          {/* Actions */}
+          {/* AI Button — tersedia begitu ada sesi */}
+          {sessions.length > 0 && (
+            <button className="w-full py-3 rounded-xl text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60 transition-colors flex items-center justify-center gap-2"
+              onClick={handlePolish} disabled={aiLoading}>
+              {aiLoading
+                ? <><span className="animate-spin">⏳</span> Sedang memproses AI...</>
+                : <><span>✨</span> Isi Narasi dengan DeepSeek AI</>}
+            </button>
+          )}
+
           <div className="flex flex-wrap gap-2">
             <button className="btn-primary text-sm" onClick={() => handleCreateOrSwitch()}>
               {report ? "Update Laporan" : "Buat Laporan"}
@@ -192,31 +241,17 @@ export default function MonthlyReportPage() {
                   {LAYOUTS.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                 </select>
                 <button className="btn-secondary text-sm" onClick={handleRegenerate}>Ganti Desain</button>
-                <button className="btn-secondary text-sm" onClick={handlePolish} disabled={aiLoading}>
-                  {aiLoading ? "Memproses AI..." : "Polish AI"}
-                </button>
-                <button className="btn-primary text-sm" onClick={async () => {
-                  if (!student) return;
-                  const base = `Laporan-${student.name}-${monthLabel(month)}`.replace(/\s+/g, "-");
-                  try { await shareFiles(await exportPng(base), base); setMessage("Diekspor ✓"); }
-                  catch (e) { setMessage("Gagal: " + (e as Error).message); }
-                }}>Bagikan Gambar</button>
-                <button className="btn-secondary text-sm" onClick={async () => {
-                  if (!student) return;
-                  const base = `Laporan-${student.name}-${monthLabel(month)}`.replace(/\s+/g, "-");
-                  try { await shareFiles([await exportPdf(base)], base); setMessage("PDF diekspor ✓"); }
-                  catch (e) { setMessage("Gagal: " + (e as Error).message); }
-                }}>Ekspor PDF</button>
+                <button className="btn-primary text-sm" onClick={() => doExport("png")}>Bagikan Gambar</button>
+                <button className="btn-secondary text-sm" onClick={() => doExport("pdf")}>Ekspor PDF</button>
               </>
             )}
           </div>
 
-          {/* AI / Editable fields */}
           {report && (
             <div className="space-y-3">
-              {/* Summary */}
+              {/* Ringkasan */}
               <div>
-                <label className="label">Ringkasan (Absensi)</label>
+                <label className="label">Ringkasan</label>
                 {editingSummary ? (
                   <div className="space-y-2">
                     <textarea className="input" rows={3} value={summaryText} onChange={(e) => setSummaryText(e.target.value)} />
@@ -226,14 +261,14 @@ export default function MonthlyReportPage() {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 cursor-pointer hover:bg-gray-100"
+                  <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 cursor-pointer hover:bg-gray-100 min-h-[2.5rem]"
                     onClick={() => { setSummaryText(report.summaryText); setEditingSummary(true); }}>
-                    {report.summaryText || "Klik untuk tambah ringkasan..."}
+                    {report.summaryText || <span className="text-gray-400">Klik untuk tambah ringkasan...</span>}
                   </p>
                 )}
               </div>
 
-              {/* Teacher Note */}
+              {/* Catatan Guru */}
               <div>
                 <label className="label">Catatan Guru</label>
                 {editingNote ? (
@@ -245,14 +280,14 @@ export default function MonthlyReportPage() {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 cursor-pointer hover:bg-gray-100"
+                  <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 cursor-pointer hover:bg-gray-100 min-h-[2.5rem]"
                     onClick={() => { setTeacherNote(report.teacherNote ?? ""); setEditingNote(true); }}>
-                    {report.teacherNote || "Klik untuk tambah catatan..."}
+                    {report.teacherNote || <span className="text-gray-400">Klik untuk tambah catatan...</span>}
                   </p>
                 )}
               </div>
 
-              {/* Quote */}
+              {/* Kutipan */}
               <div>
                 <label className="label">Kutipan</label>
                 {editingQuote ? (
@@ -264,41 +299,43 @@ export default function MonthlyReportPage() {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 italic cursor-pointer hover:bg-gray-100"
+                  <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 italic cursor-pointer hover:bg-gray-100 min-h-[2.5rem]"
                     onClick={() => { setQuoteText(report.quote ?? ""); setEditingQuote(true); }}>
-                    {report.quote ? `"${report.quote}"` : "Klik untuk tambah kutipan..."}
+                    {report.quote ? `"${report.quote}"` : <span className="text-gray-400 not-italic">Klik untuk tambah kutipan...</span>}
                   </p>
                 )}
               </div>
 
-              {/* Session narratives */}
-              {sessions.map((s) => (
-                <div key={s.id} className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
-                  <p className="text-xs text-gray-400 mb-1">{dayLabel(s.date)} — {s.subject}</p>
-                  <p className="text-xs text-gray-500 mb-1">Catatan: {s.shortNote}</p>
-                  {editingNarrative === s.id ? (
-                    <div className="space-y-2">
-                      <textarea className="input" rows={3} value={editText} onChange={(e) => setEditText(e.target.value)} />
-                      <div className="flex gap-2">
-                        <button className="btn-primary text-sm" onClick={() => saveNarrative(s.id)}>Simpan</button>
-                        <button className="btn-secondary text-sm" onClick={() => setEditingNarrative(null)}>Batal</button>
+              {/* Narasi per sesi */}
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-gray-600">Narasi Sesi</p>
+                {sessions.map((s) => (
+                  <div key={s.id} className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
+                    <p className="text-xs text-gray-400 mb-0.5">{dayLabel(s.date)} — {s.subjects.join(", ")}</p>
+                    <p className="text-xs text-gray-400 mb-1">{s.shortNote}</p>
+                    {editingNarrative === s.id ? (
+                      <div className="space-y-2">
+                        <textarea className="input" rows={3} value={editText} onChange={(e) => setEditText(e.target.value)} />
+                        <div className="flex gap-2">
+                          <button className="btn-primary text-sm" onClick={() => saveNarrative(s.id)}>Simpan</button>
+                          <button className="btn-secondary text-sm" onClick={() => setEditingNarrative(null)}>Batal</button>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-700 cursor-pointer hover:text-blue-600"
-                      onClick={() => { setEditText(s.narrative ?? s.shortNote); setEditingNarrative(s.id); }}>
-                      {s.narrative ?? s.shortNote}
-                    </p>
-                  )}
-                </div>
-              ))}
+                    ) : (
+                      <p className="text-sm text-gray-700 cursor-pointer hover:text-blue-600"
+                        onClick={() => { setEditText(s.narrative ?? s.shortNote); setEditingNarrative(s.id); }}>
+                        {s.narrative ?? s.shortNote}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
-          {/* Report Preview */}
           {report && reportData && (
             <div className="mt-4">
-              <h2 className="text-lg font-semibold mb-2">Pratinjau</h2>
+              <p className="text-sm font-semibold text-gray-600 mb-2">Pratinjau</p>
               <div className="max-w-sm mx-auto">
                 <ReportRenderer data={reportData} theme={theme} layoutId={report.templateKey.layoutId} />
               </div>
@@ -306,6 +343,47 @@ export default function MonthlyReportPage() {
           )}
         </>
       )}
+
+      </div>
+      )}
+
+      {/* ── TAB: REKAP KEUANGAN ── */}
+      {activeTab === "rekap" && (
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-gray-600">{monthLabel(month)}</p>
+          {!rekapSessions ? (
+            <p className="text-gray-400 text-sm">Memuat...</p>
+          ) : rekapByStudent.length === 0 ? (
+            <div className="text-center py-10">
+              <p className="text-3xl mb-2">📭</p>
+              <p className="text-gray-400 text-sm">Belum ada sesi di {monthLabel(month)}.</p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                {rekapByStudent.map((r) => (
+                  <div key={r.name} className="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100 flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">{r.name}</p>
+                      <p className="text-xs text-gray-500">{r.count} sesi · {r.hours}j</p>
+                    </div>
+                    <p className="font-bold text-green-700">{formatRupiah(r.cost)}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="bg-green-50 rounded-xl px-4 py-4 flex items-center justify-between border border-green-200">
+                <div>
+                  <p className="font-bold text-green-900">Total Pemasukan</p>
+                  <p className="text-xs text-green-700">{rekapTotal.count} sesi · {rekapTotal.hours}j</p>
+                </div>
+                <p className="text-2xl font-bold text-green-700">{formatRupiah(rekapTotal.cost)}</p>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      </div>
     </div>
   );
 }

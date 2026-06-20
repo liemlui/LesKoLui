@@ -3,6 +3,20 @@ import { Deco } from "./deco";
 
 // ── Shared helpers ─────────────────────────────────────────────────
 
+function LogoEl({ url, tutorName }: { url?: string; tutorName?: string }) {
+  if (!url && !tutorName) return null;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, justifyContent: "flex-end", position: "relative", zIndex: 2 }}>
+      {tutorName && (
+        <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.75 }}>{tutorName}</span>
+      )}
+      {url && (
+        <img src={url} alt="logo" style={{ height: 32, width: "auto", objectFit: "contain", borderRadius: 6 }} />
+      )}
+    </div>
+  );
+}
+
 function HeaderEl(d: ReportData, t: Theme) {
   const periodBadge = (
     <span style={{ display: "inline-block", marginTop: 8, fontWeight: 800, fontSize: 12,
@@ -13,44 +27,53 @@ function HeaderEl(d: ReportData, t: Theme) {
 
   if (t.header === "bubble") {
     return (
-      <div style={{ textAlign: "center", position: "relative", zIndex: 2, marginBottom: 16 }}>
-        <div style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 42, color: "#fff",
-          WebkitTextStroke: `2.5px ${t.accent}`, lineHeight: 0.92 }}>
-          {t.headerText}
+      <div style={{ position: "relative", zIndex: 2, marginBottom: 16 }}>
+        <LogoEl url={d.logoUrl} tutorName={d.tutorName} />
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 42, color: "#fff",
+            WebkitTextStroke: `2.5px ${t.accent}`, lineHeight: 0.92 }}>
+            {t.headerText}
+          </div>
+          <div style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 18, color: "#fff",
+            background: t.accent, borderRadius: 12, padding: "4px 16px", display: "inline-block", marginTop: 8 }}>
+            {d.studentName}
+          </div>
+          {periodBadge}
         </div>
-        <div style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 18, color: "#fff",
-          background: t.accent, borderRadius: 12, padding: "4px 16px", display: "inline-block", marginTop: 8 }}>
-          {d.studentName}
-        </div>
-        {periodBadge}
       </div>
     );
   }
 
   if (t.header === "script") {
     return (
-      <div style={{ textAlign: "center", position: "relative", zIndex: 2, marginBottom: 16 }}>
-        <div style={{ fontFamily: t.fontDisplay, fontSize: 46, color: t.accent, lineHeight: 1.1 }}>
-          {t.headerText}
+      <div style={{ position: "relative", zIndex: 2, marginBottom: 16 }}>
+        <LogoEl url={d.logoUrl} tutorName={d.tutorName} />
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontFamily: t.fontDisplay, fontSize: 46, color: t.accent, lineHeight: 1.1 }}>
+            {t.headerText}
+          </div>
+          <div style={{ fontFamily: t.fontBody, fontWeight: 700, fontSize: 16, color: t.ink, marginTop: 4 }}>
+            {d.studentName}
+          </div>
+          {periodBadge}
         </div>
-        <div style={{ fontFamily: t.fontBody, fontWeight: 700, fontSize: 16, color: t.ink, marginTop: 4 }}>
-          {d.studentName}
-        </div>
-        {periodBadge}
       </div>
     );
   }
 
   // plain
   return (
-    <div style={{ textAlign: "center", position: "relative", zIndex: 2, marginBottom: 16 }}>
-      <div style={{ fontFamily: t.fontDisplay, fontWeight: 800, fontSize: 32, color: t.accent, letterSpacing: 2 }}>
-        {t.headerText}
+    <div style={{ position: "relative", zIndex: 2, marginBottom: 16 }}>
+      <LogoEl url={d.logoUrl} tutorName={d.tutorName} />
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontFamily: t.fontDisplay, fontWeight: 800, fontSize: 32, color: t.accent, letterSpacing: 2 }}>
+          {t.headerText}
+        </div>
+        <div style={{ fontFamily: t.fontBody, fontWeight: 600, fontSize: 15, color: t.ink }}>
+          {d.studentName}
+        </div>
+        {periodBadge}
       </div>
-      <div style={{ fontFamily: t.fontBody, fontWeight: 600, fontSize: 15, color: t.ink }}>
-        {d.studentName}
-      </div>
-      {periodBadge}
     </div>
   );
 }

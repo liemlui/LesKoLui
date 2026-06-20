@@ -158,6 +158,55 @@ export async function listSessionsToday(): Promise<Session[]> {
     .toArray();
 }
 
+export async function listScheduledForMonth(month: string): Promise<Session[]> {
+  const { start, end } = monthRange(month);
+  return db.sessions
+    .filter((s) => s.status === "SCHEDULED" && s.date >= start && s.date <= end)
+    .toArray();
+}
+
+export async function listAllSessionsForMonth(month: string): Promise<Session[]> {
+  const { start, end } = monthRange(month);
+  return db.sessions
+    .filter((s) => s.status !== "CANCELLED" && s.date >= start && s.date <= end)
+    .toArray();
+}
+
+export async function listAllSessionsForWeek(weekStart: string, weekEnd: string): Promise<Session[]> {
+  return db.sessions
+    .filter((s) => s.status !== "CANCELLED" && s.date >= weekStart && s.date <= weekEnd)
+    .toArray();
+}
+
+export async function cancelSession(id: string): Promise<void> {
+  await db.sessions.update(id, { status: "CANCELLED", updatedAt: timestamp() });
+}
+
+export async function scheduleSession(
+  input: { studentId: string; date: string; time?: string; durationHours: number }
+): Promise<string> {
+  const student = await db.students.get(input.studentId);
+  if (!student) throw new Error("Student not found");
+  const id = crypto.randomUUID();
+  const now = timestamp();
+  const rateSnapshot = student.hourlyRate;
+  await db.sessions.add({
+    id,
+    studentId: input.studentId,
+    date: input.date,
+    time: input.time,
+    durationHours: input.durationHours,
+    subjects: [],
+    shortNote: "",
+    status: "SCHEDULED",
+    rateSnapshot,
+    cost: input.durationHours * rateSnapshot,
+    createdAt: now,
+    updatedAt: now,
+  });
+  return id;
+}
+
 export async function recentShortNotes(limit = 50): Promise<string[]> {
   const notes = await db.sessions
     .orderBy("createdAt")

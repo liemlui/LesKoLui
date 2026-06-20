@@ -26,8 +26,9 @@ export interface Session {
   id: string;
   studentId: string;
   date: string;
+  time?: string;
   durationHours: number;
-  subject: string;
+  subjects: string[];
   photo?: Blob;
   shortNote: string;
   mood?: string;

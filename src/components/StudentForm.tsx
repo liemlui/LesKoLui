@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getSettings } from "../db/repos";
+import { todayWIB } from "../lib/format";
 import type { Student, Level } from "../db/types";
 import { DEFAULT_RATE } from "../db/types";
 
@@ -18,6 +19,7 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
   const [parentName, setParentName] = useState(initial?.parentContact.name ?? "");
   const [subjects, setSubjects] = useState<string[]>(initial?.subjects ?? []);
   const [hourlyRate, setHourlyRate] = useState(initial?.hourlyRate ?? settings?.defaultRate ?? DEFAULT_RATE);
+  const [active, setActive] = useState(initial?.active ?? true);
   const [notes, setNotes] = useState(initial?.notes ?? "");
 
   if (!settings) return <div className="p-4 text-gray-500">Memuat...</div>;
@@ -34,8 +36,8 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
       parentContact: { name: parentName.trim() || undefined, phone: phone.trim() },
       subjects,
       hourlyRate,
-      active: initial?.active ?? true,
-      enrolledAt: initial?.enrolledAt ?? new Date().toISOString().slice(0, 10),
+      active,
+      enrolledAt: initial?.enrolledAt ?? todayWIB(),
       notes: notes.trim() || undefined,
       photo: initial?.photo,
     });
@@ -88,6 +90,12 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
         <label className="label">Catatan (opsional)</label>
         <textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </div>
+
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)}
+          className="w-4 h-4 accent-blue-600" />
+        <span className="text-sm text-gray-700">Murid Aktif</span>
+      </label>
 
       <div className="flex gap-3">
         <button type="submit" className="btn-primary flex-1">Simpan</button>

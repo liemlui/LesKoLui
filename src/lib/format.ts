@@ -37,11 +37,7 @@ export function monthLabel(monthStr: string): string {
   return date.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
 }
 
-/** Format as Indonesian Rupiah — e.g. 150000 → "Rp150.000" */
+/** Format as Indonesian Rupiah — e.g. 150000 → "Rp 150.000" */
 export function formatRupiah(n: number): string {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(n);
+  return "Rp " + Math.round(n).toLocaleString("id-ID");
 }

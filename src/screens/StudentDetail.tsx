@@ -87,7 +87,7 @@ export default function StudentDetail() {
               {data.sessions.map((s) => (
                 <div key={s.id} className="px-4 py-2 flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium">{s.subject}</p>
+                    <p className="text-sm font-medium">{(s.subjects ?? []).join(", ")}</p>
                     <p className="text-xs text-gray-400">
                       {dayLabel(s.date).split(",")[1]?.trim() ?? s.date.slice(5)} · {s.durationHours}j
                     </p>

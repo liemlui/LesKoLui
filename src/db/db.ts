@@ -21,6 +21,15 @@ export class JurnalDB extends Dexie {
     this.version(3).stores({
       payments: "id, studentId, [studentId+month], status",
     });
+    // v4: migrate sessions.subject (string) → sessions.subjects (string[])
+    this.version(4).upgrade((tx) =>
+      tx.table("sessions").toCollection().modify((s: any) => {
+        if (typeof s.subject === "string" && !Array.isArray(s.subjects)) {
+          s.subjects = [s.subject];
+          delete s.subject;
+        }
+      })
+    );
   }
 }
 
