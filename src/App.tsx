@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { createBrowserRouter, RouterProvider, Outlet, Navigate } from "react-router-dom";
+import { initSettings } from "./db/repos";
 import BottomNav from "./components/BottomNav";
 import Home from "./screens/Home";
 import Students from "./screens/Students";
@@ -47,6 +48,7 @@ function InstallPrompt() {
 
 function Layout() {
   useEffect(() => {
+    initSettings();
     if (navigator.storage?.persist) navigator.storage.persist();
   }, []);
 

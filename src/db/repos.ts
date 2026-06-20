@@ -44,13 +44,18 @@ const DEFAULT_SETTINGS: Settings = {
 
 // ── Settings ───────────────────────────────────────────────────────
 
+/** Read-only — pure get, does NOT write */
 export async function getSettings(): Promise<Settings> {
-  let s = await db.settings.get("app");
-  if (!s) {
+  const s = await db.settings.get("app");
+  return s ?? { ...DEFAULT_SETTINGS };
+}
+
+/** Initialize default settings row if missing — call at app startup */
+export async function initSettings(): Promise<void> {
+  const exists = await db.settings.get("app");
+  if (!exists) {
     await db.settings.add({ ...DEFAULT_SETTINGS });
-    s = { ...DEFAULT_SETTINGS };
   }
-  return s;
 }
 
 export async function saveSettings(patch: Partial<Settings>): Promise<void> {
