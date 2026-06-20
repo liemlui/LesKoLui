@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { APP_VERSION } from "../lib/version";
 
 const navItems = [
   { to: "/", label: "Home", icon: "🏠" },
@@ -30,6 +31,7 @@ export default function BottomNav() {
           </NavLink>
         ))}
       </div>
+      <p className="text-center text-gray-300 pb-1" style={{ fontSize: 9 }}>{APP_VERSION}</p>
     </nav>
   );
 }
