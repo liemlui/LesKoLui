@@ -119,7 +119,25 @@ export async function createSession(
 }
 
 export async function updateSession(id: string, patch: Partial<Session>): Promise<void> {
+  if (patch.durationHours !== undefined) {
+    if (patch.durationHours < MIN_DURATION) throw new Error(`Duration must be >= ${MIN_DURATION} hours`);
+    if (patch.durationHours % DURATION_STEP !== 0) throw new Error(`Duration must be multiple of ${DURATION_STEP}`);
+  }
   await db.sessions.update(id, { ...patch, updatedAt: timestamp() });
+}
+
+export async function listSessionsByStudent(studentId: string): Promise<Session[]> {
+  return db.sessions
+    .where({ studentId })
+    .filter((s) => s.status === "DONE")
+    .sortBy("date");
+}
+
+export async function listSessionsForMonth(month: string): Promise<Session[]> {
+  const { start, end } = monthRange(month);
+  return db.sessions
+    .filter((s) => s.status === "DONE" && s.date >= start && s.date <= end)
+    .toArray();
 }
 
 export async function listSessionsByStudentMonth(

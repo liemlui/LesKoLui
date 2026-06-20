@@ -79,5 +79,9 @@ export async function generateNarratives(input: AiInput): Promise<AiOutput> {
   if (!res.ok) throw new Error(`AI error ${res.status}: ${await res.text()}`);
   const data = await res.json();
   const text = data?.choices?.[0]?.message?.content ?? "{}";
-  return JSON.parse(text) as AiOutput;
+  try {
+    return JSON.parse(text) as AiOutput;
+  } catch {
+    throw new Error("Respons AI tidak valid. Coba lagi.");
+  }
 }

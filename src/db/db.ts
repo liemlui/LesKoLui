@@ -18,6 +18,9 @@ export class JurnalDB extends Dexie {
       payments: "id, [studentId+month], status",
       settings: "id",
     });
+    this.version(3).stores({
+      payments: "id, studentId, [studentId+month], status",
+    });
   }
 }
 

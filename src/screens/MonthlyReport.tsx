@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { listStudents, getStudent, listSessionsByStudentMonth, getReport, upsertReport, updateSession } from "../db/repos";
 import { pickTemplate } from "../lib/rotation";
@@ -6,14 +6,14 @@ import { generateNarratives } from "../lib/aiClient";
 import { getTheme, THEMES } from "../template/themes";
 import { LAYOUTS } from "../template/layouts";
 import { ReportRenderer } from "../template/ReportRenderer";
-import { dayLabel, monthLabel, formatRupiah } from "../lib/format";
+import { dayLabel, monthLabel, formatRupiah, todayWIB, monthOf } from "../lib/format";
 import { exportPng, exportPdf, shareFiles } from "../lib/exportReport";
 
 export default function MonthlyReportPage() {
   const students = useLiveQuery(() => listStudents(true), []);
 
   const [studentId, setStudentId] = useState("");
-  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [month, setMonth] = useState(() => monthOf(todayWIB()));
   const [editingNarrative, setEditingNarrative] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [editingSummary, setEditingSummary] = useState(false);
@@ -34,22 +34,43 @@ export default function MonthlyReportPage() {
 
   const theme = report ? getTheme(report.templateKey.themeId) : THEMES[0];
 
-  const reportData = useMemo(() => {
-    if (!student || !sessions) return null;
-    return {
+  // reportData as state — useEffect handles blob URL lifecycle to prevent memory leaks
+  const [reportData, setReportData] = useState<{
+    studentName: string;
+    period: string;
+    tutorName: string;
+    entries: { date: string; subject: string; photoUrl?: string; narrative: string }[];
+    summary: string;
+    teacherNote?: string;
+    quote?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!student || !sessions) {
+      setReportData(null);
+      return;
+    }
+    const urls: string[] = [];
+    const data = {
       studentName: student.name,
       period: monthLabel(month),
       tutorName: "",
-      entries: sessions.map((s) => ({
-        date: dayLabel(s.date).split(",")[1]?.trim() ?? s.date.slice(5),
-        subject: s.subject,
-        photoUrl: s.photo ? URL.createObjectURL(s.photo) : undefined,
-        narrative: s.narrative ?? s.shortNote,
-      })),
+      entries: sessions.map((s) => {
+        const photoUrl = s.photo ? URL.createObjectURL(s.photo) : undefined;
+        if (photoUrl) urls.push(photoUrl);
+        return {
+          date: dayLabel(s.date).split(",")[1]?.trim() ?? s.date.slice(5),
+          subject: s.subject,
+          photoUrl,
+          narrative: s.narrative ?? s.shortNote,
+        };
+      }),
       summary: report?.summaryText ?? "",
       teacherNote: report?.teacherNote,
       quote: report?.quote,
     };
+    setReportData(data);
+    return () => urls.forEach(URL.revokeObjectURL);
   }, [student, sessions, month, report]);
 
   const handleCreateOrSwitch = async (newLayoutId?: string) => {
@@ -166,7 +187,6 @@ export default function MonthlyReportPage() {
             </button>
             {report && (
               <>
-                {/* Layout switcher */}
                 <select className="input w-auto text-sm" value={report.templateKey.layoutId}
                   onChange={(e) => handleCreateOrSwitch(e.target.value)}>
                   {LAYOUTS.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}

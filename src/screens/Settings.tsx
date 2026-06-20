@@ -7,6 +7,7 @@ import type { Settings } from "../db/types";
 export default function SettingsPage() {
   const settings = useLiveQuery(() => getSettings(), []);
   const [form, setForm] = useState<Settings | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | undefined>();
   const [newSubject, setNewSubject] = useState("");
   const [saving, setSaving] = useState(false);
   const [backupPass, setBackupPass] = useState("");
@@ -18,6 +19,13 @@ export default function SettingsPage() {
   useEffect(() => {
     if (settings && !form) setForm(JSON.parse(JSON.stringify(settings)));
   }, [settings, form]);
+
+  useEffect(() => {
+    if (!form?.logo) { setLogoUrl(undefined); return; }
+    const url = URL.createObjectURL(form.logo);
+    setLogoUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [form?.logo]);
 
   if (!settings || !form) {
     return <div className="p-4 text-gray-500">Memuat pengaturan...</div>;
@@ -93,8 +101,8 @@ export default function SettingsPage() {
         {/* Logo */}
         <div>
           <label className="block text-sm text-gray-600 mb-1">Logo (opsional)</label>
-          {form.logo && (
-            <img src={URL.createObjectURL(form.logo)} className="h-16 w-16 object-contain mb-2 rounded" alt="logo" />
+          {logoUrl && (
+            <img src={logoUrl} className="h-16 w-16 object-contain mb-2 rounded" alt="logo" />
           )}
           <input ref={fileRef} type="file" accept="image/*" onChange={handleLogo} className="text-sm" />
         </div>

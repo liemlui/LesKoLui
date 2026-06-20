@@ -22,6 +22,7 @@ export async function encryptJson(obj: unknown, passphrase: string): Promise<Blo
 
 export async function decryptJson(file: Blob, passphrase: string): Promise<unknown> {
   const buf = new Uint8Array(await file.arrayBuffer());
+  if (buf.length < 29) throw new Error("File backup tidak valid atau rusak.");
   const salt = buf.slice(0, 16), iv = buf.slice(16, 28), ct = buf.slice(28);
   const key = await deriveKey(passphrase, salt);
   const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ct);

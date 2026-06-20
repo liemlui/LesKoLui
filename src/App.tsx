@@ -7,7 +7,6 @@ import Students from "./screens/Students";
 import StudentDetail from "./screens/StudentDetail";
 import CaptureSession from "./screens/CaptureSession";
 import MonthlyReport from "./screens/MonthlyReport";
-import Payments from "./screens/Payments";
 import Settings from "./screens/Settings";
 
 function InstallPrompt() {
@@ -70,7 +69,6 @@ const router = createBrowserRouter([
       { path: "/students/:id", element: <StudentDetail /> },
       { path: "/capture", element: <CaptureSession /> },
       { path: "/report", element: <MonthlyReport /> },
-      { path: "/payments", element: <Payments /> },
       { path: "/settings", element: <Settings /> },
       { path: "*", element: <Navigate to="/" replace /> },
     ],

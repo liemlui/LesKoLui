@@ -4,7 +4,7 @@ const navItems = [
   { to: "/", label: "Home", icon: "🏠" },
   { to: "/students", label: "Murid", icon: "👥" },
   { to: "/capture", label: "Catat", icon: "📝" },
-  { to: "/payments", label: "Bayaran", icon: "💰" },
+  { to: "/report", label: "Laporan", icon: "📊" },
   { to: "/settings", label: "Atur", icon: "⚙️" },
 ];
 

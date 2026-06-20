@@ -54,7 +54,7 @@ export async function shareFiles(files: File[], title: string) {
       a.href = url;
       a.download = f.name;
       a.click();
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 100);
     }
   }
 }

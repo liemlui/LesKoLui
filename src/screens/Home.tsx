@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import { listSessionsToday, listStudents } from "../db/repos";
-import { dayLabel } from "../lib/format";
+import { dayLabel, todayWIB } from "../lib/format";
 
 export default function Home() {
   const todaySessions = useLiveQuery(() => listSessionsToday(), []);
@@ -16,7 +16,7 @@ export default function Home() {
         <h1 className="text-3xl font-bold" style={{ fontFamily: "'Fredoka', sans-serif" }}>
           Les Ko Lui
         </h1>
-        <p className="text-gray-500 text-sm mt-1">{dayLabel(new Date().toISOString().slice(0, 10))}</p>
+        <p className="text-gray-500 text-sm mt-1">{dayLabel(todayWIB())}</p>
       </div>
 
       {/* Quick Record */}
@@ -63,9 +63,9 @@ export default function Home() {
           <span className="text-2xl">📊</span>
           <p className="font-medium text-sm mt-1">Laporan</p>
         </Link>
-        <Link to="/payments" className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center hover:shadow-md transition-shadow">
-          <span className="text-2xl">💰</span>
-          <p className="font-medium text-sm mt-1">Bayaran</p>
+        <Link to="/students" className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center hover:shadow-md transition-shadow">
+          <span className="text-2xl">👥</span>
+          <p className="font-medium text-sm mt-1">Murid</p>
         </Link>
         <Link to="/settings" className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center hover:shadow-md transition-shadow">
           <span className="text-2xl">⚙️</span>
