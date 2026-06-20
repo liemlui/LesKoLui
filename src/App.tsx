@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Outlet, Navigate } from "react-router-dom";
 import BottomNav from "./components/BottomNav";
 import Home from "./screens/Home";
 import Students from "./screens/Students";
@@ -40,32 +40,41 @@ function InstallPrompt() {
   return (
     <div className="fixed bottom-20 left-4 right-4 z-50 bg-blue-600 text-white rounded-xl p-4 shadow-lg flex items-center justify-between">
       <p className="text-sm">Install Les Ko Lui di layar utama</p>
-      <button onClick={handleInstall} className="bg-white text-blue-600 font-semibold px-4 py-1 rounded-lg text-sm">Install</button>
+      <button onClick={handleInstall} className="bg-white text-blue-600 font-semibold px-4 py-1 rounded-lg text-sm whitespace-nowrap">Install</button>
     </div>
   );
 }
 
-export default function App() {
+function Layout() {
   useEffect(() => {
     if (navigator.storage?.persist) navigator.storage.persist();
   }, []);
 
   return (
-    <BrowserRouter>
-      <div className="max-w-md mx-auto min-h-dvh pb-16">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/students" element={<Students />} />
-          <Route path="/students/:id" element={<StudentDetail />} />
-          <Route path="/capture" element={<CaptureSession />} />
-          <Route path="/report" element={<MonthlyReport />} />
-          <Route path="/payments" element={<Payments />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </div>
+    <div className="max-w-md mx-auto min-h-screen pb-16">
+      <Outlet />
       <BottomNav />
       <InstallPrompt />
-    </BrowserRouter>
+    </div>
   );
+}
+
+const router = createBrowserRouter([
+  {
+    element: <Layout />,
+    children: [
+      { path: "/", element: <Home /> },
+      { path: "/students", element: <Students /> },
+      { path: "/students/:id", element: <StudentDetail /> },
+      { path: "/capture", element: <CaptureSession /> },
+      { path: "/report", element: <MonthlyReport /> },
+      { path: "/payments", element: <Payments /> },
+      { path: "/settings", element: <Settings /> },
+      { path: "*", element: <Navigate to="/" replace /> },
+    ],
+  },
+]);
+
+export default function App() {
+  return <RouterProvider router={router} />;
 }
