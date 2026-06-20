@@ -212,9 +212,10 @@ export default function CaptureSession() {
           </div>
 
           {/* Detail opsional */}
-          <button type="button" className="text-sm text-blue-600 font-medium"
+          <button type="button"
+            className="flex items-center gap-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-xl transition-colors w-full justify-center"
             onClick={() => setShowDetail(!showDetail)}>
-            {showDetail ? "▲ Sembunyikan detail" : "▼ Detail tambahan"}
+            {showDetail ? "▲ Sembunyikan detail" : "▼ Detail tambahan (topik, nilai, catatan)"}
           </button>
           {showDetail && (
             <div className="space-y-3 pt-1">

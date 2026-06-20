@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getStudent, listSessionsByStudent } from "../db/repos";
 import { dayLabel, monthLabel, monthOf } from "../lib/format";
@@ -7,6 +7,7 @@ import type { Session } from "../db/types";
 
 export default function StudentDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const student    = useLiveQuery(() => (id ? getStudent(id) : undefined), [id]);
   const allSessions = useLiveQuery(() => (id ? listSessionsByStudent(id) : []), [id]);
 
@@ -29,7 +30,12 @@ export default function StudentDetail() {
 
   return (
     <div className="p-4 space-y-4 pb-20">
-      <Link to="/students" className="text-blue-600 text-sm">&larr; Kembali</Link>
+      <div className="flex items-center justify-between">
+        <button onClick={() => navigate(-1)}
+          className="flex items-center gap-1.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-xl transition-colors">
+          ‹ Kembali
+        </button>
+      </div>
 
       <h1 className="text-2xl font-bold">{student.name}</h1>
 
