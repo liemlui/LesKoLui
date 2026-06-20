@@ -83,10 +83,8 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
         </div>
       </div>
 
-      <div>
-        <label className="label">Tarif per Jam (IDR)</label>
-        <input className="input" type="number" value={hourlyRate} onChange={(e) => setHourlyRate(Number(e.target.value))} />
-      </div>
+      {/* Tarif per jam — hidden from main view, diatur di Pengaturan */}
+      <input type="hidden" value={hourlyRate} onChange={(e) => setHourlyRate(Number(e.target.value))} />
 
       <div>
         <label className="label">Catatan (opsional)</label>

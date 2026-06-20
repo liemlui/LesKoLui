@@ -24,9 +24,10 @@ export default function MonthlyReportPage() {
   const [month, setMonth] = useState(() => monthOf(todayWIB()));
 
   // PIN lock for rekap keuangan
-  const [pinUnlocked, setPinUnlocked] = useState(false);
-  const [pinInput, setPinInput]       = useState("")
-  const [pinError, setPinError]       = useState(false);
+  const [pinUnlocked,  setPinUnlocked]  = useState(false);
+  const [pinInput,     setPinInput]     = useState("");
+  const [pinConfirm,   setPinConfirm]   = useState("");
+  const [pinError,     setPinError]     = useState("");
 
   const [editingNarrative, setEditingNarrative] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
@@ -356,10 +357,13 @@ export default function MonthlyReportPage() {
                         </div>
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-700 cursor-pointer hover:text-blue-600"
+                      <div className="flex items-start gap-2 cursor-pointer group"
                         onClick={() => { setEditText(s.narrative ?? s.shortNote); setEditingNarrative(s.id); }}>
-                        {s.narrative ?? s.shortNote}
-                      </p>
+                        <p className="text-sm text-gray-700 flex-1 group-hover:text-blue-700 transition-colors">
+                          {s.narrative ?? s.shortNote}
+                        </p>
+                        <span className="text-gray-300 group-hover:text-blue-400 text-xs flex-shrink-0 pt-0.5 transition-colors">✏️</span>
+                      </div>
                     )}
                   </div>
                 ))}
@@ -387,41 +391,52 @@ export default function MonthlyReportPage() {
           {/* PIN gate */}
           {!pinUnlocked ? (
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center space-y-4">
-              <div className="text-4xl">🔐</div>
-              <p className="font-semibold text-gray-700">Masukkan PIN Keuangan</p>
+              <div className="text-5xl">🔐</div>
+              <p className="font-bold text-gray-800 text-lg">Rekap Keuangan</p>
               {!settings?.financialPin ? (
-                <div className="space-y-3">
-                  <p className="text-sm text-gray-400">Belum ada PIN. Buat PIN 4 digit untuk melindungi data keuangan.</p>
-                  <input className="input text-center text-xl tracking-widest font-mono" type="password"
-                    inputMode="numeric" maxLength={4} placeholder="••••"
-                    value={pinInput} onChange={(e) => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4))} />
-                  <button disabled={pinInput.length !== 4}
-                    className="btn-primary w-full disabled:opacity-50"
+                <div className="space-y-3 text-left">
+                  <p className="text-sm text-gray-500 text-center">Buat PIN 4 digit untuk melindungi data keuangan.</p>
+                  <div>
+                    <label className="label">PIN Baru</label>
+                    <input className="input text-center text-xl tracking-widest font-mono" type="password"
+                      inputMode="numeric" maxLength={4} placeholder="••••"
+                      value={pinInput} onChange={(e) => { setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4)); setPinError(""); }} />
+                  </div>
+                  <div>
+                    <label className="label">Konfirmasi PIN</label>
+                    <input className={`input text-center text-xl tracking-widest font-mono ${pinError ? "border-red-400" : ""}`}
+                      type="password" inputMode="numeric" maxLength={4} placeholder="••••"
+                      value={pinConfirm} onChange={(e) => { setPinConfirm(e.target.value.replace(/\D/g, "").slice(0, 4)); setPinError(""); }} />
+                  </div>
+                  {pinError && <p className="text-red-500 text-sm">{pinError}</p>}
+                  <button disabled={pinInput.length !== 4 || pinConfirm.length !== 4}
+                    className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold disabled:opacity-40 hover:bg-blue-700 transition-colors"
                     onClick={async () => {
+                      if (pinInput !== pinConfirm) { setPinError("PIN tidak cocok, coba lagi."); return; }
                       const s = await getSettings();
                       await (await import("../db/repos")).saveSettings({ ...s, financialPin: pinInput });
-                      setPinUnlocked(true); setPinInput("");
+                      setPinUnlocked(true); setPinInput(""); setPinConfirm(""); setPinError("");
                     }}>
                     Buat PIN & Masuk
                   </button>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <input className={`input text-center text-xl tracking-widest font-mono ${pinError ? "border-red-400" : ""}`}
+                  <input className={`input text-center text-2xl tracking-[0.5em] font-mono ${pinError ? "border-red-400" : ""}`}
                     type="password" inputMode="numeric" maxLength={4} placeholder="••••"
-                    value={pinInput} onChange={(e) => { setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4)); setPinError(false); }}
+                    value={pinInput} onChange={(e) => { setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4)); setPinError(""); }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         if (pinInput === settings.financialPin) { setPinUnlocked(true); setPinInput(""); }
-                        else { setPinError(true); setPinInput(""); }
+                        else { setPinError("PIN salah. Coba lagi."); setPinInput(""); }
                       }
                     }} />
-                  {pinError && <p className="text-red-500 text-sm">PIN salah. Coba lagi.</p>}
+                  {pinError && <p className="text-red-500 text-sm">{pinError}</p>}
                   <button disabled={pinInput.length !== 4}
-                    className="btn-primary w-full disabled:opacity-50"
+                    className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold disabled:opacity-40 hover:bg-blue-700 transition-colors"
                     onClick={() => {
                       if (pinInput === settings.financialPin) { setPinUnlocked(true); setPinInput(""); }
-                      else { setPinError(true); setPinInput(""); }
+                      else { setPinError("PIN salah. Coba lagi."); setPinInput(""); }
                     }}>
                     Masuk
                   </button>
@@ -432,7 +447,10 @@ export default function MonthlyReportPage() {
             <>
               <div className="flex items-center justify-between">
                 <p className="font-semibold text-gray-700">{monthLabel(month)}</p>
-                <button onClick={() => setPinUnlocked(false)} className="text-xs text-gray-400 hover:text-gray-600">Kunci 🔒</button>
+                <button onClick={() => setPinUnlocked(false)}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition-colors">
+                  🔒 Kunci
+                </button>
               </div>
 
               {/* 6-month bar chart */}

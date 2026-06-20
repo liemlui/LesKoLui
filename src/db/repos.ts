@@ -7,10 +7,8 @@ import { MIN_DURATION, DURATION_STEP, DEFAULT_RATE } from "./types";
 // ── Helpers ────────────────────────────────────────────────────────
 
 function todayWIB(): string {
-  const now = new Date();
-  const wibOffset = 7 * 60; // minutes
-  const local = new Date(now.getTime() + (now.getTimezoneOffset() + wibOffset) * 60_000);
-  return local.toISOString().slice(0, 10);
+  const wib = new Date(Date.now() + 7 * 60 * 60 * 1000);
+  return `${wib.getUTCFullYear()}-${String(wib.getUTCMonth() + 1).padStart(2, "0")}-${String(wib.getUTCDate()).padStart(2, "0")}`;
 }
 
 function monthRange(month: string): { start: string; end: string } {

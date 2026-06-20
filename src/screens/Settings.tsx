@@ -4,17 +4,31 @@ import { getSettings, saveSettings } from "../db/repos";
 import { exportBackup, importBackup } from "../lib/backup";
 import type { Settings } from "../db/types";
 
+function Toast({ msg, onClose }: { msg: string; onClose: () => void }) {
+  useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
+  const ok = msg.includes("✓");
+  return (
+    <div className={`fixed top-4 left-4 right-4 z-[70] max-w-md mx-auto px-4 py-3 rounded-xl shadow-lg text-sm font-medium ${ok ? "bg-green-600 text-white" : "bg-red-500 text-white"}`}>
+      {msg}
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const settings = useLiveQuery(() => getSettings(), []);
-  const [form, setForm] = useState<Settings | null>(null);
-  const [logoUrl, setLogoUrl] = useState<string | undefined>();
-  const [newSubject, setNewSubject] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [backupPass, setBackupPass] = useState("");
+  const [form,        setForm]        = useState<Settings | null>(null);
+  const [logoUrl,     setLogoUrl]     = useState<string | undefined>();
+  const [newSubject,  setNewSubject]  = useState("");
+  const [saving,      setSaving]      = useState(false);
+  const [toast,       setToast]       = useState("");
+  const [backupPass,  setBackupPass]  = useState("");
   const [restorePass, setRestorePass] = useState("");
-  const [backupMsg, setBackupMsg] = useState("");
+  const [showPinEdit, setShowPinEdit] = useState(false);
+  const [newPin,      setNewPin]      = useState("");
+  const [newPinConf,  setNewPinConf]  = useState("");
+  const [pinError,    setPinError]    = useState("");
   const restoreRef = useRef<HTMLInputElement>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const fileRef    = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (settings && !form) setForm(JSON.parse(JSON.stringify(settings)));
@@ -27,31 +41,25 @@ export default function SettingsPage() {
     return () => URL.revokeObjectURL(url);
   }, [form?.logo]);
 
-  if (!settings || !form) {
-    return <div className="p-4 text-gray-500">Memuat pengaturan...</div>;
-  }
+  if (!settings || !form) return <div className="p-4 text-gray-500">Memuat pengaturan...</div>;
 
   const update = <K extends keyof Settings>(key: K, value: Settings[K]) =>
     setForm((f) => (f ? { ...f, [key]: value } : f));
 
   const updateProfile = (field: string, value: string) =>
-    setForm((f) =>
-      f ? { ...f, tutorProfile: { ...f.tutorProfile, [field]: value } } : f
-    );
+    setForm((f) => f ? { ...f, tutorProfile: { ...f.tutorProfile, [field]: value } } : f);
 
   const updateAi = (field: string, value: string | boolean) =>
-    setForm((f) =>
-      f ? { ...f, ai: { ...f.ai, [field]: value } } : f
-    );
+    setForm((f) => f ? { ...f, ai: { ...f.ai, [field]: value } } : f);
 
   const handleSave = async () => {
     if (!form) return;
     setSaving(true);
     try {
       await saveSettings(form);
-      alert("Pengaturan disimpan!");
+      setToast("Pengaturan disimpan ✓");
     } catch (e) {
-      alert("Gagal menyimpan: " + (e as Error).message);
+      setToast("Gagal: " + (e as Error).message);
     } finally {
       setSaving(false);
     }
@@ -59,37 +67,40 @@ export default function SettingsPage() {
 
   const addSubject = () => {
     const s = newSubject.trim();
-    if (s && !form.subjects.includes(s)) {
-      update("subjects", [...form.subjects, s]);
-    }
+    if (s && !form.subjects.includes(s)) update("subjects", [...form.subjects, s]);
     setNewSubject("");
   };
 
-  const removeSubject = (subject: string) => {
+  const removeSubject = (subject: string) =>
     update("subjects", form.subjects.filter((s) => s !== subject));
-  };
 
   const handleLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        // Convert to Blob
-        const blob = new Blob([reader.result as ArrayBuffer], { type: file.type });
-        update("logo", blob);
-      };
-      reader.readAsArrayBuffer(file);
-    }
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => update("logo", new Blob([reader.result as ArrayBuffer], { type: file.type }));
+    reader.readAsArrayBuffer(file);
+  };
+
+  const handleSetPin = async () => {
+    if (newPin.length !== 4) { setPinError("PIN harus 4 digit."); return; }
+    if (newPin !== newPinConf) { setPinError("PIN tidak cocok."); return; }
+    await saveSettings({ ...form, financialPin: newPin });
+    setToast("PIN berhasil diperbarui ✓");
+    setShowPinEdit(false); setNewPin(""); setNewPinConf(""); setPinError("");
+    setForm((f) => f ? { ...f, financialPin: newPin } : f);
   };
 
   return (
-    <div className="p-4 space-y-6 pb-20">
+    <div className="p-4 space-y-6 pb-24">
+      {toast && <Toast msg={toast} onClose={() => setToast("")} />}
+
       <h1 className="text-2xl font-bold">Pengaturan</h1>
 
-      {/* Profile */}
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold text-gray-700">Profil Tutor</h2>
-        <input className="input" placeholder="Nama" value={form.tutorProfile.name}
+      {/* ── Profil Tutor ── */}
+      <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+        <h2 className="text-base font-semibold text-gray-700">Profil Tutor</h2>
+        <input className="input" placeholder="Nama tutor" value={form.tutorProfile.name}
           onChange={(e) => updateProfile("name", e.target.value)} />
         <input className="input" placeholder="Nomor HP" value={form.tutorProfile.phone}
           onChange={(e) => updateProfile("phone", e.target.value)} />
@@ -97,117 +108,160 @@ export default function SettingsPage() {
           onChange={(e) => updateProfile("email", e.target.value)} />
         <input className="input" placeholder="Alamat (opsional)" value={form.tutorProfile.address ?? ""}
           onChange={(e) => updateProfile("address", e.target.value)} />
-
-        {/* Logo */}
         <div>
-          <label className="block text-sm text-gray-600 mb-1">Logo (opsional)</label>
+          <label className="label">Logo (tampil di laporan)</label>
           {logoUrl && (
-            <img src={logoUrl} className="h-16 w-16 object-contain mb-2 rounded" alt="logo" />
+            <div className="flex items-center gap-3 mb-2">
+              <img src={logoUrl} className="h-14 w-14 object-contain rounded-lg border border-gray-200" alt="logo" />
+              <button onClick={() => { update("logo", undefined); setLogoUrl(undefined); }}
+                className="text-xs text-red-500 hover:text-red-700 font-medium px-2 py-1 bg-red-50 rounded-lg">
+                Hapus Logo
+              </button>
+            </div>
           )}
-          <input ref={fileRef} type="file" accept="image/*" onChange={handleLogo} className="text-sm" />
+          <input ref={fileRef} type="file" accept="image/*" onChange={handleLogo} className="hidden" />
+          <button onClick={() => fileRef.current?.click()}
+            className="flex items-center gap-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-xl font-medium transition-colors">
+            📷 {logoUrl ? "Ganti Logo" : "Upload Logo"}
+          </button>
         </div>
       </section>
 
-      <hr className="border-gray-200" />
-
-      {/* Rate */}
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold text-gray-700">Tarif</h2>
-        <label className="text-sm text-gray-600">Tarif Default (IDR/jam)</label>
-        <input className="input" type="number" value={form.defaultRate}
-          onChange={(e) => update("defaultRate", Number(e.target.value))} />
-        <input className="input" placeholder="Info Pembayaran (internal)" value={form.paymentInfo}
-          onChange={(e) => update("paymentInfo", e.target.value)} />
-      </section>
-
-      <hr className="border-gray-200" />
-
-      {/* Subjects */}
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold text-gray-700">Mata Pelajaran</h2>
+      {/* ── Mata Pelajaran ── */}
+      <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+        <h2 className="text-base font-semibold text-gray-700">Mata Pelajaran Default</h2>
         <div className="flex flex-wrap gap-2">
           {form.subjects.map((s) => (
-            <span key={s} className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded-full text-sm">
+            <span key={s} className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full text-sm font-medium">
               {s}
-              <button onClick={() => removeSubject(s)} className="text-blue-400 hover:text-red-500">&times;</button>
+              <button onClick={() => removeSubject(s)} className="text-blue-300 hover:text-red-500 ml-0.5 font-bold leading-none">&times;</button>
             </span>
           ))}
         </div>
         <div className="flex gap-2">
-          <input className="input flex-1" placeholder="Tambah pelajaran..." value={newSubject}
+          <input className="input flex-1" placeholder="Tambah pelajaran baru..." value={newSubject}
             onChange={(e) => setNewSubject(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addSubject()} />
-          <button onClick={addSubject} className="btn btn-secondary">Tambah</button>
+          <button onClick={addSubject}
+            className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors flex-shrink-0">
+            Tambah
+          </button>
         </div>
       </section>
 
-      {/* AI */}
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold text-gray-700">AI (DeepSeek)</h2>
-        <label className="flex items-center gap-2">
-          <input type="checkbox" checked={form.ai.enabled}
-            onChange={(e) => updateAi("enabled", e.target.checked)} />
-          <span className="text-sm">Aktifkan AI</span>
+      {/* ── AI DeepSeek ── */}
+      <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+        <h2 className="text-base font-semibold text-gray-700">AI (DeepSeek)</h2>
+        <label className="flex items-center gap-3 cursor-pointer">
+          <button type="button"
+            className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${form.ai.enabled ? "bg-blue-500" : "bg-gray-300"}`}
+            onClick={() => updateAi("enabled", !form.ai.enabled)}>
+            <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.ai.enabled ? "translate-x-4" : "translate-x-0.5"}`} />
+          </button>
+          <span className="text-sm text-gray-700 font-medium">Aktifkan AI untuk narasi laporan</span>
         </label>
-        <input className="input" placeholder="Worker URL (opsional)" value={form.ai.workerUrl}
-          onChange={(e) => updateAi("workerUrl", e.target.value)} />
-        <input className="input" type="password" placeholder="DeepSeek API Key" value={form.ai.apiKey}
-          onChange={(e) => updateAi("apiKey", e.target.value)} />
-        <input className="input" placeholder="Model (default: deepseek-chat)" value={form.ai.model}
-          onChange={(e) => updateAi("model", e.target.value)} />
+        <input className="input" type="password" placeholder="DeepSeek API Key"
+          value={form.ai.apiKey} onChange={(e) => updateAi("apiKey", e.target.value)} />
+        <input className="input" placeholder="Worker URL (kosongkan jika pakai API langsung)"
+          value={form.ai.workerUrl} onChange={(e) => updateAi("workerUrl", e.target.value)} />
+        <input className="input" placeholder="Model (default: deepseek-chat)"
+          value={form.ai.model} onChange={(e) => updateAi("model", e.target.value)} />
       </section>
 
-      <hr className="border-gray-200" />
-
-      {/* Backup & Restore */}
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold text-gray-700">Backup & Restore</h2>
-        {backupMsg && (
-          <p className={`text-sm ${backupMsg.includes("✓") ? "text-green-600" : "text-red-500"}`}>{backupMsg}</p>
+      {/* ── PIN Keuangan ── */}
+      <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold text-gray-700">PIN Rekap Keuangan</h2>
+          {form.financialPin
+            ? <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">Aktif 🔐</span>
+            : <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full">Belum diatur</span>}
+        </div>
+        {!showPinEdit ? (
+          <button onClick={() => setShowPinEdit(true)}
+            className="text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-xl transition-colors">
+            {form.financialPin ? "Ganti PIN" : "Buat PIN"}
+          </button>
+        ) : (
+          <div className="space-y-3">
+            <div>
+              <label className="label">PIN Baru (4 digit)</label>
+              <input className="input text-center text-xl tracking-widest font-mono" type="password"
+                inputMode="numeric" maxLength={4} placeholder="••••"
+                value={newPin} onChange={(e) => { setNewPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setPinError(""); }} />
+            </div>
+            <div>
+              <label className="label">Konfirmasi PIN</label>
+              <input className={`input text-center text-xl tracking-widest font-mono ${pinError ? "border-red-400" : ""}`}
+                type="password" inputMode="numeric" maxLength={4} placeholder="••••"
+                value={newPinConf} onChange={(e) => { setNewPinConf(e.target.value.replace(/\D/g, "").slice(0, 4)); setPinError(""); }} />
+            </div>
+            {pinError && <p className="text-red-500 text-sm">{pinError}</p>}
+            <div className="flex gap-2">
+              <button onClick={handleSetPin} disabled={newPin.length !== 4 || newPinConf.length !== 4}
+                className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-40 hover:bg-blue-700 transition-colors">
+                Simpan PIN
+              </button>
+              <button onClick={() => { setShowPinEdit(false); setNewPin(""); setNewPinConf(""); setPinError(""); }}
+                className="px-4 py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-medium hover:bg-gray-200 transition-colors">
+                Batal
+              </button>
+            </div>
+          </div>
         )}
+      </section>
+
+      {/* ── Backup & Restore ── */}
+      <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+        <h2 className="text-base font-semibold text-gray-700">Backup & Restore</h2>
         <div>
           <label className="label">Kata Sandi Backup</label>
           <input className="input" type="password" value={backupPass}
-            onChange={(e) => setBackupPass(e.target.value)} placeholder="Masukkan kata sandi" />
+            onChange={(e) => setBackupPass(e.target.value)} placeholder="Buat kata sandi untuk enkripsi" />
         </div>
-        <div className="flex gap-2">
-          <button className="btn-primary text-sm flex-1" onClick={async () => {
-            if (!backupPass) { setBackupMsg("Masukkan kata sandi!"); return; }
+        <button className="w-full py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors"
+          onClick={async () => {
+            if (!backupPass) { setToast("Masukkan kata sandi backup!"); return; }
             try {
               const blob = await exportBackup(backupPass);
               const url = URL.createObjectURL(blob);
               const a = document.createElement("a");
-              a.href = url;
-              a.download = `jurnalles-backup-${new Date().toISOString().slice(0, 10)}.jles`;
-              a.click();
-              URL.revokeObjectURL(url);
-              setBackupMsg("Backup berhasil ✓");
-            } catch (e) { setBackupMsg("Gagal: " + (e as Error).message); }
-          }}>Ekspor Backup</button>
+              a.href = url; a.download = `leskolui-backup-${new Date().toISOString().slice(0, 10)}.jles`;
+              a.click(); URL.revokeObjectURL(url);
+              setToast("Backup berhasil diunduh ✓");
+            } catch (e) { setToast("Backup gagal: " + (e as Error).message); }
+          }}>
+          Ekspor Backup
+        </button>
+
+        <hr className="border-gray-100" />
+
+        <div>
+          <label className="label">Restore dari file backup</label>
+          <input ref={restoreRef} type="file" accept=".jles" className="text-sm text-gray-600 w-full" />
         </div>
-        <div className="flex gap-2">
-          <input ref={restoreRef} type="file" accept=".jles" className="text-sm flex-1" />
-          <button className="btn-secondary text-sm" onClick={async () => {
+        <div>
+          <label className="label">Kata Sandi Backup (untuk restore)</label>
+          <input className="input" type="password" value={restorePass}
+            onChange={(e) => setRestorePass(e.target.value)} placeholder="Kata sandi yang dipakai saat backup" />
+        </div>
+        <button className="w-full py-2.5 rounded-xl bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 transition-colors"
+          onClick={async () => {
             const file = restoreRef.current?.files?.[0];
-            if (!file || !restorePass) { setBackupMsg("Pilih file backup dan masukkan kata sandi!"); return; }
+            if (!file || !restorePass) { setToast("Pilih file dan masukkan kata sandi!"); return; }
             if (!confirm("Yakin restore? Semua data saat ini akan diganti!")) return;
             try {
               await importBackup(file, restorePass);
-              setBackupMsg("Restore berhasil! Muat ulang halaman... ✓");
+              setToast("Restore berhasil! Memuat ulang... ✓");
               setTimeout(() => location.reload(), 1500);
-            } catch (e) { setBackupMsg("Gagal: " + (e as Error).message); }
-          }}>Restore</button>
-        </div>
-        <div>
-          <label className="label">Kata Sandi (untuk restore)</label>
-          <input className="input" type="password" value={restorePass}
-            onChange={(e) => setRestorePass(e.target.value)} placeholder="Kata sandi backup" />
-        </div>
+            } catch (e) { setToast("Restore gagal: " + (e as Error).message); }
+          }}>
+          Restore Data
+        </button>
       </section>
 
-      {/* Save */}
+      {/* ── Simpan ── */}
       <button onClick={handleSave} disabled={saving}
-        className="btn btn-primary w-full">
+        className="w-full py-3.5 rounded-xl bg-blue-600 text-white font-bold text-base hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm">
         {saving ? "Menyimpan..." : "Simpan Pengaturan"}
       </button>
     </div>

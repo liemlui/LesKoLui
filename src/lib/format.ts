@@ -3,12 +3,11 @@
  * Never compute month from a UTC timestamp.
  */
 
-/** Today's date in WIB (UTC+7) as "YYYY-MM-DD" */
+/** Today's date in WIB (UTC+7) as "YYYY-MM-DD".
+ *  Always adds 7h to UTC then reads UTC fields — device timezone irrelevant. */
 export function todayWIB(): string {
-  const now = new Date();
-  const wibOffset = 7 * 60; // minutes ahead of UTC
-  const local = new Date(now.getTime() + (now.getTimezoneOffset() + wibOffset) * 60_000);
-  return local.toISOString().slice(0, 10);
+  const wib = new Date(Date.now() + 7 * 60 * 60 * 1000);
+  return `${wib.getUTCFullYear()}-${String(wib.getUTCMonth() + 1).padStart(2, "0")}-${String(wib.getUTCDate()).padStart(2, "0")}`;
 }
 
 /** Extract "YYYY-MM" from a "YYYY-MM-DD" string */

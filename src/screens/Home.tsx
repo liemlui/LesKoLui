@@ -364,7 +364,7 @@ export default function Home() {
               );
             })}
           </div>
-          {selectedDay && weekByDay.has(selectedDay) && renderDayDetail(selectedDay, weekByDay.get(selectedDay) ?? [])}
+          {selectedDay && renderDayDetail(selectedDay, weekByDay.get(selectedDay) ?? [])}
         </div>
       )}
 
@@ -389,7 +389,7 @@ export default function Home() {
             </div>
             <div className="px-4 py-2 flex items-center justify-between border-b border-gray-50">
               <p className="text-xs text-gray-400">{(daySessions ?? []).length} sesi</p>
-              <button onClick={() => openAdd(anchor)} className="text-sm text-blue-600 font-semibold">+ Jadwal</button>
+              <button onClick={() => openAdd(anchor)} className="flex items-center gap-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg transition-colors">+ Jadwal</button>
             </div>
 
             {/* Untimed sessions (pinned above grid) */}
