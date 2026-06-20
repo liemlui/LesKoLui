@@ -215,22 +215,22 @@ export default function Home() {
         </div>
         <div className="grid grid-cols-7">
           {cells.map((date, i) => {
-            if (!date) return <div key={`e${i}`} className="min-h-[52px] border-b border-r border-gray-50" />;
+            if (!date) return <div key={`e${i}`} className="min-h-[64px] border-b border-r border-gray-50" />;
             const daySess = monthByDay.get(date) ?? [];
             const isToday = date === today;
             const isSelected = date === selectedDay;
             const dayNum = parseInt(date.slice(8), 10);
             return (
               <button key={date} onClick={() => setSelectedDay(isSelected ? null : date)}
-                className={`min-h-[52px] flex flex-col items-start p-1 border-b border-r border-gray-50 transition-colors ${isSelected ? "bg-blue-50" : "hover:bg-gray-50"}`}>
+                className={`min-h-[64px] flex flex-col items-start p-1 border-b border-r border-gray-50 transition-colors ${isSelected ? "bg-blue-50" : "hover:bg-gray-50"}`}>
                 <span className={`text-xs font-medium w-5 h-5 flex items-center justify-center rounded-full mb-0.5 self-center ${isToday ? "bg-blue-600 text-white" : "text-gray-600"}`}>
                   {dayNum}
                 </span>
                 {daySess.slice(0, 2).map((s) => {
                   const info = studentMap.get(s.studentId);
                   return (
-                    <div key={s.id} className="w-full text-left truncate rounded px-1 mb-0.5 leading-tight"
-                      style={{ background: (info?.color ?? "#9CA3AF") + (s.status === "DONE" ? "20" : "35"), color: info?.color ?? "#6B7280", fontSize: 9, fontWeight: 600 }}>
+                    <div key={s.id} className="w-full text-left truncate rounded px-1 py-0.5 mb-0.5"
+                      style={{ background: (info?.color ?? "#9CA3AF") + (s.status === "DONE" ? "18" : "30"), color: info?.color ?? "#6B7280", fontSize: 10, fontWeight: 700, lineHeight: 1.3 }}>
                       {info?.name?.split(" ")[0] ?? "—"}
                     </div>
                   );
@@ -392,8 +392,8 @@ export default function Home() {
 
       {/* ── ADD SCHEDULE MODAL ── */}
       {showAdd && selectedDay && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-end" onClick={() => setShowAdd(false)}>
-          <div className="bg-white w-full rounded-t-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 z-[60] flex items-end" onClick={() => setShowAdd(false)}>
+          <div className="bg-white w-full rounded-t-2xl p-5 pb-8 space-y-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-lg">Jadwalkan Sesi</h3>
               <button onClick={() => setShowAdd(false)} className="text-gray-400 text-xl">✕</button>
@@ -473,7 +473,7 @@ export default function Home() {
 
       {/* ── CANCEL MODAL ── */}
       {cancelTarget && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-end" onClick={() => setCancelTarget(null)}>
+        <div className="fixed inset-0 bg-black/40 z-[60] flex items-end" onClick={() => setCancelTarget(null)}>
           <div className="bg-white w-full rounded-t-2xl p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-bold text-lg">Batalkan Jadwal</h3>
             <p className="text-sm text-gray-500">
@@ -509,7 +509,7 @@ export default function Home() {
 
       {/* ── REASSIGN MODAL ── */}
       {reassignTarget && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-end" onClick={() => setReassignTarget(null)}>
+        <div className="fixed inset-0 bg-black/40 z-[60] flex items-end" onClick={() => setReassignTarget(null)}>
           <div className="bg-white w-full rounded-t-2xl p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-lg">Ganti Murid</h3>

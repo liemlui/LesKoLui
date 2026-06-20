@@ -82,6 +82,7 @@ export interface Settings {
   defaultRate: number;
   paymentInfo: string;
   subjects: string[];
+  financialPin?: string;
   ai: { enabled: boolean; workerUrl: string; apiKey: string; model: string };
   templatePref: { excludedThemeIds?: string[] };
 }

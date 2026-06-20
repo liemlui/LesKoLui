@@ -69,7 +69,9 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
       </div>
 
       <div>
-        <label className="label">Mata Pelajaran</label>
+        <label className="label">
+          Mata Pelajaran <span className="text-gray-400 font-normal text-xs">(opsional)</span>
+        </label>
         <div className="flex flex-wrap gap-2">
           {settings.subjects.map((s) => (
             <button type="button" key={s}

@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Link } from "react-router-dom";
 import { listStudents, createStudent, updateStudent, listSessionsForMonth } from "../db/repos";
-import { todayWIB, monthOf, monthLabel, formatRupiah } from "../lib/format";
+import { todayWIB, monthOf, monthLabel } from "../lib/format";
 import type { Student } from "../db/types";
 import StudentForm from "../components/StudentForm";
 
@@ -26,10 +26,6 @@ export default function Students() {
     return m;
   }, [monthSessions]);
 
-  const totalMonthCost = useMemo(
-    () => [...statsMap.values()].reduce((sum, s) => sum + s.cost, 0),
-    [statsMap]
-  );
   const totalMonthSessions = useMemo(
     () => [...statsMap.values()].reduce((sum, s) => sum + s.count, 0),
     [statsMap]
@@ -68,7 +64,7 @@ export default function Students() {
               {monthLabel(currentMonth)}
             </p>
             <p className="text-sm font-bold text-blue-900">
-              {totalMonthSessions} sesi · {formatRupiah(totalMonthCost)}
+              {totalMonthSessions} sesi bulan ini
             </p>
           </div>
           <span className="text-2xl">📈</span>
@@ -103,10 +99,9 @@ export default function Students() {
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold truncate">{s.name}</p>
                   <p className="text-sm text-gray-500">{s.level} · {s.subjects.join(", ")}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{formatRupiah(s.hourlyRate)}/jam</p>
                   {stats ? (
-                    <p className="text-xs text-green-600 font-medium mt-1">
-                      Bulan ini: {stats.count} sesi · {stats.hours}j · {formatRupiah(stats.cost)}
+                    <p className="text-xs text-blue-600 font-medium mt-1">
+                      Bulan ini: {stats.count} sesi · {stats.hours}j
                     </p>
                   ) : (
                     <p className="text-xs text-gray-300 mt-1">Belum ada sesi bulan ini</p>

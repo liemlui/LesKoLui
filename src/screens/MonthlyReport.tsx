@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   listStudents, getStudent, getSettings,
-  listSessionsByStudentMonth, listSessionsForMonth,
+  listSessionsByStudentMonth, listSessionsForMonth, listDoneSessionsForDateRange,
   getReport, upsertReport, updateSession,
 } from "../db/repos";
 import { pickTemplate } from "../lib/rotation";
@@ -23,6 +23,11 @@ export default function MonthlyReportPage() {
   const [studentId, setStudentId] = useState("");
   const [month, setMonth] = useState(() => monthOf(todayWIB()));
 
+  // PIN lock for rekap keuangan
+  const [pinUnlocked, setPinUnlocked] = useState(false);
+  const [pinInput, setPinInput]       = useState("")
+  const [pinError, setPinError]       = useState(false);
+
   const [editingNarrative, setEditingNarrative] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [editingSummary, setEditingSummary] = useState(false);
@@ -39,7 +44,37 @@ export default function MonthlyReportPage() {
   const report   = useLiveQuery(() => (studentId ? getReport(studentId, month) : undefined), [studentId, month]);
 
   // Rekap keuangan: semua sesi semua murid di bulan ini
-  const rekapSessions = useLiveQuery(() => (activeTab === "rekap" ? listSessionsForMonth(month) : []), [activeTab, month]);
+  const rekapSessions = useLiveQuery(
+    () => (activeTab === "rekap" && pinUnlocked ? listSessionsForMonth(month) : []),
+    [activeTab, pinUnlocked, month]
+  );
+
+  // 6-month chart: last 6 months including current
+  const chartData = useMemo(() => {
+    const months: string[] = [];
+    const [cy, cm] = month.split("-").map(Number);
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(cy, cm - 1 - i, 1);
+      months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    }
+    return months;
+  }, [month]);
+
+  const chartSessions = useLiveQuery(async () => {
+    if (!pinUnlocked) return [];
+    const start = chartData[0] + "-01";
+    const end   = month + "-31";
+    return listDoneSessionsForDateRange(start, end);
+  }, [pinUnlocked, chartData, month]);
+
+  const chartBars = useMemo(() => {
+    if (!chartSessions) return [];
+    return chartData.map((m) => {
+      const cost = (chartSessions ?? []).filter((s) => s.date.startsWith(m)).reduce((sum, s) => sum + s.cost, 0);
+      const label = new Date(m + "-01").toLocaleDateString("id-ID", { month: "short" });
+      return { m, label, cost };
+    });
+  }, [chartSessions, chartData]);
 
   const totalHours = useMemo(() => sessions?.reduce((s, x) => s + x.durationHours, 0) ?? 0, [sessions]);
   const totalCost  = useMemo(() => sessions?.reduce((s, x) => s + x.cost, 0) ?? 0, [sessions]);
@@ -217,7 +252,6 @@ export default function MonthlyReportPage() {
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex justify-around text-center">
             <div><p className="text-lg font-bold">{sessions.length}</p><p className="text-xs text-gray-500">Sesi</p></div>
             <div><p className="text-lg font-bold">{totalHours}j</p><p className="text-xs text-gray-500">Jam</p></div>
-            <div><p className="text-lg font-bold">{formatRupiah(totalCost)}</p><p className="text-xs text-gray-500">Biaya</p></div>
           </div>
 
           {/* AI Button — tersedia begitu ada sesi */}
@@ -349,35 +383,132 @@ export default function MonthlyReportPage() {
 
       {/* ── TAB: REKAP KEUANGAN ── */}
       {activeTab === "rekap" && (
-        <div className="space-y-3">
-          <p className="text-sm font-semibold text-gray-600">{monthLabel(month)}</p>
-          {!rekapSessions ? (
-            <p className="text-gray-400 text-sm">Memuat...</p>
-          ) : rekapByStudent.length === 0 ? (
-            <div className="text-center py-10">
-              <p className="text-3xl mb-2">📭</p>
-              <p className="text-gray-400 text-sm">Belum ada sesi di {monthLabel(month)}.</p>
+        <div className="space-y-4">
+          {/* PIN gate */}
+          {!pinUnlocked ? (
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center space-y-4">
+              <div className="text-4xl">🔐</div>
+              <p className="font-semibold text-gray-700">Masukkan PIN Keuangan</p>
+              {!settings?.financialPin ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-400">Belum ada PIN. Buat PIN 4 digit untuk melindungi data keuangan.</p>
+                  <input className="input text-center text-xl tracking-widest font-mono" type="password"
+                    inputMode="numeric" maxLength={4} placeholder="••••"
+                    value={pinInput} onChange={(e) => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4))} />
+                  <button disabled={pinInput.length !== 4}
+                    className="btn-primary w-full disabled:opacity-50"
+                    onClick={async () => {
+                      const s = await getSettings();
+                      await (await import("../db/repos")).saveSettings({ ...s, financialPin: pinInput });
+                      setPinUnlocked(true); setPinInput("");
+                    }}>
+                    Buat PIN & Masuk
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <input className={`input text-center text-xl tracking-widest font-mono ${pinError ? "border-red-400" : ""}`}
+                    type="password" inputMode="numeric" maxLength={4} placeholder="••••"
+                    value={pinInput} onChange={(e) => { setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4)); setPinError(false); }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        if (pinInput === settings.financialPin) { setPinUnlocked(true); setPinInput(""); }
+                        else { setPinError(true); setPinInput(""); }
+                      }
+                    }} />
+                  {pinError && <p className="text-red-500 text-sm">PIN salah. Coba lagi.</p>}
+                  <button disabled={pinInput.length !== 4}
+                    className="btn-primary w-full disabled:opacity-50"
+                    onClick={() => {
+                      if (pinInput === settings.financialPin) { setPinUnlocked(true); setPinInput(""); }
+                      else { setPinError(true); setPinInput(""); }
+                    }}>
+                    Masuk
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <>
-              <div className="space-y-2">
-                {rekapByStudent.map((r) => (
-                  <div key={r.name} className="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100 flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{r.name}</p>
-                      <p className="text-xs text-gray-500">{r.count} sesi · {r.hours}j</p>
+              <div className="flex items-center justify-between">
+                <p className="font-semibold text-gray-700">{monthLabel(month)}</p>
+                <button onClick={() => setPinUnlocked(false)} className="text-xs text-gray-400 hover:text-gray-600">Kunci 🔒</button>
+              </div>
+
+              {/* 6-month bar chart */}
+              {chartBars.length > 0 && (() => {
+                const maxCost = Math.max(...chartBars.map((b) => b.cost), 1);
+                return (
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                    <p className="text-xs text-gray-400 font-medium mb-3 uppercase tracking-wide">Trend 6 Bulan</p>
+                    <div className="flex items-end gap-1.5 h-28">
+                      {chartBars.map((b) => {
+                        const pct = (b.cost / maxCost) * 100;
+                        const isSelected = b.m === month;
+                        return (
+                          <div key={b.m} className="flex-1 flex flex-col items-center gap-1">
+                            <p className="text-xs font-semibold text-green-700" style={{ fontSize: 8 }}>
+                              {b.cost > 0 ? formatRupiah(b.cost) : ""}
+                            </p>
+                            <div className="w-full rounded-t-md transition-all" style={{
+                              height: `${Math.max(pct, 4)}%`,
+                              background: isSelected ? "#10B981" : "#D1FAE5",
+                            }} />
+                            <p className="text-xs text-gray-400" style={{ fontSize: 9 }}>{b.label}</p>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <p className="font-bold text-green-700">{formatRupiah(r.cost)}</p>
                   </div>
-                ))}
-              </div>
-              <div className="bg-green-50 rounded-xl px-4 py-4 flex items-center justify-between border border-green-200">
-                <div>
-                  <p className="font-bold text-green-900">Total Pemasukan</p>
-                  <p className="text-xs text-green-700">{rekapTotal.count} sesi · {rekapTotal.hours}j</p>
+                );
+              })()}
+
+              {/* Per-student this month */}
+              {!rekapSessions ? (
+                <p className="text-gray-400 text-sm">Memuat...</p>
+              ) : rekapByStudent.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-3xl mb-2">📭</p>
+                  <p className="text-gray-400 text-sm">Belum ada sesi di {monthLabel(month)}.</p>
                 </div>
-                <p className="text-2xl font-bold text-green-700">{formatRupiah(rekapTotal.cost)}</p>
-              </div>
+              ) : (
+                <>
+                  {/* Donut-style per-student breakdown */}
+                  {rekapTotal.cost > 0 && (
+                    <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                      <p className="text-xs text-gray-400 font-medium mb-3 uppercase tracking-wide">Per Murid</p>
+                      <div className="space-y-2">
+                        {rekapByStudent.map((r) => {
+                          const pct = Math.round((r.cost / rekapTotal.cost) * 100);
+                          return (
+                            <div key={r.name}>
+                              <div className="flex justify-between text-sm mb-0.5">
+                                <span className="font-medium text-gray-700">{r.name}</span>
+                                <span className="text-green-700 font-semibold">{formatRupiah(r.cost)}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 bg-gray-100 rounded-full h-2">
+                                  <div className="h-2 rounded-full bg-green-500 transition-all" style={{ width: `${pct}%` }} />
+                                </div>
+                                <span className="text-xs text-gray-400 w-8 text-right">{pct}%</span>
+                              </div>
+                              <p className="text-xs text-gray-400">{r.count} sesi · {r.hours}j</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="bg-green-50 rounded-xl px-4 py-4 flex items-center justify-between border border-green-200">
+                    <div>
+                      <p className="font-bold text-green-900">Total Pemasukan</p>
+                      <p className="text-xs text-green-700">{rekapTotal.count} sesi · {rekapTotal.hours}j</p>
+                    </div>
+                    <p className="text-2xl font-bold text-green-700">{formatRupiah(rekapTotal.cost)}</p>
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>

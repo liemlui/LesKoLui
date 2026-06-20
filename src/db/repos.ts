@@ -36,7 +36,7 @@ const DEFAULT_SETTINGS: Settings = {
   subjects: [
     "Mathematics AA", "Mathematics AI", "Physics", "Chemistry", "Biology",
     "Economics", "Business Management", "Geography", "History", "Psychology",
-    "Computer Science", "ESS", "Bahasa Indonesia", "TOK",
+    "Computer Science", "ESS", "Bahasa Indonesia", "TOK", "Other",
   ],
   ai: { enabled: false, workerUrl: "", apiKey: "", model: "deepseek-chat" },
   templatePref: {},
@@ -175,6 +175,12 @@ export async function listAllSessionsForMonth(month: string): Promise<Session[]>
 export async function listAllSessionsForWeek(weekStart: string, weekEnd: string): Promise<Session[]> {
   return db.sessions
     .filter((s) => s.status !== "CANCELLED" && s.date >= weekStart && s.date <= weekEnd)
+    .toArray();
+}
+
+export async function listDoneSessionsForDateRange(start: string, end: string): Promise<Session[]> {
+  return db.sessions
+    .filter((s) => s.status === "DONE" && s.date >= start && s.date <= end)
     .toArray();
 }
 

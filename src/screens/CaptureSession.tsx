@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { listStudents, getStudent, createSession, recentShortNotes } from "../db/repos";
 import { compressPhoto } from "../lib/foto";
-import { todayWIB, formatRupiah } from "../lib/format";
+import { todayWIB } from "../lib/format";
 import { MIN_DURATION } from "../db/types";
 
 const DURATIONS = [1.5, 2, 2.5, 3, 3.5, 4, 5];
@@ -20,7 +20,7 @@ export default function CaptureSession() {
 
   const [studentId,      setStudentId]      = useState("");
   const [studentSubjects,setStudentSubjects] = useState<string[]>([]);
-  const [hourlyRate,     setHourlyRate]      = useState(0);
+  const [_hourlyRate,    setHourlyRate]      = useState(0);
   const [subjects,       setSubjects]        = useState<string[]>([]);
   const [shortNote,      setShortNote]       = useState("");
   const [photo,          setPhoto]           = useState<Blob | undefined>();
@@ -108,7 +108,6 @@ export default function CaptureSession() {
 
   if (!students) return <div className="p-4 text-gray-500">Memuat...</div>;
 
-  const cost = duration * hourlyRate;
 
   return (
     <div className="p-4 space-y-4 pb-20">
@@ -187,12 +186,7 @@ export default function CaptureSession() {
 
           {/* Durasi */}
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="label mb-0">Durasi</label>
-              {cost > 0 && (
-                <span className="text-sm font-semibold text-green-600">{formatRupiah(cost)}</span>
-              )}
-            </div>
+            <label className="label">Durasi</label>
             <div className="flex flex-wrap gap-2">
               {DURATIONS.map((d) => (
                 <button key={d} type="button"
