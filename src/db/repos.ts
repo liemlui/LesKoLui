@@ -207,6 +207,86 @@ export async function scheduleSession(
   return id;
 }
 
+export async function scheduleBatch(
+  items: { studentId: string; date: string; time?: string; durationHours: number }[],
+  seriesId?: string
+): Promise<number> {
+  if (!items.length) return 0;
+  const studentId = items[0].studentId;
+  const student = await db.students.get(studentId);
+  if (!student) throw new Error("Student not found");
+  const rateSnapshot = student.hourlyRate;
+  const now = timestamp();
+  const sid = seriesId ?? crypto.randomUUID();
+  const sessions = items.map((item) => ({
+    id: crypto.randomUUID(),
+    studentId: item.studentId,
+    date: item.date,
+    time: item.time,
+    durationHours: item.durationHours,
+    subjects: [] as string[],
+    shortNote: "",
+    status: "SCHEDULED" as const,
+    seriesId: sid,
+    rateSnapshot,
+    cost: item.durationHours * rateSnapshot,
+    createdAt: now,
+    updatedAt: now,
+  }));
+  await db.sessions.bulkAdd(sessions);
+  return sessions.length;
+}
+
+export type CancelMode = "this" | "future" | "all";
+
+export async function cancelSeriesSessions(
+  session: { id: string; seriesId?: string; date: string },
+  mode: CancelMode
+): Promise<void> {
+  if (!session.seriesId || mode === "this") {
+    await cancelSession(session.id);
+    return;
+  }
+  const all = await db.sessions
+    .filter((s) => s.seriesId === session.seriesId && s.status === "SCHEDULED")
+    .toArray();
+  const toCancel = mode === "all"
+    ? all
+    : all.filter((s) => s.date >= session.date);
+  const ids = toCancel.map((s) => s.id);
+  const now = timestamp();
+  await db.transaction("rw", db.sessions, async () => {
+    for (const id of ids) await db.sessions.update(id, { status: "CANCELLED", updatedAt: now });
+  });
+}
+
+export async function findConflicts(
+  dates: string[], time: string, durationHours: number
+): Promise<{ date: string; studentName: string; time: string }[]> {
+  if (!dates.length || !time) return [];
+  const startMin = timeToMin(time);
+  const endMin   = startMin + durationHours * 60;
+  const start = dates[0]; const end = dates[dates.length - 1];
+  const candidates = await db.sessions
+    .filter((s) => s.status === "SCHEDULED" && s.time != null && s.date >= start && s.date <= end && dates.includes(s.date))
+    .toArray();
+  const conflicts: { date: string; studentName: string; time: string }[] = [];
+  for (const s of candidates) {
+    const sStart = timeToMin(s.time!);
+    const sEnd   = sStart + s.durationHours * 60;
+    if (startMin < sEnd && endMin > sStart) {
+      const student = await db.students.get(s.studentId);
+      conflicts.push({ date: s.date, studentName: student?.name ?? "—", time: s.time! });
+    }
+  }
+  return conflicts;
+}
+
+function timeToMin(t: string): number {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + (m || 0);
+}
+
 export async function recentShortNotes(limit = 50): Promise<string[]> {
   const notes = await db.sessions
     .orderBy("createdAt")

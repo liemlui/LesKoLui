@@ -37,6 +37,7 @@ export interface Session {
   predictedGrade?: string;
   narrative?: string;
   projectId?: string;
+  seriesId?: string;
   status: SessionStatus;
   rateSnapshot: number;
   cost: number;

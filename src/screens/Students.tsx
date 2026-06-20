@@ -52,10 +52,11 @@ export default function Students() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Murid</h1>
         <button
-          className="btn-primary text-sm"
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-colors ${showForm ? "bg-gray-100 text-gray-600" : "bg-blue-600 text-white shadow"}`}
           onClick={() => { setEditing(null); setShowForm(!showForm); }}
         >
-          {showForm ? "Tutup" : "+ Tambah"}
+          <span className="text-base leading-none">{showForm ? "✕" : "+"}</span>
+          {showForm ? "Tutup" : "Tambah Murid"}
         </button>
       </div>
 
@@ -113,9 +114,10 @@ export default function Students() {
                 </div>
                 <button
                   onClick={(e) => { e.preventDefault(); setEditing(s); setShowForm(true); }}
-                  className="text-blue-600 text-sm ml-3 flex-shrink-0"
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-blue-100 text-gray-500 hover:text-blue-600 ml-2 flex-shrink-0 transition-colors"
+                  title="Edit murid"
                 >
-                  Edit
+                  ✏️
                 </button>
               </div>
             </Link>
