@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+html, body, #root { height: 100%; }
+body { margin: 0; }
+
+@layer components {
+  .input {
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    width: 100%;
+  }
+  .input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #60a5fa;
+    border-color: transparent;
+  }
+  .btn {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: background-color 0.15s, color 0.15s;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn:disabled {
+    opacity: 0.5;
+  }
+  .btn-primary {
+    background: #2563eb;
+    color: white;
+  }
+  .btn-primary:hover {
+    background: #1d4ed8;
+  }
+  .btn-secondary {
+    background: #e5e7eb;
+    color: #374151;
+  }
+  .btn-secondary:hover {
+    background: #d1d5db;
+  }
+  .label {
+    display: block;
+    font-size: 0.875rem;
+    color: #4b5563;
+    margin-bottom: 0.25rem;
+  }
+}

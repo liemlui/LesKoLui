@@ -1,0 +1,85 @@
+export type Level = "MYP" | "IBDP" | "UNIV";
+export type SessionStatus = "SCHEDULED" | "DONE" | "CANCELLED";
+export type PaymentStatus = "UNPAID" | "PAID";
+
+export const DEFAULT_RATE = 200_000;   // IDR per hour
+export const MIN_DURATION = 1.5;       // hours
+export const DURATION_STEP = 0.5;      // hours
+export const PHOTO_MAX_PX = 800;       // longest side
+
+export interface ParentContact { name?: string; phone: string; }
+
+export interface Student {
+  id: string;
+  name: string;
+  photo?: Blob;
+  level: Level;
+  subjects: string[];
+  parentContact: ParentContact;
+  hourlyRate: number;
+  active: boolean;
+  enrolledAt: string;
+  notes?: string;
+}
+
+export interface Session {
+  id: string;
+  studentId: string;
+  date: string;
+  durationHours: number;
+  subject: string;
+  photo?: Blob;
+  shortNote: string;
+  mood?: string;
+  topic?: string;
+  needsWork?: string;
+  predictedGrade?: string;
+  narrative?: string;
+  projectId?: string;
+  status: SessionStatus;
+  rateSnapshot: number;
+  cost: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TemplateKey {
+  themeId: string;
+  layoutId: string;
+}
+
+export interface MonthlyReport {
+  id: string;
+  studentId: string;
+  month: string;
+  sessionIds: string[];
+  templateKey: TemplateKey;
+  summaryText: string;
+  teacherNote?: string;
+  quote?: string;
+  totalHours: number;
+  totalCost: number;
+  createdAt: string;
+  pdfGeneratedAt?: string;
+}
+
+export interface Payment {
+  id: string;
+  studentId: string;
+  month: string;
+  totalCost: number;
+  status: PaymentStatus;
+  paidAt?: string;
+  method?: string;
+}
+
+export interface Settings {
+  id: "app";
+  tutorProfile: { name: string; phone: string; email?: string; address?: string };
+  logo?: Blob;
+  defaultRate: number;
+  paymentInfo: string;
+  subjects: string[];
+  ai: { enabled: boolean; workerUrl: string; apiKey: string; model: string };
+  templatePref: { excludedThemeIds?: string[] };
+}
