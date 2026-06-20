@@ -11,9 +11,9 @@ export class JurnalDB extends Dexie {
 
   constructor() {
     super("jurnalles");
-    this.version(1).stores({
+    this.version(2).stores({
       students: "id, name, level, active",
-      sessions: "id, studentId, date, status, [studentId+date]",
+      sessions: "id, studentId, date, status, createdAt, [studentId+date]",
       reports:  "id, studentId, month, [studentId+month]",
       payments: "id, [studentId+month], status",
       settings: "id",
