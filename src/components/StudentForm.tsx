@@ -46,6 +46,9 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
   const [hourlyRate,   setHourlyRate]   = useState(
     initial?.hourlyRate ?? settings?.defaultRate ?? DEFAULT_RATE
   );
+  const [rateInput,    setRateInput]    = useState(
+    String(initial?.hourlyRate ?? settings?.defaultRate ?? DEFAULT_RATE)
+  );
   const [active,  setActive]  = useState(initial?.active ?? true);
   const [notes,   setNotes]   = useState(initial?.notes ?? "");
 
@@ -243,12 +246,17 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
           <span className="text-sm text-gray-500 font-medium">Rp</span>
           <input
             className="input flex-1"
-            type="number"
-            min={10000}
-            max={2000000}
-            step={5000}
-            value={hourlyRate}
-            onChange={(e) => setHourlyRate(Math.min(2_000_000, Math.max(0, Number(e.target.value))))}
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={rateInput}
+            onChange={(e) => {
+              const raw = e.target.value.replace(/[^0-9]/g, "");
+              setRateInput(raw);
+              const n = parseInt(raw, 10);
+              if (!isNaN(n)) setHourlyRate(Math.min(2_000_000, n));
+            }}
+            onBlur={() => setRateInput(String(hourlyRate || 0))}
             placeholder="mis. 200000"
           />
           <span className="text-sm text-gray-400">/ jam</span>

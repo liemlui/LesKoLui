@@ -241,19 +241,16 @@ export default function SettingsPage() {
             <label className="label">Tarif Default per Jam</label>
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-500 font-medium flex-shrink-0">Rp</span>
-              <input className="input flex-1" type="number" min={0} step={5000}
-                value={form.defaultRate}
-                onChange={(e) => update("defaultRate", Number(e.target.value))} />
+              <input className="input flex-1" type="text" inputMode="numeric" pattern="[0-9]*"
+                value={form.defaultRate > 0 ? form.defaultRate : ""}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/[^0-9]/g, "");
+                  update("defaultRate", raw === "" ? 0 : Math.min(2_000_000, parseInt(raw, 10)));
+                }}
+                placeholder="mis. 200000" />
               <span className="text-sm text-gray-400 flex-shrink-0">/ jam</span>
             </div>
             <p className="text-xs text-gray-400 mt-1">Dipakai sebagai tarif awal saat tambah murid baru</p>
-          </div>
-          <div>
-            <label className="label">Info Pembayaran <span className="text-gray-400 font-normal">(muncul di absensi)</span></label>
-            <textarea className="input" rows={3} maxLength={300}
-              placeholder="mis. Transfer ke BCA 1234567890 a/n Ko Lui, konfirmasi via WA"
-              value={form.paymentInfo}
-              onChange={(e) => update("paymentInfo", e.target.value)} />
           </div>
         </div>
       </Section>

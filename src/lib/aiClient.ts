@@ -53,7 +53,7 @@ export async function generateNarratives(input: AiInput): Promise<AiOutput> {
 
   const userContent = `---USER DATA START---\n${JSON.stringify(safeInput)}\n---USER DATA END---`;
 
-  const endpoint = s.ai.workerUrl?.trim() || DEEPSEEK_URL;
+  const endpoint = DEEPSEEK_URL;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     "Authorization": `Bearer ${apiKey}`,

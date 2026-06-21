@@ -28,11 +28,6 @@ const DURATIONS  = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
 const DOW_LABELS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
 // ── Pure helpers ──────────────────────────────────────────────────────────────
-function studentColor(id: string): string {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
-  return STUDENT_COLORS[Math.abs(h) % STUDENT_COLORS.length];
-}
 function prevMonth(m: string) {
   const [y, mo] = m.split("-").map(Number);
   return mo === 1 ? `${y - 1}-12` : `${y}-${String(mo - 1).padStart(2, "0")}`;
@@ -141,7 +136,7 @@ export default function Home() {
   const missedSchedules = useLiveQuery(() => listPastScheduledSessions(today), [today]);
 
   const studentMap = useMemo(
-    () => new Map((students ?? []).map((s) => [s.id, { name: s.name, color: studentColor(s.id) }])),
+    () => new Map((students ?? []).map((s, idx) => [s.id, { name: s.name, color: STUDENT_COLORS[idx % STUDENT_COLORS.length] }])),
     [students]
   );
 

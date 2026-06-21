@@ -9,7 +9,7 @@ interface AbsensiOptions {
   sessions: Session[];
   hourlyRate: number;
   tutorName: string;
-  bankAccounts?: { bca?: string; cimb?: string; bri?: string; accountName?: string };
+  bankAccounts?: { bca?: string; cimb?: string; bri?: string; mandiri?: string; bsi?: string; ewallet?: string; accountName?: string };
   signatureDataUrls?: Map<string, string>; // sessionId → base64 data URL
 }
 
@@ -105,16 +105,20 @@ function buildPageHtml(
       <td colspan="2" style="${cellBase}"></td>
     </tr>` : "";
 
-  const bankRow = isLastPage && bankAccounts && (bankAccounts.bca || bankAccounts.cimb || bankAccounts.bri) ? `
+  const anyBank = bankAccounts && (bankAccounts.bca || bankAccounts.mandiri || bankAccounts.bri || bankAccounts.cimb || bankAccounts.bsi || bankAccounts.ewallet);
+  const bankRow = isLastPage && anyBank ? `
     <tr>
       <td colspan="3" style="${cellBase}font-size:10px;font-weight:600;color:#555">Transfer via:</td>
       <td colspan="5" style="${cellBase}font-size:10px;color:#333">
         ${[
-          bankAccounts.bca  ? `BCA: <strong>${esc(bankAccounts.bca)}</strong>` : "",
-          bankAccounts.cimb ? `CIMB: <strong>${esc(bankAccounts.cimb)}</strong>` : "",
-          bankAccounts.bri  ? `BRI: <strong>${esc(bankAccounts.bri)}</strong>` : "",
+          bankAccounts!.bca     ? `BCA: <strong>${esc(bankAccounts!.bca)}</strong>` : "",
+          bankAccounts!.mandiri ? `Mandiri: <strong>${esc(bankAccounts!.mandiri)}</strong>` : "",
+          bankAccounts!.bri     ? `BRI: <strong>${esc(bankAccounts!.bri)}</strong>` : "",
+          bankAccounts!.cimb    ? `CIMB: <strong>${esc(bankAccounts!.cimb)}</strong>` : "",
+          bankAccounts!.bsi     ? `BSI: <strong>${esc(bankAccounts!.bsi)}</strong>` : "",
+          bankAccounts!.ewallet ? `GoPay/OVO/DANA: <strong>${esc(bankAccounts!.ewallet)}</strong>` : "",
         ].filter(Boolean).join("  &nbsp;·&nbsp;  ")}
-        ${bankAccounts.accountName ? `<br>a.n. <strong>${esc(bankAccounts.accountName)}</strong>` : ""}
+        ${bankAccounts!.accountName ? `<br>a.n. <strong>${esc(bankAccounts!.accountName)}</strong>` : ""}
       </td>
     </tr>` : "";
 
