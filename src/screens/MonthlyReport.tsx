@@ -14,7 +14,8 @@ import { ReportRenderer } from "../template/ReportRenderer";
 import { dayLabel, monthLabel, formatRupiah, todayWIB, monthOf } from "../lib/format";
 import { exportJpeg, exportPdf, shareFiles } from "../lib/exportReport";
 import { blobToDataUrl, blobToNormalizedDataUrl } from "../lib/imageUtils";
-import { hashPin } from "../lib/crypto";
+import { hashPin, verifyPin } from "../lib/crypto";
+import { getPinLockoutDelay, recordPinFailure, resetPinLockout } from "../lib/pinLockout";
 import PaginationControls from "../components/PaginationControls";
 import { clampPage, paginateItems } from "../lib/pagination";
 
@@ -83,7 +84,7 @@ export default function MonthlyReportPage() {
     if (!chartSessions) return [];
     return chartData.map((m) => {
       const cost = (chartSessions ?? []).filter((s) => s.date.startsWith(m)).reduce((sum, s) => sum + s.cost, 0);
-      const label = new Date(m + "-01").toLocaleDateString("id-ID", { month: "short" });
+      const label = new Date(m + "-01T00:00:00").toLocaleDateString("id-ID", { month: "short" });
       return { m, label, cost };
     });
   }, [chartSessions, chartData]);
@@ -588,21 +589,21 @@ export default function MonthlyReportPage() {
                 <p className="font-bold text-gray-800 text-lg">Rekap Keuangan</p>
                 {!settings?.financialPin ? (
                   <div className="space-y-3 text-left">
-                    <p className="text-sm text-gray-500 text-center">Buat PIN 4 digit untuk melindungi data keuangan.</p>
+                    <p className="text-sm text-gray-500 text-center">Buat PIN 6 digit untuk melindungi data keuangan.</p>
                     <div>
                       <label className="label">PIN Baru</label>
                       <input className="input text-center text-xl tracking-widest font-mono" type="password"
-                        inputMode="numeric" maxLength={4} placeholder="••••"
-                        value={pinInput} onChange={(e) => { setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4)); setPinError(""); }} />
+                        inputMode="numeric" maxLength={6} placeholder="••••••"
+                        value={pinInput} onChange={(e) => { setPinInput(e.target.value.replace(/\D/g, "").slice(0, 6)); setPinError(""); }} />
                     </div>
                     <div>
                       <label className="label">Konfirmasi PIN</label>
                       <input className={`input text-center text-xl tracking-widest font-mono ${pinError ? "border-red-400" : ""}`}
-                        type="password" inputMode="numeric" maxLength={4} placeholder="••••"
-                        value={pinConfirm} onChange={(e) => { setPinConfirm(e.target.value.replace(/\D/g, "").slice(0, 4)); setPinError(""); }} />
+                        type="password" inputMode="numeric" maxLength={6} placeholder="••••••"
+                        value={pinConfirm} onChange={(e) => { setPinConfirm(e.target.value.replace(/\D/g, "").slice(0, 6)); setPinError(""); }} />
                     </div>
                     {pinError && <p className="text-red-500 text-sm">{pinError}</p>}
-                    <button disabled={pinInput.length !== 4 || pinConfirm.length !== 4}
+                    <button disabled={pinInput.length !== 6 || pinConfirm.length !== 6}
                       className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold disabled:opacity-40 hover:bg-blue-700 transition-colors"
                       onClick={async () => {
                         if (pinInput !== pinConfirm) { setPinError("PIN tidak cocok, coba lagi."); return; }
@@ -616,22 +617,25 @@ export default function MonthlyReportPage() {
                 ) : (
                   <div className="space-y-3">
                     <input className={`input text-center text-2xl tracking-[0.5em] font-mono ${pinError ? "border-red-400" : ""}`}
-                      type="password" inputMode="numeric" maxLength={4} placeholder="••••"
-                      value={pinInput} onChange={(e) => { setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4)); setPinError(""); }}
+                      type="password" inputMode="numeric" maxLength={6} placeholder="••••••"
+                      value={pinInput} onChange={(e) => { setPinInput(e.target.value.replace(/\D/g, "").slice(0, 6)); setPinError(""); }}
                       onKeyDown={async (e) => {
-                        if (e.key === "Enter") {
-                          const hashed = await hashPin(pinInput);
-                          if (hashed === settings.financialPin) { setPinUnlocked(true); setPinInput(""); }
-                          else { setPinError("PIN salah. Coba lagi."); setPinInput(""); }
-                        }
+                        if (e.key !== "Enter") return;
+                        const delay = getPinLockoutDelay();
+                        if (delay > 0) { setPinError(`Tunggu ${Math.ceil(delay / 1000)} detik.`); return; }
+                        const ok = await verifyPin(pinInput, settings.financialPin!);
+                        if (ok) { resetPinLockout(); setPinUnlocked(true); setPinInput(""); }
+                        else { recordPinFailure(); setPinError("PIN salah. Coba lagi."); setPinInput(""); }
                       }} />
                     {pinError && <p className="text-red-500 text-sm">{pinError}</p>}
-                    <button disabled={pinInput.length !== 4}
+                    <button disabled={pinInput.length < 4}
                       className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold disabled:opacity-40 hover:bg-blue-700 transition-colors"
                       onClick={async () => {
-                        const hashed = await hashPin(pinInput);
-                        if (hashed === settings.financialPin) { setPinUnlocked(true); setPinInput(""); }
-                        else { setPinError("PIN salah. Coba lagi."); setPinInput(""); }
+                        const delay = getPinLockoutDelay();
+                        if (delay > 0) { setPinError(`Tunggu ${Math.ceil(delay / 1000)} detik.`); return; }
+                        const ok = await verifyPin(pinInput, settings.financialPin!);
+                        if (ok) { resetPinLockout(); setPinUnlocked(true); setPinInput(""); }
+                        else { recordPinFailure(); setPinError("PIN salah. Coba lagi."); setPinInput(""); }
                       }}>
                       Masuk
                     </button>

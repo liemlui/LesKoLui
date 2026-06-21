@@ -6,7 +6,7 @@ import {
   cancelSeriesSessions, scheduleBatch, scheduleSession,
   findConflicts, updateSeriesSessions,
   listAllPendingHomework, listPendingFollowUps,
-  markHomeworkDone, completeFollowUp,
+  markHomeworkDone, markHomeworkNotDone, completeFollowUp,
   listPastScheduledSessions, cancelSession,
 } from "../db/repos";
 import type { CancelMode, EditMode } from "../db/repos";
@@ -121,6 +121,8 @@ export default function Home() {
   const [showCancelInEdit, setShowCancelInEdit]  = useState(false);
 
   const [flash, setFlash] = useState("");
+  const [undoHwId, setUndoHwId] = useState<string | null>(null);
+  const [undoTimer, setUndoTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [overduePage, setOverduePage] = useState(1);
   const [upcomingHwPage, setUpcomingHwPage] = useState(1);
   const [followUpPage, setFollowUpPage] = useState(1);
@@ -149,6 +151,14 @@ export default function Home() {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   function msg(t: string) { setFlash(t); setTimeout(() => setFlash(""), 3000); }
+
+  const handleMarkDone = async (id: string) => {
+    await markHomeworkDone(id);
+    setUndoHwId(id);
+    if (undoTimer) clearTimeout(undoTimer);
+    const t = setTimeout(() => { setUndoHwId(null); setUndoTimer(null); }, 3000);
+    setUndoTimer(t);
+  };
 
   const openAdd = (date: string) => {
     const dow = new Date(date + "T00:00:00").getDay();
@@ -305,6 +315,21 @@ export default function Home() {
         </div>
       )}
 
+      {undoHwId && (
+        <div className="mx-4 mb-2 p-2 rounded-lg text-sm flex items-center justify-between bg-green-50 border border-green-200">
+          <span className="text-green-700 font-medium">PR ditandai selesai ✓</span>
+          <button
+            onClick={async () => {
+              if (undoTimer) clearTimeout(undoTimer);
+              await markHomeworkNotDone(undoHwId);
+              setUndoHwId(null); setUndoTimer(null);
+            }}
+            className="text-xs font-bold text-green-600 underline ml-2">
+            Undo
+          </button>
+        </div>
+      )}
+
       {/* ── SESI TERLEWAT ── */}
       {(missedSchedules ?? []).length > 0 && (
         <div className="mx-4 mb-2 bg-orange-50 border border-orange-200 rounded-xl p-3">
@@ -366,7 +391,7 @@ export default function Home() {
                         <p className="text-xs text-red-500">{(h as Homework & {studentName?:string}).studentName} · {h.subject} · due {h.dueAt?.slice(5)}</p>
                       </div>
                       <button
-                        onClick={async () => { await markHomeworkDone(h.id); msg("PR selesai ✓"); }}
+                        onClick={() => handleMarkDone(h.id)}
                         className="flex-shrink-0 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-lg font-semibold hover:bg-green-200 transition-colors">
                         Selesai
                       </button>
@@ -396,7 +421,7 @@ export default function Home() {
                           <p className="text-xs text-amber-600">{(h as Homework & {studentName?:string}).studentName} · {h.subject} · due {h.dueAt?.slice(5)}</p>
                         </div>
                         <button
-                          onClick={async () => { await markHomeworkDone(h.id); msg("PR selesai ✓"); }}
+                          onClick={() => handleMarkDone(h.id)}
                           className="flex-shrink-0 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-lg font-semibold hover:bg-green-200">
                           Selesai
                         </button>

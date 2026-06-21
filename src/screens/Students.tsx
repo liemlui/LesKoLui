@@ -6,7 +6,8 @@ import {
   listSessionsForMonth, getSettings, listAllUpcomingScheduled,
 } from "../db/repos";
 import { todayWIB, monthOf, monthLabel, dayLabel } from "../lib/format";
-import { hashPin } from "../lib/crypto";
+import { verifyPin } from "../lib/crypto";
+import { getPinLockoutDelay, recordPinFailure, resetPinLockout } from "../lib/pinLockout";
 import type { Student } from "../db/types";
 import StudentForm from "../components/StudentForm";
 import PaginationControls from "../components/PaginationControls";
@@ -96,8 +97,8 @@ export default function Students() {
 
   const requirePin = (action: "delete" | "deactivate" | "activate", student: Student) => {
     if (!settings?.financialPin) {
-      // No PIN set → execute directly
-      executeAction(action, student);
+      // No PIN set — block destructive actions; direct user to set PIN first
+      alert("Set PIN Keuangan di Pengaturan sebelum melakukan aksi ini.");
       return;
     }
     setPinModal({ action, student });
@@ -119,8 +120,11 @@ export default function Students() {
 
   const handlePinConfirm = async () => {
     if (!pinModal) return;
-    const h = await hashPin(pinInput);
-    if (h !== settings?.financialPin) { setPinError("PIN salah."); return; }
+    const delay = getPinLockoutDelay();
+    if (delay > 0) { setPinError(`Tunggu ${Math.ceil(delay / 1000)} detik.`); return; }
+    const ok = await verifyPin(pinInput, settings?.financialPin ?? "");
+    if (!ok) { recordPinFailure(); setPinError("PIN salah."); return; }
+    resetPinLockout();
     await executeAction(pinModal.action, pinModal.student);
   };
 
@@ -349,7 +353,7 @@ export default function Students() {
                 Batal
               </button>
               <button
-                onClick={settings?.financialPin ? handlePinConfirm : () => executeAction(pinModal.action, pinModal.student)}
+                onClick={handlePinConfirm}
                 className={`flex-1 py-2.5 rounded-xl text-white font-semibold text-sm ${pinModal.action === "delete" ? "bg-red-500 hover:bg-red-600" : pinModal.action === "deactivate" ? "bg-orange-500 hover:bg-orange-600" : "bg-green-600 hover:bg-green-700"}`}>
                 {pinModal.action === "delete" ? "Hapus" : pinModal.action === "deactivate" ? "Nonaktifkan" : "Aktifkan"}
               </button>

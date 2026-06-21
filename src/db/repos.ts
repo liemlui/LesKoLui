@@ -38,7 +38,7 @@ const DEFAULT_SETTINGS: Settings = {
     "Economics", "Business Management", "Geography", "History", "Psychology",
     "Computer Science", "ESS", "Bahasa Indonesia", "TOK", "Other",
   ],
-  ai: { enabled: false, workerUrl: "", model: "deepseek-chat" },
+  ai: { enabled: false, apiKey: "", model: "deepseek-chat" },
   templatePref: {},
 };
 

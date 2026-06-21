@@ -244,10 +244,11 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
           <input
             className="input flex-1"
             type="number"
-            min={0}
+            min={10000}
+            max={2000000}
             step={5000}
             value={hourlyRate}
-            onChange={(e) => setHourlyRate(Number(e.target.value))}
+            onChange={(e) => setHourlyRate(Math.min(2_000_000, Math.max(0, Number(e.target.value))))}
             placeholder="mis. 200000"
           />
           <span className="text-sm text-gray-400">/ jam</span>

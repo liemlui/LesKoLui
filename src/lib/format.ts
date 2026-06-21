@@ -40,3 +40,12 @@ export function monthLabel(monthStr: string): string {
 export function formatRupiah(n: number): string {
   return "Rp " + Math.round(n).toLocaleString("id-ID");
 }
+
+/**
+ * Parse a "YYYY-MM-DD" string as local midnight.
+ * `new Date("YYYY-MM-DD")` is UTC midnight — can shift the day by timezone.
+ * This helper avoids that by appending "T00:00:00" (local time).
+ */
+export function parseDate(dateStr: string): Date {
+  return new Date(dateStr + "T00:00:00");
+}

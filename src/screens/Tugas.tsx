@@ -80,7 +80,7 @@ export default function TugasPage() {
                   .map((h) => {
                     const isOverdue = h.status === "overdue" || (h.dueAt && h.dueAt < today);
                     const daysLeft = h.dueAt
-                      ? Math.ceil((new Date(h.dueAt).getTime() - new Date(today).getTime()) / 86400000)
+                      ? Math.ceil((new Date(h.dueAt + "T00:00:00").getTime() - new Date(today + "T00:00:00").getTime()) / 86400000)
                       : null;
 
                     return (

@@ -7,7 +7,8 @@ import {
   listRaporGrades, upsertRaporGrade, deleteRaporGrade,
   getSettings, updateStudent, getHomeworkStats,
 } from "../db/repos";
-import { hashPin } from "../lib/crypto";
+import { verifyPin } from "../lib/crypto";
+import { getPinLockoutDelay, recordPinFailure, resetPinLockout } from "../lib/pinLockout";
 import type { CancelMode, EditMode } from "../db/repos";
 import { dayLabel, monthLabel, todayWIB, formatRupiah } from "../lib/format";
 import {
@@ -81,17 +82,24 @@ export default function StudentDetail() {
 
   const handleUnlockBilling = async () => {
     if (!settings?.financialPin) { setBillingUnlocked(true); setBillingPinError(""); return; }
-    const h = await hashPin(billingPinInput);
-    if (h !== settings.financialPin) { setBillingPinError("PIN salah."); return; }
-    setBillingPinError(""); setBillingUnlocked(true); setBillingPinInput("");
+    const delay = getPinLockoutDelay();
+    if (delay > 0) { setBillingPinError(`Tunggu ${Math.ceil(delay / 1000)} detik.`); return; }
+    const ok = await verifyPin(billingPinInput, settings.financialPin);
+    if (!ok) { recordPinFailure(); setBillingPinError("PIN salah."); return; }
+    resetPinLockout(); setBillingPinError(""); setBillingUnlocked(true); setBillingPinInput("");
   };
 
   const handleDeleteSession = async () => {
     if (!detailSession) return;
-    if (settings?.financialPin) {
-      const h = await hashPin(deletePinInput);
-      if (h !== settings.financialPin) { setDeletePinError("PIN salah."); return; }
+    if (!settings?.financialPin) {
+      alert("Set PIN Keuangan di Pengaturan sebelum menghapus sesi.");
+      return;
     }
+    const delay = getPinLockoutDelay();
+    if (delay > 0) { setDeletePinError(`Tunggu ${Math.ceil(delay / 1000)} detik.`); return; }
+    const ok = await verifyPin(deletePinInput, settings.financialPin);
+    if (!ok) { recordPinFailure(); setDeletePinError("PIN salah."); return; }
+    resetPinLockout();
     const { deleteSession } = await import("../db/repos");
     await deleteSession(detailSession.id);
     setDetailSession(null); setShowDeletePin(false); setDeletePinInput(""); setDeletePinError("");
@@ -100,9 +108,11 @@ export default function StudentDetail() {
 
   const handleUnlockRate = async () => {
     if (!settings?.financialPin) { setRateUnlocked(true); setRatePinError(""); return; }
-    const h = await hashPin(ratePinInput);
-    if (h !== settings.financialPin) { setRatePinError("PIN salah."); return; }
-    setRatePinError(""); setRateUnlocked(true); setRatePinInput("");
+    const delay = getPinLockoutDelay();
+    if (delay > 0) { setRatePinError(`Tunggu ${Math.ceil(delay / 1000)} detik.`); return; }
+    const ok = await verifyPin(ratePinInput, settings.financialPin);
+    if (!ok) { recordPinFailure(); setRatePinError("PIN salah."); return; }
+    resetPinLockout(); setRatePinError(""); setRateUnlocked(true); setRatePinInput("");
   };
 
   const handleSaveRate = async () => {
@@ -723,7 +733,7 @@ export default function StudentDetail() {
                   className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${schedMonth === "" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200"}`}
                   onClick={() => setSchedMonth("")}>Semua</button>
                 {availMonths.map((m) => {
-                  const label = new Date(m + "-01").toLocaleDateString("id-ID", { month: "short", year: "2-digit" });
+                  const label = new Date(m + "-01T00:00:00").toLocaleDateString("id-ID", { month: "short", year: "2-digit" });
                   return (
                     <button key={m}
                       className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${schedMonth === m ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200"}`}

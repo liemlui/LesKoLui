@@ -250,6 +250,10 @@ export default function CaptureSession() {
   const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setMessage("File harus berupa gambar (JPG/PNG/WebP).");
+      e.target.value = ""; return;
+    }
     if (file.size > 50 * 1024 * 1024) {
       setMessage("Foto terlalu besar (maks 50 MB)");
       e.target.value = "";

@@ -3,10 +3,37 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useNavigate } from "react-router-dom";
 import { getSettings, saveSettings } from "../db/repos";
 import { exportBackup, importBackup } from "../lib/backup";
-import { hashPin } from "../lib/crypto";
+import { hashPin, verifyPin } from "../lib/crypto";
 import { todayWIB } from "../lib/format";
 import type { Settings } from "../db/types";
 import Toggle from "../components/Toggle";
+
+const WORDLIST = [
+  "apel","baju","cabe","dadu","elang","fajar","gula","harap","ikan","jalan",
+  "kapal","lampu","meja","nasi","obat","pagi","rasa","sapi","tahu","ular",
+  "voli","waktu","xenon","yakin","zaman","angin","bunga","coklat","daun","ember",
+];
+
+function StorageUsage() {
+  const [info, setInfo] = useState<{ used: number; quota: number } | null>(null);
+  useEffect(() => {
+    navigator.storage?.estimate().then((e) => {
+      if (e.usage != null && e.quota != null) setInfo({ used: e.usage, quota: e.quota });
+    });
+  }, []);
+  if (!info) return null;
+  const pct = Math.round((info.used / info.quota) * 100);
+  const mb = (b: number) => (b / 1024 / 1024).toFixed(1) + " MB";
+  return (
+    <div className="bg-gray-50 rounded-xl p-3 space-y-1">
+      <p className="text-xs font-semibold text-gray-500">Penyimpanan Lokal</p>
+      <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="bg-blue-500 h-2 rounded-full transition-all" style={{ width: `${Math.min(pct, 100)}%` }} />
+      </div>
+      <p className="text-xs text-gray-400">{mb(info.used)} digunakan dari {mb(info.quota)} ({pct}%)</p>
+    </div>
+  );
+}
 
 function Toast({ msg, onClose }: { msg: string; onClose: () => void }) {
   useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
@@ -131,13 +158,14 @@ export default function SettingsPage() {
   const handleLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith("image/")) { setToast("File harus berupa gambar (JPG/PNG/WebP)."); e.target.value = ""; return; }
     const reader = new FileReader();
     reader.onload = () => update("logo", new Blob([reader.result as ArrayBuffer], { type: file.type }));
     reader.readAsArrayBuffer(file);
   };
 
   const handleSetPin = async () => {
-    if (newPin.length !== 4) { setPinError("PIN harus 4 digit."); return; }
+    if (newPin.length < 6) { setPinError("PIN harus 6 digit."); return; }
     if (newPin !== newPinConf) { setPinError("PIN tidak cocok."); return; }
     const hashed = await hashPin(newPin);
     await saveSettings({ ...form, financialPin: hashed });
@@ -259,22 +287,22 @@ export default function SettingsPage() {
           ) : (
             <div className="space-y-3">
               <div>
-                <label className="label">PIN Baru (4 digit)</label>
+                <label className="label">PIN Baru (6 digit)</label>
                 <input className="input text-center text-xl tracking-widest font-mono" type="password"
-                  inputMode="numeric" maxLength={4} placeholder="••••"
+                  inputMode="numeric" maxLength={6} placeholder="••••••"
                   value={newPin}
-                  onChange={(e) => { setNewPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setPinError(""); }} />
+                  onChange={(e) => { setNewPin(e.target.value.replace(/\D/g, "").slice(0, 6)); setPinError(""); }} />
               </div>
               <div>
                 <label className="label">Konfirmasi PIN</label>
                 <input className={`input text-center text-xl tracking-widest font-mono ${pinError ? "border-red-400" : ""}`}
-                  type="password" inputMode="numeric" maxLength={4} placeholder="••••"
+                  type="password" inputMode="numeric" maxLength={6} placeholder="••••••"
                   value={newPinConf}
-                  onChange={(e) => { setNewPinConf(e.target.value.replace(/\D/g, "").slice(0, 4)); setPinError(""); }} />
+                  onChange={(e) => { setNewPinConf(e.target.value.replace(/\D/g, "").slice(0, 6)); setPinError(""); }} />
               </div>
               {pinError && <p className="text-red-500 text-sm">{pinError}</p>}
               <div className="flex gap-2">
-                <button onClick={handleSetPin} disabled={newPin.length !== 4 || newPinConf.length !== 4}
+                <button onClick={handleSetPin} disabled={newPin.length !== 6 || newPinConf.length !== 6}
                   className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-40 hover:bg-blue-700 transition-colors">
                   Simpan PIN
                 </button>
@@ -290,17 +318,17 @@ export default function SettingsPage() {
             {form.financialPin ? (
               <div className="space-y-2">
                 <p className="text-xs text-gray-400">Buka rekap keuangan</p>
-                <input type="password" inputMode="numeric" maxLength={4} placeholder="Masukkan PIN (4 digit)"
-                  value={finPin} onChange={(e) => { setFinPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setFinPinErr(""); }}
+                <input type="password" inputMode="numeric" maxLength={6} placeholder="Masukkan PIN (6 digit)"
+                  value={finPin} onChange={(e) => { setFinPin(e.target.value.replace(/\D/g, "").slice(0, 6)); setFinPinErr(""); }}
                   className="input text-center tracking-widest font-mono" />
                 {finPinErr && <p className="text-xs text-red-500">{finPinErr}</p>}
                 <button
                   onClick={async () => {
-                    const h = await hashPin(finPin);
-                    if (h !== form.financialPin) { setFinPinErr("PIN salah."); return; }
+                    const ok = await verifyPin(finPin, form.financialPin!);
+                    if (!ok) { setFinPinErr("PIN salah."); return; }
                     setFinPin(""); navigate("/payments");
                   }}
-                  disabled={finPin.length !== 4}
+                  disabled={finPin.length < 4}
                   className="w-full py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-40 transition-colors">
                   Buka Data Keuangan →
                 </button>
@@ -379,15 +407,21 @@ export default function SettingsPage() {
           {form.ai.enabled && (
             <>
               <div>
-                <label className="label">Worker URL</label>
-                <input className="input" placeholder="https://your-worker.workers.dev"
-                  value={form.ai.workerUrl} onChange={(e) => updateAi("workerUrl", e.target.value)} />
-                <p className="text-xs text-gray-400 mt-1">Cloudflare Worker yang mem-proxy ke DeepSeek API</p>
+                <label className="label">DeepSeek API Key</label>
+                <input className="input font-mono text-xs" type="password" placeholder="sk-..."
+                  value={form.ai.apiKey ?? ""}
+                  onChange={(e) => updateAi("apiKey", e.target.value)} />
+                <p className="text-xs text-gray-400 mt-1">
+                  Dapatkan di <span className="font-medium text-blue-600">platform.deepseek.com → API Keys</span>.
+                  Disimpan lokal di perangkat ini saja.
+                </p>
               </div>
               <div>
                 <label className="label">Model</label>
-                <input className="input" placeholder="deepseek-chat"
-                  value={form.ai.model} onChange={(e) => updateAi("model", e.target.value)} />
+                <select className="input" value={form.ai.model} onChange={(e) => updateAi("model", e.target.value)}>
+                  <option value="deepseek-chat">deepseek-chat (cepat, hemat)</option>
+                  <option value="deepseek-reasoner">deepseek-reasoner (lebih dalam)</option>
+                </select>
               </div>
             </>
           )}
@@ -427,12 +461,26 @@ export default function SettingsPage() {
       {/* ── Backup & Restore ── */}
       <Section title="Backup & Restore" icon="💾">
         <div className="pt-3 space-y-3">
+          <StorageUsage />
+
           <div className="bg-blue-50 rounded-xl p-3 space-y-2">
             <p className="text-xs font-semibold text-blue-700">Ekspor Backup</p>
             <div>
               <label className="label">Kata Sandi Enkripsi</label>
-              <input className="input" type="password" value={backupPass}
-                onChange={(e) => setBackupPass(e.target.value)} placeholder="Buat kata sandi" />
+              <div className="flex gap-2">
+                <input className="input flex-1" type="text" value={backupPass}
+                  onChange={(e) => setBackupPass(e.target.value)} placeholder="Buat kata sandi" />
+                <button
+                  onClick={() => {
+                    const words = Array.from(crypto.getRandomValues(new Uint8Array(6)))
+                      .map((b) => WORDLIST[b % WORDLIST.length]).join("-");
+                    setBackupPass(words);
+                  }}
+                  className="text-xs px-3 py-2 rounded-xl bg-blue-100 text-blue-700 hover:bg-blue-200 font-medium flex-shrink-0">
+                  Generate
+                </button>
+              </div>
+              {backupPass && <p className="text-xs text-gray-500 font-mono break-all">{backupPass}</p>}
             </div>
             <button className="w-full py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors"
               onClick={async () => {

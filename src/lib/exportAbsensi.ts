@@ -1,6 +1,7 @@
 import { toPng } from "html-to-image";
 import { jsPDF } from "jspdf";
 import type { Session } from "../db/types";
+import { blobToDataUrl } from "./imageUtils";
 
 interface AbsensiOptions {
   studentName: string;
@@ -12,17 +13,18 @@ interface AbsensiOptions {
   signatureDataUrls?: Map<string, string>; // sessionId → base64 data URL
 }
 
-async function blobToDataUrl(blob: Blob): Promise<string> {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.readAsDataURL(blob);
-  });
-}
-
 // A4 at 96dpi = 794×1123px. We use 750px width to leave safe margin.
 const PAGE_W = 750;
 const ROWS_PER_PAGE = 20;
+
+function esc(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 function addMinutes(time: string, mins: number): string {
   const [h, m] = time.split(":").map(Number);
@@ -68,13 +70,13 @@ function buildPageHtml(
     <tr style="height:28px">
       <td style="${cellBase}text-align:center;font-size:10px;color:#777;font-style:italic">${r.dur > 0 ? r.dur + "j" : ""}</td>
       <td style="${cellBase}text-align:center;font-size:11px;font-weight:700">${r.no}</td>
-      <td style="${cellBase}font-size:11px;white-space:nowrap">${r.date}</td>
-      <td style="${cellBase}text-align:center;font-size:11px;font-weight:600">${r.masuk}</td>
-      <td style="${cellBase}text-align:center;font-size:11px;font-weight:600">${r.keluar}</td>
-      <td style="${cellBase}font-size:10px">${r.materi}</td>
+      <td style="${cellBase}font-size:11px;white-space:nowrap">${esc(r.date)}</td>
+      <td style="${cellBase}text-align:center;font-size:11px;font-weight:600">${esc(r.masuk)}</td>
+      <td style="${cellBase}text-align:center;font-size:11px;font-weight:600">${esc(r.keluar)}</td>
+      <td style="${cellBase}font-size:10px">${esc(r.materi)}</td>
       <td style="${cellBase}text-align:center;padding:2px 4px">
         ${r.sigDataUrl
-          ? `<img src="${r.sigDataUrl}" style="max-width:64px;max-height:22px;object-fit:contain;vertical-align:middle">`
+          ? `<img src="${esc(r.sigDataUrl)}" style="max-width:64px;max-height:22px;object-fit:contain;vertical-align:middle">`
           : `<span style="font-size:9px;color:#ccc">—</span>`}
       </td>
       <td style="${cellBase}"></td>
@@ -108,11 +110,11 @@ function buildPageHtml(
       <td colspan="3" style="${cellBase}font-size:10px;font-weight:600;color:#555">Transfer via:</td>
       <td colspan="5" style="${cellBase}font-size:10px;color:#333">
         ${[
-          bankAccounts.bca  ? `BCA: <strong>${bankAccounts.bca}</strong>` : "",
-          bankAccounts.cimb ? `CIMB: <strong>${bankAccounts.cimb}</strong>` : "",
-          bankAccounts.bri  ? `BRI: <strong>${bankAccounts.bri}</strong>` : "",
+          bankAccounts.bca  ? `BCA: <strong>${esc(bankAccounts.bca)}</strong>` : "",
+          bankAccounts.cimb ? `CIMB: <strong>${esc(bankAccounts.cimb)}</strong>` : "",
+          bankAccounts.bri  ? `BRI: <strong>${esc(bankAccounts.bri)}</strong>` : "",
         ].filter(Boolean).join("  &nbsp;·&nbsp;  ")}
-        ${bankAccounts.accountName ? `<br>a.n. <strong>${bankAccounts.accountName}</strong>` : ""}
+        ${bankAccounts.accountName ? `<br>a.n. <strong>${esc(bankAccounts.accountName)}</strong>` : ""}
       </td>
     </tr>` : "";
 
@@ -120,7 +122,7 @@ function buildPageHtml(
     <tr>
       <td colspan="5" style="${cellBase}font-size:10px;color:#555;padding:10px 6px">
         Hormat kami,<br><br><br>
-        <strong>${tutorName || "Ko Lui"}</strong>
+        <strong>${esc(tutorName || "Ko Lui")}</strong>
       </td>
       <td colspan="3" style="${cellBase}font-size:10px;color:#555;padding:10px 6px;text-align:center">
         Disetujui,<br><br><br>
@@ -143,11 +145,11 @@ function buildPageHtml(
     <div style="display:flex;gap:0;margin-bottom:14px;font-size:12px">
       <div style="flex:1">
         <span style="color:#555">Nama Murid</span>
-        <span style="font-weight:700;margin-left:8px">: ${studentName}</span>
+        <span style="font-weight:700;margin-left:8px">: ${esc(studentName)}</span>
       </div>
       <div>
         <span style="color:#555">Tutor</span>
-        <span style="font-weight:700;margin-left:8px">: ${tutorName || "Ko Lui"}</span>
+        <span style="font-weight:700;margin-left:8px">: ${esc(tutorName || "Ko Lui")}</span>
       </div>
     </div>
 
@@ -235,6 +237,7 @@ export async function exportAbsensiPdf(opts: AbsensiOptions): Promise<void> {
   // Two rAF ticks to let layout fully settle
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(null))));
 
+  let pdfUrl: string | null = null;
   try {
     let pdf: InstanceType<typeof jsPDF> | null = null;
     const pageDivs = Array.from(wrapper.children) as HTMLElement[];
@@ -264,13 +267,17 @@ export async function exportAbsensiPdf(opts: AbsensiOptions): Promise<void> {
 
     if (!pdf) return;
     const blob = pdf.output("blob");
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement("a");
-    a.href     = url;
+    pdfUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = pdfUrl;
     a.download = `absensi-${opts.studentName.replace(/\s+/g, "-")}-${month}.pdf`;
     a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 200);
   } finally {
     document.body.removeChild(wrapper);
+    if (pdfUrl) {
+      // Delay revoke so browser can start the download
+      const urlToRevoke = pdfUrl;
+      requestAnimationFrame(() => requestAnimationFrame(() => URL.revokeObjectURL(urlToRevoke)));
+    }
   }
 }

@@ -58,8 +58,25 @@ export async function exportBackup(passphrase: string): Promise<Blob> {
 }
 
 export async function importBackup(file: Blob, passphrase: string): Promise<void> {
+  // Verify the file can be decrypted BEFORE touching the database
   const dump = await decryptJson(file, passphrase) as BackupDump;
   if (!dump?.data) throw new Error("Invalid backup file");
+
+  // Auto-export pre-restore backup so data is never lost (C-6)
+  try {
+    const preRestoreBlob = await exportBackup(passphrase);
+    const ts = new Date().toISOString().slice(0, 19).replace(/:/g, "-");
+    const url = URL.createObjectURL(preRestoreBlob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `leskolui-pre-restore-${ts}.jles`;
+    a.click();
+    // Revoke after two animation frames so browser can start the download
+    requestAnimationFrame(() => requestAnimationFrame(() => URL.revokeObjectURL(url)));
+  } catch {
+    // Pre-backup failure should not block the restore
+  }
+
   await db.transaction("rw", TABLES.map((t) => backupDb[t]), async () => {
     for (const t of TABLES) {
       const table = backupDb[t] as Table<BackupRow, string>;

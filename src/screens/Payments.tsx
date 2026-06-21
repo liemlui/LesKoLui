@@ -3,7 +3,8 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useNavigate } from "react-router-dom";
 import { listPayments, listStudents, getPayment, upsertPayment, getSettings } from "../db/repos";
 import { formatRupiah, todayWIB } from "../lib/format";
-import { hashPin } from "../lib/crypto";
+import { verifyPin } from "../lib/crypto";
+import { getPinLockoutDelay, recordPinFailure, resetPinLockout } from "../lib/pinLockout";
 import InvoiceCard from "../components/InvoiceCard";
 import PaginationControls from "../components/PaginationControls";
 import { clampPage, paginateItems } from "../lib/pagination";
@@ -105,15 +106,17 @@ export default function PaymentsPage() {
         <p className="text-4xl">🔐</p>
         <p className="font-bold text-lg text-gray-800">Data Keuangan</p>
         <p className="text-sm text-gray-400 text-center">Masukkan PIN untuk mengakses rekap keuangan</p>
-        <input type="password" inputMode="numeric" maxLength={6} placeholder="PIN"
-          value={pinInput} onChange={(e) => { setPinInput(e.target.value); setPinError(""); }}
+        <input type="password" inputMode="numeric" maxLength={6} placeholder="PIN (6 digit)"
+          value={pinInput} onChange={(e) => { setPinInput(e.target.value.replace(/\D/g, "").slice(0, 6)); setPinError(""); }}
           className="input text-center tracking-widest text-xl w-40" autoFocus />
         {pinError && <p className="text-sm text-red-500">{pinError}</p>}
         <button
           onClick={async () => {
-            const h = await hashPin(pinInput);
-            if (h !== settings.financialPin) { setPinError("PIN salah."); return; }
-            setUnlocked(true); setPinInput("");
+            const delay = getPinLockoutDelay();
+            if (delay > 0) { setPinError(`Tunggu ${Math.ceil(delay / 1000)} detik.`); return; }
+            const ok = await verifyPin(pinInput, settings.financialPin!);
+            if (!ok) { recordPinFailure(); setPinError("PIN salah."); return; }
+            resetPinLockout(); setUnlocked(true); setPinInput("");
           }}
           className="px-8 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-colors">
           Buka
@@ -164,7 +167,8 @@ export default function PaymentsPage() {
         </select>
         <input className="input" type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} />
         <input className="input" type="number" placeholder="Total biaya (IDR)" value={totalCost || ""}
-          onChange={(e) => setTotalCost(Number(e.target.value))} />
+          min={1} max={100000000}
+          onChange={(e) => setTotalCost(Math.min(100_000_000, Math.max(0, Number(e.target.value))))} />
         <button onClick={handleCreatePayment} className="btn-primary w-full">Buat Tagihan</button>
       </div>
 
