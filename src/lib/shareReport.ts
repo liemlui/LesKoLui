@@ -8,9 +8,6 @@ export interface ShareReportInput {
   generatedAt: string; // ISO
 }
 
-function formatRp(n: number) {
-  return "Rp " + n.toLocaleString("id-ID");
-}
 
 function engColor(score: number) {
   if (score >= 7) return "#16a34a";

@@ -6,7 +6,7 @@ import {
   cancelSeriesSessions, updateSeriesSessions,
   listRaporGrades, upsertRaporGrade, deleteRaporGrade,
   getSettings, updateStudent, getHomeworkStats,
-  listIaEeProjects, createIaEeProject, updateIaEeProject, deleteIaEeProject,
+  listIaEeProjects, createIaEeProject, deleteIaEeProject,
   addMilestone, updateMilestone, deleteMilestone,
 } from "../db/repos";
 import type { IaEeMilestone } from "../db/repos";
