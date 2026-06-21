@@ -9,6 +9,7 @@ export default function TugasPage() {
   const homeworks = useLiveQuery(() => listAllHomeworkFull(), []);
   const today = todayWIB();
   const [filter, setFilter] = useState<FilterTab>("menunggu");
+  const [search, setSearch] = useState("");
 
   if (!homeworks) return <div className="p-4 text-gray-500">Memuat...</div>;
 
@@ -24,7 +25,12 @@ export default function TugasPage() {
     ? homeworks.filter((h) => h.status === "done" || h.status === "not_done" || h.status === "cancelled")
     : homeworks;
 
-  const byStudent = filtered.reduce<Record<string, typeof filtered>>((acc, h) => {
+  const q = search.toLowerCase().trim();
+  const searched = q
+    ? filtered.filter((h) => h.title.toLowerCase().includes(q) || (h.studentName ?? "").toLowerCase().includes(q))
+    : filtered;
+
+  const byStudent = searched.reduce<Record<string, typeof filtered>>((acc, h) => {
     const key = h.studentName ?? h.studentId;
     (acc[key] = acc[key] ?? []).push(h);
     return acc;
@@ -59,6 +65,20 @@ export default function TugasPage() {
         )}
       </div>
 
+      {/* Search */}
+      <div className="relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+        <input
+          className="input pl-9 w-full"
+          placeholder="Cari tugas atau nama murid..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        {search && (
+          <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">✕</button>
+        )}
+      </div>
+
       {/* Filter tabs */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-xl overflow-x-auto">
         {tabs.map(([f, label]) => (
@@ -71,7 +91,7 @@ export default function TugasPage() {
         ))}
       </div>
 
-      {filtered.length === 0 ? (
+      {searched.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-4xl mb-3">{filter === "selesai" ? "📭" : "✅"}</p>
           <p className="text-gray-400 text-sm font-medium">

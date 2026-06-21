@@ -24,6 +24,7 @@ export default function Students() {
   const upcomingSched = useLiveQuery(() => listAllUpcomingScheduled(today), [today]);
 
   const [tab, setTab] = useState<Tab>("aktif");
+  const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Student | null>(null);
   const [activePage, setActivePage] = useState(1);
@@ -59,8 +60,10 @@ export default function Students() {
     return m;
   }, [upcomingSched]);
 
+  const q = search.toLowerCase().trim();
+
   const active = useMemo(() => {
-    const list = (allStudents ?? []).filter((s) => s.active);
+    const list = (allStudents ?? []).filter((s) => s.active && (!q || s.name.toLowerCase().includes(q)));
     return [...list].sort((a, b) => {
       const an = nextSessionMap.get(a.id)?.date;
       const bn = nextSessionMap.get(b.id)?.date;
@@ -71,7 +74,7 @@ export default function Students() {
     });
   }, [allStudents, nextSessionMap]);
 
-  const inactive = useMemo(() => (allStudents ?? []).filter((s) => !s.active), [allStudents]);
+  const inactive = useMemo(() => (allStudents ?? []).filter((s) => !s.active && (!q || s.name.toLowerCase().includes(q))), [allStudents, q]);
 
   const totalMonthSessions = useMemo(
     () => [...statsMap.values()].reduce((sum, s) => sum + s.count, 0),
@@ -279,6 +282,20 @@ export default function Students() {
           />
         </div>
       )}
+
+      {/* Search */}
+      <div className="relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+        <input
+          className="input pl-9 w-full"
+          placeholder="Cari nama murid..."
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setActivePage(1); setHistPage(1); }}
+        />
+        {search && (
+          <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">✕</button>
+        )}
+      </div>
 
       {/* Tab selector */}
       <div className="flex gap-2 bg-gray-100 rounded-xl p-1">

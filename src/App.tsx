@@ -7,7 +7,7 @@ import Home from "./screens/Home";
 import Students from "./screens/Students";
 import StudentDetail from "./screens/StudentDetail";
 import CaptureSession from "./screens/CaptureSession";
-import { listAllPendingHomework } from "./db/repos";
+import { listAllPendingHomework, listAllUpcomingScheduled, listStudents } from "./db/repos";
 import { todayWIB } from "./lib/format";
 
 // Lazy-load less-frequently visited screens to reduce initial bundle
@@ -36,13 +36,29 @@ function Layout() {
   const scheduleHwNotifications = useCallback(async () => {
     if (Notification.permission !== "granted") return;
     const today = todayWIB();
+
+    // PR deadline hari ini
     const homeworks = await listAllPendingHomework();
-    const dueToday = homeworks.filter(
-      (h) => h.status === "assigned" && h.dueAt === today
-    );
+    const dueToday = homeworks.filter((h) => h.status === "assigned" && h.dueAt === today);
     if (dueToday.length > 0) {
       new Notification("Les Ko Lui — PR Hari Ini", {
         body: `${dueToday.length} PR deadline hari ini: ${dueToday.map(h => h.title).slice(0, 2).join(", ")}${dueToday.length > 2 ? "..." : ""}`,
+        icon: "/pwa-192x192.png",
+      });
+    }
+
+    // Sesi besok (H-1 reminder)
+    const [y, m, d] = today.split("-").map(Number);
+    const tomorrowDt = new Date(y, m - 1, d + 1);
+    const tomorrow = `${tomorrowDt.getFullYear()}-${String(tomorrowDt.getMonth() + 1).padStart(2, "0")}-${String(tomorrowDt.getDate()).padStart(2, "0")}`;
+    const upcoming = await listAllUpcomingScheduled(tomorrow);
+    const sessTomorrow = upcoming.filter((s) => s.date === tomorrow);
+    if (sessTomorrow.length > 0) {
+      const studentList = await listStudents(true);
+      const studentMap  = new Map(studentList.map((s) => [s.id, s.name]));
+      const names = sessTomorrow.map((s) => studentMap.get(s.studentId) ?? "—").slice(0, 3);
+      new Notification("Les Ko Lui — Sesi Besok", {
+        body: `${sessTomorrow.length} sesi besok: ${names.join(", ")}${sessTomorrow.length > 3 ? "..." : ""}`,
         icon: "/pwa-192x192.png",
       });
     }

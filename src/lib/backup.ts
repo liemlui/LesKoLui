@@ -2,7 +2,7 @@ import { db } from "../db/db";
 import { encryptJson, decryptJson } from "./crypto";
 import type { Table } from "dexie";
 
-const TABLES = ["students", "sessions", "reports", "payments", "settings", "raporGrades", "homeworks", "followUps"] as const;
+const TABLES = ["students", "sessions", "reports", "payments", "settings", "raporGrades", "homeworks", "followUps", "expenses", "iaeeProjects"] as const;
 
 type BackupTable = typeof TABLES[number];
 type BackupRow = Record<string, unknown>;
