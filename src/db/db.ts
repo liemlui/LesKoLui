@@ -1,6 +1,11 @@
 import Dexie from "dexie";
 import type { Table } from "dexie";
-import type { Student, Session, MonthlyReport, Payment, Settings, RaporGrade } from "./types";
+import type { Student, Session, MonthlyReport, Payment, Settings, RaporGrade, Homework, FollowUpItem } from "./types";
+
+type LegacySessionRow = {
+  subject?: unknown;
+  subjects?: unknown;
+};
 
 export class JurnalDB extends Dexie {
   students!:    Table<Student,       string>;
@@ -9,6 +14,8 @@ export class JurnalDB extends Dexie {
   payments!:    Table<Payment,       string>;
   settings!:    Table<Settings,      string>;
   raporGrades!: Table<RaporGrade,    string>;
+  homeworks!:   Table<Homework,      string>;
+  followUps!:   Table<FollowUpItem,  string>;
 
   constructor() {
     super("jurnalles");
@@ -24,7 +31,7 @@ export class JurnalDB extends Dexie {
     });
     // v4: migrate sessions.subject (string) → sessions.subjects (string[])
     this.version(4).upgrade((tx) =>
-      tx.table("sessions").toCollection().modify((s: any) => {
+      tx.table("sessions").toCollection().modify((s: LegacySessionRow) => {
         if (typeof s.subject === "string" && !Array.isArray(s.subjects)) {
           s.subjects = [s.subject];
           delete s.subject;
@@ -34,6 +41,11 @@ export class JurnalDB extends Dexie {
     // v5: add raporGrades table
     this.version(5).stores({
       raporGrades: "id, studentId, semester, [studentId+semester]",
+    });
+    // v6: add homework and follow-up tables
+    this.version(6).stores({
+      homeworks: "id, studentId, assignedAt, status, dueAt, [studentId+status]",
+      followUps: "id, studentId, completedAt",
     });
   }
 }

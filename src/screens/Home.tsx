@@ -5,8 +5,11 @@ import {
   listStudents, listAllSessionsForMonth, listAllSessionsForWeek,
   cancelSeriesSessions, scheduleBatch, scheduleSession,
   findConflicts, updateSeriesSessions,
+  listAllPendingHomework, listPendingFollowUps,
+  markHomeworkDone, completeFollowUp,
 } from "../db/repos";
 import type { CancelMode, EditMode } from "../db/repos";
+import type { Homework } from "../db/types";
 import { dayLabel, monthLabel, todayWIB, monthOf } from "../lib/format";
 import { MIN_DURATION } from "../db/types";
 import type { Session } from "../db/types";
@@ -120,6 +123,10 @@ export default function Home() {
   const monthSessions = useLiveQuery(() => listAllSessionsForMonth(calMonth), [calMonth]);
   const weekSessions  = useLiveQuery(() => listAllSessionsForWeek(week[0], week[6]), [week[0], week[6]]);
   const daySessions   = useLiveQuery(() => listAllSessionsForWeek(anchor, anchor), [anchor]);
+
+  // Today Workspace data
+  const overdueHW     = useLiveQuery(() => listAllPendingHomework(), []);
+  const allFollowUps  = useLiveQuery(() => listPendingFollowUps(), []);
 
   const studentMap = useMemo(
     () => new Map((students ?? []).map((s) => [s.id, { name: s.name, color: studentColor(s.id) }])),
@@ -268,6 +275,98 @@ export default function Home() {
           {flash}
         </div>
       )}
+
+      {/* ── TODAY WORKSPACE ── */}
+      {(() => {
+        const overdue  = (overdueHW ?? []).filter((h) => h.status === "overdue");
+        const upcoming = (overdueHW ?? []).filter((h) => h.status === "assigned");
+        const follows  = (allFollowUps ?? []).slice(0, 6);
+        if (overdue.length === 0 && upcoming.length === 0 && follows.length === 0) return null;
+        return (
+          <div className="mx-4 mb-2 space-y-2">
+            {/* Overdue homework */}
+            {overdue.length > 0 && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+                <p className="text-xs font-bold text-red-600 mb-2 uppercase tracking-wide">
+                  🚨 PR Terlambat ({overdue.length})
+                </p>
+                <div className="space-y-1.5">
+                  {overdue.slice(0, 4).map((h) => (
+                    <div key={h.id} className="flex items-center gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-gray-800 truncate">{h.title}</p>
+                        <p className="text-xs text-red-500">{(h as Homework & {studentName?:string}).studentName} · {h.subject} · due {h.dueAt?.slice(5)}</p>
+                      </div>
+                      <button
+                        onClick={async () => { await markHomeworkDone(h.id); msg("PR selesai ✓"); }}
+                        className="flex-shrink-0 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-lg font-semibold hover:bg-green-200 transition-colors">
+                        Selesai
+                      </button>
+                    </div>
+                  ))}
+                  {overdue.length > 4 && (
+                    <p className="text-xs text-red-400">+{overdue.length - 4} PR lainnya</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Upcoming homework (due within 3 days) */}
+            {upcoming.filter((h) => h.dueAt && h.dueAt <= addDays(today, 3)).length > 0 && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                <p className="text-xs font-bold text-amber-700 mb-2 uppercase tracking-wide">
+                  📋 PR Segera Jatuh Tempo
+                </p>
+                <div className="space-y-1.5">
+                  {upcoming
+                    .filter((h) => h.dueAt && h.dueAt <= addDays(today, 3))
+                    .slice(0, 3)
+                    .map((h) => (
+                      <div key={h.id} className="flex items-center gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-gray-800 truncate">{h.title}</p>
+                          <p className="text-xs text-amber-600">{(h as Homework & {studentName?:string}).studentName} · {h.subject} · due {h.dueAt?.slice(5)}</p>
+                        </div>
+                        <button
+                          onClick={async () => { await markHomeworkDone(h.id); msg("PR selesai ✓"); }}
+                          className="flex-shrink-0 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-lg font-semibold hover:bg-green-200">
+                          Selesai
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Pending follow-ups */}
+            {follows.length > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                <p className="text-xs font-bold text-blue-700 mb-2 uppercase tracking-wide">
+                  🔁 Perlu Dilanjutkan ({follows.length})
+                </p>
+                <div className="space-y-1.5">
+                  {follows.map((f) => {
+                    const sName = studentMap.get(f.studentId)?.name ?? "—";
+                    return (
+                      <div key={f.id} className="flex items-center gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-gray-700 truncate">{f.text}</p>
+                          <p className="text-xs text-blue-500">{sName}</p>
+                        </div>
+                        <button
+                          onClick={async () => { await completeFollowUp(f.id); msg("Tandai selesai ✓"); }}
+                          className="flex-shrink-0 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-lg font-semibold hover:bg-blue-200">
+                          ✓
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* View toggle */}
       <div className="mx-4 mb-3 bg-gray-100 rounded-xl p-1 grid grid-cols-3">

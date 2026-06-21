@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getSettings, saveSettings } from "../db/repos";
 import { exportBackup, importBackup } from "../lib/backup";
+import { hashPin } from "../lib/crypto";
 import type { Settings } from "../db/types";
 
 function Toast({ msg, onClose }: { msg: string; onClose: () => void }) {
@@ -31,11 +32,16 @@ export default function SettingsPage() {
   const fileRef    = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (settings && !form) setForm(JSON.parse(JSON.stringify(settings)));
   }, [settings, form]);
 
   useEffect(() => {
-    if (!form?.logo) { setLogoUrl(undefined); return; }
+    if (!form?.logo) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLogoUrl(undefined);
+      return;
+    }
     const url = URL.createObjectURL(form.logo);
     setLogoUrl(url);
     return () => URL.revokeObjectURL(url);
@@ -85,10 +91,11 @@ export default function SettingsPage() {
   const handleSetPin = async () => {
     if (newPin.length !== 4) { setPinError("PIN harus 4 digit."); return; }
     if (newPin !== newPinConf) { setPinError("PIN tidak cocok."); return; }
-    await saveSettings({ ...form, financialPin: newPin });
+    const hashed = await hashPin(newPin);
+    await saveSettings({ ...form, financialPin: hashed });
     setToast("PIN berhasil diperbarui ✓");
     setShowPinEdit(false); setNewPin(""); setNewPinConf(""); setPinError("");
-    setForm((f) => f ? { ...f, financialPin: newPin } : f);
+    setForm((f) => f ? { ...f, financialPin: hashed } : f);
   };
 
   return (
@@ -160,9 +167,7 @@ export default function SettingsPage() {
           </button>
           <span className="text-sm text-gray-700 font-medium">Aktifkan AI untuk narasi laporan</span>
         </label>
-        <input className="input" type="password" placeholder="DeepSeek API Key"
-          value={form.ai.apiKey} onChange={(e) => updateAi("apiKey", e.target.value)} />
-        <input className="input" placeholder="Worker URL (kosongkan jika pakai API langsung)"
+        <input className="input" placeholder="Worker URL"
           value={form.ai.workerUrl} onChange={(e) => updateAi("workerUrl", e.target.value)} />
         <input className="input" placeholder="Model (default: deepseek-chat)"
           value={form.ai.model} onChange={(e) => updateAi("model", e.target.value)} />

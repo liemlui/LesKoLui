@@ -17,6 +17,34 @@ export interface EngagementLog {
   score: number;          // 1-10, computed
 }
 
+export type HomeworkStatus = "assigned" | "done" | "overdue" | "cancelled";
+export type FollowUpType   = "continue-topic" | "misconception" | "send-resource" | "check-homework" | "other";
+
+export interface Homework {
+  id: string;
+  studentId: string;
+  sessionId?: string;
+  subject: string;
+  title: string;
+  instructions?: string;
+  assignedAt: string;   // YYYY-MM-DD
+  dueAt?: string;       // YYYY-MM-DD
+  status: HomeworkStatus;
+  tutorFeedback?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FollowUpItem {
+  id: string;
+  studentId: string;
+  sourceSessionId?: string;
+  type: FollowUpType;
+  text: string;
+  completedAt?: string;
+  createdAt: string;
+}
+
 export interface RaporGrade {
   id: string;
   studentId: string;
@@ -102,6 +130,6 @@ export interface Settings {
   paymentInfo: string;
   subjects: string[];
   financialPin?: string;
-  ai: { enabled: boolean; workerUrl: string; apiKey: string; model: string };
+  ai: { enabled: boolean; workerUrl: string; model: string };
   templatePref: { excludedThemeIds?: string[] };
 }

@@ -9,14 +9,19 @@ import CaptureSession from "./screens/CaptureSession";
 import MonthlyReport from "./screens/MonthlyReport";
 import Settings from "./screens/Settings";
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+}
+
 function InstallPrompt() {
-  const [deferred, setDeferred] = useState<any>(null);
+  const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(false);
 
   useEffect(() => {
     const handler = (e: Event) => {
       e.preventDefault();
-      setDeferred(e);
+      setDeferred(e as BeforeInstallPromptEvent);
     };
     const installedHandler = () => setInstalled(true);
     window.addEventListener("beforeinstallprompt", handler);

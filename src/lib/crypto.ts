@@ -28,3 +28,13 @@ export async function decryptJson(file: Blob, passphrase: string): Promise<unkno
   const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ct);
   return JSON.parse(dec.decode(pt));
 }
+
+export async function hashPin(pin: string): Promise<string> {
+  const data = enc.encode("leskolui-pin-salt-v1:" + pin);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+export function isHashedPin(value?: string): boolean {
+  return /^[a-f0-9]{64}$/i.test(value ?? "");
+}

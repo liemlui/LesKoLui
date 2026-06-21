@@ -30,50 +30,22 @@ export async function generateNarratives(input: AiInput): Promise<AiOutput> {
   const s = await getSettings();
   if (!s.ai.enabled) throw new Error("AI belum diaktifkan di Pengaturan.");
 
-  // Priority: API key langsung > Worker URL
-  const apiKey = s.ai.apiKey;
   const workerUrl = s.ai.workerUrl;
+  if (!workerUrl) throw new Error("Isi Worker URL di Pengaturan untuk mengaktifkan AI.");
 
-  let url: string;
-  let headers: Record<string, string>;
-  let body: any;
+  const body = {
+    model: s.ai.model || "deepseek-chat",
+    temperature: 0.7,
+    response_format: { type: "json_object" },
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: JSON.stringify(input) },
+    ],
+  };
 
-  if (apiKey) {
-    // Panggil DeepSeek langsung dari browser
-    url = "https://api.deepseek.com/chat/completions";
-    headers = {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
-    };
-    body = {
-      model: s.ai.model || "deepseek-chat",
-      temperature: 0.7,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: JSON.stringify(input) },
-      ],
-    };
-  } else if (workerUrl) {
-    // Lewat Cloudflare Worker proxy
-    url = workerUrl;
-    headers = { "Content-Type": "application/json" };
-    body = {
-      model: s.ai.model || "deepseek-chat",
-      temperature: 0.7,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: JSON.stringify(input) },
-      ],
-    };
-  } else {
-    throw new Error("Isi API Key atau Worker URL di Pengaturan.");
-  }
-
-  const res = await fetch(url, {
+  const res = await fetch(workerUrl, {
     method: "POST",
-    headers,
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`AI error ${res.status}: ${await res.text()}`);

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import type { Theme, ReportData, Layout } from "./types";
 import { Deco } from "./deco";
 
@@ -109,7 +110,7 @@ function PhotoEl({ t, url, color }: { t: Theme; url?: string; color: string }) {
   if (t.photo === "polaroid") return (
     <div style={{
       background: "#fff", padding: 5, paddingBottom: 18, boxShadow: "0 2px 6px rgba(0,0,0,.1)",
-      transform: `rotate(${(Math.random() - 0.5) * 3}deg)`,
+      transform: "rotate(-1deg)",
       borderRadius: 2,
     }}>
       <div style={{ width: "100%", aspectRatio: "1/1", overflow: "hidden", borderRadius: 1 }}>
@@ -264,7 +265,7 @@ export const scrapbook: Layout = {
       {isFirst && HeaderEl(d, t)}
       {d.entries.map((e, i) => {
         const c = t.palette[i % t.palette.length];
-        const rot = (Math.random() - 0.5) * 4;
+        const rot = ((i % 5) - 2) * 1.1;
         return (
           <div key={i} style={{ position: "relative", zIndex: 2, marginBottom: 18 }}>
             <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>

@@ -1,8 +1,10 @@
 import { db } from "./db";
 import type {
   Student, Session, MonthlyReport, Payment, Settings, RaporGrade,
+  Homework, HomeworkStatus, FollowUpItem, FollowUpType,
 } from "./types";
 import { MIN_DURATION, DURATION_STEP, DEFAULT_RATE } from "./types";
+import { hashPin, isHashedPin } from "../lib/crypto";
 
 // ── Helpers ────────────────────────────────────────────────────────
 
@@ -36,16 +38,22 @@ const DEFAULT_SETTINGS: Settings = {
     "Economics", "Business Management", "Geography", "History", "Psychology",
     "Computer Science", "ESS", "Bahasa Indonesia", "TOK", "Other",
   ],
-  ai: { enabled: false, workerUrl: "", apiKey: "", model: "deepseek-chat" },
+  ai: { enabled: false, workerUrl: "", model: "deepseek-chat" },
   templatePref: {},
 };
 
 // ── Settings ───────────────────────────────────────────────────────
 
-/** Read-only — pure get, does NOT write */
+/** Reads settings and migrates legacy plaintext PINs to hashes once. */
 export async function getSettings(): Promise<Settings> {
   const s = await db.settings.get("app");
-  return s ?? { ...DEFAULT_SETTINGS };
+  if (!s) return { ...DEFAULT_SETTINGS };
+  if (s.financialPin && !isHashedPin(s.financialPin)) {
+    const migrated = { ...s, financialPin: await hashPin(s.financialPin) };
+    await db.settings.put(migrated);
+    return migrated;
+  }
+  return s;
 }
 
 /** Initialize default settings row if missing — call at app startup */
@@ -57,13 +65,14 @@ export async function initSettings(): Promise<void> {
 }
 
 export async function saveSettings(patch: Partial<Settings>): Promise<void> {
-  await db.settings.put({ ...patch, id: "app" } as Settings);
+  const current = await getSettings();
+  await db.settings.put({ ...current, ...patch, id: "app" } as Settings);
 }
 
 // ── Students ───────────────────────────────────────────────────────
 
 export async function listStudents(activeOnly?: boolean): Promise<Student[]> {
-  let coll = db.students.orderBy("name");
+  const coll = db.students.orderBy("name");
   if (activeOnly) {
     return coll.filter((s) => s.active).toArray();
   }
@@ -121,7 +130,14 @@ export async function updateSession(id: string, patch: Partial<Session>): Promis
     if (patch.durationHours < MIN_DURATION) throw new Error(`Duration must be >= ${MIN_DURATION} hours`);
     if (patch.durationHours % DURATION_STEP !== 0) throw new Error(`Duration must be multiple of ${DURATION_STEP}`);
   }
-  await db.sessions.update(id, { ...patch, updatedAt: timestamp() });
+  const finalPatch: Partial<Session> = { ...patch, updatedAt: timestamp() };
+  if (patch.durationHours !== undefined) {
+    const session = await db.sessions.get(id);
+    if (session) {
+      finalPatch.cost = patch.durationHours * session.rateSnapshot;
+    }
+  }
+  await db.sessions.update(id, finalPatch);
 }
 
 export async function listSessionsByStudent(studentId: string): Promise<Session[]> {
@@ -279,6 +295,10 @@ export async function updateSeriesSessions(
   patch: Partial<Pick<Session, "time" | "durationHours" | "studentId" | "date">>,
   mode: EditMode
 ): Promise<void> {
+  if (patch.durationHours !== undefined) {
+    if (patch.durationHours < MIN_DURATION) throw new Error(`Duration must be >= ${MIN_DURATION} hours`);
+    if (patch.durationHours % DURATION_STEP !== 0) throw new Error(`Duration must be multiple of ${DURATION_STEP}`);
+  }
   if (!session.seriesId || mode === "this") {
     await updateSession(session.id, patch);
     return;
@@ -289,7 +309,13 @@ export async function updateSeriesSessions(
   const toUpdate = mode === "all" ? all : all.filter((s) => s.date >= session.date);
   const now = timestamp();
   await db.transaction("rw", db.sessions, async () => {
-    for (const s of toUpdate) await db.sessions.update(s.id, { ...patch, updatedAt: now });
+    for (const s of toUpdate) {
+      const finalPatch: Partial<Session> = { ...patch, updatedAt: now };
+      if (patch.durationHours !== undefined) {
+        finalPatch.cost = patch.durationHours * s.rateSnapshot;
+      }
+      await db.sessions.update(s.id, finalPatch);
+    }
   });
 }
 
@@ -430,3 +456,100 @@ export async function listSessionsInDateRange(
     .filter((s) => s.status === "DONE" && s.date >= start && s.date <= end)
     .toArray();
 }
+
+export async function getLastDoneSession(studentId: string): Promise<Session | undefined> {
+  const all = await db.sessions
+    .where({ studentId })
+    .filter((s) => s.status === "DONE")
+    .sortBy("date");
+  return all[all.length - 1];
+}
+
+// ── Homework ────────────────────────────────────────────────────────
+
+export async function createHomework(
+  input: Omit<Homework, "id" | "createdAt" | "updatedAt">
+): Promise<string> {
+  const id  = crypto.randomUUID();
+  const now = timestamp();
+  await db.homeworks.add({ ...input, id, createdAt: now, updatedAt: now });
+  return id;
+}
+
+export async function listPendingHomework(studentId: string): Promise<Homework[]> {
+  const today = todayWIB();
+  const rows  = await db.homeworks
+    .where({ studentId })
+    .filter((h) => h.status === "assigned" || h.status === "overdue")
+    .sortBy("dueAt");
+  // Auto-mark overdue in memory (don't write to DB for performance)
+  return rows.map((h) => ({
+    ...h,
+    status: (h.status === "assigned" && h.dueAt && h.dueAt < today)
+      ? ("overdue" as HomeworkStatus)
+      : h.status,
+  }));
+}
+
+export async function listAllPendingHomework(): Promise<(Homework & { studentName?: string })[]> {
+  const today = todayWIB();
+  const rows  = await db.homeworks
+    .filter((h) => h.status === "assigned" || h.status === "overdue")
+    .toArray();
+  const studentIds = [...new Set(rows.map((h) => h.studentId))];
+  const studMap   = new Map(
+    await Promise.all(studentIds.map(async (id) => [id, (await db.students.get(id))?.name ?? "—"] as const))
+  );
+  return rows
+    .map((h) => ({
+      ...h,
+      status: (h.status === "assigned" && h.dueAt && h.dueAt < today)
+        ? ("overdue" as HomeworkStatus)
+        : h.status,
+      studentName: studMap.get(h.studentId),
+    }))
+    .sort((a, b) => (a.dueAt ?? "9999").localeCompare(b.dueAt ?? "9999"));
+}
+
+export async function updateHomework(id: string, patch: Partial<Homework>): Promise<void> {
+  await db.homeworks.update(id, { ...patch, updatedAt: timestamp() });
+}
+
+export async function deleteHomework(id: string): Promise<void> {
+  await db.homeworks.delete(id);
+}
+
+export async function markHomeworkDone(id: string): Promise<void> {
+  await db.homeworks.update(id, { status: "done", updatedAt: timestamp() });
+}
+
+// ── Follow-up Items ─────────────────────────────────────────────────
+
+export async function createFollowUp(
+  input: Omit<FollowUpItem, "id" | "createdAt">
+): Promise<string> {
+  const id = crypto.randomUUID();
+  await db.followUps.add({ ...input, id, createdAt: timestamp() });
+  return id;
+}
+
+export async function listPendingFollowUps(studentId?: string): Promise<FollowUpItem[]> {
+  if (studentId) {
+    return db.followUps
+      .where({ studentId })
+      .filter((f) => !f.completedAt)
+      .toArray();
+  }
+  return db.followUps.filter((f) => !f.completedAt).toArray();
+}
+
+export async function completeFollowUp(id: string): Promise<void> {
+  await db.followUps.update(id, { completedAt: timestamp() });
+}
+
+export async function deleteFollowUp(id: string): Promise<void> {
+  await db.followUps.delete(id);
+}
+
+// Re-export types so screens only need to import from repos
+export type { HomeworkStatus, FollowUpType };

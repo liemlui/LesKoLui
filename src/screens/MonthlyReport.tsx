@@ -3,7 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import {
   listStudents, getStudent, getSettings,
   listSessionsByStudentMonth, listSessionsForMonth, listDoneSessionsForDateRange,
-  getReport, upsertReport, updateSession,
+  getReport, upsertReport, updateSession, saveSettings,
 } from "../db/repos";
 import { pickTemplate } from "../lib/rotation";
 import { generateNarratives } from "../lib/aiClient";
@@ -12,6 +12,7 @@ import { LAYOUTS } from "../template/layouts";
 import { ReportRenderer } from "../template/ReportRenderer";
 import { dayLabel, monthLabel, formatRupiah, todayWIB, monthOf } from "../lib/format";
 import { exportPng, exportPdf, shareFiles } from "../lib/exportReport";
+import { hashPin } from "../lib/crypto";
 
 type Tab = "laporan" | "rekap";
 
@@ -90,7 +91,11 @@ export default function MonthlyReportPage() {
   } | null>(null);
 
   useEffect(() => {
-    if (!student || !sessions) { setReportData(null); return; }
+    if (!student || !sessions) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setReportData(null);
+      return;
+    }
     const urls: string[] = [];
 
     let logoUrl: string | undefined;
@@ -536,8 +541,8 @@ export default function MonthlyReportPage() {
                     className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold disabled:opacity-40 hover:bg-blue-700 transition-colors"
                     onClick={async () => {
                       if (pinInput !== pinConfirm) { setPinError("PIN tidak cocok, coba lagi."); return; }
-                      const s = await getSettings();
-                      await (await import("../db/repos")).saveSettings({ ...s, financialPin: pinInput });
+                      const hashedPin = await hashPin(pinInput);
+                      await saveSettings({ financialPin: hashedPin });
                       setPinUnlocked(true); setPinInput(""); setPinConfirm(""); setPinError("");
                     }}>
                     Buat PIN & Masuk
@@ -548,17 +553,19 @@ export default function MonthlyReportPage() {
                   <input className={`input text-center text-2xl tracking-[0.5em] font-mono ${pinError ? "border-red-400" : ""}`}
                     type="password" inputMode="numeric" maxLength={4} placeholder="••••"
                     value={pinInput} onChange={(e) => { setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4)); setPinError(""); }}
-                    onKeyDown={(e) => {
+                    onKeyDown={async (e) => {
                       if (e.key === "Enter") {
-                        if (pinInput === settings.financialPin) { setPinUnlocked(true); setPinInput(""); }
+                        const hashed = await hashPin(pinInput);
+                        if (hashed === settings.financialPin) { setPinUnlocked(true); setPinInput(""); }
                         else { setPinError("PIN salah. Coba lagi."); setPinInput(""); }
                       }
                     }} />
                   {pinError && <p className="text-red-500 text-sm">{pinError}</p>}
                   <button disabled={pinInput.length !== 4}
                     className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold disabled:opacity-40 hover:bg-blue-700 transition-colors"
-                    onClick={() => {
-                      if (pinInput === settings.financialPin) { setPinUnlocked(true); setPinInput(""); }
+                    onClick={async () => {
+                      const hashed = await hashPin(pinInput);
+                      if (hashed === settings.financialPin) { setPinUnlocked(true); setPinInput(""); }
                       else { setPinError("PIN salah. Coba lagi."); setPinInput(""); }
                     }}>
                     Masuk
