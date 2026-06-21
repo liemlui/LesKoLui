@@ -32,6 +32,16 @@ const MOODS = [
   { v: "Kesulitan",icon: "😰" },
 ];
 
+const STEPS = [
+  { id: 1, label: "Jadwal",  icon: "🎯", desc: "Murid & waktu",       optional: false },
+  { id: 2, label: "Bukti",   icon: "📸", desc: "Foto & tanda tangan", optional: true  },
+  { id: 3, label: "Materi",  icon: "📚", desc: "Mapel & catatan",     optional: false },
+  { id: 4, label: "Kondisi", icon: "😊", desc: "Mood & perilaku",     optional: true  },
+  { id: 5, label: "Detail",  icon: "📋", desc: "Topik & PR",          optional: true  },
+] as const;
+
+type StepNum = 1 | 2 | 3 | 4 | 5;
+
 function maxBackDate(days = 14): string {
   const [y, m, d] = todayWIB().split("-").map(Number);
   const dt = new Date(y, m - 1, d - days);
@@ -91,6 +101,9 @@ export default function CaptureSession() {
 
   const today = todayWIB();
 
+  // Wizard step
+  const [currentStep, setCurrentStep] = useState<StepNum>(1);
+
   // Main form
   const [studentId,      setStudentId]      = useState("");
   const [currentStudent, setCurrentStudent] = useState<Student | undefined>();
@@ -111,7 +124,6 @@ export default function CaptureSession() {
   const [needsWork,      setNeedsWork]       = useState("");
   const [predictedGrade, setPredictedGrade]  = useState("");
   const [sessionDate,    setSessionDate]     = useState(today);
-  const [showDetail,     setShowDetail]      = useState(false);
   const [saving,         setSaving]          = useState(false);
   const [message,        setMessage]         = useState("");
 
@@ -170,14 +182,13 @@ export default function CaptureSession() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   // AI states
-  const [aiNoteLoading,  setAiNoteLoading]  = useState(false);
-  const [aiHwLoading,    setAiHwLoading]    = useState(false);
-  const [aiHwSuggestions, setAiHwSuggestions] = useState<{ title: string; subject: string }[]>([]);
-  const [aiWaLoading,    setAiWaLoading]    = useState(false);
-  const [aiWaText,       setAiWaText]       = useState<string | null>(null);
-  const [aiError,        setAiError]        = useState("");
+  const [aiNoteLoading,    setAiNoteLoading]    = useState(false);
+  const [aiHwLoading,      setAiHwLoading]      = useState(false);
+  const [aiHwSuggestions,  setAiHwSuggestions]  = useState<{ title: string; subject: string }[]>([]);
+  const [aiWaLoading,      setAiWaLoading]      = useState(false);
+  const [aiWaText,         setAiWaText]         = useState<string | null>(null);
+  const [aiError,          setAiError]          = useState("");
 
-  // Photo URL lifecycle
   useEffect(() => {
     if (!photo) { setPhotoUrl(undefined); return; }
     const url = URL.createObjectURL(photo);
@@ -185,7 +196,6 @@ export default function CaptureSession() {
     return () => URL.revokeObjectURL(url);
   }, [photo]);
 
-  // Signature URL lifecycle
   useEffect(() => {
     if (!signature) { setSignatureUrl(undefined); return; }
     const url = URL.createObjectURL(signature);
@@ -193,10 +203,8 @@ export default function CaptureSession() {
     return () => URL.revokeObjectURL(url);
   }, [signature]);
 
-  // Load scheduled session to pre-fill form
   useEffect(() => {
     if (!scheduleId) return;
-    // Use the existing getStudent flow by importing db directly
     (async () => {
       const { db } = await import("../db/db");
       const session = await db.sessions.get(scheduleId);
@@ -208,20 +216,14 @@ export default function CaptureSession() {
     })();
   }, [scheduleId]);
 
-  // Conflict detection: check if another student already has a DONE session on the same date
   useEffect(() => {
     if (!studentId || !sessionDate) { setConflictWarn([]); return; }
     listDoneSessionsForDate(sessionDate).then((sessions) => {
       const others = sessions.filter((s) => s.studentId !== studentId);
-      if (others.length > 0) {
-        setConflictWarn(others.map((s) => s.studentId));
-      } else {
-        setConflictWarn([]);
-      }
+      setConflictWarn(others.length > 0 ? others.map((s) => s.studentId) : []);
     });
   }, [studentId, sessionDate]);
 
-  // Load student + brief on student change
   useEffect(() => {
     if (!studentId) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -247,13 +249,14 @@ export default function CaptureSession() {
   const suggestions = shortNote.length > 1
     ? (allNotes ?? []).filter((n) => n.toLowerCase().includes(shortNote.toLowerCase()) && n !== shortNote).slice(0, 4)
     : [];
-  const safeBriefHwPage = clampPage(briefHwPage, briefHW.length);
-  const paginatedBriefHW = paginateItems(briefHW, safeBriefHwPage);
+
+  const safeBriefHwPage     = clampPage(briefHwPage, briefHW.length);
+  const paginatedBriefHW    = paginateItems(briefHW, safeBriefHwPage);
   const safeBriefFollowPage = clampPage(briefFollowPage, briefFollowUps.length);
   const paginatedBriefFollowUps = paginateItems(briefFollowUps, safeBriefFollowPage);
-  const safeCoHwPage = clampPage(coHwPage, coHWItems.length);
-  const paginatedCoHWItems = paginateItems(coHWItems, safeCoHwPage);
-  const safeCoFollowPage = clampPage(coFollowPage, coFollowUps.length);
+  const safeCoHwPage        = clampPage(coHwPage, coHWItems.length);
+  const paginatedCoHWItems  = paginateItems(coHWItems, safeCoHwPage);
+  const safeCoFollowPage    = clampPage(coFollowPage, coFollowUps.length);
   const paginatedCoFollowUps = paginateItems(coFollowUps, safeCoFollowPage);
 
   const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -265,8 +268,7 @@ export default function CaptureSession() {
     }
     if (file.size > 50 * 1024 * 1024) {
       setMessage("Foto terlalu besar (maks 50 MB)");
-      e.target.value = "";
-      return;
+      e.target.value = ""; return;
     }
     try {
       const compressed = await compressPhoto(file);
@@ -288,10 +290,11 @@ export default function CaptureSession() {
     setEngActiveAsking(false); setEngQuickLearner(false); setEngNeedsRepeat(false); setEngHwMissed(false);
     setBehaviorTags([]); setResponseTag(undefined); setShowBehavior(false); setActiveTooltip(null);
     setSignature(undefined); setShowSigPad(false);
-    setDuration(MIN_DURATION); setShowDetail(false); setSessionDate(today);
+    setDuration(MIN_DURATION); setSessionDate(today);
     setSessionType(undefined); setConflictWarn([]);
     setNoHW(false);
     setCoHWItems([]); setCoHWTitle(""); setCoHWSubject(""); setCoHWDueAt("");
+    setCurrentStep(1); setMessage("");
   };
 
   const handleSave = async () => {
@@ -348,7 +351,6 @@ export default function CaptureSession() {
         });
       }
 
-      // Save PR items immediately (unless user explicitly said no PR)
       if (!noHW) {
         for (const hw of coHWItems) {
           await createHomework({
@@ -360,7 +362,6 @@ export default function CaptureSession() {
         }
       }
 
-      // Setup close-out (keep coHWItems for WA preview, don't reset)
       setCoSessionData({
         id: newId, date: sessionDate, subjects: subjects.length > 0 ? subjects : [],
         durationHours: duration, shortNote: shortNote.trim(),
@@ -368,7 +369,6 @@ export default function CaptureSession() {
       });
       setCoHWTitle(""); setCoHWSubject(subjects[0] ?? studentSubjects[0] ?? "");
       setCoHWDueAt(addDaysToDate(sessionDate, 7));
-      // Pre-fill carry-forward from needsWork
       setCoFollowUps(needsWork.trim() ? [needsWork.trim()] : []);
       setCoFollowUpText("");
       setShowCloseOut(true);
@@ -395,7 +395,6 @@ export default function CaptureSession() {
     if (!coSessionData || !studentId) { resetForm(); setShowCloseOut(false); return; }
     setCoSaving(true);
     try {
-      // PR already saved in handleSave — only save follow-ups here
       for (const text of coFollowUps) {
         await createFollowUp({
           studentId, sourceSessionId: coSessionData.id,
@@ -412,60 +411,191 @@ export default function CaptureSession() {
     }
   };
 
+  // Step validation & navigation
+  const validateCurrentStep = (): string | null => {
+    if (currentStep === 1 && !studentId) return "👤 Pilih murid dulu.";
+    if (currentStep === 3) {
+      if (studentSubjects.length > 0 && subjects.length === 0) return "📖 Pilih minimal 1 mata pelajaran.";
+      if (!shortNote.trim()) return "✏️ Tulis catatan singkat dulu.";
+    }
+    return null;
+  };
+
+  const goNext = () => {
+    const err = validateCurrentStep();
+    if (err) { setMessage(err); return; }
+    setMessage("");
+    if (currentStep < 5) setCurrentStep((s) => (s + 1) as StepNum);
+    else handleSave();
+  };
+
+  const goBack = () => {
+    setMessage("");
+    if (currentStep > 1) setCurrentStep((s) => (s - 1) as StepNum);
+  };
+
+  const skipStep = () => {
+    setMessage("");
+    if (currentStep < 5) setCurrentStep((s) => (s + 1) as StepNum);
+    else handleSave();
+  };
+
   if (!students) return <div className="p-4 text-gray-500">Memuat...</div>;
 
-  const tutorName = settings?.tutorProfile?.name || "Ko Lui";
-  const waNumber  = currentStudent?.parentContact.phone.replace(/^0/, "62").replace(/[^0-9]/g, "") ?? "";
+  const tutorName    = settings?.tutorProfile?.name || "Ko Lui";
+  const waNumber     = currentStudent?.parentContact.phone.replace(/^0/, "62").replace(/[^0-9]/g, "") ?? "";
+  const stepMeta     = STEPS[currentStep - 1];
+  const engScore     = engTouched ? calcEngagementScore({
+    prepared: engPrepared, focused: engFocused, drowsy: engDrowsy, playingPhone: engPhone,
+    activeAsking: engActiveAsking, quickLearner: engQuickLearner,
+    needsRepetition: engNeedsRepeat, hwMissed: engHwMissed,
+  }) : 0;
+  const engScoreInfo = engTouched ? scoreLabel(engScore) : null;
 
   return (
-    <div className="p-4 space-y-4 pb-24">
-      <h1 className="text-2xl font-bold">Catat Sesi</h1>
+    <div className="pb-36">
 
-      {message && (
-        <div onClick={() => setMessage("")}
-          className={`p-3 rounded-xl text-sm cursor-pointer font-medium ${message.includes("✓") ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-600 border border-red-200"}`}>
-          {message}
-        </div>
-      )}
-
-      {/* Murid */}
-      <div>
-        <label className="label">Murid</label>
-        <select className="input" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
-          <option value="">Pilih murid...</option>
-          {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </select>
+      {/* ── PAGE HEADER ── */}
+      <div className="px-4 pt-4 pb-3">
+        <h1 className="text-2xl font-bold text-gray-800">📓 Catat Sesi</h1>
+        <p className="text-xs text-gray-400 mt-0.5">Langkah {currentStep} dari {STEPS.length}</p>
       </div>
 
-      {/* Tanggal */}
-      <div>
-        <label className="label">Tanggal Sesi</label>
-        <input className="input" type="date" value={sessionDate}
-          min={maxBackDate(14)} max={today}
-          onChange={(e) => setSessionDate(e.target.value)} />
-        {sessionDate !== today && (
-          <p className="text-xs text-orange-500 mt-1">Merekam sesi masa lalu</p>
+      {/* ── PROGRESS STEPPER ── */}
+      <div className="px-4 mb-4">
+        <div className="relative flex items-start justify-between">
+          <div className="absolute top-4 left-4 right-4 h-0.5 bg-gray-200 z-0" />
+          {STEPS.map((step) => {
+            const done   = currentStep > step.id;
+            const active = currentStep === step.id;
+            return (
+              <div key={step.id} className="flex flex-col items-center gap-1.5 z-10 relative flex-1">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all shadow-sm
+                  ${done   ? "bg-green-500 text-white scale-95"
+                  : active ? "bg-blue-600 text-white ring-4 ring-blue-100 scale-110"
+                  :          "bg-white text-gray-400 border-2 border-gray-200"}`}>
+                  {done ? "✓" : step.icon}
+                </div>
+                <span className={`text-[10px] font-bold tracking-wide transition-colors
+                  ${active ? "text-blue-600" : done ? "text-green-600" : "text-gray-400"}`}>
+                  {step.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-500"
+            style={{
+              width: `${((currentStep - 1) / (STEPS.length - 1)) * 100}%`,
+              background: "linear-gradient(90deg, #3b82f6, #60a5fa)",
+            }}
+          />
+        </div>
+      </div>
+
+      {/* ── STEP HEADER CARD ── */}
+      <div className="mx-4 mb-4 rounded-2xl border border-gray-100 bg-gradient-to-r from-gray-50 to-white px-4 py-3 flex items-center gap-3 shadow-sm">
+        <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-xl flex-shrink-0">
+          {stepMeta.icon}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="font-bold text-gray-800 text-base">{stepMeta.label}</h2>
+          <p className="text-xs text-gray-400">{stepMeta.desc}</p>
+        </div>
+        {stepMeta.optional && (
+          <span className="text-[10px] bg-gray-100 text-gray-400 px-2 py-1 rounded-full font-semibold uppercase tracking-wide flex-shrink-0">
+            opsional
+          </span>
         )}
       </div>
 
-      {/* Conflict warning */}
-      {conflictWarn.length > 0 && (
-        <div className="bg-orange-50 border border-orange-200 rounded-xl p-3">
-          <p className="text-sm font-semibold text-orange-700">⚠️ Perhatian</p>
-          <p className="text-xs text-orange-600 mt-0.5">
-            Pada tanggal ini sudah ada sesi DONE untuk murid lain ({conflictWarn.length} sesi). Pastikan jadwal tidak bentrok.
-          </p>
+      {/* ── MESSAGE ── */}
+      {message && (
+        <div className="mx-4 mb-3" onClick={() => setMessage("")}>
+          <div className={`p-3 rounded-xl text-sm cursor-pointer font-medium ${
+            message.includes("✓") ? "bg-green-50 text-green-700 border border-green-200"
+            : "bg-red-50 text-red-600 border border-red-200"}`}>
+            {message}
+          </div>
         </div>
       )}
 
-      {studentId && (
-        <>
-          {/* ── PERSIAPAN SESI BRIEF ── */}
-          {(briefLastSession || briefHW.length > 0 || briefFollowUps.length > 0) && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 space-y-2.5">
-              <p className="text-xs font-bold text-amber-700 uppercase tracking-wide flex items-center gap-1.5">
-                📋 Persiapan Sesi
+      {/* ══════════════════════════════════════════
+          STEP 1: JADWAL — Murid, Tanggal, Durasi
+          ══════════════════════════════════════════ */}
+      {currentStep === 1 && (
+        <div className="px-4 space-y-4">
+
+          {/* Murid */}
+          <div>
+            <label className="label">👤 Murid <span className="text-red-400">*</span></label>
+            <select className="input" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
+              <option value="">Pilih murid...</option>
+              {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+
+          {/* Tanggal */}
+          <div>
+            <label className="label">📅 Tanggal Sesi</label>
+            <input className="input" type="date" value={sessionDate}
+              min={maxBackDate(14)} max={today}
+              onChange={(e) => setSessionDate(e.target.value)} />
+            {sessionDate !== today && (
+              <p className="text-xs text-orange-500 mt-1">⏪ Merekam sesi masa lalu</p>
+            )}
+          </div>
+
+          {/* Durasi */}
+          <div>
+            <label className="label">⏱️ Durasi</label>
+            <div className="flex flex-wrap gap-2">
+              {DURATIONS.map((d) => (
+                <button key={d} type="button"
+                  className={`px-3 py-2 rounded-xl text-sm font-semibold border transition-colors ${
+                    duration === d ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200"}`}
+                  onClick={() => setDuration(d)}>{d}j</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tipe sesi */}
+          <div>
+            <label className="label">🗂️ Tipe Sesi <span className="text-gray-400 font-normal text-xs">(opsional)</span></label>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {SESSION_TYPE_OPTIONS.map((opt) => (
+                <button key={opt.value} type="button"
+                  onClick={() => {
+                    const newType = sessionType === opt.value ? undefined : opt.value;
+                    setSessionType(newType);
+                    if (newType && !shortNote.trim()) {
+                      setShortNote(generateNote(newType, subjects[0] ?? studentSubjects[0], topic));
+                    }
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                    sessionType === opt.value ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"}`}>
+                  <span>{opt.icon}</span> {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Conflict warning */}
+          {conflictWarn.length > 0 && (
+            <div className="bg-orange-50 border border-orange-200 rounded-xl p-3">
+              <p className="text-sm font-semibold text-orange-700">⚠️ Perhatian</p>
+              <p className="text-xs text-orange-600 mt-0.5">
+                Tanggal ini sudah ada sesi DONE untuk murid lain ({conflictWarn.length} sesi). Pastikan jadwal tidak bentrok.
               </p>
+            </div>
+          )}
+
+          {/* Brief persiapan */}
+          {studentId && (briefLastSession || briefHW.length > 0 || briefFollowUps.length > 0) && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 space-y-2.5">
+              <p className="text-xs font-bold text-amber-700 uppercase tracking-wide">📋 Persiapan Sesi</p>
               {briefLastSession && (
                 <div className="space-y-0.5">
                   <p className="text-xs font-semibold text-amber-600">
@@ -473,19 +603,13 @@ export default function CaptureSession() {
                     {briefLastSession.subjects.length > 0 && ` (${briefLastSession.subjects.join(", ")})`}
                   </p>
                   <p className="text-xs text-gray-600 leading-relaxed">"{briefLastSession.shortNote}"</p>
-                  {briefLastSession.topic && (
-                    <p className="text-xs text-gray-500">💡 Topik: {briefLastSession.topic}</p>
-                  )}
-                  {briefLastSession.predictedGrade && (
-                    <p className="text-xs text-gray-500">📊 Prediksi: {briefLastSession.predictedGrade}</p>
-                  )}
+                  {briefLastSession.topic && <p className="text-xs text-gray-500">💡 Topik: {briefLastSession.topic}</p>}
+                  {briefLastSession.predictedGrade && <p className="text-xs text-gray-500">📊 Prediksi: {briefLastSession.predictedGrade}</p>}
                 </div>
               )}
               {briefHW.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-red-600 mb-1">
-                    📋 PR belum selesai ({briefHW.length}):
-                  </p>
+                  <p className="text-xs font-semibold text-red-600 mb-1">📋 PR belum selesai ({briefHW.length}):</p>
                   {paginatedBriefHW.map((h) => (
                     <p key={h.id} className="text-xs text-gray-600 flex items-center gap-1">
                       <span className={h.status === "overdue" ? "text-red-500" : "text-amber-500"}>•</span>
@@ -494,95 +618,113 @@ export default function CaptureSession() {
                       {h.dueAt && <span className={`text-xs ml-auto ${h.status === "overdue" ? "text-red-500 font-semibold" : "text-gray-400"}`}>deadline: {h.dueAt.slice(5)}</span>}
                     </p>
                   ))}
-                  <PaginationControls
-                    page={safeBriefHwPage}
-                    total={briefHW.length}
-                    onPageChange={setBriefHwPage}
-                    label="PR"
-                  />
+                  <PaginationControls page={safeBriefHwPage} total={briefHW.length} onPageChange={setBriefHwPage} label="PR" />
                 </div>
               )}
               {briefFollowUps.length > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-blue-600 mb-1">🔁 Lanjutkan dari sesi lalu:</p>
-                  {paginatedBriefFollowUps.map((f) => (
-                    <p key={f.id} className="text-xs text-gray-600">• {f.text}</p>
-                  ))}
-                  <PaginationControls
-                    page={safeBriefFollowPage}
-                    total={briefFollowUps.length}
-                    onPageChange={setBriefFollowPage}
-                    label="follow-up"
-                  />
+                  {paginatedBriefFollowUps.map((f) => <p key={f.id} className="text-xs text-gray-600">• {f.text}</p>)}
+                  <PaginationControls page={safeBriefFollowPage} total={briefFollowUps.length} onPageChange={setBriefFollowPage} label="follow-up" />
                 </div>
               )}
             </div>
           )}
+        </div>
+      )}
 
-          {/* ── BUKTI KEHADIRAN: Foto + Tanda Tangan ── */}
-          <div className="bg-gray-50 rounded-xl border border-gray-100 p-3.5 space-y-3">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">📋 Bukti Kehadiran <span className="font-normal normal-case">(opsional)</span></p>
+      {/* ══════════════════════════════════════════
+          STEP 2: BUKTI — Foto & Tanda Tangan
+          ══════════════════════════════════════════ */}
+      {currentStep === 2 && (
+        <div className="px-4 space-y-3">
+          <input ref={fileRef} type="file" accept="image/*" capture="environment"
+            onChange={handlePhoto} className="hidden" />
 
-            {/* Foto dengan timestamp otomatis */}
-            <input ref={fileRef} type="file" accept="image/*" capture="environment"
-              onChange={handlePhoto} className="hidden" />
-            {photoUrl ? (
-              <div className="relative inline-block">
-                <img src={photoUrl} alt="preview" className="h-36 w-36 object-cover rounded-xl shadow" />
-                <button onClick={() => setPhoto(undefined)}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center shadow-md">✕</button>
-                <button onClick={() => fileRef.current?.click()}
-                  className="absolute bottom-1.5 right-1.5 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">Ganti</button>
-                <span className="absolute top-1.5 left-1.5 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded-full">📅 timestamp ✓</span>
-              </div>
-            ) : (
+          {/* Foto */}
+          {photoUrl ? (
+            <div className="relative">
+              <img src={photoUrl} alt="preview" className="w-full h-52 object-cover rounded-2xl shadow-md" />
+              <button onClick={() => setPhoto(undefined)}
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-7 h-7 text-sm flex items-center justify-center shadow-md">✕</button>
               <button onClick={() => fileRef.current?.click()}
-                className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl border-2 border-dashed border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors">
-                <span className="text-xl">📷</span>
-                <span className="font-medium text-sm">Foto Sesi <span className="text-xs">(timestamp otomatis)</span></span>
-              </button>
-            )}
+                className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-3 py-1 rounded-full">📷 Ganti</button>
+              <span className="absolute top-2 left-2 bg-black/50 text-white text-[10px] px-2 py-0.5 rounded-full">📅 timestamp ✓</span>
+            </div>
+          ) : (
+            <button onClick={() => fileRef.current?.click()}
+              className="flex flex-col items-center justify-center gap-3 w-full py-14 rounded-2xl border-2 border-dashed border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors bg-gray-50">
+              <span className="text-5xl">📷</span>
+              <div className="text-center">
+                <p className="font-semibold text-sm">Foto Sesi</p>
+                <p className="text-xs mt-0.5 text-gray-400">Timestamp otomatis ditambahkan</p>
+              </div>
+            </button>
+          )}
 
-            {/* Tanda tangan murid */}
-            {signatureUrl ? (
-              <div>
-                <p className="text-xs text-gray-500 font-medium mb-1.5">✍️ Tanda Tangan Murid</p>
-                <div className="relative bg-white rounded-xl border border-gray-200 p-2">
-                  <img src={signatureUrl} alt="TTD" className="max-h-20 w-full object-contain" />
-                  <button onClick={() => { setSignature(undefined); setShowSigPad(false); }}
-                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">✕</button>
-                </div>
+          {/* Tanda tangan */}
+          {signatureUrl ? (
+            <div>
+              <p className="text-xs text-gray-500 font-medium mb-1.5">✍️ Tanda Tangan Murid</p>
+              <div className="relative bg-white rounded-xl border border-gray-200 p-2">
+                <img src={signatureUrl} alt="TTD" className="max-h-24 w-full object-contain" />
+                <button onClick={() => { setSignature(undefined); setShowSigPad(false); }}
+                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">✕</button>
               </div>
-            ) : showSigPad ? (
-              <div>
-                <p className="text-xs text-gray-500 font-medium mb-1.5">✍️ Tanda Tangan Murid</p>
-                <SignaturePad
-                  key={studentId}
-                  onSave={(blob) => { setSignature(blob); setShowSigPad(false); }}
-                  onClear={() => setSignature(undefined)}
-                />
+            </div>
+          ) : showSigPad ? (
+            <div>
+              <p className="text-xs text-gray-500 font-medium mb-1.5">✍️ Tanda Tangan Murid</p>
+              <SignaturePad
+                key={studentId}
+                onSave={(blob) => { setSignature(blob); setShowSigPad(false); }}
+                onClear={() => setSignature(undefined)}
+              />
+            </div>
+          ) : (
+            <button type="button" onClick={() => setShowSigPad(true)}
+              className="flex flex-col items-center justify-center gap-3 w-full py-10 rounded-2xl border-2 border-dashed border-gray-300 text-gray-400 hover:border-indigo-400 hover:text-indigo-500 transition-colors bg-gray-50">
+              <span className="text-4xl">✍️</span>
+              <div className="text-center">
+                <p className="font-semibold text-sm">Tanda Tangan Murid</p>
+                <p className="text-xs mt-0.5 text-gray-400">Tap untuk buka signature pad</p>
               </div>
-            ) : (
-              <button type="button" onClick={() => setShowSigPad(true)}
-                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border-2 border-dashed border-gray-300 text-gray-400 hover:border-indigo-400 hover:text-indigo-500 transition-colors">
-                <span className="text-lg">✍️</span>
-                <span className="font-medium text-sm">Tanda Tangan Murid</span>
-              </button>
-            )}
-          </div>
+            </button>
+          )}
+
+          {(photo || signature) && (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-2.5">
+              <span className="text-green-500 text-xl">✅</span>
+              <div>
+                <p className="text-xs font-bold text-green-700">Bukti kehadiran siap!</p>
+                <p className="text-xs text-green-600 mt-0.5">
+                  {[photo ? "📷 Foto tersimpan" : null, signature ? "✍️ TTD tersimpan" : null].filter(Boolean).join(" · ")}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════
+          STEP 3: MATERI — Mapel & Catatan
+          ══════════════════════════════════════════ */}
+      {currentStep === 3 && (
+        <div className="px-4 space-y-4">
 
           {/* Mapel */}
           <div>
             <label className="label">
-              Mata Pelajaran
+              📖 Mata Pelajaran
               {studentSubjects.length > 0
-                ? <span className="text-gray-400 font-normal text-xs ml-1">(pilih yang relevan)</span>
+                ? <span className="text-red-400 ml-1">*</span>
                 : <span className="text-gray-400 font-normal text-xs ml-1">(opsional)</span>}
             </label>
             <div className="flex flex-wrap gap-2 mt-1">
               {studentSubjects.map((s) => (
                 <button key={s} type="button"
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${subjects.includes(s) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300"}`}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                    subjects.includes(s) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300"}`}
                   onClick={() => toggleSubject(s)}>{s}</button>
               ))}
               {subjects.filter((s) => !studentSubjects.includes(s)).map((s) => (
@@ -600,58 +742,42 @@ export default function CaptureSession() {
             </div>
           </div>
 
-          {/* Tipe sesi */}
-          <div>
-            <label className="label">Tipe Sesi <span className="text-gray-400 font-normal text-xs">(opsional, untuk generate catatan)</span></label>
-            <div className="flex flex-wrap gap-2 mt-1">
-              {SESSION_TYPE_OPTIONS.map((opt) => (
-                <button key={opt.value} type="button"
-                  onClick={() => {
-                    const newType = sessionType === opt.value ? undefined : opt.value;
-                    setSessionType(newType);
-                    if (newType && !shortNote.trim()) {
-                      setShortNote(generateNote(newType, subjects[0] ?? studentSubjects[0], topic));
-                    }
-                  }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${sessionType === opt.value ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"}`}>
-                  <span>{opt.icon}</span> {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Catatan singkat */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="label">Catatan Singkat</label>
+              <label className="label">✏️ Catatan Singkat <span className="text-red-400">*</span></label>
               {sessionType && (
                 <button type="button"
-                  className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                  className="text-xs text-blue-600 hover:text-blue-800 font-semibold"
                   onClick={() => setShortNote(generateNote(sessionType, subjects[0] ?? studentSubjects[0], topic))}>
                   ⚡ Generate
                 </button>
               )}
             </div>
-            <textarea className="input" rows={2} value={shortNote} maxLength={300}
+            <textarea className="input" rows={3} value={shortNote} maxLength={300}
               onChange={(e) => setShortNote(e.target.value)}
               placeholder="Apa yang dibahas hari ini?" />
-            {settings?.ai?.enabled && settings.ai.apiKey && subjects.length > 0 && (
-              <button type="button" disabled={aiNoteLoading}
-                onClick={async () => {
-                  setAiNoteLoading(true); setAiError("");
-                  try {
-                    const res = await draftShortNote({
-                      student: { name: currentStudent?.name ?? "", level: currentStudent?.level ?? "" },
-                      subjects, topic, mood, sessionType,
-                    });
-                    if (res.note) setShortNote(res.note);
-                  } catch (e) { setAiError((e as Error).message); }
-                  finally { setAiNoteLoading(false); }
-                }}
-                className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
-                {aiNoteLoading ? "⏳ Draft AI..." : "✨ Draft AI"}
-              </button>
-            )}
+            <div className="flex items-center justify-between mt-1">
+              <span className="text-xs text-gray-400">{shortNote.length}/300</span>
+              {settings?.ai?.enabled && settings.ai.apiKey && subjects.length > 0 && (
+                <button type="button" disabled={aiNoteLoading}
+                  onClick={async () => {
+                    setAiNoteLoading(true); setAiError("");
+                    try {
+                      const res = await draftShortNote({
+                        student: { name: currentStudent?.name ?? "", level: currentStudent?.level ?? "" },
+                        subjects, topic, mood, sessionType,
+                      });
+                      if (res.note) setShortNote(res.note);
+                    } catch (e) { setAiError((e as Error).message); }
+                    finally { setAiNoteLoading(false); }
+                  }}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
+                  {aiNoteLoading ? "⏳ Draft AI..." : "✨ Draft AI"}
+                </button>
+              )}
+            </div>
+            {aiError && <p className="text-xs text-red-500 mt-1">{aiError}</p>}
             {suggestions.length > 0 && (
               <div className="mt-1 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
                 {suggestions.map((s) => (
@@ -662,212 +788,174 @@ export default function CaptureSession() {
               </div>
             )}
           </div>
+        </div>
+      )}
 
-          {/* Durasi */}
+      {/* ══════════════════════════════════════════
+          STEP 4: KONDISI — Mood & Engagement
+          ══════════════════════════════════════════ */}
+      {currentStep === 4 && (
+        <div className="px-4 space-y-4">
+
+          {/* Mood */}
           <div>
-            <label className="label">Durasi</label>
+            <label className="label">🔥 Semangat Hari Ini</label>
             <div className="flex flex-wrap gap-2">
-              {DURATIONS.map((d) => (
-                <button key={d} type="button"
-                  className={`px-3 py-2 rounded-xl text-sm font-semibold border transition-colors ${duration === d ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200"}`}
-                  onClick={() => setDuration(d)}>{d}j</button>
+              {MOODS.map((m) => (
+                <button key={m.v} type="button"
+                  className={`px-3 py-2 rounded-full text-sm border transition-colors ${
+                    mood === m.v ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-600 border-gray-200"}`}
+                  onClick={() => setMood(mood === m.v ? undefined : m.v)}>
+                  {m.icon} {m.v}
+                </button>
               ))}
             </div>
           </div>
 
-          {/* Kondisi Belajar — mood + engagement unified */}
-          <div className="bg-gray-50 rounded-xl p-3.5 space-y-3 border border-gray-100">
-            <p className="text-sm font-semibold text-gray-700">
-              Kondisi Belajar <span className="text-gray-400 font-normal text-xs">(opsional)</span>
-            </p>
-
-            {/* Semangat / energy */}
-            <div>
-              <p className="text-xs text-gray-400 font-medium mb-1.5">Semangat</p>
-              <div className="flex flex-wrap gap-2">
-                {MOODS.map((m) => (
-                  <button key={m.v} type="button"
-                    className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${mood === m.v ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-600 border-gray-200"}`}
-                    onClick={() => setMood(mood === m.v ? undefined : m.v)}>
-                    {m.icon} {m.v}
-                  </button>
-                ))}
-              </div>
+          {/* Positif */}
+          <div>
+            <p className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-2">✨ Positif</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => setEngPrepared(!engPrepared)}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
+                  engPrepared ? "bg-green-500 text-white border-green-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-green-300"}`}>
+                <span>📚</span> Sudah siap (+2)
+              </button>
+              <button type="button" onClick={() => setEngFocused(!engFocused)}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
+                  engFocused ? "bg-blue-500 text-white border-blue-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"}`}>
+                <span>🎯</span> Sangat fokus (+1)
+              </button>
+              <button type="button" onClick={() => setEngActiveAsking(!engActiveAsking)}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
+                  engActiveAsking ? "bg-teal-500 text-white border-teal-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-teal-300"}`}>
+                <span>🙋</span> Aktif bertanya (+1)
+              </button>
+              <button type="button" onClick={() => setEngQuickLearner(!engQuickLearner)}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
+                  engQuickLearner ? "bg-purple-500 text-white border-purple-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-purple-300"}`}>
+                <span>⚡</span> Cepat paham (+1)
+              </button>
             </div>
-
-            {/* Observasi perilaku */}
-            <div>
-              <p className="text-xs text-gray-400 font-medium mb-1.5">Positif ✨</p>
-              <div className="grid grid-cols-2 gap-2 mb-2">
-                <button type="button" onClick={() => setEngPrepared(!engPrepared)}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${engPrepared ? "bg-green-500 text-white border-green-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-green-300"}`}>
-                  <span>📚</span> Sudah siap (+2)
-                </button>
-                <button type="button" onClick={() => setEngFocused(!engFocused)}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${engFocused ? "bg-blue-500 text-white border-blue-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"}`}>
-                  <span>🎯</span> Sangat fokus (+1)
-                </button>
-                <button type="button" onClick={() => setEngActiveAsking(!engActiveAsking)}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${engActiveAsking ? "bg-teal-500 text-white border-teal-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-teal-300"}`}>
-                  <span>🙋</span> Aktif bertanya (+1)
-                </button>
-                <button type="button" onClick={() => setEngQuickLearner(!engQuickLearner)}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${engQuickLearner ? "bg-purple-500 text-white border-purple-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-purple-300"}`}>
-                  <span>⚡</span> Cepat paham (+1)
-                </button>
-              </div>
-              <p className="text-xs text-gray-400 font-medium mb-1.5">Perlu perhatian ⚠️</p>
-              <div className="grid grid-cols-2 gap-2">
-                <button type="button" onClick={() => setEngPhone(!engPhone)}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${engPhone ? "bg-red-500 text-white border-red-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-red-300"}`}>
-                  <span>📱</span> Main HP (−3)
-                </button>
-                <button type="button" onClick={() => setEngDrowsy(!engDrowsy)}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${engDrowsy ? "bg-orange-500 text-white border-orange-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-orange-300"}`}>
-                  <span>😴</span> Mengantuk (−2)
-                </button>
-                <button type="button" onClick={() => setEngNeedsRepeat(!engNeedsRepeat)}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${engNeedsRepeat ? "bg-yellow-500 text-white border-yellow-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-yellow-300"}`}>
-                  <span>🔄</span> Perlu diulang (−1)
-                </button>
-                <button type="button" onClick={() => setEngHwMissed(!engHwMissed)}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${engHwMissed ? "bg-rose-500 text-white border-rose-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-rose-300"}`}>
-                  <span>❌</span> PR tidak buat (−1)
-                </button>
-              </div>
-            </div>
-
-            {/* Skor */}
-            {engTouched && (() => {
-              const score = calcEngagementScore({
-                prepared: engPrepared, focused: engFocused, drowsy: engDrowsy, playingPhone: engPhone,
-                activeAsking: engActiveAsking, quickLearner: engQuickLearner,
-                needsRepetition: engNeedsRepeat, hwMissed: engHwMissed,
-              });
-              const { text, color, bg } = scoreLabel(score);
-              return (
-                <div className="flex items-center gap-3 rounded-xl p-3" style={{ background: bg }}>
-                  <div className="relative w-12 h-12 flex-shrink-0">
-                    <svg viewBox="0 0 36 36" className="w-12 h-12 -rotate-90">
-                      <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(0,0,0,.08)" strokeWidth="4" />
-                      <circle cx="18" cy="18" r="14" fill="none" stroke={color} strokeWidth="4"
-                        strokeDasharray={`${(score / 10) * 100 * 0.879} 100`} strokeLinecap="round" />
-                    </svg>
-                    <span className="absolute inset-0 flex items-center justify-center text-sm font-bold" style={{ color }}>{score}</span>
-                  </div>
-                  <div>
-                    <p className="font-bold text-sm" style={{ color }}>{text}</p>
-                    <p className="text-xs opacity-70" style={{ color }}>Skor keseriusan: {score}/10</p>
-                  </div>
-                </div>
-              );
-            })()}
           </div>
 
-          {/* ── OBSERVASI PERILAKU LANJUTAN ── */}
+          {/* Perlu perhatian */}
+          <div>
+            <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide mb-2">⚠️ Perlu Perhatian</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => setEngPhone(!engPhone)}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
+                  engPhone ? "bg-red-500 text-white border-red-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-red-300"}`}>
+                <span>📱</span> Main HP (−3)
+              </button>
+              <button type="button" onClick={() => setEngDrowsy(!engDrowsy)}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
+                  engDrowsy ? "bg-orange-500 text-white border-orange-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-orange-300"}`}>
+                <span>😴</span> Mengantuk (−2)
+              </button>
+              <button type="button" onClick={() => setEngNeedsRepeat(!engNeedsRepeat)}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
+                  engNeedsRepeat ? "bg-yellow-500 text-white border-yellow-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-yellow-300"}`}>
+                <span>🔄</span> Perlu diulang (−1)
+              </button>
+              <button type="button" onClick={() => setEngHwMissed(!engHwMissed)}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
+                  engHwMissed ? "bg-rose-500 text-white border-rose-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-rose-300"}`}>
+                <span>❌</span> PR tidak buat (−1)
+              </button>
+            </div>
+          </div>
+
+          {/* Score gauge */}
+          {engTouched && engScoreInfo && (
+            <div className="flex items-center gap-3 rounded-2xl p-4 shadow-sm" style={{ background: engScoreInfo.bg }}>
+              <div className="relative w-14 h-14 flex-shrink-0">
+                <svg viewBox="0 0 36 36" className="w-14 h-14 -rotate-90">
+                  <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(0,0,0,.08)" strokeWidth="4" />
+                  <circle cx="18" cy="18" r="14" fill="none" stroke={engScoreInfo.color} strokeWidth="4"
+                    strokeDasharray={`${(engScore / 10) * 100 * 0.879} 100`} strokeLinecap="round" />
+                </svg>
+                <span className="absolute inset-0 flex items-center justify-center text-sm font-bold" style={{ color: engScoreInfo.color }}>{engScore}</span>
+              </div>
+              <div>
+                <p className="font-bold text-base" style={{ color: engScoreInfo.color }}>{engScoreInfo.text}</p>
+                <p className="text-xs mt-0.5" style={{ color: engScoreInfo.color, opacity: 0.75 }}>Skor keseriusan: {engScore}/10</p>
+              </div>
+            </div>
+          )}
+
+          {/* Observasi perilaku lanjutan */}
           <div className="border border-gray-100 rounded-xl overflow-hidden">
             <button type="button"
               className="flex items-center justify-between w-full px-4 py-3 bg-gray-50 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
               onClick={() => setShowBehavior(!showBehavior)}>
-              <span>🧩 Observasi Perilaku Lanjutan <span className="font-normal text-gray-400">(opsional)</span></span>
+              <span>🧩 Observasi Lanjutan <span className="font-normal text-gray-400">(opsional)</span></span>
               <div className="flex items-center gap-2">
                 {behaviorTags.length > 0 && (
-                  <span className="bg-purple-100 text-purple-700 text-xs font-bold px-2 py-0.5 rounded-full">
-                    {behaviorTags.length} dipilih
-                  </span>
+                  <span className="bg-purple-100 text-purple-700 text-xs font-bold px-2 py-0.5 rounded-full">{behaviorTags.length}</span>
                 )}
                 <span className="text-gray-400">{showBehavior ? "▲" : "▼"}</span>
               </div>
             </button>
-
             {showBehavior && (
               <div className="p-4 space-y-4 bg-white">
-                {/* Positive */}
                 <div>
                   <p className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-2">✨ Positif</p>
                   <div className="flex flex-wrap gap-2">
-                    {BEHAVIOR_TAGS.filter(t => t.valence === "positive").map(tag => (
+                    {BEHAVIOR_TAGS.filter((t) => t.valence === "positive").map((tag) => (
                       <div key={tag.id} className="flex items-center">
                         <button type="button"
-                          onClick={() => setBehaviorTags(prev =>
-                            prev.includes(tag.id) ? prev.filter(x => x !== tag.id) : [...prev, tag.id]
-                          )}
+                          onClick={() => setBehaviorTags((prev) => prev.includes(tag.id) ? prev.filter((x) => x !== tag.id) : [...prev, tag.id])}
                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-l-full text-xs font-medium border-y border-l transition-all ${
-                            behaviorTags.includes(tag.id)
-                              ? "bg-green-500 text-white border-green-500"
-                              : "bg-white text-gray-600 border-gray-200 hover:border-green-300"
-                          }`}>
+                            behaviorTags.includes(tag.id) ? "bg-green-500 text-white border-green-500" : "bg-white text-gray-600 border-gray-200 hover:border-green-300"}`}>
                           <span>{tag.icon}</span> {tag.label}
                         </button>
                         <button type="button"
                           onClick={(e) => { e.stopPropagation(); setActiveTooltip({ tag, type: "behavior" }); }}
                           className={`px-1.5 py-1.5 rounded-r-full text-xs border-y border-r transition-all ${
-                            behaviorTags.includes(tag.id)
-                              ? "bg-green-400 text-white border-green-400"
-                              : "bg-gray-50 text-gray-300 border-gray-200 hover:text-green-500"
-                          }`}>
+                            behaviorTags.includes(tag.id) ? "bg-green-400 text-white border-green-400" : "bg-gray-50 text-gray-300 border-gray-200 hover:text-green-500"}`}>
                           ⓘ
                         </button>
                       </div>
                     ))}
                   </div>
                 </div>
-
-                {/* Neutral */}
                 <div>
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">📊 Netral</p>
                   <div className="flex flex-wrap gap-2">
-                    {BEHAVIOR_TAGS.filter(t => t.valence === "neutral").map(tag => (
+                    {BEHAVIOR_TAGS.filter((t) => t.valence === "neutral").map((tag) => (
                       <div key={tag.id} className="flex items-center">
                         <button type="button"
-                          onClick={() => setBehaviorTags(prev =>
-                            prev.includes(tag.id) ? prev.filter(x => x !== tag.id) : [...prev, tag.id]
-                          )}
+                          onClick={() => setBehaviorTags((prev) => prev.includes(tag.id) ? prev.filter((x) => x !== tag.id) : [...prev, tag.id])}
                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-l-full text-xs font-medium border-y border-l transition-all ${
-                            behaviorTags.includes(tag.id)
-                              ? "bg-gray-600 text-white border-gray-600"
-                              : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
-                          }`}>
+                            behaviorTags.includes(tag.id) ? "bg-gray-600 text-white border-gray-600" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"}`}>
                           <span>{tag.icon}</span> {tag.label}
                         </button>
                         <button type="button"
                           onClick={(e) => { e.stopPropagation(); setActiveTooltip({ tag, type: "behavior" }); }}
                           className={`px-1.5 py-1.5 rounded-r-full text-xs border-y border-r transition-all ${
-                            behaviorTags.includes(tag.id)
-                              ? "bg-gray-500 text-white border-gray-500"
-                              : "bg-gray-50 text-gray-300 border-gray-200 hover:text-gray-500"
-                          }`}>
+                            behaviorTags.includes(tag.id) ? "bg-gray-500 text-white border-gray-500" : "bg-gray-50 text-gray-300 border-gray-200 hover:text-gray-500"}`}>
                           ⓘ
                         </button>
                       </div>
                     ))}
                   </div>
                 </div>
-
-                {/* Negative */}
                 <div>
                   <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide mb-2">⚠️ Negatif lanjutan</p>
                   <div className="flex flex-wrap gap-2">
-                    {BEHAVIOR_TAGS.filter(t => t.valence === "negative").map(tag => (
+                    {BEHAVIOR_TAGS.filter((t) => t.valence === "negative").map((tag) => (
                       <div key={tag.id} className="flex items-center">
                         <button type="button"
-                          onClick={() => setBehaviorTags(prev =>
-                            prev.includes(tag.id) ? prev.filter(x => x !== tag.id) : [...prev, tag.id]
-                          )}
+                          onClick={() => setBehaviorTags((prev) => prev.includes(tag.id) ? prev.filter((x) => x !== tag.id) : [...prev, tag.id])}
                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-l-full text-xs font-medium border-y border-l transition-all ${
-                            behaviorTags.includes(tag.id)
-                              ? "bg-orange-500 text-white border-orange-500"
-                              : "bg-white text-gray-600 border-gray-200 hover:border-orange-300"
-                          }`}>
+                            behaviorTags.includes(tag.id) ? "bg-orange-500 text-white border-orange-500" : "bg-white text-gray-600 border-gray-200 hover:border-orange-300"}`}>
                           <span>{tag.icon}</span> {tag.label}
                         </button>
                         <button type="button"
                           onClick={(e) => { e.stopPropagation(); setActiveTooltip({ tag, type: "behavior" }); }}
                           className={`px-1.5 py-1.5 rounded-r-full text-xs border-y border-r transition-all ${
-                            behaviorTags.includes(tag.id)
-                              ? "bg-orange-400 text-white border-orange-400"
-                              : "bg-gray-50 text-gray-300 border-gray-200 hover:text-orange-500"
-                          }`}>
+                            behaviorTags.includes(tag.id) ? "bg-orange-400 text-white border-orange-400" : "bg-gray-50 text-gray-300 border-gray-200 hover:text-orange-500"}`}>
                           ⓘ
                         </button>
                       </div>
@@ -877,104 +965,92 @@ export default function CaptureSession() {
               </div>
             )}
           </div>
+        </div>
+      )}
 
-          {/* Detail opsional */}
-          <button type="button"
-            className="flex items-center justify-center gap-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 px-4 py-2.5 rounded-xl transition-colors w-full"
-            onClick={() => setShowDetail(!showDetail)}>
-            {showDetail ? "▲ Sembunyikan detail" : "▼ Tambah detail (topik, prediksi nilai, PR)"}
-          </button>
+      {/* ══════════════════════════════════════════
+          STEP 5: DETAIL — Topik, Nilai & PR
+          ══════════════════════════════════════════ */}
+      {currentStep === 5 && (
+        <div className="px-4 space-y-4">
 
-          {showDetail && (
-            <div className="space-y-3 bg-gray-50 rounded-xl p-4">
-
-              {/* Kualitas Respons Akademik */}
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <label className="label mb-0">Kualitas Respons Akademik</label>
-                  <span className="text-xs text-gray-400">(pilih satu yang paling mewakili sesi ini)</span>
+          {/* Kualitas Respons Akademik */}
+          <div>
+            <label className="label">🎓 Kualitas Respons Akademik <span className="text-gray-400 font-normal text-xs">(pilih satu)</span></label>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {RESPONSE_TAGS.map((tag) => (
+                <div key={tag.id} className="flex items-center">
+                  <button type="button"
+                    onClick={() => setResponseTag(responseTag === tag.id ? undefined : tag.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-l-full text-xs font-medium border-y border-l transition-all ${
+                      responseTag === tag.id ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"}`}>
+                    <span>{tag.icon}</span> {tag.label}
+                  </button>
+                  <button type="button"
+                    onClick={(e) => { e.stopPropagation(); setActiveTooltip({ tag, type: "response" }); }}
+                    className={`px-1.5 py-1.5 rounded-r-full text-xs border-y border-r transition-all ${
+                      responseTag === tag.id ? "bg-blue-500 text-white border-blue-500" : "bg-gray-50 text-gray-300 border-gray-200 hover:text-blue-500"}`}>
+                    ⓘ
+                  </button>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {RESPONSE_TAGS.map(tag => (
-                    <div key={tag.id} className="flex items-center">
-                      <button type="button"
-                        onClick={() => setResponseTag(responseTag === tag.id ? undefined : tag.id)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-l-full text-xs font-medium border-y border-l transition-all ${
-                          responseTag === tag.id
-                            ? "bg-blue-600 text-white border-blue-600"
-                            : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"
-                        }`}>
-                        <span>{tag.icon}</span> {tag.label}
-                      </button>
-                      <button type="button"
-                        onClick={(e) => { e.stopPropagation(); setActiveTooltip({ tag, type: "response" }); }}
-                        className={`px-1.5 py-1.5 rounded-r-full text-xs border-y border-r transition-all ${
-                          responseTag === tag.id
-                            ? "bg-blue-500 text-white border-blue-500"
-                            : "bg-gray-50 text-gray-300 border-gray-200 hover:text-blue-500"
-                        }`}>
-                        ⓘ
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="label">Topik yang dibahas</label>
-                <input className="input" maxLength={150} placeholder="Cari topik IB atau ketik bebas..." value={topicSearch}
-                  onChange={(e) => {
-                    const q = e.target.value;
-                    setTopicSearch(q);
-                    setTopic(q);
-                    setTopicResults(searchTopics(q, subjects[0] ?? studentSubjects[0]));
-                  }} />
-                {topicResults.length > 0 && (
-                  <div className="mt-1 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm max-h-40 overflow-y-auto">
-                    {topicResults.map((t, i) => (
-                      <button key={i} type="button"
-                        className="block w-full text-left px-3 py-2 text-xs hover:bg-blue-50 border-b border-gray-50 last:border-0"
-                        onClick={() => { setTopic(t.topic); setTopicSearch(t.topic); setTopicResults([]); }}>
-                        <span className="font-semibold text-gray-700">{t.topic}</span>
-                        <span className="text-gray-400 ml-2">{t.unit} · {t.subject}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {topic && topicResults.length === 0 && topicSearch.length > 0 && (
-                  <p className="text-xs text-gray-400 mt-1">✏️ Topik custom: "{topic}"</p>
-                )}
-              </div>
-              <div>
-                <label className="label">Perlu perhatian lebih</label>
-                <input className="input" maxLength={150} placeholder="mis. ketelitian angka, time management" value={needsWork}
-                  onChange={(e) => setNeedsWork(e.target.value)} />
-              </div>
-              <div>
-                <label className="label">Prediksi nilai</label>
-                <input className="input" placeholder="mis. 5–6/7, B+" value={predictedGrade}
-                  onChange={(e) => setPredictedGrade(e.target.value)} />
-              </div>
+              ))}
             </div>
-          )}
+          </div>
 
-          {/* ── PEKERJAAN RUMAH ── always visible */}
+          {/* Topik */}
+          <div>
+            <label className="label">💡 Topik yang Dibahas</label>
+            <input className="input" maxLength={150} placeholder="Cari topik IB atau ketik bebas..." value={topicSearch}
+              onChange={(e) => {
+                const q = e.target.value;
+                setTopicSearch(q);
+                setTopic(q);
+                setTopicResults(searchTopics(q, subjects[0] ?? studentSubjects[0]));
+              }} />
+            {topicResults.length > 0 && (
+              <div className="mt-1 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm max-h-40 overflow-y-auto">
+                {topicResults.map((t, i) => (
+                  <button key={i} type="button"
+                    className="block w-full text-left px-3 py-2 text-xs hover:bg-blue-50 border-b border-gray-50 last:border-0"
+                    onClick={() => { setTopic(t.topic); setTopicSearch(t.topic); setTopicResults([]); }}>
+                    <span className="font-semibold text-gray-700">{t.topic}</span>
+                    <span className="text-gray-400 ml-2">{t.unit} · {t.subject}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {topic && topicResults.length === 0 && topicSearch.length > 0 && (
+              <p className="text-xs text-gray-400 mt-1">✏️ Topik custom: "{topic}"</p>
+            )}
+          </div>
+
+          {/* Perlu perhatian */}
+          <div>
+            <label className="label">⚠️ Perlu Perhatian Lebih</label>
+            <input className="input" maxLength={150} placeholder="mis. ketelitian angka, time management" value={needsWork}
+              onChange={(e) => setNeedsWork(e.target.value)} />
+          </div>
+
+          {/* Prediksi nilai */}
+          <div>
+            <label className="label">📊 Prediksi Nilai</label>
+            <input className="input" placeholder="mis. 5–6/7, B+" value={predictedGrade}
+              onChange={(e) => setPredictedGrade(e.target.value)} />
+          </div>
+
+          {/* PR */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
               <p className="text-sm font-bold text-gray-700">📋 Pekerjaan Rumah</p>
               <button type="button"
                 onClick={() => { setNoHW(!noHW); if (!noHW) setCoHWItems([]); }}
                 className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
-                  noHW
-                    ? "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                    : "bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100"
-                }`}>
+                  noHW ? "bg-gray-100 text-gray-500 hover:bg-gray-200" : "bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100"}`}>
                 {noHW ? "↩ Ada PR" : "📭 Tidak ada PR"}
               </button>
             </div>
-
             {noHW ? (
-              <p className="text-xs text-gray-400 text-center py-3">Tidak ada PR untuk sesi ini</p>
+              <p className="text-xs text-gray-400 text-center py-4">Tidak ada PR untuk sesi ini ✅</p>
             ) : (
               <div className="p-3 space-y-2">
                 <input className="input text-sm" placeholder="Judul PR (mis. Latihan soal Paper 2)"
@@ -983,22 +1059,17 @@ export default function CaptureSession() {
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     {studentSubjects.length > 0 ? (
-                      <select className="input text-sm" value={coHWSubject}
-                        onChange={(e) => setCoHWSubject(e.target.value)}>
+                      <select className="input text-sm" value={coHWSubject} onChange={(e) => setCoHWSubject(e.target.value)}>
                         <option value="">Pilih mapel</option>
                         {studentSubjects.map((s) => <option key={s} value={s}>{s}</option>)}
-                        {subjects.filter((s) => !studentSubjects.includes(s)).map((s) => (
-                          <option key={s} value={s}>{s}</option>
-                        ))}
+                        {subjects.filter((s) => !studentSubjects.includes(s)).map((s) => <option key={s} value={s}>{s}</option>)}
                       </select>
                     ) : (
-                      <input className="input text-sm" placeholder="Mapel" value={coHWSubject}
-                        onChange={(e) => setCoHWSubject(e.target.value)} />
+                      <input className="input text-sm" placeholder="Mapel" value={coHWSubject} onChange={(e) => setCoHWSubject(e.target.value)} />
                     )}
                   </div>
                   <div>
-                    <input className="input text-sm" type="date" value={coHWDueAt}
-                      min={today} onChange={(e) => setCoHWDueAt(e.target.value)} />
+                    <input className="input text-sm" type="date" value={coHWDueAt} min={today} onChange={(e) => setCoHWDueAt(e.target.value)} />
                   </div>
                 </div>
                 {settings?.ai?.enabled && settings.ai.apiKey && (subjects.length > 0 || studentSubjects.length > 0) && (
@@ -1031,6 +1102,7 @@ export default function CaptureSession() {
                         ))}
                       </div>
                     )}
+                    {aiError && <p className="text-xs text-red-500 mt-1">{aiError}</p>}
                   </div>
                 )}
                 <button type="button" onClick={addCoHW} disabled={!coHWTitle.trim()}
@@ -1053,41 +1125,56 @@ export default function CaptureSession() {
                         </div>
                       );
                     })}
-                    <PaginationControls
-                      page={safeCoHwPage} total={coHWItems.length}
-                      onPageChange={setCoHwPage} label="PR" />
+                    <PaginationControls page={safeCoHwPage} total={coHWItems.length} onPageChange={setCoHwPage} label="PR" />
                   </div>
                 )}
               </div>
             )}
           </div>
-
-          <button onClick={handleSave} disabled={saving}
-            className="w-full py-3.5 rounded-xl text-white font-semibold text-base transition-colors disabled:opacity-50"
-            style={{ background: saving ? "#93c5fd" : "#2563eb" }}>
-            {saving ? "Menyimpan..." : "Simpan Sesi"}
-          </button>
-        </>
+        </div>
       )}
 
-      {/* ── BEHAVIOR/RESPONSE TOOLTIP OVERLAY ── */}
+      {/* ══════════════════════════════════════════
+          FIXED NAVIGATION BAR
+          ══════════════════════════════════════════ */}
+      <div className="fixed bottom-16 left-0 right-0 z-50">
+        <div className="bg-white/95 backdrop-blur border-t border-gray-100 shadow-xl px-4 py-3">
+          <div className="flex items-center gap-2 max-w-md mx-auto">
+            {currentStep > 1 ? (
+              <button onClick={goBack}
+                className="flex items-center gap-1 px-4 py-2.5 rounded-xl bg-gray-100 text-gray-600 font-semibold text-sm hover:bg-gray-200 transition-colors flex-shrink-0">
+                ← Kembali
+              </button>
+            ) : (
+              <div className="w-2 flex-shrink-0" />
+            )}
+            {stepMeta.optional && (
+              <button onClick={skipStep}
+                className="flex items-center gap-1 px-4 py-2.5 rounded-xl border border-gray-300 text-gray-500 font-semibold text-sm hover:bg-gray-50 transition-colors flex-shrink-0">
+                Lewati
+              </button>
+            )}
+            <button onClick={goNext} disabled={saving}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm text-white transition-all disabled:opacity-50 shadow-md"
+              style={{ background: saving ? "#93c5fd" : currentStep === 5 ? "linear-gradient(135deg,#16a34a,#15803d)" : "linear-gradient(135deg,#2563eb,#1d4ed8)" }}>
+              {saving ? "⏳ Menyimpan..." : currentStep === 5 ? "✅ Simpan Sesi" : "Lanjut →"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════════
+          TOOLTIP OVERLAY
+          ══════════════════════════════════════════ */}
       {activeTooltip && (
-        <div
-          className="fixed inset-0 z-[80]"
-          onClick={() => setActiveTooltip(null)}>
-          <div
-            className="absolute bottom-24 left-4 right-4 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden"
+        <div className="fixed inset-0 z-[80]" onClick={() => setActiveTooltip(null)}>
+          <div className="absolute bottom-24 left-4 right-4 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden"
             onClick={(e) => e.stopPropagation()}>
-            {/* Header */}
             <div className={`px-4 py-3 flex items-center gap-3 ${
-              activeTooltip.type === "response"
-                ? "bg-blue-50"
-                : (activeTooltip.tag as BehaviorTag).valence === "positive"
-                  ? "bg-green-50"
-                  : (activeTooltip.tag as BehaviorTag).valence === "neutral"
-                    ? "bg-gray-50"
-                    : "bg-orange-50"
-            }`}>
+              activeTooltip.type === "response" ? "bg-blue-50"
+              : (activeTooltip.tag as BehaviorTag).valence === "positive" ? "bg-green-50"
+              : (activeTooltip.tag as BehaviorTag).valence === "neutral"  ? "bg-gray-50"
+              : "bg-orange-50"}`}>
               <span className="text-2xl">{activeTooltip.tag.icon}</span>
               <div className="flex-1">
                 <p className="font-bold text-sm text-gray-800">{activeTooltip.tag.label}</p>
@@ -1095,24 +1182,14 @@ export default function CaptureSession() {
                   {activeTooltip.type === "behavior" ? "Observasi perilaku" : "Kualitas respons akademik"}
                 </p>
               </div>
-              <button
-                onClick={() => setActiveTooltip(null)}
-                className="text-gray-300 hover:text-gray-600 text-xl w-7 h-7 flex items-center justify-center">
-                ✕
-              </button>
+              <button onClick={() => setActiveTooltip(null)} className="text-gray-300 hover:text-gray-600 text-xl w-7 h-7 flex items-center justify-center">✕</button>
             </div>
-            {/* Body */}
             <div className="px-4 py-3 space-y-3">
-              <p className="text-sm text-gray-700 leading-relaxed">
-                {activeTooltip.tag.description}
-              </p>
+              <p className="text-sm text-gray-700 leading-relaxed">{activeTooltip.tag.description}</p>
               <div className={`rounded-xl px-3 py-2.5 text-xs leading-relaxed ${
-                activeTooltip.type === "response"
-                  ? "bg-blue-50 text-blue-800"
-                  : "bg-amber-50 text-amber-800"
-              }`}>
+                activeTooltip.type === "response" ? "bg-blue-50 text-blue-800" : "bg-amber-50 text-amber-800"}`}>
                 <span className="font-semibold">
-                  {activeTooltip.type === "behavior" ? "💡 Apa yang bisa dikatakan:" : "📌 Implikasi untuk tutor:"}
+                  {activeTooltip.type === "behavior" ? "💡 Yang bisa dikatakan:" : "📌 Implikasi untuk tutor:"}
                 </span>
                 <br />
                 {activeTooltip.type === "behavior"
@@ -1124,7 +1201,9 @@ export default function CaptureSession() {
         </div>
       )}
 
-      {/* ── SUBJECT PICKER MODAL ── */}
+      {/* ══════════════════════════════════════════
+          SUBJECT PICKER MODAL
+          ══════════════════════════════════════════ */}
       {showIBPicker && (
         <div className="fixed inset-0 bg-black/50 z-[70] flex items-end justify-center" onClick={() => setShowIBPicker(false)}>
           <div className="bg-white w-full max-w-md rounded-t-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
@@ -1139,7 +1218,6 @@ export default function CaptureSession() {
             </div>
 
             {currentStudent?.curriculum ? (
-              /* ── Curriculum-aware groups (no tabs) ── */
               <div className="p-4 space-y-4">
                 {getSubjectGroups(currentStudent.curriculum).map((grp) => (
                   <div key={grp.group}>
@@ -1147,7 +1225,8 @@ export default function CaptureSession() {
                     <div className="flex flex-wrap gap-2">
                       {grp.subjects.map((s) => (
                         <button key={s} type="button"
-                          className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${subjects.includes(s) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300 hover:border-blue-400"}`}
+                          className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                            subjects.includes(s) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300 hover:border-blue-400"}`}
                           onClick={() => toggleSubject(s)}>
                           {subjects.includes(s) ? "✓ " : ""}{s}
                         </button>
@@ -1157,7 +1236,6 @@ export default function CaptureSession() {
                 ))}
               </div>
             ) : (
-              /* ── Fallback: MYP / DP tabs for students without curriculum ── */
               <>
                 <div className="grid grid-cols-2 bg-gray-100 mx-4 mt-3 rounded-xl p-1">
                   {(["MYP", "DP"] as const).map((t) => (
@@ -1174,7 +1252,8 @@ export default function CaptureSession() {
                       <div className="flex flex-wrap gap-2">
                         {IB_MYP_SUBJECTS.map((s) => (
                           <button key={s} type="button"
-                            className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${subjects.includes(s) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300 hover:border-blue-400"}`}
+                            className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                              subjects.includes(s) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300 hover:border-blue-400"}`}
                             onClick={() => toggleSubject(s)}>
                             {subjects.includes(s) ? "✓ " : ""}{s}
                           </button>
@@ -1189,7 +1268,8 @@ export default function CaptureSession() {
                           <div className="flex flex-wrap gap-2">
                             {grp.subjects.map((s) => (
                               <button key={s} type="button"
-                                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${subjects.includes(s) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300 hover:border-blue-400"}`}
+                                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                                  subjects.includes(s) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300 hover:border-blue-400"}`}
                                 onClick={() => toggleSubject(s)}>
                                 {subjects.includes(s) ? "✓ " : ""}{s}
                               </button>
@@ -1203,10 +1283,9 @@ export default function CaptureSession() {
               </>
             )}
 
-            {/* Custom entry + selected summary + done — shared */}
             <div className="px-4 pb-4 space-y-4">
               <div className="border-t border-gray-100 pt-3">
-                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2">Custom (tidak ada di daftar)</p>
+                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2">Custom</p>
                 <div className="flex gap-2">
                   <input className="input flex-1 text-sm" placeholder="Ketik mapel lain..."
                     value={ibCustom} onChange={(e) => setIbCustom(e.target.value)}
@@ -1227,7 +1306,6 @@ export default function CaptureSession() {
                     }}>+</button>
                 </div>
               </div>
-
               {subjects.length > 0 && (
                 <div className="bg-blue-50 rounded-xl p-3">
                   <p className="text-xs text-blue-600 font-semibold mb-1.5">Dipilih ({subjects.length}):</p>
@@ -1242,7 +1320,6 @@ export default function CaptureSession() {
                   </div>
                 </div>
               )}
-
               <button onClick={() => setShowIBPicker(false)}
                 className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors">
                 Selesai
@@ -1252,106 +1329,167 @@ export default function CaptureSession() {
         </div>
       )}
 
-      {/* ── CLOSE-OUT SHEET ── */}
+      {/* ══════════════════════════════════════════
+          CLOSE-OUT LAPORAN SESI
+          ══════════════════════════════════════════ */}
       {showCloseOut && coSessionData && currentStudent && (
-        <div className="fixed inset-0 bg-black/50 z-[70] flex items-end justify-center">
-          <div className="bg-white w-full max-w-md rounded-t-2xl max-h-[92vh] overflow-y-auto">
-            {/* Header */}
-            <div className="bg-green-500 px-5 py-4 rounded-t-2xl">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">✅</span>
-                <div>
-                  <p className="font-bold text-white text-lg">Sesi Tersimpan!</p>
-                  <p className="text-green-100 text-sm">
-                    {currentStudent.name} · {dayLabel(coSessionData.date)} · {coSessionData.durationHours}j
-                    {coSessionData.subjects.length > 0 && ` · ${coSessionData.subjects.join(", ")}`}
-                  </p>
+        <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-3 overflow-y-auto">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden my-auto"
+            style={{ fontFamily: "'Nunito', sans-serif" }}>
+
+            {/* ── REPORT HEADER ── */}
+            <div className="relative overflow-hidden" style={{ background: "linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%)" }}>
+              {/* Decorative circles */}
+              <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white opacity-10" />
+              <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full bg-white opacity-10" />
+              <div className="absolute top-4 right-16 w-8 h-8 rounded-full bg-white opacity-10" />
+
+              <div className="relative px-5 pt-6 pb-5">
+                <div className="flex items-center gap-4 mb-4">
+                  {/* Avatar */}
+                  <div className="w-16 h-16 rounded-2xl bg-white/25 backdrop-blur-sm flex items-center justify-center shadow-lg border-2 border-white/30">
+                    <span className="text-2xl font-black text-white">{currentStudent.name.charAt(0).toUpperCase()}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="inline-flex items-center gap-1.5 bg-white/20 text-white/90 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full mb-1">
+                      ✅ Sesi Selesai!
+                    </div>
+                    <h2 className="text-white text-xl font-black truncate">{currentStudent.name}</h2>
+                    <p className="text-white/80 text-sm mt-0.5">
+                      {dayLabel(coSessionData.date).split(",")[0]}
+                      {coSessionData.subjects.length > 0 && <span> · {coSessionData.subjects.join(", ")}</span>}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Stats row */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
+                    <p className="text-white/70 text-[9px] font-bold uppercase tracking-wider">📅 Tanggal</p>
+                    <p className="text-white text-sm font-black mt-0.5">{coSessionData.date.slice(5).replace("-", "/")}</p>
+                  </div>
+                  <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
+                    <p className="text-white/70 text-[9px] font-bold uppercase tracking-wider">⏱️ Durasi</p>
+                    <p className="text-white text-sm font-black mt-0.5">{coSessionData.durationHours} jam</p>
+                  </div>
+                  <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
+                    <p className="text-white/70 text-[9px] font-bold uppercase tracking-wider">🎯 Skor</p>
+                    <p className="text-white text-sm font-black mt-0.5">{engTouched ? `${engScore}/10` : "—"}</p>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Narasi sesi */}
-            {engTouched && (
-              <div className="px-5 pt-4 pb-1">
-                <p className="text-sm text-gray-600 italic leading-relaxed bg-gray-50 rounded-xl px-4 py-3">
-                  {generateEngagementNarrative(
-                    { prepared: engPrepared, focused: engFocused, activeAsking: engActiveAsking,
-                      quickLearner: engQuickLearner, drowsy: engDrowsy, playingPhone: engPhone,
-                      needsRepetition: engNeedsRepeat, hwMissed: engHwMissed,
-                      score: calcEngagementScore({ prepared: engPrepared, focused: engFocused,
-                        drowsy: engDrowsy, playingPhone: engPhone, activeAsking: engActiveAsking,
-                        quickLearner: engQuickLearner, needsRepetition: engNeedsRepeat, hwMissed: engHwMissed }),
-                    },
-                    currentStudent.name,
-                  )}
-                </p>
-              </div>
-            )}
+            {/* ── REPORT BODY ── */}
+            <div className="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
 
-            <div className="p-5 space-y-5">
-              {/* PR already saved at session save — show read-only summary if any */}
+              {/* Catatan sesi */}
+              <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100">
+                <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2">📝 Catatan Sesi</p>
+                <p className="text-sm text-gray-700 leading-relaxed font-semibold">{coSessionData.shortNote}</p>
+                {coSessionData.topic && (
+                  <div className="flex items-center gap-1.5 mt-2">
+                    <span className="text-blue-400 text-xs">💡</span>
+                    <p className="text-xs text-blue-600 font-semibold">Topik: {coSessionData.topic}</p>
+                  </div>
+                )}
+                {coSessionData.predictedGrade && (
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span className="text-purple-400 text-xs">📊</span>
+                    <p className="text-xs text-purple-600 font-semibold">Prediksi: {coSessionData.predictedGrade}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Engagement */}
+              {engTouched && engScoreInfo && (
+                <div className="rounded-2xl p-4 border" style={{ borderColor: engScoreInfo.color + "30", background: engScoreInfo.bg }}>
+                  <p className="text-[10px] font-black uppercase tracking-widest mb-3" style={{ color: engScoreInfo.color }}>
+                    😊 Kondisi Belajar
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-16 h-16 flex-shrink-0">
+                      <svg viewBox="0 0 36 36" className="w-16 h-16 -rotate-90">
+                        <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(0,0,0,.06)" strokeWidth="3.5" />
+                        <circle cx="18" cy="18" r="14" fill="none" stroke={engScoreInfo.color} strokeWidth="3.5"
+                          strokeDasharray={`${(engScore / 10) * 100 * 0.879} 100`} strokeLinecap="round" />
+                      </svg>
+                      <span className="absolute inset-0 flex items-center justify-center font-black text-base" style={{ color: engScoreInfo.color }}>{engScore}</span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-black text-base" style={{ color: engScoreInfo.color }}>{engScoreInfo.text}</p>
+                      <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                        {generateEngagementNarrative(
+                          { prepared: engPrepared, focused: engFocused, activeAsking: engActiveAsking,
+                            quickLearner: engQuickLearner, drowsy: engDrowsy, playingPhone: engPhone,
+                            needsRepetition: engNeedsRepeat, hwMissed: engHwMissed, score: engScore },
+                          currentStudent.name,
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* PR */}
               {coHWItems.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">PR Diberikan ({coHWItems.length})</p>
-                  <div className="space-y-1">
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                    📋 PR Diberikan ({coHWItems.length})
+                  </p>
+                  <div className="space-y-1.5">
                     {coHWItems.map((hw, i) => (
-                      <div key={i} className="flex items-center gap-2 bg-blue-50 rounded-xl px-3 py-2">
-                        <span className="text-blue-400 text-xs">📋</span>
+                      <div key={i} className="flex items-center gap-2.5 bg-blue-50 rounded-xl px-3 py-2.5 border border-blue-100">
+                        <span className="text-blue-400 text-base">📋</span>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-800 truncate">{hw.title}</p>
+                          <p className="text-sm font-bold text-gray-800 truncate">{hw.title}</p>
                           {hw.subject && <p className="text-xs text-gray-400">{hw.subject}{hw.dueAt ? ` · deadline ${hw.dueAt.slice(5)}` : ""}</p>}
                         </div>
+                        <span className="text-xs text-blue-300 flex-shrink-0">✓</span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Section B: Carry-Forward */}
+              {/* Follow-up */}
               <div>
-                <p className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                  🔁 Lanjutkan Sesi Berikutnya <span className="text-xs font-normal text-gray-400">(opsional)</span>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                  🔁 Fokus Sesi Berikutnya <span className="font-normal normal-case text-gray-400">(opsional)</span>
                 </p>
                 <div className="flex gap-2">
                   <input className="input flex-1 text-sm" placeholder="Topik/hal yang perlu dilanjutkan..."
                     value={coFollowUpText} onChange={(e) => setCoFollowUpText(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && addCoFollowUp()} />
                   <button onClick={addCoFollowUp} disabled={!coFollowUpText.trim()}
-                    className="px-3 py-2 rounded-xl bg-amber-500 text-white text-sm font-semibold disabled:opacity-40">
-                    +
-                  </button>
+                    className="px-3 py-2 rounded-xl bg-amber-500 text-white text-sm font-bold disabled:opacity-40 hover:bg-amber-600 transition-colors">+</button>
                 </div>
                 {coFollowUps.length > 0 && (
-                  <div className="mt-2 space-y-1">
+                  <div className="mt-2 space-y-1.5">
                     {paginatedCoFollowUps.map((f, i) => {
-                      const absoluteIndex = (safeCoFollowPage - 1) * PAGE_SIZE + i;
+                      const absIdx = (safeCoFollowPage - 1) * PAGE_SIZE + i;
                       return (
-                      <div key={absoluteIndex} className="flex items-center gap-2 bg-amber-50 rounded-xl px-3 py-2">
-                        <span className="text-amber-400 text-sm">🔁</span>
-                        <p className="flex-1 text-sm text-gray-700">{f}</p>
-                        <button onClick={() => setCoFollowUps((prev) => prev.filter((_, j) => j !== absoluteIndex))}
-                          className="text-gray-300 hover:text-red-400">✕</button>
-                      </div>
+                        <div key={absIdx} className="flex items-center gap-2 bg-amber-50 rounded-xl px-3 py-2.5 border border-amber-100">
+                          <span className="text-amber-400">🔁</span>
+                          <p className="flex-1 text-sm font-semibold text-gray-700">{f}</p>
+                          <button onClick={() => setCoFollowUps((prev) => prev.filter((_, j) => j !== absIdx))}
+                            className="text-gray-300 hover:text-red-400">✕</button>
+                        </div>
                       );
                     })}
-                    <PaginationControls
-                      page={safeCoFollowPage}
-                      total={coFollowUps.length}
-                      onPageChange={setCoFollowPage}
-                      label="follow-up"
-                    />
+                    <PaginationControls page={safeCoFollowPage} total={coFollowUps.length} onPageChange={setCoFollowPage} label="follow-up" />
                   </div>
                 )}
               </div>
 
-              {/* Section C: WA Update */}
+              {/* WhatsApp */}
               {waNumber && (
                 <div>
-                  <p className="text-sm font-bold text-gray-700 mb-2">💬 Update Orang Tua via WhatsApp</p>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">💬 Update Orang Tua</p>
                   {aiError && (
                     <p className="text-xs text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-2">{aiError}</p>
                   )}
-                  <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-2">
+                  <div className="bg-green-50 border border-green-200 rounded-2xl p-3.5 mb-2">
                     <pre className="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed font-sans">
                       {aiWaText ?? buildWaMessage(currentStudent, coSessionData, coHWItems, coFollowUps, tutorName)}
                     </pre>
@@ -1368,12 +1506,12 @@ export default function CaptureSession() {
                           } catch (e) { setAiError((e as Error).message); }
                           finally { setAiWaLoading(false); }
                         }}
-                        className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-2 rounded-lg transition-colors disabled:opacity-50">
+                        className="flex-1 flex items-center justify-center gap-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-2.5 rounded-xl transition-colors disabled:opacity-50">
                         {aiWaLoading ? "⏳ Poles AI..." : "✨ Poles AI"}
                       </button>
                       {aiWaText && (
                         <button type="button" onClick={() => setAiWaText(null)}
-                          className="text-xs text-gray-400 hover:text-gray-600 px-3 py-2 rounded-lg border border-gray-200 bg-white">
+                          className="text-xs text-gray-400 hover:text-gray-600 px-3 py-2 rounded-xl border border-gray-200 bg-white font-semibold">
                           ↩ Original
                         </button>
                       )}
@@ -1381,16 +1519,17 @@ export default function CaptureSession() {
                   )}
                   <a href={`https://wa.me/${waNumber}?text=${encodeURIComponent(aiWaText ?? buildWaMessage(currentStudent, coSessionData, coHWItems, coFollowUps, tutorName))}`}
                     target="_blank" rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-green-500 text-white font-semibold text-sm hover:bg-green-600 transition-colors">
-                    <span className="text-lg">💬</span> Kirim via WhatsApp ke {currentStudent.parentContact.name || "Orang Tua"}
+                    className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl bg-green-500 text-white font-black text-sm hover:bg-green-600 transition-colors shadow-md shadow-green-200">
+                    <span className="text-lg">💬</span> Kirim ke {currentStudent.parentContact.name || "Orang Tua"}
                   </a>
                 </div>
               )}
 
               {/* Done button */}
               <button onClick={handleCloseOutDone} disabled={coSaving}
-                className="w-full py-3.5 rounded-xl bg-gray-800 text-white font-bold text-base hover:bg-gray-900 disabled:opacity-50 transition-colors">
-                {coSaving ? "Menyimpan..." : "Selesai"}
+                className="w-full py-4 rounded-2xl font-black text-base text-white transition-all disabled:opacity-50 shadow-lg"
+                style={{ background: "linear-gradient(135deg, #1f2937, #374151)" }}>
+                {coSaving ? "⏳ Menyimpan..." : "🏁 Selesai & Lihat Profil"}
               </button>
             </div>
           </div>
