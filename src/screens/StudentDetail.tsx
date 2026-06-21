@@ -71,9 +71,10 @@ export default function StudentDetail() {
         </div>
         <div className="flex items-center gap-2 text-sm">
           <span className="text-gray-400 w-28 flex-shrink-0">No. HP</span>
-          <a href={`tel:${student.parentContact.phone}`}
-            className="text-blue-600 font-medium">
-            {student.parentContact.phone}
+          <a href={`https://wa.me/${student.parentContact.phone.replace(/^0/, "62").replace(/[^0-9]/g, "")}`}
+            target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-green-600 font-medium hover:text-green-700">
+            <span>💬</span>{student.parentContact.phone}
           </a>
         </div>
         {student.notes && (
