@@ -18,6 +18,7 @@ import { BEHAVIOR_TAGS, RESPONSE_TAGS } from "../lib/responseTaxonomy";
 import type { BehaviorTag, ResponseTag } from "../lib/responseTaxonomy";
 import type { SessionType } from "../lib/sessionTemplates";
 import { MIN_DURATION } from "../db/types";
+import { draftShortNote, polishWhatsApp, suggestHomework } from "../lib/aiClient";
 import type { Student, Session, Homework, FollowUpItem } from "../db/types";
 import PaginationControls from "../components/PaginationControls";
 import { PAGE_SIZE, clampPage, paginateItems } from "../lib/pagination";
@@ -167,6 +168,14 @@ export default function CaptureSession() {
   const [coFollowPage,   setCoFollowPage]   = useState(1);
 
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // AI states
+  const [aiNoteLoading,  setAiNoteLoading]  = useState(false);
+  const [aiHwLoading,    setAiHwLoading]    = useState(false);
+  const [aiHwSuggestions, setAiHwSuggestions] = useState<{ title: string; subject: string }[]>([]);
+  const [aiWaLoading,    setAiWaLoading]    = useState(false);
+  const [aiWaText,       setAiWaText]       = useState<string | null>(null);
+  const [aiError,        setAiError]        = useState("");
 
   // Photo URL lifecycle
   useEffect(() => {
@@ -626,6 +635,23 @@ export default function CaptureSession() {
             <textarea className="input" rows={2} value={shortNote} maxLength={300}
               onChange={(e) => setShortNote(e.target.value)}
               placeholder="Apa yang dibahas hari ini?" />
+            {settings?.ai?.enabled && settings.ai.apiKey && subjects.length > 0 && (
+              <button type="button" disabled={aiNoteLoading}
+                onClick={async () => {
+                  setAiNoteLoading(true); setAiError("");
+                  try {
+                    const res = await draftShortNote({
+                      student: { name: currentStudent?.name ?? "", level: currentStudent?.level ?? "" },
+                      subjects, topic, mood, sessionType,
+                    });
+                    if (res.note) setShortNote(res.note);
+                  } catch (e) { setAiError((e as Error).message); }
+                  finally { setAiNoteLoading(false); }
+                }}
+                className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
+                {aiNoteLoading ? "⏳ Draft AI..." : "✨ Draft AI"}
+              </button>
+            )}
             {suggestions.length > 0 && (
               <div className="mt-1 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
                 {suggestions.map((s) => (
@@ -975,6 +1001,38 @@ export default function CaptureSession() {
                       min={today} onChange={(e) => setCoHWDueAt(e.target.value)} />
                   </div>
                 </div>
+                {settings?.ai?.enabled && settings.ai.apiKey && (subjects.length > 0 || studentSubjects.length > 0) && (
+                  <div>
+                    <button type="button" disabled={aiHwLoading}
+                      onClick={async () => {
+                        setAiHwLoading(true); setAiError(""); setAiHwSuggestions([]);
+                        try {
+                          const res = await suggestHomework({
+                            student: { name: currentStudent?.name ?? "", level: currentStudent?.level ?? "" },
+                            subjects: subjects.length > 0 ? subjects : studentSubjects,
+                            topic, needsWork,
+                          });
+                          if (res.items?.length) setAiHwSuggestions(res.items);
+                        } catch (e) { setAiError((e as Error).message); }
+                        finally { setAiHwLoading(false); }
+                      }}
+                      className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-2 rounded-lg transition-colors disabled:opacity-50">
+                      {aiHwLoading ? "⏳ Saran PR AI..." : "✨ Saran PR AI"}
+                    </button>
+                    {aiHwSuggestions.length > 0 && (
+                      <div className="mt-1.5 space-y-1">
+                        {aiHwSuggestions.map((hw, i) => (
+                          <button key={i} type="button"
+                            onClick={() => { setCoHWTitle(hw.title); setCoHWSubject(hw.subject); setAiHwSuggestions([]); }}
+                            className="w-full text-left px-3 py-2 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-100 text-sm transition-colors">
+                            <span className="font-medium text-gray-800">{hw.title}</span>
+                            {hw.subject && <span className="text-xs text-indigo-500 ml-2">{hw.subject}</span>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <button type="button" onClick={addCoHW} disabled={!coHWTitle.trim()}
                   className="w-full py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold disabled:opacity-40 hover:bg-blue-700 transition-colors">
                   + Tambah PR
@@ -1290,12 +1348,38 @@ export default function CaptureSession() {
               {waNumber && (
                 <div>
                   <p className="text-sm font-bold text-gray-700 mb-2">💬 Update Orang Tua via WhatsApp</p>
+                  {aiError && (
+                    <p className="text-xs text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-2">{aiError}</p>
+                  )}
                   <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-2">
                     <pre className="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed font-sans">
-                      {buildWaMessage(currentStudent, coSessionData, coHWItems, coFollowUps, tutorName)}
+                      {aiWaText ?? buildWaMessage(currentStudent, coSessionData, coHWItems, coFollowUps, tutorName)}
                     </pre>
                   </div>
-                  <a href={`https://wa.me/${waNumber}?text=${encodeURIComponent(buildWaMessage(currentStudent, coSessionData, coHWItems, coFollowUps, tutorName))}`}
+                  {settings?.ai?.enabled && settings.ai.apiKey && (
+                    <div className="flex gap-2 mb-2">
+                      <button type="button" disabled={aiWaLoading}
+                        onClick={async () => {
+                          setAiWaLoading(true); setAiError("");
+                          try {
+                            const original = buildWaMessage(currentStudent, coSessionData, coHWItems, coFollowUps, tutorName);
+                            const res = await polishWhatsApp({ original, studentName: currentStudent.name, tutorName });
+                            if (res.message) setAiWaText(res.message);
+                          } catch (e) { setAiError((e as Error).message); }
+                          finally { setAiWaLoading(false); }
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-2 rounded-lg transition-colors disabled:opacity-50">
+                        {aiWaLoading ? "⏳ Poles AI..." : "✨ Poles AI"}
+                      </button>
+                      {aiWaText && (
+                        <button type="button" onClick={() => setAiWaText(null)}
+                          className="text-xs text-gray-400 hover:text-gray-600 px-3 py-2 rounded-lg border border-gray-200 bg-white">
+                          ↩ Original
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  <a href={`https://wa.me/${waNumber}?text=${encodeURIComponent(aiWaText ?? buildWaMessage(currentStudent, coSessionData, coHWItems, coFollowUps, tutorName))}`}
                     target="_blank" rel="noopener noreferrer"
                     className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-green-500 text-white font-semibold text-sm hover:bg-green-600 transition-colors">
                     <span className="text-lg">💬</span> Kirim via WhatsApp ke {currentStudent.parentContact.name || "Orang Tua"}

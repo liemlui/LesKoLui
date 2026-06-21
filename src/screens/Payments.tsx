@@ -10,6 +10,7 @@ import PaginationControls from "../components/PaginationControls";
 import { clampPage, paginateItems } from "../lib/pagination";
 import { toPng } from "html-to-image";
 import { jsPDF } from "jspdf";
+import { generatePaymentReminder } from "../lib/aiClient";
 
 export default function PaymentsPage() {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ export default function PaymentsPage() {
   const [summaryPage, setSummaryPage] = useState(1);
   const [paymentPage, setPaymentPage] = useState(1);
   const [pdfExporting, setPdfExporting] = useState(false);
+  const [reminderLoading, setReminderLoading] = useState<string | null>(null);
 
   const ITEMS_PER_PDF_PAGE = 5;
 
@@ -203,14 +205,46 @@ export default function PaymentsPage() {
       {filtered.length === 0 && <p className="text-gray-400 text-center py-8">Belum ada tagihan.</p>}
 
       <div className="space-y-3">
-        {paginatedPayments.map((p) => (
-          <InvoiceCard
-            key={p.id}
-            payment={p}
-            studentName={studentMap.get(p.studentId)?.name ?? "(dihapus)"}
-            onMarkPaid={p.status === "UNPAID" ? () => handleMarkPaid(p.studentId, p.month) : undefined}
-          />
-        ))}
+        {paginatedPayments.map((p) => {
+          const student = studentMap.get(p.studentId);
+          const sName = student?.name ?? "(dihapus)";
+          return (
+            <div key={p.id}>
+              <InvoiceCard
+                payment={p}
+                studentName={sName}
+                onMarkPaid={p.status === "UNPAID" ? () => handleMarkPaid(p.studentId, p.month) : undefined}
+              />
+              {p.status === "UNPAID" && settings?.ai?.enabled && settings.ai.apiKey && (
+                <button
+                  disabled={reminderLoading === p.id}
+                  onClick={async () => {
+                    setReminderLoading(p.id!);
+                    try {
+                      const res = await generatePaymentReminder({
+                        studentName: sName,
+                        parentName: student?.parentContact?.name,
+                        month: p.month,
+                        amount: p.totalCost,
+                        tutorName: settings.tutorProfile?.name || "Ko Lui",
+                      });
+                      if (res.message) {
+                        const phone = student?.parentContact?.phone?.replace(/^0/, "62").replace(/[^0-9]/g, "") ?? "";
+                        const url = phone
+                          ? `https://wa.me/${phone}?text=${encodeURIComponent(res.message)}`
+                          : `https://wa.me/?text=${encodeURIComponent(res.message)}`;
+                        window.open(url, "_blank");
+                      }
+                    } catch (e) { setMessage("AI error: " + (e as Error).message); }
+                    finally { setReminderLoading(null); }
+                  }}
+                  className="mt-1.5 w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-2 rounded-xl transition-colors disabled:opacity-50">
+                  {reminderLoading === p.id ? "⏳ Buat Reminder..." : "✨ Reminder WA AI"}
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
       <PaginationControls
         page={safePaymentPage}

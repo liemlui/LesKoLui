@@ -21,6 +21,8 @@ import PaginationControls from "../components/PaginationControls";
 import { clampPage, paginateItems } from "../lib/pagination";
 import ClockTimePicker from "../components/ClockTimePicker";
 import SignaturePad from "../components/SignaturePad";
+import { analyzeStudent } from "../lib/aiClient";
+import type { AiStudentInsight } from "../lib/aiClient";
 
 const DURATIONS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
 
@@ -71,6 +73,11 @@ export default function StudentDetail() {
 
   const [flash, setFlash] = useState("");
   function msg(t: string) { setFlash(t); setTimeout(() => setFlash(""), 3000); }
+
+  // AI states
+  const [aiInsightLoading, setAiInsightLoading] = useState(false);
+  const [aiInsight,        setAiInsight]        = useState<AiStudentInsight | null>(null);
+  const [aiInsightError,   setAiInsightError]   = useState("");
 
   // Tarif les (PIN-protected reveal + edit)
   const [rateUnlocked,  setRateUnlocked]  = useState(false);
@@ -618,17 +625,69 @@ export default function StudentDetail() {
       <div>
         <div className="flex items-center justify-between mb-2 gap-2">
           <h2 className="text-lg font-semibold">Riwayat Sesi</h2>
-          <select
-            className="input py-1 text-xs w-auto"
-            value={historyMonth}
-            onChange={(e) => { setHistoryMonth(e.target.value); setHistoryPage(1); }}
-          >
-            <option value="">Semua bulan</option>
-            {historyMonthOptions.map((m) => (
-              <option key={m} value={m}>{monthLabel(m)}</option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            {settings?.ai?.enabled && settings.ai.apiKey && (allSessions ?? []).filter(s => s.status === "DONE").length > 0 && (
+              <button
+                disabled={aiInsightLoading}
+                onClick={async () => {
+                  setAiInsightLoading(true); setAiInsightError(""); setAiInsight(null);
+                  try {
+                    const doneSessions = (allSessions ?? [])
+                      .filter(s => s.status === "DONE")
+                      .slice(-20)
+                      .map(s => ({
+                        date: s.date,
+                        subjects: s.subjects ?? [],
+                        shortNote: s.shortNote,
+                        needsWork: s.needsWork,
+                        mood: s.mood,
+                        predictedGrade: s.predictedGrade,
+                      }));
+                    const res = await analyzeStudent({
+                      student: { name: student?.name ?? "", level: student?.level ?? "" },
+                      sessions: doneSessions,
+                    });
+                    setAiInsight(res);
+                  } catch (e) { setAiInsightError((e as Error).message); }
+                  finally { setAiInsightLoading(false); }
+                }}
+                className="flex items-center gap-1 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-50 whitespace-nowrap">
+                {aiInsightLoading ? "⏳..." : "✨ Analisis AI"}
+              </button>
+            )}
+            <select
+              className="input py-1 text-xs w-auto"
+              value={historyMonth}
+              onChange={(e) => { setHistoryMonth(e.target.value); setHistoryPage(1); }}
+            >
+              <option value="">Semua bulan</option>
+              {historyMonthOptions.map((m) => (
+                <option key={m} value={m}>{monthLabel(m)}</option>
+              ))}
+            </select>
+          </div>
         </div>
+        {aiInsightError && (
+          <p className="text-xs text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-2">{aiInsightError}</p>
+        )}
+        {aiInsight && (
+          <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 mb-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-bold text-indigo-700 uppercase tracking-wide">✨ Analisis AI</p>
+              <button onClick={() => setAiInsight(null)} className="text-indigo-300 hover:text-indigo-600 text-xs">✕</button>
+            </div>
+            <div className="space-y-1">
+              {aiInsight.patterns.map((p, i) => (
+                <p key={i} className="text-xs text-gray-700 flex gap-2"><span className="text-indigo-400 flex-shrink-0">•</span>{p}</p>
+              ))}
+            </div>
+            <div className="bg-white rounded-xl px-3 py-2 border border-indigo-100">
+              <p className="text-xs font-semibold text-indigo-600 mb-0.5">Fokus sesi berikutnya</p>
+              <p className="text-sm text-gray-800">{aiInsight.nextFocus}</p>
+            </div>
+            <p className="text-xs text-gray-500 italic">{aiInsight.encouragement}</p>
+          </div>
+        )}
         {historySessions.length === 0 ? (
           <div className="text-center py-10 bg-white rounded-2xl border border-gray-100">
             <p className="text-3xl mb-2">📚</p>
