@@ -250,18 +250,141 @@ export default function MonthlyReportPage() {
       {/* ── PER-MURID: Laporan untuk Orang Tua ── */}
       {student && sessions && (
         <>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex justify-around text-center">
-            <div><p className="text-lg font-bold">{sessions.length}</p><p className="text-xs text-gray-500">Sesi</p></div>
-            <div><p className="text-lg font-bold">{totalHours}j</p><p className="text-xs text-gray-500">Jam</p></div>
-          </div>
+          {/* ── STATS CARD ── */}
+          {sessions.length > 0 ? (() => {
+            // Subjects breakdown
+            const subjectCount = new Map<string, number>();
+            sessions.forEach((s) => s.subjects.forEach((sub) => subjectCount.set(sub, (subjectCount.get(sub) ?? 0) + 1)));
+            const subjectList = [...subjectCount.entries()].sort((a, b) => b[1] - a[1]);
 
-          {/* AI Button — tersedia begitu ada sesi */}
-          {sessions.length > 0 && (
+            // Mood distribution
+            const moodCount = new Map<string, number>();
+            sessions.forEach((s) => { if (s.mood) moodCount.set(s.mood, (moodCount.get(s.mood) ?? 0) + 1); });
+            const moodOrder = ["😃", "🙂", "😐", "😕", "😟"];
+            const moodList  = moodOrder.filter((m) => moodCount.has(m)).map((m) => ({ mood: m, count: moodCount.get(m)! }));
+
+            // Topics covered
+            const topics = [...new Set(sessions.map((s) => s.topic).filter(Boolean))] as string[];
+
+            // Needs work areas
+            const needsWork = [...new Set(sessions.map((s) => s.needsWork).filter(Boolean))] as string[];
+
+            // Predicted grades (most recent)
+            const grades = sessions.filter((s) => s.predictedGrade).map((s) => s.predictedGrade!);
+            const latestGrade = grades[grades.length - 1];
+
+            // Avg session / week
+            const avgPerWeek = (sessions.length / 4).toFixed(1);
+
+            return (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100">
+                  <p className="font-semibold text-gray-700 text-sm">Statistik — {monthLabel(month)}</p>
+                </div>
+                <div className="p-4 space-y-4">
+                  {/* Numbers row */}
+                  <div className="grid grid-cols-4 gap-2 text-center">
+                    <div className="bg-blue-50 rounded-xl py-2">
+                      <p className="text-lg font-bold text-blue-700">{sessions.length}</p>
+                      <p className="text-xs text-blue-500">Sesi</p>
+                    </div>
+                    <div className="bg-indigo-50 rounded-xl py-2">
+                      <p className="text-lg font-bold text-indigo-700">{totalHours}j</p>
+                      <p className="text-xs text-indigo-500">Jam</p>
+                    </div>
+                    <div className="bg-purple-50 rounded-xl py-2">
+                      <p className="text-lg font-bold text-purple-700">{avgPerWeek}x</p>
+                      <p className="text-xs text-purple-500">/minggu</p>
+                    </div>
+                    {latestGrade ? (
+                      <div className="bg-green-50 rounded-xl py-2">
+                        <p className="text-lg font-bold text-green-700">{latestGrade}</p>
+                        <p className="text-xs text-green-500">Prediksi</p>
+                      </div>
+                    ) : (
+                      <div className="bg-gray-50 rounded-xl py-2">
+                        <p className="text-lg font-bold text-gray-300">—</p>
+                        <p className="text-xs text-gray-400">Nilai</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Subjects */}
+                  {subjectList.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Mata Pelajaran</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {subjectList.map(([sub, cnt]) => (
+                          <span key={sub} className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full font-medium">
+                            {sub} <span className="text-blue-400">×{cnt}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Mood */}
+                  {moodList.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Semangat Belajar</p>
+                      <div className="flex gap-3 items-center">
+                        {moodList.map(({ mood, count }) => (
+                          <div key={mood} className="flex items-center gap-1 text-sm">
+                            <span>{mood}</span>
+                            <span className="text-xs text-gray-400">×{count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Topics covered */}
+                  {topics.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Topik Dibahas</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {topics.map((t) => (
+                          <span key={t} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">{t}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Needs work */}
+                  {needsWork.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-orange-500 mb-1.5 uppercase tracking-wide">⚠️ Perlu Perhatian</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {needsWork.map((t) => (
+                          <span key={t} className="text-xs bg-orange-50 text-orange-600 px-2.5 py-1 rounded-full border border-orange-200">{t}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })() : (
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex justify-around text-center">
+              <div><p className="text-lg font-bold text-gray-300">0</p><p className="text-xs text-gray-400">Sesi bulan ini</p></div>
+              <div><p className="text-lg font-bold text-gray-300">0j</p><p className="text-xs text-gray-400">Jam</p></div>
+            </div>
+          )}
+
+          {/* AI Button — selalu tampil, disabled kalau tak ada sesi */}
+          {!settings?.ai?.enabled ? (
+            <div className="w-full py-3 px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-500 text-center">
+              <p className="font-semibold">✨ DeepSeek AI</p>
+              <p className="text-xs mt-0.5">Aktifkan di <span className="text-blue-600 font-medium">Pengaturan → AI DeepSeek</span> untuk isi narasi otomatis</p>
+            </div>
+          ) : (
             <button className="w-full py-3 rounded-xl text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60 transition-colors flex items-center justify-center gap-2"
-              onClick={handlePolish} disabled={aiLoading}>
+              onClick={handlePolish} disabled={aiLoading || sessions.length === 0}>
               {aiLoading
                 ? <><span className="animate-spin">⏳</span> Sedang memproses AI...</>
-                : <><span>✨</span> Isi Narasi dengan DeepSeek AI</>}
+                : sessions.length === 0
+                  ? <><span>✨</span> DeepSeek AI (belum ada sesi)</>
+                  : <><span>✨</span> Isi Narasi dengan DeepSeek AI</>}
             </button>
           )}
 

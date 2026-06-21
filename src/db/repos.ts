@@ -264,6 +264,35 @@ export async function cancelSeriesSessions(
   });
 }
 
+export async function listScheduledForStudent(studentId: string, fromDate?: string): Promise<Session[]> {
+  const from = fromDate ?? "0000-00-00";
+  return db.sessions
+    .where({ studentId })
+    .filter((s) => s.status === "SCHEDULED" && s.date >= from)
+    .sortBy("date");
+}
+
+export type EditMode = "this" | "future" | "all";
+
+export async function updateSeriesSessions(
+  session: { id: string; seriesId?: string; date: string },
+  patch: Partial<Pick<Session, "time" | "durationHours" | "studentId" | "date">>,
+  mode: EditMode
+): Promise<void> {
+  if (!session.seriesId || mode === "this") {
+    await updateSession(session.id, patch);
+    return;
+  }
+  const all = await db.sessions
+    .filter((s) => s.seriesId === session.seriesId && s.status === "SCHEDULED")
+    .toArray();
+  const toUpdate = mode === "all" ? all : all.filter((s) => s.date >= session.date);
+  const now = timestamp();
+  await db.transaction("rw", db.sessions, async () => {
+    for (const s of toUpdate) await db.sessions.update(s.id, { ...patch, updatedAt: now });
+  });
+}
+
 export async function findConflicts(
   dates: string[], time: string, durationHours: number
 ): Promise<{ date: string; studentName: string; time: string }[]> {

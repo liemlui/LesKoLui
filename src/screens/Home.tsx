@@ -3,10 +3,10 @@ import { Link } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   listStudents, listAllSessionsForMonth, listAllSessionsForWeek,
-  cancelSeriesSessions, scheduleBatch, scheduleSession, updateSession,
-  findConflicts,
+  cancelSeriesSessions, scheduleBatch, scheduleSession,
+  findConflicts, updateSeriesSessions,
 } from "../db/repos";
-import type { CancelMode } from "../db/repos";
+import type { CancelMode, EditMode } from "../db/repos";
 import { dayLabel, monthLabel, todayWIB, monthOf } from "../lib/format";
 import { MIN_DURATION } from "../db/types";
 import type { Session } from "../db/types";
@@ -19,13 +19,12 @@ const STUDENT_COLORS = [
 const DURATIONS  = [1, 1.5, 2, 2.5, 3, 3.5, 4];
 const DOW_LABELS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
-// ── Pure helpers (outside component — stable references) ─────────────────────
+// ── Pure helpers ──────────────────────────────────────────────────────────────
 function studentColor(id: string): string {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
   return STUDENT_COLORS[Math.abs(h) % STUDENT_COLORS.length];
 }
-
 function prevMonth(m: string) {
   const [y, mo] = m.split("-").map(Number);
   return mo === 1 ? `${y - 1}-12` : `${y}-${String(mo - 1).padStart(2, "0")}`;
@@ -34,7 +33,6 @@ function nextMonth(m: string) {
   const [y, mo] = m.split("-").map(Number);
   return mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, "0")}`;
 }
-
 function calendarCells(month: string): (string | null)[] {
   const [y, m] = month.split("-").map(Number);
   const firstDow = new Date(y, m - 1, 1).getDay();
@@ -43,7 +41,6 @@ function calendarCells(month: string): (string | null)[] {
   for (let d = 1; d <= daysInMonth; d++) cells.push(`${month}-${String(d).padStart(2, "0")}`);
   return cells;
 }
-
 function weekDates(anchor: string): string[] {
   const [y, m, d] = anchor.split("-").map(Number);
   const base = new Date(y, m - 1, d);
@@ -53,21 +50,15 @@ function weekDates(anchor: string): string[] {
     return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
   });
 }
-
 function addDays(date: string, n: number): string {
   const [y, m, d] = date.split("-").map(Number);
   const dt = new Date(y, m - 1, d + n);
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
 }
-
-// Fixed: find all dates for given weekdays starting from startDate, for weeksAhead weeks
 function getDatesForWeekdays(startDate: string, weekdays: number[], weeksAhead = 53): string[] {
   const [sy, sm, sd] = startDate.split("-").map(Number);
   const start = new Date(sy, sm - 1, sd);
-  // Find the Sunday that starts the current week
-  const weekSun = new Date(start);
-  weekSun.setDate(start.getDate() - start.getDay());
-
+  const weekSun = new Date(start); weekSun.setDate(start.getDate() - start.getDay());
   const results: string[] = [];
   for (let w = 0; w < weeksAhead; w++) {
     for (const dow of weekdays) {
@@ -79,7 +70,6 @@ function getDatesForWeekdays(startDate: string, weekdays: number[], weeksAhead =
   }
   return [...new Set(results)].sort();
 }
-
 function byDay(sessions: Session[] | undefined): Map<string, Session[]> {
   const map = new Map<string, Session[]>();
   (sessions ?? []).forEach((s) => {
@@ -111,32 +101,25 @@ export default function Home() {
   const [conflicts,     setConflicts]     = useState<{ date: string; studentName: string; time: string }[]>([]);
   const [saving,        setSaving]        = useState(false);
 
-  // Cancel modal
-  const [cancelTarget, setCancelTarget] = useState<Session | null>(null);
-
-  // Reassign modal
-  const [reassignTarget,    setReassignTarget]    = useState<Session | null>(null);
-  const [reassignStudentId, setReassignStudentId] = useState("");
+  // Edit-session modal (replaces separate cancel + reassign modals)
+  const [editTarget,       setEditTarget]       = useState<Session | null>(null);
+  const [editStudentId,    setEditStudentId]     = useState("");
+  const [editDate,         setEditDate]          = useState("");
+  const [editTime,         setEditTime]          = useState("");
+  const [editDuration,     setEditDuration]      = useState(MIN_DURATION);
+  const [editMode,         setEditMode]          = useState<EditMode>("this");
+  const [editSaving,       setEditSaving]        = useState(false);
+  const [showCancelInEdit, setShowCancelInEdit]  = useState(false);
 
   const [flash, setFlash] = useState("");
 
   // ── Data ──────────────────────────────────────────────────────────────────
   const students = useLiveQuery(() => listStudents(true), []);
-
   const week = useMemo(() => weekDates(anchor), [anchor]);
 
-  const monthSessions = useLiveQuery(
-    () => listAllSessionsForMonth(calMonth),
-    [calMonth]
-  );
-  const weekSessions = useLiveQuery(
-    () => listAllSessionsForWeek(week[0], week[6]),
-    [week[0], week[6]]
-  );
-  const daySessions = useLiveQuery(
-    () => listAllSessionsForWeek(anchor, anchor),
-    [anchor]
-  );
+  const monthSessions = useLiveQuery(() => listAllSessionsForMonth(calMonth), [calMonth]);
+  const weekSessions  = useLiveQuery(() => listAllSessionsForWeek(week[0], week[6]), [week[0], week[6]]);
+  const daySessions   = useLiveQuery(() => listAllSessionsForWeek(anchor, anchor), [anchor]);
 
   const studentMap = useMemo(
     () => new Map((students ?? []).map((s) => [s.id, { name: s.name, color: studentColor(s.id) }])),
@@ -152,10 +135,17 @@ export default function Home() {
 
   const openAdd = (date: string) => {
     const dow = new Date(date + "T00:00:00").getDay();
-    setSelectedDay(date);
-    setAddWeekdays([dow]);
-    setConflicts([]);
-    setShowAdd(true);
+    setSelectedDay(date); setAddWeekdays([dow]); setConflicts([]); setShowAdd(true);
+  };
+
+  const openEdit = (s: Session) => {
+    setEditTarget(s);
+    setEditStudentId(s.studentId);
+    setEditDate(s.date);
+    setEditTime(s.time ?? "08:00");
+    setEditDuration(s.durationHours);
+    setEditMode("this");
+    setShowCancelInEdit(false);
   };
 
   const checkConflictsAsync = async (weekdays: number[], time: string, duration: number) => {
@@ -184,44 +174,57 @@ export default function Home() {
     finally { setSaving(false); }
   };
 
-  const handleCancel = async (mode: CancelMode) => {
-    if (!cancelTarget) return;
-    await cancelSeriesSessions({ id: cancelTarget.id, seriesId: cancelTarget.seriesId, date: cancelTarget.date }, mode);
-    setCancelTarget(null);
+  const handleSaveEdit = async () => {
+    if (!editTarget) return;
+    setEditSaving(true);
+    try {
+      const patch: Parameters<typeof updateSeriesSessions>[1] = {
+        studentId: editStudentId || editTarget.studentId,
+        time: editTime,
+        durationHours: editDuration,
+      };
+      // Date change only applies to "this" mode
+      if (editMode === "this" && editDate !== editTarget.date) {
+        (patch as Record<string, unknown>).date = editDate;
+      }
+      await updateSeriesSessions(
+        { id: editTarget.id, seriesId: editTarget.seriesId, date: editTarget.date },
+        patch, editMode
+      );
+      msg("Jadwal diperbarui ✓");
+      setEditTarget(null);
+    } catch (e) { msg("Gagal: " + (e as Error).message); }
+    finally { setEditSaving(false); }
+  };
+
+  const handleCancelSession = async (mode: CancelMode) => {
+    if (!editTarget) return;
+    await cancelSeriesSessions({ id: editTarget.id, seriesId: editTarget.seriesId, date: editTarget.date }, mode);
+    setEditTarget(null);
     msg("Jadwal dibatalkan.");
   };
 
-  const handleReassign = async () => {
-    if (!reassignTarget || !reassignStudentId) return;
-    await updateSession(reassignTarget.id, { studentId: reassignStudentId });
-    setReassignTarget(null); setReassignStudentId("");
-    msg("Murid diganti ✓");
-  };
-
-  // ── Session pill (reusable JSX factory — NOT a React component) ───────────
+  // ── Session pill (JSX factory — not a component) ──────────────────────────
   const renderSessionPill = (s: Session) => {
     const info   = studentMap.get(s.studentId);
     const color  = info?.color ?? "#9CA3AF";
     const isDone = s.status === "DONE";
     return (
-      <div key={s.id} className="flex items-start gap-2 mb-2">
+      <div key={s.id}
+        className={`flex items-start gap-2 mb-2 ${!isDone ? "cursor-pointer" : ""}`}
+        onClick={() => !isDone && openEdit(s)}>
         <div className="w-1 self-stretch rounded-full flex-shrink-0 mt-1" style={{ background: color, minHeight: 28 }} />
-        <div className="flex-1 bg-white rounded-xl px-3 py-2 shadow-sm border border-gray-100">
+        <div className="flex-1 bg-white rounded-xl px-3 py-2 shadow-sm border border-gray-100 hover:border-blue-200 transition-colors">
           <div className="flex items-start justify-between gap-1">
             <div className="min-w-0">
               <p className="text-sm font-semibold truncate" style={{ color }}>{info?.name ?? "—"}</p>
               <p className="text-xs text-gray-400">
-                {s.time ? `${s.time} · ` : ""}{s.durationHours}j{isDone ? " ✓" : ""}
-                {s.seriesId ? " 🔁" : ""}
+                {s.time ? `${s.time} · ` : ""}{s.durationHours}j
+                {isDone ? " ✓" : ""}{s.seriesId ? " 🔁" : ""}
               </p>
             </div>
             {!isDone && (
-              <div className="flex gap-1 flex-shrink-0">
-                <button onClick={() => { setReassignTarget(s); setReassignStudentId(s.studentId); }}
-                  className="text-xs px-2 py-1 rounded-lg bg-gray-100 text-gray-600">Ganti</button>
-                <button onClick={() => setCancelTarget(s)}
-                  className="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-500">Batal</button>
-              </div>
+              <span className="text-gray-300 text-xs flex-shrink-0 pt-0.5">✏️</span>
             )}
           </div>
         </div>
@@ -233,10 +236,13 @@ export default function Home() {
     <div className="border-t border-gray-100 p-3">
       <div className="flex items-center justify-between mb-2">
         <p className="text-sm font-semibold text-gray-700">{dayLabel(date)}</p>
-        <button onClick={() => openAdd(date)} className="flex items-center gap-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg transition-colors">+ Jadwal</button>
+        <button onClick={() => openAdd(date)}
+          className="flex items-center gap-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg transition-colors">
+          + Jadwal
+        </button>
       </div>
       {sessionsForDay.length === 0
-        ? <p className="text-xs text-gray-400 py-2 text-center">Belum ada sesi.</p>
+        ? <p className="text-xs text-gray-400 py-2 text-center">Belum ada sesi. Tap "+ Jadwal" untuk tambah.</p>
         : sessionsForDay.sort((a, b) => (a.time ?? "").localeCompare(b.time ?? "")).map(renderSessionPill)
       }
     </div>
@@ -258,7 +264,7 @@ export default function Home() {
       </div>
 
       {flash && (
-        <div className={`mx-4 mb-2 p-2 rounded-lg text-sm text-center ${flash.includes("✓") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
+        <div className={`mx-4 mb-2 p-2 rounded-lg text-sm text-center font-medium ${flash.includes("✓") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
           {flash}
         </div>
       )}
@@ -287,10 +293,10 @@ export default function Home() {
           <div className="grid grid-cols-7">
             {cells.map((date, i) => {
               if (!date) return <div key={`e-${i}`} className="min-h-[64px] border-b border-r border-gray-50 last:border-r-0" />;
-              const daySess = monthByDay.get(date) ?? [];
+              const daySess    = monthByDay.get(date) ?? [];
               const isToday    = date === today;
               const isSelected = date === selectedDay;
-              const dayNum = parseInt(date.slice(8), 10);
+              const dayNum     = parseInt(date.slice(8), 10);
               return (
                 <button key={date}
                   onClick={() => setSelectedDay(isSelected ? null : date)}
@@ -300,7 +306,7 @@ export default function Home() {
                   </span>
                   <div className="w-full space-y-0.5">
                     {daySess.slice(0, 3).map((s) => {
-                      const info = studentMap.get(s.studentId);
+                      const info  = studentMap.get(s.studentId);
                       const color = info?.color ?? "#9CA3AF";
                       return (
                         <div key={s.id} className="w-full truncate rounded px-1 py-0.5"
@@ -337,9 +343,9 @@ export default function Home() {
             {week.map((date) => {
               const isToday    = date === today;
               const isSelected = date === selectedDay;
-              const d     = parseInt(date.slice(8), 10);
-              const label = DOW_LABELS[new Date(date + "T00:00:00").getDay()];
-              const daySess = weekByDay.get(date) ?? [];
+              const d          = parseInt(date.slice(8), 10);
+              const label      = DOW_LABELS[new Date(date + "T00:00:00").getDay()];
+              const daySess    = weekByDay.get(date) ?? [];
               return (
                 <div key={date} className={`border-r border-gray-50 last:border-r-0 ${isToday ? "bg-blue-50" : ""} ${isSelected ? "bg-indigo-50" : ""}`}>
                   <button className="w-full text-center py-1.5" onClick={() => setSelectedDay(isSelected ? null : date)}>
@@ -352,7 +358,10 @@ export default function Home() {
                       const color  = info?.color ?? "#9CA3AF";
                       const isDone = s.status === "DONE";
                       return (
-                        <div key={s.id} className="rounded mb-0.5 px-1 py-0.5" style={{ background: color + (isDone ? "20" : "35"), fontSize: 9 }}>
+                        <div key={s.id}
+                          className={`rounded mb-0.5 px-1 py-0.5 ${!isDone ? "cursor-pointer" : ""}`}
+                          style={{ background: color + (isDone ? "20" : "35"), fontSize: 9 }}
+                          onClick={() => !isDone && openEdit(s)}>
                           <p className="font-bold truncate" style={{ color }}>{info?.name?.split(" ")[0] ?? "—"}</p>
                           {s.time && <p className="opacity-60" style={{ fontSize: 8 }}>{s.time}</p>}
                         </div>
@@ -381,7 +390,6 @@ export default function Home() {
 
         return (
           <div className="mx-4 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            {/* Nav */}
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
               <button onClick={() => setAnchor(addDays(anchor, -1))} className="text-gray-400 text-xl w-8 text-center">‹</button>
               <span className="font-semibold text-gray-700 text-sm">{dayLabel(anchor)}</span>
@@ -391,23 +399,16 @@ export default function Home() {
               <p className="text-xs text-gray-400">{(daySessions ?? []).length} sesi</p>
               <button onClick={() => openAdd(anchor)} className="flex items-center gap-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg transition-colors">+ Jadwal</button>
             </div>
-
-            {/* Untimed sessions (pinned above grid) */}
             {untimed.length > 0 && (
               <div className="px-3 pt-2 pb-1 border-b border-gray-100 space-y-1">
                 <p className="text-xs text-gray-400 font-medium">Tanpa waktu</p>
                 {untimed.map(renderSessionPill)}
               </div>
             )}
-
-            {/* Scrollable time grid */}
             <div className="overflow-y-auto" style={{ maxHeight: "62vh" }}>
               <div className="relative select-none" style={{ height: totalH }}>
-
-                {/* Hour labels + solid dividers */}
                 {gridHours.map((h) => (
-                  <div key={h} className="absolute left-0 right-0 pointer-events-none"
-                    style={{ top: (h - DAY_START) * PX_PER_HR }}>
+                  <div key={h} className="absolute left-0 right-0 pointer-events-none" style={{ top: (h - DAY_START) * PX_PER_HR }}>
                     <div className="flex">
                       <span className="flex-shrink-0 text-right pr-2 text-gray-300"
                         style={{ width: LABEL_W, fontSize: 10, lineHeight: 1, marginTop: -6 }}>
@@ -417,17 +418,13 @@ export default function Home() {
                     </div>
                   </div>
                 ))}
-
-                {/* 30-min dashed half-hour lines */}
                 {gridHours.slice(0, -1).map((h) => (
                   <div key={`h30-${h}`} className="absolute right-0 border-t border-dashed border-gray-100 pointer-events-none"
                     style={{ top: (h - DAY_START) * PX_PER_HR + PX_PER_HR / 2, left: LABEL_W }} />
                 ))}
-
-                {/* Timed session blocks */}
                 {timed.map((s) => {
-                  const info  = studentMap.get(s.studentId);
-                  const color = info?.color ?? "#9CA3AF";
+                  const info   = studentMap.get(s.studentId);
+                  const color  = info?.color ?? "#9CA3AF";
                   const [sh, sm] = (s.time ?? "07:00").split(":").map(Number);
                   const topPx    = (sh - DAY_START) * PX_PER_HR + (sm / 60) * PX_PER_HR;
                   const heightPx = Math.max(s.durationHours * PX_PER_HR - 2, 28);
@@ -436,16 +433,10 @@ export default function Home() {
                   const endLabel = `${String(endH.getHours()).padStart(2, "0")}:${String(endH.getMinutes()).padStart(2, "0")}`;
                   return (
                     <div key={s.id}
-                      className="absolute rounded-lg overflow-hidden shadow-sm cursor-pointer hover:brightness-95 transition-all"
-                      style={{
-                        top: topPx + 1,
-                        left: LABEL_W + 4,
-                        right: 6,
-                        height: heightPx,
-                        background: color + (isDone ? "22" : "3A"),
-                        borderLeft: `3px solid ${color}`,
-                      }}
-                      onClick={() => !isDone && setCancelTarget(s)}>
+                      className={`absolute rounded-lg overflow-hidden shadow-sm transition-all ${!isDone ? "cursor-pointer hover:brightness-95" : ""}`}
+                      style={{ top: topPx + 1, left: LABEL_W + 4, right: 6, height: heightPx,
+                        background: color + (isDone ? "22" : "3A"), borderLeft: `3px solid ${color}` }}
+                      onClick={() => !isDone && openEdit(s)}>
                       <div className="px-2 py-1">
                         <p className="font-bold text-xs leading-tight truncate" style={{ color }}>
                           {info?.name ?? "—"}{isDone ? " ✓" : ""}{s.seriesId ? " 🔁" : ""}
@@ -454,18 +445,10 @@ export default function Home() {
                           {s.time} – {endLabel} · {s.durationHours}j
                         </p>
                       </div>
-                      {!isDone && heightPx >= 48 && (
-                        <div className="absolute bottom-1 right-1 flex gap-1">
-                          <button className="text-xs px-1.5 py-0.5 rounded-md bg-white/70 text-gray-600 shadow-sm"
-                            onClick={(e) => { e.stopPropagation(); setReassignTarget(s); setReassignStudentId(s.studentId); }}>
-                            Ganti
-                          </button>
-                        </div>
-                      )}
+                      {!isDone && <span className="absolute top-1 right-1 text-xs opacity-50">✏️</span>}
                     </div>
                   );
                 })}
-
               </div>
             </div>
           </div>
@@ -489,13 +472,11 @@ export default function Home() {
                 {(students ?? []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </div>
-
             <div>
               <label className="label">Jam Mulai</label>
               <input className="input" type="time" value={addTime}
                 onChange={(e) => { setAddTime(e.target.value); checkConflictsAsync(addWeekdays, e.target.value, addDuration); }} />
             </div>
-
             <div>
               <label className="label">Durasi</label>
               <div className="flex flex-wrap gap-2">
@@ -508,17 +489,14 @@ export default function Home() {
                 ))}
               </div>
             </div>
-
-            {/* Repeat toggle */}
             <div className="flex items-center gap-3">
               <button type="button"
-                className={`relative w-10 h-6 rounded-full transition-colors ${addRepeat ? "bg-blue-500" : "bg-gray-300"}`}
+                className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${addRepeat ? "bg-blue-500" : "bg-gray-300"}`}
                 onClick={() => { setAddRepeat(!addRepeat); if (addRepeat) setConflicts([]); }}>
                 <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${addRepeat ? "translate-x-4" : "translate-x-0.5"}`} />
               </button>
               <span className="text-sm font-medium text-gray-700">Ulangi setiap minggu (selamanya)</span>
             </div>
-
             {addRepeat && (
               <div>
                 <label className="label">Hari yang diulang</label>
@@ -527,8 +505,7 @@ export default function Home() {
                     <button key={dow} type="button"
                       onClick={() => {
                         const next = addWeekdays.includes(dow) ? addWeekdays.filter((x) => x !== dow) : [...addWeekdays, dow];
-                        setAddWeekdays(next);
-                        checkConflictsAsync(next, addTime, addDuration);
+                        setAddWeekdays(next); checkConflictsAsync(next, addTime, addDuration);
                       }}
                       className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${addWeekdays.includes(dow) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300"}`}>
                       {label}
@@ -538,7 +515,6 @@ export default function Home() {
                 <p className="text-xs text-gray-400 mt-1.5">Jadwal otomatis dibuat ~1 tahun ke depan</p>
               </div>
             )}
-
             {conflicts.length > 0 && (
               <div className="bg-orange-50 border border-orange-200 rounded-xl p-3">
                 <p className="text-sm font-semibold text-orange-700 mb-1">⚠️ Berpotensi tabrakan</p>
@@ -548,64 +524,127 @@ export default function Home() {
                 {conflicts.length > 4 && <p className="text-xs text-orange-400">+{conflicts.length - 4} lainnya</p>}
               </div>
             )}
-
-            <button onClick={handleSaveSchedule} disabled={saving}
-              className="btn-primary w-full py-3 font-semibold">
-              {saving ? "Menyimpan..." : addRepeat ? `Buat Jadwal Berulang` : "Simpan Jadwal"}
+            <button onClick={handleSaveSchedule} disabled={saving} className="btn-primary w-full py-3 font-semibold">
+              {saving ? "Menyimpan..." : addRepeat ? "Buat Jadwal Berulang" : "Simpan Jadwal"}
             </button>
           </div>
         </div>
       )}
 
-      {/* ── CANCEL MODAL ── */}
-      {cancelTarget && (
-        <div className="fixed inset-0 bg-black/40 z-[60] flex items-end" onClick={() => setCancelTarget(null)}>
-          <div className="bg-white w-full rounded-t-2xl p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-bold text-lg">Batalkan Jadwal</h3>
-            <p className="text-sm text-gray-500">
-              {studentMap.get(cancelTarget.studentId)?.name ?? "—"} — {dayLabel(cancelTarget.date)}
-            </p>
-            {cancelTarget.seriesId ? (
-              <>
-                <button onClick={() => handleCancel("this")}
-                  className="w-full text-left px-4 py-3 rounded-xl bg-gray-50 hover:bg-gray-100 text-sm font-medium border border-gray-200">
-                  Sesi ini saja
-                </button>
-                <button onClick={() => handleCancel("future")}
-                  className="w-full text-left px-4 py-3 rounded-xl bg-orange-50 hover:bg-orange-100 text-sm font-medium text-orange-700 border border-orange-200">
-                  Hari ini dan semua sesi berikutnya
-                </button>
-                <button onClick={() => handleCancel("all")}
-                  className="w-full text-left px-4 py-3 rounded-xl bg-red-50 hover:bg-red-100 text-sm font-medium text-red-600 border border-red-200">
-                  Semua sesi dalam seri ini
-                </button>
-              </>
-            ) : (
-              <button onClick={() => handleCancel("this")}
-                className="w-full px-4 py-3 rounded-xl bg-red-50 text-red-600 font-medium text-sm border border-red-200">
-                Ya, batalkan sesi ini
-              </button>
-            )}
-            <button onClick={() => setCancelTarget(null)} className="w-full text-center text-gray-400 text-sm py-1">
-              Batal (kembali)
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── REASSIGN MODAL ── */}
-      {reassignTarget && (
-        <div className="fixed inset-0 bg-black/40 z-[60] flex items-end" onClick={() => setReassignTarget(null)}>
-          <div className="bg-white w-full rounded-t-2xl p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-lg">Ganti Murid</h3>
-              <button onClick={() => setReassignTarget(null)} className="text-gray-400 text-xl leading-none">✕</button>
+      {/* ── EDIT SESSION MODAL ── */}
+      {editTarget && (
+        <div className="fixed inset-0 bg-black/40 z-[60] flex items-end" onClick={() => setEditTarget(null)}>
+          <div className="bg-white w-full rounded-t-2xl pb-8 max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <div>
+                <h3 className="font-bold text-lg">Edit Jadwal</h3>
+                <p className="text-xs text-gray-400">{dayLabel(editTarget.date)}{editTarget.seriesId ? " · Sesi berulang 🔁" : ""}</p>
+              </div>
+              <button onClick={() => setEditTarget(null)} className="text-gray-400 text-xl leading-none">✕</button>
             </div>
-            <select className="input" value={reassignStudentId} onChange={(e) => setReassignStudentId(e.target.value)}>
-              <option value="">Pilih murid...</option>
-              {(students ?? []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-            <button onClick={handleReassign} className="btn-primary w-full py-3 font-semibold">Simpan</button>
+
+            <div className="p-5 space-y-4">
+              {/* Murid */}
+              <div>
+                <label className="label">Murid</label>
+                <select className="input" value={editStudentId} onChange={(e) => setEditStudentId(e.target.value)}>
+                  {(students ?? []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+
+              {/* Tanggal — hanya bisa edit untuk mode "this" */}
+              <div>
+                <label className="label">
+                  Tanggal
+                  {editTarget.seriesId && editMode !== "this" && (
+                    <span className="ml-2 text-xs text-gray-400 font-normal">(tanggal hanya bisa diubah untuk sesi ini saja)</span>
+                  )}
+                </label>
+                <input className="input" type="date" value={editDate}
+                  disabled={!!editTarget.seriesId && editMode !== "this"}
+                  onChange={(e) => setEditDate(e.target.value)} />
+              </div>
+
+              {/* Jam */}
+              <div>
+                <label className="label">Jam Mulai</label>
+                <input className="input" type="time" value={editTime} onChange={(e) => setEditTime(e.target.value)} />
+              </div>
+
+              {/* Durasi */}
+              <div>
+                <label className="label">Durasi</label>
+                <div className="flex flex-wrap gap-2">
+                  {DURATIONS.map((d) => (
+                    <button key={d} type="button"
+                      onClick={() => setEditDuration(d)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${editDuration === d ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300"}`}>
+                      {d}j
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Mode (hanya jika ada seri) */}
+              {editTarget.seriesId && (
+                <div>
+                  <label className="label">Ubah untuk</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(["this", "future", "all"] as EditMode[]).map((m) => (
+                      <button key={m} onClick={() => { setEditMode(m); if (m !== "this") setEditDate(editTarget.date); }}
+                        className={`py-2 rounded-xl text-xs font-semibold border transition-colors ${editMode === m ? "bg-blue-600 text-white border-blue-600" : "bg-gray-50 text-gray-600 border-gray-200"}`}>
+                        {m === "this" ? "Sesi ini" : m === "future" ? "Ini & berikutnya" : "Semua seri"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Save */}
+              <button onClick={handleSaveEdit} disabled={editSaving}
+                className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                {editSaving ? "Menyimpan..." : "Simpan Perubahan"}
+              </button>
+
+              {/* Cancel section */}
+              <div className="border-t border-gray-100 pt-3">
+                {!showCancelInEdit ? (
+                  <button onClick={() => setShowCancelInEdit(true)}
+                    className="w-full py-2.5 rounded-xl text-sm font-medium text-red-500 bg-red-50 hover:bg-red-100 transition-colors">
+                    Batalkan Jadwal Ini
+                  </button>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-red-600 mb-2">Batalkan jadwal — pilih scope:</p>
+                    {editTarget.seriesId ? (
+                      <>
+                        <button onClick={() => handleCancelSession("this")}
+                          className="w-full text-left px-4 py-3 rounded-xl bg-gray-50 hover:bg-gray-100 text-sm font-medium border border-gray-200">
+                          Sesi ini saja ({dayLabel(editTarget.date).split(",")[1]?.trim()})
+                        </button>
+                        <button onClick={() => handleCancelSession("future")}
+                          className="w-full text-left px-4 py-3 rounded-xl bg-orange-50 text-sm font-medium text-orange-700 border border-orange-200 hover:bg-orange-100">
+                          Hari ini dan semua sesi berikutnya
+                        </button>
+                        <button onClick={() => handleCancelSession("all")}
+                          className="w-full text-left px-4 py-3 rounded-xl bg-red-50 text-sm font-medium text-red-600 border border-red-200 hover:bg-red-100">
+                          Semua sesi dalam seri ini
+                        </button>
+                      </>
+                    ) : (
+                      <button onClick={() => handleCancelSession("this")}
+                        className="w-full px-4 py-3 rounded-xl bg-red-50 text-red-600 font-medium text-sm border border-red-200">
+                        Ya, batalkan sesi ini
+                      </button>
+                    )}
+                    <button onClick={() => setShowCancelInEdit(false)} className="w-full text-center text-gray-400 text-sm py-1">
+                      Jangan batalkan
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
