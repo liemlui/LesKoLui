@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useNavigate } from "react-router-dom";
 import { listPayments, listStudents, getPayment, upsertPayment, getSettings } from "../db/repos";
-import { formatRupiah } from "../lib/format";
+import { formatRupiah, todayWIB } from "../lib/format";
 import { hashPin } from "../lib/crypto";
 import InvoiceCard from "../components/InvoiceCard";
 import PaginationControls from "../components/PaginationControls";
@@ -19,7 +19,7 @@ export default function PaymentsPage() {
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState("");
 
-  const [filterMonth, setFilterMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [filterMonth, setFilterMonth] = useState(() => todayWIB().slice(0, 7));
   const [selectedMonth, setSelectedMonth] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [totalCost, setTotalCost] = useState(0);
@@ -90,7 +90,7 @@ export default function PaymentsPage() {
     await upsertPayment({
       ...p,
       status: "PAID",
-      paidAt: new Date().toISOString().slice(0, 10),
+      paidAt: todayWIB(),
       method,
     });
     setMessage(`Pembayaran ${studentMap.get(studentId)?.name} ditandai lunas ✓`);

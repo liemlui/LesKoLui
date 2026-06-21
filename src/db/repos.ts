@@ -16,9 +16,9 @@ function todayWIB(): string {
 function monthRange(month: string): { start: string; end: string } {
   const [y, m] = month.split("-").map(Number);
   const start = `${month}-01`;
-  // next month minus one day
-  const endDate = new Date(y, m, 0); // day 0 of next month = last day of this month
-  const end = endDate.toISOString().slice(0, 10);
+  // getDate() returns local day number — avoids toISOString() UTC shift losing the last day in WIB
+  const lastDay = new Date(y, m, 0).getDate();
+  const end = `${month}-${String(lastDay).padStart(2, "0")}`;
   return { start, end };
 }
 

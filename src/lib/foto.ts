@@ -75,7 +75,3 @@ export async function stampPhoto(blob: Blob, sessionDate: string): Promise<Blob>
     img.src = url;
   });
 }
-
-export function blobUrl(blob?: Blob): string | undefined {
-  return blob ? URL.createObjectURL(blob) : undefined;
-}

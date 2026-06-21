@@ -292,7 +292,7 @@ export default function MonthlyReportPage() {
       <div className="p-4 space-y-4">
         {message && (
           <div onClick={() => setMessage("")}
-            className={`p-3 rounded-lg text-sm cursor-pointer ${message.includes("✓") ? "bg-green-50 text-green-700" : "bg-blue-50 text-blue-700"}`}>
+            className={`p-3 rounded-lg text-sm cursor-pointer ${message.includes("✓") ? "bg-green-50 text-green-700" : message.startsWith("Gagal") || message.startsWith("Error") ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700"}`}>
             {message}
           </div>
         )}
