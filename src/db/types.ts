@@ -147,6 +147,47 @@ export interface Payment {
   method?: string;
 }
 
+// ── Expenses ────────────────────────────────────────────────────────────────
+
+export type ExpenseCategory = "transport" | "buku" | "alat" | "platform" | "lainnya";
+
+export interface Expense {
+  id: string;
+  date: string;          // YYYY-MM-DD
+  category: ExpenseCategory;
+  description: string;
+  amount: number;        // IDR
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── IA / EE Milestone Tracker ────────────────────────────────────────────────
+
+export type IaEeType = "IA" | "EE";
+export type MilestoneStatus = "pending" | "in_progress" | "done";
+
+export interface IaEeMilestone {
+  id: string;
+  title: string;
+  dueAt?: string;        // YYYY-MM-DD
+  status: MilestoneStatus;
+  notes?: string;
+  completedAt?: string;
+}
+
+export interface IaEeProject {
+  id: string;
+  studentId: string;
+  type: IaEeType;
+  subject: string;
+  title: string;
+  deadline?: string;     // final submission date YYYY-MM-DD
+  milestones: IaEeMilestone[];
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Settings {
   id: "app";
   tutorProfile: { name: string; phone: string; email?: string; address?: string };

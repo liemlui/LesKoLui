@@ -1,6 +1,6 @@
 import Dexie from "dexie";
 import type { Table } from "dexie";
-import type { Student, Session, MonthlyReport, Payment, Settings, RaporGrade, Homework, FollowUpItem } from "./types";
+import type { Student, Session, MonthlyReport, Payment, Settings, RaporGrade, Homework, FollowUpItem, Expense, IaEeProject } from "./types";
 
 type LegacySessionRow = {
   subject?: unknown;
@@ -16,6 +16,8 @@ export class JurnalDB extends Dexie {
   raporGrades!: Table<RaporGrade,    string>;
   homeworks!:   Table<Homework,      string>;
   followUps!:   Table<FollowUpItem,  string>;
+  expenses!:    Table<Expense,       string>;
+  iaeeProjects!:Table<IaEeProject,   string>;
 
   constructor() {
     super("jurnalles");
@@ -46,6 +48,11 @@ export class JurnalDB extends Dexie {
     this.version(6).stores({
       homeworks: "id, studentId, assignedAt, status, dueAt, [studentId+status]",
       followUps: "id, studentId, completedAt",
+    });
+    // v7: add expenses and IA/EE project tables
+    this.version(7).stores({
+      expenses:     "id, date, category",
+      iaeeProjects: "id, studentId, type",
     });
   }
 }

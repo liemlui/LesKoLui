@@ -2,6 +2,7 @@ import { db } from "./db";
 import type {
   Student, Session, MonthlyReport, Payment, Settings, RaporGrade,
   Homework, HomeworkStatus, FollowUpItem, FollowUpType,
+  Expense, ExpenseCategory, IaEeProject, IaEeMilestone,
 } from "./types";
 import { MIN_DURATION, DURATION_STEP, DEFAULT_RATE } from "./types";
 import { hashPin, isHashedPin } from "../lib/crypto";
@@ -685,4 +686,113 @@ export async function deleteFollowUp(id: string): Promise<void> {
 }
 
 // Re-export types so screens only need to import from repos
-export type { HomeworkStatus, FollowUpType };
+export type { HomeworkStatus, FollowUpType, ExpenseCategory, IaEeMilestone };
+
+// ── Expenses ────────────────────────────────────────────────────────
+
+export async function createExpense(
+  input: Omit<Expense, "id" | "createdAt" | "updatedAt">
+): Promise<string> {
+  const id = crypto.randomUUID();
+  const now = timestamp();
+  await db.expenses.add({ ...input, id, createdAt: now, updatedAt: now });
+  return id;
+}
+
+export async function listExpenses(month?: string): Promise<Expense[]> {
+  if (month) {
+    const { start, end } = monthRange(month);
+    return db.expenses
+      .where("date").between(start, end, true, true)
+      .sortBy("date");
+  }
+  return db.expenses.orderBy("date").reverse().toArray();
+}
+
+export async function listExpensesByCategory(category: ExpenseCategory): Promise<Expense[]> {
+  return db.expenses.where("category").equals(category).sortBy("date");
+}
+
+export async function deleteExpense(id: string): Promise<void> {
+  await db.expenses.delete(id);
+}
+
+export async function getExpenseTotals(month: string): Promise<Record<string, number>> {
+  const expenses = await listExpenses(month);
+  const totals: Record<string, number> = {};
+  for (const e of expenses) {
+    totals[e.category] = (totals[e.category] ?? 0) + e.amount;
+  }
+  return totals;
+}
+
+export async function getMonthlyIncomeVsExpense(
+  months: string[]
+): Promise<{ month: string; income: number; expense: number; net: number }[]> {
+  return Promise.all(
+    months.map(async (month) => {
+      const sessions = await listSessionsForMonth(month);
+      const income = sessions.reduce((s, sess) => s + sess.cost, 0);
+      const expenses = await listExpenses(month);
+      const expense = expenses.reduce((s, e) => s + e.amount, 0);
+      return { month, income, expense, net: income - expense };
+    })
+  );
+}
+
+// ── IA / EE Projects ────────────────────────────────────────────────
+
+export async function createIaEeProject(
+  input: Omit<IaEeProject, "id" | "createdAt" | "updatedAt">
+): Promise<string> {
+  const id = crypto.randomUUID();
+  const now = timestamp();
+  await db.iaeeProjects.add({ ...input, id, createdAt: now, updatedAt: now });
+  return id;
+}
+
+export async function listIaEeProjects(studentId: string): Promise<IaEeProject[]> {
+  return db.iaeeProjects.where({ studentId }).sortBy("createdAt");
+}
+
+export async function updateIaEeProject(id: string, patch: Partial<IaEeProject>): Promise<void> {
+  await db.iaeeProjects.update(id, { ...patch, updatedAt: timestamp() });
+}
+
+export async function deleteIaEeProject(id: string): Promise<void> {
+  await db.iaeeProjects.delete(id);
+}
+
+export async function addMilestone(projectId: string, milestone: IaEeMilestone): Promise<void> {
+  const project = await db.iaeeProjects.get(projectId);
+  if (!project) throw new Error("Project not found");
+  await db.iaeeProjects.update(projectId, {
+    milestones: [...project.milestones, milestone],
+    updatedAt: timestamp(),
+  });
+}
+
+export async function updateMilestone(
+  projectId: string,
+  milestoneId: string,
+  patch: Partial<IaEeMilestone>
+): Promise<void> {
+  const project = await db.iaeeProjects.get(projectId);
+  if (!project) throw new Error("Project not found");
+  const updatedMilestones = project.milestones.map((m) =>
+    m.id === milestoneId ? { ...m, ...patch } : m
+  );
+  await db.iaeeProjects.update(projectId, {
+    milestones: updatedMilestones,
+    updatedAt: timestamp(),
+  });
+}
+
+export async function deleteMilestone(projectId: string, milestoneId: string): Promise<void> {
+  const project = await db.iaeeProjects.get(projectId);
+  if (!project) throw new Error("Project not found");
+  await db.iaeeProjects.update(projectId, {
+    milestones: project.milestones.filter((m) => m.id !== milestoneId),
+    updatedAt: timestamp(),
+  });
+}

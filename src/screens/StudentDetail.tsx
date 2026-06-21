@@ -6,7 +6,10 @@ import {
   cancelSeriesSessions, updateSeriesSessions,
   listRaporGrades, upsertRaporGrade, deleteRaporGrade,
   getSettings, updateStudent, getHomeworkStats,
+  listIaEeProjects, createIaEeProject, updateIaEeProject, deleteIaEeProject,
+  addMilestone, updateMilestone, deleteMilestone,
 } from "../db/repos";
+import type { IaEeMilestone } from "../db/repos";
 import { verifyPin } from "../lib/crypto";
 import { getPinLockoutDelay, recordPinFailure, resetPinLockout } from "../lib/pinLockout";
 import type { CancelMode, EditMode } from "../db/repos";
@@ -15,7 +18,7 @@ import {
   scoreLabel, scoreBarColor,
   semesterOptions, semesterLabel, semesterDateRange, currentSemester,
 } from "../lib/engagement";
-import type { Session } from "../db/types";
+import type { Session, IaEeProject } from "../db/types";
 import { CURRICULUM_META } from "../lib/ibSubjects";
 import PaginationControls from "../components/PaginationControls";
 import { clampPage, paginateItems } from "../lib/pagination";
@@ -24,6 +27,7 @@ import SignaturePad from "../components/SignaturePad";
 import { analyzeStudent } from "../lib/aiClient";
 import type { AiStudentInsight } from "../lib/aiClient";
 import { getBehaviorTag, getResponseTag } from "../lib/responseTaxonomy";
+import { generateShareHtml } from "../lib/shareReport";
 
 const DURATIONS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
 
@@ -38,6 +42,7 @@ export default function StudentDetail() {
   const raporList     = useLiveQuery(() => (id ? listRaporGrades(id) : []), [id]);
   const settings      = useLiveQuery(() => getSettings(), []);
   const hwStats       = useLiveQuery(() => (id ? getHomeworkStats(id) : undefined), [id]);
+  const iaeeProjects  = useLiveQuery(() => (id ? listIaEeProjects(id) : []), [id]);
 
   // Edit scheduled session modal
   const [editTarget,     setEditTarget]     = useState<Session | null>(null);
@@ -79,6 +84,19 @@ export default function StudentDetail() {
   const [aiInsightLoading, setAiInsightLoading] = useState(false);
   const [aiInsight,        setAiInsight]        = useState<AiStudentInsight | null>(null);
   const [aiInsightError,   setAiInsightError]   = useState("");
+
+  // IA/EE milestone tracker
+  const [showIaEeForm,    setShowIaEeForm]    = useState(false);
+  const [iaeeType,        setIaeeType]        = useState<"IA" | "EE">("IA");
+  const [iaeeSubject,     setIaeeSubject]     = useState("");
+  const [iaeeTitle,       setIaeeTitle]       = useState("");
+  const [iaeeDeadline,    setIaeeDeadline]    = useState("");
+  const [iaeeNotes,       setIaeeNotes]       = useState("");
+  const [iaeeSaving,      setIaeeSaving]      = useState(false);
+  const [expandedIaEe,    setExpandedIaEe]    = useState<string | null>(null);
+  const [showMsForm,      setShowMsForm]      = useState<string | null>(null); // projectId
+  const [msTitle,         setMsTitle]         = useState("");
+  const [msDue,           setMsDue]           = useState("");
 
   // Tarif les (PIN-protected reveal + edit)
   const [rateUnlocked,  setRateUnlocked]  = useState(false);
@@ -426,8 +444,27 @@ export default function StudentDetail() {
           <span>📊</span> Lihat Laporan
         </button>
         <button onClick={() => { setBillingMonth(today.slice(0,7)); setBillingUnlocked(false); setBillingPinInput(""); setBillingPinError(""); setShowBilling(true); }}
-          className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-green-50 text-green-700 text-sm font-semibold border border-green-200 hover:bg-green-100 transition-colors">
+          className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-green-50 text-green-700 text-sm font-semibold border border-green-200 hover:bg-green-100 transition-colors">
           <span>💬</span> Tagihan WA
+        </button>
+        <button
+          onClick={async () => {
+            const { listPendingHomework } = await import("../db/repos");
+            const hw = await listPendingHomework(student.id);
+            const html = generateShareHtml({
+              student, sessions: allSessions ?? [], homeworks: hw,
+              tutorName: settings?.tutorProfile?.name || "Ko Lui",
+              generatedAt: new Date().toISOString(),
+            });
+            const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement("a");
+            a.href = url; a.download = `laporan-${student.name.replace(/\s+/g, "-")}.html`; a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 500);
+            msg("Laporan diunduh ✓");
+          }}
+          className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-orange-50 text-orange-700 text-sm font-semibold border border-orange-200 hover:bg-orange-100 transition-colors">
+          <span>📤</span> Share Ortu
         </button>
       </div>
 
@@ -996,6 +1033,203 @@ export default function StudentDetail() {
           </div>
         )}
       </div>
+
+      {/* ── IA / EE MILESTONE TRACKER ── */}
+      {(student.level === "IBDP" || student.curriculum === "IB DP") && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+            <h2 className="font-semibold text-gray-700">IA / EE Tracker</h2>
+            <button
+              onClick={() => { setShowIaEeForm((v) => !v); setIaeeSubject(""); setIaeeTitle(""); setIaeeDeadline(""); setIaeeNotes(""); }}
+              className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-semibold">
+              + Proyek
+            </button>
+          </div>
+
+          {/* Add project form */}
+          {showIaEeForm && (
+            <div className="px-4 py-3 border-b border-gray-100 space-y-2 bg-blue-50">
+              <div className="grid grid-cols-2 gap-2">
+                <select className="input" value={iaeeType} onChange={(e) => setIaeeType(e.target.value as "IA" | "EE")}>
+                  <option value="IA">Internal Assessment (IA)</option>
+                  <option value="EE">Extended Essay (EE)</option>
+                </select>
+                <input className="input" placeholder="Mata pelajaran" value={iaeeSubject}
+                  onChange={(e) => setIaeeSubject(e.target.value)} />
+              </div>
+              <input className="input" placeholder="Judul / topik penelitian" value={iaeeTitle}
+                onChange={(e) => setIaeeTitle(e.target.value)} />
+              <div className="flex gap-2">
+                <input className="input flex-1" type="date" value={iaeeDeadline}
+                  onChange={(e) => setIaeeDeadline(e.target.value)} placeholder="Deadline (opsional)" />
+              </div>
+              <textarea className="input text-sm" rows={2} placeholder="Catatan (opsional)" value={iaeeNotes}
+                onChange={(e) => setIaeeNotes(e.target.value)} />
+              <div className="flex gap-2">
+                <button onClick={() => setShowIaEeForm(false)}
+                  className="flex-1 py-2 rounded-xl bg-gray-100 text-gray-600 text-sm font-semibold">Batal</button>
+                <button
+                  disabled={iaeeSaving || !iaeeSubject || !iaeeTitle}
+                  onClick={async () => {
+                    if (!id) return;
+                    setIaeeSaving(true);
+                    try {
+                      await createIaEeProject({
+                        studentId: id, type: iaeeType, subject: iaeeSubject,
+                        title: iaeeTitle, deadline: iaeeDeadline || undefined,
+                        milestones: [], notes: iaeeNotes || undefined,
+                      });
+                      setShowIaEeForm(false); setIaeeSubject(""); setIaeeTitle(""); setIaeeDeadline(""); setIaeeNotes("");
+                      msg("Proyek ditambahkan ✓");
+                    } catch (e) { msg("Gagal: " + (e as Error).message); }
+                    finally { setIaeeSaving(false); }
+                  }}
+                  className="flex-1 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold disabled:opacity-50">
+                  {iaeeSaving ? "Menyimpan..." : "Simpan"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Project list */}
+          {(iaeeProjects ?? []).length === 0 && !showIaEeForm && (
+            <p className="text-gray-400 text-sm text-center py-6">Belum ada proyek IA/EE.</p>
+          )}
+          <div className="divide-y divide-gray-100">
+            {(iaeeProjects ?? []).map((proj: IaEeProject) => {
+              const done = proj.milestones.filter((m) => m.status === "done").length;
+              const total = proj.milestones.length;
+              const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+              const isExpanded = expandedIaEe === proj.id;
+              const daysLeft = proj.deadline
+                ? Math.ceil((new Date(proj.deadline).getTime() - Date.now()) / 86400000)
+                : null;
+              return (
+                <div key={proj.id} className="px-4 py-3">
+                  <button className="w-full text-left" onClick={() => setExpandedIaEe(isExpanded ? null : proj.id)}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${proj.type === "IA" ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"}`}>
+                            {proj.type}
+                          </span>
+                          <span className="text-xs text-gray-500">{proj.subject}</span>
+                          {daysLeft !== null && (
+                            <span className={`text-xs font-semibold ${daysLeft < 0 ? "text-red-500" : daysLeft < 14 ? "text-orange-500" : "text-gray-400"}`}>
+                              {daysLeft < 0 ? `${Math.abs(daysLeft)}h terlambat` : `${daysLeft}h lagi`}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm font-semibold text-gray-800 mt-1 line-clamp-2">{proj.title}</p>
+                      </div>
+                      <span className="text-gray-300 flex-shrink-0">{isExpanded ? "▲" : "▼"}</span>
+                    </div>
+                    {total > 0 && (
+                      <div className="mt-2">
+                        <div className="flex justify-between text-xs text-gray-400 mb-1">
+                          <span>{done}/{total} milestone</span>
+                          <span>{pct}%</span>
+                        </div>
+                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    )}
+                  </button>
+
+                  {isExpanded && (
+                    <div className="mt-3 space-y-2">
+                      {proj.notes && <p className="text-xs text-gray-500 italic">{proj.notes}</p>}
+
+                      {/* Milestones */}
+                      {proj.milestones.map((m: IaEeMilestone) => (
+                        <div key={m.id} className="flex items-start gap-2 bg-gray-50 rounded-xl px-3 py-2">
+                          <button
+                            onClick={async () => {
+                              const next: IaEeMilestone["status"] =
+                                m.status === "pending" ? "in_progress" :
+                                m.status === "in_progress" ? "done" : "pending";
+                              await updateMilestone(proj.id, m.id, {
+                                status: next,
+                                completedAt: next === "done" ? new Date().toISOString() : undefined,
+                              });
+                            }}
+                            className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center text-xs transition-colors mt-0.5 ${
+                              m.status === "done" ? "bg-green-500 border-green-500 text-white" :
+                              m.status === "in_progress" ? "bg-amber-400 border-amber-400 text-white" :
+                              "border-gray-300 bg-white"
+                            }`}>
+                            {m.status === "done" ? "✓" : m.status === "in_progress" ? "…" : ""}
+                          </button>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-medium ${m.status === "done" ? "line-through text-gray-400" : "text-gray-700"}`}>
+                              {m.title}
+                            </p>
+                            {m.dueAt && (
+                              <p className="text-xs text-gray-400 mt-0.5">Due: {m.dueAt}</p>
+                            )}
+                            {m.notes && <p className="text-xs text-gray-400 italic mt-0.5">{m.notes}</p>}
+                          </div>
+                          <button
+                            onClick={() => deleteMilestone(proj.id, m.id)}
+                            className="text-gray-300 hover:text-red-400 p-1 flex-shrink-0">
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+
+                      {/* Add milestone form */}
+                      {showMsForm === proj.id ? (
+                        <div className="space-y-2 bg-blue-50 rounded-xl px-3 py-2">
+                          <input className="input text-sm" placeholder="Nama milestone" value={msTitle}
+                            onChange={(e) => setMsTitle(e.target.value)} autoFocus />
+                          <input className="input text-sm" type="date" value={msDue}
+                            onChange={(e) => setMsDue(e.target.value)} />
+                          <div className="flex gap-2">
+                            <button onClick={() => { setShowMsForm(null); setMsTitle(""); setMsDue(""); }}
+                              className="flex-1 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-xs font-semibold">Batal</button>
+                            <button
+                              disabled={!msTitle}
+                              onClick={async () => {
+                                if (!msTitle) return;
+                                await addMilestone(proj.id, {
+                                  id: crypto.randomUUID(), title: msTitle,
+                                  dueAt: msDue || undefined, status: "pending",
+                                });
+                                setShowMsForm(null); setMsTitle(""); setMsDue("");
+                              }}
+                              className="flex-1 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold disabled:opacity-50">
+                              + Tambah
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button onClick={() => { setShowMsForm(proj.id); setMsTitle(""); setMsDue(""); }}
+                          className="w-full py-2 rounded-xl border border-dashed border-gray-300 text-xs text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors">
+                          + Milestone
+                        </button>
+                      )}
+
+                      {/* Delete project */}
+                      <button
+                        onClick={async () => {
+                          if (confirm(`Hapus proyek "${proj.title}"?`)) {
+                            await deleteIaEeProject(proj.id);
+                            setExpandedIaEe(null);
+                            msg("Proyek dihapus");
+                          }
+                        }}
+                        className="w-full py-1.5 rounded-xl text-xs text-red-400 hover:bg-red-50 transition-colors">
+                        🗑 Hapus Proyek
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── KESERIUSAN BELAJAR ── */}
       {engSessions.length > 0 && (
