@@ -93,7 +93,35 @@ export async function updateStudent(id: string, patch: Partial<Student>): Promis
   await db.students.update(id, patch);
 }
 
+export async function deleteStudent(id: string): Promise<void> {
+  const tables = [
+    db.students, db.sessions, db.reports,
+    db.payments, db.homeworks, db.followUps, db.raporGrades,
+  ];
+  await db.transaction("rw", tables, async () => {
+    await db.students.delete(id);
+    await db.sessions.where({ studentId: id }).delete();
+    await db.reports.where({ studentId: id }).delete();
+    await db.payments.where({ studentId: id }).delete();
+    await db.homeworks.where({ studentId: id }).delete();
+    await db.followUps.where({ studentId: id }).delete();
+    await db.raporGrades.where({ studentId: id }).delete();
+  });
+}
+
 // ── Sessions ───────────────────────────────────────────────────────
+
+function nowTimeWIB(): string {
+  const wib = new Date(Date.now() + 7 * 60 * 60 * 1000);
+  return `${String(wib.getUTCHours()).padStart(2,"0")}:${String(wib.getUTCMinutes()).padStart(2,"0")}`;
+}
+
+function subtractHoursFromTime(hhmm: string, hours: number): string {
+  const [h, m] = hhmm.split(":").map(Number);
+  const totalMin = h * 60 + m - Math.round(hours * 60);
+  const norm = ((totalMin % 1440) + 1440) % 1440;
+  return `${String(Math.floor(norm / 60)).padStart(2,"0")}:${String(norm % 60).padStart(2,"0")}`;
+}
 
 export async function createSession(
   input: Omit<Session, "id" | "rateSnapshot" | "cost" | "createdAt" | "updatedAt">
@@ -113,16 +141,61 @@ export async function createSession(
   const rateSnapshot = student.hourlyRate;
   const cost = input.durationHours * rateSnapshot;
 
+  const tout = input.status === "DONE" ? nowTimeWIB() : undefined;
+  const tin  = tout ? subtractHoursFromTime(tout, input.durationHours) : undefined;
+
   const session: Session = {
     ...input,
     id,
     rateSnapshot,
     cost,
+    timeIn:  input.timeIn  ?? tin,
+    timeOut: input.timeOut ?? tout,
     createdAt: now,
     updatedAt: now,
   };
   await db.sessions.add(session);
   return id;
+}
+
+export async function markSessionDone(
+  id: string,
+  data: {
+    subjects?: string[];
+    photo?: Blob;
+    shortNote: string;
+    mood?: string;
+    topic?: string;
+    needsWork?: string;
+    predictedGrade?: string;
+    engagement?: Session["engagement"];
+    behaviorTags?: string[];
+    responseTag?: string;
+    signature?: Blob;
+    durationHours?: number;
+  }
+): Promise<void> {
+  const session = await db.sessions.get(id);
+  if (!session) throw new Error("Session not found");
+  const duration = data.durationHours ?? session.durationHours;
+  const tout = nowTimeWIB();
+  const tin  = subtractHoursFromTime(tout, duration);
+  await db.sessions.update(id, {
+    ...data,
+    durationHours: duration,
+    cost: duration * session.rateSnapshot,
+    timeIn:  session.timeIn  ?? tin,
+    timeOut: session.timeOut ?? tout,
+    status: "DONE",
+    updatedAt: timestamp(),
+  });
+}
+
+export async function listPastScheduledSessions(beforeDate: string): Promise<Session[]> {
+  return db.sessions
+    .where("date").below(beforeDate)
+    .and((s) => s.status === "SCHEDULED")
+    .toArray();
 }
 
 export async function updateSession(id: string, patch: Partial<Session>): Promise<void> {
@@ -198,8 +271,19 @@ export async function listDoneSessionsForDateRange(start: string, end: string): 
     .toArray();
 }
 
+export async function listDoneSessionsForDate(date: string): Promise<Session[]> {
+  return db.sessions
+    .where("date").equals(date)
+    .and((s) => s.status === "DONE")
+    .toArray();
+}
+
 export async function cancelSession(id: string): Promise<void> {
   await db.sessions.update(id, { status: "CANCELLED", updatedAt: timestamp() });
+}
+
+export async function deleteSession(id: string): Promise<void> {
+  await db.sessions.delete(id);
 }
 
 export async function scheduleSession(
@@ -285,6 +369,12 @@ export async function listScheduledForStudent(studentId: string, fromDate?: stri
   return db.sessions
     .where({ studentId })
     .filter((s) => s.status === "SCHEDULED" && s.date >= from)
+    .sortBy("date");
+}
+
+export async function listAllUpcomingScheduled(fromDate: string): Promise<Session[]> {
+  return db.sessions
+    .filter((s) => s.status === "SCHEDULED" && s.date >= fromDate)
     .sortBy("date");
 }
 
@@ -521,6 +611,31 @@ export async function deleteHomework(id: string): Promise<void> {
 
 export async function markHomeworkDone(id: string): Promise<void> {
   await db.homeworks.update(id, { status: "done", updatedAt: timestamp() });
+}
+
+export async function markHomeworkNotDone(id: string): Promise<void> {
+  await db.homeworks.update(id, { status: "not_done", updatedAt: timestamp() });
+}
+
+export interface HomeworkStats {
+  total: number;
+  done: number;
+  notDone: number;
+  pending: number;
+  completionRate: number; // 0–100
+}
+
+export async function getHomeworkStats(studentId: string): Promise<HomeworkStats> {
+  const all = await db.homeworks.where({ studentId }).toArray();
+  const done    = all.filter((h) => h.status === "done").length;
+  const notDone = all.filter((h) => h.status === "not_done" || h.status === "overdue").length;
+  const pending = all.filter((h) => h.status === "assigned").length;
+  const judged  = done + notDone;
+  return {
+    total: all.length,
+    done, notDone, pending,
+    completionRate: judged > 0 ? Math.round((done / judged) * 100) : 0,
+  };
 }
 
 // ── Follow-up Items ─────────────────────────────────────────────────

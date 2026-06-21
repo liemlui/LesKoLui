@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
+import { useNavigate } from "react-router-dom";
 import { getSettings, saveSettings } from "../db/repos";
 import { exportBackup, importBackup } from "../lib/backup";
 import { hashPin } from "../lib/crypto";
 import type { Settings } from "../db/types";
+import Toggle from "../components/Toggle";
 
 function Toast({ msg, onClose }: { msg: string; onClose: () => void }) {
   useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
@@ -16,6 +18,7 @@ function Toast({ msg, onClose }: { msg: string; onClose: () => void }) {
 }
 
 export default function SettingsPage() {
+  const navigate = useNavigate();
   const settings = useLiveQuery(() => getSettings(), []);
   const [form,        setForm]        = useState<Settings | null>(null);
   const [logoUrl,     setLogoUrl]     = useState<string | undefined>();
@@ -27,6 +30,8 @@ export default function SettingsPage() {
   const [showPinEdit, setShowPinEdit] = useState(false);
   const [newPin,      setNewPin]      = useState("");
   const [newPinConf,  setNewPinConf]  = useState("");
+  const [finPin,      setFinPin]      = useState("");
+  const [finPinErr,   setFinPinErr]   = useState("");
   const [pinError,    setPinError]    = useState("");
   const restoreRef = useRef<HTMLInputElement>(null);
   const fileRef    = useRef<HTMLInputElement>(null);
@@ -54,6 +59,9 @@ export default function SettingsPage() {
 
   const updateProfile = (field: string, value: string) =>
     setForm((f) => f ? { ...f, tutorProfile: { ...f.tutorProfile, [field]: value } } : f);
+
+  const updateBank = (field: string, value: string) =>
+    setForm((f) => f ? { ...f, bankAccounts: { ...f.bankAccounts, [field]: value } } : f);
 
   const updateAi = (field: string, value: string | boolean) =>
     setForm((f) => f ? { ...f, ai: { ...f.ai, [field]: value } } : f);
@@ -160,11 +168,7 @@ export default function SettingsPage() {
       <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
         <h2 className="text-base font-semibold text-gray-700">AI (DeepSeek)</h2>
         <label className="flex items-center gap-3 cursor-pointer">
-          <button type="button"
-            className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${form.ai.enabled ? "bg-blue-500" : "bg-gray-300"}`}
-            onClick={() => updateAi("enabled", !form.ai.enabled)}>
-            <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.ai.enabled ? "translate-x-4" : "translate-x-0.5"}`} />
-          </button>
+          <Toggle checked={form.ai.enabled} onChange={(v) => updateAi("enabled", v)} />
           <span className="text-sm text-gray-700 font-medium">Aktifkan AI untuk narasi laporan</span>
         </label>
         <input className="input" placeholder="Worker URL"
@@ -211,6 +215,62 @@ export default function SettingsPage() {
                 Batal
               </button>
             </div>
+          </div>
+        )}
+      </section>
+
+      {/* ── Rekening Bank ── */}
+      <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+        <h2 className="text-base font-semibold text-gray-700">Rekening Bank (untuk Absensi)</h2>
+        <div>
+          <label className="label">Nama Pemilik Rekening</label>
+          <input className="input" placeholder="Nama AN rekening" value={form.bankAccounts?.accountName ?? ""}
+            onChange={(e) => updateBank("accountName", e.target.value)} />
+        </div>
+        <div>
+          <label className="label">BCA</label>
+          <input className="input" placeholder="No rekening BCA" value={form.bankAccounts?.bca ?? ""}
+            onChange={(e) => updateBank("bca", e.target.value)} />
+        </div>
+        <div>
+          <label className="label">CIMB Niaga</label>
+          <input className="input" placeholder="No rekening CIMB" value={form.bankAccounts?.cimb ?? ""}
+            onChange={(e) => updateBank("cimb", e.target.value)} />
+        </div>
+        <div>
+          <label className="label">BRI</label>
+          <input className="input" placeholder="No rekening BRI" value={form.bankAccounts?.bri ?? ""}
+            onChange={(e) => updateBank("bri", e.target.value)} />
+        </div>
+      </section>
+
+      {/* ── Akses Keuangan ── */}
+      <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+        <h2 className="text-base font-semibold text-gray-700">Rekap Keuangan</h2>
+        <p className="text-xs text-gray-400">Data keuangan hanya bisa diakses dengan PIN.</p>
+        {form.financialPin ? (
+          <div className="space-y-2">
+            <input type="password" inputMode="numeric" maxLength={6} placeholder="Masukkan PIN"
+              value={finPin} onChange={(e) => { setFinPin(e.target.value); setFinPinErr(""); }}
+              className="input text-center tracking-widest" />
+            {finPinErr && <p className="text-xs text-red-500">{finPinErr}</p>}
+            <button
+              onClick={async () => {
+                const h = await hashPin(finPin);
+                if (h !== form.financialPin) { setFinPinErr("PIN salah."); return; }
+                setFinPin(""); navigate("/payments");
+              }}
+              className="w-full py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors">
+              Buka Data Keuangan
+            </button>
+          </div>
+        ) : (
+          <div>
+            <p className="text-xs text-orange-500 mb-2">Atur PIN dulu di bagian "PIN Rekap Keuangan" di atas.</p>
+            <button onClick={() => navigate("/payments")}
+              className="w-full py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-semibold">
+              Buka Keuangan (tanpa PIN)
+            </button>
           </div>
         )}
       </section>

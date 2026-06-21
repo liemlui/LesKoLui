@@ -1,11 +1,15 @@
 import type { EngagementLog } from "../db/types";
 
 export function calcEngagementScore(e: Omit<EngagementLog, "score">): number {
-  let s = 7;
-  if (e.prepared)     s += 2;
-  if (e.focused)      s += 1;
-  if (e.drowsy)       s -= 2;
-  if (e.playingPhone) s -= 3;
+  let s = 5;
+  if (e.prepared)         s += 2;
+  if (e.focused)          s += 1;
+  if (e.activeAsking)     s += 1;
+  if (e.quickLearner)     s += 1;
+  if (e.hwMissed)         s -= 1;
+  if (e.needsRepetition)  s -= 1;
+  if (e.drowsy)           s -= 2;
+  if (e.playingPhone)     s -= 3;
   return Math.max(1, Math.min(10, s));
 }
 

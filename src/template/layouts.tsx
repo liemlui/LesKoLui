@@ -166,12 +166,13 @@ export const cards: Layout = {
       {d.entries.map((e, i) => {
         const c = t.palette[i % t.palette.length];
         const right = i % 2 === 1;
+        const photoBox = <div style={{ height: 81, width: "100%" }}><PhotoEl t={t} url={e.photoUrl} color={c}/></div>;
         return (
           <div key={i} style={{ position: "relative", zIndex: 2, marginBottom: 16 }}>
             <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
-            <div style={{ display: "grid", gridTemplateColumns: right ? "1fr 108px" : "108px 1fr", gap: 11, marginTop: 9 }}>
-              {right ? <><NarrEl t={t}>{e.narrative}</NarrEl><PhotoEl t={t} url={e.photoUrl} color={c}/></>
-                : <><PhotoEl t={t} url={e.photoUrl} color={c}/><NarrEl t={t}>{e.narrative}</NarrEl></>}
+            <div style={{ display: "grid", gridTemplateColumns: right ? "1fr 108px" : "108px 1fr", gap: 11, marginTop: 9, alignItems: "start" }}>
+              {right ? <><NarrEl t={t}>{e.narrative}</NarrEl>{photoBox}</>
+                : <>{photoBox}<NarrEl t={t}>{e.narrative}</NarrEl></>}
             </div>
           </div>
         );
@@ -194,8 +195,8 @@ export const timeline: Layout = {
             <div key={i} style={{ marginBottom: 16, position: "relative" }}>
               <div style={{ position: "absolute", left: -31, top: 4, width: 14, height: 14, borderRadius: "50%", background: c, border: `2px solid ${t.bg.includes("gradient") ? "#fff" : t.bg}` }} />
               <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
-              <div style={{ display: "grid", gridTemplateColumns: "96px 1fr", gap: 11, marginTop: 9 }}>
-                <PhotoEl t={t} url={e.photoUrl} color={c} />
+              <div style={{ display: "grid", gridTemplateColumns: "96px 1fr", gap: 11, marginTop: 9, alignItems: "start" }}>
+                <div style={{ height: 72 }}><PhotoEl t={t} url={e.photoUrl} color={c} /></div>
                 <NarrEl t={t}>{e.narrative}</NarrEl>
               </div>
             </div>
@@ -219,7 +220,7 @@ export const flags: Layout = {
           <div key={i} style={{ position: "relative", zIndex: 2, marginBottom: 14 }}>
             <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
             <div style={{ display: "flex", gap: 10, marginTop: 7, alignItems: "flex-start" }}>
-              <div style={{ width: 70, flexShrink: 0 }}>
+              <div style={{ width: 70, height: 52, flexShrink: 0 }}>
                 <PhotoEl t={t} url={e.photoUrl} color={c} />
               </div>
               <NarrEl t={t}>{e.narrative}</NarrEl>
@@ -295,7 +296,74 @@ export const scrapbook: Layout = {
   ),
 };
 
-export const LAYOUTS: Layout[] = [cards, timeline, flags, magazine, scrapbook];
+// ── Grid — 2-column Instagram-style ────────────────────────────────
+export const grid: Layout = {
+  id: "grid", name: "Grid 2×", maxEntriesPerPage: 4,
+  render: (d, t, { isFirst, isLast }) => (
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+      <Deco kind={t.deco} />
+      {isFirst && HeaderEl(d, t)}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, position: "relative", zIndex: 2 }}>
+        {d.entries.map((e, i) => {
+          const c = t.palette[i % t.palette.length];
+          return (
+            <div key={i} style={{ background: c + "1a", borderRadius: 14, overflow: "hidden" }}>
+              <div style={{ height: 110 }}>
+                <PhotoEl t={t} url={e.photoUrl} color={c} />
+              </div>
+              <div style={{ padding: "8px 10px 10px" }}>
+                <span style={{ display: "inline-block", background: c, color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 999, marginBottom: 5 }}>
+                  {e.date} · {e.subject}
+                </span>
+                <p style={{ fontFamily: t.fontBody, fontSize: 11, lineHeight: 1.5, color: t.ink, margin: 0,
+                  display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                  {e.narrative}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {isLast && SummaryEl(d, t)}
+    </div>
+  ),
+};
+
+// ── Compact — daftar padat, 6 entri per halaman ─────────────────────
+export const compact: Layout = {
+  id: "compact", name: "Compact List", maxEntriesPerPage: 6,
+  render: (d, t, { isFirst, isLast }) => (
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+      <Deco kind={t.deco} />
+      {isFirst && HeaderEl(d, t)}
+      <div style={{ position: "relative", zIndex: 2 }}>
+        {d.entries.map((e, i) => {
+          const c = t.palette[i % t.palette.length];
+          return (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 11,
+              borderLeft: `3px solid ${c}`, paddingLeft: 10 }}>
+              <div style={{ width: 48, height: 48, flexShrink: 0, borderRadius: t.photo === "circle" ? "50%" : 8, overflow: "hidden" }}>
+                <PhotoEl t={t} url={e.photoUrl} color={c} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 11.5, color: c, margin: 0 }}>
+                  {e.date} · {e.subject}
+                </p>
+                <p style={{ fontFamily: t.fontBody, fontSize: 11, lineHeight: 1.45, color: t.ink, margin: "2px 0 0",
+                  display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                  {e.narrative}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {isLast && SummaryEl(d, t)}
+    </div>
+  ),
+};
+
+export const LAYOUTS: Layout[] = [cards, timeline, flags, magazine, scrapbook, grid, compact];
 export const LAYOUT_IDS = LAYOUTS.map((l) => l.id);
 export function getLayout(id: string): Layout {
   return LAYOUTS.find((l) => l.id === id) ?? cards;

@@ -1,23 +1,40 @@
 export type Level = "MYP" | "IBDP" | "UNIV";
+
+export type CurriculumType =
+  | "IB MYP"
+  | "IB DP"
+  | "Cambridge IGCSE"
+  | "Cambridge O Level"
+  | "Cambridge AS Level"
+  | "Cambridge A Level"
+  | "AP"
+  | "National"
+  | "Custom";
 export type SessionStatus = "SCHEDULED" | "DONE" | "CANCELLED";
 export type PaymentStatus = "UNPAID" | "PAID";
 
 export const DEFAULT_RATE = 200_000;   // IDR per hour
-export const MIN_DURATION = 1.5;       // hours
+export const MIN_DURATION = 1;         // hours
 export const DURATION_STEP = 0.5;      // hours
 export const PHOTO_MAX_PX = 800;       // longest side
 
 export interface ParentContact { name?: string; phone: string; }
 
 export interface EngagementLog {
-  prepared?: boolean;     // sudah siap belajar (+2)
-  focused?: boolean;      // sangat fokus (+1)
-  drowsy?: boolean;       // mengantuk (-2)
-  playingPhone?: boolean; // main HP (-3)
-  score: number;          // 1-10, computed
+  // Positif
+  prepared?: boolean;       // sudah siap belajar (+2)
+  focused?: boolean;        // sangat fokus (+1)
+  activeAsking?: boolean;   // aktif bertanya (+1)
+  quickLearner?: boolean;   // cepat paham (+1)
+  // Negatif
+  drowsy?: boolean;         // mengantuk (-2)
+  playingPhone?: boolean;   // main HP (-3)
+  needsRepetition?: boolean;// perlu diulang (-1)
+  hwMissed?: boolean;       // PR tidak dikerjakan (-1)
+  score: number;            // 1-10, computed
 }
 
-export type HomeworkStatus = "assigned" | "done" | "overdue" | "cancelled";
+export type HomeworkStatus = "assigned" | "done" | "not_done" | "overdue" | "cancelled";
 export type FollowUpType   = "continue-topic" | "misconception" | "send-resource" | "check-homework" | "other";
 
 export interface Homework {
@@ -59,6 +76,9 @@ export interface Student {
   name: string;
   photo?: Blob;
   level: Level;
+  curriculum?: CurriculumType; // richer curriculum info; drives subject picker
+  grade?: string;    // e.g. "Grade 10", "Year 11"
+  school?: string;   // school name
   subjects: string[];
   studentPhone?: string;
   parentContact: ParentContact;
@@ -83,6 +103,11 @@ export interface Session {
   predictedGrade?: string;
   narrative?: string;
   engagement?: EngagementLog;
+  behaviorTags?: string[];  // IDs from BEHAVIOR_TAGS in responseTaxonomy
+  responseTag?: string;     // single ID from RESPONSE_TAGS in responseTaxonomy
+  signature?: Blob;         // student signature drawn on-screen
+  timeIn?: string;          // actual start time HH:MM WIB, auto-set on save
+  timeOut?: string;         // actual end time HH:MM WIB, auto-set on save
   projectId?: string;
   seriesId?: string;
   status: SessionStatus;
@@ -132,4 +157,5 @@ export interface Settings {
   financialPin?: string;
   ai: { enabled: boolean; workerUrl: string; model: string };
   templatePref: { excludedThemeIds?: string[] };
+  bankAccounts?: { bca?: string; cimb?: string; bri?: string; accountName?: string };
 }

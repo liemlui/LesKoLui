@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   listStudents, listAllSessionsForMonth, listAllSessionsForWeek,
@@ -7,19 +7,24 @@ import {
   findConflicts, updateSeriesSessions,
   listAllPendingHomework, listPendingFollowUps,
   markHomeworkDone, completeFollowUp,
+  listPastScheduledSessions, cancelSession,
 } from "../db/repos";
 import type { CancelMode, EditMode } from "../db/repos";
 import type { Homework } from "../db/types";
 import { dayLabel, monthLabel, todayWIB, monthOf } from "../lib/format";
 import { MIN_DURATION } from "../db/types";
 import type { Session } from "../db/types";
+import PaginationControls from "../components/PaginationControls";
+import { clampPage, paginateItems } from "../lib/pagination";
+import ClockTimePicker from "../components/ClockTimePicker";
+import Toggle from "../components/Toggle";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const STUDENT_COLORS = [
   "#3B82F6", "#8B5CF6", "#EC4899", "#F59E0B", "#10B981",
   "#EF4444", "#14B8A6", "#F97316", "#6366F1", "#84CC16",
 ];
-const DURATIONS  = [1, 1.5, 2, 2.5, 3, 3.5, 4];
+const DURATIONS  = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
 const DOW_LABELS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
 // ── Pure helpers ──────────────────────────────────────────────────────────────
@@ -88,11 +93,12 @@ type CalView = "month" | "week" | "day";
 // ── Component ────────────────────────────────────────────────────────────────
 export default function Home() {
   const today = todayWIB();
+  const navigate = useNavigate();
 
   const [view,        setView]        = useState<CalView>("month");
   const [calMonth,    setCalMonth]    = useState(() => monthOf(today));
   const [anchor,      setAnchor]      = useState(today);
-  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [selectedDay, setSelectedDay] = useState<string | null>(today);
 
   // Add-schedule modal
   const [showAdd,       setShowAdd]       = useState(false);
@@ -115,6 +121,9 @@ export default function Home() {
   const [showCancelInEdit, setShowCancelInEdit]  = useState(false);
 
   const [flash, setFlash] = useState("");
+  const [overduePage, setOverduePage] = useState(1);
+  const [upcomingHwPage, setUpcomingHwPage] = useState(1);
+  const [followUpPage, setFollowUpPage] = useState(1);
 
   // ── Data ──────────────────────────────────────────────────────────────────
   const students = useLiveQuery(() => listStudents(true), []);
@@ -125,8 +134,9 @@ export default function Home() {
   const daySessions   = useLiveQuery(() => listAllSessionsForWeek(anchor, anchor), [anchor]);
 
   // Today Workspace data
-  const overdueHW     = useLiveQuery(() => listAllPendingHomework(), []);
-  const allFollowUps  = useLiveQuery(() => listPendingFollowUps(), []);
+  const overdueHW       = useLiveQuery(() => listAllPendingHomework(), []);
+  const allFollowUps    = useLiveQuery(() => listPendingFollowUps(), []);
+  const missedSchedules = useLiveQuery(() => listPastScheduledSessions(today), [today]);
 
   const studentMap = useMemo(
     () => new Map((students ?? []).map((s) => [s.id, { name: s.name, color: studentColor(s.id) }])),
@@ -212,27 +222,46 @@ export default function Home() {
   };
 
   // ── Session pill (JSX factory — not a component) ──────────────────────────
-  const renderSessionPill = (s: Session) => {
-    const info   = studentMap.get(s.studentId);
-    const color  = info?.color ?? "#9CA3AF";
-    const isDone = s.status === "DONE";
+  const renderSessionPill = (s: Session, dateCtx?: string) => {
+    const info      = studentMap.get(s.studentId);
+    const color     = info?.color ?? "#9CA3AF";
+    const isDone      = s.status === "DONE";
+    const sessionDate = dateCtx ?? s.date;
+    const isMissed    = s.status === "SCHEDULED" && sessionDate < today;
+    const isToday     = sessionDate === today;
+    const isFuture    = s.status === "SCHEDULED" && sessionDate > today;
+    const isScheduled = s.status === "SCHEDULED";
+
     return (
-      <div key={s.id}
-        className={`flex items-start gap-2 mb-2 ${!isDone ? "cursor-pointer" : ""}`}
-        onClick={() => !isDone && openEdit(s)}>
+      <div key={s.id} className="flex items-start gap-2 mb-2">
         <div className="w-1 self-stretch rounded-full flex-shrink-0 mt-1" style={{ background: color, minHeight: 28 }} />
-        <div className="flex-1 bg-white rounded-xl px-3 py-2 shadow-sm border border-gray-100 hover:border-blue-200 transition-colors">
-          <div className="flex items-start justify-between gap-1">
-            <div className="min-w-0">
+        <div className={`flex-1 bg-white rounded-xl px-3 py-2 shadow-sm border transition-colors ${isMissed ? "border-orange-200 bg-orange-50" : "border-gray-100 hover:border-blue-200"}`}>
+          <div className="flex items-start justify-between gap-2">
+            <button className="min-w-0 text-left flex-1" onClick={() => isScheduled && openEdit(s)}>
               <p className="text-sm font-semibold truncate" style={{ color }}>{info?.name ?? "—"}</p>
               <p className="text-xs text-gray-400">
                 {s.time ? `${s.time} · ` : ""}{s.durationHours}j
                 {isDone ? " ✓" : ""}{s.seriesId ? " 🔁" : ""}
+                {isMissed ? " ⚠️ Terlewat" : ""}
               </p>
-            </div>
-            {!isDone && (
-              <span className="text-gray-300 text-xs flex-shrink-0 pt-0.5">✏️</span>
-            )}
+            </button>
+            {isDone ? (
+              <span className="text-green-500 text-xs flex-shrink-0 pt-0.5 font-bold">✓ Selesai</span>
+            ) : isMissed ? (
+              <div className="flex gap-1.5 flex-shrink-0">
+                <button onClick={() => navigate(`/capture?scheduleId=${s.id}`)}
+                  className="text-xs bg-blue-600 text-white px-2 py-1 rounded-lg font-semibold">Catat</button>
+                <button onClick={async () => { await cancelSession(s.id); msg("Dibatalkan."); }}
+                  className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-lg">Batal</button>
+              </div>
+            ) : isFuture ? (
+              <span className="text-xs text-gray-300 flex-shrink-0 pt-0.5">Menunggu</span>
+            ) : (isToday || isScheduled) ? (
+              <button onClick={() => navigate(`/capture?scheduleId=${s.id}`)}
+                className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-semibold flex-shrink-0 hover:bg-blue-700 transition-colors">
+                ✏️ Catat
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
@@ -250,7 +279,7 @@ export default function Home() {
       </div>
       {sessionsForDay.length === 0
         ? <p className="text-xs text-gray-400 py-2 text-center">Belum ada sesi. Tap "+ Jadwal" untuk tambah.</p>
-        : sessionsForDay.sort((a, b) => (a.time ?? "").localeCompare(b.time ?? "")).map(renderSessionPill)
+        : sessionsForDay.sort((a, b) => (a.time ?? "").localeCompare(b.time ?? "")).map((s) => renderSessionPill(s, date))
       }
     </div>
   );
@@ -264,10 +293,10 @@ export default function Home() {
           <h1 className="text-2xl font-bold" style={{ fontFamily: "'Fredoka', sans-serif" }}>Les Ko Lui</h1>
           <p className="text-gray-400 text-xs">{dayLabel(today)}</p>
         </div>
-        <Link to="/capture"
+        <button onClick={() => openAdd(today)}
           className="bg-blue-600 text-white rounded-xl px-4 py-2 text-sm font-semibold shadow flex items-center gap-1.5">
-          <span>📝</span> Rekam Sesi
-        </Link>
+          <span>📅</span> + Jadwal
+        </button>
       </div>
 
       {flash && (
@@ -276,12 +305,51 @@ export default function Home() {
         </div>
       )}
 
+      {/* ── SESI TERLEWAT ── */}
+      {(missedSchedules ?? []).length > 0 && (
+        <div className="mx-4 mb-2 bg-orange-50 border border-orange-200 rounded-xl p-3">
+          <p className="text-xs font-bold text-orange-700 mb-2 uppercase tracking-wide">
+            ⚠️ Sesi Belum Dicatat ({missedSchedules!.length})
+          </p>
+          <div className="space-y-2">
+            {missedSchedules!.slice(0, 5).map((s) => {
+              const name = studentMap.get(s.studentId)?.name ?? "—";
+              return (
+                <div key={s.id} className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-gray-800 truncate">{name}</p>
+                    <p className="text-xs text-orange-600">{dayLabel(s.date)} · {s.durationHours}j{s.time ? ` · ${s.time}` : ""}</p>
+                  </div>
+                  <button
+                    onClick={() => navigate(`/capture?scheduleId=${s.id}`)}
+                    className="flex-shrink-0 text-xs bg-blue-600 text-white px-2.5 py-1.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                    Catat
+                  </button>
+                  <button
+                    onClick={async () => { await cancelSession(s.id); msg("Dibatalkan."); }}
+                    className="flex-shrink-0 text-xs bg-gray-100 text-gray-600 px-2 py-1.5 rounded-lg hover:bg-gray-200 transition-colors">
+                    Batal
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* ── TODAY WORKSPACE ── */}
       {(() => {
         const overdue  = (overdueHW ?? []).filter((h) => h.status === "overdue");
         const upcoming = (overdueHW ?? []).filter((h) => h.status === "assigned");
-        const follows  = (allFollowUps ?? []).slice(0, 6);
-        if (overdue.length === 0 && upcoming.length === 0 && follows.length === 0) return null;
+        const upcomingSoon = upcoming.filter((h) => h.dueAt && h.dueAt <= addDays(today, 3));
+        const follows  = allFollowUps ?? [];
+        const safeOverduePage = clampPage(overduePage, overdue.length);
+        const safeUpcomingHwPage = clampPage(upcomingHwPage, upcomingSoon.length);
+        const safeFollowUpPage = clampPage(followUpPage, follows.length);
+        const paginatedOverdue = paginateItems(overdue, safeOverduePage);
+        const paginatedUpcomingSoon = paginateItems(upcomingSoon, safeUpcomingHwPage);
+        const paginatedFollowUps = paginateItems(follows, safeFollowUpPage);
+        if (overdue.length === 0 && upcomingSoon.length === 0 && follows.length === 0) return null;
         return (
           <div className="mx-4 mb-2 space-y-2">
             {/* Overdue homework */}
@@ -291,7 +359,7 @@ export default function Home() {
                   🚨 PR Terlambat ({overdue.length})
                 </p>
                 <div className="space-y-1.5">
-                  {overdue.slice(0, 4).map((h) => (
+                  {paginatedOverdue.map((h) => (
                     <div key={h.id} className="flex items-center gap-2">
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-semibold text-gray-800 truncate">{h.title}</p>
@@ -304,24 +372,24 @@ export default function Home() {
                       </button>
                     </div>
                   ))}
-                  {overdue.length > 4 && (
-                    <p className="text-xs text-red-400">+{overdue.length - 4} PR lainnya</p>
-                  )}
                 </div>
+                <PaginationControls
+                  page={safeOverduePage}
+                  total={overdue.length}
+                  onPageChange={setOverduePage}
+                  label="PR"
+                />
               </div>
             )}
 
             {/* Upcoming homework (due within 3 days) */}
-            {upcoming.filter((h) => h.dueAt && h.dueAt <= addDays(today, 3)).length > 0 && (
+            {upcomingSoon.length > 0 && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
                 <p className="text-xs font-bold text-amber-700 mb-2 uppercase tracking-wide">
                   📋 PR Segera Jatuh Tempo
                 </p>
                 <div className="space-y-1.5">
-                  {upcoming
-                    .filter((h) => h.dueAt && h.dueAt <= addDays(today, 3))
-                    .slice(0, 3)
-                    .map((h) => (
+                  {paginatedUpcomingSoon.map((h) => (
                       <div key={h.id} className="flex items-center gap-2">
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-semibold text-gray-800 truncate">{h.title}</p>
@@ -333,8 +401,14 @@ export default function Home() {
                           Selesai
                         </button>
                       </div>
-                    ))}
+                  ))}
                 </div>
+                <PaginationControls
+                  page={safeUpcomingHwPage}
+                  total={upcomingSoon.length}
+                  onPageChange={setUpcomingHwPage}
+                  label="PR"
+                />
               </div>
             )}
 
@@ -345,7 +419,7 @@ export default function Home() {
                   🔁 Perlu Dilanjutkan ({follows.length})
                 </p>
                 <div className="space-y-1.5">
-                  {follows.map((f) => {
+                  {paginatedFollowUps.map((f) => {
                     const sName = studentMap.get(f.studentId)?.name ?? "—";
                     return (
                       <div key={f.id} className="flex items-center gap-2">
@@ -362,6 +436,12 @@ export default function Home() {
                     );
                   })}
                 </div>
+                <PaginationControls
+                  page={safeFollowUpPage}
+                  total={follows.length}
+                  onPageChange={setFollowUpPage}
+                  label="follow-up"
+                />
               </div>
             )}
           </div>
@@ -387,7 +467,7 @@ export default function Home() {
             <button onClick={() => setCalMonth(nextMonth(calMonth))} className="text-gray-400 text-xl w-8 text-center">›</button>
           </div>
           <div className="grid grid-cols-7 text-center border-b border-gray-100">
-            {DOW_LABELS.map((d) => <div key={d} className="py-1.5 text-xs text-gray-400 font-medium">{d}</div>)}
+            {DOW_LABELS.map((d, i) => <div key={d} className={`py-1.5 text-xs font-medium ${i === 0 ? "text-red-400" : "text-gray-400"}`}>{d}</div>)}
           </div>
           <div className="grid grid-cols-7">
             {cells.map((date, i) => {
@@ -395,12 +475,21 @@ export default function Home() {
               const daySess    = monthByDay.get(date) ?? [];
               const isToday    = date === today;
               const isSelected = date === selectedDay;
+              const isPast     = date < today;
+              const isSunday   = new Date(date + "T00:00:00").getDay() === 0;
               const dayNum     = parseInt(date.slice(8), 10);
               return (
                 <button key={date}
                   onClick={() => setSelectedDay(isSelected ? null : date)}
-                  className={`min-h-[64px] flex flex-col items-start p-1 border-b border-r border-gray-100 last:border-r-0 transition-colors ${isSelected ? "bg-blue-50" : "hover:bg-gray-50"}`}>
-                  <span className={`text-xs font-medium w-5 h-5 flex items-center justify-center rounded-full mb-0.5 self-center ${isToday ? "bg-blue-600 text-white" : "text-gray-600"}`}>
+                  className={`min-h-[64px] flex flex-col items-start p-1 border-b border-r border-gray-100 last:border-r-0 transition-colors ${
+                    isSelected ? "bg-blue-50" : isPast ? "bg-gray-50 hover:bg-gray-100" : "hover:bg-gray-50"
+                  }`}>
+                  <span className={`text-xs font-medium w-5 h-5 flex items-center justify-center rounded-full mb-0.5 self-center ${
+                    isToday ? "bg-blue-600 text-white"
+                    : isPast ? "text-gray-300"
+                    : isSunday ? "text-red-500"
+                    : "text-gray-600"
+                  }`}>
                     {dayNum}
                   </span>
                   <div className="w-full space-y-0.5">
@@ -408,9 +497,10 @@ export default function Home() {
                       const info  = studentMap.get(s.studentId);
                       const color = info?.color ?? "#9CA3AF";
                       return (
-                        <div key={s.id} className="w-full truncate rounded px-1 py-0.5"
+                        <div key={s.id} className="w-full truncate rounded px-1 py-0.5 flex items-center gap-0.5"
                           style={{ background: color + (s.status === "DONE" ? "18" : "30"), color, fontSize: 10, fontWeight: 700, lineHeight: 1.3 }}>
-                          {info?.name?.split(" ")[0] ?? "—"}
+                          {s.status === "DONE" && <span style={{ fontSize: 8 }}>✓</span>}
+                          <span className="truncate">{info?.name?.split(" ")[0] ?? "—"}</span>
                         </div>
                       );
                     })}
@@ -442,14 +532,19 @@ export default function Home() {
             {week.map((date) => {
               const isToday    = date === today;
               const isSelected = date === selectedDay;
+              const isPast     = date < today;
+              const isSunday   = new Date(date + "T00:00:00").getDay() === 0;
               const d          = parseInt(date.slice(8), 10);
               const label      = DOW_LABELS[new Date(date + "T00:00:00").getDay()];
               const daySess    = weekByDay.get(date) ?? [];
+              const colBg      = isSelected ? "bg-indigo-50" : isToday ? "bg-blue-50" : isPast ? "bg-gray-50" : "";
               return (
-                <div key={date} className={`border-r border-gray-50 last:border-r-0 ${isToday ? "bg-blue-50" : ""} ${isSelected ? "bg-indigo-50" : ""}`}>
+                <div key={date} className={`border-r border-gray-50 last:border-r-0 ${colBg}`}>
                   <button className="w-full text-center py-1.5" onClick={() => setSelectedDay(isSelected ? null : date)}>
-                    <p className="text-xs text-gray-400">{label}</p>
-                    <span className={`text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full mx-auto ${isToday ? "bg-blue-600 text-white" : "text-gray-700"}`}>{d}</span>
+                    <p className={`text-xs ${isSunday ? "text-red-400" : "text-gray-400"}`}>{label}</p>
+                    <span className={`text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full mx-auto ${
+                      isToday ? "bg-blue-600 text-white" : isPast ? "text-gray-300" : isSunday ? "text-red-500" : "text-gray-700"
+                    }`}>{d}</span>
                   </button>
                   <div className="px-0.5 pb-1 min-h-[56px]">
                     {daySess.sort((a, b) => (a.time ?? "").localeCompare(b.time ?? "")).map((s) => {
@@ -501,7 +596,7 @@ export default function Home() {
             {untimed.length > 0 && (
               <div className="px-3 pt-2 pb-1 border-b border-gray-100 space-y-1">
                 <p className="text-xs text-gray-400 font-medium">Tanpa waktu</p>
-                {untimed.map(renderSessionPill)}
+                {untimed.map((s) => renderSessionPill(s, anchor))}
               </div>
             )}
             <div className="overflow-y-auto" style={{ maxHeight: "62vh" }}>
@@ -557,7 +652,7 @@ export default function Home() {
       {/* ── ADD SCHEDULE MODAL ── */}
       {showAdd && selectedDay && (
         <div className="fixed inset-0 bg-black/40 z-[60] flex items-end" onClick={() => setShowAdd(false)}>
-          <div className="bg-white w-full rounded-t-2xl p-5 pb-8 space-y-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white w-full rounded-t-2xl p-5 pb-8 space-y-4 max-h-[90vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-lg">Jadwalkan Sesi</h3>
               <button onClick={() => setShowAdd(false)} className="text-gray-400 text-xl leading-none">✕</button>
@@ -573,8 +668,8 @@ export default function Home() {
             </div>
             <div>
               <label className="label">Jam Mulai</label>
-              <input className="input" type="time" value={addTime}
-                onChange={(e) => { setAddTime(e.target.value); checkConflictsAsync(addWeekdays, e.target.value, addDuration); }} />
+              <ClockTimePicker value={addTime}
+                onChange={(v) => { setAddTime(v); checkConflictsAsync(addWeekdays, v, addDuration); }} />
             </div>
             <div>
               <label className="label">Durasi</label>
@@ -589,11 +684,7 @@ export default function Home() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <button type="button"
-                className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${addRepeat ? "bg-blue-500" : "bg-gray-300"}`}
-                onClick={() => { setAddRepeat(!addRepeat); if (addRepeat) setConflicts([]); }}>
-                <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${addRepeat ? "translate-x-4" : "translate-x-0.5"}`} />
-              </button>
+              <Toggle checked={addRepeat} onChange={(v) => { setAddRepeat(v); if (!v) setConflicts([]); }} />
               <span className="text-sm font-medium text-gray-700">Ulangi setiap minggu (selamanya)</span>
             </div>
             {addRepeat && (
@@ -633,7 +724,7 @@ export default function Home() {
       {/* ── EDIT SESSION MODAL ── */}
       {editTarget && (
         <div className="fixed inset-0 bg-black/40 z-[60] flex items-end" onClick={() => setEditTarget(null)}>
-          <div className="bg-white w-full rounded-t-2xl pb-8 max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white w-full rounded-t-2xl pb-8 max-h-[92vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div>
@@ -668,7 +759,7 @@ export default function Home() {
               {/* Jam */}
               <div>
                 <label className="label">Jam Mulai</label>
-                <input className="input" type="time" value={editTime} onChange={(e) => setEditTime(e.target.value)} />
+                <ClockTimePicker value={editTime} onChange={setEditTime} />
               </div>
 
               {/* Durasi */}
@@ -750,3 +841,4 @@ export default function Home() {
     </div>
   );
 }
+
