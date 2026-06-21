@@ -188,7 +188,7 @@ export default function SettingsPage() {
       </div>
 
       {/* ── Profil Tutor ── */}
-      <Section title="Profil Tutor" icon="👤" defaultOpen>
+      <Section title="Profil Tutor" icon="👤">
         <div className="pt-3 space-y-3">
           <div>
             <label className="label">Nama Tutor</label>
@@ -235,7 +235,7 @@ export default function SettingsPage() {
       </Section>
 
       {/* ── Tarif & Pembayaran ── */}
-      <Section title="Tarif & Pembayaran" icon="💰" defaultOpen>
+      <Section title="Tarif & Pembayaran" icon="💰">
         <div className="pt-3 space-y-3">
           <div>
             <label className="label">Tarif Default per Jam</label>
@@ -256,7 +256,7 @@ export default function SettingsPage() {
       </Section>
 
       {/* ── PIN Keuangan ── */}
-      <Section title="PIN Keuangan" icon="🔐" badge={form.financialPin ? "Aktif" : undefined} defaultOpen>
+      <Section title="PIN Keuangan" icon="🔐" badge={form.financialPin ? "Aktif" : undefined}>
         <div className="pt-3 space-y-3">
           <p className="text-xs text-gray-400">Melindungi akses rekap keuangan & hapus sesi</p>
 
