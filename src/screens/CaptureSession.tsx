@@ -1068,8 +1068,8 @@ export default function CaptureSession() {
 
       {/* ── SUBJECT PICKER MODAL ── */}
       {showIBPicker && (
-        <div className="fixed inset-0 bg-black/50 z-[70] flex items-end" onClick={() => setShowIBPicker(false)}>
-          <div className="bg-white w-full rounded-t-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 z-[70] flex items-end justify-center" onClick={() => setShowIBPicker(false)}>
+          <div className="bg-white w-full max-w-md rounded-t-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div>
                 <h3 className="font-bold text-lg">Pilih Mata Pelajaran</h3>
@@ -1196,8 +1196,8 @@ export default function CaptureSession() {
 
       {/* ── CLOSE-OUT SHEET ── */}
       {showCloseOut && coSessionData && currentStudent && (
-        <div className="fixed inset-0 bg-black/50 z-[70] flex items-end">
-          <div className="bg-white w-full rounded-t-2xl max-h-[92vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 z-[70] flex items-end justify-center">
+          <div className="bg-white w-full max-w-md rounded-t-2xl max-h-[92vh] overflow-y-auto">
             {/* Header */}
             <div className="bg-green-500 px-5 py-4 rounded-t-2xl">
               <div className="flex items-center gap-3">

@@ -991,8 +991,8 @@ export default function StudentDetail() {
 
       {/* ── EDIT SESSION NOTES MODAL ── */}
       {editSession && (
-        <div className="fixed inset-0 bg-black/40 z-[60] flex items-end" onClick={() => setEditSession(null)}>
-          <div className="bg-white w-full rounded-t-2xl pb-8 max-h-[80vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 z-[60] flex items-end justify-center" onClick={() => setEditSession(null)}>
+          <div className="bg-white w-full max-w-md rounded-t-2xl pb-8 max-h-[80vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div>
                 <h3 className="font-bold text-base">Edit Catatan Sesi</h3>
@@ -1063,8 +1063,8 @@ export default function StudentDetail() {
 
       {/* ── RAPOR INPUT MODAL ── */}
       {showRapor && (
-        <div className="fixed inset-0 bg-black/40 z-[60] flex items-end" onClick={() => setShowRapor(false)}>
-          <div className="bg-white w-full rounded-t-2xl pb-8 max-h-[90vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 z-[60] flex items-end justify-center" onClick={() => setShowRapor(false)}>
+          <div className="bg-white w-full max-w-md rounded-t-2xl pb-8 max-h-[90vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h3 className="font-bold text-lg">Input Nilai Rapor</h3>
               <button onClick={() => setShowRapor(false)} className="text-gray-400 text-xl">✕</button>
@@ -1124,8 +1124,8 @@ export default function StudentDetail() {
 
       {/* ── EDIT SCHEDULE MODAL ── */}
       {editTarget && (
-        <div className="fixed inset-0 bg-black/40 z-[60] flex items-end" onClick={() => setEditTarget(null)}>
-          <div className="bg-white w-full rounded-t-2xl pb-8 max-h-[88vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 z-[60] flex items-end justify-center" onClick={() => setEditTarget(null)}>
+          <div className="bg-white w-full max-w-md rounded-t-2xl pb-8 max-h-[88vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div>
                 <h3 className="font-bold text-lg">Edit Jadwal</h3>
@@ -1201,8 +1201,8 @@ export default function StudentDetail() {
 
       {/* ── BILLING WA BOTTOM SHEET ── */}
       {showBilling && (
-        <div className="fixed inset-0 bg-black/50 z-[70] flex items-end" onClick={() => setShowBilling(false)}>
-          <div className="bg-white w-full rounded-t-2xl max-h-[85vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 z-[70] flex items-end justify-center" onClick={() => setShowBilling(false)}>
+          <div className="bg-white w-full max-w-md rounded-t-2xl max-h-[85vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div>
                 <h3 className="font-bold text-lg">💬 Tagihan via WA</h3>
@@ -1295,8 +1295,8 @@ export default function StudentDetail() {
         const sigUrl   = sigUrls.get(s.id);
         const eng      = s.engagement;
         return (
-          <div className="fixed inset-0 bg-black/50 z-[70] flex items-end" onClick={() => { setDetailSession(null); setShowDeletePin(false); setDeletePinInput(""); setDeletePinError(""); }}>
-            <div className="bg-white w-full rounded-t-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/50 z-[70] flex items-end justify-center" onClick={() => { setDetailSession(null); setShowDeletePin(false); setDeletePinInput(""); setDeletePinError(""); }}>
+            <div className="bg-white w-full max-w-md rounded-t-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
                 <div>
                   <h3 className="font-bold text-base">{(s.subjects ?? []).join(", ") || "Sesi umum"}</h3>

@@ -671,8 +671,8 @@ export default function Home() {
 
       {/* ── ADD SCHEDULE MODAL ── */}
       {showAdd && selectedDay && (
-        <div className="fixed inset-0 bg-black/40 z-[60] flex items-end" onClick={() => setShowAdd(false)}>
-          <div className="bg-white w-full rounded-t-2xl p-5 pb-8 space-y-4 max-h-[90vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 z-[60] flex items-end justify-center" onClick={() => setShowAdd(false)}>
+          <div className="bg-white w-full max-w-md rounded-t-2xl p-5 pb-8 space-y-4 max-h-[90vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-lg">Jadwalkan Sesi</h3>
               <button onClick={() => setShowAdd(false)} className="text-gray-400 text-xl leading-none">✕</button>
@@ -743,8 +743,8 @@ export default function Home() {
 
       {/* ── EDIT SESSION MODAL ── */}
       {editTarget && (
-        <div className="fixed inset-0 bg-black/40 z-[60] flex items-end" onClick={() => setEditTarget(null)}>
-          <div className="bg-white w-full rounded-t-2xl pb-8 max-h-[92vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 z-[60] flex items-end justify-center" onClick={() => setEditTarget(null)}>
+          <div className="bg-white w-full max-w-md rounded-t-2xl pb-8 max-h-[92vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div>

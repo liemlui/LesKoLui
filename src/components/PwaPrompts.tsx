@@ -38,42 +38,43 @@ export function PwaPrompts() {
 
   return (
     <>
-      {/* Update available */}
+      {/* Update available — toast di atas */}
       {needRefresh && (
-        <div className="fixed bottom-20 left-4 right-4 z-50 bg-gray-900 text-white rounded-2xl p-4 shadow-xl flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold">Versi baru tersedia</p>
-            <p className="text-xs text-gray-400 mt-0.5">Tap perbarui untuk menggunakan fitur terbaru</p>
+        <div className="fixed top-4 inset-x-0 z-[100] px-4">
+          <div className="max-w-md mx-auto bg-gray-900 text-white rounded-2xl px-4 py-3 shadow-xl flex items-center justify-between gap-3">
+            <p className="text-sm font-medium">🔄 Versi baru tersedia</p>
+            <button
+              onClick={() => updateServiceWorker(true)}
+              className="bg-blue-500 hover:bg-blue-400 text-white font-semibold px-3 py-1.5 rounded-xl text-xs whitespace-nowrap flex-shrink-0"
+            >
+              Perbarui
+            </button>
           </div>
-          <button
-            onClick={() => updateServiceWorker(true)}
-            className="bg-blue-500 hover:bg-blue-400 text-white font-semibold px-4 py-2 rounded-xl text-sm whitespace-nowrap flex-shrink-0"
-          >
-            Perbarui
-          </button>
         </div>
       )}
 
       {/* Install banner — hanya tampil kalau tidak ada update prompt */}
       {!needRefresh && showInstall && (
-        <div className="fixed bottom-20 left-4 right-4 z-50 bg-blue-600 text-white rounded-2xl p-4 shadow-xl flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold">Pasang di layar utama</p>
-            <p className="text-xs text-blue-200 mt-0.5">Akses lebih cepat tanpa buka browser</p>
-          </div>
-          <div className="flex gap-2 flex-shrink-0">
-            <button
-              onClick={() => setDismissed(true)}
-              className="text-blue-200 text-sm px-2 py-2"
-            >
-              Nanti
-            </button>
-            <button
-              onClick={handleInstall}
-              className="bg-white text-blue-600 font-semibold px-4 py-2 rounded-xl text-sm"
-            >
-              Pasang
-            </button>
+        <div className="fixed bottom-20 inset-x-0 z-50 px-4">
+          <div className="max-w-md mx-auto bg-blue-600 text-white rounded-2xl p-4 shadow-xl flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold">Pasang di layar utama</p>
+              <p className="text-xs text-blue-200 mt-0.5">Akses lebih cepat tanpa buka browser</p>
+            </div>
+            <div className="flex gap-2 flex-shrink-0">
+              <button
+                onClick={() => setDismissed(true)}
+                className="text-blue-200 text-sm px-2 py-2"
+              >
+                Nanti
+              </button>
+              <button
+                onClick={handleInstall}
+                className="bg-white text-blue-600 font-semibold px-4 py-2 rounded-xl text-sm"
+              >
+                Pasang
+              </button>
+            </div>
           </div>
         </div>
       )}

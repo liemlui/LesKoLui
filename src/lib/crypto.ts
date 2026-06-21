@@ -1,7 +1,7 @@
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
-async function deriveKey(passphrase: string, salt: Uint8Array): Promise<CryptoKey> {
+async function deriveKey(passphrase: string, salt: Uint8Array<ArrayBuffer>): Promise<CryptoKey> {
   const base = await crypto.subtle.importKey("raw", enc.encode(passphrase), "PBKDF2", false, ["deriveKey"]);
   const saltBuf = new Uint8Array(salt).buffer as ArrayBuffer;
   return crypto.subtle.deriveKey(
@@ -27,15 +27,15 @@ export async function decryptJson(file: Blob, passphrase: string): Promise<unkno
   const buf = new Uint8Array(await file.arrayBuffer());
   // Detect format by magic bytes "LKUI"
   const isNew = buf[0] === 0x4C && buf[1] === 0x4B && buf[2] === 0x55 && buf[3] === 0x49;
-  let salt: Uint8Array, iv: Uint8Array, ct: Uint8Array;
+  let salt: Uint8Array<ArrayBuffer>, iv: Uint8Array<ArrayBuffer>, ct: Uint8Array<ArrayBuffer>;
   if (isNew) {
     if (buf.length < 35) throw new Error("File backup tidak valid atau rusak.");
     // const version = (buf[4] << 8) | buf[5]; // reserved for future migration
-    salt = buf.slice(6, 22); iv = buf.slice(22, 34); ct = buf.slice(34);
+    salt = buf.slice(6, 22) as Uint8Array<ArrayBuffer>; iv = buf.slice(22, 34) as Uint8Array<ArrayBuffer>; ct = buf.slice(34) as Uint8Array<ArrayBuffer>;
   } else {
     // Legacy format: salt(16) | iv(12) | ciphertext
     if (buf.length < 29) throw new Error("File backup tidak valid atau rusak.");
-    salt = buf.slice(0, 16); iv = buf.slice(16, 28); ct = buf.slice(28);
+    salt = buf.slice(0, 16) as Uint8Array<ArrayBuffer>; iv = buf.slice(16, 28) as Uint8Array<ArrayBuffer>; ct = buf.slice(28) as Uint8Array<ArrayBuffer>;
   }
   const key = await deriveKey(passphrase, salt);
   const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ct);
@@ -44,7 +44,7 @@ export async function decryptJson(file: Blob, passphrase: string): Promise<unkno
 
 // ── PIN hashing — PBKDF2 + random salt ─────────────────────────────────────
 
-async function pbkdf2Hash(pin: string, salt: Uint8Array): Promise<string> {
+async function pbkdf2Hash(pin: string, salt: Uint8Array<ArrayBuffer>): Promise<string> {
   const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(pin), "PBKDF2", false, ["deriveBits"]);
   const bits = await crypto.subtle.deriveBits(
     { name: "PBKDF2", salt, iterations: 150_000, hash: "SHA-256" },
