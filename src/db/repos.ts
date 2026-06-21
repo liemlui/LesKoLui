@@ -1,6 +1,6 @@
 import { db } from "./db";
 import type {
-  Student, Session, MonthlyReport, Payment, Settings,
+  Student, Session, MonthlyReport, Payment, Settings, RaporGrade,
 } from "./types";
 import { MIN_DURATION, DURATION_STEP, DEFAULT_RATE } from "./types";
 
@@ -394,4 +394,39 @@ export async function listPayments(month?: string): Promise<Payment[]> {
       .toArray();
   }
   return db.payments.toArray();
+}
+
+// ── Rapor Grades ───────────────────────────────────────────────────
+
+export async function listRaporGrades(studentId: string): Promise<RaporGrade[]> {
+  return db.raporGrades
+    .where({ studentId })
+    .sortBy("semester");
+}
+
+export async function upsertRaporGrade(
+  grade: Omit<RaporGrade, "id" | "createdAt">
+): Promise<void> {
+  const existing = await db.raporGrades
+    .where({ studentId: grade.studentId })
+    .filter((r) => r.semester === grade.semester)
+    .first();
+  if (existing) {
+    await db.raporGrades.update(existing.id, grade);
+  } else {
+    await db.raporGrades.add({ ...grade, id: crypto.randomUUID(), createdAt: timestamp() });
+  }
+}
+
+export async function deleteRaporGrade(id: string): Promise<void> {
+  await db.raporGrades.delete(id);
+}
+
+export async function listSessionsInDateRange(
+  studentId: string, start: string, end: string
+): Promise<Session[]> {
+  return db.sessions
+    .where({ studentId })
+    .filter((s) => s.status === "DONE" && s.date >= start && s.date <= end)
+    .toArray();
 }

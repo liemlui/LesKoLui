@@ -3,6 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { listStudents, getStudent, createSession, recentShortNotes } from "../db/repos";
 import { compressPhoto } from "../lib/foto";
 import { todayWIB } from "../lib/format";
+import { calcEngagementScore, scoreLabel } from "../lib/engagement";
 import { MIN_DURATION } from "../db/types";
 
 const DURATIONS = [1, 1.5, 2, 2.5, 3, 3.5, 4];
@@ -32,6 +33,12 @@ export default function CaptureSession() {
   const [showCustom,      setShowCustom]       = useState(false);
   const [customSubject,   setCustomSubject]    = useState("");
   const [shortNote,       setShortNote]        = useState("");
+  // Engagement indicators
+  const [engPrepared,     setEngPrepared]      = useState(false);
+  const [engFocused,      setEngFocused]       = useState(false);
+  const [engDrowsy,       setEngDrowsy]        = useState(false);
+  const [engPhone,        setEngPhone]         = useState(false);
+  const engTouched = engPrepared || engFocused || engDrowsy || engPhone;
   const [photo,           setPhoto]            = useState<Blob | undefined>();
   const [photoUrl,        setPhotoUrl]         = useState<string | undefined>();
   const [duration,        setDuration]         = useState(MIN_DURATION);
@@ -79,6 +86,7 @@ export default function CaptureSession() {
   const reset = () => {
     setSubjects([]); setShowCustom(false); setCustomSubject(""); setShortNote(""); setPhoto(undefined);
     setMood(undefined); setTopic(""); setNeedsWork(""); setPredictedGrade("");
+    setEngPrepared(false); setEngFocused(false); setEngDrowsy(false); setEngPhone(false);
     setDuration(MIN_DURATION); setShowDetail(false); setSessionDate(today);
   };
 
@@ -101,6 +109,11 @@ export default function CaptureSession() {
         topic: topic.trim() || undefined,
         needsWork: needsWork.trim() || undefined,
         predictedGrade: predictedGrade.trim() || undefined,
+        engagement: engTouched ? {
+          prepared: engPrepared, focused: engFocused,
+          drowsy: engDrowsy, playingPhone: engPhone,
+          score: calcEngagementScore({ prepared: engPrepared, focused: engFocused, drowsy: engDrowsy, playingPhone: engPhone }),
+        } : undefined,
         status: "DONE",
       });
       setMessage("Sesi tersimpan ✓");
@@ -270,6 +283,72 @@ export default function CaptureSession() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Indikator Keseriusan */}
+          <div>
+            <label className="label">
+              Indikator Keseriusan
+              <span className="text-gray-400 font-normal text-xs ml-1">(opsional)</span>
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => setEngPrepared(!engPrepared)}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
+                  engPrepared ? "bg-green-500 text-white border-green-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-green-300"
+                }`}>
+                <span className="text-base">📚</span>
+                <span>Sudah Siap</span>
+              </button>
+              <button type="button" onClick={() => setEngFocused(!engFocused)}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
+                  engFocused ? "bg-blue-500 text-white border-blue-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"
+                }`}>
+                <span className="text-base">🎯</span>
+                <span>Sangat Fokus</span>
+              </button>
+              <button type="button" onClick={() => setEngPhone(!engPhone)}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
+                  engPhone ? "bg-red-500 text-white border-red-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-red-300"
+                }`}>
+                <span className="text-base">📱</span>
+                <span>Main HP</span>
+              </button>
+              <button type="button" onClick={() => setEngDrowsy(!engDrowsy)}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
+                  engDrowsy ? "bg-orange-500 text-white border-orange-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-orange-300"
+                }`}>
+                <span className="text-base">😴</span>
+                <span>Mengantuk</span>
+              </button>
+            </div>
+
+            {engTouched && (() => {
+              const score = calcEngagementScore({ prepared: engPrepared, focused: engFocused, drowsy: engDrowsy, playingPhone: engPhone });
+              const { text, color, bg } = scoreLabel(score);
+              const pct = (score / 10) * 100;
+              return (
+                <div className="mt-2 flex items-center gap-3 rounded-xl p-3" style={{ background: bg }}>
+                  <div className="relative w-12 h-12 flex-shrink-0">
+                    <svg viewBox="0 0 36 36" className="w-12 h-12 -rotate-90">
+                      <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(0,0,0,.08)" strokeWidth="4" />
+                      <circle cx="18" cy="18" r="14" fill="none" stroke={color} strokeWidth="4"
+                        strokeDasharray={`${pct * 0.879} 100`} strokeLinecap="round" />
+                    </svg>
+                    <span className="absolute inset-0 flex items-center justify-center text-sm font-bold" style={{ color }}>
+                      {score}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm" style={{ color }}>{text}</p>
+                    <p className="text-xs opacity-70" style={{ color }}>Skor keseriusan: {score}/10</p>
+                    <p className="text-xs opacity-60 mt-0.5" style={{ color }}>
+                      {[engPrepared && "Siap", engFocused && "Fokus", engPhone && "Main HP", engDrowsy && "Ngantuk"]
+                        .filter(Boolean).join(" · ")}
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Detail opsional */}

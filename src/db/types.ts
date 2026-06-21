@@ -9,6 +9,23 @@ export const PHOTO_MAX_PX = 800;       // longest side
 
 export interface ParentContact { name?: string; phone: string; }
 
+export interface EngagementLog {
+  prepared?: boolean;     // sudah siap belajar (+2)
+  focused?: boolean;      // sangat fokus (+1)
+  drowsy?: boolean;       // mengantuk (-2)
+  playingPhone?: boolean; // main HP (-3)
+  score: number;          // 1-10, computed
+}
+
+export interface RaporGrade {
+  id: string;
+  studentId: string;
+  semester: string;       // e.g. "2024/2025-S1"
+  grades: { subject: string; grade: string }[];
+  notes?: string;
+  createdAt: string;
+}
+
 export interface Student {
   id: string;
   name: string;
@@ -37,6 +54,7 @@ export interface Session {
   needsWork?: string;
   predictedGrade?: string;
   narrative?: string;
+  engagement?: EngagementLog;
   projectId?: string;
   seriesId?: string;
   status: SessionStatus;

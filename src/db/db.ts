@@ -1,13 +1,14 @@
 import Dexie from "dexie";
 import type { Table } from "dexie";
-import type { Student, Session, MonthlyReport, Payment, Settings } from "./types";
+import type { Student, Session, MonthlyReport, Payment, Settings, RaporGrade } from "./types";
 
 export class JurnalDB extends Dexie {
-  students!: Table<Student, string>;
-  sessions!: Table<Session, string>;
-  reports!: Table<MonthlyReport, string>;
-  payments!: Table<Payment, string>;
-  settings!: Table<Settings, string>;
+  students!:    Table<Student,       string>;
+  sessions!:    Table<Session,       string>;
+  reports!:     Table<MonthlyReport, string>;
+  payments!:    Table<Payment,       string>;
+  settings!:    Table<Settings,      string>;
+  raporGrades!: Table<RaporGrade,    string>;
 
   constructor() {
     super("jurnalles");
@@ -30,6 +31,10 @@ export class JurnalDB extends Dexie {
         }
       })
     );
+    // v5: add raporGrades table
+    this.version(5).stores({
+      raporGrades: "id, studentId, semester, [studentId+semester]",
+    });
   }
 }
 
