@@ -358,7 +358,7 @@ export default function MonthlyReportPage() {
                     <button className="btn btn-primary flex-1 text-sm" onClick={() => handleCreateOrSwitch()}>
                       {report ? "🔄 Update Laporan" : "📝 Buat Laporan"}
                     </button>
-                    {settings?.ai?.enabled && settings.ai.workerUrl && (
+                    {settings?.ai?.enabled && settings.ai.apiKey && (
                       <button className="flex-1 btn text-sm bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
                         onClick={handlePolish} disabled={aiLoading}>
                         {aiLoading ? "⏳ AI..." : "✨ Poles AI"}
