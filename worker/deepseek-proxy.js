@@ -22,7 +22,7 @@ export default {
     }
 
     const body = await request.json();
-    const ALLOWED_MODELS = ["deepseek-chat", "deepseek-reasoner"];
+    const ALLOWED_MODELS = ["deepseek-v4-flash", "deepseek-v4-pro", "deepseek-chat", "deepseek-reasoner"];
     const model = ALLOWED_MODELS.includes(body.model) ? body.model : "deepseek-chat";
     const r = await fetch("https://api.deepseek.com/chat/completions", {
       method: "POST",

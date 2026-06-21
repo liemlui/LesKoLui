@@ -60,7 +60,7 @@ export async function generateNarratives(input: AiInput): Promise<AiOutput> {
   };
 
   const body = {
-    model: s.ai.model || "deepseek-chat",
+    model: s.ai.model || "deepseek-v4-flash",
     temperature: 0.7,
     response_format: { type: "json_object" },
     messages: [

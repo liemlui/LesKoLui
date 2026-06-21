@@ -419,8 +419,8 @@ export default function SettingsPage() {
               <div>
                 <label className="label">Model</label>
                 <select className="input" value={form.ai.model} onChange={(e) => updateAi("model", e.target.value)}>
-                  <option value="deepseek-chat">deepseek-chat (cepat, hemat)</option>
-                  <option value="deepseek-reasoner">deepseek-reasoner (lebih dalam)</option>
+                  <option value="deepseek-v4-flash">deepseek-v4-flash (cepat, hemat)</option>
+                  <option value="deepseek-v4-pro">deepseek-v4-pro (lebih dalam)</option>
                 </select>
               </div>
             </>
