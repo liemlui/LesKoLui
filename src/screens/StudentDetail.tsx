@@ -134,13 +134,23 @@ export default function StudentDetail() {
           <span className="text-gray-700 font-medium">{student.parentContact.name || "—"}</span>
         </div>
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-gray-400 w-28 flex-shrink-0">No. HP</span>
+          <span className="text-gray-400 w-28 flex-shrink-0">WA Ortu</span>
           <a href={`https://wa.me/${student.parentContact.phone.replace(/^0/, "62").replace(/[^0-9]/g, "")}`}
             target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-1.5 text-green-600 font-medium hover:text-green-700">
             <span>💬</span>{student.parentContact.phone}
           </a>
         </div>
+        {student.studentPhone && (
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-gray-400 w-28 flex-shrink-0">WA Murid</span>
+            <a href={`https://wa.me/${student.studentPhone.replace(/^0/, "62").replace(/[^0-9]/g, "")}`}
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-blue-600 font-medium hover:text-blue-700">
+              <span>💬</span>{student.studentPhone}
+            </a>
+          </div>
+        )}
         {student.notes && (
           <div className="flex items-start gap-2 text-sm">
             <span className="text-gray-400 w-28 flex-shrink-0">Catatan</span>

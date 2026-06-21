@@ -15,6 +15,7 @@ export interface Student {
   photo?: Blob;
   level: Level;
   subjects: string[];
+  studentPhone?: string;
   parentContact: ParentContact;
   hourlyRate: number;
   active: boolean;

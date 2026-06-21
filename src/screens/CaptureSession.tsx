@@ -29,6 +29,8 @@ export default function CaptureSession() {
   const [studentId,       setStudentId]       = useState("");
   const [studentSubjects, setStudentSubjects]  = useState<string[]>([]);
   const [subjects,        setSubjects]         = useState<string[]>([]);
+  const [showCustom,      setShowCustom]       = useState(false);
+  const [customSubject,   setCustomSubject]    = useState("");
   const [shortNote,       setShortNote]        = useState("");
   const [photo,           setPhoto]            = useState<Blob | undefined>();
   const [photoUrl,        setPhotoUrl]         = useState<string | undefined>();
@@ -75,7 +77,7 @@ export default function CaptureSession() {
     setSubjects((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]);
 
   const reset = () => {
-    setSubjects([]); setShortNote(""); setPhoto(undefined);
+    setSubjects([]); setShowCustom(false); setCustomSubject(""); setShortNote(""); setPhoto(undefined);
     setMood(undefined); setTopic(""); setNeedsWork(""); setPredictedGrade("");
     setDuration(MIN_DURATION); setShowDetail(false); setSessionDate(today);
   };
@@ -165,30 +167,63 @@ export default function CaptureSession() {
             </button>
           )}
 
-          {/* Mapel multi-pilih — hanya jika murid punya mapel terdaftar */}
-          {studentSubjects.length > 0 ? (
-            <div>
-              <label className="label">
-                Mata Pelajaran <span className="text-gray-400 font-normal text-xs">(pilih yang relevan)</span>
-              </label>
-              <div className="flex flex-wrap gap-2 mt-1">
-                {studentSubjects.map((s) => (
-                  <button key={s} type="button"
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                      subjects.includes(s) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300"
-                    }`}
-                    onClick={() => toggleSubject(s)}>{s}</button>
-                ))}
+          {/* Mapel */}
+          <div>
+            <label className="label">
+              Mata Pelajaran
+              {studentSubjects.length > 0
+                ? <span className="text-gray-400 font-normal text-xs ml-1">(pilih yang relevan)</span>
+                : <span className="text-gray-400 font-normal text-xs ml-1">(opsional)</span>}
+            </label>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {/* Registered subjects */}
+              {studentSubjects.map((s) => (
+                <button key={s} type="button"
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                    subjects.includes(s) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300"
+                  }`}
+                  onClick={() => toggleSubject(s)}>{s}</button>
+              ))}
+              {/* Custom subjects added this session */}
+              {subjects.filter((s) => !studentSubjects.includes(s)).map((s) => (
+                <button key={s} type="button"
+                  className="px-3 py-1.5 rounded-full text-sm font-medium border bg-purple-600 text-white border-purple-600 flex items-center gap-1"
+                  onClick={() => setSubjects((prev) => prev.filter((x) => x !== s))}>
+                  {s} <span className="text-purple-200 text-xs">✕</span>
+                </button>
+              ))}
+              {/* Lainnya chip */}
+              <button type="button"
+                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                  showCustom ? "bg-purple-100 text-purple-700 border-purple-300" : "bg-white text-gray-500 border-dashed border-gray-300"
+                }`}
+                onClick={() => setShowCustom(!showCustom)}>
+                + Lainnya
+              </button>
+            </div>
+            {showCustom && (
+              <div className="flex gap-2 mt-2">
+                <input className="input flex-1" placeholder="Ketik mapel lain..." value={customSubject}
+                  onChange={(e) => setCustomSubject(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      const val = customSubject.trim();
+                      if (val && !subjects.includes(val)) setSubjects((prev) => [...prev, val]);
+                      setCustomSubject(""); setShowCustom(false);
+                    }
+                  }} />
+                <button type="button"
+                  className="px-4 py-2 rounded-xl bg-purple-600 text-white text-sm font-semibold disabled:opacity-40"
+                  disabled={!customSubject.trim()}
+                  onClick={() => {
+                    const val = customSubject.trim();
+                    if (val && !subjects.includes(val)) setSubjects((prev) => [...prev, val]);
+                    setCustomSubject(""); setShowCustom(false);
+                  }}>Tambah</button>
               </div>
-            </div>
-          ) : (
-            <div>
-              <label className="label">Mata Pelajaran (opsional)</label>
-              <input className="input" placeholder="Tulis mapel (misal: Physics, Math...)"
-                value={subjects[0] ?? ""}
-                onChange={(e) => setSubjects(e.target.value ? [e.target.value] : [])} />
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Catatan singkat */}
           <div>
