@@ -601,6 +601,24 @@ export async function listAllPendingHomework(): Promise<(Homework & { studentNam
     .sort((a, b) => (a.dueAt ?? "9999").localeCompare(b.dueAt ?? "9999"));
 }
 
+export async function listAllHomeworkFull(): Promise<(Homework & { studentName?: string })[]> {
+  const today = todayWIB();
+  const rows  = await db.homeworks.toArray();
+  const studentIds = [...new Set(rows.map((h) => h.studentId))];
+  const studMap    = new Map(
+    await Promise.all(studentIds.map(async (id) => [id, (await db.students.get(id))?.name ?? "—"] as const))
+  );
+  return rows
+    .map((h) => ({
+      ...h,
+      status: (h.status === "assigned" && h.dueAt && h.dueAt < today)
+        ? ("overdue" as HomeworkStatus)
+        : h.status,
+      studentName: studMap.get(h.studentId),
+    }))
+    .sort((a, b) => (b.assignedAt ?? "").localeCompare(a.assignedAt ?? ""));
+}
+
 export async function updateHomework(id: string, patch: Partial<Homework>): Promise<void> {
   await db.homeworks.update(id, { ...patch, updatedAt: timestamp() });
 }

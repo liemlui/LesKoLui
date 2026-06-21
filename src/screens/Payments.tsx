@@ -33,6 +33,26 @@ export default function PaymentsPage() {
 
   const ITEMS_PER_PDF_PAGE = 5;
 
+  const handleExportCsv = () => {
+    const rows = [
+      ["Murid", "Bulan", "Total (IDR)", "Status", "Bayar Tgl", "Metode"],
+      ...filtered.map((p) => [
+        studentMap.get(p.studentId)?.name ?? "(dihapus)",
+        p.month,
+        String(p.totalCost),
+        p.status === "PAID" ? "Lunas" : "Belum Bayar",
+        p.paidAt ?? "",
+        p.method ?? "",
+      ]),
+    ];
+    const csv = rows.map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `keuangan-${filterMonth || "semua"}.csv`; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+  };
+
   const handleExportPdf = async () => {
     setPdfExporting(true);
     try {
@@ -148,10 +168,16 @@ export default function PaymentsPage() {
     <div className="p-4 space-y-4 pb-20">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Bayaran</h1>
-        <button onClick={handleExportPdf} disabled={pdfExporting}
-          className="flex items-center gap-1.5 text-sm font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-2 rounded-xl hover:bg-indigo-100 transition-colors disabled:opacity-50">
-          {pdfExporting ? "⏳ Ekspor..." : "📄 PDF"}
-        </button>
+        <div className="flex gap-2">
+          <button onClick={handleExportCsv}
+            className="flex items-center gap-1.5 text-sm font-semibold bg-green-50 text-green-700 border border-green-200 px-3 py-2 rounded-xl hover:bg-green-100 transition-colors">
+            📊 CSV
+          </button>
+          <button onClick={handleExportPdf} disabled={pdfExporting}
+            className="flex items-center gap-1.5 text-sm font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-2 rounded-xl hover:bg-indigo-100 transition-colors disabled:opacity-50">
+            {pdfExporting ? "⏳ Ekspor..." : "📄 PDF"}
+          </button>
+        </div>
       </div>
 
       {message && (

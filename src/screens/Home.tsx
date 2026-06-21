@@ -121,6 +121,7 @@ export default function Home() {
   const [overduePage, setOverduePage] = useState(1);
   const [upcomingHwPage, setUpcomingHwPage] = useState(1);
   const [followUpPage, setFollowUpPage] = useState(1);
+  const [filterStudentId, setFilterStudentId] = useState<string>("");
 
   // ── Data ──────────────────────────────────────────────────────────────────
   const students = useLiveQuery(() => listStudents(true), []);
@@ -468,14 +469,33 @@ export default function Home() {
         );
       })()}
 
-      {/* View toggle */}
-      <div className="mx-4 mb-3 bg-gray-100 rounded-xl p-1 grid grid-cols-3">
-        {(["month", "week", "day"] as CalView[]).map((v) => (
-          <button key={v} onClick={() => setView(v)}
-            className={`py-1.5 rounded-lg text-sm font-medium transition-colors ${view === v ? "bg-white shadow text-blue-700" : "text-gray-500"}`}>
-            {v === "month" ? "Bulan" : v === "week" ? "Minggu" : "Hari"}
-          </button>
-        ))}
+      {/* View toggle + filter murid */}
+      <div className="mx-4 mb-3 space-y-2">
+        <div className="bg-gray-100 rounded-xl p-1 grid grid-cols-3">
+          {(["month", "week", "day"] as CalView[]).map((v) => (
+            <button key={v} onClick={() => setView(v)}
+              className={`py-1.5 rounded-lg text-sm font-medium transition-colors ${view === v ? "bg-white shadow text-blue-700" : "text-gray-500"}`}>
+              {v === "month" ? "Bulan" : v === "week" ? "Minggu" : "Hari"}
+            </button>
+          ))}
+        </div>
+        {(students ?? []).length > 1 && (
+          <div className="flex items-center gap-2">
+            <select
+              value={filterStudentId}
+              onChange={(e) => setFilterStudentId(e.target.value)}
+              className="input py-1.5 text-sm flex-1">
+              <option value="">Semua murid</option>
+              {(students ?? []).map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+            {filterStudentId && (
+              <button onClick={() => setFilterStudentId("")}
+                className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1.5 bg-gray-100 rounded-lg">✕</button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── MONTH VIEW ── */}
@@ -492,18 +512,24 @@ export default function Home() {
           <div className="grid grid-cols-7">
             {cells.map((date, i) => {
               if (!date) return <div key={`e-${i}`} className="min-h-[64px] border-b border-r border-gray-50 last:border-r-0" />;
-              const daySess    = monthByDay.get(date) ?? [];
+              const allDaySess = monthByDay.get(date) ?? [];
+              const daySess    = filterStudentId ? allDaySess.filter(s => s.studentId === filterStudentId) : allDaySess;
               const isToday    = date === today;
               const isSelected = date === selectedDay;
               const isPast     = date < today;
               const isSunday   = new Date(date + "T00:00:00").getDay() === 0;
               const dayNum     = parseInt(date.slice(8), 10);
+              // Heatmap: avg engagement score of DONE sessions
+              const doneSess   = daySess.filter(s => s.status === "DONE" && s.engagement?.score != null);
+              const avgScore   = doneSess.length > 0 ? doneSess.reduce((sum, s) => sum + (s.engagement?.score ?? 0), 0) / doneSess.length : null;
+              const heatBg     = avgScore === null ? "" : avgScore >= 7 ? "rgba(34,197,94,0.08)" : avgScore >= 4 ? "rgba(234,179,8,0.10)" : "rgba(239,68,68,0.08)";
               return (
                 <button key={date}
                   onClick={() => setSelectedDay(isSelected ? null : date)}
                   className={`min-h-[64px] flex flex-col items-start p-1 border-b border-r border-gray-100 last:border-r-0 transition-colors ${
                     isSelected ? "bg-blue-50" : isPast ? "bg-gray-50 hover:bg-gray-100" : "hover:bg-gray-50"
-                  }`}>
+                  }`}
+                  style={heatBg && !isSelected ? { background: heatBg } : undefined}>
                   <span className={`text-xs font-medium w-5 h-5 flex items-center justify-center rounded-full mb-0.5 self-center ${
                     isToday ? "bg-blue-600 text-white"
                     : isPast ? "text-gray-300"

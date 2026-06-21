@@ -1,4 +1,4 @@
-import { useEffect, lazy, Suspense } from "react";
+import { useEffect, lazy, Suspense, useState, useCallback } from "react";
 import { createBrowserRouter, RouterProvider, Outlet, Navigate } from "react-router-dom";
 import { initSettings } from "./db/repos";
 import BottomNav from "./components/BottomNav";
@@ -7,6 +7,8 @@ import Home from "./screens/Home";
 import Students from "./screens/Students";
 import StudentDetail from "./screens/StudentDetail";
 import CaptureSession from "./screens/CaptureSession";
+import { listAllPendingHomework } from "./db/repos";
+import { todayWIB } from "./lib/format";
 
 // Lazy-load less-frequently visited screens to reduce initial bundle
 const MonthlyReport = lazy(() => import("./screens/MonthlyReport"));
@@ -14,14 +16,94 @@ const Payments = lazy(() => import("./screens/Payments"));
 const Tugas = lazy(() => import("./screens/Tugas"));
 const Settings = lazy(() => import("./screens/Settings"));
 
+const AUTO_BACKUP_KEY = "leskolui_last_auto_backup_prompt";
+const AUTO_BACKUP_INTERVAL_DAYS = 7;
+
 function Layout() {
+  const [offline, setOffline] = useState(!navigator.onLine);
+  const [backupPrompt, setBackupPrompt] = useState(false);
+
+  // Offline indicator
+  useEffect(() => {
+    const on  = () => setOffline(false);
+    const off = () => setOffline(true);
+    window.addEventListener("online",  on);
+    window.addEventListener("offline", off);
+    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+  }, []);
+
+  // Notifikasi PR jatuh tempo (Web Notifications)
+  const scheduleHwNotifications = useCallback(async () => {
+    if (Notification.permission !== "granted") return;
+    const today = todayWIB();
+    const homeworks = await listAllPendingHomework();
+    const dueToday = homeworks.filter(
+      (h) => h.status === "assigned" && h.dueAt === today
+    );
+    if (dueToday.length > 0) {
+      new Notification("Les Ko Lui — PR Hari Ini", {
+        body: `${dueToday.length} PR deadline hari ini: ${dueToday.map(h => h.title).slice(0, 2).join(", ")}${dueToday.length > 2 ? "..." : ""}`,
+        icon: "/pwa-192x192.png",
+      });
+    }
+  }, []);
+
+  // Backup otomatis mingguan — tanya user
+  const checkAutoBackup = useCallback(() => {
+    const last = localStorage.getItem(AUTO_BACKUP_KEY);
+    if (!last) { setBackupPrompt(true); return; }
+    const daysSince = (Date.now() - Number(last)) / 86400000;
+    if (daysSince >= AUTO_BACKUP_INTERVAL_DAYS) setBackupPrompt(true);
+  }, []);
+
   useEffect(() => {
     initSettings();
     if (navigator.storage?.persist) navigator.storage.persist();
-  }, []);
+
+    // Request notification permission then schedule hw notifications
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().then((p) => {
+        if (p === "granted") scheduleHwNotifications();
+      });
+    } else {
+      scheduleHwNotifications();
+    }
+
+    // Check auto backup
+    checkAutoBackup();
+  }, [scheduleHwNotifications, checkAutoBackup]);
 
   return (
     <div className="max-w-md mx-auto min-h-screen pb-16">
+      {/* Offline banner */}
+      {offline && (
+        <div className="fixed top-0 inset-x-0 z-[200] px-4 pt-2">
+          <div className="max-w-md mx-auto bg-gray-800 text-white text-xs font-semibold px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg">
+            <span>📵</span> Offline — data tetap aman, perubahan disimpan lokal
+          </div>
+        </div>
+      )}
+
+      {/* Auto backup prompt */}
+      {backupPrompt && (
+        <div className="fixed top-4 inset-x-0 z-[150] px-4">
+          <div className="max-w-md mx-auto bg-amber-50 border border-amber-300 rounded-2xl px-4 py-3 shadow-xl flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-amber-800">💾 Saatnya backup mingguan</p>
+              <p className="text-xs text-amber-600 mt-0.5">Lindungi datamu dengan file backup terenkripsi</p>
+            </div>
+            <div className="flex gap-2 flex-shrink-0">
+              <button
+                onClick={() => { localStorage.setItem(AUTO_BACKUP_KEY, String(Date.now())); setBackupPrompt(false); }}
+                className="text-xs text-amber-500 px-2 py-1.5">Nanti</button>
+              <button
+                onClick={() => { localStorage.setItem(AUTO_BACKUP_KEY, String(Date.now())); setBackupPrompt(false); window.location.href = "/settings"; }}
+                className="bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl">Backup</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Suspense fallback={<div className="p-4 text-gray-400 text-sm">Memuat...</div>}>
         <Outlet />
       </Suspense>

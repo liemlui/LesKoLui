@@ -23,6 +23,7 @@ import ClockTimePicker from "../components/ClockTimePicker";
 import SignaturePad from "../components/SignaturePad";
 import { analyzeStudent } from "../lib/aiClient";
 import type { AiStudentInsight } from "../lib/aiClient";
+import { getBehaviorTag, getResponseTag } from "../lib/responseTaxonomy";
 
 const DURATIONS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
 
@@ -688,6 +689,71 @@ export default function StudentDetail() {
             <p className="text-xs text-gray-500 italic">{aiInsight.encouragement}</p>
           </div>
         )}
+        {/* ── Engagement Score Chart ── */}
+        {(() => {
+          const scored = (allSessions ?? []).filter(s => s.status === "DONE" && s.engagement?.score != null).slice(-15);
+          if (scored.length < 2) return null;
+          const max = 10;
+          return (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Grafik Engagement (15 sesi terakhir)</p>
+              <div className="flex items-end gap-1 h-20">
+                {scored.map((s) => {
+                  const score = s.engagement!.score;
+                  const { color } = scoreLabel(score);
+                  const pct = Math.max(4, Math.round((score / max) * 100));
+                  return (
+                    <div key={s.id} className="flex-1 flex flex-col items-center gap-0.5 group relative">
+                      <div className="w-full rounded-t-sm transition-all" style={{ height: `${pct}%`, background: color, minHeight: 4 }} />
+                      <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs bg-gray-800 text-white px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none z-10">{s.date.slice(5)} · {score}/10</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex justify-between mt-1">
+                <span className="text-xs text-gray-300">{scored[0]?.date?.slice(5)}</span>
+                <span className="text-xs text-gray-300">{scored[scored.length - 1]?.date?.slice(5)}</span>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── Topik Tracker + Grade Trend ── */}
+        {(() => {
+          const doneSessions = (allSessions ?? []).filter(s => s.status === "DONE");
+          const topics = [...new Set(doneSessions.map(s => s.topic).filter(Boolean) as string[])];
+          const grades = doneSessions.filter(s => s.predictedGrade).map(s => ({ date: s.date, grade: s.predictedGrade!, subjects: s.subjects ?? [] })).slice(-10);
+          if (topics.length === 0 && grades.length === 0) return null;
+          return (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3 space-y-4">
+              {topics.length > 0 && (
+                <div>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Topik Pernah Dibahas ({topics.length})</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {topics.slice(0, 20).map((t) => (
+                      <span key={t} className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium border border-blue-100">{t}</span>
+                    ))}
+                    {topics.length > 20 && <span className="text-xs text-gray-400">+{topics.length - 20} lagi</span>}
+                  </div>
+                </div>
+              )}
+              {grades.length > 0 && (
+                <div>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Prediksi Nilai (terbaru)</p>
+                  <div className="space-y-1">
+                    {grades.reverse().slice(0, 5).map((g, i) => (
+                      <div key={i} className="flex items-center justify-between text-xs">
+                        <span className="text-gray-500">{g.date.slice(5)} · {g.subjects.join(", ") || "Umum"}</span>
+                        <span className="font-bold text-gray-800 bg-yellow-50 px-2 py-0.5 rounded-lg">{g.grade}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         {historySessions.length === 0 ? (
           <div className="text-center py-10 bg-white rounded-2xl border border-gray-100">
             <p className="text-3xl mb-2">📚</p>
@@ -733,6 +799,23 @@ export default function StudentDetail() {
                         {s.mood ? ` · ${s.mood}` : ""}
                       </p>
                       {s.shortNote && <p className="text-xs text-gray-500 mt-1 italic">"{s.shortNote}"</p>}
+                      {((s.behaviorTags && s.behaviorTags.length > 0) || s.responseTag) && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {(s.behaviorTags ?? []).map((id) => {
+                            const t = getBehaviorTag(id);
+                            if (!t) return null;
+                            const color = t.valence === "positive" ? "bg-green-50 text-green-700" : t.valence === "negative" ? "bg-red-50 text-red-600" : "bg-gray-100 text-gray-500";
+                            return <span key={id} className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${color}`}>{t.icon} {t.label}</span>;
+                          })}
+                          {s.responseTag && (() => {
+                            const t = getResponseTag(s.responseTag);
+                            return t ? <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-blue-50 text-blue-700">{t.icon} {t.label}</span> : null;
+                          })()}
+                        </div>
+                      )}
+                      {s.needsWork && (
+                        <p className="text-xs text-orange-500 mt-1">⚠ {s.needsWork}</p>
+                      )}
                     </div>
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
                       <div className="flex items-center gap-1">
