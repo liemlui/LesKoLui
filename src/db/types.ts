@@ -157,5 +157,5 @@ export interface Settings {
   financialPin?: string;
   ai: { enabled: boolean; workerUrl: string; model: string };
   templatePref: { excludedThemeIds?: string[] };
-  bankAccounts?: { bca?: string; cimb?: string; bri?: string; accountName?: string };
+  bankAccounts?: { bca?: string; cimb?: string; bri?: string; mandiri?: string; bsi?: string; ewallet?: string; accountName?: string };
 }
