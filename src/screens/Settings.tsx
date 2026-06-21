@@ -418,10 +418,17 @@ export default function SettingsPage() {
               </div>
               <div>
                 <label className="label">Model</label>
-                <select className="input" value={form.ai.model} onChange={(e) => updateAi("model", e.target.value)}>
+                <select className="input" value={["deepseek-v4-flash","deepseek-v4-pro"].includes(form.ai.model) ? form.ai.model : "custom"}
+                  onChange={(e) => updateAi("model", e.target.value === "custom" ? "" : e.target.value)}>
                   <option value="deepseek-v4-flash">deepseek-v4-flash (cepat, hemat)</option>
                   <option value="deepseek-v4-pro">deepseek-v4-pro (lebih dalam)</option>
+                  <option value="custom">Custom...</option>
                 </select>
+                {(!["deepseek-v4-flash","deepseek-v4-pro"].includes(form.ai.model)) && (
+                  <input className="input mt-1 font-mono text-sm" placeholder="nama-model-custom"
+                    value={form.ai.model}
+                    onChange={(e) => updateAi("model", e.target.value)} />
+                )}
               </div>
             </>
           )}
