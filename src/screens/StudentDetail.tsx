@@ -27,7 +27,6 @@ import SignaturePad from "../components/SignaturePad";
 import { analyzeStudent } from "../lib/aiClient";
 import type { AiStudentInsight } from "../lib/aiClient";
 import { getBehaviorTag, getResponseTag } from "../lib/responseTaxonomy";
-import { generateShareHtml } from "../lib/shareReport";
 
 const DURATIONS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
 
@@ -446,25 +445,6 @@ export default function StudentDetail() {
         <button onClick={() => { setBillingMonth(today.slice(0,7)); setBillingUnlocked(false); setBillingPinInput(""); setBillingPinError(""); setShowBilling(true); }}
           className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-green-50 text-green-700 text-sm font-semibold border border-green-200 hover:bg-green-100 transition-colors">
           <span>💬</span> Tagihan WA
-        </button>
-        <button
-          onClick={async () => {
-            const { listPendingHomework } = await import("../db/repos");
-            const hw = await listPendingHomework(student.id);
-            const html = generateShareHtml({
-              student, sessions: allSessions ?? [], homeworks: hw,
-              tutorName: settings?.tutorProfile?.name || "Ko Lui",
-              generatedAt: new Date().toISOString(),
-            });
-            const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-            const url  = URL.createObjectURL(blob);
-            const a    = document.createElement("a");
-            a.href = url; a.download = `laporan-${student.name.replace(/\s+/g, "-")}.html`; a.click();
-            setTimeout(() => URL.revokeObjectURL(url), 500);
-            msg("Laporan diunduh ✓");
-          }}
-          className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-orange-50 text-orange-700 text-sm font-semibold border border-orange-200 hover:bg-orange-100 transition-colors">
-          <span>📤</span> Share Ortu
         </button>
       </div>
 
