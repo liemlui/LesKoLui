@@ -271,14 +271,12 @@ export default function MonthlyReportPage() {
           id: s.id, date: dayLabel(s.date), subject: s.subjects.join(", "),
           shortNote: s.shortNote, mood: s.mood, topic: s.topic,
           needsWork: s.needsWork, predictedGrade: s.predictedGrade,
-          engagementScore: s.engagement?.score,
-          behaviorLabels: s.behaviorTags?.map(id => BEHAVIOR_TAGS.find(t => t.id === id)?.label).filter(Boolean) as string[] | undefined,
-          responseLabel: s.responseTag ? RESPONSE_TAGS.find(t => t.id === s.responseTag)?.label : undefined,
         })),
       });
-      for (const e of out.entries) await updateSession(e.id, { narrative: e.narrative });
-      if (draft) await upsertReport({ ...draft, summaryText: out.summary, teacherNote: out.teacherNote, quote: out.quote });
-      setMessage("Narasi AI selesai ✓");
+      const entries = Array.isArray(out.entries) ? out.entries : [];
+      for (const e of entries) if (e.id && e.narrative) await updateSession(e.id, { narrative: e.narrative });
+      if (draft) await upsertReport({ ...draft, summaryText: out.summary ?? "", teacherNote: out.teacherNote, quote: out.quote });
+      setMessage(`Narasi AI selesai ✓ (${entries.length} sesi, ringkasan & kutipan terisi)`);
       setOpenTeks(true);
     } catch (e) { setMessage("Gagal: " + (e as Error).message); }
     finally { setAiLoading(false); }
