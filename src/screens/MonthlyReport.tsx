@@ -7,7 +7,9 @@ import {
   getReport, upsertReport, updateSession, saveSettings,
 } from "../db/repos";
 import { pickTemplate } from "../lib/rotation";
-import { generateNarratives } from "../lib/aiClient";
+import { generateReportSummary, estimateReportSummaryCost } from "../lib/aiClient";
+import { BEHAVIOR_TAGS, RESPONSE_TAGS } from "../lib/responseTaxonomy";
+import { AiCostModal } from "../components/AiCostModal";
 import { getTheme, THEMES } from "../template/themes";
 import { LAYOUTS } from "../template/layouts";
 import { ReportRenderer } from "../template/ReportRenderer";
@@ -42,9 +44,9 @@ export default function MonthlyReportPage() {
   const [editText,         setEditText]         = useState("");
   const [editingSummary,   setEditingSummary]   = useState(false);
   const [summaryText,      setSummaryText]      = useState("");
-  const [editingNote,      setEditingNote]      = useState(false);
-  const [teacherNote,      setTeacherNote]      = useState("");
   const [editingQuote,     setEditingQuote]     = useState(false);
+  const [showPolishModal,  setShowPolishModal]  = useState(false);
+  const [prevTexts,        setPrevTexts]        = useState<{ summaryText: string; quote?: string } | null>(null);
   const [quoteText,        setQuoteText]        = useState("");
   const [aiLoading,        setAiLoading]        = useState(false);
   const [message,          setMessage]          = useState("");
@@ -264,19 +266,24 @@ export default function MonthlyReportPage() {
     setAiLoading(true);
     try {
       const draft = await ensureReport();
-      const out = await generateNarratives({
+      const out = await generateReportSummary({
         student: { name: student.name, level: student.level },
         month: monthLabel(month),
         sessions: sessions.map((s) => ({
           id: s.id, date: dayLabel(s.date), subject: s.subjects.join(", "),
           shortNote: s.shortNote, mood: s.mood, topic: s.topic,
           needsWork: s.needsWork, predictedGrade: s.predictedGrade,
+          engagementScore: s.engagement?.score,
+          behaviorLabels: s.behaviorTags?.map(id => BEHAVIOR_TAGS.find(t => t.id === id)?.label).filter(Boolean) as string[] | undefined,
+          responseLabel: s.responseTag ? RESPONSE_TAGS.find(t => t.id === s.responseTag)?.label : undefined,
         })),
       });
-      const entries = Array.isArray(out.entries) ? out.entries : [];
-      for (const e of entries) if (e.id && e.narrative) await updateSession(e.id, { narrative: e.narrative });
-      if (draft) await upsertReport({ ...draft, summaryText: out.summary ?? "", teacherNote: out.teacherNote, quote: out.quote });
-      setMessage(`Narasi AI selesai ✓ (${entries.length} sesi, ringkasan & kutipan terisi)`);
+      if (draft) {
+        const prev = { summaryText: draft.summaryText, quote: draft.quote };
+        await upsertReport({ ...draft, summaryText: out.summary ?? "", quote: out.quote });
+        setPrevTexts(prev);
+      }
+      setMessage("Poles AI selesai ✓ Ringkasan & kutipan terisi");
       setOpenTeks(true);
     } catch (e) { setMessage("Gagal: " + (e as Error).message); }
     finally { setAiLoading(false); }
@@ -304,7 +311,7 @@ export default function MonthlyReportPage() {
   const saveReportField = async (field: "summaryText" | "teacherNote" | "quote", value: string) => {
     if (!report) return;
     await upsertReport({ ...report, [field]: value });
-    setEditingSummary(false); setEditingNote(false); setEditingQuote(false);
+    setEditingSummary(false); setEditingQuote(false);
   };
 
   if (!students) return <div className="p-4 text-gray-500">Memuat...</div>;
@@ -325,9 +332,23 @@ export default function MonthlyReportPage() {
 
       <div className="p-4 space-y-4">
         {message && (
-          <div onClick={() => setMessage("")}
-            className={`p-3 rounded-lg text-sm cursor-pointer ${message.includes("✓") ? "bg-green-50 text-green-700" : message.startsWith("Gagal") || message.startsWith("Error") ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700"}`}>
-            {message}
+          <div className="space-y-1.5">
+            <div onClick={() => setMessage("")}
+              className={`p-3 rounded-lg text-sm cursor-pointer ${message.includes("✓") ? "bg-green-50 text-green-700" : message.startsWith("Gagal") || message.startsWith("Error") ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700"}`}>
+              {message}
+            </div>
+            {prevTexts && (
+              <button
+                onClick={async () => {
+                  if (!report) return;
+                  await upsertReport({ ...report, summaryText: prevTexts.summaryText, quote: prevTexts.quote });
+                  setPrevTexts(null);
+                  setMessage("Undo berhasil ✓");
+                }}
+                className="w-full text-xs text-indigo-600 font-semibold bg-indigo-50 border border-indigo-200 rounded-lg py-2 hover:bg-indigo-100 transition-colors">
+                ↩ Undo Poles AI
+              </button>
+            )}
           </div>
         )}
 
@@ -393,7 +414,7 @@ export default function MonthlyReportPage() {
                     </button>
                     {settings?.ai?.enabled && settings.ai.apiKey && (
                       <button className="flex-1 btn text-sm bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
-                        onClick={handlePolish} disabled={aiLoading}>
+                        onClick={() => setShowPolishModal(true)} disabled={aiLoading}>
                         {aiLoading ? "⏳ AI..." : "✨ Poles AI"}
                       </button>
                     )}
@@ -615,7 +636,7 @@ export default function MonthlyReportPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="font-semibold text-gray-800 text-sm">📝 Teks Laporan</p>
-                        {(report.summaryText || report.teacherNote || report.quote) && (
+                        {(report.summaryText || report.quote) && (
                           <span className="text-[10px] bg-indigo-50 text-indigo-500 font-bold px-1.5 py-0.5 rounded-full">✨ AI</span>
                         )}
                       </div>
@@ -640,24 +661,6 @@ export default function MonthlyReportPage() {
                           <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 cursor-pointer hover:bg-gray-100 min-h-[2.5rem]"
                             onClick={() => { setSummaryText(report.summaryText); setEditingSummary(true); }}>
                             {report.summaryText || <span className="text-gray-400">Klik untuk tambah ringkasan...</span>}
-                          </p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="label">Catatan Guru</label>
-                        {editingNote ? (
-                          <div className="space-y-2">
-                            <textarea className="input text-sm" rows={2} value={teacherNote}
-                              onChange={(e) => setTeacherNote(e.target.value)} />
-                            <div className="flex gap-2">
-                              <button className="btn btn-primary text-xs" onClick={() => saveReportField("teacherNote", teacherNote)}>Simpan</button>
-                              <button className="btn btn-secondary text-xs" onClick={() => setEditingNote(false)}>Batal</button>
-                            </div>
-                          </div>
-                        ) : (
-                          <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 cursor-pointer hover:bg-gray-100 min-h-[2.5rem]"
-                            onClick={() => { setTeacherNote(report.teacherNote ?? ""); setEditingNote(true); }}>
-                            {report.teacherNote || <span className="text-gray-400">Klik untuk tambah catatan...</span>}
                           </p>
                         )}
                       </div>
@@ -852,6 +855,16 @@ export default function MonthlyReportPage() {
         )}
 
       </div>
+
+      {/* Poles AI cost modal */}
+      <AiCostModal
+        open={showPolishModal}
+        title="Poles AI — Ringkasan & Kutipan"
+        estimatedIDR={estimateReportSummaryCost(sessions?.length ?? 0)}
+        description={`${sessions?.length ?? 0} sesi · ringkasan bulan + kutipan untuk ${student?.name ?? "murid"}`}
+        onCancel={() => setShowPolishModal(false)}
+        onConfirm={() => { setShowPolishModal(false); handlePolish(); }}
+      />
     </div>
   );
 }

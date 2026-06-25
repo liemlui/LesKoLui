@@ -18,7 +18,8 @@ import { BEHAVIOR_TAGS, RESPONSE_TAGS } from "../lib/responseTaxonomy";
 import type { BehaviorTag, ResponseTag } from "../lib/responseTaxonomy";
 import type { SessionType } from "../lib/sessionTemplates";
 import { MIN_DURATION } from "../db/types";
-import { draftShortNote, polishWhatsApp, suggestHomework, estimateDraftNoteCost } from "../lib/aiClient";
+import { draftShortNote, polishWhatsApp, suggestHomework, estimateDraftNoteCost, estimateHomeworkCost, estimatePolishWACost } from "../lib/aiClient";
+import { AiCostModal } from "../components/AiCostModal";
 import type { Student, Session, Homework, FollowUpItem } from "../db/types";
 import PaginationControls from "../components/PaginationControls";
 import { PAGE_SIZE, clampPage, paginateItems } from "../lib/pagination";
@@ -188,6 +189,8 @@ export default function CaptureSession() {
   const [aiError,          setAiError]          = useState("");
   const [showTopicPicker,  setShowTopicPicker]  = useState(false);
   const [showAiCostModal,  setShowAiCostModal]  = useState(false);
+  const [showAiHwModal,    setShowAiHwModal]    = useState(false);
+  const [showAiWaModal,    setShowAiWaModal]    = useState(false);
 
   const topicGroups = useMemo(
     () => browseTopicsForSubjects(
@@ -1078,18 +1081,7 @@ export default function CaptureSession() {
                 {settings?.ai?.enabled && settings.ai.apiKey && (subjects.length > 0 || studentSubjects.length > 0) && (
                   <div>
                     <button type="button" disabled={aiHwLoading}
-                      onClick={async () => {
-                        setAiHwLoading(true); setAiError(""); setAiHwSuggestions([]);
-                        try {
-                          const res = await suggestHomework({
-                            student: { name: currentStudent?.name ?? "", level: currentStudent?.level ?? "" },
-                            subjects: subjects.length > 0 ? subjects : studentSubjects,
-                            topic, needsWork,
-                          });
-                          if (res.items?.length) setAiHwSuggestions(res.items);
-                        } catch (e) { setAiError((e as Error).message); }
-                        finally { setAiHwLoading(false); }
-                      }}
+                      onClick={() => setShowAiHwModal(true)}
                       className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-2 rounded-lg transition-colors disabled:opacity-50">
                       {aiHwLoading ? "⏳ Saran PR AI..." : "✨ Saran PR AI"}
                     </button>
@@ -1602,15 +1594,7 @@ export default function CaptureSession() {
                   {settings?.ai?.enabled && settings.ai.apiKey && (
                     <div className="flex gap-2 mb-2">
                       <button type="button" disabled={aiWaLoading}
-                        onClick={async () => {
-                          setAiWaLoading(true); setAiError("");
-                          try {
-                            const original = buildWaMessage(currentStudent, coSessionData, coHWItems, coFollowUps, tutorName);
-                            const res = await polishWhatsApp({ original, studentName: currentStudent.name, tutorName });
-                            if (res.message) setAiWaText(res.message);
-                          } catch (e) { setAiError((e as Error).message); }
-                          finally { setAiWaLoading(false); }
-                        }}
+                        onClick={() => setShowAiWaModal(true)}
                         className="flex-1 flex items-center justify-center gap-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-2.5 rounded-xl transition-colors disabled:opacity-50">
                         {aiWaLoading ? "⏳ Poles AI..." : "✨ Poles AI"}
                       </button>
@@ -1640,6 +1624,48 @@ export default function CaptureSession() {
           </div>
         </div>
       )}
+
+      {/* Saran PR AI modal */}
+      <AiCostModal
+        open={showAiHwModal}
+        title="Saran PR AI"
+        estimatedIDR={estimateHomeworkCost()}
+        description={`Saran PR untuk ${(subjects.length > 0 ? subjects : studentSubjects).join(", ") || "mapel ini"}`}
+        onCancel={() => setShowAiHwModal(false)}
+        onConfirm={async () => {
+          setShowAiHwModal(false);
+          setAiHwLoading(true); setAiError(""); setAiHwSuggestions([]);
+          try {
+            const res = await suggestHomework({
+              student: { name: currentStudent?.name ?? "", level: currentStudent?.level ?? "" },
+              subjects: subjects.length > 0 ? subjects : studentSubjects,
+              topic, needsWork,
+            });
+            if (res.items?.length) setAiHwSuggestions(res.items);
+          } catch (e) { setAiError((e as Error).message); }
+          finally { setAiHwLoading(false); }
+        }}
+      />
+
+      {/* Poles WA AI modal */}
+      <AiCostModal
+        open={showAiWaModal}
+        title="Poles WA AI"
+        estimatedIDR={estimatePolishWACost(300)}
+        description="Poles pesan WhatsApp jadi lebih hangat dan personal"
+        onCancel={() => setShowAiWaModal(false)}
+        onConfirm={async () => {
+          setShowAiWaModal(false);
+          if (!currentStudent || !coSessionData) return;
+          setAiWaLoading(true); setAiError("");
+          try {
+            const original = buildWaMessage(currentStudent, coSessionData, coHWItems, coFollowUps, tutorName ?? "");
+            const res = await polishWhatsApp({ original, studentName: currentStudent.name, tutorName: tutorName ?? "" });
+            if (res.message) setAiWaText(res.message);
+          } catch (e) { setAiError((e as Error).message); }
+          finally { setAiWaLoading(false); }
+        }}
+      />
 
       {/* AI Cost confirm modal */}
       {showAiCostModal && (() => {

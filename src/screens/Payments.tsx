@@ -17,7 +17,8 @@ import PaginationControls from "../components/PaginationControls";
 import { clampPage, paginateItems } from "../lib/pagination";
 import { toPng } from "html-to-image";
 import { jsPDF } from "jspdf";
-import { generatePaymentReminder } from "../lib/aiClient";
+import { generatePaymentReminder, estimatePaymentReminderCost } from "../lib/aiClient";
+import { AiCostModal } from "../components/AiCostModal";
 
 type Tab = "tagihan" | "pengeluaran" | "dashboard";
 
@@ -60,6 +61,7 @@ export default function PaymentsPage() {
   const [paymentPage, setPaymentPage] = useState(1);
   const [pdfExporting, setPdfExporting] = useState(false);
   const [reminderLoading, setReminderLoading] = useState<string | null>(null);
+  const [reminderModal,   setReminderModal]   = useState<{ paymentId: string; studentName: string; parentName?: string; month: string; amount: number } | null>(null);
   const [invoiceTarget, setInvoiceTarget] = useState<{ payment: Payment; student: Student } | null>(null);
   const [invoiceExporting, setInvoiceExporting] = useState(false);
   const invoiceRef = useRef<HTMLDivElement>(null);
@@ -374,26 +376,7 @@ export default function PaymentsPage() {
                   {p.status === "UNPAID" && settings?.ai?.enabled && settings.ai.apiKey && (
                     <button
                       disabled={reminderLoading === p.id}
-                      onClick={async () => {
-                        setReminderLoading(p.id!);
-                        try {
-                          const res = await generatePaymentReminder({
-                            studentName: sName,
-                            parentName: student?.parentContact?.name,
-                            month: p.month,
-                            amount: p.totalCost,
-                            tutorName: settings.tutorProfile?.name || "Ko Lui",
-                          });
-                          if (res.message) {
-                            const phone = student?.parentContact?.phone?.replace(/^0/, "62").replace(/[^0-9]/g, "") ?? "";
-                            const url = phone
-                              ? `https://wa.me/${phone}?text=${encodeURIComponent(res.message)}`
-                              : `https://wa.me/?text=${encodeURIComponent(res.message)}`;
-                            window.open(url, "_blank");
-                          }
-                        } catch (e) { setMessage("AI error: " + (e as Error).message); }
-                        finally { setReminderLoading(null); }
-                      }}
+                      onClick={() => setReminderModal({ paymentId: p.id!, studentName: sName, parentName: student?.parentContact?.name, month: p.month, amount: p.totalCost })}
                       className="mt-1.5 w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-2 rounded-xl transition-colors disabled:opacity-50">
                       {reminderLoading === p.id ? "⏳ Buat Reminder..." : "✨ Reminder WA AI"}
                     </button>
@@ -658,6 +641,40 @@ export default function PaymentsPage() {
           exporting={invoiceExporting}
           onExport={handleExportInvoicePdf}
           onClose={() => setInvoiceTarget(null)}
+        />
+      )}
+
+      {/* Reminder WA AI cost modal */}
+      {reminderModal && (
+        <AiCostModal
+          open={!!reminderModal}
+          title="Reminder WA AI"
+          estimatedIDR={estimatePaymentReminderCost()}
+          description={`Pesan pengingat tagihan untuk ${reminderModal.studentName}`}
+          onCancel={() => setReminderModal(null)}
+          onConfirm={async () => {
+            const m = reminderModal;
+            setReminderModal(null);
+            setReminderLoading(m.paymentId);
+            try {
+              const res = await generatePaymentReminder({
+                studentName: m.studentName,
+                parentName: m.parentName,
+                month: m.month,
+                amount: m.amount,
+                tutorName: settings?.tutorProfile?.name || "Ko Lui",
+              });
+              if (res.message) {
+                const found = students?.find(s => s.name === m.studentName);
+                const phone = found?.parentContact?.phone?.replace(/^0/, "62").replace(/[^0-9]/g, "") ?? "";
+                const url = phone
+                  ? `https://wa.me/${phone}?text=${encodeURIComponent(res.message)}`
+                  : `https://wa.me/?text=${encodeURIComponent(res.message)}`;
+                window.open(url, "_blank");
+              }
+            } catch (e) { setMessage("AI error: " + (e as Error).message); }
+            finally { setReminderLoading(null); }
+          }}
         />
       )}
     </div>

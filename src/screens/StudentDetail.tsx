@@ -24,8 +24,9 @@ import PaginationControls from "../components/PaginationControls";
 import { clampPage, paginateItems } from "../lib/pagination";
 import ClockTimePicker from "../components/ClockTimePicker";
 import SignaturePad from "../components/SignaturePad";
-import { analyzeStudent } from "../lib/aiClient";
+import { analyzeStudent, estimateAnalysisCost } from "../lib/aiClient";
 import type { AiStudentInsight } from "../lib/aiClient";
+import { AiCostModal } from "../components/AiCostModal";
 import { getBehaviorTag, getResponseTag } from "../lib/responseTaxonomy";
 
 const DURATIONS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
@@ -80,9 +81,10 @@ export default function StudentDetail() {
   function msg(t: string) { setFlash(t); setTimeout(() => setFlash(""), 3000); }
 
   // AI states
-  const [aiInsightLoading, setAiInsightLoading] = useState(false);
-  const [aiInsight,        setAiInsight]        = useState<AiStudentInsight | null>(null);
-  const [aiInsightError,   setAiInsightError]   = useState("");
+  const [aiInsightLoading,  setAiInsightLoading]  = useState(false);
+  const [aiInsight,         setAiInsight]          = useState<AiStudentInsight | null>(null);
+  const [aiInsightError,    setAiInsightError]     = useState("");
+  const [showAiInsightModal, setShowAiInsightModal] = useState(false);
 
   // IA/EE milestone tracker
   const [showIaEeForm,    setShowIaEeForm]    = useState(false);
@@ -647,28 +649,7 @@ export default function StudentDetail() {
             {settings?.ai?.enabled && settings.ai.apiKey && (allSessions ?? []).filter(s => s.status === "DONE").length > 0 && (
               <button
                 disabled={aiInsightLoading}
-                onClick={async () => {
-                  setAiInsightLoading(true); setAiInsightError(""); setAiInsight(null);
-                  try {
-                    const doneSessions = (allSessions ?? [])
-                      .filter(s => s.status === "DONE")
-                      .slice(-20)
-                      .map(s => ({
-                        date: s.date,
-                        subjects: s.subjects ?? [],
-                        shortNote: s.shortNote,
-                        needsWork: s.needsWork,
-                        mood: s.mood,
-                        predictedGrade: s.predictedGrade,
-                      }));
-                    const res = await analyzeStudent({
-                      student: { name: student?.name ?? "", level: student?.level ?? "" },
-                      sessions: doneSessions,
-                    });
-                    setAiInsight(res);
-                  } catch (e) { setAiInsightError((e as Error).message); }
-                  finally { setAiInsightLoading(false); }
-                }}
+                onClick={() => setShowAiInsightModal(true)}
                 className="flex items-center gap-1 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-50 whitespace-nowrap">
                 {aiInsightLoading ? "⏳..." : "✨ Analisis AI"}
               </button>
@@ -1793,6 +1774,38 @@ export default function StudentDetail() {
           </div>
         );
       })()}
+
+      {/* Analisis AI cost modal */}
+      <AiCostModal
+        open={showAiInsightModal}
+        title="Analisis AI"
+        estimatedIDR={estimateAnalysisCost(Math.min((allSessions ?? []).filter(s => s.status === "DONE").length, 20))}
+        description={`Analisis pola & saran fokus untuk ${student?.name ?? "murid"}`}
+        onCancel={() => setShowAiInsightModal(false)}
+        onConfirm={async () => {
+          setShowAiInsightModal(false);
+          setAiInsightLoading(true); setAiInsightError(""); setAiInsight(null);
+          try {
+            const doneSessions = (allSessions ?? [])
+              .filter(s => s.status === "DONE")
+              .slice(-20)
+              .map(s => ({
+                date: s.date,
+                subjects: s.subjects ?? [],
+                shortNote: s.shortNote,
+                needsWork: s.needsWork,
+                mood: s.mood,
+                predictedGrade: s.predictedGrade,
+              }));
+            const res = await analyzeStudent({
+              student: { name: student?.name ?? "", level: student?.level ?? "" },
+              sessions: doneSessions,
+            });
+            setAiInsight(res);
+          } catch (e) { setAiInsightError((e as Error).message); }
+          finally { setAiInsightLoading(false); }
+        }}
+      />
     </div>
   );
 }
