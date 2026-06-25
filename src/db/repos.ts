@@ -460,22 +460,26 @@ export async function getReport(
   studentId: string, month: string
 ): Promise<MonthlyReport | undefined> {
   return db.reports
-    .where({ studentId })
-    .filter((r) => r.month === month)
+    .where({ studentId, month })
     .first();
 }
 
 export async function upsertReport(report: Omit<MonthlyReport, "createdAt"> & { createdAt?: string }): Promise<string> {
-  const existing = await getReport(report.studentId, report.month);
   const now = timestamp();
-  if (existing) {
-    await db.reports.update(existing.id, { ...report, createdAt: existing.createdAt });
-    return existing.id;
-  } else {
-    const id = crypto.randomUUID();
-    await db.reports.add({ ...report, id, createdAt: report.createdAt ?? now });
-    return id;
-  }
+  // Dexie transaction serialises concurrent upserts → no duplicate rows
+  return db.transaction("rw", db.reports, async () => {
+    const existing = await db.reports
+      .where({ studentId: report.studentId, month: report.month })
+      .first();
+    if (existing) {
+      await db.reports.update(existing.id, { ...report, createdAt: existing.createdAt });
+      return existing.id;
+    } else {
+      const id = crypto.randomUUID();
+      await db.reports.add({ ...report, id, createdAt: report.createdAt ?? now });
+      return id;
+    }
+  });
 }
 
 export async function listReportsByStudent(studentId: string): Promise<MonthlyReport[]> {

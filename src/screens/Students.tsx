@@ -9,6 +9,7 @@ import { todayWIB, monthOf, monthLabel, dayLabel } from "../lib/format";
 import { usePinGate } from "../hooks/usePinGate";
 import type { Student } from "../db/types";
 import StudentForm from "../components/StudentForm";
+import Modal from "../components/Modal";
 import PaginationControls from "../components/PaginationControls";
 import { clampPage, paginateItems } from "../lib/pagination";
 
@@ -32,7 +33,7 @@ export default function Students() {
   // PIN gate — shared hook for PIN verification with lockout protection
   const pin = usePinGate();
   const [pendingAction, setPendingAction] = useState<{
-    action: "delete" | "deactivate" | "activate";
+    action: "delete" | "deactivate" | "activate" | "edit";
     student: Student;
   } | null>(null);
 
@@ -96,8 +97,14 @@ export default function Students() {
     setEditing(null);
   };
 
-  const requirePin = (action: "delete" | "deactivate" | "activate", student: Student) => {
+  const requirePin = (action: "delete" | "deactivate" | "activate" | "edit", student: Student) => {
     if (!settings?.financialPin) {
+      if (action === "edit") {
+        // No PIN set — open edit modal directly
+        setEditing(student);
+        setShowForm(true);
+        return;
+      }
       alert("Set PIN Keuangan di Pengaturan sebelum melakukan aksi ini.");
       return;
     }
@@ -112,8 +119,11 @@ export default function Students() {
       await deleteStudent(student.id);
     } else if (action === "deactivate") {
       await updateStudent(student.id, { active: false });
-    } else {
+    } else if (action === "activate") {
       await updateStudent(student.id, { active: true });
+    } else if (action === "edit") {
+      setEditing(student);
+      setShowForm(true);
     }
     setPendingAction(null);
     pin.resetPin();
@@ -206,7 +216,7 @@ export default function Students() {
 
             {/* Edit btn */}
             <button
-              onClick={(e) => { e.preventDefault(); setEditing(s); setShowForm(true); }}
+              onClick={(e) => { e.preventDefault(); requirePin("edit", s); }}
               className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-blue-100 text-gray-500 hover:text-blue-600 flex-shrink-0 transition-colors text-sm"
               title="Edit murid"
             >✏️</button>
@@ -246,11 +256,11 @@ export default function Students() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Murid</h1>
         <button
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-colors ${showForm ? "bg-gray-100 text-gray-600" : "bg-blue-600 text-white shadow"}`}
-          onClick={() => { setEditing(null); setShowForm(!showForm); }}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold bg-blue-600 text-white shadow transition-colors"
+          onClick={() => { setEditing(null); setShowForm(true); }}
         >
-          <span className="text-base leading-none">{showForm ? "✕" : "+"}</span>
-          {showForm ? "Tutup" : "Tambah Murid"}
+          <span className="text-base leading-none">+</span>
+          Tambah Murid
         </button>
       </div>
 
@@ -265,16 +275,19 @@ export default function Students() {
         </div>
       )}
 
-      {/* Add form */}
+      {/* Add / Edit form — bottom-sheet modal */}
       {showForm && (
-        <div className="bg-gray-50 rounded-xl p-4">
-          <h2 className="text-lg font-semibold mb-3">{editing ? "Edit Murid" : "Murid Baru"}</h2>
+        <Modal
+          onClose={() => { setShowForm(false); setEditing(null); }}
+          ariaLabel={editing ? "Edit Murid" : "Murid Baru"}
+        >
+          <h2 className="text-lg font-semibold">{editing ? "Edit Murid" : "Murid Baru"}</h2>
           <StudentForm
             initial={editing ?? undefined}
             onSave={handleSave}
             onCancel={() => { setShowForm(false); setEditing(null); }}
           />
-        </div>
+        </Modal>
       )}
 
       {/* Search */}
@@ -282,6 +295,7 @@ export default function Students() {
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
         <input
           className="input pl-9 w-full"
+          inputMode="search"
           placeholder="Cari nama murid..."
           value={search}
           onChange={(e) => { setSearch(e.target.value); setActivePage(1); setHistPage(1); }}
@@ -333,44 +347,49 @@ export default function Students() {
 
       {/* PIN Confirmation Modal */}
       {pendingAction && (
-        <div className="fixed inset-0 bg-black/50 z-[80] flex items-center justify-center px-4">
-          <div className="bg-white rounded-2xl p-5 w-full max-w-xs space-y-4 shadow-xl">
-            <div>
-              <p className="font-bold text-base text-gray-800">
-                {pendingAction.action === "delete" && "Hapus Murid"}
-                {pendingAction.action === "deactivate" && "Nonaktifkan Murid"}
-                {pendingAction.action === "activate" && "Aktifkan Murid"}
-              </p>
-              <p className="text-sm text-gray-500 mt-1">
-                {pendingAction.action === "delete"
-                  ? `Data "${pendingAction.student.name}" akan dihapus permanen.`
-                  : pendingAction.action === "deactivate"
-                  ? `"${pendingAction.student.name}" dipindah ke historis.`
-                  : `"${pendingAction.student.name}" diaktifkan kembali.`}
-              </p>
-            </div>
-            {settings?.financialPin && (
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Masukkan PIN untuk konfirmasi</p>
-                <input type="password" inputMode="numeric" maxLength={6} placeholder="PIN"
-                  value={pin.pinInput} onChange={(e) => pin.setPinInput(e.target.value)}
-                  className="input text-center tracking-widest text-lg w-full" autoFocus />
-                {pin.pinError && <p className="text-xs text-red-500 mt-1">{pin.pinError}</p>}
-              </div>
-            )}
-            <div className="flex gap-2">
-              <button onClick={() => { setPendingAction(null); pin.resetPin(); }}
-                className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-600 font-semibold text-sm">
-                Batal
-              </button>
-              <button
-                onClick={handlePinConfirm}
-                className={`flex-1 py-2.5 rounded-xl text-white font-semibold text-sm ${pendingAction.action === "delete" ? "bg-red-500 hover:bg-red-600" : pendingAction.action === "deactivate" ? "bg-orange-500 hover:bg-orange-600" : "bg-green-600 hover:bg-green-700"}`}>
-                {pendingAction.action === "delete" ? "Hapus" : pendingAction.action === "deactivate" ? "Nonaktifkan" : "Aktifkan"}
-              </button>
-            </div>
+        <Modal
+          onClose={() => { setPendingAction(null); pin.resetPin(); }}
+          ariaLabel="Konfirmasi PIN"
+          panelClassName="bg-white w-full max-w-xs rounded-2xl p-5 space-y-4 shadow-xl mx-4"
+        >
+          <div>
+            <p className="font-bold text-base text-gray-800">
+              {pendingAction.action === "delete" && "Hapus Murid"}
+              {pendingAction.action === "deactivate" && "Nonaktifkan Murid"}
+              {pendingAction.action === "activate" && "Aktifkan Murid"}
+              {pendingAction.action === "edit" && "Edit Murid"}
+            </p>
+            <p className="text-sm text-gray-500 mt-1">
+              {pendingAction.action === "delete"
+                ? `Data "${pendingAction.student.name}" akan dihapus permanen.`
+                : pendingAction.action === "deactivate"
+                ? `"${pendingAction.student.name}" dipindah ke historis.`
+                : pendingAction.action === "activate"
+                ? `"${pendingAction.student.name}" diaktifkan kembali.`
+                : `Edit profil "${pendingAction.student.name}"?`}
+            </p>
           </div>
-        </div>
+          {settings?.financialPin && (
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Masukkan PIN untuk konfirmasi</p>
+              <input type="password" inputMode="numeric" maxLength={6} placeholder="PIN"
+                value={pin.pinInput} onChange={(e) => pin.setPinInput(e.target.value)}
+                className="input text-center tracking-widest text-lg w-full" autoFocus />
+              {pin.pinError && <p className="text-xs text-red-500 mt-1">{pin.pinError}</p>}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <button onClick={() => { setPendingAction(null); pin.resetPin(); }}
+              className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-600 font-semibold text-sm">
+              Batal
+            </button>
+            <button
+              onClick={handlePinConfirm}
+              className={`flex-1 py-2.5 rounded-xl text-white font-semibold text-sm ${pendingAction.action === "delete" ? "bg-red-500 hover:bg-red-600" : pendingAction.action === "deactivate" ? "bg-orange-500 hover:bg-orange-600" : pendingAction.action === "activate" ? "bg-green-600 hover:bg-green-700" : "bg-blue-600 hover:bg-blue-700"}`}>
+              {pendingAction.action === "delete" ? "Hapus" : pendingAction.action === "deactivate" ? "Nonaktifkan" : pendingAction.action === "activate" ? "Aktifkan" : "Edit"}
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   );

@@ -35,11 +35,16 @@ export async function pickTemplate(studentId: string): Promise<TemplateKey> {
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
-  // Everything used → least recently used
+  // Everything used → least recently used, fall back to any combo
+  const fallback = combos.length > 0 ? combos : allCombos([]);
+  if (fallback.length === 0) {
+    // Ultimate safety: if THEME_IDS or LAYOUT_IDS are empty, return a hardcoded default
+    return { themeId: THEME_IDS[0] ?? "winter", layoutId: LAYOUT_IDS[0] ?? "cards" };
+  }
   const lastUsedIndex = new Map<string, number>();
   history.forEach((r, i) => lastUsedIndex.set(keyStr(r.templateKey), i));
-  const lru = combos
+  const lru = fallback
     .filter((c) => c.themeId !== lastTheme)
     .sort((a, b) => (lastUsedIndex.get(keyStr(a)) ?? -1) - (lastUsedIndex.get(keyStr(b)) ?? -1));
-  return lru[0] ?? combos[0];
+  return lru[0] ?? fallback[0];
 }

@@ -55,6 +55,9 @@ export default function MonthlyReportPage() {
   const sessionsWithPhotos     = reportSessions.filter((s) => Boolean(s.photo)).length;
   const reportCompletion       = reportSessions.length > 0 ? Math.round((sessionsWithNarrative / reportSessions.length) * 100) : 0;
 
+  // Clear stale message when student or month changes
+  useEffect(() => { setMessage(""); setPrevTexts(null); }, [studentId, month]);
+
   // Resolve theme: built-in or custom
   const theme: Theme = useMemo(() => {
     if (!report) return THEMES[0];
@@ -190,6 +193,7 @@ export default function MonthlyReportPage() {
 
   const handleRegenerate = async () => {
     if (!report) return;
+    setUndoStack((s) => [...s, { themeId: report.templateKey.themeId, layoutId: report.templateKey.layoutId }]);
     await upsertReport({ ...report, templateKey: await pickTemplate(studentId) });
     setMessage("Desain diganti!");
   };
@@ -224,7 +228,7 @@ export default function MonthlyReportPage() {
   };
 
   const doExport = async (type: "jpg" | "png" | "pdf") => {
-    if (!student || !report || exporting) return;
+    if (!student || !report || !reportData || exporting) return;
     setExporting(type);
     setMessage("");
     const base = `Laporan-${student.name}-${monthLabel(month)}`.replace(/\s+/g, "-");
@@ -382,7 +386,7 @@ export default function MonthlyReportPage() {
                     </select>
                     <button onClick={() => setCoverPage((v) => !v)}
                       className={`text-sm py-1.5 px-2 rounded-lg border transition-colors whitespace-nowrap ${coverPage ? "bg-blue-600 text-white border-blue-600" : "bg-gray-50 text-gray-600 border-gray-200"}`}>
-                      {coverPage ? "📄 Cover" : "📄 Cover"}
+                      {coverPage ? "📄 Cover ✓" : "📄 Cover"}
                     </button>
                   </div>
 
@@ -490,13 +494,13 @@ export default function MonthlyReportPage() {
 
                 {/* Export */}
                 <div className="grid grid-cols-3 gap-2">
-                  <button className="btn btn-primary text-sm" onClick={() => doExport("jpg")} disabled={!!exporting}>
+                  <button className="btn btn-primary text-sm" onClick={() => doExport("jpg")} disabled={!!exporting || !reportData}>
                     {exporting === "jpg" ? "⏳" : "🖼️"} JPG
                   </button>
-                  <button className="btn text-sm bg-purple-600 text-white hover:bg-purple-700" onClick={() => doExport("png")} disabled={!!exporting}>
+                  <button className="btn text-sm bg-purple-600 text-white hover:bg-purple-700" onClick={() => doExport("png")} disabled={!!exporting || !reportData}>
                     {exporting === "png" ? "⏳" : "📋"} PNG
                   </button>
-                  <button className="btn btn-secondary text-sm" onClick={() => doExport("pdf")} disabled={!!exporting}>
+                  <button className="btn btn-secondary text-sm" onClick={() => doExport("pdf")} disabled={!!exporting || !reportData}>
                     {exporting === "pdf" ? "⏳" : "📄"} PDF
                   </button>
                 </div>

@@ -17,6 +17,11 @@ function toWaNumber(raw: string) {
   return raw.replace(/^0/, "62").replace(/[^0-9]/g, "");
 }
 
+/** Returns true if the raw input looks like a valid phone number (digits, optional +, spaces, hyphens) */
+function hasInvalidChars(raw: string): boolean {
+  return raw.length > 0 && /[^0-9+\- ]/.test(raw);
+}
+
 function curriculumToLevel(c: CurriculumType): Level {
   if (c === "IB MYP") return "MYP";
   if (c === "IB DP")  return "IBDP";
@@ -158,7 +163,10 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
               onChange={(e) => setPhone(e.target.value)} required placeholder="08xxxxxxxxxx" />
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green-500">💬</span>
           </div>
-          {phone && <p className="text-xs text-gray-400 mt-0.5">wa.me/{toWaNumber(phone)}</p>}
+          {phone && hasInvalidChars(phone) && (
+            <p className="text-xs text-red-500 mt-0.5">⚠️ Hanya angka — karakter lain akan dihapus otomatis.</p>
+          )}
+          {phone && !hasInvalidChars(phone) && <p className="text-xs text-gray-400 mt-0.5">wa.me/{toWaNumber(phone)}</p>}
         </div>
       </div>
 
@@ -172,7 +180,10 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
               onChange={(e) => setStudentPhone(e.target.value)} placeholder="08xxxxxxxxxx" />
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green-500">💬</span>
           </div>
-          {studentPhone && <p className="text-xs text-gray-400 mt-0.5">wa.me/{toWaNumber(studentPhone)}</p>}
+          {studentPhone && hasInvalidChars(studentPhone) && (
+            <p className="text-xs text-red-500 mt-0.5">⚠️ Hanya angka — karakter lain akan dihapus otomatis.</p>
+          )}
+          {studentPhone && !hasInvalidChars(studentPhone) && <p className="text-xs text-gray-400 mt-0.5">wa.me/{toWaNumber(studentPhone)}</p>}
         </div>
       </div>
 

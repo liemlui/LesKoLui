@@ -17,7 +17,7 @@ import type { CancelMode, EditMode } from "../db/repos";
 import { dayLabel, monthLabel, todayWIB, formatRupiah } from "../lib/format";
 import { buildBillingMessage, toWaNumber } from "../lib/waBilling";
 import {
-  scoreLabel, scoreBarColor,
+  scoreLabel,
   semesterOptions, semesterLabel, semesterDateRange, currentSemester,
 } from "../lib/engagement";
 import type { Session, IaEeProject } from "../db/types";
@@ -546,6 +546,7 @@ export default function StudentDetail() {
           if (hwRate === null || avgEngScore === null) return null;
           if (hwRate >= 80 && avgEngScore >= 7) return { text: "Aktif & patuh — murid terbaik!", color: "text-green-600" };
           if (hwRate >= 80 && avgEngScore < 6) return { text: "Rajin kerjakan PR tapi kurang fokus saat les.", color: "text-orange-500" };
+          if (hwRate >= 50 && hwRate < 80 && avgEngScore >= 5 && avgEngScore < 7) return { text: "Cukup konsisten — PR dan fokus bisa ditingkatkan.", color: "text-blue-500" };
           if (hwRate < 50 && avgEngScore >= 7) return { text: "Aktif saat les, tapi PR sering tidak dikerjakan.", color: "text-orange-500" };
           if (hwRate < 50 && avgEngScore < 5) return { text: "Perlu perhatian ekstra — kurang aktif & PR jarang dikerjakan.", color: "text-red-500" };
           return { text: "Cukup baik, masih bisa ditingkatkan.", color: "text-blue-600" };
@@ -666,20 +667,25 @@ export default function StudentDetail() {
           return (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3">
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Grafik Engagement (15 sesi terakhir)</p>
-              <div className="flex items-end gap-1 h-20">
-                {scored.map((s) => {
-                  const score = s.engagement!.score;
-                  const { color } = scoreLabel(score);
-                  const pct = Math.max(4, Math.round((score / max) * 100));
-                  return (
-                    <div key={s.id} className="flex-1 flex flex-col items-center gap-0.5 group relative">
-                      <div className="w-full rounded-t-sm transition-all" style={{ height: `${pct}%`, background: color, minHeight: 4 }} />
-                      <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs bg-gray-800 text-white px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none z-10">{s.date.slice(5)} · {score}/10</span>
-                    </div>
-                  );
-                })}
+              <div className="relative">
+                {/* Y-axis reference line at score 5 (netral) */}
+                <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 border-t border-dashed border-gray-200 z-0" />
+                <span className="absolute -left-0.5 top-1/2 -translate-y-1/2 text-gray-300 font-medium" style={{ fontSize: 8 }}>5</span>
+                <div className="flex items-end gap-1 h-20 relative z-[1]">
+                  {scored.map((s) => {
+                    const score = s.engagement!.score;
+                    const { color } = scoreLabel(score);
+                    const pct = Math.max(4, Math.round((score / max) * 100));
+                    return (
+                      <div key={s.id} className="flex-1 flex flex-col items-center gap-1 relative">
+                        <div className="w-full rounded-t-sm" style={{ height: `${pct}%`, background: color }} />
+                        <span className="text-gray-500 font-semibold" style={{ fontSize: 9 }}>{score}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="flex justify-between mt-1">
+              <div className="flex justify-between mt-1.5">
                 <span className="text-xs text-gray-300">{scored[0]?.date?.slice(5)}</span>
                 <span className="text-xs text-gray-300">{scored[scored.length - 1]?.date?.slice(5)}</span>
               </div>
@@ -1203,38 +1209,17 @@ export default function StudentDetail() {
             </div>
           </div>
 
-          {/* Trend chart — last 15 sessions */}
+          {/* Trend summary — detail chart is above in session history */}
           {recentEng.length > 0 && (
             <div className="px-4 pb-3">
-              <p className="text-xs text-gray-400 mb-2 font-medium">Trend {recentEng.length} sesi terakhir</p>
-              <div className="flex items-end gap-1 h-16">
-                {recentEng.map((s) => {
-                  const score = s.engagement!.score;
-                  const color = scoreBarColor(score);
-                  const pct   = (score / 10) * 100;
-                  return (
-                    <div key={s.id} className="flex-1 flex flex-col items-center gap-0.5 group relative">
-                      <div className="w-full rounded-t-sm transition-all" style={{ height: `${pct}%`, background: color }} />
-                      <span className="text-gray-300 group-hover:text-gray-500 transition-colors" style={{ fontSize: 8 }}>
-                        {score}
-                      </span>
-                      {/* Tooltip */}
-                      <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                        {s.date.slice(5)} · {score}/10
-                        {s.engagement!.playingPhone ? " 📱" : ""}
-                        {s.engagement!.drowsy ? " 😴" : ""}
-                        {s.engagement!.prepared ? " 📚" : ""}
-                        {s.engagement!.focused ? " 🎯" : ""}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              {/* Score axis labels */}
-              <div className="flex justify-between mt-1">
-                <span className="text-gray-300" style={{ fontSize: 8 }}>lama</span>
-                <span className="text-gray-300" style={{ fontSize: 8 }}>terbaru</span>
-              </div>
+              <p className="text-xs text-gray-500">
+                📈 Rata-rata fokus: <span className="font-semibold text-gray-700">{avgEngScore}/10</span>
+                {" "}dari {recentEng.length} sesi terakhir
+                {engTrend === "up" && <span className="text-green-500 ml-1">↑ meningkat</span>}
+                {engTrend === "down" && <span className="text-red-500 ml-1">↓ menurun</span>}
+                {engTrend === "stable" && <span className="text-gray-400 ml-1">→ stabil</span>}
+                {" "}— lihat grafik di atas
+              </p>
             </div>
           )}
 

@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToastCtx } from "../../components/ToastProvider";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -81,6 +81,11 @@ export default function Home() {
     const t = setTimeout(() => { setUndoHwId(null); setUndoTimer(null); }, 3000);
     setUndoTimer(t);
   };
+
+  // Cleanup undo timeout on unmount (prevents state update after navigation)
+  useEffect(() => {
+    return () => { if (undoTimer) clearTimeout(undoTimer); };
+  }, [undoTimer]);
 
   const openAdd = (date: string) => { setSelectedDay(date); setAddDate(date); };
   const jumpToday = () => { setCalMonth(monthOf(today)); setAnchor(today); setSelectedDay(today); };
