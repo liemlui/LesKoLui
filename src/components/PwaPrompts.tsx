@@ -7,8 +7,14 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export function PwaPrompts() {
-  // SW update
-  const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW();
+  // Auto-update: cek SW baru tiap jam selama app terbuka
+  useRegisterSW({
+    onRegisteredSW(_swUrl, r) {
+      r && setInterval(async () => {
+        if (!r.installing && navigator.onLine) await r.update();
+      }, 60 * 60 * 1000);
+    },
+  });
 
   // Install prompt
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
@@ -38,23 +44,7 @@ export function PwaPrompts() {
 
   return (
     <>
-      {/* Update available — toast di atas */}
-      {needRefresh && (
-        <div className="fixed top-4 inset-x-0 z-[100] px-4">
-          <div className="max-w-md mx-auto bg-gray-900 text-white rounded-2xl px-4 py-3 shadow-xl flex items-center justify-between gap-3">
-            <p className="text-sm font-medium">🔄 Versi baru tersedia</p>
-            <button
-              onClick={() => updateServiceWorker(true)}
-              className="bg-blue-500 hover:bg-blue-400 text-white font-semibold px-3 py-1.5 rounded-xl text-xs whitespace-nowrap flex-shrink-0"
-            >
-              Perbarui
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Install banner — hanya tampil kalau tidak ada update prompt */}
-      {!needRefresh && showInstall && (
+      {showInstall && (
         <div className="fixed bottom-20 inset-x-0 z-50 px-4">
           <div className="max-w-md mx-auto bg-blue-600 text-white rounded-2xl p-4 shadow-xl flex items-center justify-between gap-3">
             <div>

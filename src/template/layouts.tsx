@@ -346,7 +346,7 @@ export const timeline: Layout = {
 };
 
 export const flags: Layout = {
-  id: "flags", name: "Flags", maxEntriesPerPage: 5,
+  id: "flags", name: "Flags", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
     <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
       <Deco kind={t.deco} />
@@ -371,7 +371,7 @@ export const flags: Layout = {
 };
 
 export const magazine: Layout = {
-  id: "magazine", name: "Majalah", maxEntriesPerPage: 3,
+  id: "magazine", name: "Majalah", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
     <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
       <Deco kind={t.deco} />
@@ -396,7 +396,7 @@ export const magazine: Layout = {
 };
 
 export const scrapbook: Layout = {
-  id: "scrapbook", name: "Scrapbook", maxEntriesPerPage: 3,
+  id: "scrapbook", name: "Scrapbook", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
     <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
       <Deco kind={t.deco} />
@@ -453,8 +453,7 @@ export const grid: Layout = {
                 <span style={{ display: "inline-block", background: c, color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 999, marginBottom: 5 }}>
                   {e.date} · {e.subject}
                 </span>
-                <p style={{ fontFamily: t.fontBody, fontSize: 11, lineHeight: 1.5, color: t.ink, margin: 0,
-                  display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                <p style={{ fontFamily: t.fontBody, fontSize: 11, lineHeight: 1.5, color: t.ink, margin: 0 }}>
                   {e.narrative}
                 </p>
                 <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
@@ -470,7 +469,7 @@ export const grid: Layout = {
 
 // ── Compact — daftar padat, 6 entri per halaman ─────────────────────
 export const compact: Layout = {
-  id: "compact", name: "Compact List", maxEntriesPerPage: 6,
+  id: "compact", name: "Compact List", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
     <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
       <Deco kind={t.deco} />
@@ -488,8 +487,7 @@ export const compact: Layout = {
                 <p style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 11.5, color: c, margin: 0 }}>
                   {e.date} · {e.subject}
                 </p>
-                <p style={{ fontFamily: t.fontBody, fontSize: 11, lineHeight: 1.45, color: t.ink, margin: "2px 0 0",
-                  display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                <p style={{ fontFamily: t.fontBody, fontSize: 11, lineHeight: 1.45, color: t.ink, margin: "2px 0 0" }}>
                   {e.narrative}
                 </p>
                 <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
@@ -538,7 +536,7 @@ export const cover: Layout = {
 
 // ── Gallery — grid foto semua sesi ──────────────────────────────────
 export const gallery: Layout = {
-  id: "gallery", name: "Photo Gallery", maxEntriesPerPage: 6,
+  id: "gallery", name: "Photo Gallery", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
     <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
       <Deco kind={t.deco} />
@@ -571,7 +569,7 @@ export const gallery: Layout = {
 
 // ── Grouped — dikelompokkan per subject ─────────────────────────────
 export const grouped: Layout = {
-  id: "grouped", name: "Grouped by Subject", maxEntriesPerPage: 8,
+  id: "grouped", name: "Grouped by Subject", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => {
     // Group entries by subject
     const groups = new Map<string, typeof d.entries>();
@@ -608,7 +606,7 @@ export const grouped: Layout = {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontFamily: t.fontBody, fontWeight: 700, fontSize: 11, color: c, margin: 0 }}>{e.date}</p>
                       <p style={{ fontFamily: t.fontBody, fontSize: 11.5, lineHeight: 1.4, color: t.ink, margin: "2px 0 0",
-                        display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                        }}>
                         {e.narrative}
                       </p>
                       <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />

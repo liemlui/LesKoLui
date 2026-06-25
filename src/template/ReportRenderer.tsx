@@ -23,7 +23,7 @@ export function ReportRenderer({ data, theme, layoutId, options }: Props) {
       )}
       {pages.map((page, i) => (
         <div key={i} id={`report-page-${i}`} data-report-page style={{ marginBottom: 18 }}>
-          {layout.render(page, theme, { isFirst: !showCover && i === 0, isLast: i === pages.length - 1 })}
+          {layout.render(page, theme, { isFirst: true, isLast: true })}
         </div>
       ))}
     </div>
