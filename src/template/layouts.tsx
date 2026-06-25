@@ -292,6 +292,9 @@ function SummaryEl(d: ReportData, t: Theme) {
 }
 
 // ── Layouts ────────────────────────────────────────────────────────
+// 5 layout klasik + 20 layout infografis baru (total 25)
+
+// ──────────────────── KEPT (5) ────────────────────
 
 export const cards: Layout = {
   id: "cards", name: "Cards", maxEntriesPerPage: 4,
@@ -347,56 +350,6 @@ export const timeline: Layout = {
   ),
 };
 
-export const flags: Layout = {
-  id: "flags", name: "Flags", maxEntriesPerPage: 4,
-  render: (d, t, { isFirst, isLast }) => (
-    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
-      <Deco kind={t.deco} />
-      {isFirst && HeaderEl(d, t)}
-      {d.entries.map((e, i) => {
-        const c = t.palette[i % t.palette.length];
-        return (
-          <div key={i} style={{ position: "relative", zIndex: 2, marginBottom: 14 }}>
-            <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
-            <div style={{ display: "flex", gap: 10, marginTop: 7, alignItems: "flex-start" }}>
-              <div style={{ width: 70, height: 52, flexShrink: 0 }}>
-                <PhotoEl t={t} url={e.photoUrl} color={c} />
-              </div>
-              <div><NarrEl t={t}>{e.narrative}</NarrEl><EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} /></div>
-            </div>
-          </div>
-        );
-      })}
-      {isLast && SummaryEl(d, t)}
-    </div>
-  ),
-};
-
-export const magazine: Layout = {
-  id: "magazine", name: "Majalah", maxEntriesPerPage: 4,
-  render: (d, t, { isFirst, isLast }) => (
-    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
-      <Deco kind={t.deco} />
-      {isFirst && HeaderEl(d, t)}
-      {d.entries.map((e, i) => {
-        const c = t.palette[i % t.palette.length];
-        return (
-          <div key={i} style={{ position: "relative", zIndex: 2, marginBottom: 18 }}>
-            <div style={{ marginBottom: 6 }}>
-              <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
-            </div>
-            <div style={{ width: "100%", height: 150, marginBottom: 8 }}>
-              <PhotoEl t={t} url={e.photoUrl} color={c} />
-            </div>
-            <div><NarrEl t={t}>{e.narrative}</NarrEl><EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} /></div>
-          </div>
-        );
-      })}
-      {isLast && SummaryEl(d, t)}
-    </div>
-  ),
-};
-
 export const scrapbook: Layout = {
   id: "scrapbook", name: "Scrapbook", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
@@ -436,7 +389,6 @@ export const scrapbook: Layout = {
   ),
 };
 
-// ── Grid — 2-column Instagram-style ────────────────────────────────
 export const grid: Layout = {
   id: "grid", name: "Grid 2×", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
@@ -469,7 +421,6 @@ export const grid: Layout = {
   ),
 };
 
-// ── Compact — daftar padat, 4 entri per halaman ─────────────────────
 export const compact: Layout = {
   id: "compact", name: "Compact List", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
@@ -503,129 +454,754 @@ export const compact: Layout = {
   ),
 };
 
-// ── Cover Page — halaman judul dengan foto besar ────────────────────
-export const cover: Layout = {
-  id: "cover", name: "Cover Page", maxEntriesPerPage: 1,
-  render: (d, t) => (
-    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "30px 20px", position: "relative", overflow: "hidden", minHeight: 420, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-      <Deco kind={t.deco} />
-      <div style={{ position: "relative", zIndex: 2, textAlign: "center" }}>
-        {d.photoUrls && d.photoUrls.length > 0 && (
-          <div style={{ width: 140, height: 140, borderRadius: "50%", overflow: "hidden", margin: "0 auto 20px", border: `4px solid ${t.accent}`, boxShadow: `0 8px 24px ${t.accent}44` }}>
-            <img src={d.photoUrls[0]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          </div>
-        )}
-        <div style={{ fontFamily: t.fontDisplay, fontWeight: 800, fontSize: 28, color: t.accent, letterSpacing: 1, marginBottom: 4 }}>
-          {t.headerText}
-        </div>
-        <div style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 36, color: t.ink, lineHeight: 1.2, marginBottom: 6 }}>
-          {d.studentName}
-        </div>
-        <div style={{ fontFamily: t.fontBody, fontSize: 16, color: t.muted, fontWeight: 500 }}>
-          {d.period}
-        </div>
-        {d.tutorName && (
-          <div style={{ marginTop: 20, paddingTop: 16, borderTop: `1px solid ${t.muted}33` }}>
-            <span style={{ fontFamily: t.fontBody, fontSize: 13, color: t.muted }}>
-              Disusun oleh <strong style={{ color: t.ink }}>{d.tutorName}</strong>
-            </span>
-          </div>
-        )}
-      </div>
-    </div>
-  ),
-};
+// ──────────────────── NEW (20) ────────────────────
 
-// ── Gallery — grid foto semua sesi ──────────────────────────────────
-export const gallery: Layout = {
-  id: "gallery", name: "Photo Gallery", maxEntriesPerPage: 4,
+// 1 ─ Dashboard
+export const dashboard: Layout = {
+  id: "dashboard", name: "Dashboard", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
     <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
       <Deco kind={t.deco} />
       {isFirst && HeaderEl(d, t)}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, position: "relative", zIndex: 2 }}>
-        {d.entries.map((e, i) => {
-          const c = t.palette[i % t.palette.length];
-          return (
-            <div key={i} style={{ position: "relative" }}>
-              <div style={{ aspectRatio: "1/1", borderRadius: 10, overflow: "hidden", background: c + "22" }}>
-                <PhotoEl t={t} url={e.photoUrl} color={c} />
-              </div>
-              <div style={{ position: "absolute", bottom: 4, left: 4, right: 4 }}>
-                <span style={{ display: "inline-block", background: "rgba(0,0,0,.65)", color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 999 }}>
-                  {e.date}
-                </span>
-              </div>
-            </div>
-          );
-        })}
+      {/* 4 KPI cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 18, position: "relative", zIndex: 2 }}>
+        {[
+          { label: "Sesi", value: d.entries.length },
+          { label: "Rata² Engagement", value: d.avgEngagement != null ? `${d.avgEngagement}/10` : "—" },
+          { label: "Foto", value: d.entries.filter(e => e.photoUrl).length },
+          { label: "Mapel", value: [...new Set(d.entries.flatMap(e => e.subject.split(", ")))].length },
+        ].map((kpi, ki) => (
+          <div key={ki} style={{ background: t.accent + "12", borderRadius: 14, padding: "12px 10px", textAlign: "center" }}>
+            <p style={{ fontFamily: t.fontDisplay, fontWeight: 800, fontSize: 24, color: t.accent, margin: 0, lineHeight: 1.1 }}>{kpi.value}</p>
+            <p style={{ fontSize: 10, color: t.muted, margin: "2px 0 0", fontWeight: 500 }}>{kpi.label}</p>
+          </div>
+        ))}
       </div>
-      {isLast && d.summary && (
-        <div style={{ marginTop: 16, position: "relative", zIndex: 2, textAlign: "center" }}>
-          <p style={{ fontFamily: t.fontBody, fontSize: 11, color: t.muted, fontStyle: "italic" }}>📸 {d.entries.length} momen belajar di {d.period}</p>
-        </div>
-      )}
+      {/* Session rows */}
+      {d.entries.map((e, i) => {
+        const c = t.palette[i % t.palette.length];
+        return (
+          <div key={i} style={{ display: "flex", gap: 10, marginBottom: 12, position: "relative", zIndex: 2, alignItems: "center" }}>
+            <div style={{ width: 42, height: 42, borderRadius: 10, overflow: "hidden", flexShrink: 0 }}>
+              <PhotoEl t={t} url={e.photoUrl} color={c} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: c, fontFamily: t.fontDisplay }}>{e.date}</span>
+                <span style={{ fontSize: 9, background: c + "20", color: c, padding: "1px 6px", borderRadius: 999, fontWeight: 600 }}>{e.subject.split(",")[0]}</span>
+              </div>
+              <p style={{ fontFamily: t.fontBody, fontSize: 11, lineHeight: 1.4, color: t.ink, margin: "2px 0 0" }}>{e.narrative}</p>
+              <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
+            </div>
+          </div>
+        );
+      })}
+      {isLast && SummaryEl(d, t)}
     </div>
   ),
 };
 
-// ── Grouped — dikelompokkan per subject ─────────────────────────────
-export const grouped: Layout = {
-  id: "grouped", name: "Grouped by Subject", maxEntriesPerPage: 4,
-  render: (d, t, { isFirst, isLast }) => {
-    // Group entries by subject
-    const groups = new Map<string, typeof d.entries>();
-    d.entries.forEach((e) => {
-      const subjects = e.subject.split(", ").map((s) => s.trim());
-      subjects.forEach((subj) => {
-        if (!groups.has(subj)) groups.set(subj, []);
-        groups.get(subj)!.push(e);
-      });
-    });
+// 2 ─ Progress Bars
+export const progress: Layout = {
+  id: "progress", name: "Progress Bar", maxEntriesPerPage: 4,
+  render: (d, t, { isFirst, isLast }) => (
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+      <Deco kind={t.deco} />
+      {isFirst && HeaderEl(d, t)}
+      {d.entries.map((e, i) => {
+        const c = t.palette[i % t.palette.length];
+        const barPct = e.engagementScore != null ? e.engagementScore * 10 : 50;
+        return (
+          <div key={i} style={{ position: "relative", zIndex: 2, marginBottom: 16 }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 6 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
+                <PhotoEl t={t} url={e.photoUrl} color={c} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
+                <NarrEl t={t}>{e.narrative}</NarrEl>
+              </div>
+            </div>
+            <div style={{ height: 6, borderRadius: 999, background: t.muted + "22", overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${barPct}%`, borderRadius: 999, background: c, transition: "width .4s" }} />
+            </div>
+            <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
+          </div>
+        );
+      })}
+      {isLast && SummaryEl(d, t)}
+    </div>
+  ),
+};
 
+// 3 ─ Weekly
+export const weekly: Layout = {
+  id: "weekly", name: "Per Minggu", maxEntriesPerPage: 4,
+  render: (d, t, { isFirst, isLast }) => {
+    const weeks = new Map<string, typeof d.entries>();
+    d.entries.forEach((e) => {
+      const parts = e.date.split(" ");
+      const dayNum = parseInt(parts[1] || "1");
+      const weekNum = `Minggu ${Math.ceil(dayNum / 7)}`;
+      if (!weeks.has(weekNum)) weeks.set(weekNum, []);
+      weeks.get(weekNum)!.push(e);
+    });
     return (
       <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
         <Deco kind={t.deco} />
         {isFirst && HeaderEl(d, t)}
-        <div style={{ position: "relative", zIndex: 2 }}>
-          {[...groups.entries()].map(([subject, entries], gi) => {
-            const c = t.palette[gi % t.palette.length];
-            return (
-              <div key={subject} style={{ marginBottom: 18 }}>
-                <div style={{
-                  fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 15, color: "#fff",
-                  background: c, borderRadius: 8, padding: "6px 14px", marginBottom: 8,
-                  display: "flex", alignItems: "center", gap: 6,
-                }}>
-                  <span>📘</span> {subject}
-                  <span style={{ fontSize: 10, opacity: 0.8, marginLeft: "auto" }}>{entries.length} sesi</span>
-                </div>
-                {entries.map((e, i) => (
-                  <div key={i} style={{ display: "flex", gap: 10, marginBottom: 10, paddingLeft: 6, borderLeft: `3px solid ${c}44` }}>
-                    <div style={{ width: 48, height: 48, flexShrink: 0, borderRadius: 8, overflow: "hidden" }}>
-                      <PhotoEl t={t} url={e.photoUrl} color={c} />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontFamily: t.fontBody, fontWeight: 700, fontSize: 11, color: c, margin: 0 }}>{e.date}</p>
-                      <p style={{ fontFamily: t.fontBody, fontSize: 11.5, lineHeight: 1.4, color: t.ink, margin: "2px 0 0",
-                        }}>
-                        {e.narrative}
-                      </p>
-                      <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
-                    </div>
-                  </div>
-                ))}
+        {[...weeks.entries()].map(([wname, entries], wi) => {
+          const wc = t.palette[wi % t.palette.length];
+          return (
+            <div key={wname} style={{ marginBottom: 18, position: "relative", zIndex: 2 }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
+                <span style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 14, color: wc }}>{wname}</span>
+                <span style={{ fontSize: 10, color: t.muted }}>{entries.length} sesi</span>
               </div>
-            );
-          })}
-        </div>
+              {entries.map((e, i) => (
+                <div key={i} style={{ display: "flex", gap: 10, marginBottom: 8, padding: "8px 10px", background: wc + "0d", borderRadius: 10 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
+                    <PhotoEl t={t} url={e.photoUrl} color={wc} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontFamily: t.fontBody, fontWeight: 700, fontSize: 10.5, color: t.ink, margin: 0 }}>{e.date} · {e.subject.split(",")[0]}</p>
+                    <p style={{ fontFamily: t.fontBody, fontSize: 10.5, lineHeight: 1.4, color: t.ink, margin: "2px 0 0" }}>{e.narrative}</p>
+                    <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })}
         {isLast && SummaryEl(d, t)}
       </div>
     );
   },
 };
 
-export const LAYOUTS: Layout[] = [cards, timeline, flags, magazine, scrapbook, grid, compact, cover, gallery, grouped];
+// 4 ─ Per Mapel
+export const subjects: Layout = {
+  id: "subjects", name: "Per Mapel", maxEntriesPerPage: 4,
+  render: (d, t, { isFirst, isLast }) => {
+    const groups = new Map<string, typeof d.entries>();
+    d.entries.forEach((e) => {
+      const subs = e.subject.split(", ").map(s => s.trim());
+      subs.forEach((subj) => {
+        if (!groups.has(subj)) groups.set(subj, []);
+        groups.get(subj)!.push(e);
+      });
+    });
+    return (
+      <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+        <Deco kind={t.deco} />
+        {isFirst && HeaderEl(d, t)}
+        {[...groups.entries()].map(([subject, entries], gi) => {
+          const c = t.palette[gi % t.palette.length];
+          const avgEng = entries.filter(e => e.engagementScore != null).reduce((s,e) => s + e.engagementScore!, 0) / (entries.filter(e => e.engagementScore != null).length || 1);
+          return (
+            <div key={subject} style={{ marginBottom: 16, position: "relative", zIndex: 2, background: c + "0d", borderRadius: 14, padding: "12px 14px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <span style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 14, color: c }}>📘 {subject}</span>
+                <span style={{ fontSize: 10, color: t.muted }}>{entries.length} sesi · avg {Math.round(avgEng)}/10</span>
+              </div>
+              {entries.map((e, i) => (
+                <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, paddingLeft: 6, borderLeft: `2px solid ${c}44` }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 10, fontWeight: 600, color: t.muted, margin: 0 }}>{e.date}</p>
+                    <p style={{ fontFamily: t.fontBody, fontSize: 10.5, lineHeight: 1.35, color: t.ink, margin: "1px 0 0" }}>{e.narrative}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })}
+        {isLast && SummaryEl(d, t)}
+      </div>
+    );
+  },
+};
+
+// 5 ─ Rapor Style
+export const reportcard: Layout = {
+  id: "reportcard", name: "Rapor Style", maxEntriesPerPage: 4,
+  render: (d, t, { isFirst, isLast }) => (
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+      <Deco kind={t.deco} />
+      {isFirst && HeaderEl(d, t)}
+      <div style={{ position: "relative", zIndex: 2 }}>
+        {/* Table header */}
+        <div style={{ display: "grid", gridTemplateColumns: "60px 1fr 70px", gap: 8, padding: "6px 8px", background: t.accent, borderRadius: "8px 8px 0 0", fontWeight: 700, fontSize: 10, color: "#fff" }}>
+          <span>Tanggal</span><span>Mapel & Catatan</span><span>Engage</span>
+        </div>
+        {d.entries.map((e, i) => {
+          const c = t.palette[i % t.palette.length];
+          const bgRow = i % 2 === 0 ? t.bg : c + "0a";
+          return (
+            <div key={i} style={{ display: "grid", gridTemplateColumns: "60px 1fr 70px", gap: 8, padding: "8px 8px", background: bgRow, borderBottom: `1px solid ${t.muted}18`, alignItems: "start" }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: t.muted }}>{e.date.split(" ").pop()}</span>
+              <div>
+                <span style={{ fontSize: 10, fontWeight: 700, color: c, display: "block" }}>{e.subject}</span>
+                <span style={{ fontFamily: t.fontBody, fontSize: 10, lineHeight: 1.35, color: t.ink }}>{e.narrative}</span>
+              </div>
+              <span style={{ fontSize: 12, fontWeight: 800, color: c, textAlign: "center" }}>
+                {e.engagementScore != null ? `${e.engagementScore}/10` : "—"}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      {isLast && SummaryEl(d, t)}
+    </div>
+  ),
+};
+
+// 6 ─ Portfolio
+export const portfolio: Layout = {
+  id: "portfolio", name: "Portfolio", maxEntriesPerPage: 4,
+  render: (d, t, { isFirst, isLast }) => (
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+      <Deco kind={t.deco} />
+      {isFirst && HeaderEl(d, t)}
+      {d.entries.map((e, i) => {
+        const c = t.palette[i % t.palette.length];
+        return (
+          <div key={i} style={{ position: "relative", zIndex: 2, marginBottom: 20, borderRadius: 16, overflow: "hidden", background: c + "0d" }}>
+            <div style={{ height: 140 }}>
+              <PhotoEl t={t} url={e.photoUrl} color={c} />
+            </div>
+            <div style={{ padding: "10px 14px 14px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
+                {e.engagementScore != null && (
+                  <span style={{ fontSize: 11, fontWeight: 800, color: c }}>⚡ {e.engagementScore}/10</span>
+                )}
+              </div>
+              <NarrEl t={t}>{e.narrative}</NarrEl>
+            </div>
+          </div>
+        );
+      })}
+      {isLast && SummaryEl(d, t)}
+    </div>
+  ),
+};
+
+// 7 ─ Checklist
+export const checklist: Layout = {
+  id: "checklist", name: "Checklist", maxEntriesPerPage: 4,
+  render: (d, t, { isFirst, isLast }) => (
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+      <Deco kind={t.deco} />
+      {isFirst && HeaderEl(d, t)}
+      {d.entries.map((e, i) => {
+        const c = t.palette[i % t.palette.length];
+        const hasNarrative = Boolean(e.narrative?.trim());
+        const hasEngagement = e.engagementScore != null && e.engagementScore >= 6;
+        return (
+          <div key={i} style={{ display: "flex", gap: 10, marginBottom: 10, padding: "10px 12px", borderRadius: 12, background: c + "0a", position: "relative", zIndex: 2, alignItems: "flex-start" }}>
+            <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1 }}>{hasNarrative ? "✅" : "⬜"}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 2 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: c }}>{e.date}</span>
+                <span style={{ fontSize: 9, background: c + "22", color: c, padding: "1px 6px", borderRadius: 999 }}>{e.subject}</span>
+                {e.engagementScore != null && (
+                  <span style={{ fontSize: 9, fontWeight: 700, color: hasEngagement ? "#10B981" : "#EF4444", marginLeft: "auto" }}>
+                    {hasEngagement ? "🔥" : "⚡"} {e.engagementScore}
+                  </span>
+                )}
+              </div>
+              <p style={{ fontFamily: t.fontBody, fontSize: 10.5, lineHeight: 1.4, color: t.ink, margin: 0 }}>
+                {e.narrative || "— belum ada narasi —"}
+              </p>
+            </div>
+          </div>
+        );
+      })}
+      {isLast && SummaryEl(d, t)}
+    </div>
+  ),
+};
+
+// 8 ─ Ringkasan Eksekutif
+export const summary: Layout = {
+  id: "summary", name: "Ringkasan Eksekutif", maxEntriesPerPage: 4,
+  render: (d, t, { isFirst, isLast }) => (
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+      <Deco kind={t.deco} />
+      {isFirst && HeaderEl(d, t)}
+      {/* 3 highlight pills */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", position: "relative", zIndex: 2 }}>
+        {[
+          { icon: "📊", label: `${d.entries.length} Sesi` },
+          { icon: "📚", label: `${[...new Set(d.entries.flatMap(e => e.subject.split(", ")))].length} Mapel` },
+          { icon: "⭐", label: d.avgEngagement != null ? `Rata² ${d.avgEngagement}/10` : "Engagement —" },
+        ].map((hl, hi) => (
+          <span key={hi} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "6px 12px", borderRadius: 999, background: t.palette[hi] + "20", fontSize: 11, fontWeight: 600, color: t.palette[hi] }}>
+            {hl.icon} {hl.label}
+          </span>
+        ))}
+      </div>
+      {/* Compact session list */}
+      {d.entries.map((e, i) => {
+        const c = t.palette[i % t.palette.length];
+        return (
+          <div key={i} style={{ display: "flex", gap: 10, marginBottom: 10, position: "relative", zIndex: 2 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
+              <PhotoEl t={t} url={e.photoUrl} color={c} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 10, fontWeight: 600, color: c, margin: 0 }}>{e.date} · {e.subject.split(",")[0]}</p>
+              <p style={{ fontFamily: t.fontBody, fontSize: 10.5, lineHeight: 1.35, color: t.ink, margin: "1px 0 0" }}>{e.narrative}</p>
+            </div>
+          </div>
+        );
+      })}
+      {isLast && SummaryEl(d, t)}
+    </div>
+  ),
+};
+
+// 9 ─ Growth Chart (mini bar)
+export const growth: Layout = {
+  id: "growth", name: "Pertumbuhan", maxEntriesPerPage: 4,
+  render: (d, t, { isFirst, isLast }) => {
+    const maxScore = 10;
+    return (
+      <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+        <Deco kind={t.deco} />
+        {isFirst && HeaderEl(d, t)}
+        {/* Mini bar chart */}
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 80, marginBottom: 20, position: "relative", zIndex: 2, padding: "0 4px" }}>
+          {d.entries.map((e, i) => {
+            const c = t.palette[i % t.palette.length];
+            const h = e.engagementScore != null ? (e.engagementScore / maxScore) * 100 : 15;
+            return (
+              <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                <span style={{ fontSize: 9, fontWeight: 700, color: c }}>{e.engagementScore ?? "—"}</span>
+                <div style={{ width: "100%", height: `${h}%`, borderRadius: "4px 4px 0 0", background: c, minHeight: 4, transition: "height .3s" }} />
+                <span style={{ fontSize: 8, color: t.muted, transform: "rotate(-30deg)", whiteSpace: "nowrap", marginTop: 2 }}>{e.date.split(" ").pop()}</span>
+              </div>
+            );
+          })}
+        </div>
+        {/* Session details */}
+        {d.entries.map((e, i) => {
+          const c = t.palette[i % t.palette.length];
+          return (
+            <div key={i} style={{ display: "flex", gap: 8, marginBottom: 10, position: "relative", zIndex: 2 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
+                <PhotoEl t={t} url={e.photoUrl} color={c} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
+                <NarrEl t={t}>{e.narrative}</NarrEl>
+              </div>
+            </div>
+          );
+        })}
+        {isLast && SummaryEl(d, t)}
+      </div>
+    );
+  },
+};
+
+// 10 ─ Dossier
+export const dossier: Layout = {
+  id: "dossier", name: "Berkas Siswa", maxEntriesPerPage: 4,
+  render: (d, t, { isFirst, isLast }) => (
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+      <Deco kind={t.deco} />
+      {isFirst && HeaderEl(d, t)}
+      {d.entries.map((e, i) => {
+        const c = t.palette[i % t.palette.length];
+        return (
+          <div key={i} style={{ position: "relative", zIndex: 2, marginBottom: 16, borderRadius: 12, border: `2px solid ${c}33`, background: "#fff", overflow: "hidden" }}>
+            <div style={{ background: c, padding: "8px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 13, color: "#fff" }}>{e.date}</span>
+              <span style={{ fontSize: 9, background: "rgba(255,255,255,.25)", color: "#fff", padding: "2px 8px", borderRadius: 999 }}>{e.subject}</span>
+            </div>
+            <div style={{ padding: "12px 14px" }}>
+              <NarrEl t={t}>{e.narrative}</NarrEl>
+              <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
+            </div>
+          </div>
+        );
+      })}
+      {isLast && SummaryEl(d, t)}
+    </div>
+  ),
+};
+
+// 11 ─ Analitik
+export const analytics: Layout = {
+  id: "analytics", name: "Analitik", maxEntriesPerPage: 4,
+  render: (d, t, { isFirst, isLast }) => {
+    const subjectCounts = new Map<string, number>();
+    d.entries.forEach(e => e.subject.split(", ").forEach(s => subjectCounts.set(s.trim(), (subjectCounts.get(s.trim()) || 0) + 1)));
+    const total = d.entries.length;
+    return (
+      <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+        <Deco kind={t.deco} />
+        {isFirst && HeaderEl(d, t)}
+        {/* Donut-like subject bars */}
+        <div style={{ marginBottom: 18, position: "relative", zIndex: 2 }}>
+          <p style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 11, color: t.muted, marginBottom: 8, letterSpacing: 1, textTransform: "uppercase" }}>Distribusi Mapel</p>
+          {[...subjectCounts.entries()].map(([subj, cnt], si) => {
+            const c = t.palette[si % t.palette.length];
+            const pct = Math.round((cnt / total) * 100);
+            return (
+              <div key={subj} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                <span style={{ fontSize: 10, fontWeight: 600, width: 80, flexShrink: 0, color: t.ink }}>{subj}</span>
+                <div style={{ flex: 1, height: 8, borderRadius: 999, background: t.muted + "18", overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${pct}%`, borderRadius: 999, background: c }} />
+                </div>
+                <span style={{ fontSize: 10, fontWeight: 700, color: c, width: 30, textAlign: "right" }}>{cnt}</span>
+              </div>
+            );
+          })}
+        </div>
+        {/* Session details */}
+        {d.entries.map((e, i) => {
+          const c = t.palette[i % t.palette.length];
+          return (
+            <div key={i} style={{ display: "flex", gap: 10, marginBottom: 10, position: "relative", zIndex: 2 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
+                <PhotoEl t={t} url={e.photoUrl} color={c} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: c }}>{e.date} · {e.subject.split(",")[0]}</span>
+                <p style={{ fontFamily: t.fontBody, fontSize: 10.5, lineHeight: 1.35, color: t.ink, margin: "2px 0 0" }}>{e.narrative}</p>
+              </div>
+            </div>
+          );
+        })}
+        {isLast && SummaryEl(d, t)}
+      </div>
+    );
+  },
+};
+
+// 12 ─ Narrative
+export const narrative: Layout = {
+  id: "narrative", name: "Narasi Utama", maxEntriesPerPage: 4,
+  render: (d, t, { isFirst, isLast }) => (
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+      <Deco kind={t.deco} />
+      {isFirst && HeaderEl(d, t)}
+      {d.entries.map((e, i) => {
+        const c = t.palette[i % t.palette.length];
+        return (
+          <div key={i} style={{ position: "relative", zIndex: 2, marginBottom: 20, paddingBottom: 16, borderBottom: i < d.entries.length - 1 ? `1px solid ${t.muted}18` : "none" }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+              <div style={{ width: 30, height: 30, borderRadius: "50%", overflow: "hidden", flexShrink: 0, marginTop: 2 }}>
+                <PhotoEl t={t} url={e.photoUrl} color={c} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 14, color: c, margin: "0 0 4px" }}>{e.date}</p>
+                <span style={{ fontSize: 10, fontWeight: 600, color: t.muted, display: "block", marginBottom: 6 }}>{e.subject}</span>
+                <p style={{ fontFamily: t.fontBody, fontSize: 13, lineHeight: 1.65, color: t.ink, margin: 0 }}>{e.narrative}</p>
+                <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
+              </div>
+            </div>
+          </div>
+        );
+      })}
+      {isLast && SummaryEl(d, t)}
+    </div>
+  ),
+};
+
+// 13 ─ Milestone
+export const milestone: Layout = {
+  id: "milestone", name: "Capaian", maxEntriesPerPage: 4,
+  render: (d, t, { isFirst, isLast }) => (
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+      <Deco kind={t.deco} />
+      {isFirst && HeaderEl(d, t)}
+      <div style={{ position: "relative", zIndex: 2 }}>
+        {d.entries.map((e, i) => {
+          const c = t.palette[i % t.palette.length];
+          const engEmoji = e.engagementScore != null ? (e.engagementScore >= 8 ? "🏆" : e.engagementScore >= 6 ? "⭐" : "📌") : "📌";
+          return (
+            <div key={i} style={{ display: "flex", gap: 14, marginBottom: 22, position: "relative" }}>
+              {/* Milestone node */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+                <div style={{ width: 40, height: 40, borderRadius: "50%", background: c, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, boxShadow: `0 4px 12px ${c}55` }}>
+                  {engEmoji}
+                </div>
+                {i < d.entries.length - 1 && <div style={{ width: 2, flex: 1, background: c + "33", marginTop: 4 }} />}
+              </div>
+              <div style={{ flex: 1, paddingBottom: i < d.entries.length - 1 ? 0 : 0 }}>
+                <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
+                <div style={{ marginTop: 6, background: c + "0a", borderRadius: 12, padding: "10px 12px" }}>
+                  <NarrEl t={t}>{e.narrative}</NarrEl>
+                  <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {isLast && SummaryEl(d, t)}
+    </div>
+  ),
+};
+
+// 14 ─ Split View
+export const split: Layout = {
+  id: "split", name: "Dua Sisi", maxEntriesPerPage: 4,
+  render: (d, t, { isFirst, isLast }) => (
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+      <Deco kind={t.deco} />
+      {isFirst && HeaderEl(d, t)}
+      {d.entries.map((e, i) => {
+        const c = t.palette[i % t.palette.length];
+        return (
+          <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16, position: "relative", zIndex: 2, background: c + "0a", borderRadius: 14, padding: 12, alignItems: "start" }}>
+            {/* Left: Photo + Engagement */}
+            <div>
+              <div style={{ height: 100, borderRadius: 10, overflow: "hidden", marginBottom: 6 }}>
+                <PhotoEl t={t} url={e.photoUrl} color={c} />
+              </div>
+              {e.engagementScore != null && (
+                <div style={{ textAlign: "center" }}>
+                  <span style={{ fontSize: 20, fontWeight: 800, color: c }}>{e.engagementScore}</span>
+                  <span style={{ fontSize: 10, color: t.muted }}>/10</span>
+                </div>
+              )}
+            </div>
+            {/* Right: Label + Narrative */}
+            <div>
+              <LabelEl t={t} c={c}>{e.date}</LabelEl>
+              <p style={{ fontSize: 9, fontWeight: 600, color: t.muted, margin: "4px 0" }}>{e.subject}</p>
+              <NarrEl t={t}>{e.narrative}</NarrEl>
+            </div>
+          </div>
+        );
+      })}
+      {isLast && SummaryEl(d, t)}
+    </div>
+  ),
+};
+
+// 15 ─ Journal
+export const journal: Layout = {
+  id: "journal", name: "Jurnal", maxEntriesPerPage: 4,
+  render: (d, t, { isFirst, isLast }) => (
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+      <Deco kind={t.deco} />
+      {isFirst && HeaderEl(d, t)}
+      {d.entries.map((e, i) => {
+        const c = t.palette[i % t.palette.length];
+        const [dayName, ...rest] = e.date.split(" ");
+        const dayNum = rest.pop() || "";
+        return (
+          <div key={i} style={{ display: "flex", gap: 14, marginBottom: 18, position: "relative", zIndex: 2 }}>
+            <div style={{ textAlign: "right", flexShrink: 0, width: 48, paddingTop: 2 }}>
+              <p style={{ fontFamily: t.fontDisplay, fontWeight: 800, fontSize: 28, color: c, lineHeight: 1, margin: 0 }}>{dayNum}</p>
+              <p style={{ fontSize: 9, fontWeight: 600, color: t.muted, margin: 0 }}>{dayName}</p>
+            </div>
+            <div style={{ flex: 1, borderLeft: `2px dashed ${c}44`, paddingLeft: 14 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: c, background: c + "18", padding: "2px 8px", borderRadius: 999 }}>
+                {e.subject}
+              </span>
+              <p style={{ fontFamily: "'Caveat', cursive", fontSize: 14, lineHeight: 1.5, color: t.ink, margin: "6px 0 0" }}>{e.narrative}</p>
+              <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
+            </div>
+          </div>
+        );
+      })}
+      {isLast && SummaryEl(d, t)}
+    </div>
+  ),
+};
+
+// 16 ─ Overview Cards (full-width photo)
+export const overview: Layout = {
+  id: "overview", name: "Overview Cards", maxEntriesPerPage: 4,
+  render: (d, t, { isFirst, isLast }) => (
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+      <Deco kind={t.deco} />
+      {isFirst && HeaderEl(d, t)}
+      {d.entries.map((e, i) => {
+        const c = t.palette[i % t.palette.length];
+        return (
+          <div key={i} style={{ position: "relative", zIndex: 2, marginBottom: 18, borderRadius: 16, overflow: "hidden", boxShadow: `0 3px 12px ${c}22` }}>
+            <div style={{ height: 120, position: "relative" }}>
+              <PhotoEl t={t} url={e.photoUrl} color={c} />
+              <div style={{ position: "absolute", inset: 0, background: `linear-gradient(transparent 40%, ${c}99)` }} />
+              <div style={{ position: "absolute", bottom: 8, left: 12, right: 12 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: "rgba(0,0,0,.35)", padding: "3px 10px", borderRadius: 999 }}>{e.date} · {e.subject}</span>
+              </div>
+            </div>
+            <div style={{ padding: "12px 14px", background: "#fff" }}>
+              <NarrEl t={t}>{e.narrative}</NarrEl>
+              <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
+            </div>
+          </div>
+        );
+      })}
+      {isLast && SummaryEl(d, t)}
+    </div>
+  ),
+};
+
+// 17 ─ Minimalis
+export const minimal: Layout = {
+  id: "minimal", name: "Minimalis", maxEntriesPerPage: 4,
+  render: (d, t, { isFirst, isLast }) => (
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+      {isFirst && HeaderEl(d, t)}
+      <div style={{ position: "relative", zIndex: 2 }}>
+        {d.entries.map((e, i) => {
+          const c = t.palette[i % t.palette.length];
+          return (
+            <div key={i} style={{ marginBottom: 20 }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: c }}>{e.date}</span>
+                <span style={{ fontSize: 10, color: t.muted }}>{e.subject}</span>
+                {e.engagementScore != null && (
+                  <span style={{ fontSize: 10, fontWeight: 700, color: c, marginLeft: "auto" }}>{e.engagementScore}/10</span>
+                )}
+              </div>
+              <p style={{ fontFamily: t.fontBody, fontSize: 11.5, lineHeight: 1.55, color: t.ink, margin: 0 }}>{e.narrative}</p>
+              {i < d.entries.length - 1 && <div style={{ height: 1, background: t.muted + "15", marginTop: 16 }} />}
+            </div>
+          );
+        })}
+      </div>
+      {isLast && SummaryEl(d, t)}
+    </div>
+  ),
+};
+
+// 18 ─ Bullet Journal
+export const bullets: Layout = {
+  id: "bullets", name: "Bullet Journal", maxEntriesPerPage: 4,
+  render: (d, t, { isFirst, isLast }) => (
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+      <Deco kind={t.deco} />
+      {isFirst && HeaderEl(d, t)}
+      {d.entries.map((e, i) => {
+        const c = t.palette[i % t.palette.length];
+        const bullet = e.engagementScore != null && e.engagementScore >= 8 ? "●" : e.engagementScore != null && e.engagementScore >= 5 ? "◉" : "○";
+        return (
+          <div key={i} style={{ display: "flex", gap: 10, marginBottom: 14, position: "relative", zIndex: 2 }}>
+            <span style={{ fontSize: 16, color: c, flexShrink: 0, lineHeight: 1.2 }}>{bullet}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 3 }}>
+                <span style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 11, color: c }}>{e.date}</span>
+                <span style={{ fontSize: 9, background: t.muted + "18", color: t.muted, padding: "1px 6px", borderRadius: 999 }}>{e.subject}</span>
+                {e.engagementScore != null && (
+                  <span style={{ fontSize: 9, fontWeight: 700, color: c }}>⚡{e.engagementScore}</span>
+                )}
+              </div>
+              <p style={{ fontFamily: "'Caveat', cursive", fontSize: 13, lineHeight: 1.5, color: t.ink, margin: 0 }}>{e.narrative}</p>
+            </div>
+          </div>
+        );
+      })}
+      {isLast && SummaryEl(d, t)}
+    </div>
+  ),
+};
+
+// 19 ─ Compare
+export const compare: Layout = {
+  id: "compare", name: "Perbandingan", maxEntriesPerPage: 4,
+  render: (d, t, { isFirst, isLast }) => {
+    const firstHalf = d.entries.slice(0, Math.ceil(d.entries.length / 2));
+    const secondHalf = d.entries.slice(Math.ceil(d.entries.length / 2));
+    const avgEng = (entries: typeof d.entries) => {
+      const valid = entries.filter(e => e.engagementScore != null);
+      return valid.length > 0 ? Math.round(valid.reduce((s, e) => s + e.engagementScore!, 0) / valid.length) : null;
+    };
+    return (
+      <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+        <Deco kind={t.deco} />
+        {isFirst && HeaderEl(d, t)}
+        {/* Comparison header */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16, position: "relative", zIndex: 2 }}>
+          {[
+            { label: "Awal Bulan", entries: firstHalf, ci: 0 },
+            { label: "Akhir Bulan", entries: secondHalf, ci: 1 },
+          ].map((col) => {
+            const cc = t.palette[col.ci];
+            const avg = avgEng(col.entries);
+            return (
+              <div key={col.label} style={{ background: cc + "12", borderRadius: 12, padding: "10px", textAlign: "center" }}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: cc, margin: 0 }}>{col.label}</p>
+                <p style={{ fontFamily: t.fontDisplay, fontWeight: 800, fontSize: 22, color: cc, margin: "4px 0 0" }}>{col.entries.length}</p>
+                <p style={{ fontSize: 9, color: t.muted, margin: 0 }}>sesi{avg != null ? ` · avg ${avg}/10` : ""}</p>
+              </div>
+            );
+          })}
+        </div>
+        {/* Arrow and comparison summary */}
+        <div style={{ textAlign: "center", marginBottom: 16, position: "relative", zIndex: 2 }}>
+          {(avgEng(firstHalf) != null && avgEng(secondHalf) != null) && (
+            <span style={{ fontSize: 12, fontWeight: 600, color: avgEng(secondHalf)! >= avgEng(firstHalf)! ? "#10B981" : "#EF4444" }}>
+              {avgEng(secondHalf)! >= avgEng(firstHalf)! ? "📈 Meningkat" : "📉 Menurun"} {Math.abs(avgEng(secondHalf)! - avgEng(firstHalf)!)} poin
+            </span>
+          )}
+        </div>
+        {/* All sessions compact */}
+        {d.entries.map((e, i) => {
+          const c = t.palette[i % t.palette.length];
+          return (
+            <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, position: "relative", zIndex: 2, padding: "6px 8px", borderRadius: 8, background: c + "08" }}>
+              <span style={{ fontSize: 9, fontWeight: 600, color: c, width: 55, flexShrink: 0 }}>{e.date.split(" ").pop()}</span>
+              <span style={{ fontFamily: t.fontBody, fontSize: 10, color: t.ink, flex: 1, lineHeight: 1.3 }}>{e.narrative.slice(0, 60)}{e.narrative.length > 60 ? "…" : ""}</span>
+              {e.engagementScore != null && <span style={{ fontSize: 10, fontWeight: 700, color: c }}>{e.engagementScore}</span>}
+            </div>
+          );
+        })}
+        {isLast && SummaryEl(d, t)}
+      </div>
+    );
+  },
+};
+
+// 20 ─ Snapshot (Polaroid grid 3-col)
+export const snapshot: Layout = {
+  id: "snapshot", name: "Snapshot", maxEntriesPerPage: 4,
+  render: (d, t, { isFirst, isLast }) => (
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+      <Deco kind={t.deco} />
+      {isFirst && HeaderEl(d, t)}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, position: "relative", zIndex: 2 }}>
+        {d.entries.map((e, i) => {
+          const c = t.palette[i % t.palette.length];
+          const rot = ((i % 3) - 1) * 1.8;
+          return (
+            <div key={i} style={{ transform: `rotate(${rot}deg)`, background: "#fff", padding: 6, paddingBottom: 20, boxShadow: "0 2px 8px rgba(0,0,0,.10)", borderRadius: 2 }}>
+              <div style={{ aspectRatio: "1/1", overflow: "hidden", borderRadius: 1, marginBottom: 6 }}>
+                <PhotoEl t={t} url={e.photoUrl} color={c} />
+              </div>
+              <p style={{ fontFamily: "'Caveat', cursive", fontSize: 9, lineHeight: 1.3, color: t.ink, margin: 0, textAlign: "center" }}>
+                {e.date.split(" ").pop()} — {e.subject.split(",")[0]}
+              </p>
+              {e.engagementScore != null && (
+                <p style={{ fontSize: 8, fontWeight: 700, color: c, textAlign: "center", margin: "2px 0 0" }}>⚡{e.engagementScore}</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {isLast && SummaryEl(d, t)}
+    </div>
+  ),
+};
+
+// ──────────────────── EXPORT ────────────────────
+
+export const LAYOUTS: Layout[] = [
+  cards, timeline, scrapbook, grid, compact,
+  dashboard, progress, weekly, subjects, reportcard,
+  portfolio, checklist, summary, growth, dossier,
+  analytics, narrative, milestone, split, journal,
+  overview, minimal, bullets, compare, snapshot,
+];
 export const LAYOUT_IDS = LAYOUTS.map((l) => l.id);
 export function getLayout(id: string): Layout {
   return LAYOUTS.find((l) => l.id === id) ?? cards;
