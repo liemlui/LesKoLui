@@ -42,9 +42,33 @@ export interface AiPaymentReminder { message: string }
 
 const DEEPSEEK_URL = "https://api.deepseek.com/chat/completions";
 
-function sanitize(s: string) { return s.replace(/[\x00-\x1f]/g, ""); }
+/**
+ * Sanitize user-provided strings before they enter AI prompts.
+ * Removes control characters and escapes patterns that could:
+ * - Break out of the "---USER DATA END---" boundary marker
+ * - Inject markdown code fences (```) that confuse the model
+ * - Inject JSON closing braces that break structured parsing
+ *
+ * Non-destructive — valid Indonesian text passes through unchanged.
+ */
+function sanitize(s: string): string {
+  return s
+    // Strip control characters (except common whitespace)
+    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, "")
+    // Escape triple-backtick so it can't form a markdown fence
+    .replace(/```/g, "`‌`‌`")
+    // Escape the boundary marker so user data can't end the user section early
+    .replace(/---USER DATA END---/gi, "—USER DATA END—")
+    // Escape triple-dash so no new boundary can be forged
+    .replace(/^---$/gm, "—")
+    // Null-byte (belt-and-suspenders)
+    .replace(/\x00/g, "");
+}
 
-async function callAI<T>(systemPrompt: string, userContent: string): Promise<T> {
+// 30-second timeout for AI requests
+const AI_TIMEOUT_MS = 30_000;
+
+async function callAI<T>(systemPrompt: string, userContent: string, signal?: AbortSignal): Promise<T> {
   const s = await getSettings();
   if (!s.ai.enabled) throw new Error("AI belum diaktifkan di Pengaturan.");
   const apiKey = s.ai.apiKey?.trim();
@@ -60,16 +84,40 @@ async function callAI<T>(systemPrompt: string, userContent: string): Promise<T> 
     ],
   };
 
-  const res = await fetch(DEEPSEEK_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`AI error ${res.status}: ${await res.text()}`);
-  const data = await res.json();
-  const text = data?.choices?.[0]?.message?.content ?? "{}";
-  try { return JSON.parse(text) as T; }
-  catch { throw new Error("Respons AI tidak valid. Coba lagi."); }
+  // Create an AbortController with a timeout, chaining with any caller-supplied signal
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(new DOMException("Request timed out", "TimeoutError")), AI_TIMEOUT_MS);
+
+  // If caller supplied a signal, abort when either fires
+  const combinedSignal = signal
+    ? combineAbortSignals(signal, controller.signal)
+    : controller.signal;
+
+  try {
+    const res = await fetch(DEEPSEEK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+      body: JSON.stringify(body),
+      signal: combinedSignal,
+    });
+    if (!res.ok) throw new Error(`AI error ${res.status}: ${await res.text()}`);
+    const data = await res.json();
+    const text = data?.choices?.[0]?.message?.content ?? "{}";
+    try { return JSON.parse(text) as T; }
+    catch { throw new Error("Respons AI tidak valid. Coba lagi."); }
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/** Combine two AbortSignals into one — resolves when either aborts. */
+function combineAbortSignals(a: AbortSignal, b: AbortSignal): AbortSignal {
+  const controller = new AbortController();
+  const onAbort = () => controller.abort();
+  a.addEventListener("abort", onAbort, { once: true });
+  b.addEventListener("abort", onAbort, { once: true });
+  if (a.aborted || b.aborted) controller.abort();
+  return controller.signal;
 }
 
 // ── 1. Poles narasi laporan bulanan ─────────────────────────────────────────

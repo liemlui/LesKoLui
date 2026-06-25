@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "../db/db";
 import {
   listStudents, getStudent, createSession, recentShortNotes,
   createHomework, createFollowUp, listPendingHomework, listPendingFollowUps,
@@ -218,7 +219,6 @@ export default function CaptureSession() {
   useEffect(() => {
     if (!scheduleId) return;
     (async () => {
-      const { db } = await import("../db/db");
       const session = await db.sessions.get(scheduleId);
       if (!session) return;
       setStudentId(session.studentId);
@@ -230,10 +230,13 @@ export default function CaptureSession() {
 
   useEffect(() => {
     if (!studentId || !sessionDate) { setConflictWarn([]); return; }
+    let cancelled = false;
     listDoneSessionsForDate(sessionDate).then((sessions) => {
+      if (cancelled) return;
       const others = sessions.filter((s) => s.studentId !== studentId);
       setConflictWarn(others.length > 0 ? others.map((s) => s.studentId) : []);
     });
+    return () => { cancelled = true; };
   }, [studentId, sessionDate]);
 
   useEffect(() => {

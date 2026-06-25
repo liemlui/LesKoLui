@@ -4,7 +4,7 @@ export type HeaderStyle = "bubble" | "script" | "plain" | "frame" | "minimal" | 
 export type LabelStyle  = "pill" | "rounded" | "flag" | "tag" | "underline" | "ribbon-label";
 export type PhotoStyle  = "round" | "circle" | "polaroid" | "shadow" | "frame" | "vintage" | "duotone";
 export type DecoKind    = "snow" | "leaf" | "petal" | "sparkle" | "star" | "wave" | "sun" | "none"
-                        | "geometric" | "dots" | "stripes" | "confetti" | "book" | "globe" | "ribbon" | "zigzag";
+                        | "geometric" | "dots" | "confetti" | "ribbon" | "zigzag";
 
 export interface Theme {
   id: string;
@@ -52,22 +52,8 @@ export interface Layout {
   render: (page: ReportData, theme: Theme, opts: { isFirst: boolean; isLast: boolean }) => React.JSX.Element;
 }
 
-export interface CustomTheme {
-  id: string;
-  name: string;
-  bg: string;
-  ink: string;
-  muted: string;
-  accent: string;
-  palette: string[];
-  fontDisplay: string;
-  fontBody: string;
-  header: HeaderStyle;
-  label: LabelStyle;
-  photo: PhotoStyle;
-  deco: DecoKind;
-  headerText: string;
-}
+/** Alias for Theme — used in Settings to store user-created themes. */
+export type CustomTheme = Theme;
 
 export interface ReportOptions {
   coverPage?: boolean;

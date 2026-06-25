@@ -17,3 +17,12 @@ import App from "./App";
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode><App /></React.StrictMode>
 );
+
+// DEV-only: expose & auto-seed dummy data when the DB is empty.
+if (import.meta.env.DEV) {
+  import("./dev/seedDummy").then(({ seedDummyData, clearDummy }) => {
+    (window as unknown as Record<string, unknown>).seedDummy = seedDummyData;
+    (window as unknown as Record<string, unknown>).clearDummy = clearDummy;
+    seedDummyData();
+  });
+}

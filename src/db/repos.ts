@@ -2,7 +2,7 @@ import { db } from "./db";
 import type {
   Student, Session, MonthlyReport, Payment, Settings, RaporGrade,
   Homework, HomeworkStatus, FollowUpItem, FollowUpType,
-  Expense, ExpenseCategory, IaEeProject, IaEeMilestone,
+  Expense, ExpenseCategory, IaEeProject, IaEeMilestone, MonthClosing,
 } from "./types";
 import { MIN_DURATION, DURATION_STEP, DEFAULT_RATE } from "./types";
 import { hashPin, isHashedPin } from "../lib/crypto";
@@ -511,6 +511,150 @@ export async function listPayments(month?: string): Promise<Payment[]> {
       .toArray();
   }
   return db.payments.toArray();
+}
+
+/** Set a payment as transferred (cash received). */
+export async function markPaymentTransferred(
+  studentId: string, month: string, method = "transfer"
+): Promise<void> {
+  const existing = await getPayment(studentId, month);
+  if (existing) {
+    await db.payments.update(existing.id, { status: "PAID", paidAt: todayWIB(), method });
+  } else {
+    await db.payments.add({
+      id: crypto.randomUUID(), studentId, month, totalCost: 0,
+      status: "PAID", paidAt: todayWIB(), method,
+    });
+  }
+}
+
+/** Mark a payment back to unpaid (undo "Sudah Transfer"). */
+export async function markPaymentUnpaid(studentId: string, month: string): Promise<void> {
+  const existing = await getPayment(studentId, month);
+  if (existing) {
+    await db.payments.update(existing.id, { status: "UNPAID", paidAt: undefined, method: undefined });
+  }
+}
+
+/** Update only the billed amount of an existing payment (edit before sending). */
+export async function updatePaymentAmount(
+  studentId: string, month: string, totalCost: number
+): Promise<void> {
+  const existing = await getPayment(studentId, month);
+  if (existing) await db.payments.update(existing.id, { totalCost });
+}
+
+// ── Month Closing (Tutup Bulan) ────────────────────────────────────
+
+export async function getMonthClosing(month: string): Promise<MonthClosing | undefined> {
+  return db.monthClosings.where("month").equals(month).first();
+}
+
+export async function listMonthClosings(): Promise<MonthClosing[]> {
+  return db.monthClosings.orderBy("month").reverse().toArray();
+}
+
+export interface StudentBill {
+  studentId: string;
+  name: string;
+  count: number;
+  hours: number;
+  cost: number;
+}
+
+/** Per-student bills for a month, derived from DONE sessions. No DB writes. */
+export async function computeMonthBills(month: string): Promise<StudentBill[]> {
+  const sessions = await listSessionsForMonth(month);
+  const map = new Map<string, { count: number; hours: number; cost: number }>();
+  for (const s of sessions) {
+    const cur = map.get(s.studentId) ?? { count: 0, hours: 0, cost: 0 };
+    map.set(s.studentId, {
+      count: cur.count + 1,
+      hours: cur.hours + s.durationHours,
+      cost: cur.cost + s.cost,
+    });
+  }
+  const bills = await Promise.all(
+    [...map.entries()].map(async ([studentId, data]) => ({
+      studentId,
+      name: (await db.students.get(studentId))?.name ?? "(dihapus)",
+      ...data,
+    }))
+  );
+  return bills.sort((a, b) => b.cost - a.cost);
+}
+
+/**
+ * Close a month: auto-create a Payment (UNPAID) per student from DONE sessions,
+ * then record the closing snapshot. Existing payments for the month are left
+ * untouched (respects manual/edited entries). Idempotent.
+ */
+export async function closeMonth(month: string): Promise<void> {
+  const bills = await computeMonthBills(month);
+  await db.transaction("rw", db.payments, db.monthClosings, async () => {
+    for (const b of bills) {
+      const existing = await db.payments
+        .where({ studentId: b.studentId })
+        .filter((p) => p.month === month)
+        .first();
+      if (existing) continue;
+      await db.payments.add({
+        id: crypto.randomUUID(),
+        studentId: b.studentId,
+        month,
+        totalCost: b.cost,
+        status: "UNPAID",
+      });
+    }
+    const existingClosing = await db.monthClosings.where("month").equals(month).first();
+    await db.monthClosings.put({
+      id: existingClosing?.id ?? crypto.randomUUID(),
+      month,
+      closedAt: timestamp(),
+      totalPotensi: bills.reduce((s, b) => s + b.cost, 0),
+      totalHours: bills.reduce((s, b) => s + b.hours, 0),
+      studentCount: bills.length,
+    });
+  });
+}
+
+/** Reopen a month: drop the closing + any still-UNPAID auto-generated bills. */
+export async function reopenMonth(month: string): Promise<void> {
+  await db.transaction("rw", db.payments, db.monthClosings, async () => {
+    const unpaid = await db.payments
+      .filter((p) => p.month === month && p.status === "UNPAID")
+      .toArray();
+    for (const p of unpaid) await db.payments.delete(p.id);
+    const closing = await db.monthClosings.where("month").equals(month).first();
+    if (closing) await db.monthClosings.delete(closing.id);
+  });
+}
+
+export interface MonthCashSummary {
+  month: string;
+  potensi: number;     // accrued — sum of DONE session costs
+  realisasi: number;   // cash — sum of PAID payments
+  piutang: number;     // outstanding — sum of UNPAID payments
+  pengeluaran: number; // expenses
+  laba: number;        // realisasi − pengeluaran
+  closed: boolean;
+}
+
+/** Cash-basis financial summary per month (Potensi / Realisasi / Piutang / Laba). */
+export async function getCashSummary(months: string[]): Promise<MonthCashSummary[]> {
+  return Promise.all(
+    months.map(async (month) => {
+      const sessions = await listSessionsForMonth(month);
+      const potensi = sessions.reduce((s, x) => s + x.cost, 0);
+      const payments = await listPayments(month);
+      const realisasi = payments.filter((p) => p.status === "PAID").reduce((s, p) => s + p.totalCost, 0);
+      const piutang = payments.filter((p) => p.status === "UNPAID").reduce((s, p) => s + p.totalCost, 0);
+      const expenses = await listExpenses(month);
+      const pengeluaran = expenses.reduce((s, e) => s + e.amount, 0);
+      const closing = await getMonthClosing(month);
+      return { month, potensi, realisasi, piutang, pengeluaran, laba: realisasi - pengeluaran, closed: Boolean(closing) };
+    })
+  );
 }
 
 // ── Rapor Grades ───────────────────────────────────────────────────

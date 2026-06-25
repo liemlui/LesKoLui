@@ -1,14 +1,23 @@
 import { useEffect, lazy, Suspense, useState, useCallback } from "react";
-import { createBrowserRouter, RouterProvider, Outlet, Navigate } from "react-router-dom";
-import { initSettings } from "./db/repos";
+import { createBrowserRouter, RouterProvider, Outlet, Navigate, useNavigate } from "react-router-dom";
 import BottomNav from "./components/BottomNav";
 import { PwaPrompts } from "./components/PwaPrompts";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { ToastProvider, useToastCtx } from "./components/ToastProvider";
+import ToastContainer from "./components/Toast";
 import Home from "./screens/home/Home";
 import Students from "./screens/Students";
 import StudentDetail from "./screens/StudentDetail";
 import CaptureSession from "./screens/CaptureSession";
-import { listAllPendingHomework, listAllUpcomingScheduled, listStudents } from "./db/repos";
 import { todayWIB } from "./lib/format";
+
+// Lazy-load the data layer — repos.ts is the heaviest shared module (~200KB gzipped).
+// All calls happen inside useEffect (post-mount), so dynamic import doesn't block first paint.
+type ReposModule = typeof import("./db/repos");
+let _repos: ReposModule | undefined;
+function repos(): Promise<ReposModule> {
+  return _repos ? Promise.resolve(_repos) : import("./db/repos").then((m) => (_repos = m));
+}
 
 // Lazy-load less-frequently visited screens to reduce initial bundle
 const MonthlyReport = lazy(() => import("./screens/MonthlyReport"));
@@ -20,6 +29,7 @@ const AUTO_BACKUP_KEY = "leskolui_last_auto_backup_prompt";
 const AUTO_BACKUP_INTERVAL_DAYS = 7;
 
 function Layout() {
+  const navigate = useNavigate();
   const [offline, setOffline] = useState(!navigator.onLine);
   const [backupPrompt, setBackupPrompt] = useState(false);
 
@@ -35,10 +45,11 @@ function Layout() {
   // Notifikasi PR jatuh tempo (Web Notifications)
   const scheduleHwNotifications = useCallback(async () => {
     if (Notification.permission !== "granted") return;
+    const r = await repos();
     const today = todayWIB();
 
     // PR deadline hari ini
-    const homeworks = await listAllPendingHomework();
+    const homeworks = await r.listAllPendingHomework();
     const dueToday = homeworks.filter((h) => h.status === "assigned" && h.dueAt === today);
     if (dueToday.length > 0) {
       new Notification("Les Ko Lui — PR Hari Ini", {
@@ -51,10 +62,10 @@ function Layout() {
     const [y, m, d] = today.split("-").map(Number);
     const tomorrowDt = new Date(y, m - 1, d + 1);
     const tomorrow = `${tomorrowDt.getFullYear()}-${String(tomorrowDt.getMonth() + 1).padStart(2, "0")}-${String(tomorrowDt.getDate()).padStart(2, "0")}`;
-    const upcoming = await listAllUpcomingScheduled(tomorrow);
+    const upcoming = await r.listAllUpcomingScheduled(tomorrow);
     const sessTomorrow = upcoming.filter((s) => s.date === tomorrow);
     if (sessTomorrow.length > 0) {
-      const studentList = await listStudents(true);
+      const studentList = await r.listStudents(true);
       const studentMap  = new Map(studentList.map((s) => [s.id, s.name]));
       const names = sessTomorrow.map((s) => studentMap.get(s.studentId) ?? "—").slice(0, 3);
       new Notification("Les Ko Lui — Sesi Besok", {
@@ -73,7 +84,7 @@ function Layout() {
   }, []);
 
   useEffect(() => {
-    initSettings();
+    repos().then((r) => r.initSettings());
     if (navigator.storage?.persist) navigator.storage.persist();
 
     // Request notification permission then schedule hw notifications
@@ -90,6 +101,9 @@ function Layout() {
   }, [scheduleHwNotifications, checkAutoBackup]);
 
   return (
+    <ErrorBoundary>
+    <ToastProvider>
+    <ToastOverlay />
     <div className="max-w-md mx-auto min-h-screen pb-16">
       {/* Offline banner */}
       {offline && (
@@ -113,7 +127,7 @@ function Layout() {
                 onClick={() => { localStorage.setItem(AUTO_BACKUP_KEY, String(Date.now())); setBackupPrompt(false); }}
                 className="text-xs text-amber-500 px-2 py-1.5">Nanti</button>
               <button
-                onClick={() => { localStorage.setItem(AUTO_BACKUP_KEY, String(Date.now())); setBackupPrompt(false); window.location.href = "/settings"; }}
+                onClick={() => { localStorage.setItem(AUTO_BACKUP_KEY, String(Date.now())); setBackupPrompt(false); navigate("/settings"); }}
                 className="bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl">Backup</button>
             </div>
           </div>
@@ -126,7 +140,15 @@ function Layout() {
       <BottomNav />
       <PwaPrompts />
     </div>
+    </ToastProvider>
+    </ErrorBoundary>
   );
+}
+
+/** Reads toast state from context and renders the container. */
+function ToastOverlay() {
+  const { toasts, dismiss } = useToastCtx();
+  return <ToastContainer toasts={toasts} onDismiss={dismiss} />;
 }
 
 const router = createBrowserRouter([

@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   listStudents, getStudent, getSettings,
-  listSessionsByStudentMonth, listSessionsForMonth, listDoneSessionsForDateRange,
+  listSessionsByStudentMonth,
   getReport, upsertReport, updateSession, saveSettings,
 } from "../db/repos";
 import { pickTemplate } from "../lib/rotation";
@@ -13,32 +13,21 @@ import { AiCostModal } from "../components/AiCostModal";
 import { getTheme, THEMES } from "../template/themes";
 import { LAYOUTS } from "../template/layouts";
 import { ReportRenderer } from "../template/ReportRenderer";
-import { dayLabel, monthLabel, formatRupiah, todayWIB, monthOf } from "../lib/format";
+import { dayLabel, monthLabel, todayWIB, monthOf } from "../lib/format";
 import { exportJpeg, exportPng, exportPdf, shareFiles } from "../lib/exportReport";
 import { blobToDataUrl, blobToNormalizedDataUrl } from "../lib/imageUtils";
-import { hashPin, verifyPin } from "../lib/crypto";
-import { getPinLockoutDelay, recordPinFailure, resetPinLockout } from "../lib/pinLockout";
 import PaginationControls from "../components/PaginationControls";
 import { clampPage, paginateItems } from "../lib/pagination";
 import { calcEngagementScore, scoreLabel } from "../lib/engagement";
 import type { ReportOptions, CustomTheme, Theme } from "../template/types";
-
-type Tab = "laporan" | "rekap";
 
 export default function MonthlyReportPage() {
   const [searchParams] = useSearchParams();
   const students = useLiveQuery(() => listStudents(true), []);
   const settings = useLiveQuery(() => getSettings(), []);
 
-  const [activeTab, setActiveTab] = useState<Tab>("laporan");
   const [studentId, setStudentId] = useState(searchParams.get("studentId") ?? "");
   const [month, setMonth] = useState(() => monthOf(todayWIB()));
-
-  // PIN lock for rekap keuangan
-  const [pinUnlocked,  setPinUnlocked]  = useState(false);
-  const [pinInput,     setPinInput]     = useState("");
-  const [pinConfirm,   setPinConfirm]   = useState("");
-  const [pinError,     setPinError]     = useState("");
 
   const [editingNarrative, setEditingNarrative] = useState<string | null>(null);
   const [editText,         setEditText]         = useState("");
@@ -54,44 +43,10 @@ export default function MonthlyReportPage() {
   const [openNarasi,       setOpenNarasi]       = useState(false);
   const [openTeks,         setOpenTeks]         = useState(false);
   const [narrativePage,    setNarrativePage]    = useState(1);
-  const [rekapStudentPage, setRekapStudentPage] = useState(1);
 
   const student  = useLiveQuery(() => (studentId ? getStudent(studentId) : undefined), [studentId]);
   const sessions = useLiveQuery(() => (studentId ? listSessionsByStudentMonth(studentId, month) : []), [studentId, month]);
   const report   = useLiveQuery(() => (studentId ? getReport(studentId, month) : undefined), [studentId, month]);
-
-  // Rekap keuangan: semua sesi semua murid di bulan ini
-  const rekapSessions = useLiveQuery(
-    () => (activeTab === "rekap" && pinUnlocked ? listSessionsForMonth(month) : []),
-    [activeTab, pinUnlocked, month]
-  );
-
-  // 6-month chart
-  const chartData = useMemo(() => {
-    const months: string[] = [];
-    const [cy, cm] = month.split("-").map(Number);
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(cy, cm - 1 - i, 1);
-      months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
-    }
-    return months;
-  }, [month]);
-
-  const chartSessions = useLiveQuery(async () => {
-    if (!pinUnlocked) return [];
-    const start = chartData[0] + "-01";
-    const end   = month + "-31";
-    return listDoneSessionsForDateRange(start, end);
-  }, [pinUnlocked, chartData, month]);
-
-  const chartBars = useMemo(() => {
-    if (!chartSessions) return [];
-    return chartData.map((m) => {
-      const cost = (chartSessions ?? []).filter((s) => s.date.startsWith(m)).reduce((sum, s) => sum + s.cost, 0);
-      const label = new Date(m + "-01T00:00:00").toLocaleDateString("id-ID", { month: "short" });
-      return { m, label, cost };
-    });
-  }, [chartSessions, chartData]);
 
   const totalHours = useMemo(() => sessions?.reduce((s, x) => s + x.durationHours, 0) ?? 0, [sessions]);
   const totalCost  = useMemo(() => sessions?.reduce((s, x) => s + x.cost, 0) ?? 0, [sessions]);
@@ -182,29 +137,8 @@ export default function MonthlyReportPage() {
     return () => { cancelled = true; };
   }, [student, sessions, month, report, settings]);
 
-  // Rekap: group by student
-  const rekapByStudent = useMemo(() => {
-    if (!rekapSessions || !students) return [];
-    const map = new Map<string, { count: number; hours: number; cost: number }>();
-    rekapSessions.forEach((s) => {
-      const curr = map.get(s.studentId) ?? { count: 0, hours: 0, cost: 0 };
-      map.set(s.studentId, { count: curr.count + 1, hours: curr.hours + s.durationHours, cost: curr.cost + s.cost });
-    });
-    const studentMap = new Map(students.map((s) => [s.id, s.name]));
-    return [...map.entries()]
-      .map(([sid, data]) => ({ name: studentMap.get(sid) ?? "(dihapus)", ...data }))
-      .sort((a, b) => b.cost - a.cost);
-  }, [rekapSessions, students]);
-
-  const rekapTotal = useMemo(() =>
-    rekapByStudent.reduce((sum, r) => ({ cost: sum.cost + r.cost, hours: sum.hours + r.hours, count: sum.count + r.count }),
-      { cost: 0, hours: 0, count: 0 }),
-    [rekapByStudent]);
-
   const safeNarrativePage      = clampPage(narrativePage, reportSessions.length);
   const paginatedNarrativeSessions = paginateItems(reportSessions, safeNarrativePage);
-  const safeRekapStudentPage   = clampPage(rekapStudentPage, rekapByStudent.length);
-  const paginatedRekapByStudent = paginateItems(rekapByStudent, safeRekapStudentPage);
 
   const ensureReport = async () => {
     if (!studentId) return undefined;
@@ -318,18 +252,6 @@ export default function MonthlyReportPage() {
 
   return (
     <div className="pb-20">
-      {/* Tabs */}
-      <div className="grid grid-cols-2 bg-gray-100 mx-4 mt-4 rounded-xl p-1">
-        <button onClick={() => setActiveTab("laporan")}
-          className={`py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === "laporan" ? "bg-white shadow text-blue-700" : "text-gray-500"}`}>
-          Laporan Murid
-        </button>
-        <button onClick={() => setActiveTab("rekap")}
-          className={`py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === "rekap" ? "bg-white shadow text-green-700" : "text-gray-500"}`}>
-          Rekap Keuangan
-        </button>
-      </div>
-
       <div className="p-4 space-y-4">
         {message && (
           <div className="space-y-1.5">
@@ -352,9 +274,8 @@ export default function MonthlyReportPage() {
           </div>
         )}
 
-        {/* ── TAB: LAPORAN MURID ── */}
-        {activeTab === "laporan" && (
-          <div className="space-y-3">
+        {/* ── LAPORAN MURID ── */}
+        <div className="space-y-3">
 
             {/* CARD 1: Murid + Bulan + Stats + Actions */}
             <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
@@ -689,170 +610,6 @@ export default function MonthlyReportPage() {
               </div>
             )}
           </div>
-        )}
-
-        {/* ── TAB: REKAP KEUANGAN ── */}
-        {activeTab === "rekap" && (
-          <div className="space-y-4">
-            {/* Bulan picker */}
-            <div className="flex gap-3 items-center">
-              <label className="text-sm text-gray-500 flex-shrink-0">Bulan:</label>
-              <input className="input flex-1" type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
-            </div>
-
-            {/* PIN gate */}
-            {!pinUnlocked ? (
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center space-y-4">
-                <div className="text-5xl">🔐</div>
-                <p className="font-bold text-gray-800 text-lg">Rekap Keuangan</p>
-                {!settings?.financialPin ? (
-                  <div className="space-y-3 text-left">
-                    <p className="text-sm text-gray-500 text-center">Buat PIN 6 digit untuk melindungi data keuangan.</p>
-                    <div>
-                      <label className="label">PIN Baru</label>
-                      <input className="input text-center text-xl tracking-widest font-mono" type="password"
-                        inputMode="numeric" maxLength={6} placeholder="••••••"
-                        value={pinInput} onChange={(e) => { setPinInput(e.target.value.replace(/\D/g, "").slice(0, 6)); setPinError(""); }} />
-                    </div>
-                    <div>
-                      <label className="label">Konfirmasi PIN</label>
-                      <input className={`input text-center text-xl tracking-widest font-mono ${pinError ? "border-red-400" : ""}`}
-                        type="password" inputMode="numeric" maxLength={6} placeholder="••••••"
-                        value={pinConfirm} onChange={(e) => { setPinConfirm(e.target.value.replace(/\D/g, "").slice(0, 6)); setPinError(""); }} />
-                    </div>
-                    {pinError && <p className="text-red-500 text-sm">{pinError}</p>}
-                    <button disabled={pinInput.length !== 6 || pinConfirm.length !== 6}
-                      className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold disabled:opacity-40 hover:bg-blue-700 transition-colors"
-                      onClick={async () => {
-                        if (pinInput !== pinConfirm) { setPinError("PIN tidak cocok, coba lagi."); return; }
-                        const hashedPin = await hashPin(pinInput);
-                        await saveSettings({ financialPin: hashedPin });
-                        setPinUnlocked(true); setPinInput(""); setPinConfirm(""); setPinError("");
-                      }}>
-                      Buat PIN & Masuk
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <input className={`input text-center text-2xl tracking-[0.5em] font-mono ${pinError ? "border-red-400" : ""}`}
-                      type="password" inputMode="numeric" maxLength={6} placeholder="••••••"
-                      value={pinInput} onChange={(e) => { setPinInput(e.target.value.replace(/\D/g, "").slice(0, 6)); setPinError(""); }}
-                      onKeyDown={async (e) => {
-                        if (e.key !== "Enter") return;
-                        const delay = getPinLockoutDelay();
-                        if (delay > 0) { setPinError(`Tunggu ${Math.ceil(delay / 1000)} detik.`); return; }
-                        const ok = await verifyPin(pinInput, settings.financialPin!);
-                        if (ok) { resetPinLockout(); setPinUnlocked(true); setPinInput(""); }
-                        else { recordPinFailure(); setPinError("PIN salah. Coba lagi."); setPinInput(""); }
-                      }} />
-                    {pinError && <p className="text-red-500 text-sm">{pinError}</p>}
-                    <button disabled={pinInput.length < 4}
-                      className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold disabled:opacity-40 hover:bg-blue-700 transition-colors"
-                      onClick={async () => {
-                        const delay = getPinLockoutDelay();
-                        if (delay > 0) { setPinError(`Tunggu ${Math.ceil(delay / 1000)} detik.`); return; }
-                        const ok = await verifyPin(pinInput, settings.financialPin!);
-                        if (ok) { resetPinLockout(); setPinUnlocked(true); setPinInput(""); }
-                        else { recordPinFailure(); setPinError("PIN salah. Coba lagi."); setPinInput(""); }
-                      }}>
-                      Masuk
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center justify-between">
-                  <p className="font-semibold text-gray-700">{monthLabel(month)}</p>
-                  <button onClick={() => setPinUnlocked(false)}
-                    className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition-colors">
-                    🔒 Kunci
-                  </button>
-                </div>
-
-                {/* 6-month bar chart */}
-                {chartBars.length > 0 && (() => {
-                  const maxCost = Math.max(...chartBars.map((b) => b.cost), 1);
-                  return (
-                    <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                      <p className="text-xs text-gray-400 font-medium mb-3 uppercase tracking-wide">Trend 6 Bulan</p>
-                      <div className="flex items-end gap-1.5 h-28">
-                        {chartBars.map((b) => {
-                          const pct = (b.cost / maxCost) * 100;
-                          const isSelected = b.m === month;
-                          return (
-                            <div key={b.m} className="flex-1 flex flex-col items-center gap-1">
-                              <p className="text-xs font-semibold text-green-700" style={{ fontSize: 8 }}>
-                                {b.cost > 0 ? formatRupiah(b.cost) : ""}
-                              </p>
-                              <div className="w-full rounded-t-md transition-all" style={{
-                                height: `${Math.max(pct, 4)}%`,
-                                background: isSelected ? "#10B981" : "#D1FAE5",
-                              }} />
-                              <p className="text-xs text-gray-400" style={{ fontSize: 9 }}>{b.label}</p>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Per-student this month */}
-                {!rekapSessions ? (
-                  <p className="text-gray-400 text-sm">Memuat...</p>
-                ) : rekapByStudent.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-3xl mb-2">📭</p>
-                    <p className="text-gray-400 text-sm">Belum ada sesi di {monthLabel(month)}.</p>
-                  </div>
-                ) : (
-                  <>
-                    {rekapTotal.cost > 0 && (
-                      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                        <p className="text-xs text-gray-400 font-medium mb-3 uppercase tracking-wide">Per Murid</p>
-                        <div className="space-y-2">
-                          {paginatedRekapByStudent.map((r) => {
-                            const pct = Math.round((r.cost / rekapTotal.cost) * 100);
-                            return (
-                              <div key={r.name}>
-                                <div className="flex justify-between text-sm mb-0.5">
-                                  <span className="font-medium text-gray-700">{r.name}</span>
-                                  <span className="text-green-700 font-semibold">{formatRupiah(r.cost)}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <div className="flex-1 bg-gray-100 rounded-full h-2">
-                                    <div className="h-2 rounded-full bg-green-500 transition-all" style={{ width: `${pct}%` }} />
-                                  </div>
-                                  <span className="text-xs text-gray-400 w-8 text-right">{pct}%</span>
-                                </div>
-                                <p className="text-xs text-gray-400">{r.count} sesi · {r.hours}j</p>
-                              </div>
-                            );
-                          })}
-                        </div>
-                        <PaginationControls
-                          page={safeRekapStudentPage}
-                          total={rekapByStudent.length}
-                          onPageChange={setRekapStudentPage}
-                          label="murid"
-                        />
-                      </div>
-                    )}
-
-                    <div className="bg-green-50 rounded-xl px-4 py-4 flex items-center justify-between border border-green-200">
-                      <div>
-                        <p className="font-bold text-green-900">Total Pemasukan</p>
-                        <p className="text-xs text-green-700">{rekapTotal.count} sesi · {rekapTotal.hours}j</p>
-                      </div>
-                      <p className="text-2xl font-bold text-green-700">{formatRupiah(rekapTotal.cost)}</p>
-                    </div>
-                  </>
-                )}
-              </>
-            )}
-          </div>
-        )}
 
       </div>
 
@@ -897,8 +654,8 @@ const PHOTO_STYLES: Array<{ id: import("../template/types").PhotoStyle; name: st
 const DECO_KINDS: Array<{ id: import("../template/types").DecoKind; name: string }> = [
   { id: "none", name: "None" }, { id: "snow", name: "Snow" }, { id: "leaf", name: "Leaf" }, { id: "petal", name: "Petal" },
   { id: "sparkle", name: "Sparkle" }, { id: "star", name: "Star" }, { id: "wave", name: "Wave" }, { id: "sun", name: "Sun" },
-  { id: "geometric", name: "Geometric" }, { id: "dots", name: "Dots" }, { id: "stripes", name: "Stripes" },
-  { id: "confetti", name: "Confetti" }, { id: "book", name: "Book" }, { id: "globe", name: "Globe" },
+  { id: "geometric", name: "Geometric" }, { id: "dots", name: "Dots" },
+  { id: "confetti", name: "Confetti" },
   { id: "ribbon", name: "Ribbon" }, { id: "zigzag", name: "Zigzag" },
 ];
 

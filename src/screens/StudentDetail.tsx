@@ -8,12 +8,14 @@ import {
   getSettings, updateStudent, getHomeworkStats,
   listIaEeProjects, createIaEeProject, deleteIaEeProject,
   addMilestone, updateMilestone, deleteMilestone,
+  deleteSession, updateSession,
 } from "../db/repos";
 import type { IaEeMilestone } from "../db/repos";
 import { verifyPin } from "../lib/crypto";
 import { getPinLockoutDelay, recordPinFailure, resetPinLockout } from "../lib/pinLockout";
 import type { CancelMode, EditMode } from "../db/repos";
 import { dayLabel, monthLabel, todayWIB, formatRupiah } from "../lib/format";
+import { buildBillingMessage, toWaNumber } from "../lib/waBilling";
 import {
   scoreLabel, scoreBarColor,
   semesterOptions, semesterLabel, semesterDateRange, currentSemester,
@@ -127,7 +129,6 @@ export default function StudentDetail() {
     const ok = await verifyPin(deletePinInput, settings.financialPin);
     if (!ok) { recordPinFailure(); setDeletePinError("PIN salah."); return; }
     resetPinLockout();
-    const { deleteSession } = await import("../db/repos");
     await deleteSession(detailSession.id);
     setDetailSession(null); setShowDeletePin(false); setDeletePinInput(""); setDeletePinError("");
     msg("Sesi dihapus");
@@ -181,7 +182,6 @@ export default function StudentDetail() {
     if (!editSession) return;
     setEditNoteSaving(true);
     try {
-      const { updateSession } = await import("../db/repos");
       await updateSession(editSession.id, {
         shortNote: editShortNote.trim(),
         topic: editTopic.trim() || undefined,
@@ -348,41 +348,12 @@ export default function StudentDetail() {
 
   const buildBillingWA = useMemo(() => {
     if (!student) return { text: "", totalHours: 0, totalCost: 0, count: 0 };
-    const doneSessions = (allSessions ?? [])
-      .filter((s) => s.status === "DONE" && s.date.startsWith(billingMonth))
-      .sort((a, b) => a.date.localeCompare(b.date));
-    const totalHours = doneSessions.reduce((sum, s) => sum + s.durationHours, 0);
-    const totalCost  = doneSessions.reduce((sum, s) => sum + s.cost, 0);
-    const rateStr    = formatRupiah(student.hourlyRate);
-    const bank       = settings?.bankAccounts;
-
-    const lines: string[] = [
-      `Absensi ${student.name} — ${monthLabel(billingMonth)}`,
-      ``,
-      `Rincian sesi:`,
-    ];
-
-    doneSessions.forEach((s) => {
-      const dateShort = dayLabel(s.date).replace(/^\w+, /, "").replace(/ \d{4}$/, "");
-      const subj = s.subjects.length > 0 ? s.subjects.join(", ") : "Sesi umum";
-      lines.push(`• ${dateShort} — ${subj} (${s.durationHours}j)`);
+    return buildBillingMessage({
+      student,
+      sessions: allSessions ?? [],
+      month: billingMonth,
+      settings,
     });
-
-    lines.push(
-      `━━━━━━━━━━━━━━`,
-      `⏱ Total: ${totalHours} jam × ${rateStr}`,
-      `💵 Total: ${formatRupiah(totalCost)}`,
-    );
-
-    if (bank && (bank.bca || bank.cimb || bank.bri)) {
-      lines.push(``, `🏦 Transfer ke:`);
-      if (bank.bca)  lines.push(`BCA ${bank.bca}${bank.accountName ? ` a.n. ${bank.accountName}` : ""}`);
-      if (bank.cimb) lines.push(`CIMB ${bank.cimb}${bank.accountName ? ` a.n. ${bank.accountName}` : ""}`);
-      if (bank.bri)  lines.push(`BRI ${bank.bri}${bank.accountName ? ` a.n. ${bank.accountName}` : ""}`);
-    }
-
-    lines.push(``, `Terima kasih 🙏`, settings?.tutorProfile?.name || "Ko Lui");
-    return { text: lines.join("\n"), totalHours, totalCost, count: doneSessions.length };
   }, [allSessions, billingMonth, student, settings]);
 
   if (!student) return <div className="p-4 text-gray-500">Memuat...</div>;
@@ -1607,7 +1578,7 @@ export default function StudentDetail() {
                   <div className="space-y-2">
                     {student.parentContact.phone && (
                       <a
-                        href={`https://wa.me/${student.parentContact.phone.replace(/^0/,"62").replace(/[^0-9]/g,"")}?text=${encodeURIComponent(buildBillingWA.text)}`}
+                        href={`https://wa.me/${toWaNumber(student.parentContact.phone)}?text=${encodeURIComponent(buildBillingWA.text)}`}
                         target="_blank" rel="noopener noreferrer"
                         className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-green-500 text-white font-semibold text-sm hover:bg-green-600 transition-colors">
                         <span className="text-lg">💬</span> Kirim ke {student.parentContact.name || "Orang Tua"}

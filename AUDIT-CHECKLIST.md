@@ -47,9 +47,9 @@
 
 | Item | Detail |
 |------|--------|
-| **File** | [`worker/deepseek-proxy.js`](worker/deepseek-proxy.js) |
-| **Deskripsi** | Tidak menggunakan Cloudflare Worker. Diganti ke pemanggilan langsung ke `api.deepseek.com` dari browser dengan API key yang disimpan di Settings (IndexedDB). Worker file diupdate tapi tidak dipakai. |
-| **Status** | ☑ Selesai — arsitektur diubah ke direct API call |
+| **File** | (dihapus — `worker/deepseek-proxy.js`) |
+| **Deskripsi** | Arsitektur diubah ke direct API call. Worker proxy dihapus karena tidak digunakan. |
+| **Status** | ☑ Selesai — Worker proxy dihapus, arsitektur direct API call |
 
 ---
 

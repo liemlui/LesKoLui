@@ -248,11 +248,13 @@ function EngagementBar({ score, label, t }: { score?: number; label?: string; t:
   const pct = Math.max(0, Math.min(100, score * 10));
   const barColor = score >= 8 ? "#10B981" : score >= 6 ? "#3B82F6" : score >= 4 ? "#F59E0B" : "#EF4444";
   const emoji = score >= 9 ? "🔥" : score >= 7 ? "💪" : score >= 5 ? "📖" : score >= 3 ? "😴" : "⚠️";
+  const desc = label ?? `Skor keterlibatan ${score}/10`;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-      <span style={{ fontSize: 13 }}>{emoji}</span>
+    <div role="meter" aria-valuenow={score} aria-valuemin={1} aria-valuemax={10} aria-label={desc}
+      style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+      <span aria-hidden="true" style={{ fontSize: 13 }}>{emoji}</span>
       <div style={{ flex: 1, height: 5, borderRadius: 999, background: t.muted + "33", overflow: "hidden" }}>
-        <div style={{ height: "100%", width: `${pct}%`, background: barColor, borderRadius: 999, transition: "width 0.3s" }} />
+        <div style={{ height: "100%", width: `${pct}%`, background: barColor, borderRadius: 999 }} />
       </div>
       <span style={{ fontSize: 10, fontWeight: 700, color: barColor, minWidth: 24, textAlign: "right" }}>{score}/10</span>
       {label && <span style={{ fontSize: 9, color: t.muted, fontStyle: "italic" }}>{label}</span>}
@@ -467,7 +469,7 @@ export const grid: Layout = {
   ),
 };
 
-// ── Compact — daftar padat, 6 entri per halaman ─────────────────────
+// ── Compact — daftar padat, 4 entri per halaman ─────────────────────
 export const compact: Layout = {
   id: "compact", name: "Compact List", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (

@@ -147,6 +147,17 @@ export interface Payment {
   method?: string;
 }
 
+// ── Month Closing (Tutup Bulan) ──────────────────────────────────────────────
+
+export interface MonthClosing {
+  id: string;            // uuid
+  month: string;         // YYYY-MM (unique)
+  closedAt: string;      // ISO timestamp
+  totalPotensi: number;  // snapshot: sum of DONE session costs at close time
+  totalHours: number;    // snapshot: sum of DONE session hours
+  studentCount: number;  // snapshot: number of students billed
+}
+
 // ── Expenses ────────────────────────────────────────────────────────────────
 
 export type ExpenseCategory = "transport" | "buku" | "alat" | "platform" | "lainnya";

@@ -62,6 +62,14 @@ export async function importBackup(file: Blob, passphrase: string): Promise<void
   const dump = await decryptJson(file, passphrase) as BackupDump;
   if (!dump?.data) throw new Error("Invalid backup file");
 
+  // Pre-validate: decode all rows BEFORE clearing any table.
+  // If any row fails to decode (e.g. corrupt blob), we throw before data loss.
+  const decoded: Partial<Record<BackupTable, BackupRow[]>> = {};
+  for (const t of TABLES) {
+    const rawRows = dump.data[t] ?? [];
+    decoded[t] = await Promise.all(rawRows.map(decodeRow));
+  }
+
   // Auto-export pre-restore backup so data is never lost (C-6)
   try {
     const preRestoreBlob = await exportBackup(passphrase);
@@ -81,7 +89,7 @@ export async function importBackup(file: Blob, passphrase: string): Promise<void
     for (const t of TABLES) {
       const table = backupDb[t] as Table<BackupRow, string>;
       await table.clear();
-      const rows = await Promise.all((dump.data[t] ?? []).map(decodeRow));
+      const rows = decoded[t] ?? [];
       if (rows.length > 0) await table.bulkAdd(rows);
     }
   });

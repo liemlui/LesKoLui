@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useToastCtx } from "../../components/ToastProvider";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   listStudents, listAllSessionsForMonth, listAllSessionsForWeek,
@@ -33,7 +34,7 @@ export default function Home() {
   const [editTarget, setEditTarget] = useState<Session | null>(null);
   const [filterStudentId, setFilterStudentId] = useState<string>("");
 
-  const [flash, setFlash] = useState("");
+  const toast = useToastCtx();
   const [undoHwId, setUndoHwId] = useState<string | null>(null);
   const [undoTimer, setUndoTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
 
@@ -71,10 +72,10 @@ export default function Home() {
   const missed       = (missedSchedules ?? []).filter((s) => inFilter(s.studentId));
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
-  const msg = (t: string) => { setFlash(t); setTimeout(() => setFlash(""), 3000); };
+  const msg = useCallback((t: string) => { toast.info(t); }, [toast]);
 
   const handleMarkDone = async (id: string) => {
-    await markHomeworkDone(id);
+    try { await markHomeworkDone(id); } catch { msg("Gagal menandai PR."); return; }
     setUndoHwId(id);
     if (undoTimer) clearTimeout(undoTimer);
     const t = setTimeout(() => { setUndoHwId(null); setUndoTimer(null); }, 3000);
@@ -84,11 +85,11 @@ export default function Home() {
   const openAdd = (date: string) => { setSelectedDay(date); setAddDate(date); };
   const jumpToday = () => { setCalMonth(monthOf(today)); setAnchor(today); setSelectedDay(today); };
 
-  const actions: SessionActions = {
-    onEdit:    (s) => setEditTarget(s),
-    onCapture: (id) => navigate(`/capture?scheduleId=${id}`),
-    onCancel:  async (id) => { await cancelSession(id); msg("Dibatalkan."); },
-  };
+  const actions: SessionActions = useMemo(() => ({
+    onEdit:    (s: Session) => setEditTarget(s),
+    onCapture: (id: string) => navigate(`/capture?scheduleId=${id}`),
+    onCancel:  async (id: string) => { try { await cancelSession(id); msg("Dibatalkan."); } catch { msg("Gagal membatalkan."); } },
+  }), [navigate, cancelSession, msg]);
 
   // ── Empty state / onboarding ────────────────────────────────────────────────
   if (students && students.length === 0) {
@@ -125,12 +126,6 @@ export default function Home() {
           <span>📅</span> + Jadwal
         </button>
       </div>
-
-      {flash && (
-        <div className={`mx-4 mb-2 p-2 rounded-lg text-sm text-center font-medium ${flash.includes("✓") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
-          {flash}
-        </div>
-      )}
 
       {undoHwId && (
         <div className="mx-4 mb-2 p-2 rounded-lg text-sm flex items-center justify-between bg-green-50 border border-green-200">

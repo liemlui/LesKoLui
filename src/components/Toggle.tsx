@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 interface Props {
   checked: boolean;
   onChange: (v: boolean) => void;
@@ -5,7 +7,7 @@ interface Props {
   label?: string;
 }
 
-export default function Toggle({ checked, onChange, disabled, label }: Props) {
+function Toggle({ checked, onChange, disabled, label }: Props) {
   const id = label ? `toggle-${label.replace(/\s+/g, "-").toLowerCase()}` : undefined;
   return (
     <>
@@ -47,3 +49,5 @@ export default function Toggle({ checked, onChange, disabled, label }: Props) {
     </>
   );
 }
+
+export default memo(Toggle);

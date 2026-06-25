@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { listAllHomeworkFull, markHomeworkDone, markHomeworkNotDone, deleteHomework } from "../db/repos";
 import { todayWIB } from "../lib/format";
+import { useToastCtx } from "../components/ToastProvider";
 
 type FilterTab = "menunggu" | "telat" | "selesai" | "semua";
 
@@ -10,6 +11,8 @@ export default function TugasPage() {
   const today = todayWIB();
   const [filter, setFilter] = useState<FilterTab>("menunggu");
   const [search, setSearch] = useState("");
+  const toast = useToastCtx();
+  const msg = (t: string) => { toast.info(t); };
 
   if (!homeworks) return <div className="p-4 text-gray-500">Memuat...</div>;
 
@@ -155,19 +158,19 @@ export default function TugasPage() {
                           <div className="flex gap-1.5 flex-shrink-0">
                             {!isDone && (
                               <>
-                                <button onClick={() => markHomeworkDone(h.id)}
+                                <button onClick={async () => { try { await markHomeworkDone(h.id); } catch { msg("Gagal menandai."); } }}
                                   title="Sudah dikerjakan"
                                   className="w-9 h-9 rounded-xl bg-green-50 border border-green-200 text-green-600 font-bold text-base flex items-center justify-center hover:bg-green-100 active:scale-95 transition-all">
                                   ✓
                                 </button>
-                                <button onClick={() => markHomeworkNotDone(h.id)}
+                                <button onClick={async () => { try { await markHomeworkNotDone(h.id); } catch { msg("Gagal menandai."); } }}
                                   title="Tidak dikerjakan"
                                   className="w-9 h-9 rounded-xl bg-red-50 border border-red-200 text-red-500 font-bold text-base flex items-center justify-center hover:bg-red-100 active:scale-95 transition-all">
                                   ✗
                                 </button>
                               </>
                             )}
-                            <button onClick={() => deleteHomework(h.id)}
+                            <button onClick={async () => { try { await deleteHomework(h.id); } catch { msg("Gagal menghapus."); } }}
                               title="Hapus tugas"
                               className="w-9 h-9 rounded-xl bg-gray-50 text-gray-300 font-bold text-lg flex items-center justify-center hover:text-red-400 hover:bg-red-50 transition-all">
                               ×

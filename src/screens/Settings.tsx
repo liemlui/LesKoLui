@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { useNavigate } from "react-router-dom";
 import { getSettings, saveSettings } from "../db/repos";
+import { db } from "../db/db";
 import { exportBackup, importBackup } from "../lib/backup";
-import { hashPin, verifyPin } from "../lib/crypto";
+import { hashPin } from "../lib/crypto";
 import { todayWIB } from "../lib/format";
 import type { Settings } from "../db/types";
 import Toggle from "../components/Toggle";
@@ -73,12 +73,10 @@ function Section({
 }
 
 export default function SettingsPage() {
-  const navigate  = useNavigate();
   const settings  = useLiveQuery(() => getSettings(), []);
   const [form,        setForm]        = useState<Settings | null>(null);
   const [logoUrl,     setLogoUrl]     = useState<string | undefined>();
   const [dirty,       setDirty]       = useState(false);
-  const [newSubject,  setNewSubject]  = useState("");
   const [saving,      setSaving]      = useState(false);
   const [toast,       setToast]       = useState("");
   const [backupPass,  setBackupPass]  = useState("");
@@ -86,8 +84,6 @@ export default function SettingsPage() {
   const [showPinEdit, setShowPinEdit] = useState(false);
   const [newPin,      setNewPin]      = useState("");
   const [newPinConf,  setNewPinConf]  = useState("");
-  const [finPin,      setFinPin]      = useState("");
-  const [finPinErr,   setFinPinErr]   = useState("");
   const [pinError,    setPinError]    = useState("");
   const restoreRef = useRef<HTMLInputElement>(null);
   const fileRef    = useRef<HTMLInputElement>(null);
@@ -145,15 +141,6 @@ export default function SettingsPage() {
       setSaving(false);
     }
   };
-
-  const addSubject = () => {
-    const s = newSubject.trim();
-    if (s && !form.subjects.includes(s)) update("subjects", [...form.subjects, s]);
-    setNewSubject("");
-  };
-
-  const removeSubject = (subject: string) =>
-    update("subjects", form.subjects.filter((s) => s !== subject));
 
   const handleLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -234,26 +221,7 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      {/* ── Tarif & Pembayaran ── */}
-      <Section title="Tarif & Pembayaran" icon="💰">
-        <div className="pt-3 space-y-3">
-          <div>
-            <label className="label">Tarif Default per Jam</label>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500 font-medium flex-shrink-0">Rp</span>
-              <input className="input flex-1" type="text" inputMode="numeric" pattern="[0-9]*"
-                value={form.defaultRate > 0 ? form.defaultRate : ""}
-                onChange={(e) => {
-                  const raw = e.target.value.replace(/[^0-9]/g, "");
-                  update("defaultRate", raw === "" ? 0 : Math.min(2_000_000, parseInt(raw, 10)));
-                }}
-                placeholder="mis. 200000" />
-              <span className="text-sm text-gray-400 flex-shrink-0">/ jam</span>
-            </div>
-            <p className="text-xs text-gray-400 mt-1">Dipakai sebagai tarif awal saat tambah murid baru</p>
-          </div>
-        </div>
-      </Section>
+
 
       {/* ── PIN Keuangan ── */}
       <Section title="PIN Keuangan" icon="🔐" badge={form.financialPin ? "Aktif" : undefined}>
@@ -311,32 +279,9 @@ export default function SettingsPage() {
             </div>
           )}
 
-          <div className="pt-1 border-t border-gray-50">
-            {form.financialPin ? (
-              <div className="space-y-2">
-                <p className="text-xs text-gray-400">Buka rekap keuangan</p>
-                <input type="password" inputMode="numeric" maxLength={6} placeholder="Masukkan PIN (6 digit)"
-                  value={finPin} onChange={(e) => { setFinPin(e.target.value.replace(/\D/g, "").slice(0, 6)); setFinPinErr(""); }}
-                  className="input text-center tracking-widest font-mono" />
-                {finPinErr && <p className="text-xs text-red-500">{finPinErr}</p>}
-                <button
-                  onClick={async () => {
-                    const ok = await verifyPin(finPin, form.financialPin!);
-                    if (!ok) { setFinPinErr("PIN salah."); return; }
-                    setFinPin(""); navigate("/payments");
-                  }}
-                  disabled={finPin.length < 4}
-                  className="w-full py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-40 transition-colors">
-                  Buka Data Keuangan →
-                </button>
-              </div>
-            ) : (
-              <button onClick={() => navigate("/payments")}
-                className="w-full py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-semibold hover:bg-gray-200 transition-colors">
-                Buka Keuangan →
-              </button>
-            )}
-          </div>
+          <p className="text-xs text-gray-400 pt-2 border-t border-gray-50">
+            Buka data keuangan dari tab <b>💰 Keuangan</b> di menu bawah (akan diminta PIN ini).
+          </p>
         </div>
       </Section>
 
@@ -432,35 +377,7 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      {/* ── Mata Pelajaran Kustom ── collapsed by default, rarely needed ── */}
-      <Section title="Mata Pelajaran Kustom" icon="📚">
-        <div className="pt-3 space-y-3">
-          <p className="text-xs text-gray-400">
-            Mapel tambahan di luar kurikulum bawaan (IB/Cambridge/National/AP). Muncul sebagai opsi ekstra di form murid.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {form.subjects.map((s) => (
-              <span key={s} className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full text-sm font-medium">
-                {s}
-                <button onClick={() => removeSubject(s)}
-                  className="text-blue-300 hover:text-red-500 ml-0.5 font-bold leading-none">&times;</button>
-              </span>
-            ))}
-            {form.subjects.length === 0 && (
-              <p className="text-xs text-gray-400 italic">Belum ada mapel kustom</p>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <input className="input flex-1" maxLength={50} placeholder="Nama mata pelajaran..." value={newSubject}
-              onChange={(e) => setNewSubject(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addSubject()} />
-            <button onClick={addSubject} disabled={!newSubject.trim()}
-              className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-40 transition-colors flex-shrink-0">
-              Tambah
-            </button>
-          </div>
-        </div>
-      </Section>
+
 
       {/* ── Backup & Restore ── */}
       <Section title="Backup & Restore" icon="💾">
@@ -529,6 +446,83 @@ export default function SettingsPage() {
               Restore Data
             </button>
           </div>
+        </div>
+      </Section>
+
+      {/* ── Hapus Semua Data ── */}
+      <Section title="Hapus Semua Data" icon="🗑️">
+        <div className="pt-3 space-y-3">
+          <p className="text-xs text-red-600 font-semibold">
+            ⚠️ Menghapus semua data murid, sesi, tagihan, laporan, dan pengeluaran.
+          </p>
+          <p className="text-xs text-gray-400">
+            Database tidak dihapus — hanya dikosongkan. Pengaturan, profil, dan PIN tetap aman.
+          </p>
+          <button
+            onClick={async () => {
+              if (!confirm("Yakin hapus SEMUA data? Tindakan ini tidak bisa dibatalkan!")) return;
+              const word = prompt('Ketik "RESET" untuk konfirmasi:');
+              if (word !== "RESET") { setToast("Konfirmasi gagal — ketik RESET."); return; }
+              try {
+                const tables = [
+                  db.students, db.sessions, db.reports,
+                  db.payments, db.homeworks, db.followUps,
+                  db.raporGrades, db.expenses, db.monthClosings, db.iaeeProjects,
+                ];
+                await db.transaction("rw", tables, async () => {
+                  for (const t of tables) await t.clear();
+                });
+                setToast("Semua data berhasil dihapus ✓ Memuat ulang...");
+                setTimeout(() => location.reload(), 1500);
+              } catch (e) {
+                setToast("Gagal: " + (e as Error).message);
+              }
+            }}
+            className="w-full py-3 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition-colors">
+            🗑️ Hapus Semua Data
+          </button>
+        </div>
+      </Section>
+
+      {/* ── PWA / Aplikasi ── */}
+      <Section title="Aplikasi (PWA)" icon="📱">
+        <div className="pt-3 space-y-3">
+          <StorageUsage />
+          <div className="bg-gray-50 rounded-xl p-3 space-y-1.5">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Versi</span>
+              <span className="font-semibold text-gray-700">1.7.0</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Framework</span>
+              <span className="text-gray-600">React + Vite + Tailwind</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Database</span>
+              <span className="text-gray-600">IndexedDB (lokal)</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Mode</span>
+              <span className="text-gray-600">{import.meta.env.DEV ? "⚙️ Development" : "🚀 Production"}</span>
+            </div>
+          </div>
+
+          <button
+            onClick={async () => {
+              if ("serviceWorker" in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (const reg of registrations) await reg.unregister();
+              }
+              if ("caches" in window) {
+                const keys = await caches.keys();
+                await Promise.all(keys.map((k) => caches.delete(k)));
+              }
+              setToast("Cache dibersihkan ✓ Muat ulang...");
+              setTimeout(() => location.reload(), 1000);
+            }}
+            className="w-full py-2.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-semibold hover:bg-gray-200 transition-colors">
+            🗑️ Hapus Cache & Muat Ulang
+          </button>
         </div>
       </Section>
 

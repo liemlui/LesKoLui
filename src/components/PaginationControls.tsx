@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { getPageCount, PAGE_SIZE } from "../lib/pagination";
 
 type PaginationControlsProps = {
@@ -8,7 +9,7 @@ type PaginationControlsProps = {
   label?: string;
 };
 
-export default function PaginationControls({
+function PaginationControls({
   page,
   total,
   onPageChange,
@@ -50,3 +51,5 @@ export default function PaginationControls({
     </div>
   );
 }
+
+export default memo(PaginationControls);

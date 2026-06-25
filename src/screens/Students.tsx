@@ -6,8 +6,7 @@ import {
   listSessionsForMonth, getSettings, listAllUpcomingScheduled,
 } from "../db/repos";
 import { todayWIB, monthOf, monthLabel, dayLabel } from "../lib/format";
-import { verifyPin } from "../lib/crypto";
-import { getPinLockoutDelay, recordPinFailure, resetPinLockout } from "../lib/pinLockout";
+import { usePinGate } from "../hooks/usePinGate";
 import type { Student } from "../db/types";
 import StudentForm from "../components/StudentForm";
 import PaginationControls from "../components/PaginationControls";
@@ -30,13 +29,12 @@ export default function Students() {
   const [activePage, setActivePage] = useState(1);
   const [histPage, setHistPage] = useState(1);
 
-  // PIN modal state
-  const [pinModal, setPinModal] = useState<{
+  // PIN gate — shared hook for PIN verification with lockout protection
+  const pin = usePinGate();
+  const [pendingAction, setPendingAction] = useState<{
     action: "delete" | "deactivate" | "activate";
     student: Student;
   } | null>(null);
-  const [pinInput, setPinInput] = useState("");
-  const [pinError, setPinError] = useState("");
 
   const statsMap = useMemo(() => {
     const m = new Map<string, { count: number; cost: number; hours: number }>();
@@ -100,16 +98,16 @@ export default function Students() {
 
   const requirePin = (action: "delete" | "deactivate" | "activate", student: Student) => {
     if (!settings?.financialPin) {
-      // No PIN set — block destructive actions; direct user to set PIN first
       alert("Set PIN Keuangan di Pengaturan sebelum melakukan aksi ini.");
       return;
     }
-    setPinModal({ action, student });
-    setPinInput("");
-    setPinError("");
+    setPendingAction({ action, student });
+    pin.resetPin();
   };
 
-  const executeAction = async (action: "delete" | "deactivate" | "activate", student: Student) => {
+  const executeAction = async () => {
+    if (!pendingAction) return;
+    const { action, student } = pendingAction;
     if (action === "delete") {
       await deleteStudent(student.id);
     } else if (action === "deactivate") {
@@ -117,18 +115,14 @@ export default function Students() {
     } else {
       await updateStudent(student.id, { active: true });
     }
-    setPinModal(null);
-    setPinInput("");
+    setPendingAction(null);
+    pin.resetPin();
   };
 
   const handlePinConfirm = async () => {
-    if (!pinModal) return;
-    const delay = getPinLockoutDelay();
-    if (delay > 0) { setPinError(`Tunggu ${Math.ceil(delay / 1000)} detik.`); return; }
-    const ok = await verifyPin(pinInput, settings?.financialPin ?? "");
-    if (!ok) { recordPinFailure(); setPinError("PIN salah."); return; }
-    resetPinLockout();
-    await executeAction(pinModal.action, pinModal.student);
+    if (!pendingAction) return;
+    const ok = await pin.attemptPin(settings?.financialPin ?? "");
+    if (ok) await executeAction();
   };
 
   const renderStudentCard = (s: Student) => {
@@ -338,41 +332,41 @@ export default function Students() {
       )}
 
       {/* PIN Confirmation Modal */}
-      {pinModal && (
+      {pendingAction && (
         <div className="fixed inset-0 bg-black/50 z-[80] flex items-center justify-center px-4">
           <div className="bg-white rounded-2xl p-5 w-full max-w-xs space-y-4 shadow-xl">
             <div>
               <p className="font-bold text-base text-gray-800">
-                {pinModal.action === "delete" && "Hapus Murid"}
-                {pinModal.action === "deactivate" && "Nonaktifkan Murid"}
-                {pinModal.action === "activate" && "Aktifkan Murid"}
+                {pendingAction.action === "delete" && "Hapus Murid"}
+                {pendingAction.action === "deactivate" && "Nonaktifkan Murid"}
+                {pendingAction.action === "activate" && "Aktifkan Murid"}
               </p>
               <p className="text-sm text-gray-500 mt-1">
-                {pinModal.action === "delete"
-                  ? `Data "${pinModal.student.name}" akan dihapus permanen.`
-                  : pinModal.action === "deactivate"
-                  ? `"${pinModal.student.name}" dipindah ke historis.`
-                  : `"${pinModal.student.name}" diaktifkan kembali.`}
+                {pendingAction.action === "delete"
+                  ? `Data "${pendingAction.student.name}" akan dihapus permanen.`
+                  : pendingAction.action === "deactivate"
+                  ? `"${pendingAction.student.name}" dipindah ke historis.`
+                  : `"${pendingAction.student.name}" diaktifkan kembali.`}
               </p>
             </div>
             {settings?.financialPin && (
               <div>
                 <p className="text-xs text-gray-500 mb-1">Masukkan PIN untuk konfirmasi</p>
                 <input type="password" inputMode="numeric" maxLength={6} placeholder="PIN"
-                  value={pinInput} onChange={(e) => { setPinInput(e.target.value); setPinError(""); }}
+                  value={pin.pinInput} onChange={(e) => pin.setPinInput(e.target.value)}
                   className="input text-center tracking-widest text-lg w-full" autoFocus />
-                {pinError && <p className="text-xs text-red-500 mt-1">{pinError}</p>}
+                {pin.pinError && <p className="text-xs text-red-500 mt-1">{pin.pinError}</p>}
               </div>
             )}
             <div className="flex gap-2">
-              <button onClick={() => setPinModal(null)}
+              <button onClick={() => { setPendingAction(null); pin.resetPin(); }}
                 className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-600 font-semibold text-sm">
                 Batal
               </button>
               <button
                 onClick={handlePinConfirm}
-                className={`flex-1 py-2.5 rounded-xl text-white font-semibold text-sm ${pinModal.action === "delete" ? "bg-red-500 hover:bg-red-600" : pinModal.action === "deactivate" ? "bg-orange-500 hover:bg-orange-600" : "bg-green-600 hover:bg-green-700"}`}>
-                {pinModal.action === "delete" ? "Hapus" : pinModal.action === "deactivate" ? "Nonaktifkan" : "Aktifkan"}
+                className={`flex-1 py-2.5 rounded-xl text-white font-semibold text-sm ${pendingAction.action === "delete" ? "bg-red-500 hover:bg-red-600" : pendingAction.action === "deactivate" ? "bg-orange-500 hover:bg-orange-600" : "bg-green-600 hover:bg-green-700"}`}>
+                {pendingAction.action === "delete" ? "Hapus" : pendingAction.action === "deactivate" ? "Nonaktifkan" : "Aktifkan"}
               </button>
             </div>
           </div>

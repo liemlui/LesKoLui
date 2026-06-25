@@ -52,6 +52,11 @@ export default defineConfig({
           },
         ],
       },
+      // Dev mode: virtual module tetap ada (import tidak error),
+      // tapi service worker tidak diregistrasi — jadi tidak nge-cache
+      devOptions: {
+        enabled: false,
+      },
       workbox: {
         globPatterns: ["**/*.{js,css,html,woff,woff2,png,svg}"],
         maximumFileSizeToCacheInBytes: 5_000_000,

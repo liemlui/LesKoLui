@@ -15,7 +15,9 @@ interface Props extends SessionActions {
   dateCtx?: string;
 }
 
-export default function SessionPill({ session: s, studentMap, today, dateCtx, onEdit, onCapture, onCancel }: Props) {
+import { memo } from "react";
+
+function SessionPill({ session: s, studentMap, today, dateCtx, onEdit, onCapture, onCancel }: Props) {
   const info        = studentMap.get(s.studentId);
   const color       = info?.color ?? "#9CA3AF";
   const isDone      = s.status === "DONE";
@@ -60,3 +62,5 @@ export default function SessionPill({ session: s, studentMap, today, dateCtx, on
     </div>
   );
 }
+
+export default memo(SessionPill);
