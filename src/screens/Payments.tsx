@@ -13,8 +13,7 @@ import {
 import type { ExpenseCategory } from "../db/repos";
 import type { Payment, Student, Settings } from "../db/types";
 import { formatRupiah, todayWIB, monthLabel } from "../lib/format";
-import { verifyPin } from "../lib/crypto";
-import { getPinLockoutDelay, recordPinFailure, resetPinLockout } from "../lib/pinLockout";
+import { usePinGate } from "../hooks/usePinGate";
 import { toPng } from "html-to-image";
 import { jsPDF } from "jspdf";
 import { generatePaymentReminder, estimatePaymentReminderCost } from "../lib/aiClient";
@@ -60,9 +59,7 @@ export default function PaymentsPage() {
   const payments  = useLiveQuery(() => listPayments(), []);
   const students  = useLiveQuery(() => listStudents(true), []);
   const settings  = useLiveQuery(() => getSettings(), []);
-  const [unlocked, setUnlocked] = useState(false);
-  const [pinInput, setPinInput] = useState("");
-  const [pinError, setPinError] = useState("");
+  const pin = usePinGate();
 
   const [activeTab, setActiveTab] = useState<Tab>("ringkasan");
   const [message, setMessage] = useState("");
@@ -263,24 +260,18 @@ export default function PaymentsPage() {
 
   if (!payments || !students || !settings) return <div className="p-4 text-gray-500">Memuat...</div>;
 
-  if (settings.financialPin && !unlocked) {
+  if (settings.financialPin && !pin.unlocked) {
     return (
       <div className="p-4 flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <p className="text-4xl">🔐</p>
         <p className="font-bold text-lg text-gray-800">Data Keuangan</p>
         <p className="text-sm text-gray-400 text-center">Masukkan PIN untuk mengakses keuangan</p>
         <input type="password" inputMode="numeric" maxLength={6} placeholder="PIN (6 digit)"
-          value={pinInput} onChange={(e) => { setPinInput(e.target.value.replace(/\D/g, "").slice(0, 6)); setPinError(""); }}
+          value={pin.pinInput} onChange={(e) => pin.setPinInput(e.target.value.replace(/\D/g, "").slice(0, 6))}
           className="input text-center tracking-widest text-xl w-40" autoFocus />
-        {pinError && <p className="text-sm text-red-500">{pinError}</p>}
+        {pin.pinError && <p className="text-sm text-red-500">{pin.pinError}</p>}
         <button
-          onClick={async () => {
-            const delay = getPinLockoutDelay();
-            if (delay > 0) { setPinError(`Tunggu ${Math.ceil(delay / 1000)} detik.`); return; }
-            const ok = await verifyPin(pinInput, settings.financialPin!);
-            if (!ok) { recordPinFailure(); setPinError("PIN salah."); return; }
-            resetPinLockout(); setUnlocked(true); setPinInput("");
-          }}
+          onClick={async () => { await pin.attemptPin(settings.financialPin!); }}
           className="px-8 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-colors">
           Buka
         </button>
