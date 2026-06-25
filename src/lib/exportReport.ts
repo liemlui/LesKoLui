@@ -1,4 +1,4 @@
-import { toJpeg } from "html-to-image";
+import { toJpeg, toPng } from "html-to-image";
 import { jsPDF } from "jspdf";
 
 function dataUrlToBlob(dataUrl: string): Blob {
@@ -14,7 +14,7 @@ async function pageNodes(): Promise<HTMLElement[]> {
   return Array.from(document.querySelectorAll<HTMLElement>("[data-report-page]"));
 }
 
-async function rasterizePages(): Promise<{ dataUrl: string; w: number; h: number }[]> {
+async function rasterizePages(format: "jpeg" | "png" = "jpeg"): Promise<{ dataUrl: string; w: number; h: number }[]> {
   await document.fonts.ready;
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(null))));
   const nodes = await pageNodes();
@@ -23,13 +23,9 @@ async function rasterizePages(): Promise<{ dataUrl: string; w: number; h: number
   for (const node of nodes) {
     node.scrollIntoView({ block: "nearest" });
     await new Promise((r) => requestAnimationFrame(() => r(null)));
-    const dataUrl = await toJpeg(node, {
-      pixelRatio: 2,
-      quality: 0.92,
-      cacheBust: false,  // blob URLs break when query string is appended
-      skipFonts: true,   // avoid fetching Google Fonts; fonts already rendered in browser
-      style: { overflow: "visible" },
-    });
+    const dataUrl = format === "png"
+      ? await toPng(node, { pixelRatio: 2, cacheBust: false, skipFonts: true, style: { overflow: "visible" } })
+      : await toJpeg(node, { pixelRatio: 2, quality: 0.92, cacheBust: false, skipFonts: true, style: { overflow: "visible" } });
     out.push({ dataUrl, w: node.offsetWidth, h: node.offsetHeight });
   }
   return out;
@@ -44,12 +40,15 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-export async function exportJpeg(filenameBase: string): Promise<File[]> {
-  const pages = await rasterizePages();
+export async function exportJpeg(filenameBase: string, multiFile = false): Promise<File[]> {
+  const pages = await rasterizePages("jpeg");
   if (pages.length === 0) return [];
-  if (pages.length === 1) {
-    const blob = dataUrlToBlob(pages[0].dataUrl);
-    return [new File([blob], `${filenameBase}.jpg`, { type: "image/jpeg" })];
+  if (pages.length === 1 || multiFile) {
+    return pages.map((p, i) => {
+      const blob = dataUrlToBlob(p.dataUrl);
+      const name = multiFile && pages.length > 1 ? `${filenameBase}-${i + 1}.jpg` : `${filenameBase}.jpg`;
+      return new File([blob], name, { type: "image/jpeg" });
+    });
   }
   // Combine all pages into one tall image
   const PR = 2;
@@ -71,8 +70,18 @@ export async function exportJpeg(filenameBase: string): Promise<File[]> {
   return [new File([blob], `${filenameBase}.jpg`, { type: "image/jpeg" })];
 }
 
+export async function exportPng(filenameBase: string): Promise<File[]> {
+  const pages = await rasterizePages("png");
+  if (pages.length === 0) return [];
+  return pages.map((p, i) => {
+    const blob = dataUrlToBlob(p.dataUrl);
+    const name = pages.length > 1 ? `${filenameBase}-${i + 1}.png` : `${filenameBase}.png`;
+    return new File([blob], name, { type: "image/png" });
+  });
+}
+
 export async function exportPdf(filenameBase: string): Promise<File> {
-  const pages = await rasterizePages();
+  const pages = await rasterizePages("jpeg");
   if (pages.length === 0) throw new Error("No report pages found");
   const first = pages[0];
   const pdf = new jsPDF({
@@ -88,7 +97,17 @@ export async function exportPdf(filenameBase: string): Promise<File> {
   return new File([blob], `${filenameBase}.pdf`, { type: "application/pdf" });
 }
 
-export async function shareFiles(files: File[], _title: string) {
+export async function shareFiles(files: File[], title: string) {
+  // Try Web Share API first (mobile-friendly)
+  if (typeof navigator !== "undefined" && navigator.share && navigator.canShare?.({ files })) {
+    try {
+      await navigator.share({ files, title });
+      return;
+    } catch {
+      // Fall through to download
+    }
+  }
+  // Fallback: download via anchor
   for (const f of files) {
     const url = URL.createObjectURL(f);
     const a = document.createElement("a");

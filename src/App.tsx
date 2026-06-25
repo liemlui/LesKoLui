@@ -3,7 +3,7 @@ import { createBrowserRouter, RouterProvider, Outlet, Navigate } from "react-rou
 import { initSettings } from "./db/repos";
 import BottomNav from "./components/BottomNav";
 import { PwaPrompts } from "./components/PwaPrompts";
-import Home from "./screens/Home";
+import Home from "./screens/home/Home";
 import Students from "./screens/Students";
 import StudentDetail from "./screens/StudentDetail";
 import CaptureSession from "./screens/CaptureSession";

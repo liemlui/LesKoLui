@@ -215,23 +215,23 @@ export const RESPONSE_TAGS: ResponseTag[] = [
   {
     id: "transfer-attempt",
     icon: "🚀",
-    label: "Coba transfer",
-    description: "Berusaha menerapkan konsep yang baru dipelajari ke konteks atau soal yang berbeda.",
-    teacherNote: "Sinyal pemahaman mendalam! Dukung dan perkuat dengan soal transfer lebih lanjut.",
+    label: "Coba soal baru",
+    description: "Mencoba menerapkan konsep ke soal atau konteks yang berbeda dari contoh sebelumnya.",
+    teacherNote: "Sinyal pemahaman mendalam! Beri soal transfer level berikutnya untuk memperkuat.",
   },
   {
     id: "prerequisite-gap",
     icon: "⛔",
-    label: "Gap prasyarat",
-    description: "Hambatan utama bukan di topik sekarang, tapi di konsep prasyarat yang belum dikuasai.",
-    teacherNote: "Jadwalkan sesi backfill untuk prasyarat — lanjut topik ini setelah gap diisi.",
+    label: "Fondasi berlubang",
+    description: "Hambatan bukan di topik saat ini, tapi di konsep dasar sebelumnya yang belum dikuasai.",
+    teacherNote: "Jadwalkan sesi ulang materi sebelumnya — topik ini bisa dilanjutkan setelah fondasi diperkuat.",
   },
   {
     id: "metacognitive",
     icon: "🧠",
-    label: "Sadar strategi",
-    description: "Siswa menunjukkan kesadaran terhadap cara berpikirnya sendiri dan kekurangannya.",
-    teacherNote: "Catat dan gunakan untuk merekomendasikan strategi review yang lebih personal.",
+    label: "Sadar kelemahan sendiri",
+    description: "Siswa bisa menjelaskan sendiri bagian mana yang belum ia mengerti atau strategi apa yang kurang.",
+    teacherNote: "Catat poin ini dan gunakan untuk menyusun strategi review yang lebih personal.",
   },
 ];
 

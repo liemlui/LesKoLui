@@ -12,12 +12,14 @@ import { getTheme, THEMES } from "../template/themes";
 import { LAYOUTS } from "../template/layouts";
 import { ReportRenderer } from "../template/ReportRenderer";
 import { dayLabel, monthLabel, formatRupiah, todayWIB, monthOf } from "../lib/format";
-import { exportJpeg, exportPdf, shareFiles } from "../lib/exportReport";
+import { exportJpeg, exportPng, exportPdf, shareFiles } from "../lib/exportReport";
 import { blobToDataUrl, blobToNormalizedDataUrl } from "../lib/imageUtils";
 import { hashPin, verifyPin } from "../lib/crypto";
 import { getPinLockoutDelay, recordPinFailure, resetPinLockout } from "../lib/pinLockout";
 import PaginationControls from "../components/PaginationControls";
 import { clampPage, paginateItems } from "../lib/pagination";
+import { calcEngagementScore, scoreLabel } from "../lib/engagement";
+import type { ReportOptions, CustomTheme, Theme } from "../template/types";
 
 type Tab = "laporan" | "rekap";
 
@@ -46,7 +48,7 @@ export default function MonthlyReportPage() {
   const [quoteText,        setQuoteText]        = useState("");
   const [aiLoading,        setAiLoading]        = useState(false);
   const [message,          setMessage]          = useState("");
-  const [exporting,        setExporting]        = useState<"jpg" | "pdf" | null>(null);
+  const [exporting,        setExporting]        = useState<"jpg" | "png" | "pdf" | null>(null);
   const [openNarasi,       setOpenNarasi]       = useState(false);
   const [openTeks,         setOpenTeks]         = useState(false);
   const [narrativePage,    setNarrativePage]    = useState(1);
@@ -96,7 +98,20 @@ export default function MonthlyReportPage() {
   const sessionsWithPhotos     = reportSessions.filter((s) => Boolean(s.photo)).length;
   const reportCompletion       = reportSessions.length > 0 ? Math.round((sessionsWithNarrative / reportSessions.length) * 100) : 0;
 
-  const theme = report ? getTheme(report.templateKey.themeId) : THEMES[0];
+  // Resolve theme: built-in or custom
+  const theme: Theme = useMemo(() => {
+    if (!report) return THEMES[0];
+    const customThemes = settings?.templatePref?.customThemes ?? [];
+    const custom = customThemes.find((ct) => ct.id === report.templateKey.themeId);
+    if (custom) return custom as Theme;
+    return getTheme(report.templateKey.themeId);
+  }, [report, settings]);
+
+  const allThemes = useMemo(() => {
+    const customThemes = (settings?.templatePref?.customThemes ?? []) as Theme[];
+    const excluded = settings?.templatePref?.excludedThemeIds ?? [];
+    return [...THEMES.filter((t) => !excluded.includes(t.id)), ...customThemes];
+  }, [settings]);
 
   // Per-session signature data URLs
   const [sessionSigUrls, setSessionSigUrls] = useState<Map<string, string>>(new Map());
@@ -114,12 +129,17 @@ export default function MonthlyReportPage() {
     return () => { cancelled = true; };
   }, [sessions]);
 
-  // ReportData — async photo normalization (4:3, data URL, no blob)
-  const [reportData, setReportData] = useState<{
-    studentName: string; period: string; tutorName: string; logoUrl?: string;
-    entries: { date: string; subject: string; photoUrl?: string; narrative: string }[];
-    summary: string; teacherNote?: string; quote?: string;
-  } | null>(null);
+  // ── Undo stack for theme/layout changes ─────────────────────────────
+  const [undoStack, setUndoStack] = useState<Array<{ themeId: string; layoutId: string }>>([]);
+  const [showCompare, setShowCompare] = useState(false);
+  const [compareThemeId, setCompareThemeId] = useState<string | null>(null);
+  const [coverPage, setCoverPage] = useState(false);
+  const [showCustomBuilder, setShowCustomBuilder] = useState(false);
+
+  const reportOptions: ReportOptions = { coverPage, showEngagement: true };
+
+  // ReportData — async photo normalization + engagement
+  const [reportData, setReportData] = useState<import("../template/types").ReportData | null>(null);
 
   useEffect(() => {
     if (!student || !sessions) { setReportData(null); return; }
@@ -127,13 +147,22 @@ export default function MonthlyReportPage() {
     (async () => {
       const logoUrl = settings?.logo ? await blobToDataUrl(settings.logo) : undefined;
       const entries = await Promise.all(
-        sessions.map(async (s) => ({
-          date: dayLabel(s.date).split(",")[1]?.trim() ?? s.date.slice(5),
-          subject: s.subjects.join(", "),
-          photoUrl: s.photo ? await blobToNormalizedDataUrl(s.photo) : undefined,
-          narrative: s.narrative ?? s.shortNote,
-        }))
+        sessions.map(async (s) => {
+          const engScore = s.engagement?.score ?? (s.engagement ? calcEngagementScore(s.engagement) : undefined);
+          const engLabel = engScore != null ? scoreLabel(engScore).text : undefined;
+          return {
+            date: dayLabel(s.date).split(",")[1]?.trim() ?? s.date.slice(5),
+            subject: s.subjects.join(", "),
+            photoUrl: s.photo ? await blobToNormalizedDataUrl(s.photo) : undefined,
+            narrative: s.narrative ?? s.shortNote,
+            engagementScore: engScore,
+            engagementLabel: engLabel,
+          };
+        })
       );
+      const scores = entries.filter((e) => e.engagementScore != null).map((e) => e.engagementScore!);
+      const avgEngagement = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : undefined;
+      const photoUrls = entries.filter((e) => e.photoUrl).map((e) => e.photoUrl!);
       if (cancelled) return;
       setReportData({
         studentName: student.name,
@@ -144,6 +173,8 @@ export default function MonthlyReportPage() {
         summary: report?.summaryText ?? "",
         teacherNote: report?.teacherNote,
         quote: report?.quote,
+        avgEngagement,
+        photoUrls,
       });
     })();
     return () => { cancelled = true; };
@@ -249,17 +280,17 @@ export default function MonthlyReportPage() {
     finally { setAiLoading(false); }
   };
 
-  const doExport = async (type: "png" | "pdf") => {
+  const doExport = async (type: "jpg" | "png" | "pdf") => {
     if (!student || !report || exporting) return;
-    const key = type === "png" ? "jpg" : "pdf";
-    setExporting(key);
+    setExporting(type);
     setMessage("");
     const base = `Laporan-${student.name}-${monthLabel(month)}`.replace(/\s+/g, "-");
     try {
-      if (type === "png") await shareFiles(await exportJpeg(base), base);
+      if (type === "jpg") await shareFiles(await exportJpeg(base), base);
+      else if (type === "png") await shareFiles(await exportPng(base), base);
       else await shareFiles([await exportPdf(base)], base);
       await upsertReport({ ...report, pdfGeneratedAt: new Date().toISOString() });
-      setMessage(`✓ File ${key.toUpperCase()} diunduh`);
+      setMessage(`✓ File ${type.toUpperCase()} diunduh`);
     } catch (e) {
       setMessage("Gagal ekspor: " + (e as Error).message);
     } finally {
@@ -389,35 +420,109 @@ export default function MonthlyReportPage() {
 
                 {/* Design toolbar */}
                 <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-2.5">
+                  {/* Row 1: Random + Layout + Cover toggle */}
                   <div className="flex items-center gap-2">
-                    <button className="btn btn-secondary text-sm py-1.5 px-3 flex-shrink-0 whitespace-nowrap"
+                    <button className="btn btn-secondary text-sm py-1.5 px-2 flex-shrink-0 whitespace-nowrap"
                       onClick={handleRegenerate}>🎲 Acak</button>
+                    {undoStack.length > 0 && (
+                      <button className="btn btn-secondary text-sm py-1.5 px-2 flex-shrink-0"
+                        onClick={async () => {
+                          const prev = undoStack[undoStack.length - 1];
+                          setUndoStack((s) => s.slice(0, -1));
+                          await upsertReport({ ...report, templateKey: { themeId: prev.themeId, layoutId: prev.layoutId } });
+                        }}>↩ Undo</button>
+                    )}
                     <select className="input flex-1 text-sm" value={report.templateKey.layoutId}
-                      onChange={(e) => handleCreateOrSwitch(e.target.value)}>
+                      onChange={(e) => { setUndoStack((s) => [...s, { themeId: report.templateKey.themeId, layoutId: report.templateKey.layoutId }]); handleCreateOrSwitch(e.target.value); }}>
                       {LAYOUTS.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                     </select>
+                    <button onClick={() => setCoverPage((v) => !v)}
+                      className={`text-sm py-1.5 px-2 rounded-lg border transition-colors whitespace-nowrap ${coverPage ? "bg-blue-600 text-white border-blue-600" : "bg-gray-50 text-gray-600 border-gray-200"}`}>
+                      {coverPage ? "📄 Cover" : "📄 Cover"}
+                    </button>
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {THEMES.map((t) => {
+
+                  {/* Row 2: Compare + Custom Theme Builder */}
+                  <div className="flex gap-2">
+                    <button className="btn btn-secondary text-xs py-1 px-2 flex-1"
+                      onClick={() => { setShowCompare((v) => !v); setCompareThemeId(null); }}>
+                      {showCompare ? "❌ Tutup" : "🔍 Bandingkan"}
+                    </button>
+                    <button className="btn btn-secondary text-xs py-1 px-2 flex-1"
+                      onClick={() => setShowCustomBuilder((v) => !v)}>
+                      {showCustomBuilder ? "❌ Tutup" : "🎨 Custom Theme"}
+                    </button>
+                  </div>
+
+                  {/* Thumbnail grid */}
+                  <div className="grid grid-cols-6 gap-1.5 max-h-[200px] overflow-y-auto">
+                    {allThemes.map((t) => {
                       const isActive = report.templateKey.themeId === t.id;
-                      const bg = t.bg.includes("gradient") ? t.accent : t.bg;
+                      const isCompare = compareThemeId === t.id;
+                      const bgColor = t.bg.includes("gradient") ? t.accent : t.bg;
                       return (
                         <button key={t.id} title={t.name}
-                          className={`w-7 h-7 rounded-full border-2 transition-all ${isActive ? "border-gray-800 scale-125 shadow" : "border-transparent hover:border-gray-400"}`}
-                          style={{ background: bg }}
                           onClick={async () => {
+                            if (showCompare) { setCompareThemeId(t.id); return; }
+                            setUndoStack((s) => [...s, { themeId: report.templateKey.themeId, layoutId: report.templateKey.layoutId }]);
                             await upsertReport({ ...report, templateKey: { ...report.templateKey, themeId: t.id } });
                           }}
-                        />
+                          className={`rounded-lg border-2 transition-all overflow-hidden ${isActive ? "border-gray-800 ring-2 ring-offset-1 ring-blue-400" : isCompare ? "border-dashed border-blue-400" : "border-gray-200 hover:border-gray-400"}`}>
+                          <div style={{ background: bgColor, height: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <span style={{ fontFamily: t.fontDisplay, fontSize: 8, color: t.ink, fontWeight: 700, lineHeight: 1, textAlign: "center", padding: "0 2px" }}>
+                              {t.headerText.slice(0, 4)}
+                            </span>
+                          </div>
+                          <div style={{ padding: "2px 3px", fontSize: 8, color: "#6b7280", textAlign: "center", background: "#fff" }}>
+                            {t.name.length > 10 ? t.name.slice(0, 9) + "…" : t.name}
+                          </div>
+                        </button>
                       );
                     })}
                   </div>
-                  <p className="text-xs text-gray-400">{THEMES.find((t) => t.id === report.templateKey.themeId)?.name ?? "—"}</p>
+                  <p className="text-xs text-gray-400">
+                    {allThemes.find((t) => t.id === report.templateKey.themeId)?.name ?? "—"}
+                    {showCompare && " • Klik tema untuk bandingkan, klik lagi untuk pilih"}
+                  </p>
                 </div>
+
+                {/* Comparison mode */}
+                {showCompare && compareThemeId && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <p className="text-xs text-gray-400 text-center mb-1">Current: {allThemes.find((t) => t.id === report.templateKey.themeId)?.name}</p>
+                      <div className="scale-[0.6] origin-top-left" style={{ width: "167%" }}>
+                        <ReportRenderer data={reportData} theme={theme} layoutId={report.templateKey.layoutId} options={reportOptions} />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400 text-center mb-1">Compare: {allThemes.find((t) => t.id === compareThemeId)?.name}</p>
+                      <div className="scale-[0.6] origin-top-left" style={{ width: "167%" }}>
+                        <ReportRenderer data={reportData} theme={getTheme(compareThemeId)} layoutId={report.templateKey.layoutId} options={reportOptions} />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Custom Theme Builder */}
+                {showCustomBuilder && (
+                  <CustomThemeBuilder
+                    onSave={async (ct: CustomTheme) => {
+                      const currentCustoms = settings?.templatePref?.customThemes ?? [];
+                      const updated = currentCustoms.some((c) => c.id === ct.id)
+                        ? currentCustoms.map((c) => c.id === ct.id ? ct : c)
+                        : [...currentCustoms, ct];
+                      await saveSettings({ templatePref: { ...settings?.templatePref, customThemes: updated } } as any);
+                      await upsertReport({ ...report, templateKey: { ...report.templateKey, themeId: ct.id } });
+                      setShowCustomBuilder(false);
+                      setMessage("Tema kustom disimpan ✓");
+                    }}
+                  />
+                )}
 
                 {/* Preview */}
                 <div className="max-w-sm mx-auto">
-                  <ReportRenderer data={reportData} theme={theme} layoutId={report.templateKey.layoutId} />
+                  <ReportRenderer data={reportData} theme={theme} layoutId={report.templateKey.layoutId} options={reportOptions} />
                 </div>
 
                 {/* Rekap tanda tangan */}
@@ -440,12 +545,15 @@ export default function MonthlyReportPage() {
                 )}
 
                 {/* Export */}
-                <div className="grid grid-cols-2 gap-2">
-                  <button className="btn btn-primary text-sm" onClick={() => doExport("png")} disabled={!!exporting}>
-                    {exporting === "jpg" ? "⏳ Memproses..." : "⬇️ Unduh JPG"}
+                <div className="grid grid-cols-3 gap-2">
+                  <button className="btn btn-primary text-sm" onClick={() => doExport("jpg")} disabled={!!exporting}>
+                    {exporting === "jpg" ? "⏳" : "🖼️"} JPG
+                  </button>
+                  <button className="btn text-sm bg-purple-600 text-white hover:bg-purple-700" onClick={() => doExport("png")} disabled={!!exporting}>
+                    {exporting === "png" ? "⏳" : "📋"} PNG
                   </button>
                   <button className="btn btn-secondary text-sm" onClick={() => doExport("pdf")} disabled={!!exporting}>
-                    {exporting === "pdf" ? "⏳ Memproses..." : "⬇️ Unduh PDF"}
+                    {exporting === "pdf" ? "⏳" : "📄"} PDF
                   </button>
                 </div>
               </section>
@@ -737,6 +845,166 @@ export default function MonthlyReportPage() {
         )}
 
       </div>
+    </div>
+  );
+}
+
+// ── Custom Theme Builder ─────────────────────────────────────────────
+
+const FONTS = [
+  { id: "'Fredoka', sans-serif", name: "Fredoka" },
+  { id: "'Baloo 2', sans-serif", name: "Baloo 2" },
+  { id: "'Pacifico', cursive", name: "Pacifico" },
+  { id: "'Poppins', sans-serif", name: "Poppins" },
+  { id: "'Nunito', sans-serif", name: "Nunito" },
+  { id: "'Quicksand', sans-serif", name: "Quicksand" },
+  { id: "'Comfortaa', sans-serif", name: "Comfortaa" },
+  { id: "'Caveat', cursive", name: "Caveat" },
+];
+
+const HEADER_STYLES: Array<{ id: import("../template/types").HeaderStyle; name: string }> = [
+  { id: "bubble", name: "Bubble" }, { id: "script", name: "Script" }, { id: "plain", name: "Plain" },
+  { id: "frame", name: "Frame" }, { id: "minimal", name: "Minimal" }, { id: "badge", name: "Badge" }, { id: "watercolor", name: "Watercolor" },
+];
+const LABEL_STYLES: Array<{ id: import("../template/types").LabelStyle; name: string }> = [
+  { id: "pill", name: "Pill" }, { id: "rounded", name: "Rounded" }, { id: "flag", name: "Flag" },
+  { id: "tag", name: "Tag" }, { id: "underline", name: "Underline" }, { id: "ribbon-label", name: "Ribbon" },
+];
+const PHOTO_STYLES: Array<{ id: import("../template/types").PhotoStyle; name: string }> = [
+  { id: "round", name: "Round" }, { id: "circle", name: "Circle" }, { id: "polaroid", name: "Polaroid" },
+  { id: "shadow", name: "Shadow" }, { id: "frame", name: "Frame" }, { id: "vintage", name: "Vintage" }, { id: "duotone", name: "Duotone" },
+];
+const DECO_KINDS: Array<{ id: import("../template/types").DecoKind; name: string }> = [
+  { id: "none", name: "None" }, { id: "snow", name: "Snow" }, { id: "leaf", name: "Leaf" }, { id: "petal", name: "Petal" },
+  { id: "sparkle", name: "Sparkle" }, { id: "star", name: "Star" }, { id: "wave", name: "Wave" }, { id: "sun", name: "Sun" },
+  { id: "geometric", name: "Geometric" }, { id: "dots", name: "Dots" }, { id: "stripes", name: "Stripes" },
+  { id: "confetti", name: "Confetti" }, { id: "book", name: "Book" }, { id: "globe", name: "Globe" },
+  { id: "ribbon", name: "Ribbon" }, { id: "zigzag", name: "Zigzag" },
+];
+
+function CustomThemeBuilder({ onSave }: {
+  onSave: (ct: import("../template/types").CustomTheme) => void;
+}) {
+  const [name, setName] = useState("TemaKu");
+  const [bg, setBg] = useState("#f0f4ff");
+  const [ink, setInk] = useState("#1a2a4a");
+  const [muted, setMuted] = useState("#6b7a99");
+  const [accent, setAccent] = useState("#4d7fd0");
+  const [palette, setPalette] = useState(["#4d7fd0", "#e0892f", "#54b08a", "#d9605f"]);
+  const [fontDisplay, setFontDisplay] = useState("'Fredoka', sans-serif");
+  const [fontBody, setFontBody] = useState("'Nunito', sans-serif");
+  const [header, setHeader] = useState<import("../template/types").HeaderStyle>("bubble");
+  const [label, setLabel] = useState<import("../template/types").LabelStyle>("pill");
+  const [photo, setPhoto] = useState<import("../template/types").PhotoStyle>("round");
+  const [deco, setDeco] = useState<import("../template/types").DecoKind>("none");
+  const [headerText, setHeaderText] = useState("ABSENSI");
+
+  const save = () => {
+    onSave({
+      id: `custom-${Date.now()}`, name: name || "TemaKu", bg, ink, muted, accent, palette,
+      fontDisplay, fontBody, header, label, photo, deco, headerText,
+    });
+  };
+
+  return (
+    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+      <p className="font-bold text-gray-800 text-sm">🎨 Custom Theme Builder</p>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="label">Nama Tema</label>
+          <input className="input text-sm" value={name} onChange={(e) => setName(e.target.value)} />
+        </div>
+        <div>
+          <label className="label">Header Text</label>
+          <input className="input text-sm" value={headerText} onChange={(e) => setHeaderText(e.target.value)} />
+        </div>
+        <div>
+          <label className="label">Background</label>
+          <input type="color" className="w-full h-8 rounded cursor-pointer" value={bg} onChange={(e) => setBg(e.target.value)} />
+        </div>
+        <div>
+          <label className="label">Accent</label>
+          <input type="color" className="w-full h-8 rounded cursor-pointer" value={accent} onChange={(e) => setAccent(e.target.value)} />
+        </div>
+        <div>
+          <label className="label">Ink (teks)</label>
+          <input type="color" className="w-full h-8 rounded cursor-pointer" value={ink} onChange={(e) => setInk(e.target.value)} />
+        </div>
+        <div>
+          <label className="label">Muted (sekunder)</label>
+          <input type="color" className="w-full h-8 rounded cursor-pointer" value={muted} onChange={(e) => setMuted(e.target.value)} />
+        </div>
+      </div>
+
+      {/* Style selectors */}
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="label">Header Style</label>
+          <select className="input text-sm" value={header} onChange={(e) => setHeader(e.target.value as any)}>
+            {HEADER_STYLES.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="label">Label Style</label>
+          <select className="input text-sm" value={label} onChange={(e) => setLabel(e.target.value as any)}>
+            {LABEL_STYLES.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="label">Photo Style</label>
+          <select className="input text-sm" value={photo} onChange={(e) => setPhoto(e.target.value as any)}>
+            {PHOTO_STYLES.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="label">Decoration</label>
+          <select className="input text-sm" value={deco} onChange={(e) => setDeco(e.target.value as any)}>
+            {DECO_KINDS.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="label">Display Font</label>
+          <select className="input text-sm" value={fontDisplay} onChange={(e) => setFontDisplay(e.target.value)}>
+            {FONTS.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="label">Body Font</label>
+          <select className="input text-sm" value={fontBody} onChange={(e) => setFontBody(e.target.value)}>
+            {FONTS.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* Palette */}
+      <div>
+        <label className="label">Palette (4 warna)</label>
+        <div className="flex gap-2">
+          {palette.map((c, i) => (
+            <input key={i} type="color" className="w-full h-8 rounded cursor-pointer" value={c}
+              onChange={(e) => { const p = [...palette]; p[i] = e.target.value; setPalette(p); }} />
+          ))}
+        </div>
+      </div>
+
+      {/* Preview mini */}
+      <div className="rounded-xl overflow-hidden border border-gray-200">
+        <div style={{ background: bg, padding: "12px 10px", fontFamily: fontBody, color: ink }}>
+          <div style={{ fontFamily: fontDisplay, fontWeight: 700, fontSize: 18, color: accent, textAlign: "center" }}>
+            {headerText}
+          </div>
+          <div style={{ textAlign: "center", fontSize: 11, marginTop: 2, color: muted }}>
+            Preview · {name}
+          </div>
+          <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+            {palette.map((c, i) => (
+              <div key={i} style={{ flex: 1, height: 20, borderRadius: 6, background: c }} />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <button className="btn btn-primary w-full text-sm" onClick={save}>💾 Simpan Tema Kustom</button>
     </div>
   );
 }

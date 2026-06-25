@@ -25,3 +25,7 @@ dist-ssr
 
 .vercel
 .env*
+
+# Design sync build artifacts
+.ds-sync/
+ds-bundle/

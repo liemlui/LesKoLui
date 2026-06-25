@@ -852,7 +852,7 @@ const SUBJECT_ALIASES: Record<string, string[]> = {
   "ess":                ["Environmental Systems & Societies", "ESS"],
 };
 
-function resolveSubjectAliases(subject: string): string[] {
+export function resolveSubjectAliases(subject: string): string[] {
   const key = subject.toLowerCase().trim();
   return SUBJECT_ALIASES[key] ?? [subject];
 }
@@ -902,4 +902,64 @@ export function searchTopics(query: string, subject?: string): TopicEntry[] {
   .slice(0, 12);
 
   return scored.map(x => x.entry);
+}
+
+// ─── Topic browser (grade-filtered chip groups) ───────────────────────────────
+
+export interface TopicGroup { unit: string; topics: TopicEntry[]; }
+
+const LEVEL_KEYWORDS: Record<string, string[]> = {
+  MYP:       ["MYP"],
+  IBDP:      ["DP"],
+  DP:        ["DP"],
+  IGCSE:     ["IGCSE"],
+  "A LEVEL": ["A Level"],
+  AP:        ["AP"],
+  NATIONAL:  ["National"],
+};
+
+function inferLevelKeywords(studentLevel?: string, curriculum?: string): string[] {
+  const haystack = [studentLevel, curriculum].filter(Boolean).join(" ").toUpperCase();
+  for (const [key, kws] of Object.entries(LEVEL_KEYWORDS)) {
+    if (haystack.includes(key)) return kws;
+  }
+  return [];
+}
+
+export function browseTopicsForSubjects(
+  subjects: string[],
+  studentLevel?: string,
+  curriculum?: string,
+  maxGroups = 8,
+): TopicGroup[] {
+  if (subjects.length === 0) return [];
+
+  const resolvedSubjects = new Set<string>();
+  for (const s of subjects) {
+    for (const alias of resolveSubjectAliases(s)) {
+      resolvedSubjects.add(alias.toLowerCase());
+    }
+  }
+
+  const levelKws = inferLevelKeywords(studentLevel, curriculum);
+
+  const scored = IB_TOPICS
+    .filter((t) => resolvedSubjects.has(t.subject.toLowerCase()))
+    .map((t) => {
+      const levelMatch = levelKws.length === 0 || levelKws.some((k) => t.level.includes(k));
+      return { entry: t, score: levelMatch ? 2 : 1 };
+    });
+
+  const unitMap = new Map<string, { total: number; topics: TopicEntry[] }>();
+  for (const { entry, score } of scored) {
+    const g = unitMap.get(entry.unit) ?? { total: 0, topics: [] };
+    g.total += score;
+    g.topics.push(entry);
+    unitMap.set(entry.unit, g);
+  }
+
+  return Array.from(unitMap.entries())
+    .sort((a, b) => b[1].total - a[1].total)
+    .slice(0, maxGroups)
+    .map(([unit, { topics }]) => ({ unit, topics }));
 }

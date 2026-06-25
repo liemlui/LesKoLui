@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
@@ -12,13 +12,13 @@ import SignaturePad from "../components/SignaturePad";
 import { todayWIB, dayLabel } from "../lib/format";
 import { calcEngagementScore, scoreLabel } from "../lib/engagement";
 import { IB_MYP_SUBJECTS, IB_DP_GROUPS, getSubjectGroups, CURRICULUM_META } from "../lib/ibSubjects";
-import { searchTopics } from "../lib/ibTopics";
+import { searchTopics, browseTopicsForSubjects } from "../lib/ibTopics";
 import { SESSION_TYPE_OPTIONS, generateNote, generateEngagementNarrative } from "../lib/sessionTemplates";
 import { BEHAVIOR_TAGS, RESPONSE_TAGS } from "../lib/responseTaxonomy";
 import type { BehaviorTag, ResponseTag } from "../lib/responseTaxonomy";
 import type { SessionType } from "../lib/sessionTemplates";
 import { MIN_DURATION } from "../db/types";
-import { draftShortNote, polishWhatsApp, suggestHomework } from "../lib/aiClient";
+import { draftShortNote, polishWhatsApp, suggestHomework, estimateDraftNoteCost } from "../lib/aiClient";
 import type { Student, Session, Homework, FollowUpItem } from "../db/types";
 import PaginationControls from "../components/PaginationControls";
 import { PAGE_SIZE, clampPage, paginateItems } from "../lib/pagination";
@@ -35,12 +35,13 @@ const MOODS = [
 const STEPS = [
   { id: 1, label: "Jadwal",  icon: "🎯", desc: "Murid & waktu",       optional: false },
   { id: 2, label: "Bukti",   icon: "📸", desc: "Foto & tanda tangan", optional: true  },
-  { id: 3, label: "Materi",  icon: "📚", desc: "Mapel & catatan",     optional: false },
+  { id: 3, label: "Materi",  icon: "📚", desc: "Mapel & topik",       optional: false },
   { id: 4, label: "Kondisi", icon: "😊", desc: "Mood & perilaku",     optional: true  },
   { id: 5, label: "Detail",  icon: "📋", desc: "Topik & PR",          optional: true  },
+  { id: 6, label: "Catatan", icon: "✏️", desc: "Ringkasan sesi",      optional: false },
 ] as const;
 
-type StepNum = 1 | 2 | 3 | 4 | 5;
+type StepNum = 1 | 2 | 3 | 4 | 5 | 6;
 
 function maxBackDate(days = 14): string {
   const [y, m, d] = todayWIB().split("-").map(Number);
@@ -61,10 +62,7 @@ function buildWaMessage(
   followUps: string[],
   tutorName: string
 ): string {
-  const name = student.parentContact.name ? `Pak/Bu ${student.parentContact.name}` : `Orang tua ${student.name}`;
   const lines: string[] = [
-    `Halo ${name}, 👋`,
-    ``,
     `Sesi les *${student.name}* (${dayLabel(session.date)}) sudah selesai. 📚`,
     ``,
     session.subjects.length > 0 ? `*Mapel:* ${session.subjects.join(", ")}` : "",
@@ -188,6 +186,17 @@ export default function CaptureSession() {
   const [aiWaLoading,      setAiWaLoading]      = useState(false);
   const [aiWaText,         setAiWaText]         = useState<string | null>(null);
   const [aiError,          setAiError]          = useState("");
+  const [showTopicPicker,  setShowTopicPicker]  = useState(false);
+  const [showAiCostModal,  setShowAiCostModal]  = useState(false);
+
+  const topicGroups = useMemo(
+    () => browseTopicsForSubjects(
+      subjects.length ? subjects : studentSubjects,
+      currentStudent?.level,
+      currentStudent?.curriculum,
+    ),
+    [subjects, studentSubjects, currentStudent],
+  );
 
   useEffect(() => {
     if (!photo) { setPhotoUrl(undefined); return; }
@@ -416,8 +425,8 @@ export default function CaptureSession() {
     if (currentStep === 1 && !studentId) return "👤 Pilih murid dulu.";
     if (currentStep === 3) {
       if (studentSubjects.length > 0 && subjects.length === 0) return "📖 Pilih minimal 1 mata pelajaran.";
-      if (!shortNote.trim()) return "✏️ Tulis catatan singkat dulu.";
     }
+    if (currentStep === 6 && !shortNote.trim()) return "✏️ Tulis catatan singkat dulu.";
     return null;
   };
 
@@ -425,7 +434,7 @@ export default function CaptureSession() {
     const err = validateCurrentStep();
     if (err) { setMessage(err); return; }
     setMessage("");
-    if (currentStep < 5) setCurrentStep((s) => (s + 1) as StepNum);
+    if (currentStep < 6) setCurrentStep((s) => (s + 1) as StepNum);
     else handleSave();
   };
 
@@ -436,7 +445,7 @@ export default function CaptureSession() {
 
   const skipStep = () => {
     setMessage("");
-    if (currentStep < 5) setCurrentStep((s) => (s + 1) as StepNum);
+    if (currentStep < 6) setCurrentStep((s) => (s + 1) as StepNum);
     else handleSave();
   };
 
@@ -742,52 +751,46 @@ export default function CaptureSession() {
             </div>
           </div>
 
-          {/* Catatan singkat */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="label">✏️ Catatan Singkat <span className="text-red-400">*</span></label>
-              {sessionType && (
+          {/* Sub-Topik picker (grade-filtered) */}
+          {topicGroups.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="label mb-0">💡 Sub-Topik</label>
                 <button type="button"
-                  className="text-xs text-blue-600 hover:text-blue-800 font-semibold"
-                  onClick={() => setShortNote(generateNote(sessionType, subjects[0] ?? studentSubjects[0], topic))}>
-                  ⚡ Generate
+                  onClick={() => setShowTopicPicker((v) => !v)}
+                  className="text-xs text-blue-600 font-semibold">
+                  {showTopicPicker ? "▲ Sembunyikan" : "▾ Pilih topik"}
                 </button>
-              )}
-            </div>
-            <textarea className="input" rows={3} value={shortNote} maxLength={300}
-              onChange={(e) => setShortNote(e.target.value)}
-              placeholder="Apa yang dibahas hari ini?" />
-            <div className="flex items-center justify-between mt-1">
-              <span className="text-xs text-gray-400">{shortNote.length}/300</span>
-              {settings?.ai?.enabled && settings.ai.apiKey && subjects.length > 0 && (
-                <button type="button" disabled={aiNoteLoading}
-                  onClick={async () => {
-                    setAiNoteLoading(true); setAiError("");
-                    try {
-                      const res = await draftShortNote({
-                        student: { name: currentStudent?.name ?? "", level: currentStudent?.level ?? "" },
-                        subjects, topic, mood, sessionType,
-                      });
-                      if (res.note) setShortNote(res.note);
-                    } catch (e) { setAiError((e as Error).message); }
-                    finally { setAiNoteLoading(false); }
-                  }}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
-                  {aiNoteLoading ? "⏳ Draft AI..." : "✨ Draft AI"}
-                </button>
-              )}
-            </div>
-            {aiError && <p className="text-xs text-red-500 mt-1">{aiError}</p>}
-            {suggestions.length > 0 && (
-              <div className="mt-1 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                {suggestions.map((s) => (
-                  <button key={s} type="button"
-                    className="block w-full text-left text-sm text-blue-600 hover:bg-blue-50 px-3 py-2 border-b border-gray-100 last:border-0"
-                    onClick={() => setShortNote(s)}>{s}</button>
-                ))}
               </div>
-            )}
-          </div>
+              {topic && (
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs bg-blue-100 text-blue-700 font-semibold px-2.5 py-1 rounded-full">{topic}</span>
+                  <button type="button"
+                    onClick={() => { setTopic(""); setTopicSearch(""); }}
+                    className="text-xs text-gray-400 hover:text-gray-600">✕ hapus</button>
+                </div>
+              )}
+              {showTopicPicker && (
+                <div className="bg-gray-50 rounded-xl p-3 space-y-3 max-h-60 overflow-y-auto border border-gray-200">
+                  {topicGroups.map((g) => (
+                    <div key={g.unit}>
+                      <p className="text-xs font-semibold text-gray-500 mb-1.5">{g.unit}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {g.topics.map((t) => (
+                          <button key={t.topic} type="button"
+                            onClick={() => { setTopic(t.topic); setTopicSearch(t.topic); setShowTopicPicker(false); }}
+                            className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${topic === t.topic ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:border-blue-400 hover:text-blue-600"}`}>
+                            {t.topic}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
       )}
 
@@ -1135,6 +1138,108 @@ export default function CaptureSession() {
       )}
 
       {/* ══════════════════════════════════════════
+          STEP 6: CATATAN — Ringkasan Sesi
+          ══════════════════════════════════════════ */}
+      {currentStep === 6 && (
+        <div className="px-4 space-y-4">
+
+          {/* Context summary — what AI will use */}
+          <div className="bg-blue-50 border border-blue-100 rounded-xl p-3.5 space-y-1.5">
+            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wide mb-1.5">📊 Konteks yang dipakai AI</p>
+            {(subjects.length > 0 || studentSubjects.length > 0) && (
+              <p className="text-xs text-gray-600">
+                <span className="font-semibold">📚 Mapel:</span> {(subjects.length ? subjects : studentSubjects).join(", ")}
+              </p>
+            )}
+            {topic && (
+              <p className="text-xs text-gray-600">
+                <span className="font-semibold">💡 Topik:</span> {topic}
+              </p>
+            )}
+            {mood && (
+              <p className="text-xs text-gray-600">
+                <span className="font-semibold">🔥 Mood:</span> {mood}
+              </p>
+            )}
+            {engTouched && (
+              <p className="text-xs text-gray-600">
+                <span className="font-semibold">🎯 Engagement {engScore}/10:</span>{" "}
+                {[
+                  engPrepared && "sudah siap", engFocused && "sangat fokus",
+                  engActiveAsking && "aktif bertanya", engQuickLearner && "cepat paham",
+                  engDrowsy && "mengantuk", engPhone && "main HP",
+                  engNeedsRepeat && "perlu diulang", engHwMissed && "PR tidak buat",
+                ].filter(Boolean).join(", ")}
+              </p>
+            )}
+            {behaviorTags.length > 0 && (
+              <p className="text-xs text-gray-600">
+                <span className="font-semibold">🧩 Perilaku:</span>{" "}
+                {behaviorTags.map(id => BEHAVIOR_TAGS.find(t => t.id === id)?.label).filter(Boolean).join(", ")}
+              </p>
+            )}
+            {responseTag && (
+              <p className="text-xs text-gray-600">
+                <span className="font-semibold">🎓 Respons akademik:</span>{" "}
+                {RESPONSE_TAGS.find(t => t.id === responseTag)?.label}
+              </p>
+            )}
+            {needsWork && (
+              <p className="text-xs text-gray-600">
+                <span className="font-semibold">⚠️ Perlu perhatian:</span> {needsWork}
+              </p>
+            )}
+            {briefLastSession && (
+              <p className="text-xs text-gray-500 italic">
+                <span className="font-semibold not-italic text-gray-600">🔁 Sesi lalu:</span>{" "}
+                "{briefLastSession.shortNote.length > 70 ? briefLastSession.shortNote.slice(0, 70) + "…" : briefLastSession.shortNote}"
+              </p>
+            )}
+          </div>
+
+          {/* Catatan singkat */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="label">✏️ Catatan Singkat <span className="text-red-400">*</span></label>
+              {sessionType && (
+                <button type="button"
+                  className="text-xs text-blue-600 hover:text-blue-800 font-semibold"
+                  onClick={() => {
+                    const allSubj = (subjects.length ? subjects : studentSubjects).join(" & ");
+                    setShortNote(generateNote(sessionType, allSubj, topic));
+                  }}>
+                  ⚡ Generate
+                </button>
+              )}
+            </div>
+            <textarea className="input" rows={4} value={shortNote} maxLength={300}
+              onChange={(e) => setShortNote(e.target.value)}
+              placeholder="Apa yang dibahas hari ini? Atau tekan ✨ Draft AI untuk generate otomatis..." />
+            <div className="flex items-center justify-between mt-1">
+              <span className="text-xs text-gray-400">{shortNote.length}/300</span>
+              {settings?.ai?.enabled && settings.ai.apiKey && (subjects.length > 0 || studentSubjects.length > 0) && (
+                <button type="button" disabled={aiNoteLoading}
+                  onClick={() => setShowAiCostModal(true)}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
+                  {aiNoteLoading ? "⏳ Draft AI..." : "✨ Draft AI"}
+                </button>
+              )}
+            </div>
+            {aiError && <p className="text-xs text-red-500 mt-1">{aiError}</p>}
+            {suggestions.length > 0 && (
+              <div className="mt-1 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                {suggestions.map((s) => (
+                  <button key={s} type="button"
+                    className="block w-full text-left text-sm text-blue-600 hover:bg-blue-50 px-3 py-2 border-b border-gray-100 last:border-0"
+                    onClick={() => setShortNote(s)}>{s}</button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════
           FIXED NAVIGATION BAR
           ══════════════════════════════════════════ */}
       <div className="fixed bottom-16 left-0 right-0 z-50">
@@ -1156,8 +1261,8 @@ export default function CaptureSession() {
             )}
             <button onClick={goNext} disabled={saving}
               className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm text-white transition-all disabled:opacity-50 shadow-md"
-              style={{ background: saving ? "#93c5fd" : currentStep === 5 ? "linear-gradient(135deg,#16a34a,#15803d)" : "linear-gradient(135deg,#2563eb,#1d4ed8)" }}>
-              {saving ? "⏳ Menyimpan..." : currentStep === 5 ? "✅ Simpan Sesi" : "Lanjut →"}
+              style={{ background: saving ? "#93c5fd" : currentStep === 6 ? "linear-gradient(135deg,#16a34a,#15803d)" : "linear-gradient(135deg,#2563eb,#1d4ed8)" }}>
+              {saving ? "⏳ Menyimpan..." : currentStep === 6 ? "✅ Simpan Sesi" : "Lanjut →"}
             </button>
           </div>
         </div>
@@ -1535,6 +1640,82 @@ export default function CaptureSession() {
           </div>
         </div>
       )}
+
+      {/* AI Cost confirm modal */}
+      {showAiCostModal && (() => {
+        const activeSubjects = subjects.length ? subjects : studentSubjects;
+        const est = estimateDraftNoteCost(activeSubjects, topic || undefined);
+        return (
+          <div className="fixed inset-0 bg-black/50 z-[90] flex items-end justify-center"
+            onClick={() => setShowAiCostModal(false)}>
+            <div className="bg-white w-full max-w-md rounded-t-2xl p-5 pb-8 space-y-4"
+              onClick={(e) => e.stopPropagation()}>
+              <h3 className="font-bold text-base">✨ Draft Catatan dengan AI</h3>
+              <div className="bg-indigo-50 rounded-xl p-3 space-y-1">
+                <p className="text-sm font-semibold text-indigo-700">Estimasi biaya DeepSeek</p>
+                <p className="text-xs text-indigo-600">
+                  deepseek-chat · ~{est.inputTokens} input + {est.outputTokens} output token
+                </p>
+                <p className="text-sm font-bold text-indigo-800">
+                  ≈ ${est.usdCost.toFixed(6)} (Rp {est.idrCost.toFixed(4)})
+                </p>
+              </div>
+              <p className="text-xs text-gray-400">
+                Catatan 30–50 kata berdasarkan mapel{topic ? `, topik (${topic})` : ""}{engTouched ? `, engagement (${engScore}/10)` : ""}{needsWork ? `, area perhatian` : ""}{briefLastSession ? `, dan konteks sesi lalu` : ""}.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setShowAiCostModal(false)}
+                  className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-500 font-semibold text-sm">
+                  Batal
+                </button>
+                <button
+                  onClick={async () => {
+                    setShowAiCostModal(false);
+                    setAiNoteLoading(true); setAiError("");
+                    try {
+                      const engagementLabels = engTouched ? [
+                        ...(engPrepared      ? ["sudah siap bahan"]     : []),
+                        ...(engFocused       ? ["sangat fokus"]         : []),
+                        ...(engActiveAsking  ? ["aktif bertanya"]       : []),
+                        ...(engQuickLearner  ? ["cepat memahami"]       : []),
+                        ...(engDrowsy        ? ["mengantuk"]            : []),
+                        ...(engPhone         ? ["main HP"]              : []),
+                        ...(engNeedsRepeat   ? ["perlu pengulangan"]    : []),
+                        ...(engHwMissed      ? ["PR tidak dikerjakan"]  : []),
+                      ] : undefined;
+                      const bLabels = behaviorTags.length > 0
+                        ? behaviorTags.map(id => BEHAVIOR_TAGS.find(t => t.id === id)?.label).filter(Boolean) as string[]
+                        : undefined;
+                      const rLabel = responseTag
+                        ? RESPONSE_TAGS.find(t => t.id === responseTag)?.label
+                        : undefined;
+                      const res = await draftShortNote({
+                        student: { name: currentStudent?.name ?? "", level: currentStudent?.level ?? "" },
+                        subjects: activeSubjects,
+                        topic: topic || undefined,
+                        mood,
+                        sessionType,
+                        grade: currentStudent?.grade,
+                        needsWork: needsWork || undefined,
+                        engagementScore: engTouched ? engScore : undefined,
+                        engagementLabels,
+                        behaviorLabels: bLabels,
+                        responseLabel: rLabel,
+                        previousNote: briefLastSession?.shortNote,
+                        durationHours: duration,
+                      });
+                      if (res.note) setShortNote(res.note);
+                    } catch (e) { setAiError((e as Error).message); }
+                    finally { setAiNoteLoading(false); }
+                  }}
+                  className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-bold text-sm">
+                  OK, Generate
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

@@ -1,9 +1,10 @@
 import React from "react";
 
-export type HeaderStyle = "bubble" | "script" | "plain";
-export type LabelStyle  = "pill" | "rounded" | "flag";
-export type PhotoStyle  = "round" | "circle" | "polaroid";
-export type DecoKind    = "snow" | "leaf" | "petal" | "sparkle" | "star" | "wave" | "sun" | "none";
+export type HeaderStyle = "bubble" | "script" | "plain" | "frame" | "minimal" | "badge" | "watercolor";
+export type LabelStyle  = "pill" | "rounded" | "flag" | "tag" | "underline" | "ribbon-label";
+export type PhotoStyle  = "round" | "circle" | "polaroid" | "shadow" | "frame" | "vintage" | "duotone";
+export type DecoKind    = "snow" | "leaf" | "petal" | "sparkle" | "star" | "wave" | "sun" | "none"
+                        | "geometric" | "dots" | "stripes" | "confetti" | "book" | "globe" | "ribbon" | "zigzag";
 
 export interface Theme {
   id: string;
@@ -27,6 +28,8 @@ export interface ReportEntry {
   subject: string;
   photoUrl?: string;
   narrative: string;
+  engagementScore?: number;
+  engagementLabel?: string;
 }
 
 export interface ReportData {
@@ -38,6 +41,8 @@ export interface ReportData {
   summary: string;
   teacherNote?: string;
   quote?: string;
+  avgEngagement?: number;
+  photoUrls?: string[];
 }
 
 export interface Layout {
@@ -45,4 +50,27 @@ export interface Layout {
   name: string;
   maxEntriesPerPage: number;
   render: (page: ReportData, theme: Theme, opts: { isFirst: boolean; isLast: boolean }) => React.JSX.Element;
+}
+
+export interface CustomTheme {
+  id: string;
+  name: string;
+  bg: string;
+  ink: string;
+  muted: string;
+  accent: string;
+  palette: string[];
+  fontDisplay: string;
+  fontBody: string;
+  header: HeaderStyle;
+  label: LabelStyle;
+  photo: PhotoStyle;
+  deco: DecoKind;
+  headerText: string;
+}
+
+export interface ReportOptions {
+  coverPage?: boolean;
+  showEngagement?: boolean;
+  showGallery?: boolean;
 }
