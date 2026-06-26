@@ -2,8 +2,9 @@
 
 > Tanggal audit: 2025-07-16
 > Tanggal perbaikan: 2026-06-21
+> Revisi: 2026-06-26 — L-5 selesai (Vitest+CI), H-2 di-waive (threat model solo), tambah H-6 (backup off-device)
 > Cakupan: full codebase (46 source files, 1 worker, seluruh config)
-> Status: **Semua item dikerjakan** ✅
+> Status: **22/26 dikerjakan** — sisa: H-6 (backup cloud), L-1 (audit trail), M-5 (foto GC partial); H-2 di-waive
 
 ---
 
@@ -92,7 +93,7 @@
 | **File** | [`src/db/db.ts`](src/db/db.ts), seluruh `repos.ts` |
 | **Deskripsi** | Seluruh data (PII murid, nomor HP, foto, tanda tangan, tarif, data keuangan) disimpan di IndexedDB tanpa enkripsi. |
 | **Cara perbaikan** | Fase 1: enkripsi field paling sensitif. Fase 2: full-DB encryption dengan passphrase unlock. |
-| **Status** | ☐ Belum — kompleksitas tinggi, jadwalkan sprint tersendiri |
+| **Status** | ☐ **Di-waive (2026-06-26)** — threat model solo (1 pengguna, device sendiri): disk sudah di-encrypt OS (BitLocker), backup `.jles` sudah terenkripsi AES-GCM, layar keuangan di-gate PIN. Full-DB encryption tak sepadan: nambah gesekan (unlock tiap buka) + risiko lupa passphrase = data hilang permanen. **Syarat waiver: pastikan BitLocker/Device Encryption ON.** |
 
 ---
 
@@ -123,6 +124,21 @@
 | **File** | [`src/screens/CaptureSession.tsx`](src/screens/CaptureSession.tsx), [`src/screens/Settings.tsx`](src/screens/Settings.tsx) |
 | **Deskripsi** | Validasi `file.type.startsWith('image/')` ditambahkan di `handlePhoto` (CaptureSession) dan `handleLogo` (Settings). |
 | **Status** | ☑ Selesai |
+
+---
+
+### H-6. Backup belum tersimpan otomatis ke luar device (cloud)
+
+> **Target pemakaian: HP (mobile PWA), BUKAN laptop.** → File System Access API + Google Drive Desktop **TIDAK berlaku** (API itu desktop-Chromium only; tak ada di Android/iOS).
+
+| Item | Detail |
+|------|--------|
+| **File** | [`src/App.tsx`](src/App.tsx), [`src/lib/backup.ts`](src/lib/backup.ts), [`src/screens/Settings.tsx`](src/screens/Settings.tsx) |
+| **Deskripsi** | Reminder backup mingguan sudah ada (`AUTO_BACKUP_INTERVAL_DAYS=7`), tapi `.jles` hanya ter-download ke device. Belum ada salinan off-device otomatis. App dipakai di HP. |
+| **Opsi A — Google Drive REST API + OAuth (disarankan)** | Scope **`drive.file`** (least-privilege, hanya file buatan app → tak perlu verifikasi Google). Simpan **`fileId`** di IndexedDB lalu `files.update` (PATCH media) untuk **overwrite 1 file yang sama**; Drive simpan **revision history**. **Gratis** (volume personal). Jalan di **Android & iOS**. UX realistis: **1-tap** dari reminder mingguan (token GIS di-cache; kalau expired, 1 tap akun Google). **Setup 1x oleh user:** Google Cloud project + OAuth Client ID (authorized origin = domain Vercel produksi). |
+| **Opsi B — Web Share API** | `navigator.share({ files })` → share sheet → "Simpan ke Drive". **Tanpa setup, tanpa API**, jalan Android/iOS. TAPI **manual tiap kali** + bikin **file baru** tiap backup (bukan overwrite) → tidak memenuhi "auto" & "1 file". |
+| **Batasan** | Backup **fully-otomatis tanpa tap** (terjadwal di background) **butuh backend** untuk simpan refresh token — tak bisa murni client-side. Tanpa backend, terbaik = **1-tap**. |
+| **Status** | ☐ Belum — enhancement; estimasi ~3-4 jam (Opsi A, di luar setup OAuth user) |
 
 ---
 
@@ -246,11 +262,11 @@ Tidak ada log untuk aksi penting: session delete, payment status change, student
 
 ### L-5. Tidak ada unit test / integration test
 
-`package.json` tidak punya script test. Tidak ada file `*.test.ts`.
+~~`package.json` tidak punya script test. Tidak ada file `*.test.ts`.~~
 
-**Cara perbaikan:** Setup Vitest. Tulis test untuk `calcEngagementScore`, `hashPin`/`verifyPin`, `encryptJson`/`decryptJson`, `paginateItems`, `createSession`.
+**Selesai 2026-06-26:** Setup Vitest + `fake-indexeddb` + `setupTests.ts`. **92 test (9 file)** mencakup repos (CRUD murid/sesi/payment/homework/follow-up/expense/IA-EE/month-closing), forecast, dll. CI GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) menjalankan lint+test+build tiap push/PR. Script: `npm test` (`vitest run`).
 
-**Status:** ☐ Belum — jadwalkan sebagai tugas devops
+**Status:** ☑ Selesai
 
 ---
 
@@ -279,12 +295,12 @@ Tidak ada log untuk aksi penting: session delete, payment status change, student
 | Severity | Jumlah | Selesai |
 |----------|--------|---------|
 | 🔴 CRITICAL | 6 | 6 |
-| 🟠 HIGH | 5 | 4 |
+| 🟠 HIGH | 6 | 4 |
 | 🟡 MEDIUM | 7 | 6 |
-| 🟢 LOW | 7 | 5 |
-| **Total** | **25** | **21** |
+| 🟢 LOW | 7 | 6 |
+| **Total** | **26** | **22** |
 
-**4 item tidak dikerjakan** (H-2, L-1, L-5, M-5 partial) — perlu sprint tersendiri karena kompleksitas tinggi.
+**Sisa terbuka:** H-6 (backup off-device cloud) ⭐, L-1 (audit trail — *low value untuk pengguna solo*), M-5 (foto GC — partial). **H-2 di-waive** (threat model solo). **L-5 selesai** 2026-06-26 (Vitest+CI).
 
 ---
 
@@ -303,10 +319,11 @@ Tidak ada log untuk aksi penting: session delete, payment status change, student
 ---
 
 ### Sisa backlog (sprint berikutnya):
-- **H-2** — Enkripsi field sensitif di IndexedDB (estimasi: 1 sprint)
-- **L-1** — Audit trail table (estimasi: 4 jam)
-- **L-5** — Setup Vitest + unit tests (estimasi: 1 sprint)
+- **H-6** ⭐ — Backup off-device otomatis ke Google Drive (app dipakai di HP): Drive REST API + OAuth `drive.file`, overwrite 1 file via `fileId`, 1-tap dari reminder (estimasi: ~3-4 jam + setup OAuth 1x oleh user) — *prioritas resilience*
+- **L-1** — Audit trail table (estimasi: 4 jam) — *low value untuk pengguna solo*
 - **M-5** — Kompresi foto berkala + garbage collection (estimasi: 2 jam)
+- ~~**H-2** — Enkripsi field sensitif di IndexedDB~~ → **di-waive** (threat model solo + OS disk encryption)
+- ~~**L-5** — Setup Vitest + unit tests~~ → ✅ **selesai 2026-06-26**
 
 ---
 

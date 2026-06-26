@@ -3,6 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { getSettings, saveSettings } from "../db/repos";
 import { db } from "../db/db";
 import { exportBackup, importBackup } from "../lib/backup";
+import { isDriveConfigured, uploadBackupToDrive, downloadBackupFromDrive, findDriveBackup } from "../lib/driveBackup";
 import { hashPin } from "../lib/crypto";
 import { todayWIB } from "../lib/format";
 import { compressPhoto } from "../lib/foto";
@@ -89,7 +90,7 @@ export default function SettingsPage() {
   const [newPin,      setNewPin]      = useState("");
   const [newPinConf,  setNewPinConf]  = useState("");
   const [pinError,    setPinError]    = useState("");
-  const [pinAction,   setPinAction]   = useState<"exportBackup" | "deletePin" | "restore" | "resetAll" | null>(null);
+  const [pinAction,   setPinAction]   = useState<"exportBackup" | "deletePin" | "restore" | "resetAll" | "driveBackup" | "driveRestore" | null>(null);
   const restoreRef = useRef<HTMLInputElement>(null);
   const fileRef    = useRef<HTMLInputElement>(null);
 
@@ -201,6 +202,32 @@ export default function SettingsPage() {
     setTimeout(() => location.reload(), 1500);
   };
 
+  const doDriveBackup = async () => {
+    if (!backupPass || backupPass.length < 4) { setToast("Kata sandi enkripsi minimal 4 karakter!"); return; }
+    setToast("Backup ke Google Drive...");
+    const blob = await exportBackup(backupPass);
+    const fileId = await uploadBackupToDrive(blob, form.driveBackup?.fileId);
+    const driveBackup = { fileId, backupAt: new Date().toISOString() };
+    await saveSettings({ driveBackup });
+    setForm((f) => f ? { ...f, driveBackup } : f);
+    setToast("Backup ke Google Drive berhasil ✓");
+  };
+
+  const doDriveRestore = async () => {
+    if (!restorePass) { setToast("Masukkan kata sandi backup!"); return; }
+    setToast("Mencari backup di Google Drive...");
+    let fileId = form.driveBackup?.fileId;
+    if (!fileId) {
+      const found = await findDriveBackup();
+      if (!found) { setToast("Tidak ada backup di Google Drive."); return; }
+      fileId = found.id;
+    }
+    const blob = await downloadBackupFromDrive(fileId);
+    await importBackup(blob, restorePass);
+    setToast("Restore dari Drive berhasil! Memuat ulang... ✓");
+    setTimeout(() => location.reload(), 1500);
+  };
+
   const doResetAll = async () => {
     const tables = [
       db.students, db.sessions, db.reports,
@@ -221,6 +248,8 @@ export default function SettingsPage() {
       if (pinAction === "deletePin") await doDeletePin();
       if (pinAction === "restore") await doRestore();
       if (pinAction === "resetAll") await doResetAll();
+      if (pinAction === "driveBackup") await doDriveBackup();
+      if (pinAction === "driveRestore") await doDriveRestore();
       setPinAction(null);
     } catch (e) {
       setToast("Gagal: " + (e as Error).message);
@@ -247,6 +276,16 @@ export default function SettingsPage() {
       title: "Hapus Semua Data",
       description: "Masukkan PIN sebelum mengosongkan database aplikasi.",
       confirmLabel: "Hapus",
+    },
+    driveBackup: {
+      title: "Backup ke Google Drive",
+      description: "Masukkan PIN Keuangan sebelum mengunggah backup ke Drive.",
+      confirmLabel: "Backup",
+    },
+    driveRestore: {
+      title: "Restore dari Google Drive",
+      description: "Restore akan mengganti data saat ini. Masukkan PIN untuk lanjut.",
+      confirmLabel: "Restore",
     },
   } as const;
 
@@ -511,6 +550,35 @@ export default function SettingsPage() {
               Ekspor Backup
             </button>
           </div>
+
+          {isDriveConfigured() && (
+            <div className="bg-green-50 rounded-xl p-3 space-y-2">
+              <p className="text-xs font-semibold text-green-700">☁️ Backup ke Google Drive</p>
+              <p className="text-xs text-green-600">
+                Pakai <b>Kata Sandi Enkripsi</b> di atas. 1 file selalu di-overwrite (Drive simpan riwayat versi). <b>Ingat kata sandinya</b> — dibutuhkan untuk restore di HP lain.
+              </p>
+              {form.driveBackup?.backupAt && (
+                <p className="text-xs text-gray-500">
+                  Backup Drive terakhir: {new Date(form.driveBackup.backupAt).toLocaleString("id-ID")}
+                </p>
+              )}
+              <button className="w-full py-2.5 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition-colors"
+                onClick={() => {
+                  if (!backupPass || backupPass.length < 4) { setToast("Isi Kata Sandi Enkripsi (min 4 karakter) di atas dulu!"); return; }
+                  requireFinancialPin("driveBackup");
+                }}>
+                Backup ke Drive sekarang
+              </button>
+              <button className="w-full py-2 rounded-xl bg-green-100 text-green-700 text-sm font-medium hover:bg-green-200 transition-colors"
+                onClick={() => {
+                  if (!restorePass) { setToast("Isi 'Kata Sandi Backup' di bagian Restore di bawah dulu!"); return; }
+                  if (!confirm("Restore dari Google Drive akan mengganti semua data saat ini. Lanjut?")) return;
+                  requireFinancialPin("driveRestore");
+                }}>
+                Restore dari Drive
+              </button>
+            </div>
+          )}
 
           <div className="bg-orange-50 rounded-xl p-3 space-y-2">
             <p className="text-xs font-semibold text-orange-700">Restore dari Backup</p>
