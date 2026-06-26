@@ -85,7 +85,6 @@ export default function SettingsPage() {
   const [saving,      setSaving]      = useState(false);
   const [toast,       setToast]       = useState("");
   const [backupPass,  setBackupPass]  = useState("");
-  const [restorePass, setRestorePass] = useState("");
   const [showPinEdit, setShowPinEdit] = useState(false);
   const [newPin,      setNewPin]      = useState("");
   const [newPinConf,  setNewPinConf]  = useState("");
@@ -196,8 +195,8 @@ export default function SettingsPage() {
 
   const doRestore = async () => {
     const file = restoreRef.current?.files?.[0];
-    if (!file || !restorePass) { setToast("Pilih file dan masukkan kata sandi!"); return; }
-    await importBackup(file, restorePass);
+    if (!file || !backupPass) { setToast("Pilih file dan masukkan kata sandi!"); return; }
+    await importBackup(file, backupPass);
     setToast("Restore berhasil! Memuat ulang... ✓");
     setTimeout(() => location.reload(), 1500);
   };
@@ -214,7 +213,7 @@ export default function SettingsPage() {
   };
 
   const doDriveRestore = async () => {
-    if (!restorePass) { setToast("Masukkan kata sandi backup!"); return; }
+    if (!backupPass) { setToast("Masukkan kata sandi backup!"); return; }
     setToast("Mencari backup di Google Drive...");
     let fileId = form.driveBackup?.fileId;
     if (!fileId) {
@@ -223,7 +222,7 @@ export default function SettingsPage() {
       fileId = found.id;
     }
     const blob = await downloadBackupFromDrive(fileId);
-    await importBackup(blob, restorePass);
+    await importBackup(blob, backupPass);
     setToast("Restore dari Drive berhasil! Memuat ulang... ✓");
     setTimeout(() => location.reload(), 1500);
   };
@@ -522,86 +521,89 @@ export default function SettingsPage() {
         <div className="pt-3 space-y-3">
           <StorageUsage />
 
-          <div className="bg-blue-50 rounded-xl p-3 space-y-2">
-            <p className="text-xs font-semibold text-blue-700">Ekspor Backup</p>
-            <div>
-              <label className="label">Kata Sandi Enkripsi</label>
-              <div className="flex gap-2">
-                <input className="input flex-1" type="text" value={backupPass}
-                  onChange={(e) => setBackupPass(e.target.value)} placeholder="Buat kata sandi" />
-                <button
-                  onClick={() => {
-                    const words = Array.from(crypto.getRandomValues(new Uint8Array(6)))
-                      .map((b) => WORDLIST[b % WORDLIST.length]).join("-");
-                    setBackupPass(words);
-                  }}
-                  className="text-xs px-3 py-2 rounded-xl bg-blue-100 text-blue-700 hover:bg-blue-200 font-medium flex-shrink-0">
-                  Generate
-                </button>
-              </div>
-              {backupPass && <p className="text-xs text-gray-500 font-mono break-all">{backupPass}</p>}
+          {/* Kata sandi bersama — dipakai semua backup & restore */}
+          <div className="bg-gray-50 rounded-xl p-3 space-y-2">
+            <label className="label">🔑 Kata Sandi Enkripsi</label>
+            <div className="flex gap-2">
+              <input className="input flex-1" type="text" value={backupPass}
+                onChange={(e) => setBackupPass(e.target.value)} placeholder="Kata sandi backup & restore" />
+              <button
+                onClick={() => {
+                  const words = Array.from(crypto.getRandomValues(new Uint8Array(6)))
+                    .map((b) => WORDLIST[b % WORDLIST.length]).join("-");
+                  setBackupPass(words);
+                }}
+                className="text-xs px-3 py-2 rounded-xl bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium flex-shrink-0">
+                Generate
+              </button>
             </div>
-            <button className="w-full py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors"
-              onClick={async () => {
-                if (!backupPass) { setToast("Masukkan kata sandi backup!"); return; }
-                if (backupPass.length < 4) { setToast("Kata sandi minimal 4 karakter!"); return; }
-                requireFinancialPin("exportBackup");
-              }}>
-              Ekspor Backup
-            </button>
+            {backupPass && <p className="text-xs text-gray-500 font-mono break-all">{backupPass}</p>}
+            <p className="text-xs text-gray-500">
+              Dipakai untuk <b>backup &amp; restore</b> (File &amp; Drive). <b>Simpan baik-baik</b> — kunci ini tak tersimpan & wajib untuk membuka backup di HP lain.
+            </p>
           </div>
 
-          {isDriveConfigured() && (
-            <div className="bg-green-50 rounded-xl p-3 space-y-2">
-              <p className="text-xs font-semibold text-green-700">☁️ Backup ke Google Drive</p>
-              <p className="text-xs text-green-600">
-                Pakai <b>Kata Sandi Enkripsi</b> di atas. 1 file selalu di-overwrite (Drive simpan riwayat versi). <b>Ingat kata sandinya</b> — dibutuhkan untuk restore di HP lain.
-              </p>
-              {form.driveBackup?.backupAt && (
-                <p className="text-xs text-gray-500">
-                  Backup Drive terakhir: {new Date(form.driveBackup.backupAt).toLocaleString("id-ID")}
-                </p>
-              )}
+          {/* Metode 1: File */}
+          <div className="bg-blue-50 rounded-xl p-3 space-y-2.5">
+            <p className="text-sm font-semibold text-blue-700">📁 File (.jles)</p>
+            <button className="w-full py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors"
+              onClick={() => {
+                if (!backupPass || backupPass.length < 4) { setToast("Isi Kata Sandi Enkripsi (min 4 karakter) dulu!"); return; }
+                requireFinancialPin("exportBackup");
+              }}>
+              ⬇️ Backup ke File
+            </button>
+            <div className="border-t border-blue-100 pt-2.5 space-y-2">
+              <label className="label text-blue-800">Restore dari file</label>
+              <input ref={restoreRef} type="file" accept=".jles" className="text-sm text-gray-600 w-full" />
+              <button className="w-full py-2 rounded-xl bg-blue-100 text-blue-700 text-sm font-medium hover:bg-blue-200 transition-colors"
+                onClick={() => {
+                  const file = restoreRef.current?.files?.[0];
+                  if (!file) { setToast("Pilih file .jles dulu!"); return; }
+                  if (!backupPass) { setToast("Isi Kata Sandi Enkripsi dulu!"); return; }
+                  if (!confirm("Restore akan mengganti semua data saat ini. Lanjut?")) return;
+                  requireFinancialPin("restore");
+                }}>
+                ♻️ Restore dari File
+              </button>
+            </div>
+          </div>
+
+          {/* Metode 2: Google Drive */}
+          {isDriveConfigured() ? (
+            <div className="bg-green-50 rounded-xl p-3 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-green-700">☁️ Google Drive</p>
+                {form.driveBackup?.backupAt && (
+                  <p className="text-[11px] text-gray-500">
+                    {new Date(form.driveBackup.backupAt).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}
+                  </p>
+                )}
+              </div>
               <button className="w-full py-2.5 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition-colors"
                 onClick={() => {
-                  if (!backupPass || backupPass.length < 4) { setToast("Isi Kata Sandi Enkripsi (min 4 karakter) di atas dulu!"); return; }
+                  if (!backupPass || backupPass.length < 4) { setToast("Isi Kata Sandi Enkripsi (min 4 karakter) dulu!"); return; }
                   requireFinancialPin("driveBackup");
                 }}>
-                Backup ke Drive sekarang
+                ☁️⬆️ Backup ke Drive
               </button>
               <button className="w-full py-2 rounded-xl bg-green-100 text-green-700 text-sm font-medium hover:bg-green-200 transition-colors"
                 onClick={() => {
-                  if (!restorePass) { setToast("Isi 'Kata Sandi Backup' di bagian Restore di bawah dulu!"); return; }
+                  if (!backupPass) { setToast("Isi Kata Sandi Enkripsi dulu!"); return; }
                   if (!confirm("Restore dari Google Drive akan mengganti semua data saat ini. Lanjut?")) return;
                   requireFinancialPin("driveRestore");
                 }}>
-                Restore dari Drive
+                ☁️♻️ Restore dari Drive
               </button>
+              <p className="text-xs text-green-600">1 file di-overwrite tiap backup — Drive simpan riwayat versi.</p>
+            </div>
+          ) : (
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-gray-400">☁️ Backup Google Drive belum aktif.</p>
             </div>
           )}
 
-          <div className="bg-orange-50 rounded-xl p-3 space-y-2">
-            <p className="text-xs font-semibold text-orange-700">Restore dari Backup</p>
-            <p className="text-xs text-orange-600">⚠️ Semua data saat ini akan diganti!</p>
-            <div>
-              <label className="label">File Backup (.jles)</label>
-              <input ref={restoreRef} type="file" accept=".jles" className="text-sm text-gray-600 w-full" />
-            </div>
-            <div>
-              <label className="label">Kata Sandi Backup</label>
-              <input className="input" type="password" value={restorePass}
-                onChange={(e) => setRestorePass(e.target.value)} placeholder="Kata sandi yang dipakai saat backup" />
-            </div>
-            <button className="w-full py-2.5 rounded-xl bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 transition-colors"
-              onClick={async () => {
-                const file = restoreRef.current?.files?.[0];
-                if (!file || !restorePass) { setToast("Pilih file dan masukkan kata sandi!"); return; }
-                if (!confirm("Yakin restore? Semua data saat ini akan diganti!")) return;
-                requireFinancialPin("restore");
-              }}>
-              Restore Data
-            </button>
-          </div>
+          <p className="text-xs text-orange-600">⚠️ Restore mengganti <b>semua</b> data saat ini. Sebelum mengganti, app otomatis mengunduh file <b>pre-restore</b> (cadangan data lama Anda).</p>
         </div>
       </Section>
 
