@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
@@ -19,7 +19,10 @@ import { blobToDataUrl, blobToNormalizedDataUrl } from "../lib/imageUtils";
 import PaginationControls from "../components/PaginationControls";
 import { clampPage, paginateItems } from "../lib/pagination";
 import { calcEngagementScore, scoreLabel } from "../lib/engagement";
-import type { ReportOptions, CustomTheme, Theme } from "../template/types";
+import type {
+  ReportOptions, CustomTheme, Theme,
+  HeaderStyle, LabelStyle, PhotoStyle, DecoKind,
+} from "../template/types";
 
 export default function MonthlyReportPage() {
   const [searchParams] = useSearchParams();
@@ -40,6 +43,7 @@ export default function MonthlyReportPage() {
   const [aiLoading,        setAiLoading]        = useState(false);
   const [message,          setMessage]          = useState("");
   const [exporting,        setExporting]        = useState<"jpg" | "png" | "pdf" | null>(null);
+  const reportExportRef = useRef<HTMLDivElement>(null);
   const [openNarasi,       setOpenNarasi]       = useState(false);
   const [openTeks,         setOpenTeks]         = useState(false);
   const [narrativePage,    setNarrativePage]    = useState(1);
@@ -232,10 +236,11 @@ export default function MonthlyReportPage() {
     setExporting(type);
     setMessage("");
     const base = `Laporan-${student.name}-${monthLabel(month)}`.replace(/\s+/g, "-");
+    const exportRoot = reportExportRef.current ?? document;
     try {
-      if (type === "jpg") await shareFiles(await exportJpeg(base), base);
-      else if (type === "png") await shareFiles(await exportPng(base), base);
-      else await shareFiles([await exportPdf(base)], base);
+      if (type === "jpg") await shareFiles(await exportJpeg(base, false, exportRoot), base);
+      else if (type === "png") await shareFiles(await exportPng(base, exportRoot), base);
+      else await shareFiles([await exportPdf(base, exportRoot)], base);
       await upsertReport({ ...report, pdfGeneratedAt: new Date().toISOString() });
       setMessage(`✓ File ${type.toUpperCase()} diunduh`);
     } catch (e) {
@@ -460,7 +465,7 @@ export default function MonthlyReportPage() {
                       const updated = currentCustoms.some((c) => c.id === ct.id)
                         ? currentCustoms.map((c) => c.id === ct.id ? ct : c)
                         : [...currentCustoms, ct];
-                      await saveSettings({ templatePref: { ...settings?.templatePref, customThemes: updated } } as any);
+                      await saveSettings({ templatePref: { ...settings?.templatePref, customThemes: updated } });
                       await upsertReport({ ...report, templateKey: { ...report.templateKey, themeId: ct.id } });
                       setShowCustomBuilder(false);
                       setMessage("Tema kustom disimpan ✓");
@@ -468,6 +473,7 @@ export default function MonthlyReportPage() {
                   />
                 )}
 
+                <div ref={reportExportRef}>
                 {/* Preview */}
                 <div className="max-w-sm mx-auto">
                   <ReportRenderer data={reportData} theme={theme} layoutId={report.templateKey.layoutId} options={reportOptions} />
@@ -491,6 +497,8 @@ export default function MonthlyReportPage() {
                     </div>
                   </div>
                 )}
+
+                </div>
 
                 {/* Export */}
                 <div className="grid grid-cols-3 gap-2">
@@ -721,25 +729,25 @@ function CustomThemeBuilder({ onSave }: {
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label className="label">Header Style</label>
-          <select className="input text-sm" value={header} onChange={(e) => setHeader(e.target.value as any)}>
+          <select className="input text-sm" value={header} onChange={(e) => setHeader(e.target.value as HeaderStyle)}>
             {HEADER_STYLES.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
           </select>
         </div>
         <div>
           <label className="label">Label Style</label>
-          <select className="input text-sm" value={label} onChange={(e) => setLabel(e.target.value as any)}>
+          <select className="input text-sm" value={label} onChange={(e) => setLabel(e.target.value as LabelStyle)}>
             {LABEL_STYLES.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
         </div>
         <div>
           <label className="label">Photo Style</label>
-          <select className="input text-sm" value={photo} onChange={(e) => setPhoto(e.target.value as any)}>
+          <select className="input text-sm" value={photo} onChange={(e) => setPhoto(e.target.value as PhotoStyle)}>
             {PHOTO_STYLES.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </div>
         <div>
           <label className="label">Decoration</label>
-          <select className="input text-sm" value={deco} onChange={(e) => setDeco(e.target.value as any)}>
+          <select className="input text-sm" value={deco} onChange={(e) => setDeco(e.target.value as DecoKind)}>
             {DECO_KINDS.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
         </div>

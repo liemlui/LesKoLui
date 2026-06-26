@@ -27,6 +27,12 @@ function timestamp(): string {
   return new Date().toISOString();
 }
 
+function resolvedHomeworkStatus(h: Pick<Homework, "status" | "dueAt">): HomeworkStatus {
+  return h.status === "assigned" && h.dueAt && h.dueAt < todayWIB()
+    ? "overdue"
+    : h.status;
+}
+
 // ── Default Settings ───────────────────────────────────────────────
 
 const DEFAULT_SETTINGS: Settings = {
@@ -98,6 +104,7 @@ export async function deleteStudent(id: string): Promise<void> {
   const tables = [
     db.students, db.sessions, db.reports,
     db.payments, db.homeworks, db.followUps, db.raporGrades,
+    db.iaeeProjects,
   ];
   await db.transaction("rw", tables, async () => {
     await db.students.delete(id);
@@ -107,6 +114,7 @@ export async function deleteStudent(id: string): Promise<void> {
     await db.homeworks.where({ studentId: id }).delete();
     await db.followUps.where({ studentId: id }).delete();
     await db.raporGrades.where({ studentId: id }).delete();
+    await db.iaeeProjects.where({ studentId: id }).delete();
   });
 }
 
@@ -284,7 +292,18 @@ export async function cancelSession(id: string): Promise<void> {
 }
 
 export async function deleteSession(id: string): Promise<void> {
-  await db.sessions.delete(id);
+  await db.transaction("rw", db.sessions, db.homeworks, db.followUps, db.reports, async () => {
+    await db.sessions.delete(id);
+    await db.homeworks
+      .filter((h) => h.sessionId === id)
+      .modify((h) => { delete h.sessionId; h.updatedAt = timestamp(); });
+    await db.followUps
+      .filter((f) => f.sourceSessionId === id)
+      .modify((f) => { delete f.sourceSessionId; });
+    await db.reports
+      .filter((r) => r.sessionIds.includes(id))
+      .modify((r) => { r.sessionIds = r.sessionIds.filter((sid) => sid !== id); });
+  });
 }
 
 export async function scheduleSession(
@@ -318,6 +337,13 @@ export async function scheduleBatch(
 ): Promise<number> {
   if (!items.length) return 0;
   const studentId = items[0].studentId;
+  if (items.some((item) => item.studentId !== studentId)) {
+    throw new Error("Batch schedule must use the same student");
+  }
+  for (const item of items) {
+    if (item.durationHours < MIN_DURATION) throw new Error(`Duration must be >= ${MIN_DURATION} hours`);
+    if (item.durationHours % DURATION_STEP !== 0) throw new Error(`Duration must be multiple of ${DURATION_STEP}`);
+  }
   const student = await db.students.get(studentId);
   if (!student) throw new Error("Student not found");
   const rateSnapshot = student.hourlyRate;
@@ -500,11 +526,12 @@ export async function getPayment(
 }
 
 export async function upsertPayment(payment: Omit<Payment, "id">): Promise<void> {
+  const normalized: Omit<Payment, "id"> = { source: "manual", ...payment };
   const existing = await getPayment(payment.studentId, payment.month);
   if (existing) {
-    await db.payments.update(existing.id, payment);
+    await db.payments.update(existing.id, normalized);
   } else {
-    await db.payments.add({ ...payment, id: crypto.randomUUID() });
+    await db.payments.add({ ...normalized, id: crypto.randomUUID() });
   }
 }
 
@@ -527,7 +554,7 @@ export async function markPaymentTransferred(
   } else {
     await db.payments.add({
       id: crypto.randomUUID(), studentId, month, totalCost: 0,
-      status: "PAID", paidAt: todayWIB(), method,
+      status: "PAID", source: "manual", paidAt: todayWIB(), method,
     });
   }
 }
@@ -608,6 +635,7 @@ export async function closeMonth(month: string): Promise<void> {
         month,
         totalCost: b.cost,
         status: "UNPAID",
+        source: "auto",
       });
     }
     const existingClosing = await db.monthClosings.where("month").equals(month).first();
@@ -626,7 +654,7 @@ export async function closeMonth(month: string): Promise<void> {
 export async function reopenMonth(month: string): Promise<void> {
   await db.transaction("rw", db.payments, db.monthClosings, async () => {
     const unpaid = await db.payments
-      .filter((p) => p.month === month && p.status === "UNPAID")
+      .filter((p) => p.month === month && p.status === "UNPAID" && p.source === "auto")
       .toArray();
     for (const p of unpaid) await db.payments.delete(p.id);
     const closing = await db.monthClosings.where("month").equals(month).first();
@@ -716,22 +744,17 @@ export async function createHomework(
 }
 
 export async function listPendingHomework(studentId: string): Promise<Homework[]> {
-  const today = todayWIB();
   const rows  = await db.homeworks
     .where({ studentId })
     .filter((h) => h.status === "assigned" || h.status === "overdue")
     .sortBy("dueAt");
-  // Auto-mark overdue in memory (don't write to DB for performance)
   return rows.map((h) => ({
     ...h,
-    status: (h.status === "assigned" && h.dueAt && h.dueAt < today)
-      ? ("overdue" as HomeworkStatus)
-      : h.status,
+    status: resolvedHomeworkStatus(h),
   }));
 }
 
 export async function listAllPendingHomework(): Promise<(Homework & { studentName?: string })[]> {
-  const today = todayWIB();
   const rows  = await db.homeworks
     .filter((h) => h.status === "assigned" || h.status === "overdue")
     .toArray();
@@ -742,16 +765,13 @@ export async function listAllPendingHomework(): Promise<(Homework & { studentNam
   return rows
     .map((h) => ({
       ...h,
-      status: (h.status === "assigned" && h.dueAt && h.dueAt < today)
-        ? ("overdue" as HomeworkStatus)
-        : h.status,
+      status: resolvedHomeworkStatus(h),
       studentName: studMap.get(h.studentId),
     }))
     .sort((a, b) => (a.dueAt ?? "9999").localeCompare(b.dueAt ?? "9999"));
 }
 
 export async function listAllHomeworkFull(): Promise<(Homework & { studentName?: string })[]> {
-  const today = todayWIB();
   const rows  = await db.homeworks.toArray();
   const studentIds = [...new Set(rows.map((h) => h.studentId))];
   const studMap    = new Map(
@@ -760,9 +780,7 @@ export async function listAllHomeworkFull(): Promise<(Homework & { studentName?:
   return rows
     .map((h) => ({
       ...h,
-      status: (h.status === "assigned" && h.dueAt && h.dueAt < today)
-        ? ("overdue" as HomeworkStatus)
-        : h.status,
+      status: resolvedHomeworkStatus(h),
       studentName: studMap.get(h.studentId),
     }))
     .sort((a, b) => (b.assignedAt ?? "").localeCompare(a.assignedAt ?? ""));
@@ -784,6 +802,10 @@ export async function markHomeworkNotDone(id: string): Promise<void> {
   await db.homeworks.update(id, { status: "not_done", updatedAt: timestamp() });
 }
 
+export async function setHomeworkStatus(id: string, status: HomeworkStatus): Promise<void> {
+  await db.homeworks.update(id, { status, updatedAt: timestamp() });
+}
+
 export interface HomeworkStats {
   total: number;
   done: number;
@@ -794,9 +816,10 @@ export interface HomeworkStats {
 
 export async function getHomeworkStats(studentId: string): Promise<HomeworkStats> {
   const all = await db.homeworks.where({ studentId }).toArray();
-  const done    = all.filter((h) => h.status === "done").length;
-  const notDone = all.filter((h) => h.status === "not_done" || h.status === "overdue").length;
-  const pending = all.filter((h) => h.status === "assigned").length;
+  const statuses = all.map(resolvedHomeworkStatus);
+  const done    = statuses.filter((status) => status === "done").length;
+  const notDone = statuses.filter((status) => status === "not_done" || status === "overdue").length;
+  const pending = statuses.filter((status) => status === "assigned").length;
   const judged  = done + notDone;
   return {
     total: all.length,

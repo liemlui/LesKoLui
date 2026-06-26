@@ -1,8 +1,13 @@
 import { db } from "../db/db";
 import { encryptJson, decryptJson } from "./crypto";
+import { downloadBlob } from "./download";
 import type { Table } from "dexie";
 
-const TABLES = ["students", "sessions", "reports", "payments", "settings", "raporGrades", "homeworks", "followUps", "expenses", "iaeeProjects"] as const;
+const TABLES = [
+  "students", "sessions", "reports", "payments", "settings",
+  "raporGrades", "homeworks", "followUps", "expenses", "iaeeProjects",
+  "monthClosings",
+] as const;
 
 type BackupTable = typeof TABLES[number];
 type BackupRow = Record<string, unknown>;
@@ -23,8 +28,13 @@ async function blobToB64(b: Blob): Promise<string> {
 }
 
 async function b64ToBlob(s: string): Promise<Blob> {
-  const res = await fetch(s);
-  return res.blob();
+  const match = /^data:([^;,]*);base64,(.*)$/s.exec(s);
+  if (!match) throw new Error("Format blob backup tidak valid.");
+  const [, mime, b64] = match;
+  const bytes = atob(b64);
+  const arr = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+  return new Blob([arr], { type: mime || "application/octet-stream" });
 }
 
 async function encodeRow(row: Record<string, unknown>) {
@@ -74,15 +84,9 @@ export async function importBackup(file: Blob, passphrase: string): Promise<void
   try {
     const preRestoreBlob = await exportBackup(passphrase);
     const ts = new Date().toISOString().slice(0, 19).replace(/:/g, "-");
-    const url = URL.createObjectURL(preRestoreBlob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `leskolui-pre-restore-${ts}.jles`;
-    a.click();
-    // Revoke after two animation frames so browser can start the download
-    requestAnimationFrame(() => requestAnimationFrame(() => URL.revokeObjectURL(url)));
-  } catch {
-    // Pre-backup failure should not block the restore
+    downloadBlob(preRestoreBlob, `leskolui-pre-restore-${ts}.jles`);
+  } catch (e) {
+    throw new Error(`Backup sebelum restore gagal: ${(e as Error).message}`, { cause: e });
   }
 
   await db.transaction("rw", TABLES.map((t) => backupDb[t]), async () => {

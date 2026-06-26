@@ -241,7 +241,6 @@ export default function CaptureSession() {
 
   useEffect(() => {
     if (!studentId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentStudent(undefined); setStudentSubjects([]); setSubjects([]);
       setBriefLastSession(undefined); setBriefHW([]); setBriefFollowUps([]);
       return;

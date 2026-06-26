@@ -15,7 +15,7 @@ interface Props {
   studentMap: StudentMap;
   onCapture: (sessionId: string) => void;
   onCancelSession: (sessionId: string) => void;
-  onMarkDone: (homeworkId: string) => void;
+  onMarkDone: (homeworkId: string, previousStatus: Homework["status"]) => void;
   onCompleteFollowUp: (id: string) => void;
 }
 
@@ -94,7 +94,7 @@ export default function AttentionInbox({
                       <p className="text-xs font-semibold text-gray-800 truncate">{h.title}</p>
                       <p className="text-xs text-red-500">{h.studentName} · {h.subject} · due {h.dueAt?.slice(5)}</p>
                     </div>
-                    <button onClick={() => onMarkDone(h.id)}
+                    <button onClick={() => onMarkDone(h.id, h.status)}
                       className="flex-shrink-0 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-lg font-semibold hover:bg-green-200 transition-colors">
                       Selesai
                     </button>
@@ -118,7 +118,7 @@ export default function AttentionInbox({
                       <p className="text-xs font-semibold text-gray-800 truncate">{h.title}</p>
                       <p className="text-xs text-amber-600">{h.studentName} · {h.subject} · due {h.dueAt?.slice(5)}</p>
                     </div>
-                    <button onClick={() => onMarkDone(h.id)}
+                    <button onClick={() => onMarkDone(h.id, h.status)}
                       className="flex-shrink-0 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-lg font-semibold hover:bg-green-200">
                       Selesai
                     </button>

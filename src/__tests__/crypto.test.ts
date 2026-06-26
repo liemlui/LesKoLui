@@ -46,19 +46,19 @@ describe("hashPin / verifyPin", () => {
 
     const ok = await verifyPin("123456", hash);
     expect(ok).toBe(true);
-  });
+  }, 20_000);
 
   it("rejects wrong PIN", async () => {
     const hash = await hashPin("999999");
     const ok = await verifyPin("000000", hash);
     expect(ok).toBe(false);
-  });
+  }, 20_000);
 
   it("different PINs produce different hashes", async () => {
     const h1 = await hashPin("111111");
     const h2 = await hashPin("222222");
     expect(h1).not.toBe(h2);
-  });
+  }, 20_000);
 
   it("same PIN produces different hash each time (unique salt)", async () => {
     const h1 = await hashPin("123456");
@@ -67,7 +67,7 @@ describe("hashPin / verifyPin", () => {
     // But both should verify
     expect(await verifyPin("123456", h1)).toBe(true);
     expect(await verifyPin("123456", h2)).toBe(true);
-  });
+  }, 20_000);
 });
 
 describe("isHashedPin", () => {

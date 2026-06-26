@@ -14,7 +14,7 @@ export function PwaPrompts() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const {
-    needRefresh: [_needRefresh, setNeedRefresh],
+    needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
   } = useRegisterSW({
     onNeedRefresh() {
@@ -85,11 +85,12 @@ export function PwaPrompts() {
   };
 
   const showInstall = !installed && !dismissed && !!deferred;
+  const shouldShowUpdate = showUpdate || needRefresh;
 
   return (
     <>
       {/* Update toast */}
-      {showUpdate && (
+      {shouldShowUpdate && (
         <div className="fixed bottom-20 inset-x-0 z-50 px-4">
           <div className="max-w-md mx-auto bg-green-600 text-white rounded-2xl p-4 shadow-xl flex items-center justify-between gap-3 animate-bounce">
             <div>
@@ -98,7 +99,7 @@ export function PwaPrompts() {
             </div>
             <div className="flex gap-2 flex-shrink-0">
               <button
-                onClick={() => setShowUpdate(false)}
+                onClick={() => { setShowUpdate(false); setNeedRefresh(false); }}
                 className="text-green-200 text-sm px-2 py-2"
               >
                 Nanti

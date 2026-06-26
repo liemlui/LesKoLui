@@ -10,14 +10,17 @@ function dataUrlToBlob(dataUrl: string): Blob {
   return new Blob([arr], { type: mime });
 }
 
-async function pageNodes(): Promise<HTMLElement[]> {
-  return Array.from(document.querySelectorAll<HTMLElement>("[data-report-page]"));
+async function pageNodes(root: ParentNode = document): Promise<HTMLElement[]> {
+  return Array.from(root.querySelectorAll<HTMLElement>("[data-report-page]"));
 }
 
-async function rasterizePages(format: "jpeg" | "png" = "jpeg"): Promise<{ dataUrl: string; w: number; h: number }[]> {
+async function rasterizePages(
+  format: "jpeg" | "png" = "jpeg",
+  root: ParentNode = document,
+): Promise<{ dataUrl: string; w: number; h: number }[]> {
   await document.fonts.ready;
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(null))));
-  const nodes = await pageNodes();
+  const nodes = await pageNodes(root);
   if (nodes.length === 0) throw new Error("Buat laporan terlebih dahulu, lalu scroll ke bagian Pratinjau.");
   const out: { dataUrl: string; w: number; h: number }[] = [];
   for (const node of nodes) {
@@ -40,8 +43,8 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-export async function exportJpeg(filenameBase: string, multiFile = false): Promise<File[]> {
-  const pages = await rasterizePages("jpeg");
+export async function exportJpeg(filenameBase: string, multiFile = false, root: ParentNode = document): Promise<File[]> {
+  const pages = await rasterizePages("jpeg", root);
   if (pages.length === 0) return [];
   if (pages.length === 1 || multiFile) {
     return pages.map((p, i) => {
@@ -70,8 +73,8 @@ export async function exportJpeg(filenameBase: string, multiFile = false): Promi
   return [new File([blob], `${filenameBase}.jpg`, { type: "image/jpeg" })];
 }
 
-export async function exportPng(filenameBase: string): Promise<File[]> {
-  const pages = await rasterizePages("png");
+export async function exportPng(filenameBase: string, root: ParentNode = document): Promise<File[]> {
+  const pages = await rasterizePages("png", root);
   if (pages.length === 0) return [];
   return pages.map((p, i) => {
     const blob = dataUrlToBlob(p.dataUrl);
@@ -80,8 +83,8 @@ export async function exportPng(filenameBase: string): Promise<File[]> {
   });
 }
 
-export async function exportPdf(filenameBase: string): Promise<File> {
-  const pages = await rasterizePages("jpeg");
+export async function exportPdf(filenameBase: string, root: ParentNode = document): Promise<File> {
+  const pages = await rasterizePages("jpeg", root);
   if (pages.length === 0) throw new Error("No report pages found");
   const first = pages[0];
   const pdf = new jsPDF({

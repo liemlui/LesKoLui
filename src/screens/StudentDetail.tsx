@@ -30,6 +30,7 @@ import { analyzeStudent, estimateAnalysisCost } from "../lib/aiClient";
 import type { AiStudentInsight } from "../lib/aiClient";
 import { AiCostModal } from "../components/AiCostModal";
 import { getBehaviorTag, getResponseTag } from "../lib/responseTaxonomy";
+import { MAX_HOURLY_RATE, clampCurrencyAmount, isValidCurrencyAmount } from "../lib/money";
 
 const DURATIONS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
 
@@ -37,6 +38,7 @@ export default function StudentDetail() {
   const { id }   = useParams<{ id: string }>();
   const navigate = useNavigate();
   const today    = todayWIB();
+  const todayMs  = useMemo(() => new Date(today).getTime(), [today]);
 
   const student       = useLiveQuery(() => (id ? getStudent(id) : undefined), [id]);
   const allSessions   = useLiveQuery(() => (id ? listSessionsByStudent(id) : []), [id]);
@@ -110,7 +112,7 @@ export default function StudentDetail() {
   const [rateSaving,    setRateSaving]    = useState(false);
 
   const handleUnlockBilling = async () => {
-    if (!settings?.financialPin) { setBillingUnlocked(true); setBillingPinError(""); return; }
+    if (!settings?.financialPin) { setBillingPinError("Buat PIN Keuangan di Pengaturan dulu."); return; }
     const delay = getPinLockoutDelay();
     if (delay > 0) { setBillingPinError(`Tunggu ${Math.ceil(delay / 1000)} detik.`); return; }
     const ok = await verifyPin(billingPinInput, settings.financialPin);
@@ -135,7 +137,7 @@ export default function StudentDetail() {
   };
 
   const handleUnlockRate = async () => {
-    if (!settings?.financialPin) { setRateUnlocked(true); setRatePinError(""); return; }
+    if (!settings?.financialPin) { setRatePinError("Buat PIN Keuangan di Pengaturan dulu."); return; }
     const delay = getPinLockoutDelay();
     if (delay > 0) { setRatePinError(`Tunggu ${Math.ceil(delay / 1000)} detik.`); return; }
     const ok = await verifyPin(ratePinInput, settings.financialPin);
@@ -144,7 +146,7 @@ export default function StudentDetail() {
   };
 
   const handleSaveRate = async () => {
-    if (!id || !newRate || newRate <= 0) return;
+    if (!id || !isValidCurrencyAmount(newRate, MAX_HOURLY_RATE)) { msg(`Tarif harus 1 sampai ${formatRupiah(MAX_HOURLY_RATE)}.`); return; }
     setRateSaving(true);
     try { await updateStudent(id, { hourlyRate: newRate }); msg("Tarif diperbarui ✓"); setShowRateEdit(false); setRateUnlocked(false); }
     catch (e) { msg("Gagal: " + (e as Error).message); }
@@ -472,7 +474,7 @@ export default function StudentDetail() {
             showRateEdit ? (
               <div className="flex items-center gap-2 flex-1">
                 <input type="number" className="input text-sm py-1.5 flex-1" value={newRate || ""}
-                  onChange={(e) => setNewRate(Number(e.target.value))} placeholder="IDR/jam" />
+                  onChange={(e) => setNewRate(clampCurrencyAmount(Number(e.target.value), MAX_HOURLY_RATE))} placeholder="IDR/jam" />
                 <button onClick={handleSaveRate} disabled={rateSaving}
                   className="text-xs bg-blue-600 text-white px-2 py-1.5 rounded-lg font-semibold">
                   {rateSaving ? "..." : "Simpan"}
@@ -501,8 +503,8 @@ export default function StudentDetail() {
                     className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded-lg">🔒 Buka</button>
                 </div>
               ) : (
-                <button onClick={() => { setRateUnlocked(true); }}
-                  className="ml-auto text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded-lg">Lihat</button>
+                <button onClick={() => navigate("/settings")}
+                  className="ml-auto text-xs bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg">Buat PIN</button>
               )}
               {ratePinError && <span className="text-xs text-red-500">{ratePinError}</span>}
             </div>
@@ -926,7 +928,10 @@ export default function StudentDetail() {
                       </span>
                     )}
                     <button onClick={() => openRapor(r.semester)} className="text-xs text-gray-400 hover:text-blue-500">✏️</button>
-                    <button onClick={async () => { await deleteRaporGrade(r.id); msg("Dihapus."); }}
+                    <button onClick={async () => {
+                      if (!confirm(`Hapus rapor ${semesterLabel(r.semester)}?`)) return;
+                      await deleteRaporGrade(r.id); msg("Dihapus.");
+                    }}
                       className="text-xs text-gray-300 hover:text-red-400">✕</button>
                   </div>
                 </div>
@@ -1040,7 +1045,7 @@ export default function StudentDetail() {
               const pct = total > 0 ? Math.round((done / total) * 100) : 0;
               const isExpanded = expandedIaEe === proj.id;
               const daysLeft = proj.deadline
-                ? Math.ceil((new Date(proj.deadline).getTime() - Date.now()) / 86400000)
+                ? Math.ceil((new Date(proj.deadline).getTime() - todayMs) / 86400000)
                 : null;
               return (
                 <div key={proj.id} className="px-4 py-3">
@@ -1109,7 +1114,9 @@ export default function StudentDetail() {
                             {m.notes && <p className="text-xs text-gray-400 italic mt-0.5">{m.notes}</p>}
                           </div>
                           <button
-                            onClick={() => deleteMilestone(proj.id, m.id)}
+                            onClick={async () => {
+                              if (confirm(`Hapus milestone "${m.title}"?`)) await deleteMilestone(proj.id, m.id);
+                            }}
                             className="text-gray-300 hover:text-red-400 p-1 flex-shrink-0">
                             ✕
                           </button>
@@ -1504,7 +1511,15 @@ export default function StudentDetail() {
               <button onClick={() => setShowBilling(false)} className="text-gray-400 text-xl">✕</button>
             </div>
 
-            {!billingUnlocked && settings?.financialPin ? (
+            {!settings?.financialPin ? (
+              <div className="p-5 space-y-4">
+                <p className="text-sm text-gray-600">Buat PIN Keuangan dulu sebelum melihat tagihan.</p>
+                <button onClick={() => navigate("/settings")}
+                  className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold">
+                  Buka Pengaturan
+                </button>
+              </div>
+            ) : !billingUnlocked ? (
               <div className="p-5 space-y-4">
                 <p className="text-sm text-gray-600">Masukkan PIN untuk melihat tagihan</p>
                 <input
@@ -1765,4 +1780,3 @@ export default function StudentDetail() {
     </div>
   );
 }
-

@@ -54,6 +54,7 @@ const DEEPSEEK_URL = "https://api.deepseek.com/chat/completions";
 function sanitize(s: string): string {
   return s
     // Strip control characters (except common whitespace)
+    // eslint-disable-next-line no-control-regex
     .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, "")
     // Escape triple-backtick so it can't form a markdown fence
     .replace(/```/g, "`‌`‌`")
@@ -62,6 +63,7 @@ function sanitize(s: string): string {
     // Escape triple-dash so no new boundary can be forged
     .replace(/^---$/gm, "—")
     // Null-byte (belt-and-suspenders)
+    // eslint-disable-next-line no-control-regex
     .replace(/\x00/g, "");
 }
 

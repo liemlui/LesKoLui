@@ -6,6 +6,7 @@ import type { Student, Level, CurriculumType } from "../db/types";
 import { DEFAULT_RATE } from "../db/types";
 import { ALL_CURRICULA, CURRICULUM_META, getSubjectGroups } from "../lib/ibSubjects";
 import Toggle from "./Toggle";
+import { MAX_HOURLY_RATE, isValidCurrencyAmount, parseCurrencyDigits } from "../lib/money";
 
 interface Props {
   initial?: Student;
@@ -79,6 +80,7 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !phone.trim()) return;
+    if (!isValidCurrencyAmount(hourlyRate, MAX_HOURLY_RATE)) return;
     await onSave({
       name: name.trim(),
       level: curriculumToLevel(curriculum),
@@ -262,10 +264,9 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
             pattern="[0-9]*"
             value={rateInput}
             onChange={(e) => {
-              const raw = e.target.value.replace(/[^0-9]/g, "");
+              const { raw, amount } = parseCurrencyDigits(e.target.value, MAX_HOURLY_RATE);
               setRateInput(raw);
-              const n = parseInt(raw, 10);
-              if (!isNaN(n)) setHourlyRate(Math.min(2_000_000, n));
+              setHourlyRate(amount);
             }}
             onBlur={() => setRateInput(String(hourlyRate || 0))}
             placeholder="mis. 200000"

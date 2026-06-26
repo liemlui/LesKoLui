@@ -5,8 +5,12 @@ import { db } from "../db/db";
 import { exportBackup, importBackup } from "../lib/backup";
 import { hashPin } from "../lib/crypto";
 import { todayWIB } from "../lib/format";
+import { compressPhoto } from "../lib/foto";
+import { downloadBlob } from "../lib/download";
+import { APP_VERSION } from "../lib/version";
 import type { Settings } from "../db/types";
 import Toggle from "../components/Toggle";
+import PinConfirmModal from "../components/PinConfirmModal";
 
 const WORDLIST = [
   "apel","baju","cabe","dadu","elang","fajar","gula","harap","ikan","jalan",
@@ -85,23 +89,21 @@ export default function SettingsPage() {
   const [newPin,      setNewPin]      = useState("");
   const [newPinConf,  setNewPinConf]  = useState("");
   const [pinError,    setPinError]    = useState("");
+  const [pinAction,   setPinAction]   = useState<"exportBackup" | "deletePin" | "restore" | "resetAll" | null>(null);
   const restoreRef = useRef<HTMLInputElement>(null);
   const fileRef    = useRef<HTMLInputElement>(null);
 
   // Shallow copy preserves Blobs — JSON.stringify would corrupt them
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (settings && !form) setForm({ ...settings });
   }, [settings, form]);
 
   useEffect(() => {
     if (!form?.logo || !(form.logo instanceof Blob)) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLogoUrl(undefined);
       return;
     }
     const url = URL.createObjectURL(form.logo);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLogoUrl(url);
     return () => URL.revokeObjectURL(url);
   }, [form?.logo]);
@@ -142,13 +144,18 @@ export default function SettingsPage() {
     }
   };
 
-  const handleLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) { setToast("File harus berupa gambar (JPG/PNG/WebP)."); e.target.value = ""; return; }
-    const reader = new FileReader();
-    reader.onload = () => update("logo", new Blob([reader.result as ArrayBuffer], { type: file.type }));
-    reader.readAsArrayBuffer(file);
+    if (file.size > 5 * 1024 * 1024) { setToast("Ukuran logo maksimal 5 MB."); e.target.value = ""; return; }
+    try {
+      update("logo", await compressPhoto(file));
+    } catch (err) {
+      setToast("Logo gagal diproses: " + (err as Error).message);
+    } finally {
+      e.target.value = "";
+    }
   };
 
   const handleSetPin = async () => {
@@ -161,9 +168,101 @@ export default function SettingsPage() {
     setForm((f) => f ? { ...f, financialPin: hashed } : f);
   };
 
+  const requireFinancialPin = (action: typeof pinAction) => {
+    if (!action) return;
+    if (!form.financialPin) {
+      setToast("Buat PIN Keuangan dulu sebelum menjalankan aksi ini.");
+      return;
+    }
+    setPinAction(action);
+  };
+
+  const doExportBackup = async () => {
+    if (!backupPass) { setToast("Masukkan kata sandi backup!"); return; }
+    if (backupPass.length < 4) { setToast("Kata sandi minimal 4 karakter!"); return; }
+    const blob = await exportBackup(backupPass);
+    downloadBlob(blob, `leskolui-backup-${todayWIB()}.jles`);
+    setToast("Backup berhasil diunduh ✓");
+  };
+
+  const doDeletePin = async () => {
+    const cleared = { ...form };
+    delete cleared.financialPin;
+    await saveSettings(cleared);
+    setForm(cleared);
+    setToast("PIN dihapus ✓");
+  };
+
+  const doRestore = async () => {
+    const file = restoreRef.current?.files?.[0];
+    if (!file || !restorePass) { setToast("Pilih file dan masukkan kata sandi!"); return; }
+    await importBackup(file, restorePass);
+    setToast("Restore berhasil! Memuat ulang... ✓");
+    setTimeout(() => location.reload(), 1500);
+  };
+
+  const doResetAll = async () => {
+    const tables = [
+      db.students, db.sessions, db.reports,
+      db.payments, db.homeworks, db.followUps,
+      db.raporGrades, db.expenses, db.monthClosings, db.iaeeProjects,
+    ];
+    await db.transaction("rw", tables, async () => {
+      for (const t of tables) await t.clear();
+    });
+    setToast("Semua data berhasil dihapus ✓ Memuat ulang...");
+    setTimeout(() => location.reload(), 1500);
+  };
+
+  const runPinAction = async () => {
+    if (!pinAction) return;
+    try {
+      if (pinAction === "exportBackup") await doExportBackup();
+      if (pinAction === "deletePin") await doDeletePin();
+      if (pinAction === "restore") await doRestore();
+      if (pinAction === "resetAll") await doResetAll();
+      setPinAction(null);
+    } catch (e) {
+      setToast("Gagal: " + (e as Error).message);
+    }
+  };
+
+  const pinModalCopy = {
+    exportBackup: {
+      title: "Konfirmasi Backup",
+      description: "Masukkan PIN Keuangan sebelum mengekspor semua data.",
+      confirmLabel: "Ekspor",
+    },
+    deletePin: {
+      title: "Hapus PIN",
+      description: "Masukkan PIN lama untuk menghapus proteksi keuangan.",
+      confirmLabel: "Hapus PIN",
+    },
+    restore: {
+      title: "Konfirmasi Restore",
+      description: "Restore akan mengganti data saat ini. Masukkan PIN untuk lanjut.",
+      confirmLabel: "Restore",
+    },
+    resetAll: {
+      title: "Hapus Semua Data",
+      description: "Masukkan PIN sebelum mengosongkan database aplikasi.",
+      confirmLabel: "Hapus",
+    },
+  } as const;
+
   return (
     <div className="p-4 space-y-3 pb-24">
       {toast && <Toast msg={toast} onClose={() => setToast("")} />}
+      {pinAction && form.financialPin && (
+        <PinConfirmModal
+          storedPin={form.financialPin}
+          title={pinModalCopy[pinAction].title}
+          description={pinModalCopy[pinAction].description}
+          confirmLabel={pinModalCopy[pinAction].confirmLabel}
+          onCancel={() => setPinAction(null)}
+          onConfirm={runPinAction}
+        />
+      )}
 
       <div className="flex items-center justify-between py-1">
         <h1 className="text-2xl font-bold">Pengaturan</h1>
@@ -407,14 +506,7 @@ export default function SettingsPage() {
               onClick={async () => {
                 if (!backupPass) { setToast("Masukkan kata sandi backup!"); return; }
                 if (backupPass.length < 4) { setToast("Kata sandi minimal 4 karakter!"); return; }
-                try {
-                  const blob = await exportBackup(backupPass);
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url; a.download = `leskolui-backup-${todayWIB()}.jles`;
-                  a.click(); URL.revokeObjectURL(url);
-                  setToast("Backup berhasil diunduh ✓");
-                } catch (e) { setToast("Backup gagal: " + (e as Error).message); }
+                requireFinancialPin("exportBackup");
               }}>
               Ekspor Backup
             </button>
@@ -437,11 +529,7 @@ export default function SettingsPage() {
                 const file = restoreRef.current?.files?.[0];
                 if (!file || !restorePass) { setToast("Pilih file dan masukkan kata sandi!"); return; }
                 if (!confirm("Yakin restore? Semua data saat ini akan diganti!")) return;
-                try {
-                  await importBackup(file, restorePass);
-                  setToast("Restore berhasil! Memuat ulang... ✓");
-                  setTimeout(() => location.reload(), 1500);
-                } catch (e) { setToast("Restore gagal: " + (e as Error).message); }
+                requireFinancialPin("restore");
               }}>
               Restore Data
             </button>
@@ -463,20 +551,7 @@ export default function SettingsPage() {
               if (!confirm("Yakin hapus SEMUA data? Tindakan ini tidak bisa dibatalkan!")) return;
               const word = prompt('Ketik "RESET" untuk konfirmasi:');
               if (word !== "RESET") { setToast("Konfirmasi gagal — ketik RESET."); return; }
-              try {
-                const tables = [
-                  db.students, db.sessions, db.reports,
-                  db.payments, db.homeworks, db.followUps,
-                  db.raporGrades, db.expenses, db.monthClosings, db.iaeeProjects,
-                ];
-                await db.transaction("rw", tables, async () => {
-                  for (const t of tables) await t.clear();
-                });
-                setToast("Semua data berhasil dihapus ✓ Memuat ulang...");
-                setTimeout(() => location.reload(), 1500);
-              } catch (e) {
-                setToast("Gagal: " + (e as Error).message);
-              }
+              requireFinancialPin("resetAll");
             }}
             className="w-full py-3 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition-colors">
             🗑️ Hapus Semua Data
@@ -491,7 +566,7 @@ export default function SettingsPage() {
           <div className="bg-gray-50 rounded-xl p-3 space-y-1.5">
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Versi</span>
-              <span className="font-semibold text-gray-700">1.7.0</span>
+              <span className="font-semibold text-gray-700">{APP_VERSION}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Framework</span>

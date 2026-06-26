@@ -5,10 +5,10 @@ import { useLiveQuery } from "dexie-react-hooks";
 import {
   listStudents, listAllSessionsForMonth, listAllSessionsForWeek,
   listAllPendingHomework, listPendingFollowUps,
-  markHomeworkDone, markHomeworkNotDone, completeFollowUp,
+  markHomeworkDone, setHomeworkStatus, completeFollowUp,
   listPastScheduledSessions, cancelSession,
 } from "../../db/repos";
-import type { Session } from "../../db/types";
+import type { HomeworkStatus, Session } from "../../db/types";
 import { dayLabel, todayWIB, monthOf } from "../../lib/format";
 import { weekDates, byDay, addDays, type CalView } from "../../lib/calendar";
 import { colorForStudent, type StudentMap } from "../../lib/studentColor";
@@ -35,7 +35,7 @@ export default function Home() {
   const [filterStudentId, setFilterStudentId] = useState<string>("");
 
   const toast = useToastCtx();
-  const [undoHwId, setUndoHwId] = useState<string | null>(null);
+  const [undoHw, setUndoHw] = useState<{ id: string; previousStatus: HomeworkStatus } | null>(null);
   const [undoTimer, setUndoTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Data ──────────────────────────────────────────────────────────────────
@@ -74,11 +74,11 @@ export default function Home() {
   // ── Helpers ─────────────────────────────────────────────────────────────────
   const msg = useCallback((t: string) => { toast.info(t); }, [toast]);
 
-  const handleMarkDone = async (id: string) => {
+  const handleMarkDone = async (id: string, previousStatus: HomeworkStatus) => {
     try { await markHomeworkDone(id); } catch { msg("Gagal menandai PR."); return; }
-    setUndoHwId(id);
+    setUndoHw({ id, previousStatus });
     if (undoTimer) clearTimeout(undoTimer);
-    const t = setTimeout(() => { setUndoHwId(null); setUndoTimer(null); }, 3000);
+    const t = setTimeout(() => { setUndoHw(null); setUndoTimer(null); }, 3000);
     setUndoTimer(t);
   };
 
@@ -94,7 +94,7 @@ export default function Home() {
     onEdit:    (s: Session) => setEditTarget(s),
     onCapture: (id: string) => navigate(`/capture?scheduleId=${id}`),
     onCancel:  async (id: string) => { try { await cancelSession(id); msg("Dibatalkan."); } catch { msg("Gagal membatalkan."); } },
-  }), [navigate, cancelSession, msg]);
+  }), [navigate, msg]);
 
   // ── Empty state / onboarding ────────────────────────────────────────────────
   if (students && students.length === 0) {
@@ -132,14 +132,14 @@ export default function Home() {
         </button>
       </div>
 
-      {undoHwId && (
+      {undoHw && (
         <div className="mx-4 mb-2 p-2 rounded-lg text-sm flex items-center justify-between bg-green-50 border border-green-200">
           <span className="text-green-700 font-medium">PR ditandai selesai ✓</span>
           <button
             onClick={async () => {
               if (undoTimer) clearTimeout(undoTimer);
-              await markHomeworkNotDone(undoHwId);
-              setUndoHwId(null); setUndoTimer(null);
+              await setHomeworkStatus(undoHw.id, undoHw.previousStatus);
+              setUndoHw(null); setUndoTimer(null);
             }}
             className="text-xs font-bold text-green-600 underline ml-2">
             Undo

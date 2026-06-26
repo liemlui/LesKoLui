@@ -71,7 +71,7 @@ export default function Students() {
       if (bn) return 1;
       return 0;
     });
-  }, [allStudents, nextSessionMap]);
+  }, [allStudents, nextSessionMap, q]);
 
   const inactive = useMemo(() => (allStudents ?? []).filter((s) => !s.active && (!q || s.name.toLowerCase().includes(q))), [allStudents, q]);
 

@@ -1195,12 +1195,35 @@ export const snapshot: Layout = {
 
 // ──────────────────── EXPORT ────────────────────
 
+export const cover: Layout = {
+  id: "cover", name: "Cover", maxEntriesPerPage: 999,
+  render: (d, t) => (
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "30px 22px 34px", minHeight: 520, position: "relative", overflow: "hidden", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+      <Deco kind={t.deco} />
+      <div style={{ position: "relative", zIndex: 2 }}>
+        {HeaderEl(d, t)}
+        <div style={{ marginTop: 24, borderTop: `2px solid ${t.accent}33`, paddingTop: 18, textAlign: "center" }}>
+          <p style={{ fontSize: 12, color: t.muted, margin: 0, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>Monthly Progress Report</p>
+          <p style={{ fontFamily: t.fontDisplay, fontSize: 26, fontWeight: 800, color: t.accent, margin: "8px 0 0" }}>{d.period}</p>
+          {d.summary && (
+            <p style={{ fontSize: 13, lineHeight: 1.55, color: t.ink, margin: "18px auto 0", maxWidth: 300 }}>
+              {d.summary}
+            </p>
+          )}
+          <p style={{ fontSize: 11, color: t.muted, margin: "20px 0 0" }}>{d.entries.length} sesi tercatat</p>
+        </div>
+      </div>
+    </div>
+  ),
+};
+
 export const LAYOUTS: Layout[] = [
   cards, timeline, scrapbook, grid, compact,
   dashboard, progress, weekly, subjects, reportcard,
   portfolio, checklist, summary, growth, dossier,
   analytics, narrative, milestone, split, journal,
   overview, minimal, bullets, compare, snapshot,
+  cover,
 ];
 export const LAYOUT_IDS = LAYOUTS.map((l) => l.id);
 export function getLayout(id: string): Layout {

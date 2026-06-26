@@ -20,6 +20,9 @@ import { generatePaymentReminder, estimatePaymentReminderCost } from "../lib/aiC
 import { AiCostModal } from "../components/AiCostModal";
 import { buildBillingMessage, toWaNumber } from "../lib/waBilling";
 import { forecastNextMonth } from "../lib/forecast";
+import { escapeCsvCell } from "../lib/csv";
+import { downloadBlob } from "../lib/download";
+import { MAX_PAYMENT_AMOUNT, clampCurrencyAmount, isValidCurrencyAmount, parseCurrencyDigits } from "../lib/money";
 
 type Tab = "ringkasan" | "tagihan" | "pengeluaran" | "audit";
 
@@ -130,7 +133,7 @@ export default function PaymentsPage() {
 
   // ── Handlers ──
   const handleCreatePayment = async () => {
-    if (!selectedStudentId || !selectedMonth || totalCost <= 0) { setMessage("Lengkapi semua data!"); return; }
+    if (!selectedStudentId || !selectedMonth || !isValidCurrencyAmount(totalCost)) { setMessage("Lengkapi semua data dengan nominal valid!"); return; }
     const existing = await getPayment(selectedStudentId, selectedMonth);
     if (existing) { setMessage("Tagihan untuk murid & bulan ini sudah ada!"); return; }
     await upsertPayment({ studentId: selectedStudentId, month: selectedMonth, totalCost, status: "UNPAID" });
@@ -158,7 +161,7 @@ export default function PaymentsPage() {
   };
 
   const handleReopenMonth = async () => {
-    if (!window.confirm(`Buka kembali ${monthLabel(month)}? Tagihan yang belum lunas akan dihapus (yang sudah lunas tetap).`)) return;
+    if (!window.confirm(`Buka kembali ${monthLabel(month)}? Tagihan otomatis yang belum lunas akan dihapus (tagihan manual dan yang sudah lunas tetap).`)) return;
     await reopenMonth(month);
     setMessage(`Bulan ${monthLabel(month)} dibuka kembali.`);
   };
@@ -168,7 +171,8 @@ export default function PaymentsPage() {
     setBillEdits((prev) => { const c = { ...prev }; delete c[studentId]; return c; });
     if (raw == null || raw === "") return;
     const n = Number(raw);
-    if (!Number.isNaN(n) && n !== fallback) await updatePaymentAmount(studentId, month, n);
+    if (!isValidCurrencyAmount(n)) { setMessage(`Nominal harus 1 sampai ${formatRupiah(MAX_PAYMENT_AMOUNT)}.`); return; }
+    if (n !== fallback) await updatePaymentAmount(studentId, month, n);
   };
 
   const handleAddExpense = async () => {
@@ -191,12 +195,7 @@ export default function PaymentsPage() {
       const pdf = new jsPDF({ orientation: "p", unit: "px", format: [w, h] });
       pdf.addImage(dataUrl, "PNG", 0, 0, w, h);
       const blob = pdf.output("blob");
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `invoice-${invoiceTarget.student.name.replace(/\s+/g, "-")}-${invoiceTarget.payment.month}.pdf`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 200);
+      downloadBlob(blob, `invoice-${invoiceTarget.student.name.replace(/\s+/g, "-")}-${invoiceTarget.payment.month}.pdf`);
     } catch (e) { setMessage("Gagal ekspor: " + (e as Error).message); }
     finally { setInvoiceExporting(false); }
   };
@@ -212,12 +211,9 @@ export default function PaymentsPage() {
         p.paidAt ?? "", p.method ?? "",
       ]),
     ];
-    const csv = rows.map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = `tagihan-${month}.csv`; a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 100);
+    const csv = rows.map((r) => r.map(escapeCsvCell).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    downloadBlob(blob, `tagihan-${month}.csv`);
   };
 
   const handleExportPdf = async () => {
@@ -239,9 +235,7 @@ export default function PaymentsPage() {
       }
       if (!pdf) return;
       const blob = pdf.output("blob");
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a"); a.href = url; a.download = `tagihan-${month}.pdf`; a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 100);
+      downloadBlob(blob, `tagihan-${month}.pdf`);
     } catch (e) { setMessage("Gagal ekspor PDF: " + (e as Error).message); }
     finally { setPdfExporting(false); }
   };
@@ -252,13 +246,26 @@ export default function PaymentsPage() {
     const body = rows.map((r) => `${r.month},${r.realisasi},${r.pengeluaran},${r.laba},${r.closed ? "Ditutup" : "Terbuka"}`);
     const total = `Total ${auditYear},${auditTotals.realisasi},${auditTotals.pengeluaran},${auditTotals.laba},`;
     const csv = [header, ...body, total].join("\n");
-    const url = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
-    const a = document.createElement("a");
-    a.href = url; a.download = `Audit-Keuangan-${auditYear}.csv`; a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 100);
+    downloadBlob(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }), `Audit-Keuangan-${auditYear}.csv`);
   };
 
   if (!payments || !students || !settings) return <div className="p-4 text-gray-500">Memuat...</div>;
+
+  if (!settings.financialPin) {
+    return (
+      <div className="p-4 flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <p className="text-4xl">ðŸ”</p>
+        <p className="font-bold text-lg text-gray-800">PIN Keuangan Belum Aktif</p>
+        <p className="text-sm text-gray-400 text-center">Buat PIN dulu sebelum membuka data keuangan, tagihan, dan audit.</p>
+        <button
+          onClick={() => navigate("/settings")}
+          className="px-8 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-colors">
+          Buka Pengaturan
+        </button>
+        <button onClick={() => navigate(-1)} className="text-sm text-gray-400 hover:text-gray-600">â† Kembali</button>
+      </div>
+    );
+  }
 
   if (settings.financialPin && !pin.unlocked) {
     return (
@@ -602,7 +609,10 @@ export default function PaymentsPage() {
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-gray-400">Rp</span>
                         <input className="input flex-1 text-sm py-1.5" inputMode="numeric" value={amountStr} disabled={paid}
-                          onChange={(e) => setBillEdits((prev) => ({ ...prev, [sid]: e.target.value.replace(/[^0-9]/g, "") }))}
+                          onChange={(e) => {
+                            const { raw } = parseCurrencyDigits(e.target.value, MAX_PAYMENT_AMOUNT);
+                            setBillEdits((prev) => ({ ...prev, [sid]: raw }));
+                          }}
                           onBlur={() => saveBillAmount(sid, payment.totalCost)} />
                       </div>
                       <div className="flex gap-2">
@@ -682,7 +692,7 @@ export default function PaymentsPage() {
                 </select>
                 <input className="input" type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} />
                 <input className="input" type="number" placeholder="Total biaya (IDR)" value={totalCost || ""} min={1} max={100000000}
-                  onChange={(e) => setTotalCost(Math.min(100_000_000, Math.max(0, Number(e.target.value))))} />
+                  onChange={(e) => setTotalCost(clampCurrencyAmount(Number(e.target.value), MAX_PAYMENT_AMOUNT))} />
                 <button onClick={handleCreatePayment} className="btn-primary w-full">Buat Tagihan</button>
               </div>
             )}
@@ -914,7 +924,7 @@ export default function PaymentsPage() {
                 const url = phone
                   ? `https://wa.me/${phone}?text=${encodeURIComponent(res.message)}`
                   : `https://wa.me/?text=${encodeURIComponent(res.message)}`;
-                window.open(url, "_blank");
+                window.open(url, "_blank", "noopener,noreferrer");
               }
             } catch (e) { setMessage("AI error: " + (e as Error).message); }
             finally { setReminderLoading(null); }

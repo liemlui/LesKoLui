@@ -54,7 +54,7 @@ function Layout() {
     if (dueToday.length > 0) {
       new Notification("Les Ko Lui — PR Hari Ini", {
         body: `${dueToday.length} PR deadline hari ini: ${dueToday.map(h => h.title).slice(0, 2).join(", ")}${dueToday.length > 2 ? "..." : ""}`,
-        icon: "/pwa-192x192.png",
+        icon: "/icon-192.png",
       });
     }
 
@@ -70,7 +70,7 @@ function Layout() {
       const names = sessTomorrow.map((s) => studentMap.get(s.studentId) ?? "—").slice(0, 3);
       new Notification("Les Ko Lui — Sesi Besok", {
         body: `${sessTomorrow.length} sesi besok: ${names.join(", ")}${sessTomorrow.length > 3 ? "..." : ""}`,
-        icon: "/pwa-192x192.png",
+        icon: "/icon-192.png",
       });
     }
   }, []);
@@ -124,7 +124,11 @@ function Layout() {
             </div>
             <div className="flex gap-2 flex-shrink-0">
               <button
-                onClick={() => { localStorage.setItem(AUTO_BACKUP_KEY, String(Date.now())); setBackupPrompt(false); }}
+                onClick={() => {
+                  const remindTomorrow = Date.now() - (AUTO_BACKUP_INTERVAL_DAYS - 1) * 86400000;
+                  localStorage.setItem(AUTO_BACKUP_KEY, String(remindTomorrow));
+                  setBackupPrompt(false);
+                }}
                 className="text-xs text-amber-500 px-2 py-1.5">Nanti</button>
               <button
                 onClick={() => { localStorage.setItem(AUTO_BACKUP_KEY, String(Date.now())); setBackupPrompt(false); navigate("/settings"); }}

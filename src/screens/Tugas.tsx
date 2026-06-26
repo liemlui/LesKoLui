@@ -170,7 +170,10 @@ export default function TugasPage() {
                                 </button>
                               </>
                             )}
-                            <button onClick={async () => { try { await deleteHomework(h.id); } catch { msg("Gagal menghapus."); } }}
+                            <button onClick={async () => {
+                              if (!confirm(`Hapus tugas "${h.title}"?`)) return;
+                              try { await deleteHomework(h.id); } catch { msg("Gagal menghapus."); }
+                            }}
                               title="Hapus tugas"
                               className="w-9 h-9 rounded-xl bg-gray-50 text-gray-300 font-bold text-lg flex items-center justify-center hover:text-red-400 hover:bg-red-50 transition-all">
                               ×

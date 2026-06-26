@@ -12,6 +12,7 @@ export type CurriculumType =
   | "Custom";
 export type SessionStatus = "SCHEDULED" | "DONE" | "CANCELLED";
 export type PaymentStatus = "UNPAID" | "PAID";
+export type PaymentSource = "auto" | "manual";
 
 export const DEFAULT_RATE = 200_000;   // IDR per hour
 export const MIN_DURATION = 1;         // hours
@@ -143,6 +144,7 @@ export interface Payment {
   month: string;
   totalCost: number;
   status: PaymentStatus;
+  source?: PaymentSource;
   paidAt?: string;
   method?: string;
 }
