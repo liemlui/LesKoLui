@@ -139,7 +139,7 @@ export default function SettingsPage() {
       setDirty(false);
       setToast("Pengaturan disimpan ✓");
     } catch (e) {
-      setToast("Gagal: " + (e as Error).message);
+      setToast("Gagal: " + ((e as Error).message || "terjadi kesalahan."));
     } finally {
       setSaving(false);
     }
@@ -252,7 +252,7 @@ export default function SettingsPage() {
       if (pinAction === "driveRestore") await doDriveRestore();
       setPinAction(null);
     } catch (e) {
-      setToast("Gagal: " + (e as Error).message);
+      setToast("Gagal: " + ((e as Error).message || "terjadi kesalahan."));
     }
   };
 

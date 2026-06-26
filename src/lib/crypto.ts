@@ -38,8 +38,18 @@ export async function decryptJson(file: Blob, passphrase: string): Promise<unkno
     salt = buf.slice(0, 16) as Uint8Array<ArrayBuffer>; iv = buf.slice(16, 28) as Uint8Array<ArrayBuffer>; ct = buf.slice(28) as Uint8Array<ArrayBuffer>;
   }
   const key = await deriveKey(passphrase, salt);
-  const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ct);
-  return JSON.parse(dec.decode(pt));
+  let pt: ArrayBuffer;
+  try {
+    pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ct);
+  } catch {
+    // AES-GCM melempar DOMException ber-message kosong saat tag/kunci tak cocok
+    throw new Error("Kata sandi salah atau file backup rusak.");
+  }
+  try {
+    return JSON.parse(dec.decode(pt));
+  } catch {
+    throw new Error("File backup tidak valid (gagal dibaca setelah dekripsi).");
+  }
 }
 
 // ── PIN hashing — PBKDF2 + random salt ─────────────────────────────────────
