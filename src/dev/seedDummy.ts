@@ -120,7 +120,7 @@ export async function seedDummyData(force = false): Promise<void> {
     hourlyRate: 325000, active: true, enrolledAt: "2025-08-15",
     school: "Springfield International Academy",
   });
-  const galih = await createStudent({
+  await createStudent({
     name: "Galih Pratomo", level: "IBDP", curriculum: "National", grade: "Grade 12",
     subjects: ["Mathematics", "Physics"],
     parentContact: { name: "Bpk. Pratomo", phone: "081234567807" },
