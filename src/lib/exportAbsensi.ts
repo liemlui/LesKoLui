@@ -1,6 +1,5 @@
-import { toPng } from "html-to-image";
-import { jsPDF } from "jspdf";
 import type { Session } from "../db/types";
+import { loadHtmlToImage, loadJsPdf } from "./exportDeps";
 import { blobToDataUrl } from "./imageUtils";
 
 interface AbsensiOptions {
@@ -244,6 +243,7 @@ export async function exportAbsensiPdf(opts: AbsensiOptions): Promise<void> {
 
   let pdfUrl: string | null = null;
   try {
+    const [{ toPng }, { jsPDF }] = await Promise.all([loadHtmlToImage(), loadJsPdf()]);
     let pdf: InstanceType<typeof jsPDF> | null = null;
     const pageDivs = Array.from(wrapper.children) as HTMLElement[];
 

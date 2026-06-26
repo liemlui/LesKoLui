@@ -5,21 +5,20 @@ import { PwaPrompts } from "./components/PwaPrompts";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ToastProvider, useToastCtx } from "./components/ToastProvider";
 import ToastContainer from "./components/Toast";
-import Home from "./screens/home/Home";
-import Students from "./screens/Students";
-import StudentDetail from "./screens/StudentDetail";
-import CaptureSession from "./screens/CaptureSession";
 import { todayWIB } from "./lib/format";
 
-// Lazy-load the data layer — repos.ts is the heaviest shared module (~200KB gzipped).
-// All calls happen inside useEffect (post-mount), so dynamic import doesn't block first paint.
-type ReposModule = typeof import("./db/repos");
-let _repos: ReposModule | undefined;
-function repos(): Promise<ReposModule> {
-  return _repos ? Promise.resolve(_repos) : import("./db/repos").then((m) => (_repos = m));
+// Lazy-load startup data after mount so the first paint only carries the app shell.
+type AppDataModule = typeof import("./lib/appData");
+let _appData: AppDataModule | undefined;
+function appData(): Promise<AppDataModule> {
+  return _appData ? Promise.resolve(_appData) : import("./lib/appData").then((m) => (_appData = m));
 }
 
-// Lazy-load less-frequently visited screens to reduce initial bundle
+// Lazy-load route screens to keep shared data and feature code out of the entry chunk.
+const Home = lazy(() => import("./screens/home/Home"));
+const Students = lazy(() => import("./screens/Students"));
+const StudentDetail = lazy(() => import("./screens/StudentDetail"));
+const CaptureSession = lazy(() => import("./screens/CaptureSession"));
 const MonthlyReport = lazy(() => import("./screens/MonthlyReport"));
 const Payments = lazy(() => import("./screens/Payments"));
 const Tugas = lazy(() => import("./screens/Tugas"));
@@ -45,7 +44,7 @@ function Layout() {
   // Notifikasi PR jatuh tempo (Web Notifications)
   const scheduleHwNotifications = useCallback(async () => {
     if (Notification.permission !== "granted") return;
-    const r = await repos();
+    const r = await appData();
     const today = todayWIB();
 
     // PR deadline hari ini
@@ -84,7 +83,7 @@ function Layout() {
   }, []);
 
   useEffect(() => {
-    repos().then((r) => r.initSettings());
+    appData().then((r) => r.initSettings());
     if (navigator.storage?.persist) navigator.storage.persist();
 
     // Request notification permission then schedule hw notifications

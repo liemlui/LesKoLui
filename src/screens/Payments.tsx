@@ -14,8 +14,7 @@ import type { ExpenseCategory } from "../db/repos";
 import type { Payment, Student, Settings } from "../db/types";
 import { formatRupiah, todayWIB, monthLabel } from "../lib/format";
 import { usePinGate } from "../hooks/usePinGate";
-import { toPng } from "html-to-image";
-import { jsPDF } from "jspdf";
+import { loadHtmlToImage, loadJsPdf } from "../lib/exportDeps";
 import { generatePaymentReminder, estimatePaymentReminderCost } from "../lib/aiClient";
 import { AiCostModal } from "../components/AiCostModal";
 import { buildBillingMessage, toWaNumber } from "../lib/waBilling";
@@ -186,6 +185,7 @@ export default function PaymentsPage() {
     if (!invoiceRef.current || !invoiceTarget) return;
     setInvoiceExporting(true);
     try {
+      const [{ toPng }, { jsPDF }] = await Promise.all([loadHtmlToImage(), loadJsPdf()]);
       await document.fonts.ready;
       await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(null))));
       const el = invoiceRef.current;
@@ -219,6 +219,7 @@ export default function PaymentsPage() {
   const handleExportPdf = async () => {
     setPdfExporting(true);
     try {
+      const [{ toPng }, { jsPDF }] = await Promise.all([loadHtmlToImage(), loadJsPdf()]);
       await document.fonts.ready;
       await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(null))));
       const pages = Array.from(document.querySelectorAll<HTMLElement>("[data-pdf-page]"));

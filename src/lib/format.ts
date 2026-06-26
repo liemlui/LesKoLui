@@ -4,10 +4,14 @@
  */
 
 /** Today's date in WIB (UTC+7) as "YYYY-MM-DD".
- *  Always adds 7h to UTC then reads UTC fields — device timezone irrelevant. */
+ *  Uses Intl.DateTimeFormat with timeZone for DST-safe WIB date. */
 export function todayWIB(): string {
-  const wib = new Date(Date.now() + 7 * 60 * 60 * 1000);
-  return `${wib.getUTCFullYear()}-${String(wib.getUTCMonth() + 1).padStart(2, "0")}-${String(wib.getUTCDate()).padStart(2, "0")}`;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts();
+  const m = Object.fromEntries(parts.filter((p) => p.type !== "literal").map((p) => [p.type, p.value]));
+  return `${m.year}-${m.month}-${m.day}`;
 }
 
 /** Extract "YYYY-MM" from a "YYYY-MM-DD" string */

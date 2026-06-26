@@ -1,5 +1,4 @@
-import { toJpeg, toPng } from "html-to-image";
-import { jsPDF } from "jspdf";
+import { loadHtmlToImage, loadJsPdf } from "./exportDeps";
 
 function dataUrlToBlob(dataUrl: string): Blob {
   const [header, b64] = dataUrl.split(",");
@@ -23,6 +22,7 @@ async function rasterizePages(
   const nodes = await pageNodes(root);
   if (nodes.length === 0) throw new Error("Buat laporan terlebih dahulu, lalu scroll ke bagian Pratinjau.");
   const out: { dataUrl: string; w: number; h: number }[] = [];
+  const { toJpeg, toPng } = await loadHtmlToImage();
   for (const node of nodes) {
     node.scrollIntoView({ block: "nearest" });
     await new Promise((r) => requestAnimationFrame(() => r(null)));
@@ -86,6 +86,7 @@ export async function exportPng(filenameBase: string, root: ParentNode = documen
 export async function exportPdf(filenameBase: string, root: ParentNode = document): Promise<File> {
   const pages = await rasterizePages("jpeg", root);
   if (pages.length === 0) throw new Error("No report pages found");
+  const { jsPDF } = await loadJsPdf();
   const first = pages[0];
   const pdf = new jsPDF({
     orientation: first.h >= first.w ? "p" : "l",

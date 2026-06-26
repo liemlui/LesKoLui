@@ -22,8 +22,8 @@ const backupDb = db as BackupDb;
 
 async function blobToB64(b: Blob): Promise<string> {
   const buf = new Uint8Array(await b.arrayBuffer());
-  let s = "";
-  for (const byte of buf) s += String.fromCharCode(byte);
+  // Convert bytes to binary string via Array.from + charCode — handles all byte values safely
+  const s = Array.from(buf, (byte) => String.fromCharCode(byte)).join("");
   return `data:${b.type};base64,${btoa(s)}`;
 }
 

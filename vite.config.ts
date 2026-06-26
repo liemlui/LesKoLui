@@ -7,6 +7,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   test: {
     globals: true,
+    setupFiles: ["./src/setupTests.ts"],
   },
   plugins: [
     react(),
