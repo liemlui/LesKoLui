@@ -23,6 +23,54 @@ import type {
   ReportOptions, CustomTheme, Theme,
   HeaderStyle, LabelStyle, PhotoStyle, DecoKind,
 } from "../template/types";
+import type { Session } from "../db/types";
+
+const EMPTY_SUBJECT_LABEL = "Mapel belum diisi";
+
+function cleanText(value?: string): string {
+  return value?.trim() ?? "";
+}
+
+function formatHours(hours: number): string {
+  const normalized = Number.isInteger(hours) ? String(hours) : String(hours).replace(".", ",");
+  return `${normalized} jam`;
+}
+
+function sessionSubjectLabel(subjects: string[]): string {
+  const cleanSubjects = subjects.map((subject) => subject.trim()).filter(Boolean);
+  return cleanSubjects.length > 0 ? cleanSubjects.join(", ") : EMPTY_SUBJECT_LABEL;
+}
+
+function sessionTimeLabel(session: Session): string | undefined {
+  if (session.timeIn && session.timeOut) return `${session.timeIn}-${session.timeOut}`;
+  if (session.time) return `Jam ${session.time}`;
+  return undefined;
+}
+
+function buildSessionDetails(session: Session): string[] {
+  return [
+    sessionTimeLabel(session),
+    formatHours(session.durationHours),
+    cleanText(session.topic) ? `Topik: ${cleanText(session.topic)}` : undefined,
+    cleanText(session.needsWork) ? `Perlu perhatian: ${cleanText(session.needsWork)}` : undefined,
+    cleanText(session.predictedGrade) ? `Prediksi: ${cleanText(session.predictedGrade)}` : undefined,
+    cleanText(session.mood) ? `Mood: ${cleanText(session.mood)}` : undefined,
+  ].filter((detail): detail is string => Boolean(detail));
+}
+
+function buildSessionNarrative(session: Session, subject: string): string {
+  const baseNote = cleanText(session.narrative) || cleanText(session.shortNote);
+  const extraNotes = [
+    cleanText(session.topic) ? `Topik yang dibahas: ${cleanText(session.topic)}.` : undefined,
+    cleanText(session.needsWork) ? `Area perhatian: ${cleanText(session.needsWork)}.` : undefined,
+    cleanText(session.predictedGrade) ? `Prediksi nilai: ${cleanText(session.predictedGrade)}.` : undefined,
+  ].filter((note): note is string => Boolean(note));
+
+  if (baseNote && extraNotes.length > 0) return `${baseNote} ${extraNotes.join(" ")}`;
+  if (baseNote) return baseNote;
+  if (extraNotes.length > 0) return extraNotes.join(" ");
+  return `Sesi ${subject} sudah tercatat dengan durasi ${formatHours(session.durationHours)}. Lengkapi catatan singkat agar laporan lebih personal.`;
+}
 
 export default function MonthlyReportPage() {
   const [searchParams] = useSearchParams();
@@ -114,11 +162,14 @@ export default function MonthlyReportPage() {
         sessions.map(async (s) => {
           const engScore = s.engagement?.score ?? (s.engagement ? calcEngagementScore(s.engagement) : undefined);
           const engLabel = engScore != null ? scoreLabel(engScore).text : undefined;
+          const subject = sessionSubjectLabel(s.subjects);
+          const details = buildSessionDetails(s);
           return {
             date: dayLabel(s.date).split(",")[1]?.trim() ?? s.date.slice(5),
-            subject: s.subjects.join(", "),
+            subject,
             photoUrl: s.photo ? await blobToNormalizedDataUrl(s.photo) : undefined,
-            narrative: s.narrative ?? s.shortNote,
+            narrative: buildSessionNarrative(s, subject),
+            details,
             engagementScore: engScore,
             engagementLabel: engLabel,
           };

@@ -28,6 +28,7 @@ export interface ReportEntry {
   subject: string;
   photoUrl?: string;
   narrative: string;
+  details?: string[];
   engagementScore?: number;
   engagementLabel?: string;
 }

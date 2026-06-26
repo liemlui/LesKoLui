@@ -1,6 +1,49 @@
 /* eslint-disable react-refresh/only-export-components */
-import type { Theme, ReportData, Layout } from "./types";
+import type { Theme, ReportData, Layout, ReportEntry } from "./types";
 import { Deco } from "./deco";
+
+const EMPTY_NARRATIVE = "Catatan sesi belum diisi. Lengkapi narasi agar laporan lebih personal.";
+const EMPTY_SUBJECT = "Mapel belum diisi";
+const EMPTY_DATE = "Tanggal belum diisi";
+
+function clean(value?: string): string {
+  return value?.trim() ?? "";
+}
+
+function entryDate(e: ReportEntry): string {
+  return clean(e.date) || EMPTY_DATE;
+}
+
+function entryDateShort(e: ReportEntry): string {
+  const date = entryDate(e);
+  return date.split(" ").pop() || date;
+}
+
+function entrySubject(e: ReportEntry): string {
+  return clean(e.subject) || EMPTY_SUBJECT;
+}
+
+function entrySubjectShort(e: ReportEntry): string {
+  return entrySubject(e).split(",")[0]?.trim() || EMPTY_SUBJECT;
+}
+
+function entryNarrative(e: ReportEntry): string {
+  return clean(e.narrative) || EMPTY_NARRATIVE;
+}
+
+function entryDetails(e: ReportEntry, max = 3): string[] {
+  return (e.details ?? []).map(clean).filter(Boolean).slice(0, max);
+}
+
+function detailText(e: ReportEntry, max = 2): string {
+  return entryDetails(e, max).join(" · ");
+}
+
+function truncateText(value: string, max: number): string {
+  const text = clean(value);
+  if (text.length <= max) return text;
+  return `${text.slice(0, Math.max(0, max - 1))}…`;
+}
 
 // ── Shared helpers ─────────────────────────────────────────────────
 
@@ -190,12 +233,42 @@ function LabelEl({ t, c, children }: { t: Theme; c: string; children: React.Reac
   return <span style={{ ...base, borderRadius: 999 }}>{children}</span>;
 }
 
+function DetailsEl({ e, t, c, max = 3, compact = false }: {
+  e: ReportEntry;
+  t: Theme;
+  c: string;
+  max?: number;
+  compact?: boolean;
+}) {
+  const details = entryDetails(e, max);
+  if (details.length === 0) return null;
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: compact ? 3 : 6 }}>
+      {details.map((detail) => (
+        <span key={detail} style={{
+          display: "inline-block",
+          maxWidth: "100%",
+          fontSize: compact ? 8.5 : 9.5,
+          lineHeight: 1.25,
+          color: t.muted,
+          background: c + "14",
+          border: `1px solid ${c}26`,
+          borderRadius: 999,
+          padding: compact ? "1px 5px" : "2px 7px",
+        }}>
+          {detail}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function PhotoEl({ t, url, color }: { t: Theme; url?: string; color: string }) {
   const img = url ? (
     <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
   ) : (
-    <div style={{ width: "100%", height: "100%", background: color + "33", display: "flex", alignItems: "center", justifyContent: "center", color: t.muted, fontSize: 10 }}>
-      📷
+    <div style={{ width: "100%", height: "100%", background: color + "22", display: "flex", alignItems: "center", justifyContent: "center", color: t.muted, fontSize: 9, fontWeight: 700, textAlign: "center", padding: 6 }}>
+      Foto belum ada
     </div>
   );
 
@@ -235,10 +308,10 @@ function PhotoEl({ t, url, color }: { t: Theme; url?: string; color: string }) {
   return wrap({ borderRadius: 12, overflow: "hidden" });
 }
 
-function NarrEl({ t, children }: { t: Theme; children: string }) {
+function NarrEl({ t, children }: { t: Theme; children?: string }) {
   return (
     <p style={{ fontFamily: t.fontBody, fontSize: 12.5, lineHeight: 1.55, color: t.ink, margin: 0 }}>
-      {children}
+      {clean(children) || EMPTY_NARRATIVE}
     </p>
   );
 }
@@ -311,9 +384,9 @@ export const cards: Layout = {
             <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
             <div style={{ display: "grid", gridTemplateColumns: right ? "1fr 108px" : "108px 1fr", gap: 11, marginTop: 9, alignItems: "start" }}>
               {right ? (
-                <><div><NarrEl t={t}>{e.narrative}</NarrEl><EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} /></div>{photoBox}</>
+                <><div><NarrEl t={t}>{e.narrative}</NarrEl><DetailsEl e={e} t={t} c={c} compact /><EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} /></div>{photoBox}</>
               ) : (
-                <>{photoBox}<div><NarrEl t={t}>{e.narrative}</NarrEl><EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} /></div></>
+                <>{photoBox}<div><NarrEl t={t}>{e.narrative}</NarrEl><DetailsEl e={e} t={t} c={c} compact /><EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} /></div></>
               )}
             </div>
           </div>
@@ -339,7 +412,7 @@ export const timeline: Layout = {
               <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
               <div style={{ display: "grid", gridTemplateColumns: "96px 1fr", gap: 11, marginTop: 9, alignItems: "start" }}>
                 <div style={{ height: 72 }}><PhotoEl t={t} url={e.photoUrl} color={c} /></div>
-                <div><NarrEl t={t}>{e.narrative}</NarrEl><EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} /></div>
+                <div><NarrEl t={t}>{e.narrative}</NarrEl><DetailsEl e={e} t={t} c={c} compact /><EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} /></div>
               </div>
             </div>
           );
@@ -377,6 +450,7 @@ export const scrapbook: Layout = {
                 <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
                 <div style={{ marginTop: 6, background: "#fff9", padding: "8px 10px", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,.06)" }}>
                   <NarrEl t={t}>{e.narrative}</NarrEl>
+                  <DetailsEl e={e} t={t} c={c} compact />
                   <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
                 </div>
               </div>
@@ -410,6 +484,7 @@ export const grid: Layout = {
                 <p style={{ fontFamily: t.fontBody, fontSize: 11, lineHeight: 1.5, color: t.ink, margin: 0 }}>
                   {e.narrative}
                 </p>
+                <DetailsEl e={e} t={t} c={c} compact />
                 <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
               </div>
             </div>
@@ -443,6 +518,7 @@ export const compact: Layout = {
                 <p style={{ fontFamily: t.fontBody, fontSize: 11, lineHeight: 1.45, color: t.ink, margin: "2px 0 0" }}>
                   {e.narrative}
                 </p>
+                <DetailsEl e={e} t={t} c={c} compact />
                 <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
               </div>
             </div>
@@ -677,6 +753,7 @@ export const portfolio: Layout = {
                 )}
               </div>
               <NarrEl t={t}>{e.narrative}</NarrEl>
+              <DetailsEl e={e} t={t} c={c} compact />
             </div>
           </div>
         );
@@ -1036,6 +1113,7 @@ export const overview: Layout = {
             </div>
             <div style={{ padding: "12px 14px", background: "#fff" }}>
               <NarrEl t={t}>{e.narrative}</NarrEl>
+              <DetailsEl e={e} t={t} c={c} compact />
               <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
             </div>
           </div>
@@ -1148,10 +1226,14 @@ export const compare: Layout = {
         {/* All sessions compact */}
         {d.entries.map((e, i) => {
           const c = t.palette[i % t.palette.length];
+          const meta = detailText(e, 1);
           return (
-            <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, position: "relative", zIndex: 2, padding: "6px 8px", borderRadius: 8, background: c + "08" }}>
-              <span style={{ fontSize: 9, fontWeight: 600, color: c, width: 55, flexShrink: 0 }}>{e.date.split(" ").pop()}</span>
-              <span style={{ fontFamily: t.fontBody, fontSize: 10, color: t.ink, flex: 1, lineHeight: 1.3 }}>{e.narrative.slice(0, 60)}{e.narrative.length > 60 ? "…" : ""}</span>
+            <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, position: "relative", zIndex: 2, padding: "7px 8px", borderRadius: 8, background: c + "08" }}>
+              <span style={{ fontSize: 9, fontWeight: 600, color: c, width: 55, flexShrink: 0 }}>{entryDateShort(e)}</span>
+              <span style={{ fontFamily: t.fontBody, fontSize: 10, color: t.ink, flex: 1, lineHeight: 1.3 }}>
+                <strong style={{ color: c }}>{entrySubjectShort(e)}:</strong> {truncateText(entryNarrative(e), 62)}
+                {meta && <span style={{ display: "block", color: t.muted, fontSize: 8.5, marginTop: 1 }}>{meta}</span>}
+              </span>
               {e.engagementScore != null && <span style={{ fontSize: 10, fontWeight: 700, color: c }}>{e.engagementScore}</span>}
             </div>
           );
@@ -1162,25 +1244,30 @@ export const compare: Layout = {
   },
 };
 
-// 20 ─ Snapshot (Polaroid grid 3-col)
+// 20 ─ Snapshot (Polaroid grid with session notes)
 export const snapshot: Layout = {
   id: "snapshot", name: "Snapshot", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
     <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
       <Deco kind={t.deco} />
       {isFirst && HeaderEl(d, t)}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, position: "relative", zIndex: 2 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, position: "relative", zIndex: 2 }}>
         {d.entries.map((e, i) => {
           const c = t.palette[i % t.palette.length];
-          const rot = ((i % 3) - 1) * 1.8;
+          const rot = ((i % 4) - 1.5) * 1.2;
+          const meta = detailText(e, 1);
           return (
-            <div key={i} style={{ transform: `rotate(${rot}deg)`, background: "#fff", padding: 6, paddingBottom: 20, boxShadow: "0 2px 8px rgba(0,0,0,.10)", borderRadius: 2 }}>
-              <div style={{ aspectRatio: "1/1", overflow: "hidden", borderRadius: 1, marginBottom: 6 }}>
+            <div key={i} style={{ transform: `rotate(${rot}deg)`, background: "#fff", padding: 7, paddingBottom: 9, boxShadow: "0 2px 8px rgba(0,0,0,.10)", borderRadius: 3 }}>
+              <div style={{ aspectRatio: "4/3", overflow: "hidden", borderRadius: 2, marginBottom: 7 }}>
                 <PhotoEl t={t} url={e.photoUrl} color={c} />
               </div>
-              <p style={{ fontFamily: "'Caveat', cursive", fontSize: 9, lineHeight: 1.3, color: t.ink, margin: 0, textAlign: "center" }}>
-                {e.date.split(" ").pop()} — {e.subject.split(",")[0]}
+              <p style={{ fontFamily: t.fontBody, fontSize: 9.5, lineHeight: 1.25, color: c, margin: 0, textAlign: "center", fontWeight: 800 }}>
+                {entryDateShort(e)} - {entrySubjectShort(e)}
               </p>
+              <p style={{ fontFamily: "'Caveat', cursive", fontSize: 10.5, lineHeight: 1.28, color: t.ink, margin: "4px 0 0", textAlign: "center" }}>
+                {truncateText(entryNarrative(e), 72)}
+              </p>
+              {meta && <p style={{ fontSize: 8, lineHeight: 1.2, color: t.muted, textAlign: "center", margin: "3px 0 0" }}>{meta}</p>}
               {e.engagementScore != null && (
                 <p style={{ fontSize: 8, fontWeight: 700, color: c, textAlign: "center", margin: "2px 0 0" }}>⚡{e.engagementScore}</p>
               )}
@@ -1223,7 +1310,6 @@ export const LAYOUTS: Layout[] = [
   portfolio, checklist, summary, growth, dossier,
   analytics, narrative, milestone, split, journal,
   overview, minimal, bullets, compare, snapshot,
-  cover,
 ];
 export const LAYOUT_IDS = LAYOUTS.map((l) => l.id);
 export function getLayout(id: string): Layout {
