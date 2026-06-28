@@ -19,31 +19,14 @@ function Toggle({ checked, onChange, disabled, label }: Props) {
         aria-labelledby={id}
         disabled={disabled}
         onClick={() => !disabled && onChange(!checked)}
-        style={{
-          width: 44,
-          height: 26,
-          borderRadius: 13,
-          backgroundColor: disabled ? "#e5e7eb" : checked ? "#3b82f6" : "#d1d5db",
-          position: "relative",
-          flexShrink: 0,
-          border: "none",
-          cursor: disabled ? "not-allowed" : "pointer",
-          transition: "background-color 0.2s ease",
-          outline: "none",
-        }}
+        className={`relative inline-flex h-[26px] w-[44px] shrink-0 items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+          disabled ? "bg-gray-200 cursor-not-allowed" : checked ? "bg-blue-500 cursor-pointer" : "bg-gray-300 cursor-pointer"
+        }`}
       >
         <span
-          style={{
-            position: "absolute",
-            top: 3,
-            left: checked ? 21 : 3,
-            width: 20,
-            height: 20,
-            borderRadius: "50%",
-            backgroundColor: "white",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.25)",
-            transition: "left 0.2s ease",
-          }}
+          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+            checked ? "translate-x-[18px]" : "translate-x-0"
+          }`}
         />
       </button>
     </>

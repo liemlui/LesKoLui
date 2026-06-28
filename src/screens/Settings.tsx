@@ -4,7 +4,7 @@ import { getSettings, saveSettings } from "../db/repos";
 import { db } from "../db/db";
 import { exportBackup, importBackup } from "../lib/backup";
 import { isDriveConfigured, uploadBackupToDrive, downloadBackupFromDrive, findDriveBackup } from "../lib/driveBackup";
-import { hashPin } from "../lib/crypto";
+import { hashPin, verifyPin } from "../lib/crypto";
 import { todayWIB } from "../lib/format";
 import { compressPhoto } from "../lib/foto";
 import { downloadBlob } from "../lib/download";
@@ -86,11 +86,15 @@ export default function SettingsPage() {
   const [toast,       setToast]       = useState("");
   const [backupPass,  setBackupPass]  = useState("");
   const [driveAuto,   setDriveAuto]   = useState(() => localStorage.getItem("leskolui_drive_auto") === "1");
-  const [showPinEdit, setShowPinEdit] = useState(false);
+  const [pinMode,     setPinMode]     = useState<"view" | "verifyOld" | "forgotPin" | "edit">("view");
+  const [oldPin,      setOldPin]      = useState("");
+  const [forgotA,     setForgotA]     = useState("");
+  const [secQ,        setSecQ]        = useState("");
+  const [secA,        setSecA]        = useState("");
   const [newPin,      setNewPin]      = useState("");
   const [newPinConf,  setNewPinConf]  = useState("");
   const [pinError,    setPinError]    = useState("");
-  const [pinAction,   setPinAction]   = useState<"exportBackup" | "deletePin" | "restore" | "resetAll" | "driveBackup" | "driveRestore" | null>(null);
+  const [pinAction,   setPinAction]   = useState<"exportBackup" | "restore" | "resetAll" | "driveBackup" | "driveRestore" | null>(null);
   const restoreRef = useRef<HTMLInputElement>(null);
   const fileRef    = useRef<HTMLInputElement>(null);
 
@@ -159,14 +163,41 @@ export default function SettingsPage() {
     }
   };
 
+  const handleVerifyOldPin = async () => {
+    if (!form?.financialPin) return;
+    const ok = await verifyPin(oldPin, form.financialPin);
+    if (!ok) { setPinError("PIN lama salah."); return; }
+    setPinError(""); setOldPin("");
+    setSecQ(form.securityQuestion || ""); setSecA("");
+    setPinMode("edit");
+  };
+
+  const handleVerifyForgot = async () => {
+    if (!form?.securityAnswer) { setPinError("Pertanyaan keamanan belum disetel."); return; }
+    const ok = await verifyPin(forgotA.trim().toLowerCase(), form.securityAnswer);
+    if (!ok) { setPinError("Jawaban salah."); return; }
+    setPinError(""); setForgotA("");
+    setSecQ(form.securityQuestion || ""); setSecA("");
+    setPinMode("edit");
+  };
+
   const handleSetPin = async () => {
     if (newPin.length < 6) { setPinError("PIN harus 6 digit."); return; }
     if (newPin !== newPinConf) { setPinError("PIN tidak cocok."); return; }
+    if (!secQ.trim()) { setPinError("Pertanyaan keamanan wajib diisi."); return; }
+    if (!form?.securityAnswer && !secA.trim()) { setPinError("Jawaban wajib diisi untuk PIN baru."); return; }
+    
     const hashed = await hashPin(newPin);
-    await saveSettings({ ...form, financialPin: hashed });
+    let hashedAns = form?.securityAnswer;
+    if (secA.trim()) {
+      hashedAns = await hashPin(secA.trim().toLowerCase());
+    }
+    
+    const updated = { ...form, financialPin: hashed, securityQuestion: secQ.trim(), securityAnswer: hashedAns };
+    await saveSettings(updated as Settings);
     setToast("PIN berhasil diperbarui ✓");
-    setShowPinEdit(false); setNewPin(""); setNewPinConf(""); setPinError("");
-    setForm((f) => f ? { ...f, financialPin: hashed } : f);
+    setPinMode("view"); setNewPin(""); setNewPinConf(""); setPinError(""); setSecQ(""); setSecA("");
+    setForm(updated as Settings);
   };
 
   const requireFinancialPin = (action: typeof pinAction) => {
@@ -186,13 +217,7 @@ export default function SettingsPage() {
     setToast("Backup berhasil diunduh ✓");
   };
 
-  const doDeletePin = async () => {
-    const cleared = { ...form };
-    delete cleared.financialPin;
-    await saveSettings(cleared);
-    setForm(cleared);
-    setToast("PIN dihapus ✓");
-  };
+
 
   const doRestore = async () => {
     const file = restoreRef.current?.files?.[0];
@@ -260,7 +285,7 @@ export default function SettingsPage() {
     if (!pinAction) return;
     try {
       if (pinAction === "exportBackup") await doExportBackup();
-      if (pinAction === "deletePin") await doDeletePin();
+
       if (pinAction === "restore") await doRestore();
       if (pinAction === "resetAll") await doResetAll();
       if (pinAction === "driveBackup") await doDriveBackup();
@@ -277,11 +302,7 @@ export default function SettingsPage() {
       description: "Masukkan PIN Keuangan sebelum mengekspor semua data.",
       confirmLabel: "Ekspor",
     },
-    deletePin: {
-      title: "Hapus PIN",
-      description: "Masukkan PIN lama untuk menghapus proteksi keuangan.",
-      confirmLabel: "Hapus PIN",
-    },
+
     restore: {
       title: "Konfirmasi Restore",
       description: "Restore akan mengganti data saat ini. Masukkan PIN untuk lanjut.",
@@ -381,26 +402,56 @@ export default function SettingsPage() {
         <div className="pt-3 space-y-3">
           <p className="text-xs text-gray-400">Melindungi akses rekap keuangan & hapus sesi</p>
 
-          {!showPinEdit ? (
+          {pinMode === "view" ? (
             <div className="flex gap-2">
-              <button onClick={() => setShowPinEdit(true)}
+              <button onClick={() => {
+                if (form.financialPin) setPinMode("verifyOld");
+                else { setSecQ(""); setSecA(""); setPinMode("edit"); }
+              }}
                 className="flex-1 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-2.5 rounded-xl transition-colors">
                 {form.financialPin ? "Ganti PIN" : "Buat PIN"}
               </button>
-              {form.financialPin && (
-                <button
-                  onClick={async () => {
-                    if (!confirm("Hapus PIN? Data keuangan tidak terlindungi lagi.")) return;
-                    const cleared = { ...form };
-                    delete cleared.financialPin;
-                    await saveSettings(cleared);
-                    setForm(cleared);
-                    setToast("PIN dihapus ✓");
-                  }}
-                  className="text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 px-3 py-2.5 rounded-xl transition-colors">
-                  Hapus PIN
+            </div>
+          ) : pinMode === "verifyOld" ? (
+            <div className="space-y-3">
+              <div>
+                <label className="label">Masukkan PIN Lama</label>
+                <input className="input text-center text-xl tracking-widest font-mono" type="password"
+                  inputMode="numeric" maxLength={6} placeholder="••••••"
+                  value={oldPin} onChange={(e) => { setOldPin(e.target.value.replace(/\D/g, "").slice(0, 6)); setPinError(""); }} />
+              </div>
+              {pinError && <p className="text-red-500 text-sm">{pinError}</p>}
+              <div className="flex gap-2">
+                <button onClick={handleVerifyOldPin} disabled={oldPin.length !== 6}
+                  className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-40 hover:bg-blue-700 transition-colors">Lanjut</button>
+                <button onClick={() => { setPinMode("view"); setOldPin(""); setPinError(""); }}
+                  className="px-4 py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-medium hover:bg-gray-200 transition-colors">Batal</button>
+              </div>
+              {form.securityQuestion && (
+                <button onClick={() => { setPinMode("forgotPin"); setPinError(""); setOldPin(""); }}
+                  className="w-full text-center text-sm font-medium text-blue-600 pt-2 hover:underline">
+                  Lupa PIN? Jawab Pertanyaan Keamanan
                 </button>
               )}
+            </div>
+          ) : pinMode === "forgotPin" ? (
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                <span className="text-gray-400 block text-xs mb-1">Pertanyaan Keamanan:</span>
+                {form.securityQuestion}
+              </p>
+              <div>
+                <label className="label">Jawaban Anda</label>
+                <input className="input" type="text" placeholder="Jawaban rahasia..."
+                  value={forgotA} onChange={(e) => { setForgotA(e.target.value); setPinError(""); }} />
+              </div>
+              {pinError && <p className="text-red-500 text-sm">{pinError}</p>}
+              <div className="flex gap-2">
+                <button onClick={handleVerifyForgot} disabled={!forgotA.trim()}
+                  className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-40 hover:bg-blue-700 transition-colors">Verifikasi</button>
+                <button onClick={() => { setPinMode("verifyOld"); setForgotA(""); setPinError(""); }}
+                  className="px-4 py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-medium hover:bg-gray-200 transition-colors">Kembali</button>
+              </div>
             </div>
           ) : (
             <div className="space-y-3">
@@ -408,26 +459,29 @@ export default function SettingsPage() {
                 <label className="label">PIN Baru (6 digit)</label>
                 <input className="input text-center text-xl tracking-widest font-mono" type="password"
                   inputMode="numeric" maxLength={6} placeholder="••••••"
-                  value={newPin}
-                  onChange={(e) => { setNewPin(e.target.value.replace(/\D/g, "").slice(0, 6)); setPinError(""); }} />
+                  value={newPin} onChange={(e) => { setNewPin(e.target.value.replace(/\D/g, "").slice(0, 6)); setPinError(""); }} />
               </div>
               <div>
-                <label className="label">Konfirmasi PIN</label>
-                <input className={`input text-center text-xl tracking-widest font-mono ${pinError ? "border-red-400" : ""}`}
+                <label className="label">Konfirmasi PIN Baru</label>
+                <input className={`input text-center text-xl tracking-widest font-mono ${pinError?.includes("cocok") ? "border-red-400" : ""}`}
                   type="password" inputMode="numeric" maxLength={6} placeholder="••••••"
-                  value={newPinConf}
-                  onChange={(e) => { setNewPinConf(e.target.value.replace(/\D/g, "").slice(0, 6)); setPinError(""); }} />
+                  value={newPinConf} onChange={(e) => { setNewPinConf(e.target.value.replace(/\D/g, "").slice(0, 6)); setPinError(""); }} />
+              </div>
+              <div className="pt-2 border-t border-gray-100">
+                <p className="text-xs text-blue-600 mb-2 font-medium">Lupa PIN Recovery (Wajib):</p>
+                <label className="label">Pertanyaan Keamanan</label>
+                <input className="input mb-2" type="text" maxLength={100} placeholder="Contoh: Nama hewan peliharaan?"
+                  value={secQ} onChange={(e) => { setSecQ(e.target.value); setPinError(""); }} />
+                <label className="label">Jawaban Keamanan</label>
+                <input className="input" type="text" maxLength={100} placeholder={form.securityAnswer ? "(Biarkan kosong jika tak ganti)" : "Jawaban rahasia..."}
+                  value={secA} onChange={(e) => { setSecA(e.target.value); setPinError(""); }} />
               </div>
               {pinError && <p className="text-red-500 text-sm">{pinError}</p>}
               <div className="flex gap-2">
                 <button onClick={handleSetPin} disabled={newPin.length !== 6 || newPinConf.length !== 6}
-                  className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-40 hover:bg-blue-700 transition-colors">
-                  Simpan PIN
-                </button>
-                <button onClick={() => { setShowPinEdit(false); setNewPin(""); setNewPinConf(""); setPinError(""); }}
-                  className="px-4 py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-medium hover:bg-gray-200 transition-colors">
-                  Batal
-                </button>
+                  className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-40 hover:bg-blue-700 transition-colors">Simpan PIN</button>
+                <button onClick={() => { setPinMode("view"); setNewPin(""); setNewPinConf(""); setSecQ(""); setSecA(""); setPinError(""); }}
+                  className="px-4 py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-medium hover:bg-gray-200 transition-colors">Batal</button>
               </div>
             </div>
           )}

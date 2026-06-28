@@ -448,7 +448,7 @@ export const scrapbook: Layout = {
               </div>
               <div style={{ flex: 1 }}>
                 <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
-                <div style={{ marginTop: 6, background: "#fff9", padding: "8px 10px", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,.06)" }}>
+                <div style={{ marginTop: 6, background: t.ink + "08", padding: "8px 10px", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,.06)" }}>
                   <NarrEl t={t}>{e.narrative}</NarrEl>
                   <DetailsEl e={e} t={t} c={c} compact />
                   <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
@@ -892,7 +892,7 @@ export const dossier: Layout = {
       {d.entries.map((e, i) => {
         const c = t.palette[i % t.palette.length];
         return (
-          <div key={i} style={{ position: "relative", zIndex: 2, marginBottom: 16, borderRadius: 12, border: `2px solid ${c}33`, background: "#fff", overflow: "hidden" }}>
+          <div key={i} style={{ position: "relative", zIndex: 2, marginBottom: 16, borderRadius: 12, border: `2px solid ${c}33`, background: c + "05", overflow: "hidden" }}>
             <div style={{ background: c, padding: "8px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 13, color: "#fff" }}>{e.date}</span>
               <span style={{ fontSize: 9, background: "rgba(255,255,255,.25)", color: "#fff", padding: "2px 8px", borderRadius: 999 }}>{e.subject}</span>
@@ -1082,7 +1082,7 @@ export const journal: Layout = {
               <span style={{ fontSize: 10, fontWeight: 700, color: c, background: c + "18", padding: "2px 8px", borderRadius: 999 }}>
                 {e.subject}
               </span>
-              <p style={{ fontFamily: "'Caveat', cursive", fontSize: 14, lineHeight: 1.5, color: t.ink, margin: "6px 0 0" }}>{e.narrative}</p>
+              <p style={{ fontFamily: t.fontBody, fontSize: 14, lineHeight: 1.5, color: t.ink, margin: "6px 0 0" }}>{e.narrative}</p>
               <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
             </div>
           </div>
@@ -1111,7 +1111,7 @@ export const overview: Layout = {
                 <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: "rgba(0,0,0,.35)", padding: "3px 10px", borderRadius: 999 }}>{e.date} · {e.subject}</span>
               </div>
             </div>
-            <div style={{ padding: "12px 14px", background: "#fff" }}>
+            <div style={{ padding: "12px 14px", background: c + "08" }}>
               <NarrEl t={t}>{e.narrative}</NarrEl>
               <DetailsEl e={e} t={t} c={c} compact />
               <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
@@ -1174,7 +1174,7 @@ export const bullets: Layout = {
                   <span style={{ fontSize: 9, fontWeight: 700, color: c }}>⚡{e.engagementScore}</span>
                 )}
               </div>
-              <p style={{ fontFamily: "'Caveat', cursive", fontSize: 13, lineHeight: 1.5, color: t.ink, margin: 0 }}>{e.narrative}</p>
+              <p style={{ fontFamily: t.fontBody, fontSize: 13, lineHeight: 1.5, color: t.ink, margin: 0 }}>{e.narrative}</p>
             </div>
           </div>
         );
@@ -1257,14 +1257,14 @@ export const snapshot: Layout = {
           const rot = ((i % 4) - 1.5) * 1.2;
           const meta = detailText(e, 1);
           return (
-            <div key={i} style={{ transform: `rotate(${rot}deg)`, background: "#fff", padding: 7, paddingBottom: 9, boxShadow: "0 2px 8px rgba(0,0,0,.10)", borderRadius: 3 }}>
+            <div key={i} style={{ transform: `rotate(${rot}deg)`, background: c + "08", padding: 7, paddingBottom: 9, boxShadow: "0 2px 8px rgba(0,0,0,.10)", borderRadius: 3 }}>
               <div style={{ aspectRatio: "4/3", overflow: "hidden", borderRadius: 2, marginBottom: 7 }}>
                 <PhotoEl t={t} url={e.photoUrl} color={c} />
               </div>
               <p style={{ fontFamily: t.fontBody, fontSize: 9.5, lineHeight: 1.25, color: c, margin: 0, textAlign: "center", fontWeight: 800 }}>
                 {entryDateShort(e)} - {entrySubjectShort(e)}
               </p>
-              <p style={{ fontFamily: "'Caveat', cursive", fontSize: 10.5, lineHeight: 1.28, color: t.ink, margin: "4px 0 0", textAlign: "center" }}>
+              <p style={{ fontFamily: t.fontBody, fontSize: 10.5, lineHeight: 1.28, color: t.ink, margin: "4px 0 0", textAlign: "center" }}>
                 {truncateText(entryNarrative(e), 72)}
               </p>
               {meta && <p style={{ fontSize: 8, lineHeight: 1.2, color: t.muted, textAlign: "center", margin: "3px 0 0" }}>{meta}</p>}

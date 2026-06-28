@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Modal from "./Modal";
 
 interface Props {
   value: string;    // "HH:mm" 24-hour
@@ -65,11 +66,7 @@ export default function ClockTimePicker({ value, onChange }: Props) {
       </button>
 
       {open && (
-        <div className="fixed inset-0 bg-black/50 z-[80] flex items-end sm:items-center justify-center"
-          onClick={() => setOpen(false)}>
-          <div className="bg-white rounded-t-2xl sm:rounded-2xl p-5 w-full max-w-xs"
-            onClick={(e) => e.stopPropagation()}>
-
+        <Modal onClose={() => setOpen(false)} ariaLabel="Pilih waktu" panelClassName="bg-white rounded-t-2xl sm:rounded-2xl p-5 w-full max-w-xs outline-none max-h-[90vh] overflow-y-auto">
             {/* Digital header */}
             <div className="flex items-center justify-center gap-2 mb-4">
               <button onClick={() => setMode("hour")}
@@ -165,8 +162,7 @@ export default function ClockTimePicker({ value, onChange }: Props) {
               className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-colors">
               Selesai
             </button>
-          </div>
-        </div>
+        </Modal>
       )}
     </>
   );

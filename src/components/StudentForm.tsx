@@ -104,8 +104,8 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Nama */}
       <div>
-        <label className="label">Nama Murid</label>
-        <input className="input" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} required />
+        <label htmlFor="name" className="label">Nama Murid</label>
+        <input id="name" className="input" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} required />
       </div>
 
       {/* Kurikulum — required */}
@@ -140,13 +140,13 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
       {/* Grade + Sekolah */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="label">Kelas / Grade <span className="text-gray-400 font-normal text-xs">(opsional)</span></label>
-          <input className="input" value={grade} maxLength={20} onChange={(e) => setGrade(e.target.value)}
+          <label htmlFor="grade" className="label">Kelas / Grade <span className="text-gray-400 font-normal text-xs">(opsional)</span></label>
+          <input id="grade" className="input" value={grade} maxLength={20} onChange={(e) => setGrade(e.target.value)}
             placeholder="mis. Grade 10, Year 11" />
         </div>
         <div>
-          <label className="label">Sekolah <span className="text-gray-400 font-normal text-xs">(opsional)</span></label>
-          <input className="input" value={school} maxLength={80} onChange={(e) => setSchool(e.target.value)}
+          <label htmlFor="school" className="label">Sekolah <span className="text-gray-400 font-normal text-xs">(opsional)</span></label>
+          <input id="school" className="input" value={school} maxLength={80} onChange={(e) => setSchool(e.target.value)}
             placeholder="Nama sekolah" />
         </div>
       </div>
@@ -155,13 +155,13 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
       <div className="bg-gray-50 rounded-xl p-3 space-y-3">
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Kontak Orang Tua</p>
         <div>
-          <label className="label">Nama Orang Tua <span className="text-gray-400 font-normal">(opsional)</span></label>
-          <input className="input" maxLength={60} value={parentName} onChange={(e) => setParentName(e.target.value)} placeholder="Misal: Bpk. Budi" />
+          <label htmlFor="parentName" className="label">Nama Orang Tua <span className="text-gray-400 font-normal">(opsional)</span></label>
+          <input id="parentName" className="input" maxLength={60} value={parentName} onChange={(e) => setParentName(e.target.value)} placeholder="Misal: Bpk. Budi" />
         </div>
         <div>
-          <label className="label">No. WhatsApp Orang Tua</label>
+          <label htmlFor="phone" className="label">No. WhatsApp Orang Tua</label>
           <div className="relative">
-            <input className="input pl-10" type="tel" value={phone}
+            <input id="phone" className="input pl-10" type="tel" value={phone}
               onChange={(e) => setPhone(e.target.value)} required placeholder="08xxxxxxxxxx" />
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green-500">💬</span>
           </div>
@@ -176,9 +176,9 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
       <div className="bg-blue-50 rounded-xl p-3 space-y-3">
         <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide">Kontak Murid</p>
         <div>
-          <label className="label">No. WhatsApp Murid <span className="text-gray-400 font-normal">(opsional)</span></label>
+          <label htmlFor="studentPhone" className="label">No. WhatsApp Murid <span className="text-gray-400 font-normal">(opsional)</span></label>
           <div className="relative">
-            <input className="input pl-10" type="tel" value={studentPhone}
+            <input id="studentPhone" className="input pl-10" type="tel" value={studentPhone}
               onChange={(e) => setStudentPhone(e.target.value)} placeholder="08xxxxxxxxxx" />
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green-500">💬</span>
           </div>
@@ -200,7 +200,7 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
           <div className="flex flex-wrap gap-2">
             {settings.subjects.map((s) => (
               <button type="button" key={s}
-                className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+                className={`px-3 py-2 rounded-full text-sm border transition-colors ${
                   subjects.includes(s) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300"
                 }`}
                 onClick={() => toggleSubject(s)}>{s}</button>
@@ -215,7 +215,7 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
                 <div className="flex flex-wrap gap-1.5">
                   {group.subjects.map((s) => (
                     <button type="button" key={s}
-                      className={`px-3 py-1 rounded-full text-xs border transition-colors ${
+                      className={`px-3 py-2 rounded-full text-xs border transition-colors ${
                         subjects.includes(s)
                           ? `${meta.color} ${meta.text} border-transparent font-semibold`
                           : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
@@ -232,7 +232,7 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
                 <div className="flex flex-wrap gap-1.5">
                   {extraSubjects.map((s) => (
                     <button type="button" key={s}
-                      className={`px-3 py-1 rounded-full text-xs border transition-colors ${
+                      className={`px-3 py-2 rounded-full text-xs border transition-colors ${
                         subjects.includes(s)
                           ? "bg-orange-100 text-orange-700 border-transparent font-semibold"
                           : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
@@ -254,10 +254,11 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
 
       {/* Tarif les per jam */}
       <div className="bg-orange-50 rounded-xl p-3 space-y-1">
-        <label className="label !mb-0">Tarif Les per Jam</label>
+        <label htmlFor="rateInput" className="label !mb-0">Tarif Les per Jam</label>
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-500 font-medium">Rp</span>
           <input
+            id="rateInput"
             className="input flex-1"
             type="text"
             inputMode="numeric"
@@ -279,8 +280,8 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
       </div>
 
       <div>
-        <label className="label">Catatan <span className="text-gray-400 font-normal text-xs">(opsional)</span></label>
-        <textarea className="input" rows={2} maxLength={300} value={notes} onChange={(e) => setNotes(e.target.value)} />
+        <label htmlFor="notes" className="label">Catatan <span className="text-gray-400 font-normal text-xs">(opsional)</span></label>
+        <textarea id="notes" className="input" rows={2} maxLength={300} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </div>
 
       <div className="flex items-center gap-3">

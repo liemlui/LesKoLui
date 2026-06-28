@@ -209,6 +209,8 @@ export interface Settings {
   paymentInfo: string;
   subjects: string[];
   financialPin?: string;
+  securityQuestion?: string;
+  securityAnswer?: string;
   ai: { enabled: boolean; apiKey?: string; model: string; workerUrl?: string; workerToken?: string };
   templatePref: { excludedThemeIds?: string[]; customThemes?: import("../template/types").CustomTheme[] };
   bankAccounts?: { bca?: string; cimb?: string; bri?: string; mandiri?: string; bsi?: string; ewallet?: string; accountName?: string };
