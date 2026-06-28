@@ -2,6 +2,9 @@
 // Menimpa 1 file tetap (Drive simpan revision history). Butuh env VITE_GOOGLE_CLIENT_ID.
 // Google Identity Services (GIS) dimuat on-demand; tak ada dependency npm tambahan.
 
+import { exportBackup } from "./backup";
+import { getSettings, saveSettings } from "../db/repos";
+
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 const SCOPE = "https://www.googleapis.com/auth/drive.file";
 const FILE_NAME = "leskolui-backup.jles";
@@ -153,4 +156,22 @@ export async function downloadBackupFromDrive(fileId: string): Promise<Blob> {
   );
   if (!res.ok) throw new Error(`Drive unduh gagal (${res.status}).`);
   return res.blob();
+}
+
+/**
+ * Backup penuh ke Drive: export terenkripsi → upload/overwrite → simpan fileId+waktu.
+ * Token diambil lebih dulu agar popup OAuth dekat dengan gesture klik (anti popup-block).
+ */
+export async function performDriveBackup(passphrase: string): Promise<void> {
+  await getToken();
+  const blob = await exportBackup(passphrase);
+  const settings = await getSettings();
+  const fileId = await uploadBackupToDrive(blob, settings.driveBackup?.fileId);
+  await saveSettings({ driveBackup: { fileId, backupAt: new Date().toISOString() } });
+}
+
+/** Muat GIS lebih awal (mis. saat prompt backup muncul) agar tap-nya responsif. */
+export function preloadDrive(): void {
+  if (!CLIENT_ID) return;
+  void loadGis().catch(() => {});
 }

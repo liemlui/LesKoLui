@@ -85,6 +85,7 @@ export default function SettingsPage() {
   const [saving,      setSaving]      = useState(false);
   const [toast,       setToast]       = useState("");
   const [backupPass,  setBackupPass]  = useState("");
+  const [driveAuto,   setDriveAuto]   = useState(() => localStorage.getItem("leskolui_drive_auto") === "1");
   const [showPinEdit, setShowPinEdit] = useState(false);
   const [newPin,      setNewPin]      = useState("");
   const [newPinConf,  setNewPinConf]  = useState("");
@@ -225,6 +226,21 @@ export default function SettingsPage() {
     await importBackup(blob, backupPass);
     setToast("Restore dari Drive berhasil! Memuat ulang... ✓");
     setTimeout(() => location.reload(), 1500);
+  };
+
+  const toggleDriveAuto = (v: boolean) => {
+    if (v) {
+      if (!backupPass || backupPass.length < 4) { setToast("Isi Kata Sandi Enkripsi (min 4 karakter) dulu untuk aktifkan auto."); return; }
+      localStorage.setItem("leskolui_drive_auto", "1");
+      localStorage.setItem("leskolui_drive_pass", backupPass);
+      setDriveAuto(true);
+      setToast("Auto backup Drive aktif ✓ (passphrase tersimpan di perangkat)");
+    } else {
+      localStorage.removeItem("leskolui_drive_auto");
+      localStorage.removeItem("leskolui_drive_pass");
+      setDriveAuto(false);
+      setToast("Auto backup Drive dimatikan");
+    }
   };
 
   const doResetAll = async () => {
@@ -596,6 +612,15 @@ export default function SettingsPage() {
                 ☁️♻️ Restore dari Drive
               </button>
               <p className="text-xs text-green-600">1 file di-overwrite tiap backup — Drive simpan riwayat versi.</p>
+              <label className="flex items-center gap-2.5 pt-2 border-t border-green-100 cursor-pointer">
+                <Toggle checked={driveAuto} onChange={toggleDriveAuto} label="Auto backup Drive mingguan" />
+                <span className="text-xs font-medium text-green-800">Auto backup mingguan (1-tap dari reminder)</span>
+              </label>
+              {driveAuto && (
+                <p className="text-[11px] text-amber-700 bg-amber-50 rounded-lg px-2 py-1.5">
+                  ⚠️ Kata sandi disimpan di perangkat ini agar backup bisa 1-tap. Tetap simpan salinannya untuk restore di HP lain.
+                </p>
+              )}
             </div>
           ) : (
             <div className="bg-gray-50 rounded-xl p-3">

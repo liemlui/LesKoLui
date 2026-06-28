@@ -26,11 +26,16 @@ const Settings = lazy(() => import("./screens/Settings"));
 
 const AUTO_BACKUP_KEY = "leskolui_last_auto_backup_prompt";
 const AUTO_BACKUP_INTERVAL_DAYS = 7;
+const DRIVE_AUTO_KEY = "leskolui_drive_auto";
+const DRIVE_PASS_KEY = "leskolui_drive_pass";
+const driveAutoOn = () => localStorage.getItem(DRIVE_AUTO_KEY) === "1" && !!import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 function Layout() {
   const navigate = useNavigate();
   const [offline, setOffline] = useState(!navigator.onLine);
   const [backupPrompt, setBackupPrompt] = useState(false);
+  const [driveBusy, setDriveBusy] = useState(false);
+  const [flash, setFlash] = useState("");
 
   // Offline indicator
   useEffect(() => {
@@ -82,6 +87,38 @@ function Layout() {
     if (daysSince >= AUTO_BACKUP_INTERVAL_DAYS) setBackupPrompt(true);
   }, []);
 
+  // Backup 1-tap ke Drive dari prompt mingguan (passphrase tersimpan di perangkat)
+  const doReminderDriveBackup = useCallback(async () => {
+    const pass = localStorage.getItem(DRIVE_PASS_KEY) || "";
+    if (pass.length < 4) { setBackupPrompt(false); navigate("/settings"); return; }
+    setDriveBusy(true);
+    try {
+      const mod = await import("./lib/driveBackup");
+      await mod.performDriveBackup(pass);
+      localStorage.setItem(AUTO_BACKUP_KEY, String(Date.now()));
+      setBackupPrompt(false);
+      setFlash("Backup ke Drive berhasil ✓");
+    } catch (e) {
+      setFlash("Backup Drive gagal: " + ((e as Error).message || "coba lagi di Pengaturan"));
+    } finally {
+      setDriveBusy(false);
+    }
+  }, [navigate]);
+
+  // Prefetch modul Drive + GIS saat prompt muncul agar tap-nya responsif
+  useEffect(() => {
+    if (backupPrompt && driveAutoOn()) {
+      import("./lib/driveBackup").then((m) => m.preloadDrive()).catch(() => {});
+    }
+  }, [backupPrompt]);
+
+  // Auto-dismiss flash
+  useEffect(() => {
+    if (!flash) return;
+    const t = setTimeout(() => setFlash(""), 3000);
+    return () => clearTimeout(t);
+  }, [flash]);
+
   useEffect(() => {
     appData().then((r) => r.initSettings());
     if (navigator.storage?.persist) navigator.storage.persist();
@@ -113,13 +150,22 @@ function Layout() {
         </div>
       )}
 
+      {/* Flash hasil aksi (mis. backup Drive) */}
+      {flash && (
+        <div className="fixed bottom-20 inset-x-0 z-[160] px-4">
+          <div className="max-w-md mx-auto bg-gray-800 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-lg text-center">{flash}</div>
+        </div>
+      )}
+
       {/* Auto backup prompt */}
       {backupPrompt && (
         <div className="fixed top-4 inset-x-0 z-[150] px-4">
           <div className="max-w-md mx-auto bg-amber-50 border border-amber-300 rounded-2xl px-4 py-3 shadow-xl flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-amber-800">💾 Saatnya backup mingguan</p>
-              <p className="text-xs text-amber-600 mt-0.5">Lindungi datamu dengan file backup terenkripsi</p>
+              <p className="text-xs text-amber-600 mt-0.5">
+                {driveAutoOn() ? "Backup terenkripsi langsung ke Google Drive" : "Lindungi datamu dengan file backup terenkripsi"}
+              </p>
             </div>
             <div className="flex gap-2 flex-shrink-0">
               <button
@@ -129,9 +175,18 @@ function Layout() {
                   setBackupPrompt(false);
                 }}
                 className="text-xs text-amber-500 px-2 py-1.5">Nanti</button>
-              <button
-                onClick={() => { localStorage.setItem(AUTO_BACKUP_KEY, String(Date.now())); setBackupPrompt(false); navigate("/settings"); }}
-                className="bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl">Backup</button>
+              {driveAutoOn() ? (
+                <button
+                  disabled={driveBusy}
+                  onClick={doReminderDriveBackup}
+                  className="bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl disabled:opacity-60">
+                  {driveBusy ? "..." : "☁️ Backup ke Drive"}
+                </button>
+              ) : (
+                <button
+                  onClick={() => { localStorage.setItem(AUTO_BACKUP_KEY, String(Date.now())); setBackupPrompt(false); navigate("/settings"); }}
+                  className="bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl">Backup</button>
+              )}
             </div>
           </div>
         </div>
