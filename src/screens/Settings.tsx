@@ -1,6 +1,9 @@
-import { useState, useEffect, useRef, createContext, useContext } from "react";
+import { useState, useEffect, useRef, useMemo, createContext, useContext } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { getSettings, saveSettings } from "../db/repos";
+import {
+  getSettings, saveSettings, logAudit, listAuditLog,
+  countSessionPhotos, pruneSessionPhotosBefore,
+} from "../db/repos";
 import { db } from "../db/db";
 import { exportBackup, importBackup } from "../lib/backup";
 import { isDriveConfigured, uploadBackupToDrive, downloadBackupFromDrive, findDriveBackup } from "../lib/driveBackup";
@@ -9,7 +12,7 @@ import { todayWIB } from "../lib/format";
 import { compressPhoto } from "../lib/foto";
 import { downloadBlob } from "../lib/download";
 import { APP_VERSION } from "../lib/version";
-import type { Settings } from "../db/types";
+import type { Settings, AuditAction } from "../db/types";
 import Toggle from "../components/Toggle";
 import PinConfirmModal from "../components/PinConfirmModal";
 
@@ -56,6 +59,73 @@ function StorageUsage() {
         <div className="bg-blue-500 h-2 rounded-full transition-all" style={{ width: `${Math.min(pct, 100)}%` }} />
       </div>
       <p className="text-xs text-gray-400">{mb(info.used)} digunakan dari {mb(info.quota)} ({pct}%)</p>
+    </div>
+  );
+}
+
+// M-5: hapus foto sesi lama untuk membebaskan storage (data sesi tetap utuh).
+function PhotoMaintenance({ onToast }: { onToast: (m: string) => void }) {
+  const cutoff = useMemo(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 6);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }, []);
+  const oldCount = useLiveQuery(() => countSessionPhotos(cutoff), [cutoff]);
+  const [busy, setBusy] = useState(false);
+  if (!oldCount) return null;
+  return (
+    <div className="bg-amber-50 rounded-xl p-3 space-y-2">
+      <p className="text-xs font-semibold text-amber-700">🖼️ Foto sesi lama</p>
+      <p className="text-xs text-amber-600">
+        {oldCount} foto dari sesi &gt; 6 bulan lalu. Hapus untuk membebaskan penyimpanan — catatan &amp; tanda tangan sesi tetap aman.
+      </p>
+      <button disabled={busy}
+        onClick={async () => {
+          if (!confirm(`Hapus ${oldCount} foto sesi lebih lama dari 6 bulan? Hanya foto yang dihapus; data sesi tetap tersimpan.`)) return;
+          setBusy(true);
+          try {
+            const n = await pruneSessionPhotosBefore(cutoff);
+            onToast(`${n} foto lama dihapus ✓`);
+          } catch (e) {
+            onToast("Gagal hapus foto: " + ((e as Error).message || "coba lagi"));
+          } finally { setBusy(false); }
+        }}
+        className="w-full py-2 rounded-xl bg-amber-500 text-white text-sm font-medium disabled:opacity-60">
+        {busy ? "Menghapus..." : `Hapus ${oldCount} foto lama`}
+      </button>
+    </div>
+  );
+}
+
+// L-1: penampil riwayat aktivitas penting (lokal per perangkat).
+const AUDIT_LABEL: Record<AuditAction, string> = {
+  "session.delete": "Hapus sesi",
+  "student.delete": "Hapus murid",
+  "payment.paid": "Tagihan ditandai lunas",
+  "payment.unpaid": "Batal lunas",
+  "month.close": "Tutup bulan",
+  "data.reset": "Reset semua data",
+  "data.restore": "Restore data",
+  "photos.prune": "Hapus foto lama",
+};
+
+function AuditLogViewer() {
+  const entries = useLiveQuery(() => listAuditLog(50), []);
+  if (!entries || entries.length === 0)
+    return <p className="text-xs text-gray-400 pt-3">Belum ada aktivitas tercatat.</p>;
+  return (
+    <div className="pt-3 space-y-1.5 max-h-72 overflow-y-auto">
+      {entries.map((e) => (
+        <div key={e.id} className="flex items-start justify-between gap-2 text-xs border-b border-gray-50 pb-1.5">
+          <div className="min-w-0">
+            <p className="font-medium text-gray-700">{AUDIT_LABEL[e.action] ?? e.action}</p>
+            {e.details && <p className="text-gray-400 truncate">{e.details}</p>}
+          </div>
+          <span className="text-gray-400 flex-shrink-0">
+            {new Date(e.timestamp).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" })}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -259,6 +329,7 @@ export default function SettingsPage() {
     const file = restoreRef.current?.files?.[0];
     if (!file || !backupPass) { setToast("Pilih file dan masukkan kata sandi!"); return; }
     await importBackup(file, backupPass);
+    await logAudit("data.restore", "data", undefined, "dari file");
     setToast("Restore berhasil! Memuat ulang... ✓");
     setTimeout(() => location.reload(), 1500);
   };
@@ -286,6 +357,7 @@ export default function SettingsPage() {
     }
     const blob = await downloadBackupFromDrive(fileId);
     await importBackup(blob, backupPass);
+    await logAudit("data.restore", "data", undefined, "dari Google Drive");
     setToast("Restore dari Drive berhasil! Memuat ulang... ✓");
     setTimeout(() => location.reload(), 1500);
   };
@@ -314,6 +386,7 @@ export default function SettingsPage() {
     await db.transaction("rw", tables, async () => {
       for (const t of tables) await t.clear();
     });
+    await logAudit("data.reset", "data");
     setToast("Semua data berhasil dihapus ✓ Memuat ulang...");
     setTimeout(() => location.reload(), 1500);
   };
@@ -634,6 +707,7 @@ export default function SettingsPage() {
       <Section title="Backup & Restore" icon="💾">
         <div className="pt-3 space-y-3">
           <StorageUsage />
+          <PhotoMaintenance onToast={setToast} />
 
           {/* Kata sandi bersama — dipakai semua backup & restore */}
           <div className="bg-gray-50 rounded-xl p-3 space-y-2">
@@ -773,6 +847,11 @@ export default function SettingsPage() {
             🗑️ Hapus Semua Data
           </button>
         </div>
+      </Section>
+
+      {/* ── Riwayat Aktivitas (audit trail) ── */}
+      <Section title="Riwayat Aktivitas" icon="🧾">
+        <AuditLogViewer />
       </Section>
 
       {/* ── PWA / Aplikasi ── */}

@@ -20,6 +20,7 @@ beforeEach(async () => {
   await db.expenses.clear();
   await db.iaeeProjects.clear();
   await db.monthClosings.clear();
+  await db.auditLog.clear();
 });
 
 // ── Helpers ────────────────────────────────────────────────────────
@@ -67,6 +68,67 @@ describe("Payment upsert atomicity", () => {
     const rows = (await listPayments("2026-06")).filter((p) => p.studentId === "s-pay");
     expect(rows.length).toBe(1);
     expect(rows[0].status).toBe("PAID");
+  });
+});
+
+// ── Audit Trail (L-1) ──────────────────────────────────────────────
+
+describe("Audit trail", () => {
+  it("records entries and lists them newest-first", async () => {
+    const { logAudit, listAuditLog } = await import("../db/repos");
+    await logAudit("month.close", "data", "2026-06", "2 tagihan");
+    await new Promise((r) => setTimeout(r, 5)); // jamin timestamp ms berbeda
+    await logAudit("session.delete", "session", "sess-1");
+    const log = await listAuditLog(10);
+    expect(log.length).toBe(2);
+    expect(log[0].action).toBe("session.delete"); // newest first
+    expect(log[1].action).toBe("month.close");
+  });
+
+  it("deleteSession writes a session.delete audit entry", async () => {
+    const { createStudent, createSession, deleteSession, listAuditLog } = await import("../db/repos");
+    const sid = await createStudent({
+      name: "Audit Murid", level: "IBDP", subjects: [], parentContact: { phone: "081" },
+      hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30),
+    });
+    const sessId = await createSession({
+      studentId: sid, date: wibDate(), durationHours: MIN_DURATION,
+      subjects: ["Math"], shortNote: "x", status: "DONE",
+    });
+    await deleteSession(sessId);
+    const log = await listAuditLog(10);
+    expect(log.some((e) => e.action === "session.delete" && e.entityId === sessId)).toBe(true);
+  });
+});
+
+// ── Photo maintenance (M-5) ────────────────────────────────────────
+
+describe("pruneSessionPhotosBefore", () => {
+  it("removes photos from old sessions, keeps recent ones, preserves data", async () => {
+    const { pruneSessionPhotosBefore, countSessionPhotos } = await import("../db/repos");
+    const photo = new Blob(["x"], { type: "image/jpeg" });
+    await db.sessions.bulkAdd([
+      { id: "old1", studentId: "s", date: "2020-01-01", durationHours: 1, subjects: [], shortNote: "keep", status: "DONE", rateSnapshot: 0, cost: 0, createdAt: "", updatedAt: "", photo },
+      { id: "new1", studentId: "s", date: "2030-01-01", durationHours: 1, subjects: [], shortNote: "", status: "DONE", rateSnapshot: 0, cost: 0, createdAt: "", updatedAt: "", photo },
+    ]);
+    expect(await countSessionPhotos("2025-01-01")).toBe(1);
+    const n = await pruneSessionPhotosBefore("2025-01-01");
+    expect(n).toBe(1);
+    const old = await db.sessions.get("old1");
+    const recent = await db.sessions.get("new1");
+    expect(old?.photo).toBeUndefined();
+    expect(old?.shortNote).toBe("keep");       // session data preserved
+    expect(recent?.photo).toBeInstanceOf(Blob); // recent photo kept
+    expect(await countSessionPhotos("2025-01-01")).toBe(0);
+  });
+
+  it("logs a photos.prune audit entry when photos are removed", async () => {
+    const { pruneSessionPhotosBefore, listAuditLog } = await import("../db/repos");
+    const photo = new Blob(["x"], { type: "image/jpeg" });
+    await db.sessions.add({ id: "old2", studentId: "s", date: "2019-05-05", durationHours: 1, subjects: [], shortNote: "", status: "DONE", rateSnapshot: 0, cost: 0, createdAt: "", updatedAt: "", photo });
+    await pruneSessionPhotosBefore("2025-01-01");
+    const log = await listAuditLog(10);
+    expect(log.some((e) => e.action === "photos.prune")).toBe(true);
   });
 });
 

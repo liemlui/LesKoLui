@@ -3,6 +3,7 @@ import type {
   Student, Session, MonthlyReport, Payment, Settings, RaporGrade,
   Homework, HomeworkStatus, FollowUpItem, FollowUpType,
   Expense, ExpenseCategory, IaEeProject, IaEeMilestone, MonthClosing,
+  AuditEntry, AuditAction,
 } from "./types";
 import { MIN_DURATION, DURATION_STEP, DEFAULT_RATE } from "./types";
 import { hashPin, isHashedPin } from "../lib/crypto";
@@ -30,6 +31,55 @@ function monthRange(month: string): { start: string; end: string } {
 
 function timestamp(): string {
   return new Date().toISOString();
+}
+
+// ── Audit Trail (L-1) ──────────────────────────────────────────────
+// Catatan lokal aksi penting. Best-effort: kegagalan log TIDAK boleh
+// menggagalkan operasi utama (dibungkus try/catch oleh pemanggil bila perlu).
+
+export async function logAudit(
+  action: AuditAction, entityType: string, entityId?: string, details?: string,
+): Promise<void> {
+  try {
+    await db.auditLog.add({
+      id: crypto.randomUUID(), action, entityType, entityId,
+      timestamp: timestamp(), details,
+    });
+  } catch {
+    // jangan pernah mengganggu alur utama hanya karena audit gagal
+  }
+}
+
+export async function listAuditLog(limit = 50): Promise<AuditEntry[]> {
+  return db.auditLog.orderBy("timestamp").reverse().limit(limit).toArray();
+}
+
+export async function clearAuditLog(): Promise<void> {
+  await db.auditLog.clear();
+}
+
+// ── Maintenance foto (M-5) ─────────────────────────────────────────
+// Foto disimpan inline di Session.photo (Blob). Tool ini melepas foto
+// dari sesi lama untuk membebaskan storage (mendukung peringatan kuota B-1).
+// Data sesi (catatan, tanda tangan, biaya) tetap utuh — hanya foto dilepas.
+
+export async function countSessionPhotos(beforeDate?: string): Promise<number> {
+  let n = 0;
+  await db.sessions.each((s) => {
+    if (s.photo && (!beforeDate || s.date < beforeDate)) n++;
+  });
+  return n;
+}
+
+export async function pruneSessionPhotosBefore(beforeDate: string): Promise<number> {
+  let pruned = 0;
+  await db.transaction("rw", db.sessions, async () => {
+    await db.sessions.where("date").below(beforeDate).modify((s) => {
+      if (s.photo) { delete s.photo; s.updatedAt = timestamp(); pruned++; }
+    });
+  });
+  if (pruned > 0) await logAudit("photos.prune", "data", undefined, `${pruned} foto sesi < ${beforeDate} dihapus`);
+  return pruned;
 }
 
 function resolvedHomeworkStatus(h: Pick<Homework, "status" | "dueAt">): HomeworkStatus {
@@ -106,6 +156,7 @@ export async function updateStudent(id: string, patch: Partial<Student>): Promis
 }
 
 export async function deleteStudent(id: string): Promise<void> {
+  const student = await db.students.get(id);
   const tables = [
     db.students, db.sessions, db.reports,
     db.payments, db.homeworks, db.followUps, db.raporGrades,
@@ -121,6 +172,7 @@ export async function deleteStudent(id: string): Promise<void> {
     await db.raporGrades.where({ studentId: id }).delete();
     await db.iaeeProjects.where({ studentId: id }).delete();
   });
+  await logAudit("student.delete", "student", id, student?.name);
 }
 
 // ── Sessions ───────────────────────────────────────────────────────
@@ -314,6 +366,7 @@ export async function deleteSession(id: string): Promise<void> {
       .filter((r) => r.sessionIds.includes(id))
       .modify((r) => { r.sessionIds = r.sessionIds.filter((sid) => sid !== id); });
   });
+  await logAudit("session.delete", "session", id);
 }
 
 export async function scheduleSession(
@@ -572,6 +625,7 @@ export async function markPaymentTransferred(
       });
     }
   });
+  await logAudit("payment.paid", "payment", studentId, `${month} via ${method}`);
 }
 
 /** Mark a payment back to unpaid (undo "Sudah Transfer"). */
@@ -582,6 +636,7 @@ export async function markPaymentUnpaid(studentId: string, month: string): Promi
       await db.payments.update(existing.id, { status: "UNPAID", paidAt: undefined, method: undefined });
     }
   });
+  await logAudit("payment.unpaid", "payment", studentId, month);
 }
 
 /** Update only the billed amount of an existing payment (edit before sending). */
@@ -667,6 +722,7 @@ export async function closeMonth(month: string): Promise<void> {
       studentCount: bills.length,
     });
   });
+  await logAudit("month.close", "data", month, `${bills.length} tagihan dibuat`);
 }
 
 /** Reopen a month: drop the closing + any still-UNPAID auto-generated bills. */

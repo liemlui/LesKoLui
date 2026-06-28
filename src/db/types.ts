@@ -201,6 +201,27 @@ export interface IaEeProject {
   updatedAt: string;
 }
 
+// ── Audit Trail (riwayat aktivitas penting — lokal per perangkat) ────────────
+
+export type AuditAction =
+  | "session.delete"
+  | "student.delete"
+  | "payment.paid"
+  | "payment.unpaid"
+  | "month.close"
+  | "data.reset"
+  | "data.restore"
+  | "photos.prune";
+
+export interface AuditEntry {
+  id: string;
+  action: AuditAction;
+  entityType: string;     // "session" | "student" | "payment" | "data" | ...
+  entityId?: string;
+  timestamp: string;      // ISO
+  details?: string;       // ringkasan untuk dibaca manusia
+}
+
 export interface Settings {
   id: "app";
   tutorProfile: { name: string; phone: string; email?: string; address?: string };

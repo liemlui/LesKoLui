@@ -1,6 +1,6 @@
 import Dexie from "dexie";
 import type { Table } from "dexie";
-import type { Student, Session, MonthlyReport, Payment, Settings, RaporGrade, Homework, FollowUpItem, Expense, IaEeProject, MonthClosing } from "./types";
+import type { Student, Session, MonthlyReport, Payment, Settings, RaporGrade, Homework, FollowUpItem, Expense, IaEeProject, MonthClosing, AuditEntry } from "./types";
 
 type LegacySessionRow = {
   subject?: unknown;
@@ -19,6 +19,7 @@ export class JurnalDB extends Dexie {
   expenses!:    Table<Expense,       string>;
   iaeeProjects!:Table<IaEeProject,   string>;
   monthClosings!:Table<MonthClosing, string>;
+  auditLog!:    Table<AuditEntry,    string>;
 
   constructor() {
     super("jurnalles");
@@ -58,6 +59,10 @@ export class JurnalDB extends Dexie {
     // v8: add month-closing table (Tutup Bulan workflow)
     this.version(8).stores({
       monthClosings: "id, month",
+    });
+    // v9: add audit-log table (riwayat aktivitas penting — lokal, tak ikut backup/restore)
+    this.version(9).stores({
+      auditLog: "id, timestamp, entityType",
     });
   }
 }

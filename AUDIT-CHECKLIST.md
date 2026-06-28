@@ -51,6 +51,16 @@
 
 - **Passphrase auto-backup di `localStorage`**: by-design agar backup 1-tap. Diterima selama device-encryption + screen-lock ON. Mitigasi: catatan UI (C-2) + min-length 8 (C-1).
 
+### Lanjutan v1.19.0 — backlog Ronde 1 ditutup
+
+| Item | Implementasi |
+|------|--------------|
+| **L-1** Audit trail | Tabel `auditLog` (Dexie **v9**) + `logAudit`/`listAuditLog`; dicatat di hapus sesi/murid, status tagihan, tutup bulan, reset/restore, prune foto. Viewer "Riwayat Aktivitas" di Settings. **Tidak** ikut backup (catatan lokal). |
+| **M-5** Foto | `pruneSessionPhotosBefore` + `countSessionPhotos`; tombol "Hapus foto sesi > 6 bulan" di Settings (data sesi tetap utuh). |
+| **H-6** | Sudah rilis v1.13.0; dikonfirmasi + diperkuat B-2. |
+
+Verifikasi v1.19.0: lint bersih, **116 test lulus**, build OK.
+
 ---
 
 ## 🔴 CRITICAL — Harus diperbaiki sebelum produksi
@@ -183,7 +193,7 @@
 | **Opsi A — Google Drive REST API + OAuth (disarankan)** | Scope **`drive.file`** (least-privilege, hanya file buatan app → tak perlu verifikasi Google). Simpan **`fileId`** di IndexedDB lalu `files.update` (PATCH media) untuk **overwrite 1 file yang sama**; Drive simpan **revision history**. **Gratis** (volume personal). Jalan di **Android & iOS**. UX realistis: **1-tap** dari reminder mingguan (token GIS di-cache; kalau expired, 1 tap akun Google). **Setup 1x oleh user:** Google Cloud project + OAuth Client ID (authorized origin = domain Vercel produksi). |
 | **Opsi B — Web Share API** | `navigator.share({ files })` → share sheet → "Simpan ke Drive". **Tanpa setup, tanpa API**, jalan Android/iOS. TAPI **manual tiap kali** + bikin **file baru** tiap backup (bukan overwrite) → tidak memenuhi "auto" & "1 file". |
 | **Batasan** | Backup **fully-otomatis tanpa tap** (terjadwal di background) **butuh backend** untuk simpan refresh token — tak bisa murni client-side. Tanpa backend, terbaik = **1-tap**. |
-| **Status** | ☐ Belum — enhancement; estimasi ~3-4 jam (Opsi A, di luar setup OAuth user) |
+| **Status** | ☑ **Selesai** (rilis v1.13.0) — Drive REST + OAuth `drive.file`, overwrite 1 file via `fileId`, 1-tap dari reminder. Diperkuat Ronde 2: retry 401 + pesan error ID (B-2). |
 
 ---
 
@@ -239,7 +249,7 @@
 |------|--------|
 | **File** | [`src/db/repos.ts`](src/db/repos.ts) |
 | **Deskripsi** | Foto dan signature sudah dihapus bersama record (Dexie transaction). Ditambahkan indikator ukuran storage di Settings via `navigator.storage.estimate()`. |
-| **Status** | ☑ Selesai (storage indicator) — kompresi berkala masih backlog |
+| **Status** | ☑ **Selesai** — orphan tak mungkin (foto inline di record, ikut terhapus via transaksi). Ronde 2 tambah **tool hapus foto sesi > 6 bulan** di Settings (`pruneSessionPhotosBefore`) untuk membebaskan storage, mendukung banner kuota (B-1). |
 
 ---
 
@@ -271,7 +281,7 @@ Tidak ada log untuk aksi penting: session delete, payment status change, student
 
 **Cara perbaikan:** Tambahkan table `auditLog` dengan field: `id, action, entityType, entityId, timestamp, details`.
 
-**Status:** ☐ Belum — jadwalkan sebagai fitur sprint berikutnya
+**Status:** ☑ **Selesai (Ronde 2)** — tabel `auditLog` (Dexie v9). `logAudit()` mencatat: hapus sesi/murid, ubah status tagihan, tutup bulan, reset/restore data, hapus foto lama. Penampil "Riwayat Aktivitas" di Settings. Tabel ini **tidak** ikut backup/restore (catatan lokal per perangkat).
 
 ---
 
@@ -340,12 +350,12 @@ Tidak ada log untuk aksi penting: session delete, payment status change, student
 | Severity | Jumlah | Selesai |
 |----------|--------|---------|
 | 🔴 CRITICAL | 6 | 6 |
-| 🟠 HIGH | 6 | 4 |
-| 🟡 MEDIUM | 7 | 6 |
-| 🟢 LOW | 7 | 6 |
-| **Total** | **26** | **22** |
+| 🟠 HIGH | 6 | 5 (H-2 di-waive) |
+| 🟡 MEDIUM | 7 | 7 |
+| 🟢 LOW | 7 | 7 |
+| **Total** | **26** | **25 + 1 waive** |
 
-**Sisa terbuka:** H-6 (backup off-device cloud) ⭐, L-1 (audit trail — *low value untuk pengguna solo*), M-5 (foto GC — partial). **H-2 di-waive** (threat model solo). **L-5 selesai** 2026-06-26 (Vitest+CI).
+**Sisa terbuka Ronde 1: tidak ada.** Semua ditutup per 2026-06-29 (H-6 rilis v1.13.0; M-5 & L-1 selesai Ronde 2). **H-2 tetap di-waive** (threat model solo). Lihat juga **Ronde 2 — v1.17.0** di atas untuk penguatan tambahan.
 
 ---
 
@@ -364,11 +374,13 @@ Tidak ada log untuk aksi penting: session delete, payment status change, student
 ---
 
 ### Sisa backlog (sprint berikutnya):
-- **H-6** ⭐ — Backup off-device otomatis ke Google Drive (app dipakai di HP): Drive REST API + OAuth `drive.file`, overwrite 1 file via `fileId`, 1-tap dari reminder (estimasi: ~3-4 jam + setup OAuth 1x oleh user) — *prioritas resilience*
-- **L-1** — Audit trail table (estimasi: 4 jam) — *low value untuk pengguna solo*
-- **M-5** — Kompresi foto berkala + garbage collection (estimasi: 2 jam)
+- ~~**H-6** — Backup off-device ke Google Drive~~ → ✅ **rilis v1.13.0** (diperkuat Ronde 2: retry 401 + error ID)
+- ~~**L-1** — Audit trail table~~ → ✅ **selesai Ronde 2** (tabel `auditLog` v9 + viewer Settings)
+- ~~**M-5** — GC/kompresi foto~~ → ✅ **selesai Ronde 2** (tool hapus foto sesi > 6 bulan)
 - ~~**H-2** — Enkripsi field sensitif di IndexedDB~~ → **di-waive** (threat model solo + OS disk encryption)
 - ~~**L-5** — Setup Vitest + unit tests~~ → ✅ **selesai 2026-06-26**
+
+**→ Seluruh backlog Ronde 1 tuntas. Tidak ada item terbuka selain H-2 (waived).**
 
 ---
 
