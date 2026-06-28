@@ -167,7 +167,8 @@ export async function performDriveBackup(passphrase: string): Promise<void> {
   const blob = await exportBackup(passphrase);
   const settings = await getSettings();
   const fileId = await uploadBackupToDrive(blob, settings.driveBackup?.fileId);
-  await saveSettings({ driveBackup: { fileId, backupAt: new Date().toISOString() } });
+  const now = new Date().toISOString();
+  await saveSettings({ driveBackup: { fileId, backupAt: now }, lastBackupAt: now });
 }
 
 /** Muat GIS lebih awal (mis. saat prompt backup muncul) agar tap-nya responsif. */

@@ -215,4 +215,5 @@ export interface Settings {
   templatePref: { excludedThemeIds?: string[]; customThemes?: import("../template/types").CustomTheme[] };
   bankAccounts?: { bca?: string; cimb?: string; bri?: string; mandiri?: string; bsi?: string; ewallet?: string; accountName?: string };
   driveBackup?: { fileId: string; backupAt: string };
+  lastBackupAt?: string; // waktu backup terakhir (File atau Drive) — ISO string
 }

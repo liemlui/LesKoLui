@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, createContext, useContext } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getSettings, saveSettings } from "../db/repos";
 import { db } from "../db/db";
@@ -50,17 +50,29 @@ function Toast({ msg, onClose }: { msg: string; onClose: () => void }) {
   );
 }
 
+// Accordion: hanya satu Section terbuka pada satu waktu (id = title, unik).
+const AccordionContext = createContext<{
+  openId: string | null;
+  setOpenId: (id: string | null) => void;
+} | null>(null);
+
 function Section({
   title, icon, badge, defaultOpen = false, children,
 }: {
   title: string; icon: string; badge?: string; defaultOpen?: boolean; children: React.ReactNode;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const ctx = useContext(AccordionContext);
+  const [localOpen, setLocalOpen] = useState(defaultOpen);
+  const open = ctx ? ctx.openId === title : localOpen;
+  const toggle = () => {
+    if (ctx) ctx.setOpenId(open ? null : title);
+    else setLocalOpen((o) => !o);
+  };
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggle}
         className="w-full flex items-center justify-between px-4 py-3.5 text-left"
       >
         <div className="flex items-center gap-2.5">
@@ -95,6 +107,7 @@ export default function SettingsPage() {
   const [newPinConf,  setNewPinConf]  = useState("");
   const [pinError,    setPinError]    = useState("");
   const [pinAction,   setPinAction]   = useState<"exportBackup" | "restore" | "resetAll" | "driveBackup" | "driveRestore" | null>(null);
+  const [openSection, setOpenSection] = useState<string | null>(null);
   const restoreRef = useRef<HTMLInputElement>(null);
   const fileRef    = useRef<HTMLInputElement>(null);
 
@@ -214,6 +227,9 @@ export default function SettingsPage() {
     if (backupPass.length < 4) { setToast("Kata sandi minimal 4 karakter!"); return; }
     const blob = await exportBackup(backupPass);
     downloadBlob(blob, `leskolui-backup-${todayWIB()}.jles`);
+    const lastBackupAt = new Date().toISOString();
+    await saveSettings({ lastBackupAt });
+    setForm((f) => f ? { ...f, lastBackupAt } : f);
     setToast("Backup berhasil diunduh ✓");
   };
 
@@ -232,9 +248,10 @@ export default function SettingsPage() {
     setToast("Backup ke Google Drive...");
     const blob = await exportBackup(backupPass);
     const fileId = await uploadBackupToDrive(blob, form.driveBackup?.fileId);
-    const driveBackup = { fileId, backupAt: new Date().toISOString() };
-    await saveSettings({ driveBackup });
-    setForm((f) => f ? { ...f, driveBackup } : f);
+    const now = new Date().toISOString();
+    const driveBackup = { fileId, backupAt: now };
+    await saveSettings({ driveBackup, lastBackupAt: now });
+    setForm((f) => f ? { ...f, driveBackup, lastBackupAt: now } : f);
     setToast("Backup ke Google Drive berhasil ✓");
   };
 
@@ -326,6 +343,7 @@ export default function SettingsPage() {
   } as const;
 
   return (
+    <AccordionContext.Provider value={{ openId: openSection, setOpenId: setOpenSection }}>
     <div className="p-4 space-y-3 pb-24">
       {toast && <Toast msg={toast} onClose={() => setToast("")} />}
       {pinAction && form.financialPin && (
@@ -411,6 +429,12 @@ export default function SettingsPage() {
                 className="flex-1 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-2.5 rounded-xl transition-colors">
                 {form.financialPin ? "Ganti PIN" : "Buat PIN"}
               </button>
+              {form.financialPin && form.securityQuestion && (
+                <button onClick={() => { setPinMode("forgotPin"); setPinError(""); setOldPin(""); setForgotA(""); }}
+                  className="text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-2.5 rounded-xl transition-colors whitespace-nowrap">
+                  Lupa PIN?
+                </button>
+              )}
             </div>
           ) : pinMode === "verifyOld" ? (
             <div className="space-y-3">
@@ -449,7 +473,7 @@ export default function SettingsPage() {
               <div className="flex gap-2">
                 <button onClick={handleVerifyForgot} disabled={!forgotA.trim()}
                   className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-40 hover:bg-blue-700 transition-colors">Verifikasi</button>
-                <button onClick={() => { setPinMode("verifyOld"); setForgotA(""); setPinError(""); }}
+                <button onClick={() => { setPinMode("view"); setForgotA(""); setPinError(""); }}
                   className="px-4 py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-medium hover:bg-gray-200 transition-colors">Kembali</button>
               </div>
             </div>
@@ -544,7 +568,7 @@ export default function SettingsPage() {
       </Section>
 
       {/* ── AI ── */}
-      <Section title="AI — Narasi Otomatis" icon="🤖">
+      <Section title="AI — Narasi Otomatis" icon="🤖" badge={form.ai.enabled && form.ai.apiKey ? "Aktif" : undefined}>
         <div className="pt-3 space-y-3">
           <label className="flex items-center gap-3 cursor-pointer">
             <Toggle checked={form.ai.enabled} onChange={(v) => updateAi("enabled", v)} />
@@ -683,6 +707,15 @@ export default function SettingsPage() {
           )}
 
           <p className="text-xs text-orange-600">⚠️ Restore mengganti <b>semua</b> data saat ini. Sebelum mengganti, app otomatis mengunduh file <b>pre-restore</b> (cadangan data lama Anda).</p>
+
+          <p className="text-xs text-gray-400 pt-2 border-t border-gray-50">
+            🕒 Backup terakhir:{" "}
+            {form.lastBackupAt ? (
+              <b className="text-gray-600">{new Date(form.lastBackupAt).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}</b>
+            ) : (
+              <span className="text-gray-400">belum pernah backup</span>
+            )}
+          </p>
         </div>
       </Section>
 
@@ -760,5 +793,6 @@ export default function SettingsPage() {
         {saving ? "Menyimpan..." : dirty ? "Simpan Pengaturan" : "Tersimpan ✓"}
       </button>
     </div>
+    </AccordionContext.Provider>
   );
 }
