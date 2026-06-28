@@ -8,6 +8,51 @@
 
 ---
 
+## 🔄 Ronde 2 — v1.17.0 (2026-06-29)
+
+> Audit ulang menyeluruh setelah ~15 rilis fitur sejak Ronde 1 (v1.2.1): Google Drive backup/OAuth, AI client DeepSeek, WA billing. Metode: 3 agen paralel (security / correctness / PWA-perf-UX) + **verifikasi manual**. **Hasil: app sehat, tak ada showstopper.** Verifikasi akhir: `lint` bersih, **112 test lulus** (dari 92), `build` OK.
+
+### Dikerjakan (✅)
+
+| Kode | Item | File utama |
+|------|------|-----------|
+| **B-1** | Resilience kuota penyimpanan: `persist()` di-await, deteksi `QuotaExceededError` (global `unhandledrejection`) + cek tekanan storage → **banner peringatan merah** (cegah data hilang senyap di app offline-first) | `src/lib/storageGuard.ts` (baru), `src/App.tsx` |
+| **B-2** | Drive backup: **retry sekali pada 401** (token GIS ~1 jam, ambil token baru) + klasifikasi error (401/403/404/5xx) jadi pesan Bahasa Indonesia, bukan HTML mentah | `src/lib/driveBackup.ts` |
+| **A-1** | Payment write **atomic** (`db.transaction`) untuk `upsertPayment`, `markPaymentTransferred`, `markPaymentUnpaid`, `updatePaymentAmount` — cegah baris duplikat saat double-tap/multi-tab | `src/db/repos.ts` |
+| **A-3** | `Math.round` pada 6 perhitungan `cost = durationHours × rate` → rupiah selalu bulat (rate ganjil × 0.5 jam tak lagi setengah-rupiah) | `src/db/repos.ts` |
+| **C-1** | Min passphrase backup **4 → 8** di semua titik (5× Settings + 1× App) + **indikator kekuatan live** + nudge tombol Generate | `src/screens/Settings.tsx`, `src/App.tsx` |
+| **C-2** | Pertegas catatan UI: passphrase auto-backup tersimpan di perangkat → "pastikan layar HP terkunci (PIN/biometrik)" | `src/screens/Settings.tsx` |
+| **C-3** | Tambah header **HSTS** (`max-age=63072000; includeSubDomains; preload`) | `vercel.json` |
+| **F-1** | +20 test: `money.test.ts` (bounds/parse/clamp), `waBilling.test.ts` (billing math + `toWaNumber`), atomicity payment di `repos.test.ts` | `src/__tests__/` |
+| **D-2** | Heatmap MonthView di-`useMemo` (agregasi per-hari sekali per perubahan data) | `src/screens/home/MonthView.tsx` |
+| **E-2** | `aria-label` (dengan nama murid) di tombol Catat/Batal sesi | `src/screens/home/SessionPill.tsx` |
+| **E-3** | Naikkan kontras heatmap (opacity 0.08→0.18/0.22) agar terbaca (WCAG) | `src/screens/home/MonthView.tsx` |
+
+### Verified-safe / false-positive (TIDAK diubah — agar audit berikutnya tak mengulang)
+
+| Klaim agen | Realita (terverifikasi) |
+|---|---|
+| `deleteSession` tak transaksional | `db.sessions.delete` sudah di dalam `db.transaction` (`repos.ts`) ✅ |
+| Float precision bug di `cost` | durationHours kelipatan 0.5 (eksak IEEE-754) × rate integer = hasil eksak; hanya kosmetik → tetap dibulatkan via A-3 ✅ |
+| Division-by-zero NaN di StudentDetail | Semua average sudah ter-guard (`length>0 ? … : …`) atau aman by-construction; juga MonthlyReport/MonthView/layouts ✅ |
+| `seedDummy` korup data prod | Sudah guard DB-kosong (`listStudents().length>0` → skip) **dan** di balik `import.meta.env.DEV` (tree-shaken di prod) ✅ (**F-2**) |
+| Pagination → halaman kosong saat ganti bulan | `clampPage()` mengunci page ke `[1, pageCount]` (`pagination.ts`) ✅ (**A-4**) |
+| `aria-current` nav hilang | `NavLink` react-router otomatis set `aria-current="page"` saat aktif ✅ (**E-1**) |
+| API key DeepSeek butuh cert-pinning "CRITICAL" | HTTPS cukup; pinning tak mungkin di browser; by-design client-side. HSTS sudah ditambah (C-3) |
+
+### Sengaja dilewati (low-value / berisiko)
+
+- **D-1 (memo Home)** — Home sudah ber-`useMemo` menyeluruh + child `SessionPill` `memo()`; data solo-tutor kecil → tak ada gain nyata.
+- **D-3 (pangkas font)** — font sekunder sudah lazy (deferred 1s); pangkas eager berisiko regresi visual template laporan.
+- **B-3 (retry chunk)** — `ErrorBoundary` sudah membungkus `Suspense` → ada jalur reload manual.
+- **C-4 (AI json_schema)** — `response_format: json_object` + sanitize + boundary marker sudah solid; `json_schema` tak pasti didukung DeepSeek (berisiko memutus AI).
+
+### Keputusan diterima (di bawah waiver threat-model solo — lihat H-2)
+
+- **Passphrase auto-backup di `localStorage`**: by-design agar backup 1-tap. Diterima selama device-encryption + screen-lock ON. Mitigasi: catatan UI (C-2) + min-length 8 (C-1).
+
+---
+
 ## 🔴 CRITICAL — Harus diperbaiki sebelum produksi
 
 ### C-1. Token Vercel OIDC terekspos di `.env.local`

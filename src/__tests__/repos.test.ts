@@ -44,6 +44,32 @@ describe("repos internal helpers (tested via lib functions)", () => {
   });
 });
 
+// ── Payment Atomicity ──────────────────────────────────────────────
+
+describe("Payment upsert atomicity", () => {
+  it("does not create duplicate rows under concurrent upsert (same student+month)", async () => {
+    const { upsertPayment, listPayments } = await import("../db/repos");
+    const base = { studentId: "s-atom", month: "2026-06", totalCost: 100000, status: "UNPAID" as const };
+    await Promise.all([
+      upsertPayment(base),
+      upsertPayment({ ...base, totalCost: 200000 }),
+    ]);
+    const rows = (await listPayments("2026-06")).filter((p) => p.studentId === "s-atom");
+    expect(rows.length).toBe(1);
+  });
+
+  it("markPaymentTransferred is idempotent and keeps a single row", async () => {
+    const { markPaymentTransferred, listPayments } = await import("../db/repos");
+    await Promise.all([
+      markPaymentTransferred("s-pay", "2026-06"),
+      markPaymentTransferred("s-pay", "2026-06"),
+    ]);
+    const rows = (await listPayments("2026-06")).filter((p) => p.studentId === "s-pay");
+    expect(rows.length).toBe(1);
+    expect(rows[0].status).toBe("PAID");
+  });
+});
+
 // ── Settings Tests ─────────────────────────────────────────────────
 
 describe("Settings", () => {

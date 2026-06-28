@@ -44,15 +44,15 @@ function SessionPill({ session: s, studentMap, today, dateCtx, onEdit, onCapture
             <span className="text-green-500 text-xs flex-shrink-0 pt-0.5 font-bold">✓ Selesai</span>
           ) : isMissed ? (
             <div className="flex gap-1.5 flex-shrink-0">
-              <button onClick={() => onCapture(s.id)}
+              <button onClick={() => onCapture(s.id)} aria-label={`Catat sesi ${info?.name ?? "murid"}`}
                 className="text-xs bg-blue-600 text-white px-2 py-1 rounded-lg font-semibold">Catat</button>
-              <button onClick={() => onCancel(s.id)}
+              <button onClick={() => onCancel(s.id)} aria-label={`Batalkan sesi ${info?.name ?? "murid"}`}
                 className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-lg">Batal</button>
             </div>
           ) : isFuture ? (
             <span className="text-xs text-gray-300 flex-shrink-0 pt-0.5">Menunggu</span>
           ) : (isToday || isScheduled) ? (
-            <button onClick={() => onCapture(s.id)}
+            <button onClick={() => onCapture(s.id)} aria-label={`Catat sesi ${info?.name ?? "murid"}`}
               className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-semibold flex-shrink-0 hover:bg-blue-700 transition-colors">
               ✏️ Catat
             </button>

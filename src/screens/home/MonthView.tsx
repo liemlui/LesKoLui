@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import type { Session } from "../../db/types";
 import type { StudentMap } from "../../lib/studentColor";
 import { monthLabel, monthOf } from "../../lib/format";
@@ -23,6 +24,19 @@ export default function MonthView({
 }: Props) {
   const cells = calendarCells(calMonth);
 
+  // Heatmap tint per hari (avg skor keseriusan sesi DONE), dihitung sekali per
+  // perubahan data — bukan tiap render. Kontras dinaikkan agar terbaca (WCAG).
+  const heatByDay = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const [date, sess] of monthByDay) {
+      const done = sess.filter((s) => s.status === "DONE" && s.engagement?.score != null);
+      if (done.length === 0) continue;
+      const avg = done.reduce((sum, s) => sum + (s.engagement?.score ?? 0), 0) / done.length;
+      m.set(date, avg >= 7 ? "rgba(34,197,94,0.18)" : avg >= 4 ? "rgba(234,179,8,0.22)" : "rgba(239,68,68,0.18)");
+    }
+    return m;
+  }, [monthByDay]);
+
   return (
     <div className="mx-4 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
@@ -47,10 +61,7 @@ export default function MonthView({
           const isPast     = date < today;
           const isSunday   = new Date(date + "T00:00:00").getDay() === 0;
           const dayNum     = parseInt(date.slice(8), 10);
-          // Heatmap: avg engagement score of DONE sessions
-          const doneSess   = daySess.filter(s => s.status === "DONE" && s.engagement?.score != null);
-          const avgScore   = doneSess.length > 0 ? doneSess.reduce((sum, s) => sum + (s.engagement?.score ?? 0), 0) / doneSess.length : null;
-          const heatBg     = avgScore === null ? "" : avgScore >= 7 ? "rgba(34,197,94,0.08)" : avgScore >= 4 ? "rgba(234,179,8,0.10)" : "rgba(239,68,68,0.08)";
+          const heatBg     = heatByDay.get(date) ?? "";
           return (
             <button key={date}
               onClick={() => setSelectedDay(isSelected ? null : date)}

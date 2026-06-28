@@ -19,6 +19,26 @@ const WORDLIST = [
   "voli","waktu","xenon","yakin","zaman","angin","bunga","coklat","daun","ember",
 ];
 
+// Panjang minimum kata sandi enkripsi backup. 4 karakter terlalu lemah untuk
+// melindungi file backup yang berisi seluruh data murid & keuangan; 8 minimum,
+// dan tombol "Generate" tetap disarankan (6 kata acak ≈ sangat kuat).
+const MIN_PASS = 8;
+
+/** Estimasi kekuatan kasar kata sandi backup untuk umpan balik visual. */
+function passStrength(p: string): { label: string; color: string; pct: number } {
+  if (!p) return { label: "", color: "", pct: 0 };
+  let score = 0;
+  if (p.length >= MIN_PASS) score++;
+  if (p.length >= 12) score++;
+  if (/[a-z]/.test(p) && /[A-Z0-9]/.test(p)) score++;
+  if (/[^a-zA-Z0-9]/.test(p) || p.includes("-")) score++;
+  if (p.length < MIN_PASS) return { label: "Sangat lemah", color: "#dc2626", pct: 20 };
+  if (score <= 1) return { label: "Lemah", color: "#f59e0b", pct: 40 };
+  if (score === 2) return { label: "Cukup", color: "#eab308", pct: 60 };
+  if (score === 3) return { label: "Baik", color: "#22c55e", pct: 80 };
+  return { label: "Kuat", color: "#16a34a", pct: 100 };
+}
+
 function StorageUsage() {
   const [info, setInfo] = useState<{ used: number; quota: number } | null>(null);
   useEffect(() => {
@@ -224,7 +244,7 @@ export default function SettingsPage() {
 
   const doExportBackup = async () => {
     if (!backupPass) { setToast("Masukkan kata sandi backup!"); return; }
-    if (backupPass.length < 4) { setToast("Kata sandi minimal 4 karakter!"); return; }
+    if (backupPass.length < MIN_PASS) { setToast(`Kata sandi minimal ${MIN_PASS} karakter!`); return; }
     const blob = await exportBackup(backupPass);
     downloadBlob(blob, `leskolui-backup-${todayWIB()}.jles`);
     const lastBackupAt = new Date().toISOString();
@@ -244,7 +264,7 @@ export default function SettingsPage() {
   };
 
   const doDriveBackup = async () => {
-    if (!backupPass || backupPass.length < 4) { setToast("Kata sandi enkripsi minimal 4 karakter!"); return; }
+    if (!backupPass || backupPass.length < MIN_PASS) { setToast(`Kata sandi enkripsi minimal ${MIN_PASS} karakter!`); return; }
     setToast("Backup ke Google Drive...");
     const blob = await exportBackup(backupPass);
     const fileId = await uploadBackupToDrive(blob, form.driveBackup?.fileId);
@@ -272,7 +292,7 @@ export default function SettingsPage() {
 
   const toggleDriveAuto = (v: boolean) => {
     if (v) {
-      if (!backupPass || backupPass.length < 4) { setToast("Isi Kata Sandi Enkripsi (min 4 karakter) dulu untuk aktifkan auto."); return; }
+      if (!backupPass || backupPass.length < MIN_PASS) { setToast(`Isi Kata Sandi Enkripsi (min ${MIN_PASS} karakter) dulu untuk aktifkan auto.`); return; }
       localStorage.setItem("leskolui_drive_auto", "1");
       localStorage.setItem("leskolui_drive_pass", backupPass);
       setDriveAuto(true);
@@ -632,6 +652,20 @@ export default function SettingsPage() {
               </button>
             </div>
             {backupPass && <p className="text-xs text-gray-500 font-mono break-all">{backupPass}</p>}
+            {backupPass && (() => {
+              const st = passStrength(backupPass);
+              return (
+                <div className="space-y-1">
+                  <div className="w-full bg-gray-200 rounded-full h-1.5">
+                    <div className="h-1.5 rounded-full transition-all" style={{ width: `${st.pct}%`, background: st.color }} />
+                  </div>
+                  <p className="text-xs font-medium" style={{ color: st.color }}>
+                    Kekuatan: {st.label}
+                    {backupPass.length < MIN_PASS && ` — minimal ${MIN_PASS} karakter (pakai "Generate" untuk kunci kuat)`}
+                  </p>
+                </div>
+              );
+            })()}
             <p className="text-xs text-gray-500">
               Dipakai untuk <b>backup &amp; restore</b> (File &amp; Drive). <b>Simpan baik-baik</b> — kunci ini tak tersimpan & wajib untuk membuka backup di HP lain.
             </p>
@@ -642,7 +676,7 @@ export default function SettingsPage() {
             <p className="text-sm font-semibold text-blue-700">📁 File (.jles)</p>
             <button className="w-full py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors"
               onClick={() => {
-                if (!backupPass || backupPass.length < 4) { setToast("Isi Kata Sandi Enkripsi (min 4 karakter) dulu!"); return; }
+                if (!backupPass || backupPass.length < MIN_PASS) { setToast(`Isi Kata Sandi Enkripsi (min ${MIN_PASS} karakter) dulu!`); return; }
                 requireFinancialPin("exportBackup");
               }}>
               ⬇️ Backup ke File
@@ -676,7 +710,7 @@ export default function SettingsPage() {
               </div>
               <button className="w-full py-2.5 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition-colors"
                 onClick={() => {
-                  if (!backupPass || backupPass.length < 4) { setToast("Isi Kata Sandi Enkripsi (min 4 karakter) dulu!"); return; }
+                  if (!backupPass || backupPass.length < MIN_PASS) { setToast(`Isi Kata Sandi Enkripsi (min ${MIN_PASS} karakter) dulu!`); return; }
                   requireFinancialPin("driveBackup");
                 }}>
                 ☁️⬆️ Backup ke Drive
@@ -696,7 +730,7 @@ export default function SettingsPage() {
               </label>
               {driveAuto && (
                 <p className="text-[11px] text-amber-700 bg-amber-50 rounded-lg px-2 py-1.5">
-                  ⚠️ Kata sandi disimpan di perangkat ini agar backup bisa 1-tap. Tetap simpan salinannya untuk restore di HP lain.
+                  ⚠️ Kata sandi disimpan di perangkat ini agar backup bisa 1-tap — pastikan layar HP terkunci (PIN/biometrik). Tetap simpan salinannya untuk restore di HP lain.
                 </p>
               )}
             </div>

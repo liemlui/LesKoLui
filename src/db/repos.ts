@@ -158,7 +158,7 @@ export async function createSession(
   const id = crypto.randomUUID();
   const now = timestamp();
   const rateSnapshot = student.hourlyRate;
-  const cost = input.durationHours * rateSnapshot;
+  const cost = Math.round(input.durationHours * rateSnapshot);
 
   const tout = input.status === "DONE" ? nowTimeWIB() : undefined;
   const tin  = tout ? subtractHoursFromTime(tout, input.durationHours) : undefined;
@@ -202,7 +202,7 @@ export async function markSessionDone(
   await db.sessions.update(id, {
     ...data,
     durationHours: duration,
-    cost: duration * session.rateSnapshot,
+    cost: Math.round(duration * session.rateSnapshot),
     timeIn:  session.timeIn  ?? tin,
     timeOut: session.timeOut ?? tout,
     status: "DONE",
@@ -226,7 +226,7 @@ export async function updateSession(id: string, patch: Partial<Session>): Promis
   if (patch.durationHours !== undefined) {
     const session = await db.sessions.get(id);
     if (session) {
-      finalPatch.cost = patch.durationHours * session.rateSnapshot;
+      finalPatch.cost = Math.round(patch.durationHours * session.rateSnapshot);
     }
   }
   await db.sessions.update(id, finalPatch);
@@ -334,7 +334,7 @@ export async function scheduleSession(
     shortNote: "",
     status: "SCHEDULED",
     rateSnapshot,
-    cost: input.durationHours * rateSnapshot,
+    cost: Math.round(input.durationHours * rateSnapshot),
     createdAt: now,
     updatedAt: now,
   });
@@ -370,7 +370,7 @@ export async function scheduleBatch(
     status: "SCHEDULED" as const,
     seriesId: sid,
     rateSnapshot,
-    cost: item.durationHours * rateSnapshot,
+    cost: Math.round(item.durationHours * rateSnapshot),
     createdAt: now,
     updatedAt: now,
   }));
@@ -439,7 +439,7 @@ export async function updateSeriesSessions(
     for (const s of toUpdate) {
       const finalPatch: Partial<Session> = { ...patch, updatedAt: now };
       if (patch.durationHours !== undefined) {
-        finalPatch.cost = patch.durationHours * s.rateSnapshot;
+        finalPatch.cost = Math.round(patch.durationHours * s.rateSnapshot);
       }
       await db.sessions.update(s.id, finalPatch);
     }
@@ -537,12 +537,15 @@ export async function getPayment(
 
 export async function upsertPayment(payment: Omit<Payment, "id">): Promise<void> {
   const normalized: Omit<Payment, "id"> = { source: "manual", ...payment };
-  const existing = await getPayment(payment.studentId, payment.month);
-  if (existing) {
-    await db.payments.update(existing.id, normalized);
-  } else {
-    await db.payments.add({ ...normalized, id: crypto.randomUUID() });
-  }
+  // Atomic read-modify-write: cegah baris duplikat saat double-tap / multi-tab.
+  await db.transaction("rw", db.payments, async () => {
+    const existing = await getPayment(payment.studentId, payment.month);
+    if (existing) {
+      await db.payments.update(existing.id, normalized);
+    } else {
+      await db.payments.add({ ...normalized, id: crypto.randomUUID() });
+    }
+  });
 }
 
 export async function listPayments(month?: string): Promise<Payment[]> {
@@ -558,31 +561,37 @@ export async function listPayments(month?: string): Promise<Payment[]> {
 export async function markPaymentTransferred(
   studentId: string, month: string, method = "transfer"
 ): Promise<void> {
-  const existing = await getPayment(studentId, month);
-  if (existing) {
-    await db.payments.update(existing.id, { status: "PAID", paidAt: todayWIB(), method });
-  } else {
-    await db.payments.add({
-      id: crypto.randomUUID(), studentId, month, totalCost: 0,
-      status: "PAID", source: "manual", paidAt: todayWIB(), method,
-    });
-  }
+  await db.transaction("rw", db.payments, async () => {
+    const existing = await getPayment(studentId, month);
+    if (existing) {
+      await db.payments.update(existing.id, { status: "PAID", paidAt: todayWIB(), method });
+    } else {
+      await db.payments.add({
+        id: crypto.randomUUID(), studentId, month, totalCost: 0,
+        status: "PAID", source: "manual", paidAt: todayWIB(), method,
+      });
+    }
+  });
 }
 
 /** Mark a payment back to unpaid (undo "Sudah Transfer"). */
 export async function markPaymentUnpaid(studentId: string, month: string): Promise<void> {
-  const existing = await getPayment(studentId, month);
-  if (existing) {
-    await db.payments.update(existing.id, { status: "UNPAID", paidAt: undefined, method: undefined });
-  }
+  await db.transaction("rw", db.payments, async () => {
+    const existing = await getPayment(studentId, month);
+    if (existing) {
+      await db.payments.update(existing.id, { status: "UNPAID", paidAt: undefined, method: undefined });
+    }
+  });
 }
 
 /** Update only the billed amount of an existing payment (edit before sending). */
 export async function updatePaymentAmount(
   studentId: string, month: string, totalCost: number
 ): Promise<void> {
-  const existing = await getPayment(studentId, month);
-  if (existing) await db.payments.update(existing.id, { totalCost });
+  await db.transaction("rw", db.payments, async () => {
+    const existing = await getPayment(studentId, month);
+    if (existing) await db.payments.update(existing.id, { totalCost });
+  });
 }
 
 // ── Month Closing (Tutup Bulan) ────────────────────────────────────

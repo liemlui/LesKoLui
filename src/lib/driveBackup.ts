@@ -54,10 +54,11 @@ function loadGis(): Promise<void> {
 // ── Token akses (cache di memori, expire ~1 jam) ────────────────────
 let cachedToken: { value: string; expiresAt: number } | undefined;
 
-function getToken(): Promise<string> {
-  if (cachedToken && cachedToken.expiresAt > Date.now() + 60_000) {
+function getToken(forceNew = false): Promise<string> {
+  if (!forceNew && cachedToken && cachedToken.expiresAt > Date.now() + 60_000) {
     return Promise.resolve(cachedToken.value);
   }
+  if (forceNew) cachedToken = undefined;
   if (!CLIENT_ID) return Promise.reject(new Error("VITE_GOOGLE_CLIENT_ID belum diset."));
   return loadGis().then(
     () =>
@@ -84,11 +85,30 @@ function getToken(): Promise<string> {
 // ── Drive REST helpers ──────────────────────────────────────────────
 class DriveNotFound extends Error {}
 
-async function driveFetch(url: string, init: RequestInit, token: string): Promise<Response> {
-  return fetch(url, { ...init, headers: { ...(init.headers ?? {}), Authorization: `Bearer ${token}` } });
+/** Ubah status HTTP Drive jadi pesan Bahasa Indonesia yang jelas & actionable. */
+function driveErrorMessage(action: string, status: number): string {
+  if (status === 401) return `${action} gagal: sesi Google kedaluwarsa. Coba lagi (login ulang bila diminta).`;
+  if (status === 403) return `${action} gagal: akses ditolak atau penyimpanan Google Drive penuh.`;
+  if (status === 404) return `${action} gagal: file backup tidak ditemukan di Drive.`;
+  if (status >= 500) return `${action} gagal: server Google sedang bermasalah. Coba lagi nanti.`;
+  return `${action} gagal (kode ${status}).`;
 }
 
-async function createFile(blob: Blob, token: string): Promise<string> {
+/**
+ * Fetch Drive dengan auth + retry SEKALI pada 401 (token GIS hanya ~1 jam, bisa
+ * basi di tengah pemakaian). Token diambil ulang paksa lalu request diulang.
+ */
+async function driveFetch(url: string, init: RequestInit): Promise<Response> {
+  let token = await getToken();
+  let res = await fetch(url, { ...init, headers: { ...(init.headers ?? {}), Authorization: `Bearer ${token}` } });
+  if (res.status === 401) {
+    token = await getToken(true); // paksa token baru, lalu ulangi sekali
+    res = await fetch(url, { ...init, headers: { ...(init.headers ?? {}), Authorization: `Bearer ${token}` } });
+  }
+  return res;
+}
+
+async function createFile(blob: Blob): Promise<string> {
   const metadata = { name: FILE_NAME, mimeType: "application/octet-stream" };
   const form = new FormData();
   form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
@@ -96,21 +116,19 @@ async function createFile(blob: Blob, token: string): Promise<string> {
   const res = await driveFetch(
     "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
     { method: "POST", body: form },
-    token,
   );
-  if (!res.ok) throw new Error(`Drive create gagal (${res.status}): ${await res.text()}`);
+  if (!res.ok) throw new Error(driveErrorMessage("Backup ke Drive", res.status));
   const json = (await res.json()) as { id: string };
   return json.id;
 }
 
-async function updateFile(fileId: string, blob: Blob, token: string): Promise<void> {
+async function updateFile(fileId: string, blob: Blob): Promise<void> {
   const res = await driveFetch(
     `https://www.googleapis.com/upload/drive/v3/files/${encodeURIComponent(fileId)}?uploadType=media`,
     { method: "PATCH", body: blob },
-    token,
   );
   if (res.status === 404) throw new DriveNotFound();
-  if (!res.ok) throw new Error(`Drive update gagal (${res.status}): ${await res.text()}`);
+  if (!res.ok) throw new Error(driveErrorMessage("Backup ke Drive", res.status));
 }
 
 /**
@@ -119,42 +137,37 @@ async function updateFile(fileId: string, blob: Blob, token: string): Promise<vo
  * @returns fileId (disimpan caller untuk backup berikutnya).
  */
 export async function uploadBackupToDrive(blob: Blob, existingFileId?: string): Promise<string> {
-  const token = await getToken();
   if (existingFileId) {
     try {
-      await updateFile(existingFileId, blob, token);
+      await updateFile(existingFileId, blob);
       return existingFileId;
     } catch (e) {
       if (!(e instanceof DriveNotFound)) throw e;
       // file hilang di Drive → lanjut buat baru
     }
   }
-  return createFile(blob, token);
+  return createFile(blob);
 }
 
 /** Cari file backup di Drive berdasar nama (untuk restore di HP baru tanpa fileId lokal). */
 export async function findDriveBackup(): Promise<{ id: string; modifiedTime: string } | null> {
-  const token = await getToken();
   const q = encodeURIComponent(`name='${FILE_NAME}' and trashed=false`);
   const res = await driveFetch(
     `https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,modifiedTime)&orderBy=modifiedTime desc&pageSize=1`,
     { method: "GET" },
-    token,
   );
-  if (!res.ok) throw new Error(`Drive cari file gagal (${res.status}).`);
+  if (!res.ok) throw new Error(driveErrorMessage("Cari file di Drive", res.status));
   const json = (await res.json()) as { files?: { id: string; modifiedTime: string }[] };
   return json.files?.[0] ?? null;
 }
 
 /** Unduh isi file backup dari Drive (untuk restore). */
 export async function downloadBackupFromDrive(fileId: string): Promise<Blob> {
-  const token = await getToken();
   const res = await driveFetch(
     `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`,
     { method: "GET" },
-    token,
   );
-  if (!res.ok) throw new Error(`Drive unduh gagal (${res.status}).`);
+  if (!res.ok) throw new Error(driveErrorMessage("Unduh dari Drive", res.status));
   return res.blob();
 }
 

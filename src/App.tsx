@@ -6,6 +6,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ToastProvider, useToastCtx } from "./components/ToastProvider";
 import ToastContainer from "./components/Toast";
 import { todayWIB } from "./lib/format";
+import { isQuotaError, isStorageNearFull } from "./lib/storageGuard";
 
 // Lazy-load startup data after mount so the first paint only carries the app shell.
 type AppDataModule = typeof import("./lib/appData");
@@ -36,6 +37,7 @@ function Layout() {
   const [backupPrompt, setBackupPrompt] = useState(false);
   const [driveBusy, setDriveBusy] = useState(false);
   const [flash, setFlash] = useState("");
+  const [storageWarn, setStorageWarn] = useState(false);
 
   // Offline indicator
   useEffect(() => {
@@ -90,7 +92,7 @@ function Layout() {
   // Backup 1-tap ke Drive dari prompt mingguan (passphrase tersimpan di perangkat)
   const doReminderDriveBackup = useCallback(async () => {
     const pass = localStorage.getItem(DRIVE_PASS_KEY) || "";
-    if (pass.length < 4) { setBackupPrompt(false); navigate("/settings"); return; }
+    if (pass.length < 8) { setBackupPrompt(false); navigate("/settings"); return; }
     setDriveBusy(true);
     try {
       const mod = await import("./lib/driveBackup");
@@ -119,9 +121,22 @@ function Layout() {
     return () => clearTimeout(t);
   }, [flash]);
 
+  // Peringatan kuota penyimpanan: cegah kehilangan data senyap di app offline-first.
+  useEffect(() => {
+    const onReject = (ev: PromiseRejectionEvent) => {
+      if (isQuotaError(ev.reason)) { ev.preventDefault(); setStorageWarn(true); }
+    };
+    window.addEventListener("unhandledrejection", onReject);
+    return () => window.removeEventListener("unhandledrejection", onReject);
+  }, []);
+
   useEffect(() => {
     appData().then((r) => r.initSettings());
-    if (navigator.storage?.persist) navigator.storage.persist();
+    // Minta penyimpanan persisten (anti-eviction). persist() sering false sampai PWA
+    // di-install — itu normal, jadi JANGAN warn di situ; cukup peringatkan kalau
+    // penyimpanan sudah mendekati penuh.
+    navigator.storage?.persist?.();
+    isStorageNearFull().then((full) => { if (full) setStorageWarn(true); });
 
     // Request notification permission then schedule hw notifications
     if ("Notification" in window && Notification.permission === "default") {
@@ -146,6 +161,17 @@ function Layout() {
         <div className="fixed top-0 inset-x-0 z-[200] px-4 pt-2">
           <div className="max-w-md mx-auto bg-gray-800 text-white text-xs font-semibold px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg">
             <span>📵</span> Offline — data tetap aman, perubahan disimpan lokal
+          </div>
+        </div>
+      )}
+
+      {/* Peringatan penyimpanan penuh — risiko kehilangan data (persistent, bisa ditutup) */}
+      {storageWarn && (
+        <div className="fixed top-0 inset-x-0 z-[210] px-4 pt-2">
+          <div className="max-w-md mx-auto bg-red-600 text-white text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-lg">
+            <span>⚠️</span>
+            <span className="flex-1">Penyimpanan hampir penuh — ekspor backup lalu hapus data/foto lama agar data baru tak gagal tersimpan.</span>
+            <button onClick={() => setStorageWarn(false)} className="font-bold px-1" aria-label="Tutup peringatan">✕</button>
           </div>
         </div>
       )}
