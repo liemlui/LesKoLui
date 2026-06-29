@@ -152,16 +152,35 @@ function Layout() {
     // Check auto backup
     checkAutoBackup();
 
-    // Peringatan "backup menua": hanya kalau ada data & backup > 14 hari / belum pernah.
-    appData().then(async (r) => {
+    // Backup senyap (relay) saat due — atau fallback peringatan "backup menua".
+    void (async () => {
+      const r = await appData();
       const students = await r.listStudents(true);
       if (students.length === 0) return; // app baru / kosong → jangan nag
-      const settings = await r.getSettings();
-      const last = settings.lastBackupAt;
-      if (!last) { setStaleBackup({ days: null }); return; }
-      const days = Math.floor((Date.now() - new Date(last).getTime()) / 86400000);
+      const s = await r.getSettings();
+      const lastMs = s.lastBackupAt ? new Date(s.lastBackupAt).getTime() : 0;
+      const due = !s.lastBackupAt || Date.now() - lastMs >= AUTO_BACKUP_INTERVAL_DAYS * 86400000;
+
+      const mod = await import("./lib/driveBackup");
+      if (mod.isRelayConfigured() && navigator.onLine) {
+        const pass = localStorage.getItem(DRIVE_PASS_KEY) || "";
+        if (!due) return;                       // relay aktif & masih segar → aman
+        if (pass.length >= 8) {
+          try {
+            await mod.performDriveBackup(pass);  // SENYAP, tanpa popup
+            localStorage.setItem(AUTO_BACKUP_KEY, String(Date.now()));
+            setBackupPrompt(false);
+            setFlash("Backup otomatis ke Drive ✓");
+            return;
+          } catch { /* gagal → jatuh ke peringatan menua */ }
+        }
+      }
+
+      // Fallback: peringatan keras kalau backup sudah lama / belum pernah.
+      if (!s.lastBackupAt) { setStaleBackup({ days: null }); return; }
+      const days = Math.floor((Date.now() - lastMs) / 86400000);
       if (days >= STALE_BACKUP_DAYS) setStaleBackup({ days });
-    }).catch(() => {});
+    })().catch(() => {});
   }, [scheduleHwNotifications, checkAutoBackup]);
 
   return (

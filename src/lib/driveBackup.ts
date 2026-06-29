@@ -51,14 +51,45 @@ function loadGis(): Promise<void> {
   return gisPromise;
 }
 
-// ── Token akses (cache di memori, expire ~1 jam) ────────────────────
+// Token akses Google (cache di memori, expire ~1 jam). Dipakai relay & GIS.
 let cachedToken: { value: string; expiresAt: number } | undefined;
+
+// ── Backend token-relay (opsional) ──────────────────────────────────
+// Bila dikonfigurasi, app dapat access-token TANPA popup Google (silent),
+// memungkinkan backup tanpa tap saat app dibuka & sudah waktunya. Server
+// hanya menukar refresh→access; data backup tetap dibuat di perangkat.
+const RELAY_SECRET_KEY = "leskolui_relay_secret";
+
+/** True kalau secret relay sudah diisi (di Settings) → mode silent aktif. */
+export function isRelayConfigured(): boolean {
+  try { return !!localStorage.getItem(RELAY_SECRET_KEY); } catch { return false; }
+}
+
+async function getRelayToken(): Promise<string> {
+  const secret = (() => { try { return localStorage.getItem(RELAY_SECRET_KEY) || ""; } catch { return ""; } })();
+  const res = await fetch(`${location.origin}/api/drive/token`, {
+    method: "POST",
+    headers: { "x-backup-secret": secret },
+  });
+  if (!res.ok) {
+    const msg = res.status === 503 ? "Relay backup belum dikonfigurasi di server (env)."
+      : res.status === 401 ? "Secret relay salah."
+      : `Relay backup gagal (${res.status}).`;
+    throw new Error(msg);
+  }
+  const data = (await res.json()) as { access_token?: string; expires_in?: number };
+  if (!data.access_token) throw new Error("Relay tidak mengembalikan token.");
+  cachedToken = { value: data.access_token, expiresAt: Date.now() + (data.expires_in ?? 3600) * 1000 };
+  return data.access_token;
+}
 
 function getToken(forceNew = false): Promise<string> {
   if (!forceNew && cachedToken && cachedToken.expiresAt > Date.now() + 60_000) {
     return Promise.resolve(cachedToken.value);
   }
   if (forceNew) cachedToken = undefined;
+  // Mode silent via backend relay (tanpa popup) bila dikonfigurasi.
+  if (isRelayConfigured()) return getRelayToken();
   if (!CLIENT_ID) return Promise.reject(new Error("VITE_GOOGLE_CLIENT_ID belum diset."));
   return loadGis().then(
     () =>
@@ -182,6 +213,12 @@ export async function performDriveBackup(passphrase: string): Promise<void> {
   const fileId = await uploadBackupToDrive(blob, settings.driveBackup?.fileId);
   const now = new Date().toISOString();
   await saveSettings({ driveBackup: { fileId, backupAt: now }, lastBackupAt: now });
+}
+
+/** Tes konfigurasi relay: minta token baru lewat relay. Throw kalau gagal. */
+export async function testRelay(): Promise<void> {
+  if (!isRelayConfigured()) throw new Error("Secret relay belum diisi.");
+  await getToken(true);
 }
 
 /** Muat GIS lebih awal (mis. saat prompt backup muncul) agar tap-nya responsif. */

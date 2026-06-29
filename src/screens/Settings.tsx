@@ -6,7 +6,7 @@ import {
 } from "../db/repos";
 import { db } from "../db/db";
 import { exportBackup, importBackup } from "../lib/backup";
-import { isDriveConfigured, uploadBackupToDrive, downloadBackupFromDrive, findDriveBackup } from "../lib/driveBackup";
+import { isDriveConfigured, uploadBackupToDrive, downloadBackupFromDrive, findDriveBackup, testRelay } from "../lib/driveBackup";
 import { exportDataCsvBlob } from "../lib/exportData";
 import { hashPin, verifyPin, decryptJson } from "../lib/crypto";
 import { todayWIB } from "../lib/format";
@@ -199,6 +199,8 @@ export default function SettingsPage() {
   const [pinError,    setPinError]    = useState("");
   const [pinAction,   setPinAction]   = useState<"exportBackup" | "restore" | "resetAll" | "driveBackup" | "driveRestore" | "exportCsv" | null>(null);
   const [verifying,   setVerifying]   = useState(false);
+  const [relaySecret, setRelaySecret] = useState(() => { try { return localStorage.getItem("leskolui_relay_secret") || ""; } catch { return ""; } });
+  const [relayBusy,   setRelayBusy]   = useState(false);
   const [openSection, setOpenSection] = useState<string | null>(null);
   const restoreRef = useRef<HTMLInputElement>(null);
   const fileRef    = useRef<HTMLInputElement>(null);
@@ -388,6 +390,23 @@ export default function SettingsPage() {
       setToast("Verifikasi gagal: " + ((e as Error).message || "kata sandi salah / file rusak"));
     } finally {
       setVerifying(false);
+    }
+  };
+
+  const saveRelaySecret = (v: string) => {
+    setRelaySecret(v);
+    try { if (v) localStorage.setItem("leskolui_relay_secret", v); else localStorage.removeItem("leskolui_relay_secret"); } catch { /* ignore */ }
+  };
+
+  const doTestRelay = async () => {
+    setRelayBusy(true);
+    try {
+      await testRelay();
+      setToast("Relay backup OK ✓ — token diperoleh tanpa popup");
+    } catch (e) {
+      setToast("Relay gagal: " + ((e as Error).message || "cek setup server"));
+    } finally {
+      setRelayBusy(false);
     }
   };
 
@@ -852,6 +871,22 @@ export default function SettingsPage() {
                   ⚠️ Kata sandi disimpan di perangkat ini agar backup bisa 1-tap — pastikan layar HP terkunci (PIN/biometrik). Tetap simpan salinannya untuk restore di HP lain.
                 </p>
               )}
+
+              {/* Backup senyap (relay) — backup tanpa popup saat app dibuka & sudah due */}
+              <div className="pt-2 border-t border-green-100 space-y-1.5">
+                <label className="label text-green-800">⚡ Backup senyap (relay, lanjutan)</label>
+                <input className="input font-mono text-xs" type="password" placeholder="Secret relay (BACKUP_API_SECRET)"
+                  value={relaySecret} onChange={(e) => saveRelaySecret(e.target.value)} />
+                <div className="flex items-center gap-2">
+                  <button disabled={relayBusy || !relaySecret}
+                    onClick={doTestRelay}
+                    className="text-xs px-3 py-1.5 rounded-xl bg-green-100 text-green-700 font-medium disabled:opacity-50">
+                    {relayBusy ? "Menguji..." : "Tes relay"}
+                  </button>
+                  <span className="text-[11px] text-gray-400">{relaySecret ? "Aktif — backup tanpa popup" : "Nonaktif (pakai 1-tap)"}</span>
+                </div>
+                <p className="text-[11px] text-gray-400">Butuh setup server 1x. Lihat docs/ZERO-TOUCH-BACKUP.md.</p>
+              </div>
             </div>
           ) : (
             <div className="bg-gray-50 rounded-xl p-3">
