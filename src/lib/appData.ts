@@ -1,5 +1,6 @@
 import {
   initSettings,
+  getSettings,
   listAllPendingHomework,
   listAllUpcomingScheduled,
   listStudents,
@@ -7,6 +8,7 @@ import {
 
 export {
   initSettings,
+  getSettings,
   listAllPendingHomework,
   listAllUpcomingScheduled,
   listStudents,

@@ -63,6 +63,38 @@ Verifikasi v1.19.0: lint bersih, **116 test lulus**, build OK.
 
 ---
 
+## 🔄 Ronde 3 — v1.20.0 (2026-06-29) — Hardening produksi
+
+Menuju ~96% siap-produksi (skala solo). Verifikasi: lint bersih, **129 unit test**, **3 E2E**, build OK.
+
+### Tier 1 — Anti data-loss (risiko terbesar app offline solo)
+| Item | Status |
+|------|--------|
+| Peringatan backup **"menua"** — banner merah bila backup >14 hari / belum pernah (hanya kalau ada data) | ✅ `App.tsx` |
+| **Verifikasi backup Drive** — unduh + dekripsi + hitung murid/sesi untuk pastikan valid (tangkap korupsi senyap) | ✅ `Settings.tsx` |
+| **Export data CSV** terbaca (PII-gated PIN, anti CSV-formula-injection) sebagai cadangan tanpa app | ✅ `lib/exportData.ts` |
+| Backup **zero-touch terjadwal** | ⏳ butuh backend + setup user — lihat di bawah |
+
+### Tier 3 — Kualitas
+| Item | Status |
+|------|--------|
+| **E2E smoke (Playwright)** + job CI | ✅ `e2e/`, `playwright.config.ts`, `.github/workflows/ci.yml` |
+| Unit test tambahan (csv, studentColor, aiCost, exportData) → **129** | ✅ |
+| **A11y sweep** — `aria-label` kontrol ikon-saja (modal-close, search-clear, nav tahun, hapus foto/TTD/pengeluaran) di 6 layar | ✅ |
+| `eslint-plugin-jsx-a11y` | ⏭️ dilewati — belum dukung **ESLint v10** (peer conflict, bisa rusak `npm ci`); diganti sweep manual + saran jalankan **Lighthouse a11y** berkala |
+
+### Tier 2 — di-skip atas permintaan (tanpa Sentry; dibiarkan). Tier 4 — ditunda (multi-user/komersial).
+
+### ⏳ Backup zero-touch terjadwal — langkah setup (butuh tindakan user)
+Backup otomatis **tanpa tap & saat app tertutup** WAJIB backend (refresh token tak boleh disimpan di client). Rencana implementasi:
+1. **Google Cloud**: ubah OAuth Client ke tipe **Web application** + minta **offline access** (auth-code flow) → dapat **client secret**.
+2. **Vercel serverless `/api/backup`** (folder `/api` sudah dikecualikan dari rewrite SPA di `vercel.json`): tukar auth-code → refresh token, simpan aman (Vercel KV / env terenkripsi).
+3. **Vercel Cron** panggil `/api/backup` mingguan → tukar refresh→access token → upload ke Drive.
+
+Estimasi ~4-6 jam + setup Google Cloud olehmu. Sampai itu ada, **1-tap mingguan + peringatan "menua" + verifikasi** sudah menutup sebagian besar risiko.
+
+---
+
 ## 🔴 CRITICAL — Harus diperbaiki sebelum produksi
 
 ### C-1. Token Vercel OIDC terekspos di `.env.local`

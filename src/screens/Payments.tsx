@@ -802,7 +802,7 @@ export default function PaymentsPage() {
                   <p className="text-sm font-medium text-gray-800 mt-1 truncate">{e.description}</p>
                   <p className="text-sm font-bold text-red-600">{formatRupiah(e.amount)}</p>
                 </div>
-                <button onClick={async () => { if (confirm("Hapus pengeluaran ini?")) await deleteExpense(e.id); }}
+                <button aria-label="Hapus pengeluaran" onClick={async () => { if (confirm("Hapus pengeluaran ini?")) await deleteExpense(e.id); }}
                   className="text-gray-300 hover:text-red-400 p-1.5 flex-shrink-0">🗑</button>
               </div>
             ))}
@@ -817,9 +817,9 @@ export default function PaymentsPage() {
             <div className="flex items-center justify-between">
               <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Audit Tahunan</p>
               <div className="flex items-center gap-3">
-                <button onClick={() => setAuditYear((y) => y - 1)} className="text-gray-400 hover:text-gray-700 text-lg leading-none">‹</button>
+                <button aria-label="Tahun sebelumnya" onClick={() => setAuditYear((y) => y - 1)} className="text-gray-400 hover:text-gray-700 text-lg leading-none">‹</button>
                 <span className="font-semibold text-gray-700">{auditYear}</span>
-                <button onClick={() => setAuditYear((y) => y + 1)} className="text-gray-400 hover:text-gray-700 text-lg leading-none">›</button>
+                <button aria-label="Tahun berikutnya" onClick={() => setAuditYear((y) => y + 1)} className="text-gray-400 hover:text-gray-700 text-lg leading-none">›</button>
               </div>
             </div>
             <div className="overflow-x-auto">
@@ -968,7 +968,7 @@ function InvoiceModal({
               className="bg-indigo-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
               {exporting ? "Ekspor..." : "📥 PDF"}
             </button>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg w-8">✕</button>
+            <button aria-label="Tutup" onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg w-8">✕</button>
           </div>
         </div>
 

@@ -8,6 +8,8 @@ export default defineConfig({
   test: {
     globals: true,
     setupFiles: ["./src/setupTests.ts"],
+    // Batasi vitest ke unit/integration di src/ — jangan tangkap E2E Playwright di e2e/
+    include: ["src/**/*.{test,spec}.{ts,tsx}"],
   },
   plugins: [
     react(),

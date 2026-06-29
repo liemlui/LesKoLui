@@ -27,6 +27,7 @@ const Settings = lazy(() => import("./screens/Settings"));
 
 const AUTO_BACKUP_KEY = "leskolui_last_auto_backup_prompt";
 const AUTO_BACKUP_INTERVAL_DAYS = 7;
+const STALE_BACKUP_DAYS = 14; // ambang peringatan keras "backup menua"
 const DRIVE_AUTO_KEY = "leskolui_drive_auto";
 const DRIVE_PASS_KEY = "leskolui_drive_pass";
 const driveAutoOn = () => localStorage.getItem(DRIVE_AUTO_KEY) === "1" && !!import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -38,6 +39,7 @@ function Layout() {
   const [driveBusy, setDriveBusy] = useState(false);
   const [flash, setFlash] = useState("");
   const [storageWarn, setStorageWarn] = useState(false);
+  const [staleBackup, setStaleBackup] = useState<{ days: number | null } | null>(null);
 
   // Offline indicator
   useEffect(() => {
@@ -149,6 +151,17 @@ function Layout() {
 
     // Check auto backup
     checkAutoBackup();
+
+    // Peringatan "backup menua": hanya kalau ada data & backup > 14 hari / belum pernah.
+    appData().then(async (r) => {
+      const students = await r.listStudents(true);
+      if (students.length === 0) return; // app baru / kosong → jangan nag
+      const settings = await r.getSettings();
+      const last = settings.lastBackupAt;
+      if (!last) { setStaleBackup({ days: null }); return; }
+      const days = Math.floor((Date.now() - new Date(last).getTime()) / 86400000);
+      if (days >= STALE_BACKUP_DAYS) setStaleBackup({ days });
+    }).catch(() => {});
   }, [scheduleHwNotifications, checkAutoBackup]);
 
   return (
@@ -172,6 +185,22 @@ function Layout() {
             <span>⚠️</span>
             <span className="flex-1">Penyimpanan hampir penuh — ekspor backup lalu hapus data/foto lama agar data baru tak gagal tersimpan.</span>
             <button onClick={() => setStorageWarn(false)} className="font-bold px-1" aria-label="Tutup peringatan">✕</button>
+          </div>
+        </div>
+      )}
+
+      {/* Peringatan backup menua — risiko kehilangan data bila HP hilang/rusak */}
+      {staleBackup && !storageWarn && (
+        <div className="fixed top-0 inset-x-0 z-[205] px-4 pt-2">
+          <div className="max-w-md mx-auto bg-red-600 text-white text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-lg">
+            <span>🛟</span>
+            <span className="flex-1">
+              {staleBackup.days === null
+                ? "Datamu belum pernah di-backup. Lindungi dari kehilangan HP/kerusakan."
+                : `Backup terakhir ${staleBackup.days} hari lalu. Segera backup agar datamu aman.`}
+            </span>
+            <button onClick={() => { setStaleBackup(null); navigate("/settings"); }} className="bg-white/20 px-2 py-1 rounded-lg font-bold">Backup</button>
+            <button onClick={() => setStaleBackup(null)} className="font-bold px-1" aria-label="Tutup peringatan">✕</button>
           </div>
         </div>
       )}

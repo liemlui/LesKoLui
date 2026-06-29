@@ -218,7 +218,7 @@ export default function Students() {
             <button
               onClick={(e) => { e.preventDefault(); requirePin("edit", s); }}
               className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-blue-100 text-gray-500 hover:text-blue-600 flex-shrink-0 transition-colors text-sm"
-              title="Edit murid"
+              aria-label="Edit murid" title="Edit murid"
             >✏️</button>
           </div>
         </Link>
@@ -301,7 +301,7 @@ export default function Students() {
           onChange={(e) => { setSearch(e.target.value); setActivePage(1); setHistPage(1); }}
         />
         {search && (
-          <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">✕</button>
+          <button aria-label="Hapus pencarian" onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">✕</button>
         )}
       </div>
 

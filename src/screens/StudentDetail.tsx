@@ -1298,7 +1298,7 @@ export default function StudentDetail() {
                 <h3 className="font-bold text-base">Edit Catatan Sesi</h3>
                 <p className="text-xs text-gray-400 mt-0.5">{editSession.date} · {editSession.durationHours}j</p>
               </div>
-              <button onClick={() => setEditSession(null)} className="text-gray-400 text-xl">✕</button>
+              <button onClick={() => setEditSession(null)} aria-label="Tutup" className="text-gray-400 text-xl">✕</button>
             </div>
             <div className="p-5 space-y-4">
               <div>
@@ -1367,7 +1367,7 @@ export default function StudentDetail() {
           <div className="bg-white w-full max-w-md rounded-t-2xl pb-8 max-h-[90vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h3 className="font-bold text-lg">Input Nilai Rapor</h3>
-              <button onClick={() => setShowRapor(false)} className="text-gray-400 text-xl">✕</button>
+              <button onClick={() => setShowRapor(false)} aria-label="Tutup" className="text-gray-400 text-xl">✕</button>
             </div>
             <div className="p-5 space-y-4">
               <div>
@@ -1431,7 +1431,7 @@ export default function StudentDetail() {
                 <h3 className="font-bold text-lg">Edit Jadwal</h3>
                 <p className="text-xs text-gray-400">{dayLabel(editTarget.date)}{editTarget.seriesId ? " · Sesi berulang 🔁" : ""}</p>
               </div>
-              <button onClick={() => setEditTarget(null)} className="text-gray-400 text-xl">✕</button>
+              <button onClick={() => setEditTarget(null)} aria-label="Tutup" className="text-gray-400 text-xl">✕</button>
             </div>
             <div className="p-5 space-y-4">
               <div>
@@ -1508,7 +1508,7 @@ export default function StudentDetail() {
                 <h3 className="font-bold text-lg">💬 Tagihan via WA</h3>
                 <p className="text-xs text-gray-400 mt-0.5">{student.name}</p>
               </div>
-              <button onClick={() => setShowBilling(false)} className="text-gray-400 text-xl">✕</button>
+              <button onClick={() => setShowBilling(false)} aria-label="Tutup" className="text-gray-400 text-xl">✕</button>
             </div>
 
             {!settings?.financialPin ? (
@@ -1610,7 +1610,7 @@ export default function StudentDetail() {
                   <h3 className="font-bold text-base">{(s.subjects ?? []).join(", ") || "Sesi umum"}</h3>
                   <p className="text-xs text-gray-400 mt-0.5">{dayLabel(s.date)}</p>
                 </div>
-                <button onClick={() => setDetailSession(null)} className="text-gray-400 text-xl">✕</button>
+                <button onClick={() => setDetailSession(null)} aria-label="Tutup" className="text-gray-400 text-xl">✕</button>
               </div>
 
               <div className="p-5 space-y-4">

@@ -659,7 +659,7 @@ export default function CaptureSession() {
           {photoUrl ? (
             <div className="relative">
               <img src={photoUrl} alt="preview" className="w-full h-52 object-cover rounded-2xl shadow-md" />
-              <button onClick={() => setPhoto(undefined)}
+              <button aria-label="Hapus foto" onClick={() => setPhoto(undefined)}
                 className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-7 h-7 text-sm flex items-center justify-center shadow-md">✕</button>
               <button onClick={() => fileRef.current?.click()}
                 className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-3 py-1 rounded-full">📷 Ganti</button>
@@ -682,7 +682,7 @@ export default function CaptureSession() {
               <p className="text-xs text-gray-500 font-medium mb-1.5">✍️ Tanda Tangan Murid</p>
               <div className="relative bg-white rounded-xl border border-gray-200 p-2">
                 <img src={signatureUrl} alt="TTD" className="max-h-24 w-full object-contain" />
-                <button onClick={() => { setSignature(undefined); setShowSigPad(false); }}
+                <button aria-label="Hapus tanda tangan" onClick={() => { setSignature(undefined); setShowSigPad(false); }}
                   className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">✕</button>
               </div>
             </div>
@@ -1313,7 +1313,7 @@ export default function CaptureSession() {
                   <p className="text-xs text-gray-400 mt-0.5">{CURRICULUM_META[currentStudent.curriculum].label}</p>
                 )}
               </div>
-              <button onClick={() => setShowIBPicker(false)} className="text-gray-400 text-xl">✕</button>
+              <button aria-label="Tutup" onClick={() => setShowIBPicker(false)} className="text-gray-400 text-xl">✕</button>
             </div>
 
             {currentStudent?.curriculum ? (

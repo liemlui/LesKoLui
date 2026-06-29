@@ -7,7 +7,8 @@ import {
 import { db } from "../db/db";
 import { exportBackup, importBackup } from "../lib/backup";
 import { isDriveConfigured, uploadBackupToDrive, downloadBackupFromDrive, findDriveBackup } from "../lib/driveBackup";
-import { hashPin, verifyPin } from "../lib/crypto";
+import { exportDataCsvBlob } from "../lib/exportData";
+import { hashPin, verifyPin, decryptJson } from "../lib/crypto";
 import { todayWIB } from "../lib/format";
 import { compressPhoto } from "../lib/foto";
 import { downloadBlob } from "../lib/download";
@@ -196,7 +197,8 @@ export default function SettingsPage() {
   const [newPin,      setNewPin]      = useState("");
   const [newPinConf,  setNewPinConf]  = useState("");
   const [pinError,    setPinError]    = useState("");
-  const [pinAction,   setPinAction]   = useState<"exportBackup" | "restore" | "resetAll" | "driveBackup" | "driveRestore" | null>(null);
+  const [pinAction,   setPinAction]   = useState<"exportBackup" | "restore" | "resetAll" | "driveBackup" | "driveRestore" | "exportCsv" | null>(null);
+  const [verifying,   setVerifying]   = useState(false);
   const [openSection, setOpenSection] = useState<string | null>(null);
   const restoreRef = useRef<HTMLInputElement>(null);
   const fileRef    = useRef<HTMLInputElement>(null);
@@ -362,6 +364,33 @@ export default function SettingsPage() {
     setTimeout(() => location.reload(), 1500);
   };
 
+  const doExportCsv = async () => {
+    const blob = await exportDataCsvBlob();
+    downloadBlob(blob, `leskolui-data-${todayWIB()}.csv`);
+    setToast("Data diekspor ke CSV ✓");
+  };
+
+  // Verifikasi backup Drive: unduh + dekripsi untuk pastikan file valid & terbaca.
+  const doVerifyDrive = async () => {
+    if (!backupPass) { setToast("Isi Kata Sandi Enkripsi dulu untuk verifikasi!"); return; }
+    setVerifying(true);
+    try {
+      const found = await findDriveBackup();
+      if (!found) { setToast("Tidak ada backup di Google Drive."); return; }
+      const blob = await downloadBackupFromDrive(found.id);
+      const dump = await decryptJson(blob, backupPass) as { data?: Record<string, unknown[]> };
+      if (!dump?.data) { setToast("Backup tak valid (gagal dibaca)."); return; }
+      const nM = dump.data.students?.length ?? 0;
+      const nS = dump.data.sessions?.length ?? 0;
+      const when = new Date(found.modifiedTime).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" });
+      setToast(`Backup valid ✓ ${nM} murid, ${nS} sesi (${when})`);
+    } catch (e) {
+      setToast("Verifikasi gagal: " + ((e as Error).message || "kata sandi salah / file rusak"));
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   const toggleDriveAuto = (v: boolean) => {
     if (v) {
       if (!backupPass || backupPass.length < MIN_PASS) { setToast(`Isi Kata Sandi Enkripsi (min ${MIN_PASS} karakter) dulu untuk aktifkan auto.`); return; }
@@ -400,6 +429,7 @@ export default function SettingsPage() {
       if (pinAction === "resetAll") await doResetAll();
       if (pinAction === "driveBackup") await doDriveBackup();
       if (pinAction === "driveRestore") await doDriveRestore();
+      if (pinAction === "exportCsv") await doExportCsv();
       setPinAction(null);
     } catch (e) {
       setToast("Gagal: " + ((e as Error).message || "terjadi kesalahan."));
@@ -432,6 +462,11 @@ export default function SettingsPage() {
       title: "Restore dari Google Drive",
       description: "Restore akan mengganti data saat ini. Masukkan PIN untuk lanjut.",
       confirmLabel: "Restore",
+    },
+    exportCsv: {
+      title: "Ekspor Data ke CSV",
+      description: "File CSV berisi data murid & keuangan (tidak terenkripsi). Masukkan PIN untuk lanjut.",
+      confirmLabel: "Ekspor",
     },
   } as const;
 
@@ -755,6 +790,11 @@ export default function SettingsPage() {
               }}>
               ⬇️ Backup ke File
             </button>
+            <button className="w-full py-2 rounded-xl bg-blue-100 text-blue-700 text-sm font-medium hover:bg-blue-200 transition-colors"
+              onClick={() => requireFinancialPin("exportCsv")}>
+              📊 Ekspor data ke CSV (terbaca)
+            </button>
+            <p className="text-[11px] text-blue-500">CSV terbaca tanpa app (cadangan tambahan). Backup .jles tetap utama (terenkripsi).</p>
             <div className="border-t border-blue-100 pt-2.5 space-y-2">
               <label className="label text-blue-800">Restore dari file</label>
               <input ref={restoreRef} type="file" accept=".jles" className="text-sm text-gray-600 w-full" />
@@ -796,6 +836,11 @@ export default function SettingsPage() {
                   requireFinancialPin("driveRestore");
                 }}>
                 ☁️♻️ Restore dari Drive
+              </button>
+              <button disabled={verifying}
+                className="w-full py-2 rounded-xl bg-white text-green-700 text-sm font-medium border border-green-200 hover:bg-green-50 transition-colors disabled:opacity-60"
+                onClick={doVerifyDrive}>
+                {verifying ? "Memverifikasi..." : "🔎 Verifikasi backup Drive"}
               </button>
               <p className="text-xs text-green-600">1 file di-overwrite tiap backup — Drive simpan riwayat versi.</p>
               <label className="flex items-center gap-2.5 pt-2 border-t border-green-100 cursor-pointer">
