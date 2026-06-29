@@ -2,11 +2,11 @@ import { useState, useEffect, useRef, useMemo, createContext, useContext } from 
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   getSettings, saveSettings, logAudit, listAuditLog,
-  countSessionPhotos, pruneSessionPhotosBefore,
+  countSessionPhotos, pruneSessionPhotosBefore, setSwBackupConfig,
 } from "../db/repos";
 import { db } from "../db/db";
 import { exportBackup, importBackup } from "../lib/backup";
-import { isDriveConfigured, uploadBackupToDrive, downloadBackupFromDrive, findDriveBackup, testRelay } from "../lib/driveBackup";
+import { isDriveConfigured, uploadBackupToDrive, downloadBackupFromDrive, findDriveBackup, testRelay, registerPeriodicBackup, unregisterPeriodicBackup } from "../lib/driveBackup";
 import { exportDataCsvBlob } from "../lib/exportData";
 import { hashPin, verifyPin, decryptJson } from "../lib/crypto";
 import { todayWIB } from "../lib/format";
@@ -396,6 +396,8 @@ export default function SettingsPage() {
   const saveRelaySecret = (v: string) => {
     setRelaySecret(v);
     try { if (v) localStorage.setItem("leskolui_relay_secret", v); else localStorage.removeItem("leskolui_relay_secret"); } catch { /* ignore */ }
+    // Mirror ke IndexedDB agar Service Worker (background sync) bisa membacanya.
+    void setSwBackupConfig({ relaySecret: v || undefined });
   };
 
   const doTestRelay = async () => {
@@ -416,11 +418,16 @@ export default function SettingsPage() {
       localStorage.setItem("leskolui_drive_auto", "1");
       localStorage.setItem("leskolui_drive_pass", backupPass);
       setDriveAuto(true);
+      // Mirror ke IndexedDB + daftarkan background sync (fase 2; aktif bila relay + Chrome/Android).
+      void setSwBackupConfig({ enabled: true, passphrase: backupPass, relaySecret: relaySecret || undefined });
+      void registerPeriodicBackup();
       setToast("Auto backup Drive aktif ✓ (passphrase tersimpan di perangkat)");
     } else {
       localStorage.removeItem("leskolui_drive_auto");
       localStorage.removeItem("leskolui_drive_pass");
       setDriveAuto(false);
+      void setSwBackupConfig({ enabled: false });
+      void unregisterPeriodicBackup();
       setToast("Auto backup Drive dimatikan");
     }
   };

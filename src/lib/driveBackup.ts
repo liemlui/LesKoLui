@@ -221,6 +221,39 @@ export async function testRelay(): Promise<void> {
   await getToken(true);
 }
 
+// ── Fase 2: Periodic Background Sync (Chrome/Android, best-effort) ───
+const PERIODIC_TAG = "leskolui-backup";
+type PeriodicSyncMgr = { register: (tag: string, opts: { minInterval: number }) => Promise<void>; unregister: (tag: string) => Promise<void> };
+function periodicSyncOf(reg: ServiceWorkerRegistration): PeriodicSyncMgr | undefined {
+  return (reg as unknown as { periodicSync?: PeriodicSyncMgr }).periodicSync;
+}
+
+/** Daftarkan backup background. Mengembalikan true bila berhasil terdaftar. */
+export async function registerPeriodicBackup(): Promise<boolean> {
+  try {
+    if (!("serviceWorker" in navigator)) return false;
+    const status = await navigator.permissions?.query?.({ name: "periodic-background-sync" as PermissionName }).catch(() => undefined);
+    if (status && status.state !== "granted") return false;
+    const reg = await navigator.serviceWorker.ready;
+    const ps = periodicSyncOf(reg);
+    if (!ps) return false;
+    await ps.register(PERIODIC_TAG, { minInterval: 24 * 60 * 60 * 1000 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Batalkan pendaftaran backup background (best-effort). */
+export async function unregisterPeriodicBackup(): Promise<void> {
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    await periodicSyncOf(reg)?.unregister(PERIODIC_TAG);
+  } catch {
+    // ignore
+  }
+}
+
 /** Muat GIS lebih awal (mis. saat prompt backup muncul) agar tap-nya responsif. */
 export function preloadDrive(): void {
   if (!CLIENT_ID) return;

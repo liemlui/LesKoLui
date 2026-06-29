@@ -1,6 +1,6 @@
 import Dexie from "dexie";
 import type { Table } from "dexie";
-import type { Student, Session, MonthlyReport, Payment, Settings, RaporGrade, Homework, FollowUpItem, Expense, IaEeProject, MonthClosing, AuditEntry } from "./types";
+import type { Student, Session, MonthlyReport, Payment, Settings, RaporGrade, Homework, FollowUpItem, Expense, IaEeProject, MonthClosing, AuditEntry, SwBackupConfig } from "./types";
 
 type LegacySessionRow = {
   subject?: unknown;
@@ -20,6 +20,7 @@ export class JurnalDB extends Dexie {
   iaeeProjects!:Table<IaEeProject,   string>;
   monthClosings!:Table<MonthClosing, string>;
   auditLog!:    Table<AuditEntry,    string>;
+  swConfig!:    Table<SwBackupConfig, string>;
 
   constructor() {
     super("jurnalles");
@@ -63,6 +64,10 @@ export class JurnalDB extends Dexie {
     // v9: add audit-log table (riwayat aktivitas penting — lokal, tak ikut backup/restore)
     this.version(9).stores({
       auditLog: "id, timestamp, entityType",
+    });
+    // v10: konfigurasi backup background untuk Service Worker (lokal, tak ikut backup)
+    this.version(10).stores({
+      swConfig: "id",
     });
   }
 }

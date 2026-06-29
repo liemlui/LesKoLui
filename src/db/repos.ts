@@ -3,7 +3,7 @@ import type {
   Student, Session, MonthlyReport, Payment, Settings, RaporGrade,
   Homework, HomeworkStatus, FollowUpItem, FollowUpType,
   Expense, ExpenseCategory, IaEeProject, IaEeMilestone, MonthClosing,
-  AuditEntry, AuditAction,
+  AuditEntry, AuditAction, SwBackupConfig,
 } from "./types";
 import { MIN_DURATION, DURATION_STEP, DEFAULT_RATE } from "./types";
 import { hashPin, isHashedPin } from "../lib/crypto";
@@ -56,6 +56,16 @@ export async function listAuditLog(limit = 50): Promise<AuditEntry[]> {
 
 export async function clearAuditLog(): Promise<void> {
   await db.auditLog.clear();
+}
+
+// ── Konfigurasi backup background (fase 2, dibaca oleh Service Worker) ──
+export async function getSwBackupConfig(): Promise<SwBackupConfig | undefined> {
+  return db.swConfig.get("bg");
+}
+
+export async function setSwBackupConfig(patch: Partial<Omit<SwBackupConfig, "id">>): Promise<void> {
+  const cur = await db.swConfig.get("bg");
+  await db.swConfig.put({ id: "bg", enabled: false, ...cur, ...patch });
 }
 
 // ── Maintenance foto (M-5) ─────────────────────────────────────────

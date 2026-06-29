@@ -64,7 +64,32 @@ backup akan jalan **otomatis tanpa popup** saat app dibuka & sudah lewat 7 hari.
 - Secret relay tersimpan di perangkat (localStorage) — sama threat-model solo
   (pastikan layar HP terkunci). Lihat waiver H-2 di `AUDIT-CHECKLIST.md`.
 
-## Fase 2 — true background (app tertutup)
-Service Worker `periodicSync`: SW bangun berkala, baca IndexedDB, ambil token via relay,
-upload ke Drive. Catatan: hanya Chrome/Android; SW tak bisa baca `localStorage` →
-passphrase perlu dipindah ke IndexedDB. Diestimasi terpisah saat dibutuhkan.
+## Fase 2 — true background saat app tertutup (✅ diimplementasi, perlu tes)
+
+Service Worker (`src/sw.ts`, mode **injectManifest**) menangani caching offline
+seperti sebelumnya **plus** event `periodicsync`:
+- SW bangun berkala (diatur browser) → baca IndexedDB → bangun backup terenkripsi →
+  ambil access-token via relay → upload ke Drive. Semua **di perangkat**.
+- Passphrase & secret relay di-mirror ke IndexedDB (`swConfig`, Dexie v10) karena SW
+  **tak bisa** baca `localStorage`. Tabel ini **tidak** ikut backup/restore.
+- Pendaftaran via app saat "Auto backup Drive" diaktifkan
+  (`registerPeriodicBackup`, tag `leskolui-backup`, minInterval 24 jam).
+
+**Batasan:** hanya **Chrome/Android** + PWA **ter-install** + izin
+`periodic-background-sync` + "site engagement" cukup. Browser yang memutuskan kapan
+(bahkan apakah) sync berjalan — **best-effort**, bukan jaminan. iOS/Safari tak dukung
+→ tetap pakai silent-on-open (fase 1).
+
+### Checklist tes (di Vercel preview, HP Android + Chrome)
+1. Pastikan relay (di atas) sudah aktif & "Tes relay" OK.
+2. **Install PWA** ke home screen, buka beberapa kali (bangun engagement).
+3. Settings → aktifkan **Auto backup Drive** (passphrase ≥8). Ini mendaftarkan periodic sync.
+4. Cek `chrome://serviceworker-internals` → ada SW terdaftar; DevTools → Application →
+   Service Workers → Periodic Background Sync tag `leskolui-backup`.
+5. Tunggu (browser bisa lama) atau picu manual via DevTools → Application → Periodic Sync →
+   "leskolui-backup". Verifikasi file Drive ter-update (cek `modifiedTime`).
+6. **Penting:** verifikasi offline app masih jalan (matikan jaringan → app tetap buka).
+
+### Cara verifikasi build (sudah dilakukan)
+`npm run build` → output `mode injectManifest`, `dist/sw.js` berisi precache (≈136 entri),
+cache Google Fonts, dan handler `periodicsync`. lint + 129 unit test + 3 E2E hijau.

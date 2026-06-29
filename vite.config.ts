@@ -15,6 +15,9 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.ts",
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg", "icon-192.png", "icon-512.png"],
       manifest: {
@@ -59,34 +62,14 @@ export default defineConfig({
           },
         ],
       },
-      // Dev mode: virtual module tetap ada (import tidak error),
-      // tapi service worker tidak diregistrasi — jadi tidak nge-cache
+      // Dev mode: service worker tidak diregistrasi — jadi tidak nge-cache
       devOptions: {
         enabled: false,
       },
-      workbox: {
+      // Custom SW (src/sw.ts) yang menangani runtime caching + periodic sync.
+      injectManifest: {
         globPatterns: ["**/*.{js,css,html,woff,woff2,png,svg}"],
         maximumFileSizeToCacheInBytes: 5_000_000,
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "google-fonts-stylesheets",
-              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "google-fonts-webfonts",
-              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-        ],
       },
     }),
   ],

@@ -222,6 +222,16 @@ export interface AuditEntry {
   details?: string;       // ringkasan untuk dibaca manusia
 }
 
+// ── Konfigurasi backup background untuk Service Worker (fase 2) ──────────────
+// Disimpan terpisah (TIDAK ikut backup/restore) agar SW—yang tak bisa akses
+// localStorage—tetap bisa membaca passphrase & secret relay saat app tertutup.
+export interface SwBackupConfig {
+  id: "bg";
+  enabled: boolean;
+  passphrase?: string;   // untuk SW membangun backup terenkripsi
+  relaySecret?: string;  // untuk SW mengambil access-token via relay
+}
+
 export interface Settings {
   id: "app";
   tutorProfile: { name: string; phone: string; email?: string; address?: string };
