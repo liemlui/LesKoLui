@@ -178,6 +178,12 @@ export default function MonthlyReportPage() {
       const scores = entries.filter((e) => e.engagementScore != null).map((e) => e.engagementScore!);
       const avgEngagement = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : undefined;
       const photoUrls = entries.filter((e) => e.photoUrl).map((e) => e.photoUrl!);
+      // Agregat sebulan penuh untuk layout infografis (akurat lintas halaman).
+      const distMap = new Map<string, number>();
+      sessions.forEach((s) => s.subjects.map((x) => x.trim()).filter(Boolean)
+        .forEach((sub) => distMap.set(sub, (distMap.get(sub) ?? 0) + 1)));
+      const subjectDist = [...distMap.entries()]
+        .map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
       if (cancelled) return;
       setReportData({
         studentName: student.name,
@@ -190,10 +196,14 @@ export default function MonthlyReportPage() {
         quote: report?.quote,
         avgEngagement,
         photoUrls,
+        totalHours,
+        totalSessions: entries.length,
+        subjectDist,
+        engagementSeries: scores,
       });
     })();
     return () => { cancelled = true; };
-  }, [student, sessions, month, report, settings]);
+  }, [student, sessions, month, report, settings, totalHours]);
 
   const safeNarrativePage      = clampPage(narrativePage, reportSessions.length);
   const paginatedNarrativeSessions = paginateItems(reportSessions, safeNarrativePage);

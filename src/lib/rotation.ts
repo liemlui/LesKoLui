@@ -5,11 +5,17 @@ import { listReportsByStudent, getSettings } from "../db/repos";
 
 const keyStr = (k: TemplateKey) => `${k.themeId}::${k.layoutId}`;
 
+// Layout premium yang hanya dipilih manual (tak ikut rotasi "Acak").
+const MANUAL_ONLY_LAYOUTS = new Set(["infographic"]);
+
 function allCombos(excludedThemes: string[] = []): TemplateKey[] {
   const out: TemplateKey[] = [];
   for (const themeId of THEME_IDS) {
     if (excludedThemes.includes(themeId)) continue;
-    for (const layoutId of LAYOUT_IDS) out.push({ themeId, layoutId });
+    for (const layoutId of LAYOUT_IDS) {
+      if (MANUAL_ONLY_LAYOUTS.has(layoutId)) continue;
+      out.push({ themeId, layoutId });
+    }
   }
   return out;
 }

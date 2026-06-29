@@ -47,6 +47,10 @@ export const THEMES: Theme[] = [
   { id:"boho",      name:"Boho Chic",       bg:"linear-gradient(175deg,#fdf6e3,#f5e6cc)", ink:"#5a4020", muted:"#8c6e40", accent:"#c4843f", palette:["#c4843f","#b06a3f","#7a8a4f","#a07a5f"], fontDisplay:F.caveat, fontBody:F.nunito, header:"watercolor", label:"rounded", photo:"polaroid", deco:"ribbon", headerText:"Absensi" },
   { id:"arctic",    name:"Arctic Ice",      bg:"linear-gradient(135deg,#e8f4f8,#d0eaf4,#c8e8f8)", ink:"#1a3a5a", muted:"#5a7a9a", accent:"#3f8fd0", palette:["#3f8fd0","#5ad0d0","#7ac8e8","#a0d8f0"], fontDisplay:F.comfortaa, fontBody:F.nunito, header:"badge", label:"pill", photo:"shadow", deco:"snow", headerText:"ABSENSI" },
   { id:"marble",    name:"Marble Gold",     bg:"linear-gradient(160deg,#f8f6f0,#f0ece0,#faf8f4)", ink:"#3a3a2a", muted:"#8a8a70", accent:"#c4a43f", palette:["#c4a43f","#8a8a6a","#b0a06a","#d4b84a"], fontDisplay:F.poppins, fontBody:F.nunito, header:"minimal", label:"underline", photo:"frame", deco:"ribbon", headerText:"ABSENSI" },
+
+  // ── Profesional (dipasangkan dengan layout "Infografis Expert") ───────────
+  { id:"executive", name:"Executive",       bg:"#ffffff", ink:"#1f2937", muted:"#6b7280", accent:"#2563eb", palette:["#2563eb","#0d9488","#d97706","#be123c"], fontDisplay:F.poppins, fontBody:F.nunito, header:"minimal", label:"underline", photo:"frame", deco:"none", headerText:"LAPORAN" },
+  { id:"consultant",name:"Consultant Navy",  bg:"linear-gradient(180deg,#0f172a,#1e293b)", ink:"#e2e8f0", muted:"#94a3b8", accent:"#38bdf8", palette:["#38bdf8","#34d399","#fbbf24","#f472b6"], fontDisplay:F.poppins, fontBody:F.poppins, header:"minimal", label:"underline", photo:"shadow", deco:"none", headerText:"LAPORAN" },
 ];
 
 export const THEME_IDS = THEMES.map((t) => t.id);

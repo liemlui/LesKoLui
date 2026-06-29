@@ -364,6 +364,24 @@ function SummaryEl(d: ReportData, t: Theme) {
   );
 }
 
+/** Sparkline SVG tren skor fokus (1–10) — dipakai layout infografis. */
+function Sparkline(series: number[], t: Theme) {
+  const W = 300, H = 40, pad = 5;
+  const n = series.length;
+  const yOf = (v: number) => pad + (1 - (Math.max(1, Math.min(10, v)) - 1) / 9) * (H - pad * 2);
+  const xOf = (i: number) => pad + (i / (n - 1)) * (W - pad * 2);
+  const pts = series.map((v, i) => `${xOf(i).toFixed(1)},${yOf(v).toFixed(1)}`).join(" ");
+  const avg = series.reduce((s, v) => s + v, 0) / n;
+  const avgY = yOf(avg).toFixed(1);
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none" style={{ display: "block" }}>
+      <line x1={pad} y1={avgY} x2={W - pad} y2={avgY} stroke={t.muted} strokeWidth={1} strokeDasharray="4 4" opacity={0.5} />
+      <polyline points={pts} fill="none" stroke={t.accent} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      {series.map((v, i) => <circle key={i} cx={xOf(i)} cy={yOf(v)} r={2.6} fill={t.accent} />)}
+    </svg>
+  );
+}
+
 // ── Layouts ────────────────────────────────────────────────────────
 // 5 layout klasik + 20 layout infografis baru (total 25)
 
@@ -1282,6 +1300,144 @@ export const snapshot: Layout = {
 
 // ──────────────────── EXPORT ────────────────────
 
+// ── Infografis Expert (premium, dipilih manual; di luar rotasi acak) ──
+export const infographic: Layout = {
+  id: "infographic", name: "Infografis Expert", maxEntriesPerPage: 6,
+  render: (d, t, { isFirst, isLast }) => {
+    const panel: React.CSSProperties = {
+      background: t.ink + "0D", border: `1px solid ${t.ink}1F`, borderRadius: 14, padding: 14,
+    };
+    const overline: React.CSSProperties = {
+      fontSize: 10, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: t.muted, margin: 0,
+    };
+
+    const sessions = d.totalSessions ?? d.entries.length;
+    const hoursLabel = d.totalHours != null
+      ? (Number.isInteger(d.totalHours) ? `${d.totalHours}` : String(d.totalHours).replace(".", ",")) + "j"
+      : "—";
+    const dist = (d.subjectDist && d.subjectDist.length > 0)
+      ? d.subjectDist
+      : (() => {
+          const m = new Map<string, number>();
+          d.entries.forEach((e) => entrySubject(e).split(",").forEach((s) => {
+            const k = s.trim(); if (k && k !== EMPTY_SUBJECT) m.set(k, (m.get(k) ?? 0) + 1);
+          }));
+          return [...m.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+        })();
+    const distTotal = dist.reduce((s, x) => s + x.count, 0) || 1;
+    const series = (d.engagementSeries && d.engagementSeries.length > 0)
+      ? d.engagementSeries
+      : d.entries.map((e) => e.engagementScore).filter((s): s is number => s != null);
+
+    const kpi = (value: string, label: string, accent = false) => (
+      <div style={{ flex: 1, textAlign: "center", padding: "2px 4px" }}>
+        <div style={{ fontFamily: t.fontDisplay, fontWeight: 800, fontSize: 25, lineHeight: 1, color: accent ? t.accent : t.ink }}>{value}</div>
+        <div style={{ ...overline, marginTop: 5, letterSpacing: 1 }}>{label}</div>
+      </div>
+    );
+    const divider = <div style={{ width: 1, background: t.ink + "1A" }} />;
+
+    return (
+      <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "24px 18px 26px", position: "relative", overflow: "hidden" }}>
+        {isFirst && (
+          <>
+            {/* Header editorial */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 12 }}>
+              <div style={{ minWidth: 0 }}>
+                <p style={overline}>Laporan Bulanan</p>
+                <div style={{ fontFamily: t.fontDisplay, fontWeight: 800, fontSize: 26, lineHeight: 1.05, color: t.ink, marginTop: 3 }}>{d.studentName}</div>
+              </div>
+              <div style={{ textAlign: "right", flexShrink: 0 }}>
+                {d.logoUrl && <img src={d.logoUrl} alt="logo" style={{ height: 30, width: "auto", objectFit: "contain", marginBottom: 4, marginLeft: "auto", display: "block" }} />}
+                <div style={{ fontWeight: 800, fontSize: 13, color: t.accent }}>{d.period}</div>
+                {d.tutorName && <div style={{ fontSize: 10, color: t.muted, marginTop: 1 }}>{d.tutorName}</div>}
+              </div>
+            </div>
+            <div style={{ height: 3, width: 46, background: t.accent, borderRadius: 2, margin: "10px 0 16px" }} />
+
+            {/* KPI hero */}
+            <div style={{ ...panel, display: "flex", alignItems: "stretch", padding: "14px 6px", marginBottom: 12 }}>
+              {kpi(String(sessions), "Sesi")}
+              {divider}
+              {kpi(hoursLabel, "Jam")}
+              {divider}
+              {kpi(d.avgEngagement != null ? `${d.avgEngagement}` : "—", "Fokus", true)}
+              {divider}
+              {kpi(String(dist.length), "Mapel")}
+            </div>
+
+            {/* Tren fokus */}
+            {series.length >= 2 && (
+              <div style={{ ...panel, marginBottom: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+                  <p style={overline}>Tren Fokus</p>
+                  <span style={{ fontSize: 10, color: t.muted }}>skala 1–10 · rata-rata {d.avgEngagement ?? "—"}</span>
+                </div>
+                {Sparkline(series, t)}
+              </div>
+            )}
+
+            {/* Distribusi mapel */}
+            {dist.length > 0 && (
+              <div style={{ ...panel, marginBottom: 14 }}>
+                <p style={{ ...overline, marginBottom: 8 }}>Distribusi Mapel</p>
+                {dist.slice(0, 5).map((s, i, arr) => {
+                  const c = t.palette[i % t.palette.length];
+                  const pct = Math.round((s.count / distTotal) * 100);
+                  return (
+                    <div key={s.name} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: i < arr.length - 1 ? 7 : 0 }}>
+                      <span style={{ fontSize: 10.5, fontWeight: 600, color: t.ink, width: 74, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.name}</span>
+                      <div style={{ flex: 1, height: 7, borderRadius: 999, background: t.ink + "14", overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${pct}%`, background: c, borderRadius: 999 }} />
+                      </div>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: t.muted, width: 30, textAlign: "right" }}>{pct}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <p style={{ ...overline, marginBottom: 4 }}>Catatan Sesi</p>
+          </>
+        )}
+
+        {/* Daftar sesi */}
+        <div style={{ position: "relative", zIndex: 2 }}>
+          {d.entries.map((e, i) => {
+            const c = t.palette[i % t.palette.length];
+            const score = e.engagementScore;
+            const dotColor = score == null ? t.muted : score >= 8 ? "#10B981" : score >= 6 ? "#3B82F6" : score >= 4 ? "#F59E0B" : "#EF4444";
+            return (
+              <div key={i} style={{ display: "flex", gap: 10, padding: "10px 0", borderBottom: i < d.entries.length - 1 ? `1px solid ${t.ink}14` : "none" }}>
+                {e.photoUrl && (
+                  <div style={{ width: 34, height: 34, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
+                    <PhotoEl t={t} url={e.photoUrl} color={c} />
+                  </div>
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: t.accent, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entrySubjectShort(e)}</span>
+                    <span style={{ fontSize: 9.5, color: t.muted, flexShrink: 0 }}>{entryDateShort(e)}</span>
+                  </div>
+                  <p style={{ fontFamily: t.fontBody, fontSize: 11, lineHeight: 1.45, color: t.ink, margin: "3px 0 0" }}>{entryNarrative(e)}</p>
+                </div>
+                {score != null && (
+                  <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", width: 26 }}>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: dotColor, lineHeight: 1 }}>{score}</span>
+                    <span style={{ fontSize: 7.5, color: t.muted, letterSpacing: 0.5 }}>/10</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {isLast && SummaryEl(d, t)}
+      </div>
+    );
+  },
+};
+
 export const cover: Layout = {
   id: "cover", name: "Cover", maxEntriesPerPage: 999,
   render: (d, t) => (
@@ -1305,6 +1461,7 @@ export const cover: Layout = {
 };
 
 export const LAYOUTS: Layout[] = [
+  infographic,
   cards, timeline, scrapbook, grid, compact,
   dashboard, progress, weekly, subjects, reportcard,
   portfolio, checklist, summary, growth, dossier,
