@@ -5,13 +5,54 @@
  * Safe to delete this file (and its import in main.tsx) when no longer needed.
  */
 import {
-  createStudent, createSession, scheduleSession, closeMonth,
-  markPaymentTransferred, createExpense, saveSettings, getSettings, listStudents,
+  createStudent, createSession, scheduleSession, scheduleBatch, closeMonth,
+  markPaymentTransferred, updatePaymentAmount, createExpense, saveSettings, getSettings, listStudents,
   createHomework, createFollowUp, upsertRaporGrade, createIaEeProject,
-  upsertPayment, cancelSession,
+  upsertPayment, cancelSession, listSessionsByStudentMonth, upsertReport,
 } from "../db/repos";
 import { hashPin } from "../lib/crypto";
 import type { ExpenseCategory, EngagementLog } from "../db/types";
+
+// ── Pembuat gambar dummy (canvas → Blob) untuk foto sesi, tanda tangan, logo ──
+function makePhoto(label: string, hue: number): Promise<Blob> {
+  const c = document.createElement("canvas");
+  c.width = 320; c.height = 240;
+  const x = c.getContext("2d")!;
+  const g = x.createLinearGradient(0, 0, 320, 240);
+  g.addColorStop(0, `hsl(${hue},58%,55%)`);
+  g.addColorStop(1, `hsl(${(hue + 40) % 360},58%,38%)`);
+  x.fillStyle = g; x.fillRect(0, 0, 320, 240);
+  x.fillStyle = "rgba(255,255,255,.94)";
+  x.textAlign = "center"; x.font = "bold 26px system-ui, sans-serif";
+  x.fillText(label, 160, 116);
+  x.font = "13px system-ui, sans-serif";
+  x.fillText("foto sesi (dummy)", 160, 144);
+  return new Promise((res) => c.toBlob((b) => res(b!), "image/jpeg", 0.8));
+}
+
+function makeSignature(name: string): Promise<Blob> {
+  const c = document.createElement("canvas");
+  c.width = 240; c.height = 90;
+  const x = c.getContext("2d")!;
+  x.fillStyle = "#fff"; x.fillRect(0, 0, 240, 90);
+  x.strokeStyle = "#1a2a4a"; x.lineWidth = 2.4; x.lineCap = "round";
+  x.beginPath(); x.moveTo(18, 58);
+  for (let px = 18; px <= 222; px += 7) x.lineTo(px, 52 + Math.sin(px / 13) * 16 * (0.4 + Math.random() * 0.6));
+  x.stroke();
+  x.font = "italic 13px cursive"; x.fillStyle = "#555"; x.textAlign = "left";
+  x.fillText(name, 22, 82);
+  return new Promise((res) => c.toBlob((b) => res(b!), "image/jpeg", 0.85));
+}
+
+function makeLogo(): Promise<Blob> {
+  const c = document.createElement("canvas");
+  c.width = 120; c.height = 120;
+  const x = c.getContext("2d")!;
+  x.fillStyle = "#2563eb"; x.beginPath(); x.arc(60, 60, 56, 0, Math.PI * 2); x.fill();
+  x.fillStyle = "#fff"; x.font = "bold 52px system-ui, sans-serif";
+  x.textAlign = "center"; x.textBaseline = "middle"; x.fillText("KL", 60, 66);
+  return new Promise((res) => c.toBlob((b) => res(b!), "image/png", 0.9));
+}
 
 type S = { date: string; dur: number; note: string };
 
@@ -33,7 +74,7 @@ type RichS = {
   date: string; dur: number; note: string;
   mood?: string; topic?: string; needsWork?: string; predictedGrade?: string;
   narrative?: string; behaviorTags?: string[]; responseTag?: string;
-  engagement?: EngagementLog;
+  engagement?: EngagementLog; photo?: Blob; signature?: Blob;
 };
 
 async function addRichDone(studentId: string, subjects: string[], rows: RichS[]) {
@@ -53,11 +94,25 @@ async function addRichDone(studentId: string, subjects: string[], rows: RichS[])
       behaviorTags: r.behaviorTags,
       responseTag: r.responseTag,
       engagement: r.engagement,
+      photo: r.photo,
+      signature: r.signature,
     });
   }
 }
 
+let _seeding = false;
+
 export async function seedDummyData(force = false): Promise<void> {
+  if (_seeding) return; // cegah pemanggilan ganda berbarengan (double seed)
+  _seeding = true;
+  try {
+    await seedInner(force);
+  } finally {
+    _seeding = false;
+  }
+}
+
+async function seedInner(force: boolean): Promise<void> {
   const existing = await listStudents();
   if (existing.length > 0 && !force) {
     console.warn("[seedDummy] Sudah ada data murid — seed dilewati. Jalankan seedDummy(true) untuk memaksa, atau clearDummy() untuk reset.");
@@ -76,6 +131,7 @@ export async function seedDummyData(force = false): Promise<void> {
       bca: s.bankAccounts?.bca || "1234567890",
       accountName: s.bankAccounts?.accountName || "Liem Lui",
     },
+    ...(s.logo ? {} : { logo: await makeLogo() }),
     ...(s.financialPin ? {} : { financialPin: await hashPin("123456") }),
   });
 
@@ -84,13 +140,17 @@ export async function seedDummyData(force = false): Promise<void> {
     name: "Andi Pratama", level: "IBDP", curriculum: "IB DP", grade: "Grade 11",
     subjects: ["Mathematics AA", "Physics"],
     parentContact: { name: "Bpk. Pratama", phone: "081234567801" },
+    studentPhone: "081299900001", school: "Jakarta Intercultural School",
     hourlyRate: 250000, active: true, enrolledAt: "2026-01-10",
+    photo: await makePhoto("Andi", 210),
+    notes: "Target nilai 7 di Math AA. Suka contoh aplikatif.",
   });
   const bella = await createStudent({
     name: "Bella Sari", level: "IBDP", curriculum: "IB DP", grade: "Grade 12",
     subjects: ["Physics", "Chemistry"],
     parentContact: { name: "Ibu Sari", phone: "081234567802" },
     hourlyRate: 300000, active: true, enrolledAt: "2025-09-01",
+    photo: await makePhoto("Bella", 330),
   });
   const citra = await createStudent({
     name: "Citra Dewanti", level: "MYP", curriculum: "IB MYP", grade: "Grade 10",
@@ -307,8 +367,82 @@ export async function seedDummyData(force = false): Promise<void> {
   // ── Pembayaran manual ──
   await upsertPayment({ studentId: eko, month: "2026-06", totalCost: 450000, status: "PAID", source: "manual", paidAt: "2026-06-06", method: "cash" });
 
+  // ── Tagihan diedit sebelum kirim (April Bella didiskon dari nilai auto) ──
+  await updatePaymentAmount(bella, "2026-04", 480000);
+
+  // ── Sesi lama 2025 dengan foto (uji "Hapus foto sesi > 6 bulan" + riwayat panjang) ──
+  await addRichDone(andi, ["Mathematics AA"], [
+    { date: "2025-10-14", dur: 2, note: "Aljabar dasar", narrative: "Sesi fondasi aljabar — membangun dasar manipulasi persamaan.", engagement: { score: 7 }, photo: await makePhoto("Okt 2025", 205) },
+    { date: "2025-11-25", dur: 2, note: "Fungsi & grafik", narrative: "Pengenalan fungsi kuadrat dan transformasi grafik.", engagement: { score: 7 }, photo: await makePhoto("Nov 2025", 195) },
+  ]);
+  await addRichDone(bella, ["Physics"], [
+    { date: "2025-10-20", dur: 1.5, note: "Pengukuran & ketidakpastian", narrative: "Dasar IB Physics: propagasi ketidakpastian.", engagement: { score: 6 }, photo: await makePhoto("Okt 2025", 325) },
+  ]);
+
+  // ── Showcase: Andi Juni — sesi kaya (foto + tanda tangan + narasi) ──
+  // Membuat Juni Andi total ~8 sesi → uji pagination laporan, galeri foto, rekap TTD.
+  const andiSig = await makeSignature("Andi Pratama");
+  await addRichDone(andi, ["Mathematics AA"], [
+    { date: "2026-06-02", dur: 2, note: "Vektor — dot & cross product", topic: "Vectors", needsWork: "Cross product geometri 3D", predictedGrade: "6",
+      narrative: "Andi cepat menangkap dot product; cross product masih perlu visualisasi 3D. Latihan terbimbing 70% benar.",
+      behaviorTags: ["diligent", "exploratory"], responseTag: "correct-with-prompt",
+      engagement: { prepared: true, focused: true, score: 8 }, photo: await makePhoto("Vektor", 210), signature: andiSig },
+    { date: "2026-06-06", dur: 1.5, note: "Trigonometri identitas", topic: "Trig identities", predictedGrade: "6",
+      narrative: "Pembuktian identitas dikerjakan rapi. Sempat keliru tanda, langsung mengoreksi sendiri.",
+      behaviorTags: ["self-correcting", "confident"], responseTag: "correct-independent",
+      engagement: { focused: true, quickLearner: true, score: 9 }, photo: await makePhoto("Trig", 35), signature: andiSig },
+  ]);
+  await addRichDone(andi, ["Physics"], [
+    { date: "2026-06-13", dur: 2, note: "Dinamika — gaya gesek", topic: "Friction", needsWork: "Soal bidang miring", predictedGrade: "5",
+      narrative: "Gaya gesek statis vs kinetis sudah jelas; soal bidang miring masih perlu pendampingan.",
+      behaviorTags: ["cautious", "passive-responsive"], responseTag: "partial-correct",
+      engagement: { needsRepetition: true, score: 6 }, signature: andiSig },
+    { date: "2026-06-20", dur: 2, note: "Energi & usaha", topic: "Work-energy theorem", predictedGrade: "6",
+      narrative: "Antusias mengaitkan teorema usaha-energi dengan contoh roller coaster. Bisa menjelaskan ulang.",
+      behaviorTags: ["enthusiastic", "reflective"], responseTag: "can-explain-orally",
+      engagement: { prepared: true, focused: true, activeAsking: true, score: 8 }, photo: await makePhoto("Energi", 150), signature: andiSig },
+    { date: "2026-06-27", dur: 2, note: "Review & kuis gabungan", topic: "Mixed review", predictedGrade: "6",
+      narrative: "Kuis 12 soal: 9 benar. Kelemahan tersisa di kombinasi vektor-dinamika.",
+      behaviorTags: ["diligent"], responseTag: "correct-independent",
+      engagement: { focused: true, score: 7 }, photo: await makePhoto("Kuis", 270), signature: andiSig },
+  ]);
+
+  // ── Seri sesi berulang (uji batch jadwal + mode batal seri 🔁) ──
+  await scheduleBatch([
+    { studentId: bella, date: "2026-07-07", time: "15:00", durationHours: 1.5 },
+    { studentId: bella, date: "2026-07-14", time: "15:00", durationHours: 1.5 },
+    { studentId: bella, date: "2026-07-21", time: "15:00", durationHours: 1.5 },
+    { studentId: bella, date: "2026-07-28", time: "15:00", durationHours: 1.5 },
+  ]);
+
+  // ── Laporan ter-generate (langsung bisa dibuka & diekspor) ──
+  // 1) Andi Juni — layout baru "Infografis Expert" + tema Executive.
+  const andiJun = (await listSessionsByStudentMonth(andi, "2026-06")).filter((x) => x.status === "DONE");
+  await upsertReport({
+    id: crypto.randomUUID(), studentId: andi, month: "2026-06",
+    sessionIds: andiJun.map((x) => x.id),
+    templateKey: { themeId: "executive", layoutId: "infographic" },
+    summaryText: "Juni jadi bulan paling produktif Andi: 8 sesi lintas Matematika AA & Fisika dengan rata-rata fokus tinggi. Kekuatan di pembuktian & koreksi diri; fokus berikutnya merapikan aplikasi vektor 3D dan soal kombinasi vektor–dinamika.",
+    quote: "Teruslah penasaran, Andi — setiap koreksi kecil hari ini adalah lompatan nilai bulan depan.",
+    teacherNote: "Pertumbuhan signifikan bulan ini. Bulan depan: drilling soal HL terapan + 1 mock paper.",
+    totalHours: andiJun.reduce((a, x) => a + x.durationHours, 0),
+    totalCost: andiJun.reduce((a, x) => a + x.cost, 0),
+  });
+  // 2) Bella Juni — layout klasik "Analitik" + tema Ocean (pembanding gaya).
+  const bellaJun = (await listSessionsByStudentMonth(bella, "2026-06")).filter((x) => x.status === "DONE");
+  await upsertReport({
+    id: crypto.randomUUID(), studentId: bella, month: "2026-06",
+    sessionIds: bellaJun.map((x) => x.id),
+    templateKey: { themeId: "ocean", layoutId: "analytics" },
+    summaryText: "Bella konsisten di Fisika & Kimia meski jadwal padat ujian sekolah. Perlu penguatan di perhitungan kesetimbangan (Kc/Kp).",
+    quote: "Lelah itu wajar, Bella — yang luar biasa adalah kamu tetap maju selangkah tiap sesi.",
+    totalHours: bellaJun.reduce((a, x) => a + x.durationHours, 0),
+    totalCost: bellaJun.reduce((a, x) => a + x.cost, 0),
+  });
+
   console.info("%c[seedDummy] Data dummy berhasil dimasukkan ✓", "color:#10B981;font-weight:bold");
   console.info("[seedDummy] PIN Rekap Keuangan: 123456 · Buka /report → tab Rekap Keuangan.");
+  console.info("[seedDummy] Laporan siap: Andi (Jun) = Infografis Expert, Bella (Jun) = Analitik. Foto/TTD & seri 🔁 tersedia.");
 }
 
 /** Wipe the IndexedDB and reload — handy for re-seeding. */
