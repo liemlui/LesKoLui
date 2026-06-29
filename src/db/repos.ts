@@ -118,11 +118,16 @@ export async function getSettings(): Promise<Settings> {
   return s;
 }
 
-/** Initialize default settings row if missing — call at app startup */
+/** Initialize default settings row if missing — call at app startup. Idempotent/race-safe. */
 export async function initSettings(): Promise<void> {
   const exists = await db.settings.get("app");
-  if (!exists) {
+  if (exists) return;
+  try {
     await db.settings.add({ ...DEFAULT_SETTINGS });
+  } catch (e) {
+    // Race: pemanggil lain (mis. React StrictMode mount 2× atau seed) sudah
+    // membuat baris "app" lebih dulu. ConstraintError aman diabaikan.
+    if ((e as { name?: string }).name !== "ConstraintError") throw e;
   }
 }
 

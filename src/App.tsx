@@ -133,7 +133,7 @@ function Layout() {
   }, []);
 
   useEffect(() => {
-    appData().then((r) => r.initSettings());
+    appData().then((r) => r.initSettings()).catch(() => {});
     // Minta penyimpanan persisten (anti-eviction). persist() sering false sampai PWA
     // di-install — itu normal, jadi JANGAN warn di situ; cukup peringatkan kalau
     // penyimpanan sudah mendekati penuh.

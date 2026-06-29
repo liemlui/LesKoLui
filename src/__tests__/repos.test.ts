@@ -132,6 +132,17 @@ describe("pruneSessionPhotosBefore", () => {
   });
 });
 
+// ── initSettings idempotency (race-safe) ───────────────────────────
+
+describe("initSettings", () => {
+  it("does not throw or duplicate under concurrent calls", async () => {
+    const { initSettings } = await import("../db/repos");
+    await Promise.all([initSettings(), initSettings(), initSettings()]);
+    const rows = await db.settings.toArray();
+    expect(rows.filter((r) => r.id === "app").length).toBe(1);
+  });
+});
+
 // ── Settings Tests ─────────────────────────────────────────────────
 
 describe("Settings", () => {
