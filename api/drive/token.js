@@ -13,6 +13,16 @@
 //   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN, BACKUP_API_SECRET
 // Lihat docs/ZERO-TOUCH-BACKUP.md untuk cara mendapatkan GOOGLE_REFRESH_TOKEN.
 
+import { createHash, timingSafeEqual } from "node:crypto";
+
+/** Perbandingan constant-time (anti timing-attack). Di-hash dulu agar panjang sama. */
+function secretMatches(candidate, expected) {
+  if (typeof candidate !== "string" || candidate.length === 0) return false;
+  const a = createHash("sha256").update(candidate).digest();
+  const b = createHash("sha256").update(expected).digest();
+  return timingSafeEqual(a, b);
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
@@ -31,7 +41,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  if (req.headers["x-backup-secret"] !== BACKUP_API_SECRET) {
+  if (!secretMatches(req.headers["x-backup-secret"], BACKUP_API_SECRET)) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }

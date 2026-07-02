@@ -65,28 +65,11 @@ export default defineConfig({
         enabled: false,
       },
       workbox: {
+        // Font self-hosted via @fontsource (ter-precache lewat globPatterns).
+        // runtimeCaching Google Fonts dihapus: config mati — tak ada request ke
+        // fonts.googleapis.com dan CSP connect-src juga tidak mengizinkannya.
         globPatterns: ["**/*.{js,css,html,woff,woff2,png,svg}"],
         maximumFileSizeToCacheInBytes: 5_000_000,
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "google-fonts-stylesheets",
-              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "google-fonts-webfonts",
-              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-        ],
       },
     }),
   ],

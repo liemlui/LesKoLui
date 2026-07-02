@@ -1,0 +1,12 @@
+# Normalisasi line-ending: simpan LF di repo, cegah diff CRLF-noise antar OS.
+* text=auto
+
+# File biner — jangan dinormalisasi
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary

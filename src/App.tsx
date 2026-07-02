@@ -52,7 +52,9 @@ function Layout() {
 
   // Notifikasi PR jatuh tempo (Web Notifications)
   const scheduleHwNotifications = useCallback(async () => {
-    if (Notification.permission !== "granted") return;
+    // Guard: Notification API tidak ada di iOS Safari < 16.4 / sebagian WebView
+    // — tanpa cek ini, akses Notification.permission melempar ReferenceError.
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
     const r = await appData();
     const today = todayWIB();
 
