@@ -34,7 +34,6 @@ export function buildBillingMessage(args: BuildBillingArgs): BillingResult {
   const totalHours = doneSessions.reduce((sum, s) => sum + s.durationHours, 0);
   const sessionCost = doneSessions.reduce((sum, s) => sum + s.cost, 0);
   const totalCost = amountOverride ?? sessionCost;
-  const rateStr = formatRupiah(student.hourlyRate);
   const bank = settings?.bankAccounts;
 
   const lines: string[] = [

@@ -86,7 +86,7 @@ export async function shareFiles(files: File[], title: string) {
 
   // Multi-file or share API unavailable: download sequentially
   const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
-  for (const [i, f] of files.entries()) {
+  for (const f of files) {
     const url = URL.createObjectURL(f);
     const a = document.createElement("a");
     a.href = url;
