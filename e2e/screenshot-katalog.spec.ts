@@ -36,36 +36,37 @@ async function shot(page: any, name: string, opts?: { fullPage?: boolean }) {
 test.beforeAll(async ({ browser }) => {
   const page = await browser.newPage({ deviceScaleFactor: 2 });
   await page.goto("/");
-  await page.waitForTimeout(3000);
+  await page.waitForTimeout(5000); // tunggu startup + auto-seed
 
-  // Seed dummy data
-  const hasStudents = await page.evaluate(async () => {
-    const { listStudents } = await import("../src/db/repos");
-    return (await listStudents(true)).length > 0;
+  // Panggil seed (idempotent — skip kalau sudah ada data)
+  const seeded = await page.evaluate(async () => {
+    try {
+      const fn = (window as any).seedDummy;
+      if (typeof fn === "function") {
+        await fn(true); // force=true → seed ulang untuk data segar
+        return true;
+      }
+    } catch (e) {
+      console.warn("[e2e] seed error:", e);
+    }
+    return false;
   });
 
-  if (!hasStudents) {
-    console.log("  ⏳ Seeding dummy data...");
-    try {
-      await page.evaluate(async () => {
-        const fn = (window as any).seedDummy;
-        if (typeof fn === "function") await fn();
-      });
-      await page.waitForTimeout(5000);
-      // PIN: 123456 — diset oleh seedDummy
-    } catch {
-      console.log("  ⚠️ Seed gagal — lanjut tanpa data dummy");
-    }
+  if (seeded) {
+    console.log("  ✓ Dummy data seeded");
+    await page.waitForTimeout(3000);
     await page.reload();
     await page.waitForTimeout(2000);
   } else {
-    console.log("  ✓ Data dummy sudah ada");
+    console.log("  ⚠️ seedDummy tidak tersedia — lanjut dengan data yang ada");
+    await page.waitForTimeout(1000);
   }
 
   await page.close();
 });
 
 // ───── Page-level screenshots ─────
+test.describe("katalog", () => {
 
 test("01-home-dashboard", async ({ page }) => {
   await page.goto("/"); await page.waitForTimeout(2000);
@@ -177,6 +178,8 @@ test("12-home-calendar-month", async ({ page }) => {
     await page.waitForTimeout(500);
   }
   await shot(page, "14-calendar-month.png");
+});
+
 });
 
 // ───── Helper ─────
