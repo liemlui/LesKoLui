@@ -4,10 +4,10 @@ import { PHOTO_MAX_PX } from "../db/types";
 export async function compressPhoto(file: File): Promise<Blob> {
   return imageCompression(file, {
     maxWidthOrHeight: PHOTO_MAX_PX,
-    maxSizeMB: 0.4,
+    maxSizeMB: 0.15,
     useWebWorker: true,
     fileType: "image/jpeg",
-    initialQuality: 0.8,
+    initialQuality: 0.65,
   });
 }
 
@@ -69,7 +69,7 @@ export async function stampPhoto(blob: Blob, sessionDate: string): Promise<Blob>
       ctx.fillStyle = "rgba(255,255,255,0.75)";
       ctx.fillText(timeLabel, bx + pad, by + pad + fontSize * 0.85 + lineH);
 
-      canvas.toBlob((b) => resolve(b ?? blob), "image/jpeg", 0.85);
+      canvas.toBlob((b) => resolve(b ?? blob), "image/jpeg", 0.72);
     };
     img.onerror = () => { URL.revokeObjectURL(url); resolve(blob); };
     img.src = url;

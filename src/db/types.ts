@@ -17,7 +17,7 @@ export type PaymentSource = "auto" | "manual";
 export const DEFAULT_RATE = 200_000;   // IDR per hour
 export const MIN_DURATION = 1;         // hours
 export const DURATION_STEP = 0.5;      // hours
-export const PHOTO_MAX_PX = 800;       // longest side
+export const PHOTO_MAX_PX = 640;       // longest side — cukup untuk tampil di laporan PDF
 
 export interface ParentContact { name?: string; phone: string; }
 

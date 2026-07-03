@@ -15,9 +15,9 @@ export function blobToDataUrl(blob: Blob): Promise<string> {
  */
 export function blobToNormalizedDataUrl(
   blob: Blob,
-  targetW = 400,
+  targetW = 360,
   targetRatio = 4 / 3,
-  quality = 0.82,
+  quality = 0.7,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(blob);
