@@ -175,7 +175,8 @@ export default function CaptureSession() {
   const [coHwPage,       setCoHwPage]       = useState(1);
   const [coFollowPage,   setCoFollowPage]   = useState(1);
 
-  const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
 
   // AI states
   const [aiNoteLoading,    setAiNoteLoading]    = useState(false);
@@ -648,7 +649,11 @@ export default function CaptureSession() {
           ══════════════════════════════════════════ */}
       {currentStep === 2 && (
         <div className="px-4 space-y-3">
-          <input ref={fileRef} type="file" accept="image/*" capture="environment"
+          {/* Kamera — capture langsung */}
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment"
+            onChange={handlePhoto} className="hidden" />
+          {/* Galeri — browse dari gallery / file picker */}
+          <input ref={galleryRef} type="file" accept="image/*"
             onChange={handlePhoto} className="hidden" />
 
           {/* Foto */}
@@ -657,19 +662,33 @@ export default function CaptureSession() {
               <img src={photoUrl} alt="preview" className="w-full h-52 object-cover rounded-2xl shadow-md" />
               <button aria-label="Hapus foto" onClick={() => setPhoto(undefined)}
                 className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-7 h-7 text-sm flex items-center justify-center shadow-md">✕</button>
-              <button onClick={() => fileRef.current?.click()}
-                className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-3 py-1 rounded-full">📷 Ganti</button>
+              <div className="absolute bottom-2 right-2 flex gap-1.5">
+                <button onClick={() => cameraRef.current?.click()}
+                  className="bg-black/60 text-white text-xs px-2.5 py-1 rounded-full">📷 Kamera</button>
+                <button onClick={() => galleryRef.current?.click()}
+                  className="bg-black/60 text-white text-xs px-2.5 py-1 rounded-full">🖼️ Galeri</button>
+              </div>
               <span className="absolute top-2 left-2 bg-black/50 text-white text-[10px] px-2 py-0.5 rounded-full">📅 timestamp ✓</span>
             </div>
           ) : (
-            <button onClick={() => fileRef.current?.click()}
-              className="flex flex-col items-center justify-center gap-3 w-full py-14 rounded-2xl border-2 border-dashed border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors bg-gray-50">
-              <span className="text-5xl">📷</span>
-              <div className="text-center">
-                <p className="font-semibold text-sm">Foto Sesi</p>
-                <p className="text-xs mt-0.5 text-gray-400">Timestamp otomatis ditambahkan</p>
-              </div>
-            </button>
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={() => cameraRef.current?.click()}
+                className="flex flex-col items-center justify-center gap-2 py-12 rounded-2xl border-2 border-dashed border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors bg-gray-50">
+                <span className="text-4xl">📷</span>
+                <div className="text-center">
+                  <p className="font-semibold text-sm">Ambil Foto</p>
+                  <p className="text-xs mt-0.5 text-gray-400">Buka kamera</p>
+                </div>
+              </button>
+              <button onClick={() => galleryRef.current?.click()}
+                className="flex flex-col items-center justify-center gap-2 py-12 rounded-2xl border-2 border-dashed border-gray-300 text-gray-400 hover:border-green-400 hover:text-green-500 transition-colors bg-gray-50">
+                <span className="text-4xl">🖼️</span>
+                <div className="text-center">
+                  <p className="font-semibold text-sm">Pilih dari Galeri</p>
+                  <p className="text-xs mt-0.5 text-gray-400">Cari di gallery</p>
+                </div>
+              </button>
+            </div>
           )}
 
           {/* Tanda tangan */}
