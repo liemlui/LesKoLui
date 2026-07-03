@@ -171,8 +171,8 @@ test("12-home-calendar-month", async ({ page }) => {
   await page.goto("/"); await page.waitForTimeout(1500);
   await closeChangelog(page);
 
-  // Tampilan bulan
-  const monthBtn = page.getByText("Bulan");
+  // Tampilan bulan — cari tombol "Bulan" di view toggle (grid-cols-3)
+  const monthBtn = page.locator('.grid-cols-3 button').filter({ hasText: "Bulan" }).first();
   if (await monthBtn.isVisible()) {
     await monthBtn.click();
     await page.waitForTimeout(500);
