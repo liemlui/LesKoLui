@@ -1059,17 +1059,18 @@ function InvoiceContent({
 
       {bank && (bank.bca || bank.cimb || bank.bri || bank.mandiri || bank.bsi || bank.ewallet) && (
         <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 10 }}>
-          <p style={{ fontWeight: 700, color: "#374151", margin: "0 0 6px" }}>Transfer ke:</p>
-          {bank.bca     && <p style={{ margin: "2px 0" }}>🏦 BCA {bank.bca}{bank.accountName ? ` a.n. ${bank.accountName}` : ""}</p>}
-          {bank.cimb    && <p style={{ margin: "2px 0" }}>🏦 CIMB {bank.cimb}{bank.accountName ? ` a.n. ${bank.accountName}` : ""}</p>}
-          {bank.bri     && <p style={{ margin: "2px 0" }}>🏦 BRI {bank.bri}{bank.accountName ? ` a.n. ${bank.accountName}` : ""}</p>}
-          {bank.mandiri && <p style={{ margin: "2px 0" }}>🏦 Mandiri {bank.mandiri}{bank.accountName ? ` a.n. ${bank.accountName}` : ""}</p>}
-          {bank.bsi     && <p style={{ margin: "2px 0" }}>🏦 BSI {bank.bsi}{bank.accountName ? ` a.n. ${bank.accountName}` : ""}</p>}
-          {bank.ewallet && <p style={{ margin: "2px 0" }}>💳 E-wallet {bank.ewallet}</p>}
+          <p style={{ fontWeight: 600, color: "#6b7280", margin: "0 0 4px", fontSize: 11 }}>Pembayaran via:</p>
+          {bank.bca     && <p style={{ margin: "2px 0", fontSize: 11 }}>BCA {bank.bca}</p>}
+          {bank.cimb    && <p style={{ margin: "2px 0", fontSize: 11 }}>CIMB {bank.cimb}</p>}
+          {bank.bri     && <p style={{ margin: "2px 0", fontSize: 11 }}>BRI {bank.bri}</p>}
+          {bank.mandiri && <p style={{ margin: "2px 0", fontSize: 11 }}>Mandiri {bank.mandiri}</p>}
+          {bank.bsi     && <p style={{ margin: "2px 0", fontSize: 11 }}>BSI {bank.bsi}</p>}
+          {bank.ewallet && <p style={{ margin: "2px 0", fontSize: 11 }}>E-wallet {bank.ewallet}</p>}
+          {bank.accountName && <p style={{ margin: "2px 0", fontSize: 11, color: "#9ca3af" }}>a.n. {bank.accountName}</p>}
         </div>
       )}
 
-      <p style={{ textAlign: "center", color: "#9ca3af", fontSize: 10, marginTop: 16 }}>Thank you 😇</p>
+      <p style={{ textAlign: "center", color: "#9ca3af", fontSize: 10, marginTop: 16 }}>Terima kasih 🙏</p>
     </div>
   );
 }

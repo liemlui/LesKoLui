@@ -38,34 +38,32 @@ export function buildBillingMessage(args: BuildBillingArgs): BillingResult {
   const bank = settings?.bankAccounts;
 
   const lines: string[] = [
-    `LES KO LUI`,
-    `${monthLabel(month)}`,
+    `Halo kak,`,
     ``,
-    `NAMA MURID: ${student.name}`,
+    `Berikut ringkasan les ${student.name} bulan ${monthLabel(month)} ya:`,
     ``,
-    `Rincian sesi:`,
   ];
 
   doneSessions.forEach((s) => {
     const dateShort = dayLabel(s.date).replace(/^\w+, /, "").replace(/ \d{4}$/, "");
     const subj = s.subjects.length > 0 ? s.subjects.join(", ") : "Sesi umum";
-    lines.push(`• ${dateShort} — ${subj} (${s.durationHours}j)`);
+    lines.push(`📅 ${dateShort} — ${subj} (${s.durationHours}j)`);
   });
 
   lines.push(
-    `━━━━━━━━━━━━━━`,
-    `⏱ Total: ${totalHours} jam × ${rateStr}`,
-    `💵 Total: ${formatRupiah(totalCost)}`,
+    ``,
+    `Total ${totalHours} jam — ${formatRupiah(totalCost)}`,
   );
 
   if (bank && (bank.bca || bank.cimb || bank.bri)) {
-    lines.push(``, `🏦 Transfer ke:`);
-    if (bank.bca)  lines.push(`BCA ${bank.bca}${bank.accountName ? ` a.n. ${bank.accountName}` : ""}`);
-    if (bank.cimb) lines.push(`CIMB ${bank.cimb}${bank.accountName ? ` a.n. ${bank.accountName}` : ""}`);
-    if (bank.bri)  lines.push(`BRI ${bank.bri}${bank.accountName ? ` a.n. ${bank.accountName}` : ""}`);
+    lines.push(``, `Pembayaran bisa via:`);
+    if (bank.bca)  lines.push(`BCA  ${bank.bca}`);
+    if (bank.cimb) lines.push(`CIMB ${bank.cimb}`);
+    if (bank.bri)  lines.push(`BRI  ${bank.bri}`);
+    if (bank.accountName) lines.push(`a.n. ${bank.accountName}`);
   }
 
-  lines.push(``, `Thank you 😇`, settings?.tutorProfile?.name || "Ko Lui");
+  lines.push(``, `Terima kasih 🙏`, settings?.tutorProfile?.name || "Ko Lui");
   return { text: lines.join("\n"), totalHours, totalCost, count: doneSessions.length };
 }
 
