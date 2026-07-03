@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.24.0";
+export const APP_VERSION = "v1.24.1";
 
 export interface ChangelogEntry {
   version: string;
@@ -8,6 +8,21 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.24.1",
+    date: "2026-07-16",
+    title: "Patch — Bug Fixes & Polish",
+    items: [
+      "Update modal — tampil saat versi baru, lengkap dengan changelog per rilis",
+      "Perbaikan label jadwal seri: \"Di hari yang sama setiap minggu\"",
+      "Fix form edit jadwal dari Calendar agar tidak ter-reset saat buka",
+      "JPG export sekarang per halaman (tidak digabung jadi 1 gambar panjang)",
+      "AI narasi laporan: prompt diperkuat dengan contoh spesifik",
+      "Teks billing WA: tanpa heading 'Pembayaran' atau 'Transfer ke'",
+      "Font size tombol calendar diperbesar biar legible di HP",
+      "Perbaikan urutan sesi di laporan (terbaru di atas)",
+    ],
+  },
   {
     version: "v1.24.0",
     date: "2026-07-16",
