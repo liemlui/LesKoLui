@@ -300,7 +300,7 @@ export default function MonthlyReportPage() {
     const base = `Laporan-${student.name}-${monthLabel(month)}`.replace(/\s+/g, "-");
     const exportRoot = reportExportRef.current ?? document;
     try {
-      if (type === "jpg") await shareFiles(await exportJpeg(base, false, exportRoot), base);
+      if (type === "jpg") await shareFiles(await exportJpeg(base, exportRoot), base);
       else if (type === "png") await shareFiles(await exportPng(base, exportRoot), base);
       else await shareFiles([await exportPdf(base, exportRoot)], base);
       await upsertReport({ ...report, pdfGeneratedAt: new Date().toISOString() });

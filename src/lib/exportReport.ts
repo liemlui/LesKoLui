@@ -34,43 +34,15 @@ async function rasterizePages(
   return out;
 }
 
-function loadImage(src: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = src;
-  });
-}
-
-export async function exportJpeg(filenameBase: string, multiFile = false, root: ParentNode = document): Promise<File[]> {
+export async function exportJpeg(filenameBase: string, root: ParentNode = document): Promise<File[]> {
   const pages = await rasterizePages("jpeg", root);
   if (pages.length === 0) return [];
-  if (pages.length === 1 || multiFile) {
-    return pages.map((p, i) => {
-      const blob = dataUrlToBlob(p.dataUrl);
-      const name = multiFile && pages.length > 1 ? `${filenameBase}-${i + 1}.jpg` : `${filenameBase}.jpg`;
-      return new File([blob], name, { type: "image/jpeg" });
-    });
-  }
-  // Combine all pages into one tall image
-  const PR = 2;
-  const canvasW = Math.max(...pages.map((p) => p.w)) * PR;
-  const canvasH = pages.reduce((sum, p) => sum + p.h, 0) * PR;
-  const canvas = document.createElement("canvas");
-  canvas.width = canvasW;
-  canvas.height = canvasH;
-  const ctx = canvas.getContext("2d")!;
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, canvasW, canvasH);
-  let yPx = 0;
-  for (const page of pages) {
-    const img = await loadImage(page.dataUrl);
-    ctx.drawImage(img, 0, yPx, page.w * PR, page.h * PR);
-    yPx += page.h * PR;
-  }
-  const blob = dataUrlToBlob(canvas.toDataURL("image/jpeg", 0.92));
-  return [new File([blob], `${filenameBase}.jpg`, { type: "image/jpeg" })];
+  // Always output separate files per page — combining into one tall image is impractical
+  return pages.map((p, i) => {
+    const blob = dataUrlToBlob(p.dataUrl);
+    const name = pages.length > 1 ? `${filenameBase}-${i + 1}.jpg` : `${filenameBase}.jpg`;
+    return new File([blob], name, { type: "image/jpeg" });
+  });
 }
 
 export async function exportPng(filenameBase: string, root: ParentNode = document): Promise<File[]> {
@@ -102,17 +74,19 @@ export async function exportPdf(filenameBase: string, root: ParentNode = documen
 }
 
 export async function shareFiles(files: File[], title: string) {
-  // Try Web Share API first (mobile-friendly)
-  if (typeof navigator !== "undefined" && navigator.share && navigator.canShare?.({ files })) {
+  if (files.length === 0) return;
+
+  // Try Web Share API first (mobile-friendly) — works best for single files
+  if (files.length === 1 && typeof navigator !== "undefined" && navigator.share) {
     try {
       await navigator.share({ files, title });
       return;
-    } catch {
-      // Fall through to download
-    }
+    } catch { /* fall through to download */ }
   }
-  // Fallback: download via anchor
-  for (const f of files) {
+
+  // Multi-file or share API unavailable: download sequentially
+  const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  for (const [i, f] of files.entries()) {
     const url = URL.createObjectURL(f);
     const a = document.createElement("a");
     a.href = url;
@@ -121,6 +95,8 @@ export async function shareFiles(files: File[], title: string) {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    // Delay between downloads so browser registers each as a separate click
+    await delay(500);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
   }
 }
