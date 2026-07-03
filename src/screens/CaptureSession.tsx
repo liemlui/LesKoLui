@@ -45,11 +45,7 @@ const STEPS = [
 
 type StepNum = 1 | 2 | 3 | 4 | 5 | 6;
 
-function maxBackDate(days = 14): string {
-  const [y, m, d] = todayWIB().split("-").map(Number);
-  const dt = new Date(y, m - 1, d - days);
-  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
-}
+
 
 function addDaysToDate(date: string, n: number): string {
   const [y, m, d] = date.split("-").map(Number);
@@ -555,7 +551,7 @@ export default function CaptureSession() {
           <div>
             <label className="label">📅 Tanggal Sesi</label>
             <input className="input" type="date" value={sessionDate}
-              min={maxBackDate(14)} max={today}
+              max={today}
               onChange={(e) => setSessionDate(e.target.value)} />
             {sessionDate !== today && (
               <p className="text-xs text-orange-500 mt-1">⏪ Merekam sesi masa lalu</p>
