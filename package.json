@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",
+    "e2e:shot": "playwright test --config=playwright.config.ts e2e/screenshot-katalog.spec.ts",
     "preview": "vite preview"
   },
   "dependencies": {
