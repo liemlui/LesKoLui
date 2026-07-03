@@ -390,7 +390,7 @@ function Sparkline(series: number[], t: Theme) {
 export const cards: Layout = {
   id: "cards", name: "Cards", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
-    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
       {isFirst && HeaderEl(d, t)}
       {d.entries.map((e, i) => {
@@ -418,7 +418,7 @@ export const cards: Layout = {
 export const timeline: Layout = {
   id: "timeline", name: "Timeline", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
-    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
       {isFirst && HeaderEl(d, t)}
       <div style={{ position: "relative", zIndex: 2, paddingLeft: 24, borderLeft: `3px solid ${t.accent}55` }}>
@@ -444,7 +444,7 @@ export const timeline: Layout = {
 export const scrapbook: Layout = {
   id: "scrapbook", name: "Scrapbook", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
-    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
       {isFirst && HeaderEl(d, t)}
       {d.entries.map((e, i) => {
@@ -484,7 +484,7 @@ export const scrapbook: Layout = {
 export const grid: Layout = {
   id: "grid", name: "Grid 2×", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
-    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
       {isFirst && HeaderEl(d, t)}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, position: "relative", zIndex: 2 }}>
@@ -517,7 +517,7 @@ export const grid: Layout = {
 export const compact: Layout = {
   id: "compact", name: "Compact List", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
-    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
       {isFirst && HeaderEl(d, t)}
       <div style={{ position: "relative", zIndex: 2 }}>
@@ -554,7 +554,7 @@ export const compact: Layout = {
 export const dashboard: Layout = {
   id: "dashboard", name: "Dashboard", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
-    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
       {isFirst && HeaderEl(d, t)}
       {/* 4 KPI cards */}
@@ -599,7 +599,7 @@ export const dashboard: Layout = {
 export const progress: Layout = {
   id: "progress", name: "Progress Bar", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
-    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
       {isFirst && HeaderEl(d, t)}
       {d.entries.map((e, i) => {
@@ -641,7 +641,7 @@ export const weekly: Layout = {
       weeks.get(weekNum)!.push(e);
     });
     return (
-      <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+      <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
         <Deco kind={t.deco} />
         {isFirst && HeaderEl(d, t)}
         {[...weeks.entries()].map(([wname, entries], wi) => {
@@ -686,7 +686,7 @@ export const subjects: Layout = {
       });
     });
     return (
-      <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+      <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
         <Deco kind={t.deco} />
         {isFirst && HeaderEl(d, t)}
         {[...groups.entries()].map(([subject, entries], gi) => {
@@ -719,7 +719,7 @@ export const subjects: Layout = {
 export const reportcard: Layout = {
   id: "reportcard", name: "Rapor Style", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
-    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
       {isFirst && HeaderEl(d, t)}
       <div style={{ position: "relative", zIndex: 2 }}>
@@ -753,7 +753,7 @@ export const reportcard: Layout = {
 export const portfolio: Layout = {
   id: "portfolio", name: "Portfolio", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
-    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
       {isFirst && HeaderEl(d, t)}
       {d.entries.map((e, i) => {
@@ -785,7 +785,7 @@ export const portfolio: Layout = {
 export const checklist: Layout = {
   id: "checklist", name: "Checklist", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
-    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
       {isFirst && HeaderEl(d, t)}
       {d.entries.map((e, i) => {
@@ -821,7 +821,7 @@ export const checklist: Layout = {
 export const summary: Layout = {
   id: "summary", name: "Ringkasan Eksekutif", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
-    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
       {isFirst && HeaderEl(d, t)}
       {/* 3 highlight pills */}
@@ -862,7 +862,7 @@ export const growth: Layout = {
   render: (d, t, { isFirst, isLast }) => {
     const maxScore = 10;
     return (
-      <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+      <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
         <Deco kind={t.deco} />
         {isFirst && HeaderEl(d, t)}
         {/* Mini bar chart */}
@@ -904,7 +904,7 @@ export const growth: Layout = {
 export const dossier: Layout = {
   id: "dossier", name: "Berkas Siswa", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
-    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
       {isFirst && HeaderEl(d, t)}
       {d.entries.map((e, i) => {
@@ -935,7 +935,7 @@ export const analytics: Layout = {
     d.entries.forEach(e => e.subject.split(", ").forEach(s => subjectCounts.set(s.trim(), (subjectCounts.get(s.trim()) || 0) + 1)));
     const total = d.entries.length;
     return (
-      <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+      <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
         <Deco kind={t.deco} />
         {isFirst && HeaderEl(d, t)}
         {/* Donut-like subject bars */}
@@ -980,7 +980,7 @@ export const analytics: Layout = {
 export const narrative: Layout = {
   id: "narrative", name: "Narasi Utama", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
-    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
       {isFirst && HeaderEl(d, t)}
       {d.entries.map((e, i) => {
@@ -1010,7 +1010,7 @@ export const narrative: Layout = {
 export const milestone: Layout = {
   id: "milestone", name: "Capaian", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
-    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
       {isFirst && HeaderEl(d, t)}
       <div style={{ position: "relative", zIndex: 2 }}>
@@ -1046,7 +1046,7 @@ export const milestone: Layout = {
 export const split: Layout = {
   id: "split", name: "Dua Sisi", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
-    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
       {isFirst && HeaderEl(d, t)}
       {d.entries.map((e, i) => {
@@ -1083,7 +1083,7 @@ export const split: Layout = {
 export const journal: Layout = {
   id: "journal", name: "Jurnal", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
-    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
       {isFirst && HeaderEl(d, t)}
       {d.entries.map((e, i) => {
@@ -1115,7 +1115,7 @@ export const journal: Layout = {
 export const overview: Layout = {
   id: "overview", name: "Overview Cards", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
-    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
       {isFirst && HeaderEl(d, t)}
       {d.entries.map((e, i) => {
@@ -1146,7 +1146,7 @@ export const overview: Layout = {
 export const minimal: Layout = {
   id: "minimal", name: "Minimalis", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
-    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       {isFirst && HeaderEl(d, t)}
       <div style={{ position: "relative", zIndex: 2 }}>
         {d.entries.map((e, i) => {
@@ -1175,7 +1175,7 @@ export const minimal: Layout = {
 export const bullets: Layout = {
   id: "bullets", name: "Bullet Journal", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
-    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
       {isFirst && HeaderEl(d, t)}
       {d.entries.map((e, i) => {
@@ -1213,7 +1213,7 @@ export const compare: Layout = {
       return valid.length > 0 ? Math.round(valid.reduce((s, e) => s + e.engagementScore!, 0) / valid.length) : null;
     };
     return (
-      <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+      <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
         <Deco kind={t.deco} />
         {isFirst && HeaderEl(d, t)}
         {/* Comparison header */}
@@ -1266,7 +1266,7 @@ export const compare: Layout = {
 export const snapshot: Layout = {
   id: "snapshot", name: "Snapshot", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
-    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden" }}>
+    <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
       {isFirst && HeaderEl(d, t)}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, position: "relative", zIndex: 2 }}>

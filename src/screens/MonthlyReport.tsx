@@ -158,8 +158,9 @@ export default function MonthlyReportPage() {
     let cancelled = false;
     (async () => {
       const logoUrl = settings?.logo ? await blobToDataUrl(settings.logo) : undefined;
+      const sorted = [...sessions].sort((a, b) => b.date.localeCompare(a.date));
       const entries = await Promise.all(
-        sessions.map(async (s) => {
+        sorted.map(async (s) => {
           const engScore = s.engagement?.score ?? (s.engagement ? calcEngagementScore(s.engagement) : undefined);
           const engLabel = engScore != null ? scoreLabel(engScore).text : undefined;
           const subject = sessionSubjectLabel(s.subjects);

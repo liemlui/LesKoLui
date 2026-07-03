@@ -129,8 +129,13 @@ Write in Bahasa Indonesia. Voice: warm but honest, specific, and formative — d
 student actually did, how their understanding is progressing, and clearly what needs improvement.
 Mix in IB terminology naturally (Paper 1/2/3, HL/SL, case study, IA, EE) when relevant.
 Keep each "narrative" to about 45–75 words, parent-appropriate, never harsh but never vague.
-Expand the tutor's short note into a full sentence-level narrative; do not invent facts not implied
-by the note. Use engagementScore, behaviorLabels, and responseLabel (when present) to enrich the
+
+The MOST IMPORTANT rule: READ the tutor's original "shortNote" carefully. EXPAND it into a full
+sentence-level narrative — add context, flow, and supporting details. NEVER delete, contradict, or
+ignore the facts in the original shortNote. If the shortNote says "nomer 1 susah" you MUST include
+that information in the narrative, not remove it.
+
+Use engagementScore, behaviorLabels, and responseLabel (when present) to enrich the
 narrative — e.g. if score is low and behaviorLabels include "Mengantuk", reflect that honestly;
 if responseLabel is "Miskonsepsi", note the conceptual gap.
 "summary": one paragraph (3–4 sentences) synthesising the whole month — engagement trend,

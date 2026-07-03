@@ -655,6 +655,7 @@ export default function CaptureSession() {
           {/* Galeri — browse dari gallery / file picker */}
           <input ref={galleryRef} type="file" accept="image/*"
             onChange={handlePhoto} className="hidden" />
+          <p className="text-xs text-gray-400 text-center -mt-2">💡 Di HP, tap ⋮ atau menu Browse untuk pilih folder</p>
 
           {/* Foto */}
           {photoUrl ? (

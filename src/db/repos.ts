@@ -310,7 +310,7 @@ export async function listSessionsByStudentMonth(
   return db.sessions
     .where({ studentId })
     .filter((s) => s.status === "DONE" && s.date >= start && s.date <= end)
-    .toArray();
+    .sortBy("date");
 }
 
 export async function listSessionsToday(): Promise<Session[]> {
