@@ -2,6 +2,7 @@ import { useEffect, lazy, Suspense, useState, useCallback } from "react";
 import { createBrowserRouter, RouterProvider, Outlet, Navigate, useNavigate } from "react-router-dom";
 import BottomNav from "./components/BottomNav";
 import { PwaPrompts } from "./components/PwaPrompts";
+import ChangelogModal from "./components/ChangelogModal";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ToastProvider, useToastCtx } from "./components/ToastProvider";
 import ToastContainer from "./components/Toast";
@@ -273,6 +274,7 @@ function Layout() {
       </Suspense>
       <BottomNav />
       <PwaPrompts />
+      <ChangelogModal />
     </div>
     </ToastProvider>
     </ErrorBoundary>
