@@ -38,9 +38,9 @@ export function buildBillingMessage(args: BuildBillingArgs): BillingResult {
   const bank = settings?.bankAccounts;
 
   const lines: string[] = [
-    `Halo kak,`,
+    `NAMA MURID: ${student.name}`,
     ``,
-    `Berikut ringkasan les ${student.name} bulan ${monthLabel(month)} ya:`,
+    `${monthLabel(month)}`,
     ``,
   ];
 
@@ -56,14 +56,14 @@ export function buildBillingMessage(args: BuildBillingArgs): BillingResult {
   );
 
   if (bank && (bank.bca || bank.cimb || bank.bri)) {
-    lines.push(``, `Pembayaran bisa via:`);
+    lines.push(``);
     if (bank.bca)  lines.push(`BCA  ${bank.bca}`);
     if (bank.cimb) lines.push(`CIMB ${bank.cimb}`);
     if (bank.bri)  lines.push(`BRI  ${bank.bri}`);
     if (bank.accountName) lines.push(`a.n. ${bank.accountName}`);
   }
 
-  lines.push(``, `Terima kasih 🙏`, settings?.tutorProfile?.name || "Ko Lui");
+  lines.push(``, `Thank you 😇`, settings?.tutorProfile?.name || "Ko Lui");
   return { text: lines.join("\n"), totalHours, totalCost, count: doneSessions.length };
 }
 

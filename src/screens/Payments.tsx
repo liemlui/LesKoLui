@@ -1059,7 +1059,6 @@ function InvoiceContent({
 
       {bank && (bank.bca || bank.cimb || bank.bri || bank.mandiri || bank.bsi || bank.ewallet) && (
         <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 10 }}>
-          <p style={{ fontWeight: 600, color: "#6b7280", margin: "0 0 4px", fontSize: 11 }}>Pembayaran via:</p>
           {bank.bca     && <p style={{ margin: "2px 0", fontSize: 11 }}>BCA {bank.bca}</p>}
           {bank.cimb    && <p style={{ margin: "2px 0", fontSize: 11 }}>CIMB {bank.cimb}</p>}
           {bank.bri     && <p style={{ margin: "2px 0", fontSize: 11 }}>BRI {bank.bri}</p>}
@@ -1070,7 +1069,7 @@ function InvoiceContent({
         </div>
       )}
 
-      <p style={{ textAlign: "center", color: "#9ca3af", fontSize: 10, marginTop: 16 }}>Terima kasih 🙏</p>
+      <p style={{ textAlign: "center", color: "#9ca3af", fontSize: 10, marginTop: 16 }}>Thank you 😇</p>
     </div>
   );
 }
