@@ -102,6 +102,12 @@ const DEFAULT_SETTINGS: Settings = {
   ],
   ai: { enabled: false, apiKey: "", model: "deepseek-v4-flash" },
   templatePref: {},
+  bankAccounts: {
+    bca: "8630014884",
+    cimb: "4600101184169",
+    bri: "119801000960569",
+    accountName: "Aloysius Alfa Adji Putra",
+  },
 };
 
 // ── Settings ───────────────────────────────────────────────────────
@@ -110,10 +116,22 @@ const DEFAULT_SETTINGS: Settings = {
 export async function getSettings(): Promise<Settings> {
   const s = await db.settings.get("app");
   if (!s) return { ...DEFAULT_SETTINGS };
+  let changed = false;
+
+  // Migrasi legacy PIN plaintext → hash
   if (s.financialPin && !isHashedPin(s.financialPin)) {
-    const migrated = { ...s, financialPin: await hashPin(s.financialPin) };
-    await db.settings.put(migrated);
-    return migrated;
+    s.financialPin = await hashPin(s.financialPin);
+    changed = true;
+  }
+
+  // Isi bankAccounts default jika belum ada
+  if (!s.bankAccounts?.bca && !s.bankAccounts?.cimb && !s.bankAccounts?.bri) {
+    s.bankAccounts = DEFAULT_SETTINGS.bankAccounts;
+    changed = true;
+  }
+
+  if (changed) {
+    await db.settings.put({ ...s, id: "app" } as Settings);
   }
   return s;
 }
