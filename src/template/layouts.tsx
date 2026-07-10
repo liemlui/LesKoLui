@@ -503,7 +503,7 @@ export const scrapbook: Layout = {
 };
 
 export const grid: Layout = {
-  id: "grid", name: "Grid 2×", maxEntriesPerPage: 4,
+  id: "grid", name: "Grid 2×", maxEntriesPerPage: 6,
   render: (d, t, { isFirst, isLast }) => (
     <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
@@ -536,7 +536,7 @@ export const grid: Layout = {
 };
 
 export const compact: Layout = {
-  id: "compact", name: "Compact List", maxEntriesPerPage: 4,
+  id: "compact", name: "Compact List", maxEntriesPerPage: 8,
   render: (d, t, { isFirst, isLast }) => (
     <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
@@ -573,7 +573,7 @@ export const compact: Layout = {
 
 // 1 ─ Dashboard
 export const dashboard: Layout = {
-  id: "dashboard", name: "Dashboard", maxEntriesPerPage: 4,
+  id: "dashboard", name: "Dashboard", maxEntriesPerPage: 6,
   render: (d, t, { isFirst, isLast }) => (
     <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
@@ -619,7 +619,7 @@ export const dashboard: Layout = {
 
 // 2 ─ Progress Bars
 export const progress: Layout = {
-  id: "progress", name: "Progress Bar", maxEntriesPerPage: 4,
+  id: "progress", name: "Progress Bar", maxEntriesPerPage: 5,
   render: (d, t, { isFirst, isLast }) => (
     <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
@@ -652,7 +652,7 @@ export const progress: Layout = {
 
 // 3 ─ Weekly
 export const weekly: Layout = {
-  id: "weekly", name: "Per Minggu", maxEntriesPerPage: 4,
+  id: "weekly", name: "Per Minggu", maxEntriesPerPage: 6,
   render: (d, t, { isFirst, isLast }) => {
     const weeks = new Map<string, typeof d.entries>();
     d.entries.forEach((e) => {
@@ -697,7 +697,7 @@ export const weekly: Layout = {
 
 // 4 ─ Per Mapel
 export const subjects: Layout = {
-  id: "subjects", name: "Per Mapel", maxEntriesPerPage: 4,
+  id: "subjects", name: "Per Mapel", maxEntriesPerPage: 6,
   render: (d, t, { isFirst, isLast }) => {
     const groups = new Map<string, typeof d.entries>();
     d.entries.forEach((e) => {
@@ -740,7 +740,7 @@ export const subjects: Layout = {
 
 // 5 ─ Rapor Style
 export const reportcard: Layout = {
-  id: "reportcard", name: "Rapor Style", maxEntriesPerPage: 4,
+  id: "reportcard", name: "Rapor Style", maxEntriesPerPage: 10,
   render: (d, t, { isFirst, isLast }) => (
     <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
@@ -806,7 +806,7 @@ export const portfolio: Layout = {
 
 // 7 ─ Checklist
 export const checklist: Layout = {
-  id: "checklist", name: "Checklist", maxEntriesPerPage: 4,
+  id: "checklist", name: "Checklist", maxEntriesPerPage: 8,
   render: (d, t, { isFirst, isLast }) => (
     <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
@@ -842,7 +842,7 @@ export const checklist: Layout = {
 
 // 8 ─ Ringkasan Eksekutif
 export const summary: Layout = {
-  id: "summary", name: "Ringkasan Eksekutif", maxEntriesPerPage: 4,
+  id: "summary", name: "Ringkasan Eksekutif", maxEntriesPerPage: 7,
   render: (d, t, { isFirst, isLast }) => (
     <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
@@ -882,18 +882,17 @@ export const summary: Layout = {
 
 // 9 ─ Growth Chart (mini bar)
 export const growth: Layout = {
-  id: "growth", name: "Pertumbuhan", maxEntriesPerPage: 4,
+  id: "growth", name: "Pertumbuhan", maxEntriesPerPage: 5,
   render: (d, t, { isFirst, isLast }) => {
     const maxScore = 10;
     return (
       <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
         <Deco kind={t.deco} />
         {isFirst && HeaderEl(d, t)}
-        {/* Mini bar chart — entries datang terbaru→terlama, dibalik agar sumbu waktu kiri→kanan */}
+        {/* Mini bar chart — entries kronologis, sumbu waktu langsung kiri→kanan */}
         <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 80, marginBottom: 20, position: "relative", zIndex: 2, padding: "0 4px" }}>
-          {[...d.entries].reverse().map((e, i, arr) => {
-            // warna disamakan dengan entri yang sama di daftar detail (index asli)
-            const c = t.palette[(arr.length - 1 - i) % t.palette.length];
+          {d.entries.map((e, i) => {
+            const c = t.palette[i % t.palette.length];
             const h = e.engagementScore != null ? (e.engagementScore / maxScore) * 100 : 15;
             return (
               <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
@@ -927,7 +926,7 @@ export const growth: Layout = {
 
 // 10 ─ Dossier
 export const dossier: Layout = {
-  id: "dossier", name: "Berkas Siswa", maxEntriesPerPage: 4,
+  id: "dossier", name: "Berkas Siswa", maxEntriesPerPage: 5,
   render: (d, t, { isFirst, isLast }) => (
     <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
@@ -954,7 +953,7 @@ export const dossier: Layout = {
 
 // 11 ─ Analitik
 export const analytics: Layout = {
-  id: "analytics", name: "Analitik", maxEntriesPerPage: 4,
+  id: "analytics", name: "Analitik", maxEntriesPerPage: 6,
   render: (d, t, { isFirst, isLast }) => {
     // Distribusi SEBULAN bila tersedia (akurat >1 halaman); fallback ke entri halaman ini
     const subjectCounts = new Map<string, number>();
@@ -1007,7 +1006,7 @@ export const analytics: Layout = {
 
 // 12 ─ Narrative
 export const narrative: Layout = {
-  id: "narrative", name: "Narasi Utama", maxEntriesPerPage: 4,
+  id: "narrative", name: "Narasi Utama", maxEntriesPerPage: 5,
   render: (d, t, { isFirst, isLast }) => (
     <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
@@ -1037,7 +1036,7 @@ export const narrative: Layout = {
 
 // 13 ─ Milestone
 export const milestone: Layout = {
-  id: "milestone", name: "Capaian", maxEntriesPerPage: 4,
+  id: "milestone", name: "Capaian", maxEntriesPerPage: 5,
   render: (d, t, { isFirst, isLast }) => (
     <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
@@ -1110,7 +1109,7 @@ export const split: Layout = {
 
 // 15 ─ Journal
 export const journal: Layout = {
-  id: "journal", name: "Jurnal", maxEntriesPerPage: 4,
+  id: "journal", name: "Jurnal", maxEntriesPerPage: 6,
   render: (d, t, { isFirst, isLast }) => (
     <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
@@ -1173,7 +1172,7 @@ export const overview: Layout = {
 
 // 17 ─ Minimalis
 export const minimal: Layout = {
-  id: "minimal", name: "Minimalis", maxEntriesPerPage: 4,
+  id: "minimal", name: "Minimalis", maxEntriesPerPage: 8,
   render: (d, t, { isFirst, isLast }) => (
     <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       {isFirst && HeaderEl(d, t)}
@@ -1202,7 +1201,7 @@ export const minimal: Layout = {
 
 // 18 ─ Bullet Journal
 export const bullets: Layout = {
-  id: "bullets", name: "Bullet Journal", maxEntriesPerPage: 4,
+  id: "bullets", name: "Bullet Journal", maxEntriesPerPage: 8,
   render: (d, t, { isFirst, isLast }) => (
     <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
@@ -1233,11 +1232,11 @@ export const bullets: Layout = {
 
 // 19 ─ Compare
 export const compare: Layout = {
-  id: "compare", name: "Perbandingan", maxEntriesPerPage: 4,
+  id: "compare", name: "Perbandingan", maxEntriesPerPage: 8,
   render: (d, t, { isFirst, isLast }) => {
-    // entries datang urut TERBARU→terlama: paruh pertama array = AKHIR bulan
-    const akhirHalf = d.entries.slice(0, Math.ceil(d.entries.length / 2));
-    const awalHalf  = d.entries.slice(Math.ceil(d.entries.length / 2));
+    // entries KRONOLOGIS (awal→akhir bulan): paruh pertama array = AWAL bulan
+    const awalHalf  = d.entries.slice(0, Math.ceil(d.entries.length / 2));
+    const akhirHalf = d.entries.slice(Math.ceil(d.entries.length / 2));
     const avgEng = (entries: typeof d.entries) => {
       const valid = entries.filter(e => e.engagementScore != null);
       return valid.length > 0 ? Math.round(valid.reduce((s, e) => s + e.engagementScore!, 0) / valid.length) : null;
@@ -1294,7 +1293,7 @@ export const compare: Layout = {
 
 // 20 ─ Snapshot (Polaroid grid with session notes)
 export const snapshot: Layout = {
-  id: "snapshot", name: "Snapshot", maxEntriesPerPage: 4,
+  id: "snapshot", name: "Snapshot", maxEntriesPerPage: 6,
   render: (d, t, { isFirst, isLast }) => (
     <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
@@ -1357,8 +1356,8 @@ export const infographic: Layout = {
     const distTotal = dist.reduce((s, x) => s + x.count, 0) || 1;
     const series = (d.engagementSeries && d.engagementSeries.length > 0)
       ? d.engagementSeries
-      // fallback: entries urut terbaru→terlama → dibalik agar sparkline kronologis
-      : d.entries.map((e) => e.engagementScore).filter((s): s is number => s != null).reverse();
+      // fallback: entries kronologis → sparkline langsung searah waktu
+      : d.entries.map((e) => e.engagementScore).filter((s): s is number => s != null);
 
     const kpi = (value: string, label: string, accent = false) => (
       <div style={{ flex: 1, textAlign: "center", padding: "2px 4px" }}>

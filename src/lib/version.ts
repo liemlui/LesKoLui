@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.25.0";
+export const APP_VERSION = "v1.26.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -8,6 +8,17 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.26.0",
+    date: "2026-07-10",
+    title: "Laporan Kronologis + Halaman Lebih Padat",
+    items: [
+      "Urutan sesi di laporan kini KRONOLOGIS (awal→akhir bulan) — orang tua membaca sebagai cerita perkembangan",
+      "Semua grafik tren (Sparkline Fokus, Pertumbuhan, Perbandingan) otomatis searah waktu",
+      "Paginasi cerdas per layout: Rapor Style 10 sesi/halaman, Compact/Minimalis/Bullet/Checklist 8, layout foto besar tetap 4",
+      "Laporan bulan padat kini butuh lebih sedikit halaman saat dikirim via WA",
+    ],
+  },
   {
     version: "v1.25.0",
     date: "2026-07-10",

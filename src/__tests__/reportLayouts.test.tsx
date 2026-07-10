@@ -23,14 +23,14 @@ const data: ReportData = {
   summary: "Ringkasan bulan tersedia.",
 };
 
-// Data multi-sesi urut TERBARU→terlama (sama seperti produksi):
+// Data multi-sesi KRONOLOGIS awal→akhir bulan (sama seperti produksi):
 // skor naik dari 5 (awal bulan) ke 9 (akhir bulan) = tren MENINGKAT
 const multiData: ReportData = {
   ...data,
   entries: [
-    { date: "26 Juni 2026", subject: "Fisika", narrative: "Sesi akhir bulan.", engagementScore: 9 },
-    { date: "19 Juni 2026", subject: "Fisika", narrative: "Sesi tengah bulan.", engagementScore: 7 },
     { date: "5 Juni 2026", subject: "Matematika", narrative: "Sesi awal bulan.", engagementScore: 5 },
+    { date: "19 Juni 2026", subject: "Fisika", narrative: "Sesi tengah bulan.", engagementScore: 7 },
+    { date: "26 Juni 2026", subject: "Fisika", narrative: "Sesi akhir bulan.", engagementScore: 9 },
   ],
 };
 
@@ -68,7 +68,7 @@ describe("report layouts", () => {
     expect(html).toContain(">Juni</p>");
   });
 
-  it("compare reads newest-first entries as an IMPROVING trend when scores rise over the month", () => {
+  it("compare reads chronological entries as an IMPROVING trend when scores rise over the month", () => {
     const html = renderToStaticMarkup(getLayout("compare").render(multiData, THEMES[0], { isFirst: true, isLast: true }));
     expect(html).toContain("Meningkat");
     expect(html).not.toContain("Menurun");
@@ -103,6 +103,19 @@ describe("report layouts", () => {
     };
     const html = renderToStaticMarkup(getLayout("subjects").render(noScores, THEMES[0], { isFirst: true, isLast: true }));
     expect(html).not.toContain("avg 0/10");
+  });
+
+  it("dense layouts hold more entries per page than photo-heavy ones", () => {
+    // Layout foto besar tetap 4/halaman; layout ringkas dinaikkan
+    for (const id of ["cards", "timeline", "scrapbook", "portfolio", "split", "overview"]) {
+      expect(getLayout(id).maxEntriesPerPage, id).toBe(4);
+    }
+    expect(getLayout("reportcard").maxEntriesPerPage).toBe(10);
+    expect(getLayout("compact").maxEntriesPerPage).toBe(8);
+    expect(getLayout("minimal").maxEntriesPerPage).toBe(8);
+    for (const layout of LAYOUTS) {
+      expect(layout.maxEntriesPerPage, layout.id).toBeGreaterThanOrEqual(4);
+    }
   });
 
   it("dashboard KPI uses full-month aggregates when provided", () => {

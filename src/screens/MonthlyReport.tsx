@@ -166,7 +166,9 @@ export default function MonthlyReportPage() {
     let cancelled = false;
     (async () => {
       const logoUrl = settings?.logo ? await blobToDataUrl(settings.logo) : undefined;
-      const sorted = [...sessions].sort((a, b) => b.date.localeCompare(a.date));
+      // KRONOLOGIS (awal→akhir bulan): orang tua membaca laporan sebagai cerita perkembangan.
+      // Semua visual tren (sparkline, growth, compare) mengandalkan urutan ini.
+      const sorted = [...sessions].sort((a, b) => a.date.localeCompare(b.date));
       const entries = await Promise.all(
         sorted.map(async (s) => {
           const engScore = s.engagement?.score ?? (s.engagement ? calcEngagementScore(s.engagement) : undefined);
@@ -208,8 +210,8 @@ export default function MonthlyReportPage() {
         totalHours,
         totalSessions: entries.length,
         subjectDist,
-        // entries urut terbaru→terlama; sparkline "Tren Fokus" butuh kronologis (lama→baru)
-        engagementSeries: [...scores].reverse(),
+        // entries sudah kronologis → seri fokus langsung searah waktu
+        engagementSeries: scores,
       });
     })();
     return () => { cancelled = true; };
