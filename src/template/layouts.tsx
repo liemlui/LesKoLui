@@ -2,7 +2,8 @@
 import type { Theme, ReportData, Layout, ReportEntry } from "./types";
 import { Deco } from "./deco";
 
-const EMPTY_NARRATIVE = "Catatan sesi belum diisi. Lengkapi narasi agar laporan lebih personal.";
+// Ikut tercetak di laporan orang tua — jaga netral, tanpa instruksi untuk tutor
+const EMPTY_NARRATIVE = "Sesi berjalan sesuai jadwal.";
 const EMPTY_SUBJECT = "Mapel belum diisi";
 const EMPTY_DATE = "Tanggal belum diisi";
 
@@ -14,9 +15,16 @@ function entryDate(e: ReportEntry): string {
   return clean(e.date) || EMPTY_DATE;
 }
 
+// e.date dari MonthlyReport berformat "5 Juni 2026" — ambil "5 Juni" (buang tahun)
 function entryDateShort(e: ReportEntry): string {
   const date = entryDate(e);
-  return date.split(" ").pop() || date;
+  const tokens = date.split(" ").filter(Boolean);
+  return tokens.slice(0, 2).join(" ") || date;
+}
+
+/** Nomor hari saja ("5") — untuk label sumbu chart yang sempit. */
+function entryDay(e: ReportEntry): string {
+  return entryDate(e).split(" ")[0] || "";
 }
 
 function entrySubject(e: ReportEntry): string {
@@ -559,11 +567,12 @@ export const dashboard: Layout = {
       {isFirst && HeaderEl(d, t)}
       {/* 4 KPI cards */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 18, position: "relative", zIndex: 2 }}>
+        {/* Agregat SEBULAN (bukan per halaman) bila tersedia — akurat saat laporan >1 halaman */}
         {[
-          { label: "Sesi", value: d.entries.length },
+          { label: "Sesi", value: d.totalSessions ?? d.entries.length },
           { label: "Rata² Engagement", value: d.avgEngagement != null ? `${d.avgEngagement}/10` : "—" },
-          { label: "Foto", value: d.entries.filter(e => e.photoUrl).length },
-          { label: "Mapel", value: [...new Set(d.entries.flatMap(e => e.subject.split(", ")))].length },
+          { label: "Foto", value: d.photoUrls?.length ?? d.entries.filter(e => e.photoUrl).length },
+          { label: "Mapel", value: d.subjectDist?.length ?? [...new Set(d.entries.flatMap(e => e.subject.split(", ")))].length },
         ].map((kpi, ki) => (
           <div key={ki} style={{ background: t.accent + "12", borderRadius: 14, padding: "12px 10px", textAlign: "center" }}>
             <p style={{ fontFamily: t.fontDisplay, fontWeight: 800, fontSize: 24, color: t.accent, margin: 0, lineHeight: 1.1 }}>{kpi.value}</p>
@@ -634,8 +643,8 @@ export const weekly: Layout = {
   render: (d, t, { isFirst, isLast }) => {
     const weeks = new Map<string, typeof d.entries>();
     d.entries.forEach((e) => {
-      const parts = e.date.split(" ");
-      const dayNum = parseInt(parts[1] || "1");
+      // e.date = "5 Juni 2026" → nomor hari adalah token PERTAMA
+      const dayNum = parseInt(e.date.split(" ")[0] || "1");
       const weekNum = `Minggu ${Math.ceil(dayNum / 7)}`;
       if (!weeks.has(weekNum)) weeks.set(weekNum, []);
       weeks.get(weekNum)!.push(e);
@@ -732,7 +741,7 @@ export const reportcard: Layout = {
           const bgRow = i % 2 === 0 ? t.bg : c + "0a";
           return (
             <div key={i} style={{ display: "grid", gridTemplateColumns: "60px 1fr 70px", gap: 8, padding: "8px 8px", background: bgRow, borderBottom: `1px solid ${t.muted}18`, alignItems: "start" }}>
-              <span style={{ fontSize: 10, fontWeight: 600, color: t.muted }}>{e.date.split(" ").pop()}</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: t.muted }}>{entryDateShort(e)}</span>
               <div>
                 <span style={{ fontSize: 10, fontWeight: 700, color: c, display: "block" }}>{e.subject}</span>
                 <span style={{ fontFamily: t.fontBody, fontSize: 10, lineHeight: 1.35, color: t.ink }}>{e.narrative}</span>
@@ -826,9 +835,10 @@ export const summary: Layout = {
       {isFirst && HeaderEl(d, t)}
       {/* 3 highlight pills */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", position: "relative", zIndex: 2 }}>
+        {/* Agregat SEBULAN bila tersedia — akurat saat laporan >1 halaman */}
         {[
-          { icon: "📊", label: `${d.entries.length} Sesi` },
-          { icon: "📚", label: `${[...new Set(d.entries.flatMap(e => e.subject.split(", ")))].length} Mapel` },
+          { icon: "📊", label: `${d.totalSessions ?? d.entries.length} Sesi` },
+          { icon: "📚", label: `${d.subjectDist?.length ?? [...new Set(d.entries.flatMap(e => e.subject.split(", ")))].length} Mapel` },
           { icon: "⭐", label: d.avgEngagement != null ? `Rata² ${d.avgEngagement}/10` : "Engagement —" },
         ].map((hl, hi) => (
           <span key={hi} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "6px 12px", borderRadius: 999, background: t.palette[hi] + "20", fontSize: 11, fontWeight: 600, color: t.palette[hi] }}>
@@ -865,16 +875,17 @@ export const growth: Layout = {
       <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
         <Deco kind={t.deco} />
         {isFirst && HeaderEl(d, t)}
-        {/* Mini bar chart */}
+        {/* Mini bar chart — entries datang terbaru→terlama, dibalik agar sumbu waktu kiri→kanan */}
         <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 80, marginBottom: 20, position: "relative", zIndex: 2, padding: "0 4px" }}>
-          {d.entries.map((e, i) => {
-            const c = t.palette[i % t.palette.length];
+          {[...d.entries].reverse().map((e, i, arr) => {
+            // warna disamakan dengan entri yang sama di daftar detail (index asli)
+            const c = t.palette[(arr.length - 1 - i) % t.palette.length];
             const h = e.engagementScore != null ? (e.engagementScore / maxScore) * 100 : 15;
             return (
               <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
                 <span style={{ fontSize: 9, fontWeight: 700, color: c }}>{e.engagementScore ?? "—"}</span>
                 <div style={{ width: "100%", height: `${h}%`, borderRadius: "4px 4px 0 0", background: c, minHeight: 4, transition: "height .3s" }} />
-                <span style={{ fontSize: 8, color: t.muted, transform: "rotate(-30deg)", whiteSpace: "nowrap", marginTop: 2 }}>{e.date.split(" ").pop()}</span>
+                <span style={{ fontSize: 8, color: t.muted, transform: "rotate(-30deg)", whiteSpace: "nowrap", marginTop: 2 }}>{entryDay(e)}</span>
               </div>
             );
           })}
@@ -931,9 +942,13 @@ export const dossier: Layout = {
 export const analytics: Layout = {
   id: "analytics", name: "Analitik", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => {
+    // Distribusi SEBULAN bila tersedia (akurat >1 halaman); fallback ke entri halaman ini
     const subjectCounts = new Map<string, number>();
     d.entries.forEach(e => e.subject.split(", ").forEach(s => subjectCounts.set(s.trim(), (subjectCounts.get(s.trim()) || 0) + 1)));
-    const total = d.entries.length;
+    const dist = (d.subjectDist && d.subjectDist.length > 0)
+      ? d.subjectDist
+      : [...subjectCounts.entries()].map(([name, count]) => ({ name, count }));
+    const total = d.totalSessions ?? d.entries.length;
     return (
       <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
         <Deco kind={t.deco} />
@@ -941,9 +956,9 @@ export const analytics: Layout = {
         {/* Donut-like subject bars */}
         <div style={{ marginBottom: 18, position: "relative", zIndex: 2 }}>
           <p style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 11, color: t.muted, marginBottom: 8, letterSpacing: 1, textTransform: "uppercase" }}>Distribusi Mapel</p>
-          {[...subjectCounts.entries()].map(([subj, cnt], si) => {
+          {dist.map(({ name: subj, count: cnt }, si) => {
             const c = t.palette[si % t.palette.length];
-            const pct = Math.round((cnt / total) * 100);
+            const pct = Math.round((cnt / (total || 1)) * 100);
             return (
               <div key={subj} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                 <span style={{ fontSize: 10, fontWeight: 600, width: 80, flexShrink: 0, color: t.ink }}>{subj}</span>
@@ -1088,13 +1103,13 @@ export const journal: Layout = {
       {isFirst && HeaderEl(d, t)}
       {d.entries.map((e, i) => {
         const c = t.palette[i % t.palette.length];
-        const [dayName, ...rest] = e.date.split(" ");
-        const dayNum = rest.pop() || "";
+        // e.date = "5 Juni 2026" → angka besar = nomor hari, kecil = nama bulan
+        const [dayNum = "", monthName = ""] = e.date.split(" ");
         return (
           <div key={i} style={{ display: "flex", gap: 14, marginBottom: 18, position: "relative", zIndex: 2 }}>
             <div style={{ textAlign: "right", flexShrink: 0, width: 48, paddingTop: 2 }}>
               <p style={{ fontFamily: t.fontDisplay, fontWeight: 800, fontSize: 28, color: c, lineHeight: 1, margin: 0 }}>{dayNum}</p>
-              <p style={{ fontSize: 9, fontWeight: 600, color: t.muted, margin: 0 }}>{dayName}</p>
+              <p style={{ fontSize: 9, fontWeight: 600, color: t.muted, margin: 0 }}>{monthName}</p>
             </div>
             <div style={{ flex: 1, borderLeft: `2px dashed ${c}44`, paddingLeft: 14 }}>
               <span style={{ fontSize: 10, fontWeight: 700, color: c, background: c + "18", padding: "2px 8px", borderRadius: 999 }}>
@@ -1206,8 +1221,9 @@ export const bullets: Layout = {
 export const compare: Layout = {
   id: "compare", name: "Perbandingan", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => {
-    const firstHalf = d.entries.slice(0, Math.ceil(d.entries.length / 2));
-    const secondHalf = d.entries.slice(Math.ceil(d.entries.length / 2));
+    // entries datang urut TERBARU→terlama: paruh pertama array = AKHIR bulan
+    const akhirHalf = d.entries.slice(0, Math.ceil(d.entries.length / 2));
+    const awalHalf  = d.entries.slice(Math.ceil(d.entries.length / 2));
     const avgEng = (entries: typeof d.entries) => {
       const valid = entries.filter(e => e.engagementScore != null);
       return valid.length > 0 ? Math.round(valid.reduce((s, e) => s + e.engagementScore!, 0) / valid.length) : null;
@@ -1219,8 +1235,8 @@ export const compare: Layout = {
         {/* Comparison header */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16, position: "relative", zIndex: 2 }}>
           {[
-            { label: "Awal Bulan", entries: firstHalf, ci: 0 },
-            { label: "Akhir Bulan", entries: secondHalf, ci: 1 },
+            { label: "Awal Bulan", entries: awalHalf, ci: 0 },
+            { label: "Akhir Bulan", entries: akhirHalf, ci: 1 },
           ].map((col) => {
             const cc = t.palette[col.ci];
             const avg = avgEng(col.entries);
@@ -1235,9 +1251,9 @@ export const compare: Layout = {
         </div>
         {/* Arrow and comparison summary */}
         <div style={{ textAlign: "center", marginBottom: 16, position: "relative", zIndex: 2 }}>
-          {(avgEng(firstHalf) != null && avgEng(secondHalf) != null) && (
-            <span style={{ fontSize: 12, fontWeight: 600, color: avgEng(secondHalf)! >= avgEng(firstHalf)! ? "#10B981" : "#EF4444" }}>
-              {avgEng(secondHalf)! >= avgEng(firstHalf)! ? "📈 Meningkat" : "📉 Menurun"} {Math.abs(avgEng(secondHalf)! - avgEng(firstHalf)!)} poin
+          {(avgEng(awalHalf) != null && avgEng(akhirHalf) != null) && (
+            <span style={{ fontSize: 12, fontWeight: 600, color: avgEng(akhirHalf)! >= avgEng(awalHalf)! ? "#10B981" : "#EF4444" }}>
+              {avgEng(akhirHalf)! >= avgEng(awalHalf)! ? "📈 Meningkat" : "📉 Menurun"} {Math.abs(avgEng(akhirHalf)! - avgEng(awalHalf)!)} poin
             </span>
           )}
         </div>
@@ -1327,7 +1343,8 @@ export const infographic: Layout = {
     const distTotal = dist.reduce((s, x) => s + x.count, 0) || 1;
     const series = (d.engagementSeries && d.engagementSeries.length > 0)
       ? d.engagementSeries
-      : d.entries.map((e) => e.engagementScore).filter((s): s is number => s != null);
+      // fallback: entries urut terbaru→terlama → dibalik agar sparkline kronologis
+      : d.entries.map((e) => e.engagementScore).filter((s): s is number => s != null).reverse();
 
     const kpi = (value: string, label: string, accent = false) => (
       <div style={{ flex: 1, textAlign: "center", padding: "2px 4px" }}>

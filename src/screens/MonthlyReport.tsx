@@ -69,7 +69,8 @@ function buildSessionNarrative(session: Session, subject: string): string {
   if (baseNote && extraNotes.length > 0) return `${baseNote} ${extraNotes.join(" ")}`;
   if (baseNote) return baseNote;
   if (extraNotes.length > 0) return extraNotes.join(" ");
-  return `Sesi ${subject} sudah tercatat dengan durasi ${formatHours(session.durationHours)}. Lengkapi catatan singkat agar laporan lebih personal.`;
+  // Fallback netral — teks ini ikut tercetak di laporan orang tua, jangan berisi instruksi untuk tutor
+  return `Sesi ${subject} berlangsung selama ${formatHours(session.durationHours)}.`;
 }
 
 export default function MonthlyReportPage() {
@@ -200,7 +201,8 @@ export default function MonthlyReportPage() {
         totalHours,
         totalSessions: entries.length,
         subjectDist,
-        engagementSeries: scores,
+        // entries urut terbaru→terlama; sparkline "Tren Fokus" butuh kronologis (lama→baru)
+        engagementSeries: [...scores].reverse(),
       });
     })();
     return () => { cancelled = true; };
@@ -513,7 +515,7 @@ export default function MonthlyReportPage() {
                     <div>
                       <p className="text-xs text-gray-400 text-center mb-1">Compare: {allThemes.find((t) => t.id === compareThemeId)?.name}</p>
                       <div className="scale-[0.6] origin-top-left" style={{ width: "167%" }}>
-                        <ReportRenderer data={reportData} theme={getTheme(compareThemeId)} layoutId={report.templateKey.layoutId} options={reportOptions} />
+                        <ReportRenderer data={reportData} theme={allThemes.find((t) => t.id === compareThemeId) ?? getTheme(compareThemeId)} layoutId={report.templateKey.layoutId} options={reportOptions} />
                       </div>
                     </div>
                   </div>

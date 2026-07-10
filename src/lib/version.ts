@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.24.1";
+export const APP_VERSION = "v1.24.2";
 
 export interface ChangelogEntry {
   version: string;
@@ -8,6 +8,21 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.24.2",
+    date: "2026-07-10",
+    title: "Patch — Perbaikan Laporan Bulanan",
+    items: [
+      "Layout 'Per Minggu': grup mingguan tidak lagi tampil 'Minggu NaN'",
+      "Layout 'Jurnal': angka besar kini nomor tanggal, bukan tahun",
+      "Layout 'Perbandingan': arah tren Awal vs Akhir bulan dikoreksi (sempat terbalik)",
+      "Grafik 'Tren Fokus' & 'Pertumbuhan': sumbu waktu kini kronologis kiri→kanan",
+      "KPI Dashboard/Ringkasan/Analitik: pakai total sebulan penuh, bukan per halaman",
+      "Kolom tanggal di Rapor Style/Snapshot: '5 Juni', bukan '2026'",
+      "Mode Bandingkan: tema kustom kini ter-render benar",
+      "Teks fallback narasi dinetralkan (tidak ada lagi instruksi tutor di laporan ortu)",
+    ],
+  },
   {
     version: "v1.24.1",
     date: "2026-07-16",

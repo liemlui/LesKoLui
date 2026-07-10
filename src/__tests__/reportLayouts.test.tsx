@@ -4,13 +4,15 @@ import { LAYOUTS, getLayout } from "../template/layouts";
 import { THEMES } from "../template/themes";
 import type { ReportData } from "../template/types";
 
+// Format tanggal HARUS sama dengan produksi (MonthlyReport):
+// dayLabel("2026-06-12") → "Jumat, 12 Juni 2026" → split(",")[1] → "12 Juni 2026"
 const data: ReportData = {
   studentName: "Alya",
   period: "Juni 2026",
   tutorName: "Ko Lui",
   entries: [
     {
-      date: "12 Juni",
+      date: "12 Juni 2026",
       subject: "Matematika",
       narrative: "Detail lengkap sesi tersimpan rapi.",
       details: ["10:00-12:00", "2 jam", "Topik: Aljabar"],
@@ -19,6 +21,17 @@ const data: ReportData = {
     },
   ],
   summary: "Ringkasan bulan tersedia.",
+};
+
+// Data multi-sesi urut TERBARU→terlama (sama seperti produksi):
+// skor naik dari 5 (awal bulan) ke 9 (akhir bulan) = tren MENINGKAT
+const multiData: ReportData = {
+  ...data,
+  entries: [
+    { date: "26 Juni 2026", subject: "Fisika", narrative: "Sesi akhir bulan.", engagementScore: 9 },
+    { date: "19 Juni 2026", subject: "Fisika", narrative: "Sesi tengah bulan.", engagementScore: 7 },
+    { date: "5 Juni 2026", subject: "Matematika", narrative: "Sesi awal bulan.", engagementScore: 5 },
+  ],
 };
 
 describe("report layouts", () => {
@@ -33,5 +46,44 @@ describe("report layouts", () => {
       expect(html, layout.id).toContain("Matematika");
       expect(html, layout.id).toContain("Detail lengkap sesi");
     }
+  });
+
+  it("parses the production date format ('12 Juni 2026') without NaN or stray year", () => {
+    for (const layout of LAYOUTS) {
+      const html = renderToStaticMarkup(layout.render(multiData, THEMES[0], { isFirst: true, isLast: true }));
+      expect(html, `${layout.id} must not render NaN`).not.toContain("NaN");
+      // Tahun tidak boleh tampil sebagai teks berdiri sendiri (mis. kolom tanggal "2026")
+      expect(html, `${layout.id} must not show bare year`).not.toContain(">2026<");
+    }
+  });
+
+  it("weekly groups by day-of-month (12 Juni → Minggu 2)", () => {
+    const html = renderToStaticMarkup(getLayout("weekly").render(data, THEMES[0], { isFirst: true, isLast: true }));
+    expect(html).toContain("Minggu 2");
+  });
+
+  it("journal shows the day number as the big numeral", () => {
+    const html = renderToStaticMarkup(getLayout("journal").render(data, THEMES[0], { isFirst: true, isLast: true }));
+    expect(html).toContain(">12</p>");
+    expect(html).toContain(">Juni</p>");
+  });
+
+  it("compare reads newest-first entries as an IMPROVING trend when scores rise over the month", () => {
+    const html = renderToStaticMarkup(getLayout("compare").render(multiData, THEMES[0], { isFirst: true, isLast: true }));
+    expect(html).toContain("Meningkat");
+    expect(html).not.toContain("Menurun");
+  });
+
+  it("dashboard KPI uses full-month aggregates when provided", () => {
+    const aggregated: ReportData = {
+      ...multiData,
+      totalSessions: 10,
+      subjectDist: [
+        { name: "Fisika", count: 6 },
+        { name: "Matematika", count: 4 },
+      ],
+    };
+    const html = renderToStaticMarkup(getLayout("dashboard").render(aggregated, THEMES[0], { isFirst: true, isLast: true }));
+    expect(html).toContain(">10</p>"); // Sesi = totalSessions, bukan 3 entri halaman ini
   });
 });
