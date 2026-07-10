@@ -5,7 +5,7 @@
  * Jalankan khusus katalog: npx playwright test --config=playwright.config.ts e2e/screenshot-katalog.spec.ts
  */
 
-import { test } from "@playwright/test";
+import { test, type Page } from "@playwright/test";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -20,7 +20,7 @@ test.beforeAll(() => {
 });
 
 /** Selalu snap — gagal screenshot tidak menggagalkan test */
-async function shot(page: any, name: string, opts?: { fullPage?: boolean }) {
+async function shot(page: Page, name: string, opts?: { fullPage?: boolean }) {
   try {
     await page.screenshot({
       path: path.join(SCREENSHOTS_DIR, name),
@@ -41,7 +41,7 @@ test.beforeAll(async ({ browser }) => {
   // Panggil seed (idempotent — skip kalau sudah ada data)
   const seeded = await page.evaluate(async () => {
     try {
-      const fn = (window as any).seedDummy;
+      const fn = (window as unknown as { seedDummy?: (force?: boolean) => Promise<void> }).seedDummy;
       if (typeof fn === "function") {
         await fn(true); // force=true → seed ulang untuk data segar
         return true;
@@ -184,7 +184,7 @@ test("12-home-calendar-month", async ({ page }) => {
 
 // ───── Helper ─────
 
-async function closeChangelog(page: any) {
+async function closeChangelog(page: Page) {
   try {
     const btn = page.getByText(/Mengerti|Terima Kasih/);
     if (await btn.isVisible({ timeout: 800 })) {

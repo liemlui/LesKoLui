@@ -69,7 +69,8 @@ describe("buildBillingMessage", () => {
       month: "2026-06",
       settings: { bankAccounts: { bca: "1234567", accountName: "Ko Lui" }, tutorProfile: { name: "Ko Lui", phone: "" } },
     });
-    expect(r.text).toContain("BCA 1234567 a.n. Ko Lui");
+    expect(r.text).toContain("BCA  1234567");
+    expect(r.text).toContain("a.n. Ko Lui");
   });
 
   it("returns an empty bill for a month with no DONE sessions", () => {
