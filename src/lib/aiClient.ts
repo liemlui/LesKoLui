@@ -269,6 +269,12 @@ export function estimateReportSummaryCost(sessionCount: number): number {
   return calcIdr(200 + sessionCount * 100, 180);
 }
 
+/** Narasi per sesi + ringkasan + catatan guru + kutipan (generateNarratives). */
+export function estimateNarrativesCost(sessionCount: number): number {
+  // sistem+contoh ~700 tok; ~120 tok input/sesi; output ~90 tok/sesi + ringkasan+quote ~260
+  return calcIdr(700 + sessionCount * 120, sessionCount * 90 + 260);
+}
+
 export function estimatePolishWACost(msgLength: number): number {
   return calcIdr(80 + Math.ceil(msgLength / 4), 100);
 }

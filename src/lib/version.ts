@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.24.2";
+export const APP_VERSION = "v1.25.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -8,6 +8,20 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.25.0",
+    date: "2026-07-10",
+    title: "Narasi AI + Export Lebih Setia Desain",
+    items: [
+      "BARU: tombol 📖 Narasi AI — tulis narasi 40–60 kata untuk SEMUA sesi sekaligus dari shortNote, plus ringkasan, catatan guru & kutipan (bisa di-Undo penuh)",
+      "Poles AI dinamai ulang jadi ✨ Ringkasan AI (ringkasan + kutipan saja, lebih murah)",
+      "Export JPG/PNG/PDF kini membawa font tema (Pacifico, Caveat, dll.) — sebelumnya jatuh ke font default",
+      "Label laporan otomatis pakai teks gelap di warna palet terang (Neon/Retro kini terbaca)",
+      "Foto gaya 'vintage' kini benar-benar ber-efek sepia (CSS-nya sempat invalid)",
+      "Layout Per Mapel: 'avg 0/10' disembunyikan bila sesi tak punya skor engagement",
+      "E2E test baru: buat laporan → export JPG diverifikasi menghasilkan file",
+    ],
+  },
   {
     version: "v1.24.2",
     date: "2026-07-10",

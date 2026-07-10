@@ -22,13 +22,23 @@ async function rasterizePages(
   const nodes = await pageNodes(root);
   if (nodes.length === 0) throw new Error("Buat laporan terlebih dahulu, lalu scroll ke bagian Pratinjau.");
   const out: { dataUrl: string; w: number; h: number }[] = [];
-  const { toJpeg, toPng } = await loadHtmlToImage();
+  const { toJpeg, toPng, getFontEmbedCSS } = await loadHtmlToImage();
+
+  // Font HARUS di-embed ke SVG hasil render: rasterisasi terjadi di dalam <img>
+  // yang terisolasi dari dokumen, jadi font tema (Pacifico/Caveat/Fredoka dll.)
+  // tidak terbawa tanpa embed dan export jatuh ke font default sistem.
+  // Font self-hosted (@fontsource) → fetch same-origin, aman dari CORS.
+  // Dihitung SEKALI lalu dipakai semua halaman agar tidak lambat.
+  let fontEmbedCSS: string | undefined;
+  try { fontEmbedCSS = await getFontEmbedCSS(nodes[0]); } catch { /* fallback: tanpa embed */ }
+  const fontOpts = fontEmbedCSS ? { fontEmbedCSS } : { skipFonts: true };
+
   for (const node of nodes) {
     node.scrollIntoView({ block: "nearest" });
     await new Promise((r) => requestAnimationFrame(() => r(null)));
     const dataUrl = format === "png"
-      ? await toPng(node, { pixelRatio: 2, cacheBust: false, skipFonts: true, style: { overflow: "visible" } })
-      : await toJpeg(node, { pixelRatio: 2, quality: 0.92, cacheBust: false, skipFonts: true, style: { overflow: "visible" } });
+      ? await toPng(node, { pixelRatio: 2, cacheBust: false, ...fontOpts, style: { overflow: "visible" } })
+      : await toJpeg(node, { pixelRatio: 2, quality: 0.92, cacheBust: false, ...fontOpts, style: { overflow: "visible" } });
     out.push({ dataUrl, w: node.offsetWidth, h: node.offsetHeight });
   }
   return out;

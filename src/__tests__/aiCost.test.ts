@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   estimateReportSummaryCost,
+  estimateNarrativesCost,
   estimatePolishWACost,
   estimateAnalysisCost,
   estimateHomeworkCost,
@@ -24,6 +25,12 @@ describe("AI cost estimators", () => {
 
   it("report summary cost grows with session count", () => {
     expect(estimateReportSummaryCost(50)).toBeGreaterThan(estimateReportSummaryCost(1));
+  });
+
+  it("narratives cost is positive, grows with sessions, and exceeds summary-only cost", () => {
+    expect(estimateNarrativesCost(1)).toBeGreaterThan(0);
+    expect(estimateNarrativesCost(20)).toBeGreaterThan(estimateNarrativesCost(2));
+    expect(estimateNarrativesCost(10)).toBeGreaterThan(estimateReportSummaryCost(10));
   });
 
   it("WA polish cost grows with message length", () => {

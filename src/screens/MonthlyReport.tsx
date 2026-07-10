@@ -7,7 +7,7 @@ import {
   getReport, upsertReport, updateSession, saveSettings,
 } from "../db/repos";
 import { pickTemplate } from "../lib/rotation";
-import { generateReportSummary, estimateReportSummaryCost } from "../lib/aiClient";
+import { generateReportSummary, generateNarratives, estimateReportSummaryCost, estimateNarrativesCost } from "../lib/aiClient";
 import { BEHAVIOR_TAGS, RESPONSE_TAGS } from "../lib/responseTaxonomy";
 import { AiCostModal } from "../components/AiCostModal";
 import { getTheme, THEMES } from "../template/themes";
@@ -87,7 +87,14 @@ export default function MonthlyReportPage() {
   const [summaryText,      setSummaryText]      = useState("");
   const [editingQuote,     setEditingQuote]     = useState(false);
   const [showPolishModal,  setShowPolishModal]  = useState(false);
-  const [prevTexts,        setPrevTexts]        = useState<{ summaryText: string; quote?: string } | null>(null);
+  const [showNarrativesModal, setShowNarrativesModal] = useState(false);
+  const [prevTexts,        setPrevTexts]        = useState<{
+    summaryText: string;
+    teacherNote?: string;
+    quote?: string;
+    /** Narasi per sesi sebelum ditimpa AI — untuk Undo penuh. */
+    narratives?: Array<{ id: string; narrative?: string }>;
+  } | null>(null);
   const [quoteText,        setQuoteText]        = useState("");
   const [aiLoading,        setAiLoading]        = useState(false);
   const [message,          setMessage]          = useState("");
@@ -266,24 +273,27 @@ export default function MonthlyReportPage() {
     setMessage("Desain diganti!");
   };
 
+  /** Payload sesi untuk AI — dipakai Poles AI (ringkasan) dan Narasi AI. */
+  const buildAiInput = () => ({
+    student: { name: student!.name, level: student!.level },
+    month: monthLabel(month),
+    sessions: (sessions ?? []).map((s) => ({
+      id: s.id, date: dayLabel(s.date), subject: s.subjects.join(", "),
+      shortNote: s.shortNote, mood: s.mood, topic: s.topic,
+      needsWork: s.needsWork, predictedGrade: s.predictedGrade,
+      engagementScore: s.engagement?.score,
+      behaviorLabels: s.behaviorTags?.map(id => BEHAVIOR_TAGS.find(t => t.id === id)?.label).filter(Boolean) as string[] | undefined,
+      responseLabel: s.responseTag ? RESPONSE_TAGS.find(t => t.id === s.responseTag)?.label : undefined,
+    })),
+  });
+
   const handlePolish = async () => {
     if (!student || !sessions?.length) return;
     if (!navigator.onLine) { setMessage("Offline."); return; }
     setAiLoading(true);
     try {
       const draft = await ensureReport();
-      const out = await generateReportSummary({
-        student: { name: student.name, level: student.level },
-        month: monthLabel(month),
-        sessions: sessions.map((s) => ({
-          id: s.id, date: dayLabel(s.date), subject: s.subjects.join(", "),
-          shortNote: s.shortNote, mood: s.mood, topic: s.topic,
-          needsWork: s.needsWork, predictedGrade: s.predictedGrade,
-          engagementScore: s.engagement?.score,
-          behaviorLabels: s.behaviorTags?.map(id => BEHAVIOR_TAGS.find(t => t.id === id)?.label).filter(Boolean) as string[] | undefined,
-          responseLabel: s.responseTag ? RESPONSE_TAGS.find(t => t.id === s.responseTag)?.label : undefined,
-        })),
-      });
+      const out = await generateReportSummary(buildAiInput());
       if (draft) {
         const prev = { summaryText: draft.summaryText, quote: draft.quote };
         await upsertReport({ ...draft, summaryText: out.summary ?? "", quote: out.quote });
@@ -291,6 +301,45 @@ export default function MonthlyReportPage() {
       }
       setMessage("Poles AI selesai ✓ Ringkasan & kutipan terisi");
       setOpenTeks(true);
+    } catch (e) { setMessage("Gagal: " + (e as Error).message); }
+    finally { setAiLoading(false); }
+  };
+
+  /** Narasi AI penuh: perluas shortNote tiap sesi jadi narasi 40–60 kata,
+   *  plus ringkasan, catatan guru, dan kutipan. Semua bisa di-Undo. */
+  const handleGenerateNarratives = async () => {
+    if (!student || !sessions?.length) return;
+    if (!navigator.onLine) { setMessage("Offline."); return; }
+    setAiLoading(true);
+    try {
+      const draft = await ensureReport();
+      const out = await generateNarratives(buildAiInput());
+
+      // Simpan versi lama SEBELUM menimpa — untuk Undo penuh
+      const prevNarratives = sessions.map((s) => ({ id: s.id, narrative: s.narrative }));
+
+      const validIds = new Set(sessions.map((s) => s.id));
+      let applied = 0;
+      for (const entry of out.entries ?? []) {
+        if (validIds.has(entry.id) && entry.narrative?.trim()) {
+          await updateSession(entry.id, { narrative: entry.narrative.trim() });
+          applied++;
+        }
+      }
+      if (draft) {
+        setPrevTexts({
+          summaryText: draft.summaryText, teacherNote: draft.teacherNote,
+          quote: draft.quote, narratives: prevNarratives,
+        });
+        await upsertReport({
+          ...draft,
+          summaryText: out.summary?.trim() || draft.summaryText,
+          teacherNote: out.teacherNote?.trim() || draft.teacherNote,
+          quote: out.quote?.trim() || draft.quote,
+        });
+      }
+      setMessage(`Narasi AI selesai ✓ ${applied} narasi sesi + ringkasan & kutipan terisi`);
+      setOpenNarasi(true);
     } catch (e) { setMessage("Gagal: " + (e as Error).message); }
     finally { setAiLoading(false); }
   };
@@ -336,12 +385,16 @@ export default function MonthlyReportPage() {
               <button
                 onClick={async () => {
                   if (!report) return;
-                  await upsertReport({ ...report, summaryText: prevTexts.summaryText, quote: prevTexts.quote });
+                  await upsertReport({ ...report, summaryText: prevTexts.summaryText, teacherNote: prevTexts.teacherNote, quote: prevTexts.quote });
+                  // Kembalikan juga narasi per sesi bila Narasi AI yang menimpanya
+                  for (const n of prevTexts.narratives ?? []) {
+                    await updateSession(n.id, { narrative: n.narrative });
+                  }
                   setPrevTexts(null);
                   setMessage("Undo berhasil ✓");
                 }}
                 className="w-full text-xs text-indigo-600 font-semibold bg-indigo-50 border border-indigo-200 rounded-lg py-2 hover:bg-indigo-100 transition-colors">
-                ↩ Undo Poles AI
+                ↩ Undo Hasil AI
               </button>
             )}
           </div>
@@ -406,13 +459,21 @@ export default function MonthlyReportPage() {
                     <button className="btn btn-primary flex-1 text-sm" onClick={() => handleCreateOrSwitch()}>
                       {report ? "🔄 Update Laporan" : "📝 Buat Laporan"}
                     </button>
-                    {settings?.ai?.enabled && settings.ai.apiKey && (
-                      <button className="flex-1 btn text-sm bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
-                        onClick={() => setShowPolishModal(true)} disabled={aiLoading}>
-                        {aiLoading ? "⏳ AI..." : "✨ Poles AI"}
-                      </button>
-                    )}
                   </div>
+                  {settings?.ai?.enabled && settings.ai.apiKey && (
+                    <div className="flex gap-2">
+                      <button className="flex-1 btn text-sm bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
+                        onClick={() => setShowNarrativesModal(true)} disabled={aiLoading}
+                        title="Tulis narasi 40–60 kata per sesi dari shortNote + ringkasan + kutipan">
+                        {aiLoading ? "⏳ AI..." : "📖 Narasi AI"}
+                      </button>
+                      <button className="flex-1 btn text-sm bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 disabled:opacity-50"
+                        onClick={() => setShowPolishModal(true)} disabled={aiLoading}
+                        title="Hanya ringkasan bulan + kutipan (lebih murah)">
+                        {aiLoading ? "⏳ AI..." : "✨ Ringkasan AI"}
+                      </button>
+                    </div>
+                  )}
 
                   {/* Progress bar */}
                   {report && (
@@ -689,14 +750,24 @@ export default function MonthlyReportPage() {
 
       </div>
 
-      {/* Poles AI cost modal */}
+      {/* Ringkasan AI cost modal */}
       <AiCostModal
         open={showPolishModal}
-        title="Poles AI — Ringkasan & Kutipan"
+        title="Ringkasan AI — Ringkasan & Kutipan"
         estimatedIDR={estimateReportSummaryCost(sessions?.length ?? 0)}
         description={`${sessions?.length ?? 0} sesi · ringkasan bulan + kutipan untuk ${student?.name ?? "murid"}`}
         onCancel={() => setShowPolishModal(false)}
         onConfirm={() => { setShowPolishModal(false); handlePolish(); }}
+      />
+
+      {/* Narasi AI cost modal */}
+      <AiCostModal
+        open={showNarrativesModal}
+        title="Narasi AI — Semua Sesi"
+        estimatedIDR={estimateNarrativesCost(sessions?.length ?? 0)}
+        description={`Perluas shortNote jadi narasi 40–60 kata untuk ${sessions?.length ?? 0} sesi + ringkasan, catatan guru & kutipan. Narasi lama ditimpa (bisa di-Undo).`}
+        onCancel={() => setShowNarrativesModal(false)}
+        onConfirm={() => { setShowNarrativesModal(false); handleGenerateNarratives(); }}
       />
     </div>
   );

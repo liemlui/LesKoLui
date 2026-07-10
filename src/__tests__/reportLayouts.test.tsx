@@ -74,6 +74,37 @@ describe("report layouts", () => {
     expect(html).not.toContain("Menurun");
   });
 
+  it("solid labels use dark text on bright palette colors (stays readable)", () => {
+    // Palet neon-kuning terang dengan label solid "pill" → teks label harus gelap, bukan putih
+    const bright = { ...THEMES[0], label: "pill" as const, palette: ["#ffea00", "#39ff14", "#00f0ff", "#ffea00"] };
+    const html = renderToStaticMarkup(getLayout("cards").render(data, bright, { isFirst: true, isLast: true }));
+    expect(html).toContain("color:#1f2937");
+    // Palet gelap tetap putih
+    const dark = { ...THEMES[0], label: "pill" as const, palette: ["#1d3a5d", "#15314f", "#1d3a5d", "#15314f"] };
+    const html2 = renderToStaticMarkup(getLayout("cards").render(data, dark, { isFirst: true, isLast: true }));
+    expect(html2).toContain("color:#fff");
+  });
+
+  it("vintage photo style applies a CSS filter (not an invalid background)", () => {
+    const watercolor = THEMES.find((t) => t.photo === "vintage")!;
+    const withPhoto: ReportData = {
+      ...data,
+      entries: [{ ...data.entries[0], photoUrl: "data:image/png;base64,x" }],
+    };
+    const html = renderToStaticMarkup(getLayout("cards").render(withPhoto, watercolor, { isFirst: true, isLast: true }));
+    expect(html).toContain("filter:sepia");
+    expect(html).not.toContain("background:sepia");
+  });
+
+  it("per-mapel layout hides the engagement average when no session has a score", () => {
+    const noScores: ReportData = {
+      ...data,
+      entries: [{ date: "12 Juni 2026", subject: "Matematika", narrative: "Catatan." }],
+    };
+    const html = renderToStaticMarkup(getLayout("subjects").render(noScores, THEMES[0], { isFirst: true, isLast: true }));
+    expect(html).not.toContain("avg 0/10");
+  });
+
   it("dashboard KPI uses full-month aggregates when provided", () => {
     const aggregated: ReportData = {
       ...multiData,

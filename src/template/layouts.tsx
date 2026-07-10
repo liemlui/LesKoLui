@@ -53,6 +53,19 @@ function truncateText(value: string, max: number): string {
   return `${text.slice(0, Math.max(0, max - 1))}…`;
 }
 
+/**
+ * Warna teks kontras (putih/gelap) untuk latar hex — supaya label tetap
+ * terbaca di palet terang (mis. Neon Pop #39ff14, Retro 80s #ffea00).
+ * Non-hex (gradient/nama warna) → default putih.
+ */
+function onColor(bgHex: string): string {
+  const m = /^#([0-9a-f]{6})$/i.exec(bgHex.trim());
+  if (!m) return "#fff";
+  const n = parseInt(m[1], 16);
+  const lum = 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255);
+  return lum > 165 ? "#1f2937" : "#fff";
+}
+
 // ── Shared helpers ─────────────────────────────────────────────────
 
 function LogoEl({ url, tutorName }: { url?: string; tutorName?: string }) {
@@ -86,7 +99,7 @@ function HeaderEl(d: ReportData, t: Theme) {
             WebkitTextStroke: `2.5px ${t.accent}`, lineHeight: 0.92 }}>
             {t.headerText}
           </div>
-          <div style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 18, color: "#fff",
+          <div style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 18, color: onColor(t.accent),
             background: t.accent, borderRadius: 12, padding: "4px 16px", display: "inline-block", marginTop: 8 }}>
             {d.studentName}
           </div>
@@ -154,7 +167,7 @@ function HeaderEl(d: ReportData, t: Theme) {
         <div style={{ textAlign: "center" }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: t.accent, borderRadius: 999, padding: "6px 20px", boxShadow: `0 3px 12px ${t.accent}55` }}>
             <span style={{ fontSize: 18 }}>🏅</span>
-            <span style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 18, color: "#fff" }}>{t.headerText}</span>
+            <span style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 18, color: onColor(t.accent) }}>{t.headerText}</span>
           </div>
           <div style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 18, color: t.ink, marginTop: 10 }}>
             {d.studentName}
@@ -209,7 +222,7 @@ function HeaderEl(d: ReportData, t: Theme) {
 function LabelEl({ t, c, children }: { t: Theme; c: string; children: React.ReactNode }) {
   const base: React.CSSProperties = {
     display: "inline-block", fontWeight: 700, fontSize: 12, padding: "3px 12px",
-    fontFamily: t.fontDisplay, background: c, color: "#fff",
+    fontFamily: t.fontDisplay, background: c, color: onColor(c),
   };
 
   if (t.label === "flag") {
@@ -231,7 +244,7 @@ function LabelEl({ t, c, children }: { t: Theme; c: string; children: React.Reac
   }
   if (t.label === "ribbon-label") {
     return (
-      <span style={{ display: "inline-block", position: "relative", fontWeight: 700, fontSize: 11, fontFamily: t.fontDisplay, color: "#fff", background: c, padding: "4px 14px 4px 10px", borderRadius: "0 6px 6px 0", marginLeft: 6 }}>
+      <span style={{ display: "inline-block", position: "relative", fontWeight: 700, fontSize: 11, fontFamily: t.fontDisplay, color: onColor(c), background: c, padding: "4px 14px 4px 10px", borderRadius: "0 6px 6px 0", marginLeft: 6 }}>
         <span style={{ position: "absolute", left: -6, top: 0, width: 0, height: 0, borderTop: `10px solid ${c}`, borderBottom: `10px solid ${c}`, borderLeft: "6px solid transparent" }} />
         {children}
       </span>
@@ -301,9 +314,9 @@ function PhotoEl({ t, url, color }: { t: Theme; url?: string; color: string }) {
     </div>
   );
   if (t.photo === "vintage") return (
-    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", borderRadius: 6 }}>
+    // filter (bukan background) — nilai sepia() di background adalah CSS invalid dan tak pernah berefek
+    <div style={{ width: "100%", height: "100%", overflow: "hidden", borderRadius: 6, filter: "sepia(0.35) contrast(0.92) brightness(0.97)" }}>
       {img}
-      <div style={{ position: "absolute", inset: 0, background: "sepia(0.3) contrast(0.9) brightness(0.95)", pointerEvents: "none" }} />
     </div>
   );
   if (t.photo === "duotone") return (
@@ -504,7 +517,7 @@ export const grid: Layout = {
                 <PhotoEl t={t} url={e.photoUrl} color={c} />
               </div>
               <div style={{ padding: "8px 10px 10px" }}>
-                <span style={{ display: "inline-block", background: c, color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 999, marginBottom: 5 }}>
+                <span style={{ display: "inline-block", background: c, color: onColor(c), fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 999, marginBottom: 5 }}>
                   {e.date} · {e.subject}
                 </span>
                 <p style={{ fontFamily: t.fontBody, fontSize: 11, lineHeight: 1.5, color: t.ink, margin: 0 }}>
@@ -700,12 +713,13 @@ export const subjects: Layout = {
         {isFirst && HeaderEl(d, t)}
         {[...groups.entries()].map(([subject, entries], gi) => {
           const c = t.palette[gi % t.palette.length];
-          const avgEng = entries.filter(e => e.engagementScore != null).reduce((s,e) => s + e.engagementScore!, 0) / (entries.filter(e => e.engagementScore != null).length || 1);
+          const scored = entries.filter(e => e.engagementScore != null);
+          const avgEng = scored.length > 0 ? Math.round(scored.reduce((s, e) => s + e.engagementScore!, 0) / scored.length) : null;
           return (
             <div key={subject} style={{ marginBottom: 16, position: "relative", zIndex: 2, background: c + "0d", borderRadius: 14, padding: "12px 14px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                 <span style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 14, color: c }}>📘 {subject}</span>
-                <span style={{ fontSize: 10, color: t.muted }}>{entries.length} sesi · avg {Math.round(avgEng)}/10</span>
+                <span style={{ fontSize: 10, color: t.muted }}>{entries.length} sesi{avgEng != null ? ` · avg ${avgEng}/10` : ""}</span>
               </div>
               {entries.map((e, i) => (
                 <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, paddingLeft: 6, borderLeft: `2px solid ${c}44` }}>
@@ -733,7 +747,7 @@ export const reportcard: Layout = {
       {isFirst && HeaderEl(d, t)}
       <div style={{ position: "relative", zIndex: 2 }}>
         {/* Table header */}
-        <div style={{ display: "grid", gridTemplateColumns: "60px 1fr 70px", gap: 8, padding: "6px 8px", background: t.accent, borderRadius: "8px 8px 0 0", fontWeight: 700, fontSize: 10, color: "#fff" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "60px 1fr 70px", gap: 8, padding: "6px 8px", background: t.accent, borderRadius: "8px 8px 0 0", fontWeight: 700, fontSize: 10, color: onColor(t.accent) }}>
           <span>Tanggal</span><span>Mapel & Catatan</span><span>Engage</span>
         </div>
         {d.entries.map((e, i) => {
@@ -923,8 +937,8 @@ export const dossier: Layout = {
         return (
           <div key={i} style={{ position: "relative", zIndex: 2, marginBottom: 16, borderRadius: 12, border: `2px solid ${c}33`, background: c + "05", overflow: "hidden" }}>
             <div style={{ background: c, padding: "8px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 13, color: "#fff" }}>{e.date}</span>
-              <span style={{ fontSize: 9, background: "rgba(255,255,255,.25)", color: "#fff", padding: "2px 8px", borderRadius: 999 }}>{e.subject}</span>
+              <span style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 13, color: onColor(c) }}>{e.date}</span>
+              <span style={{ fontSize: 9, background: onColor(c) === "#fff" ? "rgba(255,255,255,.25)" : "rgba(0,0,0,.15)", color: onColor(c), padding: "2px 8px", borderRadius: 999 }}>{e.subject}</span>
             </div>
             <div style={{ padding: "12px 14px" }}>
               <NarrEl t={t}>{e.narrative}</NarrEl>
