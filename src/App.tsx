@@ -190,7 +190,9 @@ function Layout() {
     <ErrorBoundary>
     <ToastProvider>
     <ToastOverlay />
-    <div className="max-w-md mx-auto min-h-screen pb-16">
+    {/* pb ekstra saat banner backup tampil — agar konten terbawah tetap bisa
+        di-scroll keluar dari balik banner (banner+nav ≈ 150px) */}
+    <div className={`max-w-md mx-auto min-h-screen ${backupPrompt ? "pb-40" : "pb-16"}`}>
       {/* Offline banner */}
       {offline && (
         <div className="fixed top-0 inset-x-0 z-[200] px-4 pt-2">
