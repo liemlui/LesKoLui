@@ -15,7 +15,9 @@ export default defineConfig({
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: {
-    command: "npm run dev",
+    // Port di-pin agar cocok dengan baseURL — tanpa ini vite default ke 5173
+    // dan webServer timeout menunggu 5174.
+    command: "npm run dev -- --port 5174 --strictPort",
     url: "http://localhost:5174",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

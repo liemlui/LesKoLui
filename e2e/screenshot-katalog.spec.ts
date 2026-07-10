@@ -118,9 +118,32 @@ test("06-tugas-pr", async ({ page }) => {
   await shot(page, "06-tugas-pr.png");
 });
 
-test("07-laporan-bulanan", async ({ page }) => {
+/** Siapkan layar laporan BERISI DATA: bulan Juni (seed) + murid ber-sesi + laporan dibuat. */
+async function openReportWithData(page: Page) {
   await page.goto("/report"); await page.waitForTimeout(1500);
   await closeChangelog(page);
+  // Seed berisi sesi Maret–Juni 2026 — tanpa set bulan, screenshot laporan KOSONG
+  await page.locator('input[type="month"]').fill("2026-06");
+  const select = page.locator("select").first();
+  const values = await select.locator("option").evaluateAll(
+    (opts) => (opts as HTMLOptionElement[]).map((o) => o.value).filter(Boolean),
+  );
+  for (const value of values) {
+    await select.selectOption(value);
+    try {
+      await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).waitFor({ timeout: 2000 });
+      break;
+    } catch { /* murid tanpa sesi Juni — coba berikutnya */ }
+  }
+  try {
+    await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).click();
+    await page.locator("[data-report-page]").first().waitFor({ timeout: 10_000 });
+  } catch { /* biarkan apa adanya */ }
+  await page.waitForTimeout(800);
+}
+
+test("07-laporan-bulanan", async ({ page }) => {
+  await openReportWithData(page);
   await shot(page, "07-laporan-bulanan.png");
 });
 
@@ -155,11 +178,10 @@ test("10-update-modal", async ({ page }) => {
 });
 
 test("11-narasi-per-sesi", async ({ page }) => {
-  await page.goto("/report"); await page.waitForTimeout(1500);
-  await closeChangelog(page);
+  await openReportWithData(page);
 
-  // Buka accordion "Narasi per Sesi"
-  const narasiBtn = page.getByText(/Narasi per Sesi/i);
+  // Buka accordion "✏️ Narasi Sesi" (teks tombol yang benar — dulu salah "Narasi per Sesi")
+  const narasiBtn = page.getByText(/Narasi Sesi/i).first();
   if (await narasiBtn.isVisible()) {
     await narasiBtn.click();
     await page.waitForTimeout(800);

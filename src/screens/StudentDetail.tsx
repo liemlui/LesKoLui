@@ -67,7 +67,10 @@ export default function StudentDetail() {
   const [raporPage,      setRaporPage]      = useState(1);
   const [upcomingPage,   setUpcomingPage]   = useState(1);
   const [historyPage,    setHistoryPage]    = useState(1);
-  const [historyMonth,   setHistoryMonth]   = useState(() => today.slice(0, 7));
+  // Default "Semua bulan" ("") — default bulan-berjalan menipu: kalau bulan ini
+  // belum ada sesi, option-nya tak ada di dropdown → browser MENAMPILKAN
+  // "Semua bulan" padahal filter aktif bulan ini → riwayat tampak kosong.
+  const [historyMonth,   setHistoryMonth]   = useState("");
   const [schedMonth,     setSchedMonth]     = useState<string>("");
   const [showBilling,      setShowBilling]      = useState(false);
   const [billingMonth,     setBillingMonth]     = useState(() => today.slice(0, 7));
@@ -679,8 +682,12 @@ export default function StudentDetail() {
                     const { color } = scoreLabel(score);
                     const pct = Math.max(4, Math.round((score / max) * 100));
                     return (
-                      <div key={s.id} className="flex-1 flex flex-col items-center gap-1 relative">
-                        <div className="w-full rounded-t-sm" style={{ height: `${pct}%`, background: color }} />
+                      // Kolom h-full + area bar flex-1: tanpa ini height % bar mengacu
+                      // ke parent auto-height → bar ter-render 0px (grafik tampak kosong)
+                      <div key={s.id} className="flex-1 h-full flex flex-col items-center gap-1">
+                        <div className="flex-1 w-full flex items-end min-h-0">
+                          <div className="w-full rounded-t-sm" style={{ height: `${pct}%`, background: color }} />
+                        </div>
                         <span className="text-gray-500 font-semibold" style={{ fontSize: 9 }}>{score}</span>
                       </div>
                     );
@@ -734,11 +741,23 @@ export default function StudentDetail() {
         {historySessions.length === 0 ? (
           <div className="text-center py-10 bg-white rounded-2xl border border-gray-100">
             <p className="text-3xl mb-2">📚</p>
-            <p className="text-gray-400 text-sm">Belum ada sesi yang dicatat.</p>
-            <button onClick={() => navigate("/capture")}
-              className="mt-3 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold">
-              Catat Sesi Pertama
-            </button>
+            {historyMonth && (allSessions ?? []).length > 0 ? (
+              <>
+                <p className="text-gray-400 text-sm">Tidak ada sesi di {monthLabel(historyMonth)}.</p>
+                <button onClick={() => setHistoryMonth("")}
+                  className="mt-3 px-4 py-2 rounded-xl bg-gray-100 text-gray-600 text-sm font-semibold">
+                  Tampilkan Semua Bulan
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-gray-400 text-sm">Belum ada sesi yang dicatat.</p>
+                <button onClick={() => navigate("/capture")}
+                  className="mt-3 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold">
+                  Catat Sesi Pertama
+                </button>
+              </>
+            )}
           </div>
         ) : (
           <div className="space-y-2">

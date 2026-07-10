@@ -234,9 +234,12 @@ function Layout() {
         </div>
       )}
 
-      {/* Auto backup prompt */}
+      {/* Auto backup prompt — di BAWAH (atas bottom-nav) agar tidak menutupi
+          header/form halaman (di /report sempat menutup selector murid+bulan).
+          z-[55]: di atas nav (z-50) tapi DI BAWAH semua modal (Modal z-60,
+          Changelog z-90) — nag tidak boleh menghalangi tombol modal. */}
       {backupPrompt && (
-        <div className="fixed top-4 inset-x-0 z-[150] px-4">
+        <div className="fixed bottom-20 inset-x-0 z-[55] px-4">
           <div className="max-w-md mx-auto bg-amber-50 border border-amber-300 rounded-2xl px-4 py-3 shadow-xl flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-amber-800">💾 Saatnya backup mingguan</p>

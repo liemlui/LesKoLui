@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.26.0";
+export const APP_VERSION = "v1.26.1";
 
 export interface ChangelogEntry {
   version: string;
@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.26.1",
+    date: "2026-07-10",
+    title: "Patch — Audit UI/UX Menyeluruh",
+    items: [
+      "Banner backup mingguan pindah ke bawah — tidak lagi menutupi judul halaman & form (di Laporan sempat menutup pilihan murid/bulan)",
+      "Banner tidak lagi menghalangi tombol modal (update modal, konfirmasi, dll.)",
+      "Grafik Engagement di Detail Murid kini benar-benar tampil (bar sempat 0px — tak terlihat)",
+      "Riwayat Sesi default 'Semua bulan' — sebelumnya tampak kosong padahal ada sesi (filter diam-diam terkunci di bulan berjalan)",
+      "Empty state Riwayat Sesi kontekstual: 'Tidak ada sesi di [bulan]' + tombol Tampilkan Semua",
+      "Screenshot katalog laporan kini berisi data (sebelumnya kosong — bahan iklan Instagram)",
+    ],
+  },
   {
     version: "v1.26.0",
     date: "2026-07-10",
