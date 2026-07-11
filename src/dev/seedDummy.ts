@@ -11,6 +11,7 @@ import {
   upsertPayment, cancelSession, listSessionsByStudentMonth, upsertReport,
 } from "../db/repos";
 import { hashPin } from "../lib/crypto";
+import { db } from "../db/db";
 import type { ExpenseCategory, EngagementLog } from "../db/types";
 
 // ── Pembuat gambar dummy (canvas → Blob) untuk foto sesi, tanda tangan, logo ──
@@ -114,9 +115,25 @@ export async function seedDummyData(force = false): Promise<void> {
 
 async function seedInner(force: boolean): Promise<void> {
   const existing = await listStudents();
-  if (existing.length > 0 && !force) {
-    console.warn("[seedDummy] Sudah ada data murid — seed dilewati. Jalankan seedDummy(true) untuk memaksa, atau clearDummy() untuk reset.");
-    return;
+  if (existing.length > 0) {
+    if (!force) {
+      console.warn("[seedDummy] Sudah ada data murid — seed dilewati. Jalankan seedDummy(true) untuk memaksa, atau clearDummy() untuk reset.");
+      return;
+    }
+    // force → kosongkan data lama dulu. Tanpa ini seed MENAMBAH set murid
+    // duplikat (2× Andi dst.) alih-alih mengganti — data uji jadi tak deterministik.
+    await db.transaction("rw",
+      [db.students, db.sessions, db.reports, db.payments, db.raporGrades,
+       db.homeworks, db.followUps, db.expenses, db.iaeeProjects, db.monthClosings],
+      async () => {
+        await Promise.all([
+          db.students.clear(), db.sessions.clear(), db.reports.clear(),
+          db.payments.clear(), db.raporGrades.clear(), db.homeworks.clear(),
+          db.followUps.clear(), db.expenses.clear(), db.iaeeProjects.clear(),
+          db.monthClosings.clear(),
+        ]);
+      });
+    console.info("[seedDummy] force=true → data lama dibersihkan, seed ulang…");
   }
 
   // ── Settings: tutor + rekening + PIN keuangan (123456) ──

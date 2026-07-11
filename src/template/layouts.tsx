@@ -503,7 +503,7 @@ export const scrapbook: Layout = {
 };
 
 export const grid: Layout = {
-  id: "grid", name: "Grid 2×", maxEntriesPerPage: 6,
+  id: "grid", name: "Grid 2×", maxEntriesPerPage: 4,
   render: (d, t, { isFirst, isLast }) => (
     <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />

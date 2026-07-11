@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.26.1";
+export const APP_VERSION = "v1.26.2";
 
 export interface ChangelogEntry {
   version: string;
@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.26.2",
+    date: "2026-07-11",
+    title: "Patch — Review Visual 26 Layout Laporan",
+    items: [
+      "Semua 26 layout dirender dengan data bulan penuh & diperiksa visual satu per satu",
+      "Grid 2× kembali 4 sesi/halaman (6 membuat halaman terlalu panjang — 3 baris foto)",
+      "Rapor Style 10/hal, Compact 8/hal, Jurnal 6/hal terverifikasi nyaman dibaca",
+      "Seed data dev: seedDummy(true) kini membersihkan data lama (tidak menduplikasi murid)",
+      "Tool review layout baru: e2e/layout-review.spec.ts — screenshot semua layout sekali jalan",
+    ],
+  },
   {
     version: "v1.26.1",
     date: "2026-07-10",
