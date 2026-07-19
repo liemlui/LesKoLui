@@ -1,4 +1,4 @@
-import type { Session, Student, Settings } from "../../db/types";
+import type { Session, Settings } from "../../db/types";
 import { dayLabel, formatRupiah } from "../../lib/format";
 
 interface SessionDetailModalProps {

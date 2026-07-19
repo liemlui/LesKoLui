@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { compressPhoto, stampPhoto } from "../lib/foto";
+import { compressPhoto, stampPhoto } from "../../lib/foto";
 
 /**
  * Hook untuk kamera/gallery photo capture dengan kompresi + timestamp stamp.

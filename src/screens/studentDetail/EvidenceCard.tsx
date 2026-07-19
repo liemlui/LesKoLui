@@ -1,9 +1,9 @@
 import type { HomeworkStats } from "../../db/repos";
 import type { Session, RaporGrade } from "../../db/types";
-import { semesterLabel } from "../../lib/format";
+import { semesterLabel } from "../../lib/engagement";
 
 interface EvidenceCardProps {
-  hwStats: HomeworkStats | null;
+  hwStats: HomeworkStats | null | undefined;
   avgEngScore: number | null;
   engSessions: Session[];
   raporList: RaporGrade[] | undefined;

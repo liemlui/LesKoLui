@@ -16,7 +16,7 @@ import Skeleton from "../components/Skeleton";
 import {
   BarChart, LineChart, DonutChart, Gauge, ProgressBar,
 } from "../components/charts";
-import type { BarSeries, LineSeries, DonutSegment } from "../components/charts";
+import type { BarSeries, DonutSegment } from "../components/charts";
 import RatingIndicator from "../components/charts/RatingIndicator";
 
 type AnalyticsTab = "financial" | "students" | "operations";
@@ -32,16 +32,7 @@ export default function Analytics() {
   const allHomework = useLiveQuery(() => listAllHomeworkFull(), []);
   const pendingHomework = useLiveQuery(() => listAllPendingHomework(), []);
 
-  // Last 6 months of done sessions for trend
-  const trendMonths = useMemo(() => {
-    const m = monthOf(today);
-    const result: string[] = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(parseInt(m.slice(0, 4)), parseInt(m.slice(5, 7)) - 1 - i, 1);
-      result.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
-    }
-    return result;
-  }, [today]);
+
 
   // ── Financial data ──────────────────────────────────────────────────
   const financialData = useMemo(() => {

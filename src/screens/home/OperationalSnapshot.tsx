@@ -23,7 +23,6 @@ export default function OperationalSnapshot({
   todayRevenue, weekRevenue,
 }: Props) {
   const todayTotal = todayDone + todayScheduled;
-  const todayPct = todayTotal > 0 ? Math.round((todayDone / todayTotal) * 100) : 0;
   const weekPct = weekPlanned > 0 ? Math.round((weekDone / weekPlanned) * 100) : 0;
 
   const focus = missedCount > 0

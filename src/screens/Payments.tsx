@@ -37,13 +37,6 @@ const CATEGORY_LABEL: Record<ExpenseCategory, string> = {
   lainnya: "🗂 Lainnya",
 };
 
-const TAB_LABEL: Record<Tab, string> = {
-  ringkasan: "Ringkasan",
-  tagihan: "Tagihan",
-  pengeluaran: "Pengeluaran",
-  audit: "Audit",
-};
-
 function getLast12Months(): string[] {
   const months: string[] = [];
   const now = new Date(Date.now() + 7 * 3600000);

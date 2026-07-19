@@ -56,8 +56,7 @@ export default function AttentionInbox({
         aria-expanded={!collapsed}
         className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl">
         <span className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
-          ⚠️ Perlu Perhatian
-          <Badge tone="red" size="sm" count={total} />
+          <Badge tone="red" size="sm" count={total}>Perlu Perhatian</Badge>
         </span>
         <span className="text-gray-400 text-sm">{collapsed ? "▸" : "▾"}</span>
       </button>

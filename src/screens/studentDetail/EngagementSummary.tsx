@@ -7,8 +7,8 @@ import RatingIndicator from "../../components/charts/RatingIndicator";
 interface EngagementSummaryProps {
   engSessions: Session[];
   avgEngScore: number | null;
-  engTrend: string;
-  recentEng: number[];
+  engTrend: string | null;
+  recentEng: Session[];
   subjectEngStats: { subject: string; avgScore: number; count: number; prepRate: number; phoneRate: number; drowsyRate: number }[];
   subjectPage: number;
   setSubjectPage: (v: number) => void;
