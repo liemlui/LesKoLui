@@ -85,6 +85,7 @@ export default function MonthView({
                     <div key={s.id} className="w-full truncate rounded px-1 py-0.5 flex items-center gap-0.5"
                       style={{ background: color + (s.status === "DONE" ? "18" : "30"), color, fontSize: 10, fontWeight: 700, lineHeight: 1.3 }}>
                       {s.status === "DONE" && <span style={{ fontSize: 8 }}>✓</span>}
+                      {s.status === "NO_SHOW" && <span style={{ fontSize: 8 }}>🚫</span>}
                       <span className="truncate">{info?.name?.split(" ")[0] ?? "—"}</span>
                     </div>
                   );

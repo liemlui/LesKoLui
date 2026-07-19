@@ -6,7 +6,7 @@ import {
   listStudents, listAllSessionsForMonth, listAllSessionsForWeek,
   listAllPendingHomework, listPendingFollowUps,
   markHomeworkDone, setHomeworkStatus, completeFollowUp,
-  listPastScheduledSessions, cancelSession,
+  listPastScheduledSessions,
 } from "../../db/repos";
 import type { HomeworkStatus, Session } from "../../db/types";
 import { dayLabel, todayWIB, monthOf } from "../../lib/format";
@@ -19,6 +19,8 @@ import WeekView from "./WeekView";
 import DayView from "./DayView";
 import AddScheduleModal from "./AddScheduleModal";
 import EditSessionModal from "./EditSessionModal";
+import ResolveMissedSessionModal from "./ResolveMissedSessionModal";
+import OperationalSnapshot from "./OperationalSnapshot";
 import type { SessionActions } from "./SessionPill";
 
 export default function Home() {
@@ -32,6 +34,7 @@ export default function Home() {
 
   const [addDate,    setAddDate]    = useState<string | null>(null);
   const [editTarget, setEditTarget] = useState<Session | null>(null);
+  const [resolveMissedTarget, setResolveMissedTarget] = useState<Session | null>(null);
   const [filterStudentId, setFilterStudentId] = useState<string>("");
 
   const toast = useToastCtx();
@@ -41,9 +44,14 @@ export default function Home() {
   // ── Data ──────────────────────────────────────────────────────────────────
   const students = useLiveQuery(() => listStudents(true), []);
   const week = useMemo(() => weekDates(anchor), [anchor]);
+  const currentWeek = useMemo(() => weekDates(today), [today]);
 
   const monthSessions = useLiveQuery(() => listAllSessionsForMonth(calMonth), [calMonth]);
   const weekSessions  = useLiveQuery(() => listAllSessionsForWeek(week[0], week[6]), [week[0], week[6]]);
+  const currentWeekSessions = useLiveQuery(
+    () => listAllSessionsForWeek(currentWeek[0], currentWeek[6]),
+    [currentWeek[0], currentWeek[6]],
+  );
   const daySessions   = useLiveQuery(() => listAllSessionsForWeek(anchor, anchor), [anchor]);
   const todaySessions = useLiveQuery(() => listAllSessionsForWeek(today, today), [today]);
 
@@ -93,8 +101,8 @@ export default function Home() {
   const actions: SessionActions = useMemo(() => ({
     onEdit:    (s: Session) => setEditTarget(s),
     onCapture: (id: string) => navigate(`/capture?scheduleId=${id}`),
-    onCancel:  async (id: string) => { try { await cancelSession(id); msg("Dibatalkan."); } catch { msg("Gagal membatalkan."); } },
-  }), [navigate, msg]);
+    onResolveMissed: (s: Session) => setResolveMissedTarget(s),
+  }), [navigate]);
 
   // ── Empty state / onboarding ────────────────────────────────────────────────
   if (students && students.length === 0) {
@@ -148,6 +156,17 @@ export default function Home() {
       )}
 
       {/* Agenda "Hari Ini" */}
+      <OperationalSnapshot
+        activeStudents={(students ?? []).length}
+        todayDone={todayList.filter((s) => s.status === "DONE").length}
+        todayScheduled={todayList.filter((s) => s.status === "SCHEDULED").length}
+        weekDone={(currentWeekSessions ?? []).filter((s) => s.status === "DONE").length}
+        weekPlanned={(currentWeekSessions ?? []).filter((s) => s.status === "DONE" || s.status === "SCHEDULED").length}
+        missedCount={missed.length}
+        attentionCount={missed.length + overdue.length + upcomingSoon.length + follows.length}
+        todayRevenue={todayList.filter((s) => s.status === "DONE").reduce((sum, s) => sum + (s.cost ?? 0), 0)}
+        weekRevenue={(currentWeekSessions ?? []).filter((s) => s.status === "DONE").reduce((sum, s) => sum + (s.cost ?? 0), 0)}
+      />
       <TodayHero today={today} sessions={todayList} studentMap={studentMap} onAdd={openAdd} {...actions} />
 
       {/* Perlu Perhatian */}
@@ -155,7 +174,7 @@ export default function Home() {
         missed={missed} overdue={overdue} upcomingSoon={upcomingSoon} follows={follows}
         studentMap={studentMap}
         onCapture={actions.onCapture}
-        onCancelSession={actions.onCancel}
+        onResolveMissed={actions.onResolveMissed}
         onMarkDone={handleMarkDone}
         onCompleteFollowUp={async (id) => { await completeFollowUp(id); msg("Tandai selesai ✓"); }}
       />
@@ -218,6 +237,14 @@ export default function Home() {
       {editTarget && (
         <EditSessionModal target={editTarget} students={students ?? []}
           onClose={() => setEditTarget(null)} onResult={msg} />
+      )}
+      {resolveMissedTarget && (
+        <ResolveMissedSessionModal
+          session={resolveMissedTarget}
+          studentName={studentMap.get(resolveMissedTarget.studentId)?.name ?? "Murid"}
+          onClose={() => setResolveMissedTarget(null)}
+          onResult={msg}
+        />
       )}
     </div>
   );

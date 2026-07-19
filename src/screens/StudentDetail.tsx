@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   getStudent, listSessionsByStudent, listScheduledForStudent,
+  listBillableSessionsByStudentMonth,
   cancelSeriesSessions, updateSeriesSessions,
   listRaporGrades, upsertRaporGrade, deleteRaporGrade,
   getSettings, updateStudent, getHomeworkStats,
@@ -23,6 +24,9 @@ import {
 import type { Session, IaEeProject } from "../db/types";
 import { CURRICULUM_META } from "../lib/ibSubjects";
 import PaginationControls from "../components/PaginationControls";
+import Breadcrumb from "../components/Breadcrumb";
+import Tabs from "../components/Tabs";
+import Badge from "../components/Badge";
 import { clampPage, paginateItems } from "../lib/pagination";
 import ClockTimePicker from "../components/ClockTimePicker";
 import SignaturePad from "../components/SignaturePad";
@@ -31,9 +35,23 @@ import type { AiStudentInsight } from "../lib/aiClient";
 import { AiCostModal } from "../components/AiCostModal";
 import { getBehaviorTag, getResponseTag } from "../lib/responseTaxonomy";
 import { MAX_HOURLY_RATE, clampCurrencyAmount, isValidCurrencyAmount } from "../lib/money";
+import EvidenceCard from "./studentDetail/EvidenceCard";
+import UpcomingSchedule from "./studentDetail/UpcomingSchedule";
+import SessionDetailModal from "./studentDetail/SessionDetailModal";
+import EngagementSummary from "./studentDetail/EngagementSummary";
 
 const DURATIONS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
 
+/**
+ * StudentDetail — halaman detail murid dengan 5 tab:
+ * Sesi, Rapor, Penagihan, IA/EE, AI Insights.
+ *
+ * Mengelola: daftar sesi, nilai rapor, tagihan per bulan,
+ * proyek IA/EE dengan milestone, analisis AI, PIN verification.
+ *
+ * @component
+ * @route /student/:id
+ */
 export default function StudentDetail() {
   const { id }   = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -56,6 +74,7 @@ export default function StudentDetail() {
   const [editMode,       setEditMode]       = useState<EditMode>("this");
   const [editSaving,     setEditSaving]     = useState(false);
   const [showCancelSect, setShowCancelSect] = useState(false);
+  const [cancelReason,   setCancelReason]   = useState("");
 
   // Rapor modal
   const [showRapor,      setShowRapor]      = useState(false);
@@ -67,6 +86,7 @@ export default function StudentDetail() {
   const [raporPage,      setRaporPage]      = useState(1);
   const [upcomingPage,   setUpcomingPage]   = useState(1);
   const [historyPage,    setHistoryPage]    = useState(1);
+  const [detailTab,      setDetailTab]      = useState("ringkasan");
   // Default "Semua bulan" ("") — default bulan-berjalan menipu: kalau bulan ini
   // belum ada sesi, option-nya tak ada di dropdown → browser MENAMPILKAN
   // "Semua bulan" padahal filter aktif bulan ini → riwayat tampak kosong.
@@ -113,6 +133,10 @@ export default function StudentDetail() {
   const [showRateEdit,  setShowRateEdit]  = useState(false);
   const [newRate,       setNewRate]       = useState(0);
   const [rateSaving,    setRateSaving]    = useState(false);
+  const billingSessions = useLiveQuery(
+    () => (id ? listBillableSessionsByStudentMonth(id, billingMonth) : []),
+    [id, billingMonth],
+  );
 
   const handleUnlockBilling = async () => {
     if (!settings?.financialPin) { setBillingPinError("Buat PIN Keuangan di Pengaturan dulu."); return; }
@@ -293,7 +317,7 @@ export default function StudentDetail() {
   // ── Handlers ────────────────────────────────────────────────────────
   const openEditSched = (s: Session) => {
     setEditTarget(s); setEditDate(s.date); setEditTime(s.time ?? "08:00");
-    setEditDuration(s.durationHours); setEditMode("this"); setShowCancelSect(false);
+    setEditDuration(s.durationHours); setEditMode("this"); setShowCancelSect(false); setCancelReason("");
   };
 
   const handleSaveEdit = async () => {
@@ -310,7 +334,7 @@ export default function StudentDetail() {
 
   const handleCancel = async (mode: CancelMode) => {
     if (!editTarget) return;
-    await cancelSeriesSessions({ id: editTarget.id, seriesId: editTarget.seriesId, date: editTarget.date }, mode);
+    await cancelSeriesSessions({ id: editTarget.id, seriesId: editTarget.seriesId, date: editTarget.date }, mode, cancelReason);
     setEditTarget(null); msg("Jadwal dibatalkan.");
   };
 
@@ -355,11 +379,11 @@ export default function StudentDetail() {
     if (!student) return { text: "", totalHours: 0, totalCost: 0, count: 0 };
     return buildBillingMessage({
       student,
-      sessions: allSessions ?? [],
+      sessions: billingSessions ?? [],
       month: billingMonth,
       settings,
     });
-  }, [allSessions, billingMonth, student, settings]);
+  }, [billingSessions, billingMonth, student, settings]);
 
   if (!student) return <div className="p-4 text-gray-500">Memuat...</div>;
 
@@ -373,6 +397,8 @@ export default function StudentDetail() {
 
   return (
     <div className="p-4 space-y-4 pb-24">
+
+      <Breadcrumb />
 
       {/* Back */}
       <button onClick={() => navigate(-1)}
@@ -405,9 +431,9 @@ export default function StudentDetail() {
             )}
           </div>
         </div>
-        <span className={`flex-shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full ${student.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+        <Badge tone={student.active ? "green" : "slate"}>
           {student.active ? "Aktif" : "Nonaktif"}
-        </span>
+        </Badge>
       </div>
 
       {/* Quick actions */}
@@ -426,6 +452,20 @@ export default function StudentDetail() {
         </button>
       </div>
 
+      {/* Tabs navigasi */}
+      <Tabs
+        tabs={[
+          { key: "ringkasan", label: "Ringkasan" },
+          { key: "sesi", label: "Sesi & Jadwal" },
+          { key: "nilai", label: "Nilai" },
+          { key: "iaee", label: "IA/EE" },
+        ]}
+        active={detailTab}
+        onChange={setDetailTab}
+        fullWidth
+      />
+
+      {detailTab === "ringkasan" && (<>
       {/* Info card */}
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-2">
         <h2 className="font-semibold text-gray-700 text-sm mb-2">Info Murid</h2>
@@ -527,96 +567,18 @@ export default function StudentDetail() {
           </div>
         )}
       </div>
+      </>)}
+      {detailTab === "sesi" && (<>
 
       {/* ── BUKTI KEAKTIFAN ── */}
-      {(hwStats || avgEngScore !== null || (raporList && raporList.length > 0)) && (() => {
-        const latestRapor = raporList && raporList.length > 0
-          ? [...raporList].sort((a, b) => b.semester.localeCompare(a.semester))[0]
-          : null;
-        const avgGradeStr = latestRapor
-          ? (() => {
-              const vals = latestRapor.grades
-                .map((g) => parseFloat(g.grade))
-                .filter((n) => !isNaN(n));
-              return vals.length > 0
-                ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1)
-                : latestRapor.grades[0]?.grade ?? "—";
-            })()
-          : null;
-
-        const hwRate = hwStats && (hwStats.done + hwStats.notDone) > 0 ? hwStats.completionRate : null;
-
-        // Interpretasi
-        const interpretation = (() => {
-          if (hwRate === null || avgEngScore === null) return null;
-          if (hwRate >= 80 && avgEngScore >= 7) return { text: "Aktif & patuh — murid terbaik!", color: "text-green-600" };
-          if (hwRate >= 80 && avgEngScore < 6) return { text: "Rajin kerjakan PR tapi kurang fokus saat les.", color: "text-orange-500" };
-          if (hwRate >= 50 && hwRate < 80 && avgEngScore >= 5 && avgEngScore < 7) return { text: "Cukup konsisten — PR dan fokus bisa ditingkatkan.", color: "text-blue-500" };
-          if (hwRate < 50 && avgEngScore >= 7) return { text: "Aktif saat les, tapi PR sering tidak dikerjakan.", color: "text-orange-500" };
-          if (hwRate < 50 && avgEngScore < 5) return { text: "Perlu perhatian ekstra — kurang aktif & PR jarang dikerjakan.", color: "text-red-500" };
-          return { text: "Cukup baik, masih bisa ditingkatkan.", color: "text-blue-600" };
-        })();
-
-        return (
-          <div className="bg-white rounded-2xl p-4 border border-gray-100 space-y-3">
-            <h2 className="text-base font-semibold text-gray-700">Bukti Keaktifan</h2>
-            <p className="text-xs text-gray-400">Perbandingan PR, keaktifan sesi, dan nilai sekolah sebagai bukti progres.</p>
-
-            <div className="grid grid-cols-3 gap-2">
-              {/* PR Compliance */}
-              <div className={`rounded-xl p-3 text-center ${hwRate === null ? "bg-gray-50" : hwRate >= 70 ? "bg-green-50" : hwRate >= 40 ? "bg-orange-50" : "bg-red-50"}`}>
-                <p className={`text-xl font-bold ${hwRate === null ? "text-gray-300" : hwRate >= 70 ? "text-green-700" : hwRate >= 40 ? "text-orange-600" : "text-red-600"}`}>
-                  {hwRate !== null ? `${hwRate}%` : "—"}
-                </p>
-                <p className="text-xs font-medium text-gray-500 mt-0.5">Kepatuhan PR</p>
-                {hwStats && hwStats.done + hwStats.notDone > 0 && (
-                  <p className="text-xs text-gray-400 mt-0.5">{hwStats.done}✓ {hwStats.notDone}✗</p>
-                )}
-              </div>
-
-              {/* Avg Engagement */}
-              <div className={`rounded-xl p-3 text-center ${avgEngScore === null ? "bg-gray-50" : avgEngScore >= 7 ? "bg-blue-50" : avgEngScore >= 5 ? "bg-yellow-50" : "bg-red-50"}`}>
-                <p className={`text-xl font-bold ${avgEngScore === null ? "text-gray-300" : avgEngScore >= 7 ? "text-blue-700" : avgEngScore >= 5 ? "text-yellow-600" : "text-red-600"}`}>
-                  {avgEngScore !== null ? `${avgEngScore}` : "—"}
-                </p>
-                <p className="text-xs font-medium text-gray-500 mt-0.5">Avg Fokus</p>
-                {engSessions.length > 0 && (
-                  <p className="text-xs text-gray-400 mt-0.5">{engSessions.length} sesi</p>
-                )}
-              </div>
-
-              {/* Rapor */}
-              <div className={`rounded-xl p-3 text-center ${!avgGradeStr ? "bg-gray-50" : "bg-indigo-50"}`}>
-                <p className={`text-xl font-bold ${!avgGradeStr ? "text-gray-300" : "text-indigo-700"}`}>
-                  {avgGradeStr ?? "—"}
-                </p>
-                <p className="text-xs font-medium text-gray-500 mt-0.5">Nilai Rapor</p>
-                {latestRapor && (
-                  <p className="text-xs text-gray-400 mt-0.5">{semesterLabel(latestRapor.semester)}</p>
-                )}
-              </div>
-            </div>
-
-            {interpretation && (
-              <div className={`rounded-xl p-3 bg-gray-50 border border-gray-100`}>
-                <p className={`text-xs font-semibold ${interpretation.color}`}>{interpretation.text}</p>
-              </div>
-            )}
-
-            {hwStats && hwStats.total > 0 && (
-              <div className="flex items-center gap-2">
-                <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
-                  <div className="h-full bg-green-400 rounded-full transition-all"
-                    style={{ width: `${hwStats.total > 0 ? (hwStats.done / hwStats.total) * 100 : 0}%` }} />
-                </div>
-                <span className="text-xs text-gray-400 flex-shrink-0">
-                  {hwStats.done}/{hwStats.total} PR selesai
-                </span>
-              </div>
-            )}
-          </div>
-        );
-      })()}
+      {(hwStats || avgEngScore !== null || (raporList && raporList.length > 0)) && (
+        <EvidenceCard
+          hwStats={hwStats}
+          avgEngScore={avgEngScore}
+          engSessions={engSessions}
+          raporList={raporList}
+        />
+      )}
 
       {/* ── RIWAYAT SESI ── */}
       <div>
@@ -850,72 +812,17 @@ export default function StudentDetail() {
       </div>
 
       {/* ── JADWAL MENDATANG ── */}
-      {(() => {
-        const availMonths = [...new Set((upcomingSched ?? []).map((s) => s.date.slice(0, 7)))].sort();
-        const filteredList = schedMonth
-          ? (upcomingSched ?? []).filter((s) => s.date.startsWith(schedMonth))
-          : upcomingList;
-        const safeFilteredPage = clampPage(upcomingPage, filteredList.length);
-        const paginatedFiltered = paginateItems(filteredList, safeFilteredPage);
-        return (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg font-semibold">Jadwal Mendatang</h2>
-              <span className="text-xs text-gray-400 font-medium">{(upcomingSched ?? []).length} jadwal</span>
-            </div>
-
-            {/* Month filter */}
-            {availMonths.length > 1 && (
-              <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
-                <button
-                  className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${schedMonth === "" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200"}`}
-                  onClick={() => setSchedMonth("")}>Semua</button>
-                {availMonths.map((m) => {
-                  const label = new Date(m + "-01T00:00:00").toLocaleDateString("id-ID", { month: "short", year: "2-digit" });
-                  return (
-                    <button key={m}
-                      className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${schedMonth === m ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200"}`}
-                      onClick={() => { setSchedMonth(m); setUpcomingPage(1); }}>
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {filteredList.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-dashed border-gray-200 py-6 text-center">
-                <p className="text-2xl mb-1">📅</p>
-                <p className="text-sm text-gray-400">{schedMonth ? "Tidak ada jadwal di bulan ini" : "Belum ada jadwal mendatang"}</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {paginatedFiltered.map((s) => (
-                  <div key={s.id}
-                    className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex items-center justify-between gap-3 cursor-pointer hover:border-blue-200 transition-colors"
-                    onClick={() => openEditSched(s)}>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        {s.date === today && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-semibold">Hari ini</span>}
-                        {s.seriesId && <span className="text-xs text-gray-400">🔁 Rutin</span>}
-                      </div>
-                      <p className="text-sm font-semibold text-gray-800 mt-0.5">{dayLabel(s.date)}</p>
-                      <p className="text-xs text-gray-400">{s.time ? `${s.time} · ` : ""}{s.durationHours} jam</p>
-                    </div>
-                    <span className="text-gray-300 text-xs flex-shrink-0">✏️ Edit</span>
-                  </div>
-                ))}
-                <PaginationControls
-                  page={safeFilteredPage}
-                  total={filteredList.length}
-                  onPageChange={setUpcomingPage}
-                  label="jadwal"
-                />
-              </div>
-            )}
-          </div>
-        );
-      })()}
+      <UpcomingSchedule
+        upcomingSched={upcomingSched}
+        schedMonth={schedMonth}
+        setSchedMonth={setSchedMonth}
+        upcomingPage={upcomingPage}
+        setUpcomingPage={setUpcomingPage}
+        today={today}
+        openEditSched={openEditSched}
+      />
+      </>)}
+      {detailTab === "nilai" && (<>
 
       {/* ── NILAI RAPOR ── */}
       <div>
@@ -995,6 +902,8 @@ export default function StudentDetail() {
           </div>
         )}
       </div>
+      </>)}
+      {detailTab === "iaee" && (<>
 
       {/* ── IA / EE MILESTONE TRACKER ── */}
       {(student.level === "IBDP" || student.curriculum === "IB DP") && (
@@ -1194,119 +1103,22 @@ export default function StudentDetail() {
           </div>
         </div>
       )}
+      </>)}
+      {detailTab === "nilai" && (<>
 
       {/* ── KESERIUSAN BELAJAR ── */}
-      {engSessions.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-700">Keseriusan Belajar</h2>
-            <span className="text-xs text-gray-400">{engSessions.length} sesi tercatat</span>
-          </div>
-
-          {/* Summary row */}
-          <div className="grid grid-cols-3 divide-x divide-gray-100">
-            <div className="p-3 text-center">
-              {avgEngScore !== null && (() => {
-                const { text, color } = scoreLabel(avgEngScore);
-                return (
-                  <>
-                    <p className="text-2xl font-bold" style={{ color }}>{avgEngScore}</p>
-                    <p className="text-xs font-medium mt-0.5" style={{ color }}>{text}</p>
-                    <p className="text-xs text-gray-400">rata-rata</p>
-                  </>
-                );
-              })()}
-            </div>
-            <div className="p-3 text-center">
-              <p className="text-2xl">
-                {engTrend === "up" ? "📈" : engTrend === "down" ? "📉" : "➡️"}
-              </p>
-              <p className="text-xs font-medium text-gray-600">
-                {engTrend === "up" ? "Membaik" : engTrend === "down" ? "Menurun" : engTrend === "stable" ? "Stabil" : "—"}
-              </p>
-              <p className="text-xs text-gray-400">trend</p>
-            </div>
-            <div className="p-3 text-center">
-              <p className="text-2xl font-bold text-red-500">
-                {Math.round((engSessions.filter((s) => s.engagement?.playingPhone).length / engSessions.length) * 100)}%
-              </p>
-              <p className="text-xs font-medium text-red-400">Main HP</p>
-              <p className="text-xs text-gray-400">dari sesi</p>
-            </div>
-          </div>
-
-          {/* Trend summary — detail chart is above in session history */}
-          {recentEng.length > 0 && (
-            <div className="px-4 pb-3">
-              <p className="text-xs text-gray-500">
-                📈 Rata-rata fokus: <span className="font-semibold text-gray-700">{avgEngScore}/10</span>
-                {" "}dari {recentEng.length} sesi terakhir
-                {engTrend === "up" && <span className="text-green-500 ml-1">↑ meningkat</span>}
-                {engTrend === "down" && <span className="text-red-500 ml-1">↓ menurun</span>}
-                {engTrend === "stable" && <span className="text-gray-400 ml-1">→ stabil</span>}
-                {" "}— lihat grafik di atas
-              </p>
-            </div>
-          )}
-
-          {/* Per-subject breakdown */}
-          {subjectEngStats.length > 0 && (
-            <div className="border-t border-gray-100 px-4 py-3">
-              <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-2">Per Mata Pelajaran</p>
-              <div className="space-y-2.5">
-                {paginatedSubjectEngStats.map((stat) => {
-                  const { color, bg } = scoreLabel(stat.avgScore);
-                  return (
-                    <div key={stat.subject}>
-                      <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-sm font-medium text-gray-700">{stat.subject}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ color, background: bg }}>
-                            {stat.avgScore}/10
-                          </span>
-                          <span className="text-xs text-gray-400">{stat.count}×</span>
-                        </div>
-                      </div>
-                      {/* Mini indicator bar */}
-                      <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full transition-all" style={{ width: `${(stat.avgScore / 10) * 100}%`, background: color }} />
-                      </div>
-                      <div className="flex gap-3 mt-1">
-                        {stat.prepRate > 0 && <span className="text-xs text-green-600">📚 Siap {stat.prepRate}%</span>}
-                        {stat.phoneRate > 0 && <span className="text-xs text-red-500">📱 Main HP {stat.phoneRate}%</span>}
-                        {stat.drowsyRate > 0 && <span className="text-xs text-orange-500">😴 Ngantuk {stat.drowsyRate}%</span>}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <PaginationControls
-                page={safeSubjectPage}
-                total={subjectEngStats.length}
-                onPageChange={setSubjectPage}
-                label="mapel"
-              />
-            </div>
-          )}
-
-          {/* AI summary insight */}
-          {engSessions.length >= 5 && avgEngScore !== null && (
-            <div className="mx-4 mb-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
-              <p className="text-xs text-gray-600 leading-relaxed">
-                <span className="font-semibold">📊 Insight: </span>
-                Dari {engSessions.length} sesi yang tercatat, {student.name.split(" ")[0]} rata-rata{" "}
-                mendapat skor <span className="font-semibold">{avgEngScore}/10</span>{" "}
-                ({scoreLabel(avgEngScore).text.toLowerCase()}).
-                {engSessions.filter((s) => s.engagement?.playingPhone).length > 0 && (
-                  ` Main HP tercatat di ${engSessions.filter((s) => s.engagement?.playingPhone).length} sesi (${Math.round(engSessions.filter((s) => s.engagement?.playingPhone).length / engSessions.length * 100)}%).`
-                )}
-                {engTrend === "up" && " Tren terbaru menunjukkan peningkatan keseriusan."}
-                {engTrend === "down" && " Perlu perhatian — tren terbaru menurun."}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
+      <EngagementSummary
+        engSessions={engSessions}
+        avgEngScore={avgEngScore}
+        engTrend={engTrend}
+        recentEng={recentEng}
+        subjectEngStats={subjectEngStats}
+        subjectPage={subjectPage}
+        setSubjectPage={setSubjectPage}
+        student={student!}
+      />
+      </>)}
+      {/* Modals — always render regardless of tab */}
 
       {/* ── EDIT SESSION NOTES MODAL ── */}
       {editSession && (
@@ -1500,6 +1312,8 @@ export default function StudentDetail() {
                 ) : (
                   <div className="space-y-2">
                     <p className="text-sm font-semibold text-red-600 mb-2">Batalkan — pilih scope:</p>
+                    <textarea className="input min-h-20 resize-y text-sm" value={cancelReason}
+                      onChange={(e) => setCancelReason(e.target.value)} placeholder="Alasan pembatalan (opsional)" />
                     {editTarget.seriesId ? (
                       <>
                         <button onClick={() => handleCancel("this")} className="w-full text-left px-4 py-3 rounded-xl bg-gray-50 hover:bg-gray-100 text-sm font-medium border border-gray-200">Sesi ini saja</button>
@@ -1592,7 +1406,7 @@ export default function StudentDetail() {
 
                 {/* Tombol kirim */}
                 {buildBillingWA.count === 0 ? (
-                  <p className="text-sm text-center text-gray-400 py-2">Belum ada sesi selesai di bulan ini.</p>
+                  <p className="text-sm text-center text-gray-400 py-2">Belum ada sesi yang dapat ditagihkan di bulan ini.</p>
                 ) : (
                   <div className="space-y-2">
                     {student.parentContact.phone && (
@@ -1616,154 +1430,21 @@ export default function StudentDetail() {
         </div>
       )}
       {/* ── SESSION DETAIL MODAL ── */}
-      {detailSession && (() => {
-        const s = detailSession;
-        const photoUrl = photoUrls.get(s.id);
-        const sigUrl   = sigUrls.get(s.id);
-        const eng      = s.engagement;
-        return (
-          <div className="fixed inset-0 bg-black/50 z-[70] flex items-end justify-center" onClick={() => { setDetailSession(null); setShowDeletePin(false); setDeletePinInput(""); setDeletePinError(""); }}>
-            <div className="bg-white w-full max-w-md rounded-t-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-                <div>
-                  <h3 className="font-bold text-base">{(s.subjects ?? []).join(", ") || "Sesi umum"}</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">{dayLabel(s.date)}</p>
-                </div>
-                <button onClick={() => setDetailSession(null)} aria-label="Tutup" className="text-gray-400 text-xl">✕</button>
-              </div>
-
-              <div className="p-5 space-y-4">
-                {/* Waktu & durasi */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-blue-50 rounded-xl p-3">
-                    <p className="text-xs text-blue-500 font-medium">Waktu</p>
-                    <p className="text-sm font-bold text-blue-800 mt-0.5">
-                      {s.timeIn && s.timeOut ? `${s.timeIn} � ${s.timeOut}` : s.time ?? "�"}
-                    </p>
-                  </div>
-                  <div className="bg-indigo-50 rounded-xl p-3">
-                    <p className="text-xs text-indigo-500 font-medium">Durasi</p>
-                    <p className="text-sm font-bold text-indigo-800 mt-0.5">{s.durationHours} jam</p>
-                  </div>
-                </div>
-
-                {/* Status + mood */}
-                <div className="flex gap-2 flex-wrap">
-                  <span className={`text-xs px-3 py-1 rounded-full font-semibold ${s.status === "DONE" ? "bg-green-50 text-green-600" : s.status === "CANCELLED" ? "bg-red-50 text-red-500" : "bg-blue-50 text-blue-600"}`}>
-                    {s.status === "DONE" ? "✓ Selesai" : s.status === "CANCELLED" ? "✗ Dibatalkan" : "Terjadwal"}
-                  </span>
-                  {s.mood && <span className="text-xs px-3 py-1 rounded-full bg-orange-50 text-orange-600 font-medium">Mood: {s.mood}</span>}
-                  {eng && <span className="text-xs px-3 py-1 rounded-full bg-purple-50 text-purple-600 font-semibold">Engagement {eng.score}/10</span>}
-                </div>
-
-                {/* Catatan */}
-                {s.shortNote && (
-                  <div className="bg-gray-50 rounded-xl p-3">
-                    <p className="text-xs text-gray-400 font-medium mb-1">Catatan</p>
-                    <p className="text-sm text-gray-700 italic">"{s.shortNote}"</p>
-                  </div>
-                )}
-
-                {/* Topik */}
-                {s.topic && (
-                  <div>
-                    <p className="text-xs text-gray-400 font-medium mb-1">Topik</p>
-                    <p className="text-sm text-gray-700">{s.topic}</p>
-                  </div>
-                )}
-
-                {/* Biaya */}
-                {s.cost > 0 && (
-                  <div className="bg-green-50 rounded-xl p-3">
-                    <p className="text-xs text-green-500 font-medium">Biaya Sesi</p>
-                    <p className="text-sm font-bold text-green-800 mt-0.5">{formatRupiah(s.cost)}</p>
-                  </div>
-                )}
-
-                {/* Engagement detail */}
-                {eng && (
-                  <div className="bg-purple-50 rounded-xl p-3 space-y-1">
-                    <p className="text-xs text-purple-500 font-medium">Detail Engagement</p>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {eng.prepared && <span className="text-xs px-2 py-0.5 rounded-full bg-white text-green-600">✓ Siap belajar</span>}
-                      {eng.focused && <span className="text-xs px-2 py-0.5 rounded-full bg-white text-green-600">✓ Fokus</span>}
-                      {eng.activeAsking && <span className="text-xs px-2 py-0.5 rounded-full bg-white text-green-600">✓ Aktif bertanya</span>}
-                      {eng.quickLearner && <span className="text-xs px-2 py-0.5 rounded-full bg-white text-green-600">✓ Cepat paham</span>}
-                      {eng.playingPhone && <span className="text-xs px-2 py-0.5 rounded-full bg-white text-orange-500">📱 Main HP</span>}
-                      {eng.drowsy && <span className="text-xs px-2 py-0.5 rounded-full bg-white text-blue-400">😴 Ngantuk</span>}
-                      {eng.needsRepetition && <span className="text-xs px-2 py-0.5 rounded-full bg-white text-yellow-600">↩ Perlu diulang</span>}
-                      {eng.hwMissed && <span className="text-xs px-2 py-0.5 rounded-full bg-white text-red-500">✗ PR tidak dikerjakan</span>}
-                    </div>
-                  </div>
-                )}
-
-                {/* Foto */}
-                {photoUrl && (
-                  <div>
-                    <p className="text-xs text-gray-400 font-medium mb-1">Foto Sesi</p>
-                    <img src={photoUrl} alt="foto sesi" className="w-full max-h-48 object-cover rounded-xl" />
-                  </div>
-                )}
-
-                {/* Tanda tangan */}
-                {sigUrl && (
-                  <div>
-                    <p className="text-xs text-gray-400 font-medium mb-1">Tanda Tangan Murid</p>
-                    <div className="border border-gray-200 rounded-xl bg-gray-50 p-3 flex items-center justify-center">
-                      <img src={sigUrl} alt="TTD murid" className="max-h-20 object-contain" />
-                    </div>
-                  </div>
-                )}
-
-                {/* Tombol edit catatan */}
-                {s.status === "DONE" && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setDetailSession(null); openEditNote(s); }}
-                    className="w-full py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors">
-                    ✏️ Edit Catatan Sesi
-                  </button>
-                )}
-
-                {/* Hapus sesi (PIN protected) */}
-                {!showDeletePin ? (
-                  <button
-                    onClick={() => setShowDeletePin(true)}
-                    className="w-full py-2.5 rounded-xl border border-red-200 text-red-500 text-sm font-medium hover:bg-red-50 transition-colors">
-                    🗑️ Hapus Sesi
-                  </button>
-                ) : (
-                  <div className="space-y-2 border border-red-200 rounded-xl p-3 bg-red-50">
-                    <p className="text-xs text-red-600 font-semibold">Hapus sesi ini? Tidak bisa dibatalkan.</p>
-                    {settings?.financialPin && (
-                      <>
-                        <input
-                          type="password" inputMode="numeric" maxLength={6} placeholder="PIN"
-                          value={deletePinInput}
-                          onChange={(e) => { setDeletePinInput(e.target.value); setDeletePinError(""); }}
-                          onKeyDown={(e) => e.key === "Enter" && handleDeleteSession()}
-                          className="input text-center tracking-widest text-base w-full"
-                          autoFocus
-                        />
-                        {deletePinError && <p className="text-xs text-red-500">{deletePinError}</p>}
-                      </>
-                    )}
-                    <div className="flex gap-2">
-                      <button onClick={() => { setShowDeletePin(false); setDeletePinInput(""); setDeletePinError(""); }}
-                        className="flex-1 py-2 rounded-xl bg-gray-100 text-gray-600 text-sm font-semibold">
-                        Batal
-                      </button>
-                      <button onClick={handleDeleteSession}
-                        className="flex-1 py-2 rounded-xl bg-red-500 text-white text-sm font-semibold">
-                        Hapus
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      <SessionDetailModal
+        detailSession={detailSession}
+        photoUrls={photoUrls}
+        sigUrls={sigUrls}
+        setDetailSession={setDetailSession}
+        settings={settings}
+        showDeletePin={showDeletePin}
+        setShowDeletePin={setShowDeletePin}
+        deletePinInput={deletePinInput}
+        setDeletePinInput={setDeletePinInput}
+        deletePinError={deletePinError}
+        setDeletePinError={setDeletePinError}
+        handleDeleteSession={handleDeleteSession}
+        openEditNote={openEditNote}
+      />
 
       {/* Analisis AI cost modal */}
       <AiCostModal

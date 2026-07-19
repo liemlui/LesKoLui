@@ -4,6 +4,7 @@ import BottomNav from "./components/BottomNav";
 import { PwaPrompts } from "./components/PwaPrompts";
 import ChangelogModal from "./components/ChangelogModal";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import Skeleton from "./components/Skeleton";
 import { ToastProvider, useToastCtx } from "./components/ToastProvider";
 import ToastContainer from "./components/Toast";
 import { todayWIB } from "./lib/format";
@@ -25,6 +26,7 @@ const MonthlyReport = lazy(() => import("./screens/MonthlyReport"));
 const Payments = lazy(() => import("./screens/Payments"));
 const Tugas = lazy(() => import("./screens/Tugas"));
 const Settings = lazy(() => import("./screens/Settings"));
+const Analytics = lazy(() => import("./screens/Analytics"));
 
 const AUTO_BACKUP_KEY = "leskolui_last_auto_backup_prompt";
 const AUTO_BACKUP_INTERVAL_DAYS = 7;
@@ -115,7 +117,7 @@ function Layout() {
   // Prefetch modul Drive + GIS saat prompt muncul agar tap-nya responsif
   useEffect(() => {
     if (backupPrompt && driveAutoOn()) {
-      import("./lib/driveBackup").then((m) => m.preloadDrive()).catch(() => {});
+      import("./lib/driveBackup").then((m) => m.preloadDrive()).catch((e: unknown) => { console.warn("driveBackup preload failed:", e); });
     }
   }, [backupPrompt]);
 
@@ -136,7 +138,7 @@ function Layout() {
   }, []);
 
   useEffect(() => {
-    appData().then((r) => r.initSettings()).catch(() => {});
+    appData().then((r) => r.initSettings()).catch((e: unknown) => { console.warn("initSettings failed:", e); });
     // Minta penyimpanan persisten (anti-eviction). persist() sering false sampai PWA
     // di-install — itu normal, jadi JANGAN warn di situ; cukup peringatkan kalau
     // penyimpanan sudah mendekati penuh.
@@ -183,7 +185,7 @@ function Layout() {
       if (!s.lastBackupAt) { setStaleBackup({ days: null }); return; }
       const days = Math.floor((Date.now() - lastMs) / 86400000);
       if (days >= STALE_BACKUP_DAYS) setStaleBackup({ days });
-    })().catch(() => {});
+    })().catch((e: unknown) => { console.warn("auto-backup/silent relay failed:", e); });
   }, [scheduleHwNotifications, checkAutoBackup]);
 
   return (
@@ -274,7 +276,7 @@ function Layout() {
         </div>
       )}
 
-      <Suspense fallback={<div className="p-4 text-gray-400 text-sm">Memuat...</div>}>
+      <Suspense fallback={<div className="p-4 space-y-4"><Skeleton variant="card" /><Skeleton variant="text" lines={4} /></div>}>
         <Outlet />
       </Suspense>
       <BottomNav />
@@ -304,6 +306,7 @@ const router = createBrowserRouter([
       { path: "/report", element: <MonthlyReport /> },
       { path: "/payments", element: <Payments /> },
       { path: "/settings", element: <Settings /> },
+      { path: "/analytics", element: <Analytics /> },
       { path: "*", element: <Navigate to="/" replace /> },
     ],
   },

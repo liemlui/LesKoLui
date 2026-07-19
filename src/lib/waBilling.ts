@@ -27,12 +27,12 @@ export interface BuildBillingArgs {
 export function buildBillingMessage(args: BuildBillingArgs): BillingResult {
   const { student, sessions, month, settings, amountOverride } = args;
 
-  const doneSessions = sessions
-    .filter((s) => s.status === "DONE" && s.date.startsWith(month))
+  const billableSessions = sessions
+    .filter((s) => (s.status === "DONE" || (s.status === "NO_SHOW" && s.noShowBillable)) && s.date.startsWith(month))
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  const totalHours = doneSessions.reduce((sum, s) => sum + s.durationHours, 0);
-  const sessionCost = doneSessions.reduce((sum, s) => sum + s.cost, 0);
+  const totalHours = billableSessions.reduce((sum, s) => sum + s.durationHours, 0);
+  const sessionCost = billableSessions.reduce((sum, s) => sum + s.cost, 0);
   const totalCost = amountOverride ?? sessionCost;
   const bank = settings?.bankAccounts;
 
@@ -43,9 +43,11 @@ export function buildBillingMessage(args: BuildBillingArgs): BillingResult {
     ``,
   ];
 
-  doneSessions.forEach((s) => {
+  billableSessions.forEach((s) => {
     const dateShort = dayLabel(s.date).replace(/^\w+, /, "").replace(/ \d{4}$/, "");
-    const subj = s.subjects.length > 0 ? s.subjects.join(", ") : "Sesi umum";
+    const subj = s.status === "NO_SHOW"
+      ? "Tidak hadir (sesuai kebijakan)"
+      : s.subjects.length > 0 ? s.subjects.join(", ") : "Sesi umum";
     lines.push(`📅 ${dateShort} — ${subj} (${s.durationHours}j)`);
   });
 
@@ -63,7 +65,7 @@ export function buildBillingMessage(args: BuildBillingArgs): BillingResult {
   }
 
   lines.push(``, `Thank you 😇`, settings?.tutorProfile?.name || "Ko Lui");
-  return { text: lines.join("\n"), totalHours, totalCost, count: doneSessions.length };
+  return { text: lines.join("\n"), totalHours, totalCost, count: billableSessions.length };
 }
 
 /** Convert a stored phone (e.g. "08xx" / "+62 8xx") to a wa.me number. */

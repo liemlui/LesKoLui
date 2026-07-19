@@ -22,6 +22,7 @@ export default function EditSessionModal({ target, students, onClose, onResult }
   const [mode, setMode]           = useState<EditMode>("this");
   const [saving, setSaving]       = useState(false);
   const [showCancel, setShowCancel] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
 
   const handleSave = async () => {
     setSaving(true);
@@ -43,7 +44,7 @@ export default function EditSessionModal({ target, students, onClose, onResult }
   };
 
   const handleCancel = async (cancelMode: CancelMode) => {
-    await cancelSeriesSessions({ id: target.id, seriesId: target.seriesId, date: target.date }, cancelMode);
+    await cancelSeriesSessions({ id: target.id, seriesId: target.seriesId, date: target.date }, cancelMode, cancelReason);
     onResult("Jadwal dibatalkan.");
     onClose();
   };
@@ -133,6 +134,8 @@ export default function EditSessionModal({ target, students, onClose, onResult }
           ) : (
             <div className="space-y-2">
               <p className="text-sm font-semibold text-red-600 mb-2">Batalkan jadwal — pilih scope:</p>
+              <textarea className="input min-h-20 resize-y text-sm" value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)} placeholder="Alasan pembatalan (opsional)" />
               {target.seriesId ? (
                 <>
                   <button onClick={() => handleCancel("this")}

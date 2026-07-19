@@ -21,6 +21,7 @@ import type { SessionType } from "../lib/sessionTemplates";
 import { MIN_DURATION } from "../db/types";
 import { draftShortNote, polishWhatsApp, suggestHomework, estimateDraftNoteCost, estimateHomeworkCost, estimatePolishWACost } from "../lib/aiClient";
 import { AiCostModal } from "../components/AiCostModal";
+import Breadcrumb from "../components/Breadcrumb";
 import type { Student, Session, Homework, FollowUpItem } from "../db/types";
 import PaginationControls from "../components/PaginationControls";
 import { PAGE_SIZE, clampPage, paginateItems } from "../lib/pagination";
@@ -86,6 +87,16 @@ function buildWaMessage(
   return lines.join("\n");
 }
 
+/**
+ * CaptureSession — wizard 6 langkah untuk merekam sesi les yang selesai.
+ * Step: Pilih Murid → Mapel → Catatan → Foto → PR → Review.
+ *
+ * Mengintegrasikan: AI auto-fill catatan, foto kamera, tanda tangan digital,
+ * PR follow-up, deteksi konflik jadwal, dan beberapa template catatan.
+ *
+ * @component
+ * @route /capture
+ */
 export default function CaptureSession() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -465,6 +476,8 @@ export default function CaptureSession() {
 
   return (
     <div className="pb-36">
+
+      <Breadcrumb />
 
       {/* ── PAGE HEADER ── */}
       <div className="px-4 pt-4 pb-3">

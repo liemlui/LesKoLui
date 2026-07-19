@@ -101,6 +101,9 @@ function PhotoMaintenance({ onToast }: { onToast: (m: string) => void }) {
 // L-1: penampil riwayat aktivitas penting (lokal per perangkat).
 const AUDIT_LABEL: Record<AuditAction, string> = {
   "session.delete": "Hapus sesi",
+  "session.cancel": "Batalkan sesi",
+  "session.no_show": "Tandai tidak hadir",
+  "session.reschedule": "Jadwalkan ulang sesi",
   "student.delete": "Hapus murid",
   "payment.paid": "Tagihan ditandai lunas",
   "payment.unpaid": "Batal lunas",
@@ -180,6 +183,14 @@ function Section({
   );
 }
 
+/**
+ * SettingsPage — halaman pengaturan aplikasi.
+ * Section: Profil, PIN, Backup/Restore, Google Drive, Relay Server,
+ * Template Laporan, Penggunaan Storage, Export Data, Penghapusan Foto.
+ *
+ * @component
+ * @route /settings
+ */
 export default function SettingsPage() {
   const settings  = useLiveQuery(() => getSettings(), []);
   const [form,        setForm]        = useState<Settings | null>(null);
@@ -395,7 +406,7 @@ export default function SettingsPage() {
 
   const saveRelaySecret = (v: string) => {
     setRelaySecret(v);
-    try { if (v) localStorage.setItem("leskolui_relay_secret", v); else localStorage.removeItem("leskolui_relay_secret"); } catch { /* ignore */ }
+    try { if (v) localStorage.setItem("leskolui_relay_secret", v); else localStorage.removeItem("leskolui_relay_secret"); } catch (e: unknown) { console.warn("saveRelaySecret failed:", e); }
   };
 
   const doTestRelay = async () => {

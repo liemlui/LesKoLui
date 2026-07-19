@@ -34,7 +34,7 @@ export function PwaPrompts() {
       // Cek update saat tab dapat fokus kembali (user balik ke app)
       const onVisible = () => {
         if (document.visibilityState === "visible" && !r.installing && navigator.onLine) {
-          r.update().catch(() => {});
+          r.update().catch((e: unknown) => { console.warn("SW update check failed:", e); });
         }
       };
       document.addEventListener("visibilitychange", onVisible);

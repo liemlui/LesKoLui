@@ -104,23 +104,24 @@ export default function DayView({
             const topPx    = (sh - DAY_START) * PX_PER_HR + (sm / 60) * PX_PER_HR;
             const heightPx = Math.max(s.durationHours * PX_PER_HR - 2, 28);
             const isDone   = s.status === "DONE";
+            const isEditable = s.status === "SCHEDULED";
             const endH     = new Date(0, 0, 0, sh, sm + Math.round(s.durationHours * 60));
             const endLabel = `${String(endH.getHours()).padStart(2, "0")}:${String(endH.getMinutes()).padStart(2, "0")}`;
             return (
               <button key={s.id} type="button"
-                className={`absolute rounded-lg overflow-hidden shadow-sm text-left transition-all ${!isDone ? "cursor-pointer hover:brightness-95" : "cursor-default"}`}
+                className={`absolute rounded-lg overflow-hidden shadow-sm text-left transition-all ${isEditable ? "cursor-pointer hover:brightness-95" : "cursor-default"}`}
                 style={{ top: topPx + 1, left: LABEL_W + 4, right: 6, height: heightPx,
                   background: color + (isDone ? "22" : "3A"), borderLeft: `3px solid ${color}` }}
-                onClick={() => !isDone && actions.onEdit(s)}>
+                onClick={() => isEditable && (s.date < today ? actions.onResolveMissed(s) : actions.onEdit(s))}>
                 <div className="px-2 py-1">
                   <p className="font-bold text-xs leading-tight truncate" style={{ color }}>
-                    {info?.name ?? "—"}{isDone ? " ✓" : ""}{s.seriesId ? " 🔁" : ""}
+                    {info?.name ?? "—"}{isDone ? " ✓" : ""}{s.status === "NO_SHOW" ? " 🚫" : ""}{s.seriesId ? " 🔁" : ""}
                   </p>
                   <p className="opacity-70 truncate" style={{ color, fontSize: 10 }}>
                     {s.time} – {endLabel} · {s.durationHours}j
                   </p>
                 </div>
-                {!isDone && <span className="absolute top-1 right-1 text-xs opacity-50">✏️</span>}
+                {isEditable && <span className="absolute top-1 right-1 text-xs opacity-50">✏️</span>}
               </button>
             );
           })}

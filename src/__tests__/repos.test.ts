@@ -264,6 +264,48 @@ describe("Session CRUD", () => {
     expect(upcoming.length).toBeGreaterThanOrEqual(1);
     expect(upcoming[0].status).toBe("SCHEDULED");
   });
+
+  it("preserves the original record and creates a replacement when rescheduling", async () => {
+    const { createStudent, scheduleSession, rescheduleSession, listAllUpcomingScheduled } = await import("../db/repos");
+    const sid = await createStudent({
+      name: "Reschedule Test", level: "IBDP", subjects: [], parentContact: { phone: "087" },
+      hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30),
+    });
+    const originalId = await scheduleSession({ studentId: sid, date: wibDate(), time: "14:00", durationHours: 1.5 });
+    const replacementId = await rescheduleSession(originalId, {
+      date: wibDate(2), time: "16:00", durationHours: 2, reason: "Murid ada kegiatan sekolah",
+    });
+
+    const original = await db.sessions.get(originalId);
+    const replacement = await db.sessions.get(replacementId);
+    expect(original?.status).toBe("RESCHEDULED");
+    expect(original?.rescheduledToId).toBe(replacementId);
+    expect(original?.statusReason).toBe("Murid ada kegiatan sekolah");
+    expect(replacement).toMatchObject({
+      status: "SCHEDULED", rescheduledFromId: originalId, date: wibDate(2), time: "16:00", durationHours: 2,
+    });
+    expect(replacement?.cost).toBe(2 * DEFAULT_RATE);
+    expect((await listAllUpcomingScheduled(wibDate())).map((s) => s.id)).toContain(replacementId);
+  });
+
+  it("only includes an explicitly billable no-show in monthly revenue", async () => {
+    const { createStudent, scheduleSession, markSessionNoShow, listBillableSessionsForMonth, computeMonthBills } = await import("../db/repos");
+    const sid = await createStudent({
+      name: "No Show Test", level: "IBDP", subjects: [], parentContact: { phone: "088" },
+      hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30),
+    });
+    const chargeable = await scheduleSession({ studentId: sid, date: "2026-06-10", time: "14:00", durationHours: 1.5 });
+    const waived = await scheduleSession({ studentId: sid, date: "2026-06-12", time: "14:00", durationHours: 1 });
+    await markSessionNoShow(chargeable, { billable: true, reason: "Tidak ada kabar" });
+    await markSessionNoShow(waived, { billable: false });
+
+    const billable = await listBillableSessionsForMonth("2026-06");
+    expect(billable.map((s) => s.id)).toEqual([chargeable]);
+    expect(billable[0]).toMatchObject({ status: "NO_SHOW", noShowBillable: true, statusReason: "Tidak ada kabar" });
+    const bills = await computeMonthBills("2026-06");
+    expect(bills).toHaveLength(1);
+    expect(bills[0]).toMatchObject({ studentId: sid, count: 1, hours: 1.5, cost: 1.5 * DEFAULT_RATE });
+  });
 });
 
 // ── Payment Tests ──────────────────────────────────────────────────

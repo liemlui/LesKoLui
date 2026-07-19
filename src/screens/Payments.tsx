@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import {
   listPayments, listStudents, getPayment, upsertPayment, getSettings,
   createExpense, listExpenses, deleteExpense,
-  listSessionsForMonth, listSessionsByStudentMonth, listAllUpcomingScheduled,
+  listBillableSessionsForMonth, listBillableSessionsByStudentMonth, listAllUpcomingScheduled,
   listScheduledForMonth,
   getMonthClosing, listMonthClosings, closeMonth, reopenMonth,
   markPaymentTransferred, markPaymentUnpaid, updatePaymentAmount, getCashSummary,
@@ -22,6 +22,10 @@ import { forecastNextMonth } from "../lib/forecast";
 import { escapeCsvCell } from "../lib/csv";
 import { downloadBlob } from "../lib/download";
 import { MAX_PAYMENT_AMOUNT, clampCurrencyAmount, isValidCurrencyAmount, parseCurrencyDigits } from "../lib/money";
+import ActivityRing from "../components/dashboard/ActivityRing";
+import Breadcrumb from "../components/Breadcrumb";
+import Tabs from "../components/Tabs";
+import MetricCard from "../components/dashboard/MetricCard";
 
 type Tab = "ringkasan" | "tagihan" | "pengeluaran" | "audit";
 
@@ -56,6 +60,16 @@ const monthsBetween = (a: string, b: string): number => {
   return (by - ay) * 12 + (bm - am);
 };
 
+/**
+ * PaymentsPage — halaman keuangan dengan 4 tab:
+ * Ringkasan, Tagihan, Pengeluaran, Audit.
+ *
+ * Fitur: tutup bulan otomatis, tagihan manual, tracking pengeluaran,
+ * export PDF/CSV, forecasting, WhatsApp billing, dan audit trail.
+ *
+ * @component
+ * @route /payments
+ */
 export default function PaymentsPage() {
   const navigate = useNavigate();
   const payments  = useLiveQuery(() => listPayments(), []);
@@ -99,14 +113,16 @@ export default function PaymentsPage() {
 
   // Audit
   const [auditYear, setAuditYear] = useState(() => Number(todayWIB().slice(0, 4)));
+  const [trendRange, setTrendRange] = useState<3 | 6 | 12>(6);
 
   // ── Data for the selected month ──
-  const monthSessions = useLiveQuery(() => listSessionsForMonth(month), [month]);
+  const monthSessions = useLiveQuery(() => listBillableSessionsForMonth(month), [month]);
   const monthExpenses = useLiveQuery(() => listExpenses(month), [month]);
   const closings = useLiveQuery(() => listMonthClosings(), []);
   const monthClosing = useLiveQuery(() => getMonthClosing(month), [month]);
 
   const chartData = useLiveQuery(() => getMonthlyIncomeVsExpense(getLast12Months()), []);
+  const trendData = useMemo(() => (chartData ?? []).slice(-trendRange), [chartData, trendRange]);
 
   const nextMonthStr = useMemo(() => {
     const [y, m] = month.split("-").map(Number);
@@ -301,6 +317,9 @@ export default function PaymentsPage() {
     laba: 0,
   };
   cash.laba = cash.realisasi - cash.pengeluaran;
+  const paidCount = monthPayments.filter((p) => p.status === "PAID").length;
+  const collectionRate = monthPayments.length > 0 ? Math.round((paidCount / monthPayments.length) * 100) : 0;
+  const conversionRate = cash.potensi > 0 ? Math.round((cash.realisasi / cash.potensi) * 100) : 0;
 
   // Tutup Bulan availability: current month only from the 28th; past months always; future never.
   const _today = todayWIB();
@@ -311,7 +330,7 @@ export default function PaymentsPage() {
     ? "Bulan belum berjalan."
     : "Tutup bulan berjalan tersedia mulai tanggal 28.";
 
-  // Per-student preview (from DONE sessions) before closing
+  // Per-student preview (completed sessions + chargeable no-shows) before closing.
   const previewBills = Array.from(
     (monthSessions ?? []).reduce((m, s) => {
       const cur = m.get(s.studentId) ?? { count: 0, hours: 0, cost: 0 };
@@ -369,7 +388,7 @@ export default function PaymentsPage() {
     return m;
   }, new Map());
 
-  const chartMax = Math.max(...(chartData ?? []).map((d) => Math.max(d.income, d.expense, 1)));
+  const chartMax = Math.max(...trendData.map((d) => Math.max(d.income, d.expense, 1)));
 
   const ITEMS_PER_PDF_PAGE = 5;
   const pdfPageGroups: Payment[][] = [];
@@ -381,6 +400,7 @@ export default function PaymentsPage() {
 
   return (
     <div className="p-4 pb-24 space-y-4">
+      <Breadcrumb />
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Keuangan</h1>
@@ -399,17 +419,17 @@ export default function PaymentsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex rounded-xl bg-gray-100 p-1 gap-1">
-        {(["ringkasan", "tagihan", "pengeluaran", "audit"] as Tab[]).map((tab) => (
-          <button key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-colors ${
-              activeTab === tab ? "bg-white text-blue-600 shadow-sm" : "text-gray-500"
-            }`}>
-            {TAB_LABEL[tab]}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        tabs={[
+          { key: "ringkasan", label: "Ringkasan" },
+          { key: "tagihan", label: "Tagihan" },
+          { key: "pengeluaran", label: "Pengeluaran" },
+          { key: "audit", label: "Audit" },
+        ]}
+        active={activeTab}
+        onChange={(k) => setActiveTab(k as Tab)}
+        fullWidth
+      />
 
       {message && (
         <div onClick={() => setMessage("")}
@@ -431,7 +451,7 @@ export default function PaymentsPage() {
             <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
               <p className="text-[11px] text-gray-400 uppercase tracking-wide">Potensi (sesi)</p>
               <p className="text-lg font-bold text-gray-700">{formatRupiah(cash.potensi)}</p>
-              <p className="text-[11px] text-gray-400">{cash.hours} jam mengajar</p>
+              <p className="text-[11px] text-gray-400">{cash.hours} jam ditagihkan</p>
             </div>
             <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
               <p className="text-[11px] text-gray-400 uppercase tracking-wide">Realisasi (cash)</p>
@@ -450,6 +470,39 @@ export default function PaymentsPage() {
               <p className={`text-xl font-bold ${cash.laba >= 0 ? "text-green-700" : "text-red-600"}`}>{formatRupiah(cash.laba)}</p>
             </div>
           </div>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" aria-labelledby="business-health-title">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">Business health</p>
+                <h2 id="business-health-title" className="text-base font-bold text-slate-800">Kesehatan bisnis</h2>
+                <p className="text-xs text-slate-500 mt-0.5">Baca angka sebagai keputusan, bukan sekadar laporan.</p>
+              </div>
+              <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${collectionRate >= 80 ? "bg-green-100 text-green-700" : collectionRate > 0 ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}`}>
+                {monthPayments.length > 0 ? `${collectionRate}% tertagih` : "Belum ada tagihan"}
+              </span>
+            </div>
+            <div className="grid grid-cols-[1fr_auto] gap-3 items-stretch">
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 flex items-center">
+                <ActivityRing
+                  value={paidCount} total={monthPayments.length} label="Tagihan dilunasi"
+                  detail={monthPayments.length > 0 ? `${monthPayments.length - paidCount} tagihan masih terbuka` : "Tutup bulan untuk membuat tagihan"}
+                  tone={collectionRate >= 80 ? "green" : collectionRate > 0 ? "amber" : "slate"}
+                />
+              </div>
+              <div className="grid gap-2 w-[148px]">
+                <MetricCard label="Konversi kas" value={`${conversionRate}%`} description="Potensi sesi yang sudah menjadi kas." icon="↗" tone={conversionRate >= 80 ? "green" : "amber"} />
+                <MetricCard label="Laba kas" value={formatRupiah(cash.laba)} description="Realisasi setelah pengeluaran bulan ini." icon="◎" tone={cash.laba >= 0 ? "blue" : "red"} />
+              </div>
+            </div>
+            <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-600">
+              {monthPayments.length === 0
+                ? "Belum ada tagihan bulan ini. Setelah sesi selesai, gunakan Tutup Bulan untuk mengubah potensi menjadi tagihan yang bisa ditagih."
+                : collectionRate < 100
+                  ? "Fokus berikutnya: follow-up tagihan terbuka agar potensi pendapatan berubah menjadi kas masuk."
+                  : "Penagihan bulan ini sudah lengkap. Pantau laba kas dan pengeluaran agar margin tetap sehat."}
+            </p>
+          </section>
 
           {/* Forecast */}
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
@@ -483,13 +536,24 @@ export default function PaymentsPage() {
             </div>
           )}
 
-          {/* 12-month income vs expense chart */}
-          {(chartData ?? []).length > 0 && (
+          {/* Income vs expense chart with a deliberately small, readable range control. */}
+          {trendData.length > 0 && (
             <div className="bg-white border border-gray-100 rounded-2xl p-4 space-y-3">
-              <p className="text-sm font-semibold text-gray-500">Pendapatan vs Pengeluaran (12 Bln)</p>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-gray-500">Pendapatan vs Pengeluaran</p>
+                <div className="flex rounded-lg bg-gray-100 p-0.5" aria-label="Rentang grafik">
+                  {([3, 6, 12] as const).map((range) => (
+                    <button key={range} onClick={() => setTrendRange(range)}
+                      className={`px-2 py-1 rounded-md text-[11px] font-semibold transition-colors ${trendRange === range ? "bg-white text-blue-700 shadow-sm" : "text-gray-500"}`}>
+                      {range}B
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <p className="text-[11px] text-gray-400 -mt-1">Skala sumbu menyesuaikan rentang {trendRange} bulan agar perubahan lebih mudah terbaca.</p>
               <div className="overflow-x-auto">
-                <svg width={Math.max(300, (chartData ?? []).length * 28)} height={120} className="block">
-                  {(chartData ?? []).map((d, i) => {
+                <svg width={Math.max(300, trendData.length * 36)} height={120} className="block">
+                  {trendData.map((d, i) => {
                     const barW = 10; const gap = 28; const x = i * gap + 4;
                     const incH = chartMax > 0 ? Math.round((d.income / chartMax) * 90) : 0;
                     const expH = chartMax > 0 ? Math.round((d.expense / chartMax) * 90) : 0;
@@ -531,7 +595,7 @@ export default function PaymentsPage() {
               <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Tagihan per Murid (preview)</p>
               <p className="text-[11px] text-gray-400 -mt-2">Tap nama murid untuk lihat detail sesi</p>
               {previewBills.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-2">Belum ada sesi selesai bulan ini.</p>
+                <p className="text-sm text-gray-400 text-center py-2">Belum ada sesi yang dapat ditagihkan bulan ini.</p>
               ) : (
                 <div className="space-y-1">
                   {previewBills.map((b) => {
@@ -560,7 +624,7 @@ export default function PaymentsPage() {
                               .map((s) => (
                                 <div key={s.id} className="flex items-center justify-between text-xs px-2 py-1">
                                   <span className="text-gray-500 font-mono">{s.date.slice(5).replace("-", "/")}</span>
-                                  <span className="text-gray-600 flex-1 ml-2 truncate">{s.subjects.slice(0, 2).join(", ") || "—"}</span>
+                                  <span className="text-gray-600 flex-1 ml-2 truncate">{s.status === "NO_SHOW" ? "Tidak hadir (ditagihkan)" : s.subjects.slice(0, 2).join(", ") || "—"}</span>
                                   <span className="text-gray-400 mx-2">{s.durationHours}j</span>
                                   <span className="font-medium text-gray-700">{formatRupiah(s.cost)}</span>
                                 </div>
@@ -948,7 +1012,7 @@ function InvoiceModal({
   onClose: () => void;
 }) {
   const sessions = useLiveQuery(
-    () => listSessionsByStudentMonth(student.id, payment.month),
+    () => listBillableSessionsByStudentMonth(student.id, payment.month),
     [student.id, payment.month]
   ) ?? [];
 
@@ -1032,7 +1096,7 @@ function InvoiceContent({
             [...sessions].sort((a, b) => a.date.localeCompare(b.date)).map((s, i) => (
               <tr key={s.id} style={{ background: i % 2 === 0 ? "#fff" : "#f9fafb", borderBottom: "1px solid #f3f4f6" }}>
                 <td style={{ padding: "5px 8px" }}>{s.date.slice(5).replace("-", "/")}</td>
-                <td style={{ padding: "5px 8px" }}>{s.subjects.slice(0, 2).join(", ") || "—"}</td>
+                <td style={{ padding: "5px 8px" }}>{s.status === "NO_SHOW" ? "Tidak hadir" : s.subjects.slice(0, 2).join(", ") || "—"}</td>
                 <td style={{ padding: "5px 8px", textAlign: "right" }}>{s.durationHours}j</td>
                 <td style={{ padding: "5px 8px", textAlign: "right" }}>{formatRupiah(s.cost)}</td>
               </tr>

@@ -11,6 +11,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/",          label: "Home",     icon: "🏠" },
   { to: "/students",  label: "Murid",    icon: "👥" },
   { to: "/tugas",     label: "Tugas",    icon: "📋" },
+  { to: "/analytics", label: "Analitik", icon: "📊" },
   { to: "/payments",  label: "Keuangan", icon: "💰" },
   { to: "/settings",  label: "Atur",     icon: "⚙️" },
 ];

@@ -60,13 +60,14 @@ export default function WeekView({
                   const info   = studentMap.get(s.studentId);
                   const color  = info?.color ?? "#9CA3AF";
                   const isDone = s.status === "DONE";
+                  const isEditable = s.status === "SCHEDULED";
                   return (
                     <button key={s.id} type="button"
-                      className={`block w-full text-left rounded mb-0.5 px-1 py-0.5 ${!isDone ? "cursor-pointer" : "cursor-default"}`}
+                      className={`block w-full text-left rounded mb-0.5 px-1 py-0.5 ${isEditable ? "cursor-pointer" : "cursor-default"}`}
                       style={{ background: color + (isDone ? "20" : "35"), fontSize: 9 }}
-                      onClick={() => !isDone && actions.onEdit(s)}>
+                      onClick={() => isEditable && (s.date < today ? actions.onResolveMissed(s) : actions.onEdit(s))}>
                       <p className="font-bold truncate" style={{ color }}>{info?.name?.split(" ")[0] ?? "—"}</p>
-                      {s.time && <p className="opacity-60" style={{ fontSize: 8 }}>{s.time}</p>}
+                      {s.time && <p className="opacity-60" style={{ fontSize: 8 }}>{s.status === "NO_SHOW" ? "🚫 Tidak hadir" : s.time}</p>}
                     </button>
                   );
                 })}

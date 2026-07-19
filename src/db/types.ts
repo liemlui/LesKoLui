@@ -10,7 +10,7 @@ export type CurriculumType =
   | "AP"
   | "National"
   | "Custom";
-export type SessionStatus = "SCHEDULED" | "DONE" | "CANCELLED";
+export type SessionStatus = "SCHEDULED" | "DONE" | "CANCELLED" | "NO_SHOW" | "RESCHEDULED";
 export type PaymentStatus = "UNPAID" | "PAID";
 export type PaymentSource = "auto" | "manual";
 
@@ -111,6 +111,13 @@ export interface Session {
   timeOut?: string;         // actual end time HH:MM WIB, auto-set on save
   projectId?: string;
   seriesId?: string;
+  /** Optional context recorded when a planned session is cancelled, missed, or moved. */
+  statusReason?: string;
+  /** A no-show is billable only when the tutor explicitly opts in. */
+  noShowBillable?: boolean;
+  /** Links the old and replacement records without mutating the original appointment. */
+  rescheduledFromId?: string;
+  rescheduledToId?: string;
   status: SessionStatus;
   rateSnapshot: number;
   cost: number;
@@ -205,6 +212,9 @@ export interface IaEeProject {
 
 export type AuditAction =
   | "session.delete"
+  | "session.cancel"
+  | "session.no_show"
+  | "session.reschedule"
   | "student.delete"
   | "payment.paid"
   | "payment.unpaid"

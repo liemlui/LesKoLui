@@ -17,6 +17,7 @@ import { dayLabel, monthLabel, todayWIB, monthOf } from "../lib/format";
 import { exportJpeg, exportPng, exportPdf, shareFiles } from "../lib/exportReport";
 import { blobToDataUrl, blobToNormalizedDataUrl } from "../lib/imageUtils";
 import PaginationControls from "../components/PaginationControls";
+import Breadcrumb from "../components/Breadcrumb";
 import { clampPage, paginateItems } from "../lib/pagination";
 import { calcEngagementScore, scoreLabel } from "../lib/engagement";
 import type {
@@ -73,6 +74,14 @@ function buildSessionNarrative(session: Session, subject: string): string {
   return `Sesi ${subject} berlangsung selama ${formatHours(session.durationHours)}.`;
 }
 
+/**
+ * MonthlyReportPage — halaman pembuatan laporan bulanan.
+ * 20+ tema × 27 layout, AI narrative generation, export ke JPG/PNG/PDF,
+ * pagination, dan template rotation logic.
+ *
+ * @component
+ * @route /report/:studentId/:month
+ */
 export default function MonthlyReportPage() {
   const [searchParams] = useSearchParams();
   const students = useLiveQuery(() => listStudents(true), []);
@@ -376,6 +385,7 @@ export default function MonthlyReportPage() {
 
   return (
     <div className="pb-20">
+      <Breadcrumb />
       <div className="p-4 space-y-4">
         {message && (
           <div className="space-y-1.5">

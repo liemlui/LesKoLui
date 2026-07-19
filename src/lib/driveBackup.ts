@@ -224,5 +224,5 @@ export async function testRelay(): Promise<void> {
 /** Muat GIS lebih awal (mis. saat prompt backup muncul) agar tap-nya responsif. */
 export function preloadDrive(): void {
   if (!CLIENT_ID) return;
-  void loadGis().catch(() => {});
+  void loadGis().catch((e: unknown) => { console.warn("GIS preload failed:", e); });
 }

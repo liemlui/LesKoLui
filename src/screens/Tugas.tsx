@@ -3,6 +3,8 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { listAllHomeworkFull, markHomeworkDone, markHomeworkNotDone, deleteHomework } from "../db/repos";
 import { todayWIB } from "../lib/format";
 import { useToastCtx } from "../components/ToastProvider";
+import Breadcrumb from "../components/Breadcrumb";
+import Badge from "../components/Badge";
 
 type FilterTab = "menunggu" | "telat" | "selesai" | "semua";
 
@@ -56,15 +58,14 @@ export default function TugasPage() {
 
   return (
     <div className="p-4 space-y-4 pb-20">
+      <Breadcrumb />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Tugas / PR</h1>
           <p className="text-xs text-gray-400 mt-0.5">Centang yang sudah dikerjakan, silang yang tidak</p>
         </div>
         {overdueCount > 0 && (
-          <span className="bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full">
-            {overdueCount} telat
-          </span>
+          <Badge tone="red" count={overdueCount}>Telat</Badge>
         )}
       </div>
 
