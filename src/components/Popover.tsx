@@ -27,7 +27,7 @@ export default function Popover({
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const show = useCallback(() => { setOpen(true); onOpenChange?.(true); }, [onOpenChange]);
   const hide = useCallback(() => { setOpen(false); onOpenChange?.(false); }, [onOpenChange]);

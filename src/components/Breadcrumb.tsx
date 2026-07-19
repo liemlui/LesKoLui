@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useLocation, useParams, Link } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import { listStudents } from "../db/repos";
 
@@ -29,7 +29,6 @@ const ROUTE_LABELS: Record<string, string> = {
 /** Auto-generated breadcrumb from route path. Shows on deep screens. */
 export default function Breadcrumb({ crumbs, resolveNames }: Props) {
   const location = useLocation();
-  const params = useParams();
   const students = useLiveQuery(() => listStudents(true), []);
 
   const autoCrumbs = useMemo(() => {

@@ -3,14 +3,13 @@ import { useLiveQuery } from "dexie-react-hooks";
 import {
   listStudents,
   listAllSessionsForMonth,
-  listDoneSessionsForDateRange,
   listExpenses,
   listAllPendingHomework,
   listAllHomeworkFull,
 } from "../db/repos";
-import { monthOf, monthLabel, todayWIB, monthsBetween } from "../lib/format";
+import { monthOf, monthLabel, todayWIB } from "../lib/format";
 import { prevMonth, nextMonth } from "../lib/calendar";
-import { forecastNextMonth, weightedMovingAverage } from "../lib/forecast";
+import { forecastNextMonth } from "../lib/forecast";
 import Tabs from "../components/Tabs";
 import Skeleton from "../components/Skeleton";
 import {

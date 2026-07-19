@@ -387,7 +387,6 @@ export default function StudentDetail() {
 
   if (!student) return <div className="p-4 text-gray-500">Memuat...</div>;
 
-  const safeSubjectPage = clampPage(subjectPage, subjectEngStats.length);
   const safeRaporPage = clampPage(raporPage, raporCorrelation.length);
   const paginatedRaporCorrelation = paginateItems(raporCorrelation, safeRaporPage);
   const safeHistoryPage = clampPage(historyPage, historySessions.length);
