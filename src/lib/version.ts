@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.26.2";
+export const APP_VERSION = "v1.27.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -8,6 +8,21 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.27.0",
+    date: "2026-07-17",
+    title: "UI Overhaul — Dashboard, Analitik & Navigasi Baru",
+    items: [
+      "Dashboard Home baru: gauge sesi, bar chart mingguan, progress bar, & glance pendapatan harian/mingguan",
+      "Inbox Perlu Perhatian kini tabbed (Sesi | PR Telat | PR Segera | Follow-up) dengan badge count",
+      "Halaman Analitik baru (📊) — 3 tab: Keuangan (grafik batang, tren, donat pengeluaran, forecast), Murid (kontribusi pendapatan, engagement), Operasional (gauge, no-show rate, PR completion)",
+      "Breadcrumb otomatis di semua halaman dalam (Murid, Catat Sesi, Tugas, Laporan, Keuangan)",
+      "Detail Murid kini pakai tab (Ringkasan | Sesi & Jadwal | Nilai | IA/EE)",
+      "RatingIndicator visual (dot/star/bar) menggantikan angka mentah engagement",
+      "Skeleton loader shimmer — pengganti teks 'Memuat...' di semua halaman",
+      "12 komponen UI baru murni SVG/Tailwind: BarChart, LineChart, DonutChart, Gauge, ProgressBar, RatingIndicator, Badge, Popover, Breadcrumb, Tabs, Skeleton — tanpa dependensi tambahan",
+    ],
+  },
   {
     version: "v1.26.2",
     date: "2026-07-11",
