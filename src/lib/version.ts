@@ -16,6 +16,8 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Pendapatan harian & mingguan dipindahkan dari dashboard ke tab Ringkasan halaman Keuangan (💰) — semua info uang kini di satu tempat",
       "Tombol 💸 Catat di dashboard header — pencatatan pengeluaran cepat tanpa harus masuk PIN Keuangan",
       "Kalender bulanan kini mengurutkan sesi berdasarkan jam (paling awal di atas) — konsisten dengan tampilan mingguan & harian",
+      "Backup/restore kini tervalidasi penuh, memakai snapshot konsisten, dan tetap kompatibel dengan file backup lama",
+      "Kata sandi backup disembunyikan secara default; verifikasi backup Drive memeriksa struktur data secara penuh",
     ],
   },
   {
