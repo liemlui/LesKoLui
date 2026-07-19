@@ -1,13 +1,9 @@
 /* eslint-disable react-refresh/only-export-components */
-import React from "react";
-import type { Theme, ReportData, Layout, ReportEntry } from "../types";
+import type { Layout } from "../types";
 import { Deco } from "../deco";
 import {
-  HeaderEl, LogoEl, LabelEl, DetailsEl, PhotoEl, NarrEl, EngagementBar,
-  SummaryEl, Sparkline,
-  EMPTY_NARRATIVE, EMPTY_SUBJECT, EMPTY_DATE, onColor,
-  clean, entryDate, entryDateShort, entryDay, entrySubject, entrySubjectShort,
-  entryNarrative, entryDetails, detailText, truncateText,
+  HeaderEl, LabelEl, DetailsEl, PhotoEl, NarrEl, EngagementBar,
+  SummaryEl, onColor, entryDateShort,
 } from "./helpers";
 
 export const dashboard: Layout = {
