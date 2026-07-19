@@ -1,6 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import type { Theme, ReportData, Layout, ReportEntry } from "../types";
-import { Deco } from "../deco";
+import type { Theme, ReportData, ReportEntry } from "../types";
 
 // Ikut tercetak di laporan orang tua — jaga netral, tanpa instruksi untuk tutor
 export const EMPTY_NARRATIVE = "Sesi berjalan sesuai jadwal.";
