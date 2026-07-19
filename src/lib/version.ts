@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.27.0";
+export const APP_VERSION = "v1.27.1";
 
 export interface ChangelogEntry {
   version: string;
@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.27.1",
+    date: "2026-07-19",
+    title: "Keuangan Dipindahkan dari Dashboard + Sort Kalender Bulanan",
+    items: [
+      "Pendapatan harian & mingguan dipindahkan dari dashboard ke tab Ringkasan halaman Keuangan (💰) — semua info uang kini di satu tempat",
+      "Tombol 💸 Catat di dashboard header — pencatatan pengeluaran cepat tanpa harus masuk PIN Keuangan",
+      "Kalender bulanan kini mengurutkan sesi berdasarkan jam (paling awal di atas) — konsisten dengan tampilan mingguan & harian",
+    ],
+  },
   {
     version: "v1.27.0",
     date: "2026-07-17",

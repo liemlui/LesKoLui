@@ -5,10 +5,10 @@ import {
   countSessionPhotos, pruneSessionPhotosBefore,
 } from "../db/repos";
 import { db } from "../db/db";
-import { exportBackup, importBackup } from "../lib/backup";
+import { exportBackup, importBackup, inspectBackup } from "../lib/backup";
 import { isDriveConfigured, uploadBackupToDrive, downloadBackupFromDrive, findDriveBackup, testRelay } from "../lib/driveBackup";
 import { exportDataCsvBlob } from "../lib/exportData";
-import { hashPin, verifyPin, decryptJson } from "../lib/crypto";
+import { hashPin, verifyPin } from "../lib/crypto";
 import { todayWIB } from "../lib/format";
 import { compressPhoto } from "../lib/foto";
 import { downloadBlob } from "../lib/download";
@@ -27,6 +27,11 @@ const WORDLIST = [
 // melindungi file backup yang berisi seluruh data murid & keuangan; 8 minimum,
 // dan tombol "Generate" tetap disarankan (6 kata acak ≈ sangat kuat).
 const MIN_PASS = 8;
+const AUTO_BACKUP_KEY = "leskolui_last_auto_backup_prompt";
+
+function markBackupReminderCurrent(): void {
+  try { localStorage.setItem(AUTO_BACKUP_KEY, String(Date.now())); } catch { /* storage unavailable */ }
+}
 
 /** Estimasi kekuatan kasar kata sandi backup untuk umpan balik visual. */
 function passStrength(p: string): { label: string; color: string; pct: number } {
@@ -199,6 +204,7 @@ export default function SettingsPage() {
   const [saving,      setSaving]      = useState(false);
   const [toast,       setToast]       = useState("");
   const [backupPass,  setBackupPass]  = useState("");
+  const [showBackupPass, setShowBackupPass] = useState(false);
   const [driveAuto,   setDriveAuto]   = useState(() => localStorage.getItem("leskolui_drive_auto") === "1");
   const [pinMode,     setPinMode]     = useState<"view" | "verifyOld" | "forgotPin" | "edit">("view");
   const [oldPin,      setOldPin]      = useState("");
@@ -335,6 +341,7 @@ export default function SettingsPage() {
     const lastBackupAt = new Date().toISOString();
     await saveSettings({ lastBackupAt });
     setForm((f) => f ? { ...f, lastBackupAt } : f);
+    markBackupReminderCurrent();
     setToast("Backup berhasil diunduh ✓");
   };
 
@@ -358,6 +365,7 @@ export default function SettingsPage() {
     const driveBackup = { fileId, backupAt: now };
     await saveSettings({ driveBackup, lastBackupAt: now });
     setForm((f) => f ? { ...f, driveBackup, lastBackupAt: now } : f);
+    markBackupReminderCurrent();
     setToast("Backup ke Google Drive berhasil ✓");
   };
 
@@ -391,10 +399,9 @@ export default function SettingsPage() {
       const found = await findDriveBackup();
       if (!found) { setToast("Tidak ada backup di Google Drive."); return; }
       const blob = await downloadBackupFromDrive(found.id);
-      const dump = await decryptJson(blob, backupPass) as { data?: Record<string, unknown[]> };
-      if (!dump?.data) { setToast("Backup tak valid (gagal dibaca)."); return; }
-      const nM = dump.data.students?.length ?? 0;
-      const nS = dump.data.sessions?.length ?? 0;
+      const summary = await inspectBackup(blob, backupPass);
+      const nM = summary.tableCounts.students;
+      const nS = summary.tableCounts.sessions;
       const when = new Date(found.modifiedTime).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" });
       setToast(`Backup valid ✓ ${nM} murid, ${nS} sesi (${when})`);
     } catch (e) {
@@ -778,19 +785,24 @@ export default function SettingsPage() {
           <div className="bg-gray-50 rounded-xl p-3 space-y-2">
             <label className="label">🔑 Kata Sandi Enkripsi</label>
             <div className="flex gap-2">
-              <input className="input flex-1" type="text" value={backupPass}
+              <input className="input flex-1" type={showBackupPass ? "text" : "password"} value={backupPass}
                 onChange={(e) => setBackupPass(e.target.value)} placeholder="Kata sandi backup & restore" />
               <button
                 onClick={() => {
                   const words = Array.from(crypto.getRandomValues(new Uint8Array(6)))
                     .map((b) => WORDLIST[b % WORDLIST.length]).join("-");
                   setBackupPass(words);
+                  setShowBackupPass(true);
                 }}
                 className="text-xs px-3 py-2 rounded-xl bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium flex-shrink-0">
                 Generate
               </button>
+              <button type="button" onClick={() => setShowBackupPass((visible) => !visible)}
+                className="text-xs px-3 py-2 rounded-xl bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium flex-shrink-0">
+                {showBackupPass ? "Sembunyikan" : "Tampilkan"}
+              </button>
             </div>
-            {backupPass && <p className="text-xs text-gray-500 font-mono break-all">{backupPass}</p>}
+            {backupPass && showBackupPass && <p className="text-xs text-gray-500 font-mono break-all">{backupPass}</p>}
             {backupPass && (() => {
               const st = passStrength(backupPass);
               return (

@@ -1,25 +1,40 @@
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
-async function deriveKey(passphrase: string, salt: Uint8Array<ArrayBuffer>): Promise<CryptoKey> {
+// Format file v2 menyimpan parameter KDF di header. File v1 dan format tanpa
+// magic tetap dapat dibuka dengan 150k iterasi agar semua backup lama aman.
+const LEGACY_PBKDF2_ITERATIONS = 150_000;
+const CURRENT_PBKDF2_ITERATIONS = 600_000;
+const CRYPTO_FORMAT_V1 = 1;
+const CRYPTO_FORMAT_V2 = 2;
+const MAGIC = new Uint8Array([0x4C, 0x4B, 0x55, 0x49]); // "LKUI"
+
+async function deriveKey(
+  passphrase: string,
+  salt: Uint8Array<ArrayBuffer>,
+  iterations: number,
+): Promise<CryptoKey> {
   const base = await crypto.subtle.importKey("raw", enc.encode(passphrase), "PBKDF2", false, ["deriveKey"]);
   const saltBuf = new Uint8Array(salt).buffer as ArrayBuffer;
   return crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt: saltBuf, iterations: 150_000, hash: "SHA-256" },
+    { name: "PBKDF2", salt: saltBuf, iterations, hash: "SHA-256" },
     base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
 }
 
 export async function encryptJson(obj: unknown, passphrase: string): Promise<Blob> {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const key = await deriveKey(passphrase, salt);
+  const key = await deriveKey(passphrase, salt, CURRENT_PBKDF2_ITERATIONS);
   const data = enc.encode(JSON.stringify(obj));
   const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, data));
-  // Format: magic(4) | version(2) | salt(16) | iv(12) | ciphertext
-  const magic = new Uint8Array([0x4C, 0x4B, 0x55, 0x49]); // "LKUI"
-  const version = new Uint8Array([0x00, 0x01]);
-  const out = new Uint8Array(4 + 2 + 16 + 12 + ct.length);
-  out.set(magic, 0); out.set(version, 4); out.set(salt, 6); out.set(iv, 22); out.set(ct, 34);
+  // Format v2: magic(4) | version(2) | PBKDF2 iterations(4) | salt(16) |
+  //            iv(12) | ciphertext. Parameter ikut dalam header agar dapat
+  // dinaikkan lagi tanpa membuat file lama tidak bisa dibuka.
+  const out = new Uint8Array(4 + 2 + 4 + 16 + 12 + ct.length);
+  out.set(MAGIC, 0);
+  out[4] = 0x00; out[5] = CRYPTO_FORMAT_V2;
+  new DataView(out.buffer).setUint32(6, CURRENT_PBKDF2_ITERATIONS, false);
+  out.set(salt, 10); out.set(iv, 26); out.set(ct, 38);
   return new Blob([out], { type: "application/octet-stream" });
 }
 
@@ -28,16 +43,36 @@ export async function decryptJson(file: Blob, passphrase: string): Promise<unkno
   // Detect format by magic bytes "LKUI"
   const isNew = buf[0] === 0x4C && buf[1] === 0x4B && buf[2] === 0x55 && buf[3] === 0x49;
   let salt: Uint8Array<ArrayBuffer>, iv: Uint8Array<ArrayBuffer>, ct: Uint8Array<ArrayBuffer>;
+  let iterations: number;
   if (isNew) {
-    if (buf.length < 35) throw new Error("File backup tidak valid atau rusak.");
-    // const version = (buf[4] << 8) | buf[5]; // reserved for future migration
-    salt = buf.slice(6, 22) as Uint8Array<ArrayBuffer>; iv = buf.slice(22, 34) as Uint8Array<ArrayBuffer>; ct = buf.slice(34) as Uint8Array<ArrayBuffer>;
+    const version = (buf[4] << 8) | buf[5];
+    if (version === CRYPTO_FORMAT_V1) {
+      if (buf.length < 35) throw new Error("File backup tidak valid atau rusak.");
+      salt = buf.slice(6, 22) as Uint8Array<ArrayBuffer>;
+      iv = buf.slice(22, 34) as Uint8Array<ArrayBuffer>;
+      ct = buf.slice(34) as Uint8Array<ArrayBuffer>;
+      iterations = LEGACY_PBKDF2_ITERATIONS;
+    } else if (version === CRYPTO_FORMAT_V2) {
+      if (buf.length < 39) throw new Error("File backup tidak valid atau rusak.");
+      iterations = new DataView(buf.buffer, buf.byteOffset, buf.byteLength).getUint32(6, false);
+      if (!Number.isInteger(iterations) || iterations < LEGACY_PBKDF2_ITERATIONS || iterations > 2_000_000) {
+        throw new Error("File backup tidak valid: parameter enkripsi tidak didukung.");
+      }
+      salt = buf.slice(10, 26) as Uint8Array<ArrayBuffer>;
+      iv = buf.slice(26, 38) as Uint8Array<ArrayBuffer>;
+      ct = buf.slice(38) as Uint8Array<ArrayBuffer>;
+    } else {
+      throw new Error("Versi enkripsi backup tidak didukung. Perbarui aplikasi sebelum restore.");
+    }
   } else {
     // Legacy format: salt(16) | iv(12) | ciphertext
     if (buf.length < 29) throw new Error("File backup tidak valid atau rusak.");
-    salt = buf.slice(0, 16) as Uint8Array<ArrayBuffer>; iv = buf.slice(16, 28) as Uint8Array<ArrayBuffer>; ct = buf.slice(28) as Uint8Array<ArrayBuffer>;
+    salt = buf.slice(0, 16) as Uint8Array<ArrayBuffer>;
+    iv = buf.slice(16, 28) as Uint8Array<ArrayBuffer>;
+    ct = buf.slice(28) as Uint8Array<ArrayBuffer>;
+    iterations = LEGACY_PBKDF2_ITERATIONS;
   }
-  const key = await deriveKey(passphrase, salt);
+  const key = await deriveKey(passphrase, salt, iterations);
   let pt: ArrayBuffer;
   try {
     pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ct);

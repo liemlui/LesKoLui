@@ -11,16 +11,11 @@ interface Props {
   weekPlanned: number;
   missedCount: number;
   attentionCount: number;
-  /** Optional: today's revenue in IDR */
-  todayRevenue?: number;
-  /** Optional: week-to-date revenue in IDR */
-  weekRevenue?: number;
 }
 
-/** Top-of-home command center v2: gauges, mini chart, KanBan zones, financial glance. */
+/** Top-of-home command center: gauges, mini chart, KanBan zones. */
 export default function OperationalSnapshot({
   activeStudents, todayDone, todayScheduled, weekDone, weekPlanned, missedCount, attentionCount,
-  todayRevenue, weekRevenue,
 }: Props) {
   const todayTotal = todayDone + todayScheduled;
   const weekPct = weekPlanned > 0 ? Math.round((weekDone / weekPlanned) * 100) : 0;
@@ -101,29 +96,8 @@ export default function OperationalSnapshot({
       {/* Visual separator between zones */}
       <div className="mx-4 border-t border-slate-100" />
 
-      {/* Financial glance + progress */}
+      {/* Progress */}
       <div className="px-4 py-3 space-y-3">
-        {(todayRevenue != null || weekRevenue != null) && (
-          <div className="flex items-center gap-3 text-xs">
-            {todayRevenue != null && (
-              <div className="flex-1 rounded-lg bg-blue-50 border border-blue-100 px-3 py-2">
-                <p className="text-blue-500 font-semibold uppercase tracking-wide text-[10px]">Pendapatan Hari Ini</p>
-                <p className="text-blue-700 font-bold text-sm">
-                  {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(todayRevenue)}
-                </p>
-              </div>
-            )}
-            {weekRevenue != null && (
-              <div className="flex-1 rounded-lg bg-green-50 border border-green-100 px-3 py-2">
-                <p className="text-green-500 font-semibold uppercase tracking-wide text-[10px]">Minggu Ini</p>
-                <p className="text-green-700 font-bold text-sm">
-                  {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(weekRevenue)}
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-
         {todayTotal > 0 && (
           <ProgressBar
             value={todayDone} max={todayTotal}

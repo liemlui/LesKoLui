@@ -1,0 +1,161 @@
+import { beforeEach, describe, expect, it } from "vitest";
+import { db } from "../db/db";
+import { exportBackup, importBackup, inspectBackup } from "../lib/backup";
+import { encryptJson } from "../lib/crypto";
+import type {
+  Expense, FollowUpItem, Homework, IaEeProject, MonthClosing, MonthlyReport,
+  Payment, RaporGrade, Session, Settings, Student,
+} from "../db/types";
+
+const PASS = "backup-sangat-aman-2026";
+
+async function clearDomainData(): Promise<void> {
+  await db.transaction("rw", [
+    db.students, db.sessions, db.reports, db.payments, db.settings,
+    db.raporGrades, db.homeworks, db.followUps, db.expenses, db.iaeeProjects,
+    db.monthClosings, db.auditLog,
+  ], async () => {
+    await Promise.all([
+      db.students.clear(), db.sessions.clear(), db.reports.clear(), db.payments.clear(), db.settings.clear(),
+      db.raporGrades.clear(), db.homeworks.clear(), db.followUps.clear(), db.expenses.clear(), db.iaeeProjects.clear(),
+      db.monthClosings.clear(), db.auditLog.clear(),
+    ]);
+  });
+}
+
+beforeEach(clearDomainData);
+
+async function seedEveryBackupTable(): Promise<void> {
+  const now = "2026-07-20T08:00:00.000Z";
+  const student: Student = {
+    id: "student-1", name: "Alya", level: "IBDP", subjects: ["Physics"],
+    parentContact: { name: "Bunda Alya", phone: "08123456789" }, hourlyRate: 250_000,
+    active: true, enrolledAt: "2026-01-01", photo: new Blob(["student-photo"], { type: "image/jpeg" }),
+  };
+  const session: Session = {
+    id: "session-1", studentId: student.id, date: "2026-07-20", durationHours: 1.5,
+    subjects: ["Physics"], shortNote: "Mekanika", status: "DONE", rateSnapshot: 250_000,
+    cost: 375_000, createdAt: now, updatedAt: now,
+    photo: new Blob(["session-photo"], { type: "image/webp" }),
+    signature: new Blob(["signature"], { type: "image/png" }),
+  };
+  const report: MonthlyReport = {
+    id: "report-1", studentId: student.id, month: "2026-07", sessionIds: [session.id],
+    templateKey: { themeId: "blue", layoutId: "cards" }, summaryText: "Bagus", totalHours: 1.5,
+    totalCost: 375_000, createdAt: now,
+  };
+  const payment: Payment = { id: "payment-1", studentId: student.id, month: "2026-07", totalCost: 375_000, status: "UNPAID" };
+  const settings: Settings = {
+    id: "app", tutorProfile: { name: "Ko Lui", phone: "0811223344" }, defaultRate: 250_000,
+    paymentInfo: "BCA", subjects: ["Physics"], logo: new Blob(["tutor-logo"], { type: "image/png" }),
+    ai: { enabled: false, model: "deepseek-v4-flash" }, templatePref: {},
+  };
+  const rapor: RaporGrade = { id: "rapor-1", studentId: student.id, semester: "2025/2026-S2", grades: [{ subject: "Physics", grade: "7" }], createdAt: now };
+  const homework: Homework = { id: "homework-1", studentId: student.id, subject: "Physics", title: "Latihan", assignedAt: "2026-07-20", status: "assigned", createdAt: now, updatedAt: now };
+  const followUp: FollowUpItem = { id: "followup-1", studentId: student.id, type: "continue-topic", text: "Lanjut mekanika", createdAt: now };
+  const expense: Expense = { id: "expense-1", date: "2026-07-20", category: "buku", description: "Buku", amount: 100_000, createdAt: now, updatedAt: now };
+  const project: IaEeProject = { id: "project-1", studentId: student.id, type: "IA", subject: "Physics", title: "Eksperimen", milestones: [{ id: "milestone-1", title: "Proposal", status: "pending" }], createdAt: now, updatedAt: now };
+  const closing: MonthClosing = { id: "closing-1", month: "2026-07", closedAt: now, totalPotensi: 375_000, totalHours: 1.5, studentCount: 1 };
+
+  await db.transaction("rw", [
+    db.students, db.sessions, db.reports, db.payments, db.settings, db.raporGrades,
+    db.homeworks, db.followUps, db.expenses, db.iaeeProjects, db.monthClosings, db.auditLog,
+  ], async () => {
+    await db.students.add(student);
+    await db.sessions.add(session);
+    await db.reports.add(report);
+    await db.payments.add(payment);
+    await db.settings.add(settings);
+    await db.raporGrades.add(rapor);
+    await db.homeworks.add(homework);
+    await db.followUps.add(followUp);
+    await db.expenses.add(expense);
+    await db.iaeeProjects.add(project);
+    await db.monthClosings.add(closing);
+    await db.auditLog.add({ id: "audit-local", action: "month.close", entityType: "data", timestamp: now });
+  });
+}
+
+describe("backup / restore", () => {
+  it("round-trips every domain table and top-level Blob fields", async () => {
+    await seedEveryBackupTable();
+    const source = await exportBackup(PASS);
+    const sourceSummary = await inspectBackup(source, PASS);
+
+    expect(sourceSummary.version).toBe(2);
+    for (const count of Object.values(sourceSummary.tableCounts)) expect(count).toBe(1);
+
+    // Simulasikan data lokal baru agar cadangan pre-restore juga diuji.
+    await db.students.add({
+      id: "student-local", name: "Data lokal", level: "MYP", subjects: [],
+      parentContact: { phone: "0800" }, hourlyRate: 1, active: true, enrolledAt: "2026-07-20",
+    });
+
+    let preRestoreBlob: Blob | undefined;
+    const result = await importBackup(source, PASS, {
+      onPreRestoreBackup: ({ blob }) => { preRestoreBlob = blob; },
+    });
+
+    expect(result.restored).toEqual(sourceSummary);
+    expect(preRestoreBlob).toBeInstanceOf(Blob);
+    await expect(inspectBackup(preRestoreBlob!, PASS)).resolves.toMatchObject({
+      tableCounts: { students: 2 },
+    });
+    await expect(db.students.count()).resolves.toBe(1);
+    await expect(db.sessions.count()).resolves.toBe(1);
+    await expect(db.reports.count()).resolves.toBe(1);
+    await expect(db.payments.count()).resolves.toBe(1);
+    await expect(db.settings.count()).resolves.toBe(1);
+    await expect(db.raporGrades.count()).resolves.toBe(1);
+    await expect(db.homeworks.count()).resolves.toBe(1);
+    await expect(db.followUps.count()).resolves.toBe(1);
+    await expect(db.expenses.count()).resolves.toBe(1);
+    await expect(db.iaeeProjects.count()).resolves.toBe(1);
+    await expect(db.monthClosings.count()).resolves.toBe(1);
+
+    await expect((await db.students.get("student-1"))!.photo!.text()).resolves.toBe("student-photo");
+    await expect((await db.sessions.get("session-1"))!.photo!.text()).resolves.toBe("session-photo");
+    await expect((await db.sessions.get("session-1"))!.signature!.text()).resolves.toBe("signature");
+    const restoredSettings = await db.settings.get("app");
+    await expect(restoredSettings!.logo!.text()).resolves.toBe("tutor-logo");
+    expect(restoredSettings!.lastBackupAt).toBe(sourceSummary.exportedAt);
+
+    // auditLog adalah riwayat perangkat ini dan sengaja tidak diganti restore.
+    await expect(db.auditLog.count()).resolves.toBe(1);
+  }, 30_000);
+
+  it("rejects incomplete v2 data before changing current records", async () => {
+    await seedEveryBackupTable();
+    const malformed = await encryptJson({
+      version: 2,
+      exportedAt: "2026-07-20T08:00:00.000Z",
+      schema: { databaseVersion: 9, tableCounts: { students: 1 } },
+      data: { students: [{ id: "student-malformed" }] },
+    }, PASS);
+
+    await expect(importBackup(malformed, PASS, { onPreRestoreBackup: () => undefined }))
+      .rejects.toThrow("File backup tidak lengkap");
+    await expect(db.students.count()).resolves.toBe(1);
+    await expect(db.sessions.count()).resolves.toBe(1);
+  }, 30_000);
+
+  it("accepts v1 payloads that predate newer domain tables", async () => {
+    await seedEveryBackupTable();
+    const legacy = await encryptJson({
+      version: 1,
+      exportedAt: "2025-12-31T00:00:00.000Z",
+      data: {
+        students: [{ id: "student-legacy", name: "Data Lama", level: "MYP", subjects: [], parentContact: { phone: "0800" }, hourlyRate: 1, active: true, enrolledAt: "2025-01-01" }],
+        sessions: [],
+        reports: [],
+        payments: [],
+        settings: [{ id: "app", tutorProfile: { name: "Tutor Lama", phone: "0800" }, defaultRate: 1, paymentInfo: "", subjects: [], ai: { enabled: false, model: "legacy" }, templatePref: {} }],
+      },
+    }, PASS);
+
+    await importBackup(legacy, PASS, { onPreRestoreBackup: () => undefined });
+    await expect(db.students.get("student-legacy")).resolves.toMatchObject({ name: "Data Lama" });
+    await expect(db.expenses.count()).resolves.toBe(0);
+    await expect(db.settings.get("app")).resolves.toMatchObject({ lastBackupAt: "2025-12-31T00:00:00.000Z" });
+  }, 30_000);
+});

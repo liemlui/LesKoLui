@@ -56,6 +56,7 @@ export default function MonthView({
         {cells.map((date, i) => {
           if (!date) return <div key={`e-${i}`} className="min-h-[64px] border-b border-r border-gray-50 last:border-r-0" />;
           const daySess    = monthByDay.get(date) ?? [];
+          const sortedSess = [...daySess].sort((a, b) => (a.time ?? "").localeCompare(b.time ?? ""));
           const isToday    = date === today;
           const isSelected = date === selectedDay;
           const isPast     = date < today;
@@ -78,7 +79,7 @@ export default function MonthView({
                 {dayNum}
               </span>
               <div className="w-full space-y-0.5">
-                {daySess.slice(0, 3).map((s) => {
+                {sortedSess.slice(0, 3).map((s) => {
                   const info  = studentMap.get(s.studentId);
                   const color = info?.color ?? "#9CA3AF";
                   return (
@@ -90,8 +91,8 @@ export default function MonthView({
                     </div>
                   );
                 })}
-                {daySess.length > 3 && (
-                  <div className="text-center text-gray-300 font-medium" style={{ fontSize: 9 }}>+{daySess.length - 3}</div>
+                {sortedSess.length > 3 && (
+                  <div className="text-center text-gray-300 font-medium" style={{ fontSize: 9 }}>+{sortedSess.length - 3}</div>
                 )}
               </div>
             </button>

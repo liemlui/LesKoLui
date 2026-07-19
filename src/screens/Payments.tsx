@@ -5,7 +5,7 @@ import {
   listPayments, listStudents, getPayment, upsertPayment, getSettings,
   createExpense, listExpenses, deleteExpense,
   listBillableSessionsForMonth, listBillableSessionsByStudentMonth, listAllUpcomingScheduled,
-  listScheduledForMonth,
+  listScheduledForMonth, listAllSessionsForWeek,
   getMonthClosing, listMonthClosings, closeMonth, reopenMonth,
   markPaymentTransferred, markPaymentUnpaid, updatePaymentAmount, getCashSummary,
   getMonthlyIncomeVsExpense,
@@ -13,6 +13,7 @@ import {
 import type { ExpenseCategory } from "../db/repos";
 import type { Payment, Student, Settings } from "../db/types";
 import { formatRupiah, todayWIB, monthLabel } from "../lib/format";
+import { weekDates } from "../lib/calendar";
 import { usePinGate } from "../hooks/usePinGate";
 import { loadHtmlToImage, loadJsPdf } from "../lib/exportDeps";
 import { generatePaymentReminder, estimatePaymentReminderCost } from "../lib/aiClient";
@@ -138,6 +139,20 @@ export default function PaymentsPage() {
     [auditYear]
   );
   const auditData = useLiveQuery(() => getCashSummary(auditMonths), [auditMonths]);
+
+  // ── Today & week revenue (for Ringkasan) ──
+  const todayStr = useMemo(() => todayWIB(), []);
+  const currentWeek = useMemo(() => weekDates(todayStr), [todayStr]);
+  const todaySessions = useLiveQuery(() => listAllSessionsForWeek(todayStr, todayStr), [todayStr]);
+  const currentWeekSessions = useLiveQuery(() => listAllSessionsForWeek(currentWeek[0], currentWeek[6]), [currentWeek[0], currentWeek[6]]);
+  const todayRevenue = useMemo(
+    () => (todaySessions ?? []).filter((s) => s.status === "DONE").reduce((sum, s) => sum + (s.cost ?? 0), 0),
+    [todaySessions],
+  );
+  const weekRevenue = useMemo(
+    () => (currentWeekSessions ?? []).filter((s) => s.status === "DONE").reduce((sum, s) => sum + (s.cost ?? 0), 0),
+    [currentWeekSessions],
+  );
 
   // ── Handlers ──
   const handleCreatePayment = async () => {
@@ -461,6 +476,22 @@ export default function PaymentsPage() {
             <div className="col-span-2 bg-green-50 rounded-xl p-3 border border-green-200 flex items-center justify-between">
               <p className="text-sm font-bold text-green-900">Laba (Realisasi − Pengeluaran)</p>
               <p className={`text-xl font-bold ${cash.laba >= 0 ? "text-green-700" : "text-red-600"}`}>{formatRupiah(cash.laba)}</p>
+            </div>
+          </div>
+
+          {/* Today & week revenue glance */}
+          <div className="flex items-center gap-3 text-xs">
+            <div className="flex-1 rounded-lg bg-blue-50 border border-blue-100 px-3 py-2">
+              <p className="text-blue-500 font-semibold uppercase tracking-wide text-[10px]">Pendapatan Hari Ini</p>
+              <p className="text-blue-700 font-bold text-sm">
+                {formatRupiah(todayRevenue)}
+              </p>
+            </div>
+            <div className="flex-1 rounded-lg bg-green-50 border border-green-100 px-3 py-2">
+              <p className="text-green-500 font-semibold uppercase tracking-wide text-[10px]">Minggu Ini</p>
+              <p className="text-green-700 font-bold text-sm">
+                {formatRupiah(weekRevenue)}
+              </p>
             </div>
           </div>
 

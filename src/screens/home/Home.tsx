@@ -21,6 +21,7 @@ import AddScheduleModal from "./AddScheduleModal";
 import EditSessionModal from "./EditSessionModal";
 import ResolveMissedSessionModal from "./ResolveMissedSessionModal";
 import OperationalSnapshot from "./OperationalSnapshot";
+import QuickExpenseModal from "../../components/QuickExpenseModal";
 import type { SessionActions } from "./SessionPill";
 
 export default function Home() {
@@ -36,6 +37,7 @@ export default function Home() {
   const [editTarget, setEditTarget] = useState<Session | null>(null);
   const [resolveMissedTarget, setResolveMissedTarget] = useState<Session | null>(null);
   const [filterStudentId, setFilterStudentId] = useState<string>("");
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
 
   const toast = useToastCtx();
   const [undoHw, setUndoHw] = useState<{ id: string; previousStatus: HomeworkStatus } | null>(null);
@@ -134,10 +136,16 @@ export default function Home() {
           <h1 className="text-2xl font-bold" style={{ fontFamily: "'Fredoka', sans-serif" }}>Les Ko Lui</h1>
           <p className="text-gray-400 text-xs">{dayLabel(today)}</p>
         </div>
-        <button onClick={() => openAdd(today)}
-          className="bg-blue-600 text-white rounded-xl px-4 py-2 text-sm font-semibold shadow flex items-center gap-1.5">
-          <span>📅</span> + Jadwal
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowExpenseModal(true)}
+            className="bg-amber-50 text-amber-700 border border-amber-200 rounded-xl px-3 py-2 text-sm font-semibold flex items-center gap-1 hover:bg-amber-100 transition-colors">
+            <span>💸</span> Catat
+          </button>
+          <button onClick={() => openAdd(today)}
+            className="bg-blue-600 text-white rounded-xl px-4 py-2 text-sm font-semibold shadow flex items-center gap-1.5">
+            <span>📅</span> + Jadwal
+          </button>
+        </div>
       </div>
 
       {undoHw && (
@@ -164,8 +172,7 @@ export default function Home() {
         weekPlanned={(currentWeekSessions ?? []).filter((s) => s.status === "DONE" || s.status === "SCHEDULED").length}
         missedCount={missed.length}
         attentionCount={missed.length + overdue.length + upcomingSoon.length + follows.length}
-        todayRevenue={todayList.filter((s) => s.status === "DONE").reduce((sum, s) => sum + (s.cost ?? 0), 0)}
-        weekRevenue={(currentWeekSessions ?? []).filter((s) => s.status === "DONE").reduce((sum, s) => sum + (s.cost ?? 0), 0)}
+
       />
       <TodayHero today={today} sessions={todayList} studentMap={studentMap} onAdd={openAdd} {...actions} />
 
@@ -244,6 +251,12 @@ export default function Home() {
           studentName={studentMap.get(resolveMissedTarget.studentId)?.name ?? "Murid"}
           onClose={() => setResolveMissedTarget(null)}
           onResult={msg}
+        />
+      )}
+      {showExpenseModal && (
+        <QuickExpenseModal
+          onClose={() => setShowExpenseModal(false)}
+          onSaved={msg}
         />
       )}
     </div>
