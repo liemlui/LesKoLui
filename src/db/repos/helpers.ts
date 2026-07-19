@@ -1,15 +1,6 @@
 // ── Shared helpers for repos ───────────────────────────────────────
 // Semua helper yang dipakai lintas domain repo: WIB date, month range, timestamp.
 
-export function todayWIB(): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Jakarta",
-    year: "numeric", month: "2-digit", day: "2-digit",
-  }).formatToParts();
-  const m = Object.fromEntries(parts.filter((p) => p.type !== "literal").map((p) => [p.type, p.value]));
-  return `${m.year}-${m.month}-${m.day}`;
-}
-
 export function monthRange(month: string): { start: string; end: string } {
   const [y, m] = month.split("-").map(Number);
   const start = `${month}-01`;

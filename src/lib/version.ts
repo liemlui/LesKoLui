@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.27.1";
+export const APP_VERSION = "v1.27.2";
 
 export interface ChangelogEntry {
   version: string;
@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.27.2",
+    date: "2026-07-19",
+    title: "Code Quality — Deduplikasi, Migrasi Settings, & Query Optimization",
+    items: [
+      "todayWIB() deduplikasi — satu sumber di lib/format.ts, repos impor dari situ (sebelumnya diduplikasi di helpers.ts)",
+      "Migrasi settings (hash PIN, bank default) dipindahkan dari getSettings() ke initSettings() — dijalankan sekali saat startup, bukan setiap read",
+      "getCashSummary kini pakai monthRange() menggantikan hardcode '-31' — akurat untuk semua bulan (Feb, bulan 30 hari)",
+      "getMonthlyIncomeVsExpense kini 2 query besar (range scan) bukan N query kecil — konsisten dengan getCashSummary",
+      "QuickExpenseModal didokumentasikan: sengaja tanpa PIN (write-only, tidak ekspos data sensitif)",
+    ],
+  },
   {
     version: "v1.27.1",
     date: "2026-07-19",

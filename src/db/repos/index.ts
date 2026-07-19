@@ -2,7 +2,8 @@
 // Import from "../db/repos" as before — no breaking changes.
 
 // Helpers (internal use by other repos)
-export { todayWIB, monthRange, timestamp, nowTimeWIB, subtractHoursFromTime, timeToMin } from "./helpers";
+export { monthRange, timestamp, nowTimeWIB, subtractHoursFromTime, timeToMin } from "./helpers";
+export { todayWIB } from "../../lib/format";
 
 // Audit
 export { logAudit, listAuditLog, clearAuditLog } from "./auditRepo";

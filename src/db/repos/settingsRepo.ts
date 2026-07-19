@@ -25,10 +25,30 @@ const DEFAULT_SETTINGS: Settings = {
   },
 };
 
-/** Reads settings and migrates legacy plaintext PINs to hashes once. */
+/** Reads settings — pure reader, no side effects. */
 export async function getSettings(): Promise<Settings> {
   const s = await db.settings.get("app");
-  if (!s) return { ...DEFAULT_SETTINGS };
+  return s ?? { ...DEFAULT_SETTINGS };
+}
+
+/** Initialize default settings row + run one-off migrations — call at app startup. */
+export async function initSettings(): Promise<void> {
+  const exists = await db.settings.get("app");
+  if (!exists) {
+    try {
+      await db.settings.add({ ...DEFAULT_SETTINGS });
+    } catch (e) {
+      if ((e as { name?: string }).name !== "ConstraintError") throw e;
+    }
+  }
+  // Run migrations (idempotent per session — migration writes make subsequent reads fast)
+  await migrateSettings();
+}
+
+/** One-off migrations: hash legacy PINs, fill default bank accounts. Idempotent. */
+async function migrateSettings(): Promise<void> {
+  const s = await db.settings.get("app");
+  if (!s) return;
   let changed = false;
 
   if (s.financialPin && !isHashedPin(s.financialPin)) {
@@ -43,18 +63,6 @@ export async function getSettings(): Promise<Settings> {
 
   if (changed) {
     await db.settings.put({ ...s, id: "app" } as Settings);
-  }
-  return s;
-}
-
-/** Initialize default settings row if missing — call at app startup. Idempotent/race-safe. */
-export async function initSettings(): Promise<void> {
-  const exists = await db.settings.get("app");
-  if (exists) return;
-  try {
-    await db.settings.add({ ...DEFAULT_SETTINGS });
-  } catch (e) {
-    if ((e as { name?: string }).name !== "ConstraintError") throw e;
   }
 }
 

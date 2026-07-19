@@ -2,7 +2,8 @@
 
 import { db } from "../db";
 import type { Homework, HomeworkStatus } from "../types";
-import { timestamp, todayWIB } from "./helpers";
+import { timestamp } from "./helpers";
+import { todayWIB } from "../../lib/format";
 
 function resolvedHomeworkStatus(h: Pick<Homework, "status" | "dueAt">): HomeworkStatus {
   return h.status === "assigned" && h.dueAt && h.dueAt < todayWIB()

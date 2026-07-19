@@ -4,7 +4,8 @@
 import { db } from "../db";
 import type { Session } from "../types";
 import { MIN_DURATION, DURATION_STEP } from "../types";
-import { timestamp, todayWIB, nowTimeWIB, subtractHoursFromTime, monthRange, timeToMin } from "./helpers";
+import { timestamp, nowTimeWIB, subtractHoursFromTime, monthRange, timeToMin } from "./helpers";
+import { todayWIB } from "../../lib/format";
 import { logAudit } from "./auditRepo";
 
 // ── Photo maintenance ──────────────────────────────────────────────

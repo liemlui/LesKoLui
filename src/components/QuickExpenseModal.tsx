@@ -4,6 +4,14 @@ import type { ExpenseCategory } from "../db/repos";
 import { todayWIB } from "../lib/format";
 import { isValidCurrencyAmount } from "../lib/money";
 
+/**
+ * QuickExpenseModal — catat pengeluaran cepat dari dashboard tanpa PIN.
+ *
+ * Sengaja TIDAK dilindungi PIN keuangan karena hanya untuk mencatat (write-only),
+ * tidak menampilkan data keuangan sensitif (ringkasan, tagihan, audit).
+ * Halaman Keuangan (/payments) tetap terlindungi PIN penuh.
+ */
+
 interface Props {
   onClose: () => void;
   onSaved: (msg: string) => void;

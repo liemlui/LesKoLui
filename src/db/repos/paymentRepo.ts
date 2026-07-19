@@ -2,7 +2,8 @@
 
 import { db } from "../db";
 import type { Payment, MonthClosing, Expense, ExpenseCategory, IaEeProject, IaEeMilestone } from "../types";
-import { timestamp, todayWIB, monthRange } from "./helpers";
+import { timestamp, monthRange } from "./helpers";
+import { todayWIB } from "../../lib/format";
 import { logAudit } from "./auditRepo";
 import { isBillableSession } from "./sessionRepo";
 
@@ -189,10 +190,11 @@ export async function getCashSummary(months: string[]): Promise<MonthCashSummary
   const closedSet = new Set(closings.map((c) => c.month));
 
   return months.map((month) => {
-    const potensi = sessions.filter((s) => s.date >= month + "-01" && s.date <= month + "-31").reduce((sum, s) => sum + s.cost, 0);
+    const { start, end } = monthRange(month);
+    const potensi = sessions.filter((s) => s.date >= start && s.date <= end).reduce((sum, s) => sum + s.cost, 0);
     const realisasi = payments.filter((p) => p.status === "PAID" && p.month === month).reduce((sum, p) => sum + p.totalCost, 0);
     const piutang = payments.filter((p) => p.status === "UNPAID" && p.month === month).reduce((sum, p) => sum + p.totalCost, 0);
-    const pengeluaran = expenses.filter((e) => e.date >= month + "-01" && e.date <= month + "-31").reduce((sum, e) => sum + e.amount, 0);
+    const pengeluaran = expenses.filter((e) => e.date >= start && e.date <= end).reduce((sum, e) => sum + e.amount, 0);
     return { month, potensi, realisasi, piutang, pengeluaran, laba: realisasi - pengeluaran, closed: closedSet.has(month) };
   });
 }
@@ -238,18 +240,22 @@ export async function getExpenseTotals(month: string): Promise<Record<string, nu
 export async function getMonthlyIncomeVsExpense(
   months: string[]
 ): Promise<{ month: string; income: number; expense: number; net: number }[]> {
-  return Promise.all(
-    months.map(async (month) => {
-      const { start, end } = monthRange(month);
-      const sessions = await db.sessions
-        .filter((s) => isBillableSession(s) && s.date >= start && s.date <= end)
-        .toArray();
-      const income = sessions.reduce((s, sess) => s + sess.cost, 0);
-      const expenses = await listExpenses(month);
-      const expense = expenses.reduce((s, e) => s + e.amount, 0);
-      return { month, income, expense, net: income - expense };
-    })
-  );
+  if (months.length === 0) return [];
+  const { start: s1 } = monthRange(months[0]);
+  const { end: eN } = monthRange(months[months.length - 1]);
+  const sessions = await db.sessions
+    .filter((s) => isBillableSession(s) && s.date >= s1 && s.date <= eN)
+    .toArray();
+  const expenses = await db.expenses
+    .where("date").between(s1, eN, true, true)
+    .toArray();
+
+  return months.map((month) => {
+    const { start, end } = monthRange(month);
+    const income = sessions.filter((s) => s.date >= start && s.date <= end).reduce((sum, sess) => sum + sess.cost, 0);
+    const expense = expenses.filter((e) => e.date >= start && e.date <= end).reduce((sum, e) => sum + e.amount, 0);
+    return { month, income, expense, net: income - expense };
+  });
 }
 
 // ── IA / EE Projects ────────────────────────────────────────────────
