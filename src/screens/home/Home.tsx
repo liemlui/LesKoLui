@@ -147,10 +147,6 @@ export default function Home() {
             className="bg-gray-50 text-gray-600 border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold flex items-center gap-1 hover:bg-gray-100 transition-colors">
             <span>⏻</span> Keluar
           </button>
-          <button onClick={() => openAdd(today)}
-            className="bg-blue-600 text-white rounded-xl px-4 py-2 text-sm font-semibold shadow flex items-center gap-1.5">
-            <span>📅</span> + Jadwal
-          </button>
         </div>
       </div>
 
