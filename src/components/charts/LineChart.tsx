@@ -100,7 +100,7 @@ export default function LineChart({
               <line x1={padding.left} x2={chartW - padding.right} y1={y} y2={y}
                 stroke="#e2e8f0" strokeWidth={0.5} />
               <text x={padding.left - 6} y={y + 4} textAnchor="end"
-                className="text-[9px] fill-slate-400" fontFamily="system-ui">{formatY(val)}</text>
+                className="text-[10px] fill-slate-400" fontFamily="system-ui">{formatY(val)}</text>
             </g>
           );
         })}
@@ -132,7 +132,7 @@ export default function LineChart({
                 <circle cx={p.x} cy={p.y} r={4} fill={color} />
                 {showAxes && (
                   <text x={toX(allLabels.indexOf(s.data[0]?.x ?? ""))} y={chartH - 6}
-                    textAnchor="middle" className="text-[9px] fill-slate-400" fontFamily="system-ui">
+                    textAnchor="middle" className="text-[10px] fill-slate-400" fontFamily="system-ui">
                     {dateXAxis ? shortDateLabel(s.data[0]?.x ?? "") : (s.data[0]?.x ?? "")}
                   </text>
                 )}
@@ -190,7 +190,7 @@ export default function LineChart({
         {/* X-axis labels */}
         {showAxes && allLabels.length <= 14 && allLabels.map((label, li) => (
           <text key={`xl-${li}`} x={toX(li)} y={chartH - 6} textAnchor="middle"
-            className="text-[9px] fill-slate-400" fontFamily="system-ui">
+            className="text-[10px] fill-slate-400" fontFamily="system-ui">
             {dateXAxis ? shortDateLabel(label) : (label.length > 6 ? label.slice(0, 5) + "…" : label)}
           </text>
         ))}

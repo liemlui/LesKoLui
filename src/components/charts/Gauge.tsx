@@ -75,7 +75,7 @@ export default function Gauge({
                   <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#cbd5e1" strokeWidth={1} />
                   <text x={x2 + (tick === 0 ? -8 : tick === 100 ? 8 : 0)} y={y2 + (tick < 50 ? -2 : tick > 50 ? 10 : -2)}
                     textAnchor={tick === 0 ? "end" : tick === 100 ? "start" : "middle"}
-                    className="text-[8px] fill-slate-400" fontFamily="system-ui">
+                    className="text-[10px] fill-slate-400" fontFamily="system-ui">
                     {tick}%
                   </text>
                 </g>

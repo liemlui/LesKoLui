@@ -52,22 +52,22 @@ export default function DayView({
   return (
     <div className="mx-4 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
-        <button aria-label="Hari sebelumnya" onClick={() => setAnchor(addDays(anchor, -1))} className="text-gray-400 text-xl w-8 text-center">‹</button>
+        <button aria-label="Hari sebelumnya" onClick={() => setAnchor(addDays(anchor, -1))} className="text-gray-500 text-xl w-10 h-10 flex items-center justify-center">‹</button>
         <div className="flex items-center gap-2 min-w-0">
           <span className="font-semibold text-gray-700 text-sm truncate">{dayLabel(anchor)}</span>
           {anchor !== today && (
             <button onClick={onJumpToday} className="flex-shrink-0 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded-lg transition-colors">Hari Ini</button>
           )}
         </div>
-        <button aria-label="Hari berikutnya" onClick={() => setAnchor(addDays(anchor, 1))} className="text-gray-400 text-xl w-8 text-center">›</button>
+        <button aria-label="Hari berikutnya" onClick={() => setAnchor(addDays(anchor, 1))} className="text-gray-500 text-xl w-10 h-10 flex items-center justify-center">›</button>
       </div>
       <div className="px-4 py-2 flex items-center justify-between border-b border-gray-50">
-        <p className="text-xs text-gray-400">{sessions.length} sesi</p>
+        <p className="text-xs text-gray-500">{sessions.length} sesi</p>
         <button onClick={() => onAdd(anchor)} className="flex items-center gap-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg transition-colors">+ Jadwal</button>
       </div>
       {untimed.length > 0 && (
         <div className="px-3 pt-2 pb-1 border-b border-gray-100 space-y-1">
-          <p className="text-xs text-gray-400 font-medium">Tanpa waktu</p>
+          <p className="text-xs text-gray-500 font-medium">Tanpa waktu</p>
           {untimed.map((s) => (
             <SessionPill key={s.id} session={s} dateCtx={anchor} studentMap={studentMap} today={today} {...actions} />
           ))}
@@ -78,7 +78,7 @@ export default function DayView({
           {gridHours.map((h) => (
             <div key={h} className="absolute left-0 right-0 pointer-events-none" style={{ top: (h - DAY_START) * PX_PER_HR }}>
               <div className="flex">
-                <span className="flex-shrink-0 text-right pr-2 text-gray-300"
+                <span className="flex-shrink-0 text-right pr-2 text-gray-500"
                   style={{ width: LABEL_W, fontSize: 10, lineHeight: 1, marginTop: -6 }}>
                   {`${String(h).padStart(2, "0")}:00`}
                 </span>

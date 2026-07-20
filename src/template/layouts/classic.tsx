@@ -115,7 +115,7 @@ export const grid: Layout = {
                 <PhotoEl t={t} url={e.photoUrl} color={c} />
               </div>
               <div style={{ padding: "8px 10px 10px" }}>
-                <span style={{ display: "inline-block", background: c, color: onColor(c), fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 999, marginBottom: 5 }}>
+                <span style={{ display: "inline-block", background: c, color: onColor(c), fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, marginBottom: 5 }}>
                   {e.date} · {e.subject}
                 </span>
                 <p style={{ fontFamily: t.fontBody, fontSize: 11, lineHeight: 1.5, color: t.ink, margin: 0 }}>

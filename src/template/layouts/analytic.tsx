@@ -61,9 +61,9 @@ export const growth: Layout = {
             const h = e.engagementScore != null ? (e.engagementScore / maxScore) * 100 : 15;
             return (
               <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                <span style={{ fontSize: 9, fontWeight: 700, color: c }}>{e.engagementScore ?? "—"}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: c }}>{e.engagementScore ?? "—"}</span>
                 <div style={{ width: "100%", height: `${h}%`, borderRadius: "4px 4px 0 0", background: c, minHeight: 4, transition: "height .3s" }} />
-                <span style={{ fontSize: 8, color: t.muted, transform: "rotate(-30deg)", whiteSpace: "nowrap", marginTop: 2 }}>{entryDay(e)}</span>
+                <span style={{ fontSize: 10, color: t.muted, transform: "rotate(-30deg)", whiteSpace: "nowrap", marginTop: 2 }}>{entryDay(e)}</span>
               </div>
             );
           })}
@@ -102,7 +102,7 @@ export const dossier: Layout = {
           <div key={i} style={{ position: "relative", zIndex: 2, marginBottom: 16, borderRadius: 12, border: `2px solid ${c}33`, background: c + "05", overflow: "hidden" }}>
             <div style={{ background: c, padding: "8px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 13, color: onColor(c) }}>{e.date}</span>
-              <span style={{ fontSize: 9, background: onColor(c) === "#fff" ? "rgba(255,255,255,.25)" : "rgba(0,0,0,.15)", color: onColor(c), padding: "2px 8px", borderRadius: 999 }}>{e.subject}</span>
+              <span style={{ fontSize: 10, background: onColor(c) === "#fff" ? "rgba(255,255,255,.25)" : "rgba(0,0,0,.15)", color: onColor(c), padding: "2px 8px", borderRadius: 999 }}>{e.subject}</span>
             </div>
             <div style={{ padding: "12px 14px" }}>
               <NarrEl t={t}>{e.narrative}</NarrEl>

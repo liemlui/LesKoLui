@@ -22,7 +22,6 @@ import EditSessionModal from "./EditSessionModal";
 import ResolveMissedSessionModal from "./ResolveMissedSessionModal";
 import OperationalSnapshot from "./OperationalSnapshot";
 import QuickExpenseModal from "../../components/QuickExpenseModal";
-import ExitAppModal from "../../components/ExitAppModal";
 import type { SessionActions } from "./SessionPill";
 
 export default function Home() {
@@ -39,7 +38,6 @@ export default function Home() {
   const [resolveMissedTarget, setResolveMissedTarget] = useState<Session | null>(null);
   const [filterStudentId, setFilterStudentId] = useState<string>("");
   const [showExpenseModal, setShowExpenseModal] = useState(false);
-  const [showExitModal, setShowExitModal] = useState(false);
 
   const toast = useToastCtx();
   const [undoHw, setUndoHw] = useState<{ id: string; previousStatus: HomeworkStatus } | null>(null);
@@ -114,7 +112,7 @@ export default function Home() {
       <div className="pb-20">
         <div className="px-4 pt-5 pb-3">
           <h1 className="text-2xl font-bold" style={{ fontFamily: "'Fredoka', sans-serif" }}>Les Ko Lui</h1>
-          <p className="text-gray-400 text-xs">{dayLabel(today)}</p>
+          <p className="text-gray-500 text-xs">{dayLabel(today)}</p>
         </div>
         <div className="mx-4 mt-6 bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
           <p className="text-4xl mb-3">👋</p>
@@ -136,16 +134,12 @@ export default function Home() {
       <div className="px-4 pt-5 pb-3 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold" style={{ fontFamily: "'Fredoka', sans-serif" }}>Les Ko Lui</h1>
-          <p className="text-gray-400 text-xs">{dayLabel(today)}</p>
+          <p className="text-gray-500 text-xs">{dayLabel(today)}</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setShowExpenseModal(true)}
             className="bg-amber-50 text-amber-700 border border-amber-200 rounded-xl px-3 py-2 text-sm font-semibold flex items-center gap-1 hover:bg-amber-100 transition-colors">
             <span>💸</span> Catat
-          </button>
-          <button onClick={() => setShowExitModal(true)} aria-label="Keluar aplikasi"
-            className="bg-gray-50 text-gray-600 border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold flex items-center gap-1 hover:bg-gray-100 transition-colors">
-            <span>⏻</span> Keluar
           </button>
         </div>
       </div>
@@ -212,7 +206,7 @@ export default function Home() {
             </select>
             {filterStudentId && (
               <button aria-label="Hapus filter" onClick={() => setFilterStudentId("")}
-                className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1.5 bg-gray-100 rounded-lg">✕</button>
+                className="text-xs text-gray-500 hover:text-gray-600 w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg">✕</button>
             )}
           </div>
         )}
@@ -261,7 +255,6 @@ export default function Home() {
           onSaved={msg}
         />
       )}
-      {showExitModal && <ExitAppModal onClose={() => setShowExitModal(false)} />}
     </div>
   );
 }

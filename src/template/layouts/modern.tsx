@@ -70,7 +70,7 @@ export const split: Layout = {
             {/* Right: Label + Narrative */}
             <div>
               <LabelEl t={t} c={c}>{e.date}</LabelEl>
-              <p style={{ fontSize: 9, fontWeight: 600, color: t.muted, margin: "4px 0" }}>{e.subject}</p>
+              <p style={{ fontSize: 10, fontWeight: 600, color: t.muted, margin: "4px 0" }}>{e.subject}</p>
               <NarrEl t={t}>{e.narrative}</NarrEl>
             </div>
           </div>
@@ -96,7 +96,7 @@ export const journal: Layout = {
           <div key={i} style={{ display: "flex", gap: 14, marginBottom: 18, position: "relative", zIndex: 2 }}>
             <div style={{ textAlign: "right", flexShrink: 0, width: 48, paddingTop: 2 }}>
               <p style={{ fontFamily: t.fontDisplay, fontWeight: 800, fontSize: 28, color: c, lineHeight: 1, margin: 0 }}>{dayNum}</p>
-              <p style={{ fontSize: 9, fontWeight: 600, color: t.muted, margin: 0 }}>{monthName}</p>
+              <p style={{ fontSize: 10, fontWeight: 600, color: t.muted, margin: 0 }}>{monthName}</p>
             </div>
             <div style={{ flex: 1, borderLeft: `2px dashed ${c}44`, paddingLeft: 14 }}>
               <span style={{ fontSize: 10, fontWeight: 700, color: c, background: c + "18", padding: "2px 8px", borderRadius: 999 }}>
@@ -189,9 +189,9 @@ export const bullets: Layout = {
             <div style={{ flex: 1 }}>
               <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 3 }}>
                 <span style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 11, color: c }}>{e.date}</span>
-                <span style={{ fontSize: 9, background: t.muted + "18", color: t.muted, padding: "1px 6px", borderRadius: 999 }}>{e.subject}</span>
+                <span style={{ fontSize: 10, background: t.muted + "18", color: t.muted, padding: "1px 6px", borderRadius: 999 }}>{e.subject}</span>
                 {e.engagementScore != null && (
-                  <span style={{ fontSize: 9, fontWeight: 700, color: c }}>⚡{e.engagementScore}</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: c }}>⚡{e.engagementScore}</span>
                 )}
               </div>
               <p style={{ fontFamily: t.fontBody, fontSize: 13, lineHeight: 1.5, color: t.ink, margin: 0 }}>{e.narrative}</p>
@@ -231,7 +231,7 @@ export const compare: Layout = {
               <div key={col.label} style={{ background: cc + "12", borderRadius: 12, padding: "10px", textAlign: "center" }}>
                 <p style={{ fontSize: 10, fontWeight: 700, color: cc, margin: 0 }}>{col.label}</p>
                 <p style={{ fontFamily: t.fontDisplay, fontWeight: 800, fontSize: 22, color: cc, margin: "4px 0 0" }}>{col.entries.length}</p>
-                <p style={{ fontSize: 9, color: t.muted, margin: 0 }}>sesi{avg != null ? ` · avg ${avg}/10` : ""}</p>
+                <p style={{ fontSize: 10, color: t.muted, margin: 0 }}>sesi{avg != null ? ` · avg ${avg}/10` : ""}</p>
               </div>
             );
           })}
@@ -250,10 +250,10 @@ export const compare: Layout = {
           const meta = detailText(e, 1);
           return (
             <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, position: "relative", zIndex: 2, padding: "7px 8px", borderRadius: 8, background: c + "08" }}>
-              <span style={{ fontSize: 9, fontWeight: 600, color: c, width: 55, flexShrink: 0 }}>{entryDateShort(e)}</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: c, width: 55, flexShrink: 0 }}>{entryDateShort(e)}</span>
               <span style={{ fontFamily: t.fontBody, fontSize: 10, color: t.ink, flex: 1, lineHeight: 1.3 }}>
                 <strong style={{ color: c }}>{entrySubjectShort(e)}:</strong> {truncateText(entryNarrative(e), 62)}
-                {meta && <span style={{ display: "block", color: t.muted, fontSize: 8.5, marginTop: 1 }}>{meta}</span>}
+                {meta && <span style={{ display: "block", color: t.muted, fontSize: 10.5, marginTop: 1 }}>{meta}</span>}
               </span>
               {e.engagementScore != null && <span style={{ fontSize: 10, fontWeight: 700, color: c }}>{e.engagementScore}</span>}
             </div>
@@ -282,15 +282,15 @@ export const snapshot: Layout = {
               <div style={{ aspectRatio: "4/3", overflow: "hidden", borderRadius: 2, marginBottom: 7 }}>
                 <PhotoEl t={t} url={e.photoUrl} color={c} />
               </div>
-              <p style={{ fontFamily: t.fontBody, fontSize: 9.5, lineHeight: 1.25, color: c, margin: 0, textAlign: "center", fontWeight: 800 }}>
+              <p style={{ fontFamily: t.fontBody, fontSize: 10.5, lineHeight: 1.25, color: c, margin: 0, textAlign: "center", fontWeight: 800 }}>
                 {entryDateShort(e)} - {entrySubjectShort(e)}
               </p>
               <p style={{ fontFamily: t.fontBody, fontSize: 10.5, lineHeight: 1.28, color: t.ink, margin: "4px 0 0", textAlign: "center" }}>
                 {truncateText(entryNarrative(e), 72)}
               </p>
-              {meta && <p style={{ fontSize: 8, lineHeight: 1.2, color: t.muted, textAlign: "center", margin: "3px 0 0" }}>{meta}</p>}
+              {meta && <p style={{ fontSize: 10, lineHeight: 1.2, color: t.muted, textAlign: "center", margin: "3px 0 0" }}>{meta}</p>}
               {e.engagementScore != null && (
-                <p style={{ fontSize: 8, fontWeight: 700, color: c, textAlign: "center", margin: "2px 0 0" }}>⚡{e.engagementScore}</p>
+                <p style={{ fontSize: 10, fontWeight: 700, color: c, textAlign: "center", margin: "2px 0 0" }}>⚡{e.engagementScore}</p>
               )}
             </div>
           );
@@ -421,7 +421,7 @@ export const infographic: Layout = {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
                     <span style={{ fontSize: 11, fontWeight: 700, color: t.accent, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entrySubjectShort(e)}</span>
-                    <span style={{ fontSize: 9.5, color: t.muted, flexShrink: 0 }}>{entryDateShort(e)}</span>
+                    <span style={{ fontSize: 10.5, color: t.muted, flexShrink: 0 }}>{entryDateShort(e)}</span>
                   </div>
                   <p style={{ fontFamily: t.fontBody, fontSize: 11, lineHeight: 1.45, color: t.ink, margin: "3px 0 0" }}>{entryNarrative(e)}</p>
                 </div>

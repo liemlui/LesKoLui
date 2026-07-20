@@ -1,3 +1,4 @@
+import Skeleton from "../components/Skeleton";
 import { useState, useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Link } from "react-router-dom";
@@ -85,7 +86,7 @@ export default function Students() {
   const paginatedActive   = paginateItems(active, safeActivePage);
   const paginatedInactive = paginateItems(inactive, safeHistPage);
 
-  if (!allStudents) return <div className="p-4 text-gray-500">Memuat...</div>;
+  if (!allStudents) return <Skeleton variant="card" lines={4} className="p-4" />;
 
   const handleSave = async (data: Omit<Student, "id">) => {
     if (editing) {
@@ -176,7 +177,7 @@ export default function Students() {
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="font-bold text-base">{s.name}</p>
                 {!s.active && (
-                  <span className="text-xs bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">nonaktif</span>
+                  <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">nonaktif</span>
                 )}
                 {nextChip}
               </div>
@@ -191,7 +192,7 @@ export default function Students() {
                     <span key={sub} className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{sub}</span>
                   ))}
                   {s.subjects.length > 4 && (
-                    <span className="text-xs text-gray-400">+{s.subjects.length - 4}</span>
+                    <span className="text-xs text-gray-500">+{s.subjects.length - 4}</span>
                   )}
                 </div>
               )}
@@ -203,13 +204,13 @@ export default function Students() {
                     Bulan ini: {stats.count} sesi · {stats.hours}j
                   </span>
                 ) : (
-                  <span className="text-xs text-gray-300">Belum ada sesi bulan ini</span>
+                  <span className="text-xs text-gray-500">Belum ada sesi bulan ini</span>
                 )}
                 {monthsSince > 0 && (
-                  <span className="text-xs text-gray-400">{monthsSince} bulan bersama</span>
+                  <span className="text-xs text-gray-500">{monthsSince} bulan bersama</span>
                 )}
                 {s.parentContact?.name && (
-                  <span className="text-xs text-gray-400 truncate">👤 {s.parentContact.name}</span>
+                  <span className="text-xs text-gray-500 truncate">👤 {s.parentContact.name}</span>
                 )}
               </div>
             </div>
@@ -217,7 +218,7 @@ export default function Students() {
             {/* Edit btn */}
             <button
               onClick={(e) => { e.preventDefault(); requirePin("edit", s); }}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-blue-100 text-gray-500 hover:text-blue-600 flex-shrink-0 transition-colors text-sm"
+              className="w-11 h-11 flex items-center justify-center rounded-full bg-gray-100 hover:bg-blue-100 text-gray-500 hover:text-blue-600 flex-shrink-0 transition-colors text-sm"
               aria-label="Edit murid" title="Edit murid"
             >✏️</button>
           </div>
@@ -292,7 +293,7 @@ export default function Students() {
 
       {/* Search */}
       <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">🔍</span>
         <input
           className="input pl-9 w-full"
           inputMode="search"
@@ -301,7 +302,7 @@ export default function Students() {
           onChange={(e) => { setSearch(e.target.value); setActivePage(1); setHistPage(1); }}
         />
         {search && (
-          <button aria-label="Hapus pencarian" onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">✕</button>
+          <button aria-label="Hapus pencarian" onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-600">✕</button>
         )}
       </div>
 
@@ -321,7 +322,7 @@ export default function Students() {
       {tab === "aktif" && (
         <>
           {active.length === 0 && !showForm ? (
-            <p className="text-gray-400 text-center py-8">Belum ada murid aktif.</p>
+            <p className="text-gray-500 text-center py-8">Belum ada murid aktif.</p>
           ) : (
             <div className="space-y-2">
               {paginatedActive.map(renderStudentCard)}
@@ -335,7 +336,7 @@ export default function Students() {
       {tab === "historis" && (
         <>
           {inactive.length === 0 ? (
-            <p className="text-gray-400 text-center py-8">Tidak ada murid nonaktif.</p>
+            <p className="text-gray-500 text-center py-8">Tidak ada murid nonaktif.</p>
           ) : (
             <div className="space-y-2">
               {paginatedInactive.map(renderStudentCard)}

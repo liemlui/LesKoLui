@@ -1,3 +1,4 @@
+import Skeleton from "../components/Skeleton";
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { listAllHomeworkFull, markHomeworkDone, markHomeworkNotDone, deleteHomework } from "../db/repos";
@@ -16,7 +17,7 @@ export default function TugasPage() {
   const toast = useToastCtx();
   const msg = (t: string) => { toast.info(t); };
 
-  if (!homeworks) return <div className="p-4 text-gray-500">Memuat...</div>;
+  if (!homeworks) return <Skeleton variant="card" lines={4} className="p-4" />;
 
   const pendingCount   = homeworks.filter((h) => h.status === "assigned" && (!h.dueAt || h.dueAt >= today)).length;
   const overdueCount   = homeworks.filter((h) => h.status === "overdue"  || (h.dueAt && h.dueAt < today && h.status === "assigned")).length;
@@ -51,7 +52,7 @@ export default function TugasPage() {
   function statusChip(status: string, dueAt?: string) {
     if (status === "done")      return <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">✓ Selesai</span>;
     if (status === "not_done")  return <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-medium">✗ Tidak kerjakan</span>;
-    if (status === "cancelled") return <span className="text-xs bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full font-medium">Dibatalkan</span>;
+    if (status === "cancelled") return <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">Dibatalkan</span>;
     if (status === "overdue" || (dueAt && dueAt < today)) return <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-medium">Terlambat</span>;
     return null;
   }
@@ -62,7 +63,7 @@ export default function TugasPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Tugas / PR</h1>
-          <p className="text-xs text-gray-400 mt-0.5">Centang yang sudah dikerjakan, silang yang tidak</p>
+          <p className="text-xs text-gray-500 mt-0.5">Centang yang sudah dikerjakan, silang yang tidak</p>
         </div>
         {overdueCount > 0 && (
           <Badge tone="red" count={overdueCount}>Telat</Badge>
@@ -71,7 +72,7 @@ export default function TugasPage() {
 
       {/* Search */}
       <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">🔍</span>
         <input
           className="input pl-9 w-full"
           placeholder="Cari tugas atau nama murid..."
@@ -79,7 +80,7 @@ export default function TugasPage() {
           onChange={(e) => setSearch(e.target.value)}
         />
         {search && (
-          <button aria-label="Hapus pencarian" onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">✕</button>
+          <button aria-label="Hapus pencarian" onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-600">✕</button>
         )}
       </div>
 
@@ -88,7 +89,7 @@ export default function TugasPage() {
         {tabs.map(([f, label]) => (
           <button key={f} onClick={() => setFilter(f)}
             className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap px-1 ${
-              filter === f ? "bg-white text-gray-800 shadow-sm" : "text-gray-400"
+              filter === f ? "bg-white text-gray-800 shadow-sm" : "text-gray-500"
             }`}>
             {label}
           </button>
@@ -98,7 +99,7 @@ export default function TugasPage() {
       {searched.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-4xl mb-3">{filter === "selesai" ? "📭" : "✅"}</p>
-          <p className="text-gray-400 text-sm font-medium">
+          <p className="text-gray-500 text-sm font-medium">
             {filter === "menunggu" ? "Tidak ada tugas aktif." :
              filter === "telat"    ? "Tidak ada tugas telat." :
              filter === "selesai"  ? "Belum ada tugas yang selesai." :
@@ -111,7 +112,7 @@ export default function TugasPage() {
             <div key={studentName} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
                 <p className="font-bold text-sm text-gray-800">{studentName}</p>
-                <span className="text-xs text-gray-400">{tasks.length} tugas</span>
+                <span className="text-xs text-gray-500">{tasks.length} tugas</span>
               </div>
 
               <div className="divide-y divide-gray-50">
@@ -128,7 +129,7 @@ export default function TugasPage() {
                       <div key={h.id} className={`px-4 py-3 ${isOverdue && !isDone ? "bg-red-50/40" : isDone ? "bg-gray-50/60" : ""}`}>
                         <div className="flex items-start gap-3">
                           <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-semibold ${isDone ? "text-gray-400 line-through" : "text-gray-800"}`}>{h.title}</p>
+                            <p className={`text-sm font-semibold ${isDone ? "text-gray-500 line-through" : "text-gray-800"}`}>{h.title}</p>
                             <div className="flex items-center gap-2 flex-wrap mt-1">
                               {h.subject && (
                                 <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">
@@ -140,7 +141,7 @@ export default function TugasPage() {
                                 <span className={`text-xs font-medium ${
                                   isOverdue ? "text-red-500" :
                                   daysLeft !== null && daysLeft <= 2 ? "text-orange-500" :
-                                  "text-gray-400"
+                                  "text-gray-500"
                                 }`}>
                                   {isOverdue ? `Lewat ${Math.abs(daysLeft ?? 0)}h` :
                                    daysLeft === 0 ? "Deadline hari ini!" :
@@ -148,11 +149,11 @@ export default function TugasPage() {
                                 </span>
                               )}
                               {h.assignedAt && (
-                                <span className="text-xs text-gray-300">Diberi {h.assignedAt.slice(5)}</span>
+                                <span className="text-xs text-gray-500">Diberi {h.assignedAt.slice(5)}</span>
                               )}
                             </div>
                             {h.instructions && (
-                              <p className="text-xs text-gray-400 mt-1 line-clamp-2 italic">{h.instructions}</p>
+                              <p className="text-xs text-gray-500 mt-1 line-clamp-2 italic">{h.instructions}</p>
                             )}
                           </div>
 
@@ -161,12 +162,12 @@ export default function TugasPage() {
                               <>
                                 <button onClick={async () => { try { await markHomeworkDone(h.id); } catch { msg("Gagal menandai."); } }}
                                   title="Sudah dikerjakan"
-                                  className="w-9 h-9 rounded-xl bg-green-50 border border-green-200 text-green-600 font-bold text-base flex items-center justify-center hover:bg-green-100 active:scale-95 transition-all">
+                                  className="w-11 h-11 rounded-xl bg-green-50 border border-green-200 text-green-600 font-bold text-base flex items-center justify-center hover:bg-green-100 active:scale-95 transition-all">
                                   ✓
                                 </button>
                                 <button onClick={async () => { try { await markHomeworkNotDone(h.id); } catch { msg("Gagal menandai."); } }}
                                   title="Tidak dikerjakan"
-                                  className="w-9 h-9 rounded-xl bg-red-50 border border-red-200 text-red-500 font-bold text-base flex items-center justify-center hover:bg-red-100 active:scale-95 transition-all">
+                                  className="w-11 h-11 rounded-xl bg-red-50 border border-red-200 text-red-500 font-bold text-base flex items-center justify-center hover:bg-red-100 active:scale-95 transition-all">
                                   ✗
                                 </button>
                               </>
@@ -176,7 +177,7 @@ export default function TugasPage() {
                               try { await deleteHomework(h.id); } catch { msg("Gagal menghapus."); }
                             }}
                               title="Hapus tugas"
-                              className="w-9 h-9 rounded-xl bg-gray-50 text-gray-300 font-bold text-lg flex items-center justify-center hover:text-red-400 hover:bg-red-50 transition-all">
+                              className="w-11 h-11 rounded-xl bg-gray-50 text-gray-500 font-bold text-lg flex items-center justify-center hover:text-red-400 hover:bg-red-50 transition-all">
                               ×
                             </button>
                           </div>
@@ -193,11 +194,11 @@ export default function TugasPage() {
       <div className="flex items-center gap-4 justify-center pt-2">
         <div className="flex items-center gap-1.5">
           <span className="w-6 h-6 rounded-lg bg-green-50 border border-green-200 text-green-600 text-xs font-bold flex items-center justify-center">✓</span>
-          <span className="text-xs text-gray-400">Sudah kerjakan</span>
+          <span className="text-xs text-gray-500">Sudah kerjakan</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-6 h-6 rounded-lg bg-red-50 border border-red-200 text-red-500 text-xs font-bold flex items-center justify-center">✗</span>
-          <span className="text-xs text-gray-400">Tidak kerjakan</span>
+          <span className="text-xs text-gray-500">Tidak kerjakan</span>
         </div>
       </div>
     </div>

@@ -86,7 +86,7 @@ export default function SignaturePad({ onSave, onClear }: Props) {
         onPointerUp={onPointerUp}
         onPointerLeave={onPointerUp}
       />
-      <p className="text-xs text-gray-400 text-center">Minta murid tanda tangan di kotak di atas</p>
+      <p className="text-xs text-gray-500 text-center">Minta murid tanda tangan di kotak di atas</p>
       <div className="flex gap-2">
         <button type="button" onClick={handleClear}
           className="flex-1 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:border-red-300 hover:text-red-400 transition-colors">

@@ -18,7 +18,7 @@ export function AiCostModal({ open, title, estimatedIDR, description, onConfirm,
         <p className="text-sm font-semibold text-indigo-700">Estimasi biaya DeepSeek</p>
         <p className="text-xl font-bold text-indigo-800">≈ Rp {estimatedIDR.toFixed(2)}</p>
         {description && <p className="text-xs text-indigo-500">{description}</p>}
-        <p className="text-xs text-gray-400">Biaya aktual mungkin sedikit berbeda</p>
+        <p className="text-xs text-gray-500">Biaya aktual mungkin sedikit berbeda</p>
       </div>
       <div className="flex gap-3">
         <button onClick={onCancel}

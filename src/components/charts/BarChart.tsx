@@ -138,7 +138,7 @@ export default function BarChart({
                 <line x1={padding.left} x2={chartW - padding.right} y1={y} y2={y}
                   stroke="#e2e8f0" strokeWidth={i === 0 ? 1 : 0.5} />
                 <text x={padding.left - 6} y={y + 4} textAnchor="end"
-                  className="text-[9px] fill-slate-400" fontFamily="system-ui">{formatValue(val)}</text>
+                  className="text-[10px] fill-slate-400" fontFamily="system-ui">{formatValue(val)}</text>
               </g>
             );
           })}
@@ -198,7 +198,7 @@ export default function BarChart({
                 {/* X-axis label */}
                 {showAxes && (
                   <text x={x + barWidth / 2} y={chartH - 6} textAnchor="middle"
-                    className="text-[9px] fill-slate-400" fontFamily="system-ui">
+                    className="text-[10px] fill-slate-400" fontFamily="system-ui">
                     {label.length > 6 ? label.slice(0, 5) + "…" : label}
                   </text>
                 )}

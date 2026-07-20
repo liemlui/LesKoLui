@@ -56,9 +56,9 @@ export default function EditSessionModal({ target, students, onClose, onResult }
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
         <div>
           <h3 className="font-bold text-lg">Edit Jadwal</h3>
-          <p className="text-xs text-gray-400">{dayLabel(target.date)}{target.seriesId ? " · Sesi berulang 🔁" : ""}</p>
+          <p className="text-xs text-gray-500">{dayLabel(target.date)}{target.seriesId ? " · Sesi berulang 🔁" : ""}</p>
         </div>
-        <button aria-label="Tutup" onClick={onClose} className="text-gray-400 text-xl leading-none">✕</button>
+        <button aria-label="Tutup" onClick={onClose} className="text-gray-500 hover:text-gray-600 text-xl w-10 h-10 flex items-center justify-center">✕</button>
       </div>
 
       <div className="p-5 space-y-4">
@@ -75,7 +75,7 @@ export default function EditSessionModal({ target, students, onClose, onResult }
           <label className="label">
             Tanggal
             {target.seriesId && mode !== "this" && (
-              <span className="ml-2 text-xs text-gray-400 font-normal">(tanggal hanya bisa diubah untuk sesi ini saja)</span>
+              <span className="ml-2 text-xs text-gray-500 font-normal">(tanggal hanya bisa diubah untuk sesi ini saja)</span>
             )}
           </label>
           <input className="input" type="date" value={date}
@@ -157,7 +157,7 @@ export default function EditSessionModal({ target, students, onClose, onResult }
                   Ya, batalkan sesi ini
                 </button>
               )}
-              <button onClick={() => setShowCancel(false)} className="w-full text-center text-gray-400 text-sm py-1">
+              <button onClick={() => setShowCancel(false)} className="w-full text-center text-gray-500 text-sm py-1">
                 Jangan batalkan
               </button>
             </div>

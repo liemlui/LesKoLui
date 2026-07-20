@@ -57,7 +57,7 @@ export default function QuickExpenseModal({ onClose, onSaved }: Props) {
       <div className="w-full max-w-md bg-white rounded-t-2xl overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
           <h3 className="font-bold text-base">💰 Catat Pengeluaran</h3>
-          <button aria-label="Tutup" onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg w-8">✕</button>
+          <button aria-label="Tutup" onClick={onClose} className="text-gray-500 hover:text-gray-600 text-lg w-10 h-10 flex items-center justify-center">✕</button>
         </div>
         <div className="p-4 space-y-3">
           <div>

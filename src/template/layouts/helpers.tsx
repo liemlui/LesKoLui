@@ -287,7 +287,7 @@ export function PhotoEl({ t, url, color }: { t: Theme; url?: string; color: stri
   const img = url ? (
     <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
   ) : (
-    <div style={{ width: "100%", height: "100%", background: color + "22", display: "flex", alignItems: "center", justifyContent: "center", color: t.muted, fontSize: 9, fontWeight: 700, textAlign: "center", padding: 6 }}>
+    <div style={{ width: "100%", height: "100%", background: color + "22", display: "flex", alignItems: "center", justifyContent: "center", color: t.muted, fontSize: 10, fontWeight: 700, textAlign: "center", padding: 6 }}>
       Foto belum ada
     </div>
   );
@@ -350,7 +350,7 @@ export function EngagementBar({ score, label, t }: { score?: number; label?: str
         <div style={{ height: "100%", width: `${pct}%`, background: barColor, borderRadius: 999 }} />
       </div>
       <span style={{ fontSize: 10, fontWeight: 700, color: barColor, minWidth: 24, textAlign: "right" }}>{score}/10</span>
-      {label && <span style={{ fontSize: 9, color: t.muted, fontStyle: "italic" }}>{label}</span>}
+      {label && <span style={{ fontSize: 10, color: t.muted, fontStyle: "italic" }}>{label}</span>}
     </div>
   );
 }

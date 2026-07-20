@@ -70,21 +70,21 @@ export default function ClockTimePicker({ value, onChange }: Props) {
             {/* Digital header */}
             <div className="flex items-center justify-center gap-2 mb-4">
               <button onClick={() => setMode("hour")}
-                className={`text-4xl font-bold font-mono rounded-lg px-2 py-1 transition-colors ${mode === "hour" ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-100"}`}>
+                className={`text-4xl font-bold font-mono rounded-lg px-2 py-1 transition-colors ${mode === "hour" ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-100"}`}>
                 {String(h12).padStart(2, "0")}
               </button>
-              <span className="text-3xl font-bold text-gray-300">:</span>
+              <span className="text-3xl font-bold text-gray-500">:</span>
               <button onClick={() => setMode("minute")}
-                className={`text-4xl font-bold font-mono rounded-lg px-2 py-1 transition-colors ${mode === "minute" ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-100"}`}>
+                className={`text-4xl font-bold font-mono rounded-lg px-2 py-1 transition-colors ${mode === "minute" ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-100"}`}>
                 {String(min).padStart(2, "0")}
               </button>
               <div className="flex flex-col gap-1 ml-2">
                 <button onClick={() => setAMPM(true)}
-                  className={`text-sm font-semibold px-2 py-1 rounded-lg transition-colors ${isAM ? "bg-blue-600 text-white" : "text-gray-400 bg-gray-100 hover:bg-gray-200"}`}>
+                  className={`text-sm font-semibold px-2 py-1 rounded-lg transition-colors ${isAM ? "bg-blue-600 text-white" : "text-gray-500 bg-gray-100 hover:bg-gray-200"}`}>
                   AM
                 </button>
                 <button onClick={() => setAMPM(false)}
-                  className={`text-sm font-semibold px-2 py-1 rounded-lg transition-colors ${!isAM ? "bg-blue-600 text-white" : "text-gray-400 bg-gray-100 hover:bg-gray-200"}`}>
+                  className={`text-sm font-semibold px-2 py-1 rounded-lg transition-colors ${!isAM ? "bg-blue-600 text-white" : "text-gray-500 bg-gray-100 hover:bg-gray-200"}`}>
                   PM
                 </button>
               </div>
@@ -154,7 +154,7 @@ export default function ClockTimePicker({ value, onChange }: Props) {
               </div>
             )}
 
-            <p className="text-center text-xs text-gray-400 mt-2 mb-4">
+            <p className="text-center text-xs text-gray-500 mt-2 mb-4">
               {mode === "hour" ? "Tap angka jam" : "Pilih menit (kelipatan 15)"}
             </p>
 

@@ -1,3 +1,4 @@
+import Skeleton from "../components/Skeleton";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -467,7 +468,7 @@ export default function MonthlyReportPage() {
     setMessage("Rencana bulan depan disimpan ✓");
   };
 
-  if (!students) return <div className="p-4 text-gray-500">Memuat...</div>;
+  if (!students) return <Skeleton variant="card" lines={4} className="p-4" />;
 
   return (
     <div className="pb-20">
@@ -524,7 +525,7 @@ export default function MonthlyReportPage() {
               </div>
 
               {!studentId && (
-                <p className="text-sm text-gray-400 text-center py-1">Pilih murid untuk mulai menyusun laporan.</p>
+                <p className="text-sm text-gray-500 text-center py-1">Pilih murid untuk mulai menyusun laporan.</p>
               )}
 
               {studentId && sessions && sessions.length === 0 && (
@@ -587,7 +588,7 @@ export default function MonthlyReportPage() {
                   {/* Kesiapan laporan, bukan hanya jumlah narasi. */}
                   {report && (
                     <div className="space-y-2">
-                      <div className="flex justify-between text-xs text-gray-400 mb-1">
+                      <div className="flex justify-between text-xs text-gray-500 mb-1">
                         <span>Kesiapan laporan</span>
                         <span className={reportReadiness === 4 ? "text-green-600 font-semibold" : ""}>{reportReadinessPercent}%</span>
                       </div>
@@ -597,7 +598,7 @@ export default function MonthlyReportPage() {
                       </div>
                       <div className="grid grid-cols-2 gap-1.5">
                         {reportReadinessItems.map((item) => (
-                          <span key={item.label} className={`text-[11px] rounded-md px-2 py-1 ${item.complete ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-400"}`}>
+                          <span key={item.label} className={`text-[11px] rounded-md px-2 py-1 ${item.complete ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-500"}`}>
                             {item.complete ? "✓" : "○"} {item.label}
                           </span>
                         ))}
@@ -663,18 +664,18 @@ export default function MonthlyReportPage() {
                           }}
                           className={`rounded-lg border-2 transition-all overflow-hidden ${isActive ? "border-gray-800 ring-2 ring-offset-1 ring-blue-400" : isCompare ? "border-dashed border-blue-400" : "border-gray-200 hover:border-gray-400"}`}>
                           <div style={{ background: bgColor, height: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <span style={{ fontFamily: t.fontDisplay, fontSize: 8, color: t.ink, fontWeight: 700, lineHeight: 1, textAlign: "center", padding: "0 2px" }}>
+                            <span style={{ fontFamily: t.fontDisplay, fontSize: 10, color: t.ink, fontWeight: 700, lineHeight: 1, textAlign: "center", padding: "0 2px" }}>
                               {t.headerText.slice(0, 4)}
                             </span>
                           </div>
-                          <div style={{ padding: "2px 3px", fontSize: 8, color: "#6b7280", textAlign: "center", background: "#fff" }}>
+                          <div style={{ padding: "2px 3px", fontSize: 10, color: "#6b7280", textAlign: "center", background: "#fff" }}>
                             {t.name.length > 10 ? t.name.slice(0, 9) + "…" : t.name}
                           </div>
                         </button>
                       );
                     })}
                   </div>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-gray-500">
                     {allThemes.find((t) => t.id === report.templateKey.themeId)?.name ?? "—"}
                     {showCompare && " • Klik tema untuk bandingkan, klik lagi untuk pilih"}
                   </p>
@@ -684,13 +685,13 @@ export default function MonthlyReportPage() {
                 {showCompare && compareThemeId && (
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <p className="text-xs text-gray-400 text-center mb-1">Current: {allThemes.find((t) => t.id === report.templateKey.themeId)?.name}</p>
+                      <p className="text-xs text-gray-500 text-center mb-1">Current: {allThemes.find((t) => t.id === report.templateKey.themeId)?.name}</p>
                       <div className="scale-[0.6] origin-top-left" style={{ width: "167%" }}>
                         <ReportRenderer data={reportData} theme={theme} layoutId={report.templateKey.layoutId} options={reportOptions} />
                       </div>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-400 text-center mb-1">Compare: {allThemes.find((t) => t.id === compareThemeId)?.name}</p>
+                      <p className="text-xs text-gray-500 text-center mb-1">Compare: {allThemes.find((t) => t.id === compareThemeId)?.name}</p>
                       <div className="scale-[0.6] origin-top-left" style={{ width: "167%" }}>
                         <ReportRenderer data={reportData} theme={allThemes.find((t) => t.id === compareThemeId) ?? getTheme(compareThemeId)} layoutId={report.templateKey.layoutId} options={reportOptions} />
                       </div>
@@ -729,7 +730,7 @@ export default function MonthlyReportPage() {
                         <div key={s.id} className="flex items-center gap-3 py-1.5 border-b border-gray-50 last:border-0">
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-semibold text-gray-700">{dayLabel(s.date).split(",")[1]?.trim() ?? s.date.slice(5)}</p>
-                            <p className="text-xs text-gray-400">{s.subjects.join(", ")}</p>
+                            <p className="text-xs text-gray-500">{s.subjects.join(", ")}</p>
                           </div>
                           <img src={sessionSigUrls.get(s.id)} alt="TTD"
                             className="h-10 max-w-[100px] object-contain border border-gray-100 rounded bg-gray-50 p-1" />
@@ -766,15 +767,15 @@ export default function MonthlyReportPage() {
                     onClick={() => setOpenNarasi((v) => !v)}>
                     <div>
                       <p className="font-semibold text-gray-800 text-sm">✏️ Narasi Sesi</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{sessionsWithNarrative}/{reportSessions.length} narasi siap</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{sessionsWithNarrative}/{reportSessions.length} narasi siap</p>
                     </div>
-                    <span className="text-gray-400 text-sm">{openNarasi ? "▲" : "▼"}</span>
+                    <span className="text-gray-500 text-sm">{openNarasi ? "▲" : "▼"}</span>
                   </button>
                   {openNarasi && (
                     <div className="px-4 pb-4 space-y-2 border-t border-gray-100">
                       {paginatedNarrativeSessions.map((s) => (
                         <div key={s.id} className="bg-gray-50 rounded-xl p-3 mt-2">
-                          <p className="text-xs text-gray-400 mb-1">{dayLabel(s.date)} — {s.subjects.join(", ")}</p>
+                          <p className="text-xs text-gray-500 mb-1">{dayLabel(s.date)} — {s.subjects.join(", ")}</p>
                           {editingNarrative === s.id ? (
                             <div className="space-y-2">
                               <textarea className="input text-sm" rows={3} value={editText}
@@ -814,9 +815,9 @@ export default function MonthlyReportPage() {
                           <span className="text-[10px] bg-indigo-50 text-indigo-500 font-bold px-1.5 py-0.5 rounded-full">✨ AI</span>
                         )}
                       </div>
-                      <p className="text-xs text-gray-400 mt-0.5">Ringkasan · Catatan guru · Kutipan</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Ringkasan · Catatan guru · Kutipan</p>
                     </div>
-                    <span className="text-gray-400 text-sm">{openTeks ? "▲" : "▼"}</span>
+                    <span className="text-gray-500 text-sm">{openTeks ? "▲" : "▼"}</span>
                   </button>
                   {openTeks && (
                     <div className="px-4 pb-4 space-y-3 border-t border-gray-100">
@@ -834,7 +835,7 @@ export default function MonthlyReportPage() {
                         ) : (
                           <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 cursor-pointer hover:bg-gray-100 min-h-[2.5rem]"
                             onClick={() => { setSummaryText(report.summaryText); setEditingSummary(true); }}>
-                            {report.summaryText || <span className="text-gray-400">Klik untuk tambah ringkasan...</span>}
+                            {report.summaryText || <span className="text-gray-500">Klik untuk tambah ringkasan...</span>}
                           </p>
                         )}
                       </div>
@@ -853,7 +854,7 @@ export default function MonthlyReportPage() {
                         ) : (
                           <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 cursor-pointer hover:bg-gray-100 min-h-[2.5rem]"
                             onClick={() => { setTeacherNoteText(report.teacherNote ?? ""); setEditingTeacherNote(true); }}>
-                            {report.teacherNote || <span className="text-gray-400">Klik untuk menambahkan kemajuan dan fokus prioritas...</span>}
+                            {report.teacherNote || <span className="text-gray-500">Klik untuk menambahkan kemajuan dan fokus prioritas...</span>}
                           </p>
                         )}
                       </div>
@@ -871,7 +872,7 @@ export default function MonthlyReportPage() {
                         ) : (
                           <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 italic cursor-pointer hover:bg-gray-100 min-h-[2.5rem]"
                             onClick={() => { setQuoteText(report.quote ?? ""); setEditingQuote(true); }}>
-                            {report.quote ? `"${report.quote}"` : <span className="text-gray-400 not-italic">Klik untuk tambah kutipan...</span>}
+                            {report.quote ? `"${report.quote}"` : <span className="text-gray-500 not-italic">Klik untuk tambah kutipan...</span>}
                           </p>
                         )}
                       </div>
@@ -887,11 +888,11 @@ export default function MonthlyReportPage() {
                         <p className="font-semibold text-gray-800 text-sm">🎯 Fokus & Rencana Bulan Depan</p>
                         {hasPlan && <span className="text-[10px] bg-green-50 text-green-600 font-bold px-1.5 py-0.5 rounded-full">Siap</span>}
                       </div>
-                      <p className="text-xs text-gray-400 mt-0.5">
+                      <p className="text-xs text-gray-500 mt-0.5">
                         {hasPlan ? `${report.nextMonthPlan!.priorities.filter((item) => item.target.trim()).length} prioritas terukur` : "Tetapkan maksimal 3 prioritas yang bisa ditindaklanjuti."}
                       </p>
                     </div>
-                    <span className="text-gray-400 text-sm">{openPlan ? "▲" : "▼"}</span>
+                    <span className="text-gray-500 text-sm">{openPlan ? "▲" : "▼"}</span>
                   </button>
                   {openPlan && (
                     <div className="px-4 pb-4 space-y-3 border-t border-gray-100">

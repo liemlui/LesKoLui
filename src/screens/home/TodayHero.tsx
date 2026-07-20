@@ -26,7 +26,7 @@ export default function TodayHero({ today, sessions, studentMap, onAdd, ...actio
           <p className="text-sm font-bold text-gray-800">Hari Ini</p>
           {sessions.length > 0 && (
             <div className="flex items-center gap-2 mt-0.5">
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-500">
                 {sessions.length} sesi
               </p>
               <div className="flex items-center gap-1">
@@ -61,7 +61,7 @@ export default function TodayHero({ today, sessions, studentMap, onAdd, ...actio
 
       {/* Session pills with visual separation between time blocks */}
       {ordered.length === 0 ? (
-        <p className="text-xs text-gray-400 py-3 text-center">Tidak ada sesi hari ini 🎉</p>
+        <p className="text-xs text-gray-500 py-3 text-center">Tidak ada sesi hari ini 🎉</p>
       ) : (
         <div className="space-y-0.5">
           {ordered.map((s, i) => {

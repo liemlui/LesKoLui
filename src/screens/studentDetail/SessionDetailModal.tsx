@@ -39,9 +39,9 @@ export default function SessionDetailModal({
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div>
             <h3 className="font-bold text-base">{(s.subjects ?? []).join(", ") || "Sesi umum"}</h3>
-            <p className="text-xs text-gray-400 mt-0.5">{dayLabel(s.date)}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{dayLabel(s.date)}</p>
           </div>
-          <button onClick={() => setDetailSession(null)} aria-label="Tutup" className="text-gray-400 text-xl">✕</button>
+          <button onClick={() => setDetailSession(null)} aria-label="Tutup" className="text-gray-500 text-xl">✕</button>
         </div>
 
         <div className="p-5 space-y-4">
@@ -71,7 +71,7 @@ export default function SessionDetailModal({
           {/* Catatan */}
           {s.shortNote && (
             <div className="bg-gray-50 rounded-xl p-3">
-              <p className="text-xs text-gray-400 font-medium mb-1">Catatan</p>
+              <p className="text-xs text-gray-500 font-medium mb-1">Catatan</p>
               <p className="text-sm text-gray-700 italic">"{s.shortNote}"</p>
             </div>
           )}
@@ -79,7 +79,7 @@ export default function SessionDetailModal({
           {/* Topik */}
           {s.topic && (
             <div>
-              <p className="text-xs text-gray-400 font-medium mb-1">Topik</p>
+              <p className="text-xs text-gray-500 font-medium mb-1">Topik</p>
               <p className="text-sm text-gray-700">{s.topic}</p>
             </div>
           )}
@@ -112,7 +112,7 @@ export default function SessionDetailModal({
           {/* Foto */}
           {photoUrl && (
             <div>
-              <p className="text-xs text-gray-400 font-medium mb-1">Foto Sesi</p>
+              <p className="text-xs text-gray-500 font-medium mb-1">Foto Sesi</p>
               <img src={photoUrl} alt="foto sesi" className="w-full max-h-48 object-cover rounded-xl" />
             </div>
           )}
@@ -120,7 +120,7 @@ export default function SessionDetailModal({
           {/* Tanda tangan */}
           {sigUrl && (
             <div>
-              <p className="text-xs text-gray-400 font-medium mb-1">Tanda Tangan Murid</p>
+              <p className="text-xs text-gray-500 font-medium mb-1">Tanda Tangan Murid</p>
               <div className="border border-gray-200 rounded-xl bg-gray-50 p-3 flex items-center justify-center">
                 <img src={sigUrl} alt="TTD murid" className="max-h-20 object-contain" />
               </div>

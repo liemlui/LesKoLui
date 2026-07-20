@@ -60,7 +60,7 @@ export default function AttentionInbox({
         <span className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
           <Badge tone="red" size="sm" count={total}>Perlu Perhatian</Badge>
         </span>
-        <span className="text-gray-400 text-sm">{collapsed ? "▸" : "▾"}</span>
+        <span className="text-gray-500 text-sm">{collapsed ? "▸" : "▾"}</span>
       </button>
 
       {!collapsed && (

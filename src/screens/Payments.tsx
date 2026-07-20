@@ -1,3 +1,4 @@
+import Skeleton from "../components/Skeleton";
 import { useState, useMemo, useRef } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useNavigate } from "react-router-dom";
@@ -274,20 +275,20 @@ export default function PaymentsPage() {
     downloadBlob(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }), `Audit-Keuangan-${auditYear}.csv`);
   };
 
-  if (!payments || !students || !settings) return <div className="p-4 text-gray-500">Memuat...</div>;
+  if (!payments || !students || !settings) return <Skeleton variant="card" lines={4} className="p-4" />;
 
   if (!settings.financialPin) {
     return (
       <div className="p-4 flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <p className="text-4xl">ðŸ”</p>
         <p className="font-bold text-lg text-gray-800">PIN Keuangan Belum Aktif</p>
-        <p className="text-sm text-gray-400 text-center">Buat PIN dulu sebelum membuka data keuangan, tagihan, dan audit.</p>
+        <p className="text-sm text-gray-500 text-center">Buat PIN dulu sebelum membuka data keuangan, tagihan, dan audit.</p>
         <button
           onClick={() => navigate("/settings")}
           className="px-8 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-colors">
           Buka Pengaturan
         </button>
-        <button onClick={() => navigate(-1)} className="text-sm text-gray-400 hover:text-gray-600">â† Kembali</button>
+        <button onClick={() => navigate(-1)} className="text-sm text-gray-500 hover:text-gray-600">â† Kembali</button>
       </div>
     );
   }
@@ -297,7 +298,7 @@ export default function PaymentsPage() {
       <div className="p-4 flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <p className="text-4xl">🔐</p>
         <p className="font-bold text-lg text-gray-800">Data Keuangan</p>
-        <p className="text-sm text-gray-400 text-center">Masukkan PIN untuk mengakses keuangan</p>
+        <p className="text-sm text-gray-500 text-center">Masukkan PIN untuk mengakses keuangan</p>
         <input type="password" inputMode="numeric" maxLength={6} placeholder="PIN (6 digit)"
           value={pin.pinInput} onChange={(e) => pin.setPinInput(e.target.value.replace(/\D/g, "").slice(0, 6))}
           className="input text-center tracking-widest text-xl w-40" autoFocus />
@@ -307,7 +308,7 @@ export default function PaymentsPage() {
           className="px-8 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-colors">
           Buka
         </button>
-        <button onClick={() => navigate(-1)} className="text-sm text-gray-400 hover:text-gray-600">← Kembali</button>
+        <button onClick={() => navigate(-1)} className="text-sm text-gray-500 hover:text-gray-600">← Kembali</button>
       </div>
     );
   }
@@ -457,20 +458,20 @@ export default function PaymentsPage() {
           {/* Cash summary cards */}
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
-              <p className="text-[11px] text-gray-400 uppercase tracking-wide">Potensi (sesi)</p>
+              <p className="text-[11px] text-gray-500 uppercase tracking-wide">Potensi (sesi)</p>
               <p className="text-lg font-bold text-gray-700">{formatRupiah(cash.potensi)}</p>
-              <p className="text-[11px] text-gray-400">{cash.hours} jam ditagihkan</p>
+              <p className="text-[11px] text-gray-500">{cash.hours} jam ditagihkan</p>
             </div>
             <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
-              <p className="text-[11px] text-gray-400 uppercase tracking-wide">Realisasi (cash)</p>
+              <p className="text-[11px] text-gray-500 uppercase tracking-wide">Realisasi (cash)</p>
               <p className="text-lg font-bold text-green-700">{formatRupiah(cash.realisasi)}</p>
             </div>
             <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
-              <p className="text-[11px] text-gray-400 uppercase tracking-wide">Piutang</p>
+              <p className="text-[11px] text-gray-500 uppercase tracking-wide">Piutang</p>
               <p className="text-lg font-bold text-amber-600">{formatRupiah(cash.piutang)}</p>
             </div>
             <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
-              <p className="text-[11px] text-gray-400 uppercase tracking-wide">Pengeluaran</p>
+              <p className="text-[11px] text-gray-500 uppercase tracking-wide">Pengeluaran</p>
               <p className="text-lg font-bold text-red-600">{formatRupiah(cash.pengeluaran)}</p>
             </div>
             <div className="col-span-2 bg-green-50 rounded-xl p-3 border border-green-200 flex items-center justify-between">
@@ -530,13 +531,13 @@ export default function PaymentsPage() {
 
           {/* Forecast */}
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Prediksi Bulan Depan ({nextMonthStr})</p>
+            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Prediksi Bulan Depan ({nextMonthStr})</p>
             <p className="text-2xl font-bold text-amber-600 mt-1">{formatRupiah(forecast.estimate)}</p>
             <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-gray-500">
               <span>📅 Terjadwal (terkunci): <b className="text-gray-700">{formatRupiah(forecast.scheduled)}</b></span>
               <span>📈 Tren 3 bln: <b className="text-gray-700">{formatRupiah(forecast.trend)}</b></span>
             </div>
-            <p className="text-[11px] text-gray-400 mt-1.5">Estimasi = nilai tertinggi antara jadwal terkunci & tren (weighted moving average).</p>
+            <p className="text-[11px] text-gray-500 mt-1.5">Estimasi = nilai tertinggi antara jadwal terkunci & tren (weighted moving average).</p>
           </div>
 
           {/* Revenue per student */}
@@ -574,7 +575,7 @@ export default function PaymentsPage() {
                   ))}
                 </div>
               </div>
-              <p className="text-[11px] text-gray-400 -mt-1">Skala sumbu menyesuaikan rentang {trendRange} bulan agar perubahan lebih mudah terbaca.</p>
+              <p className="text-[11px] text-gray-500 -mt-1">Skala sumbu menyesuaikan rentang {trendRange} bulan agar perubahan lebih mudah terbaca.</p>
               <div className="overflow-x-auto">
                 <svg width={Math.max(300, trendData.length * 36)} height={120} className="block">
                   {trendData.map((d, i) => {
@@ -616,10 +617,10 @@ export default function PaymentsPage() {
           {/* Tutup Bulan panel */}
           {!monthClosing ? (
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 space-y-3">
-              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Tagihan per Murid (preview)</p>
-              <p className="text-[11px] text-gray-400 -mt-2">Tap nama murid untuk lihat detail sesi</p>
+              <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Tagihan per Murid (preview)</p>
+              <p className="text-[11px] text-gray-500 -mt-2">Tap nama murid untuk lihat detail sesi</p>
               {previewBills.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-2">Belum ada sesi yang dapat ditagihkan bulan ini.</p>
+                <p className="text-sm text-gray-500 text-center py-2">Belum ada sesi yang dapat ditagihkan bulan ini.</p>
               ) : (
                 <div className="space-y-1">
                   {previewBills.map((b) => {
@@ -632,11 +633,11 @@ export default function PaymentsPage() {
                           onClick={() => setExpandedPreview(isExpanded ? null : b.sid)}
                           className="w-full flex items-center justify-between text-sm py-2 hover:bg-gray-50 rounded-lg px-1 transition-colors">
                           <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <span className="text-gray-400 text-xs transition-transform" style={{ transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)" }}>▸</span>
+                            <span className="text-gray-500 text-xs transition-transform" style={{ transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)" }}>▸</span>
                             <span className="font-medium text-gray-700 truncate">{b.name}</span>
                           </div>
                           <div className="flex items-center gap-3 flex-shrink-0">
-                            <span className="text-xs text-gray-400">{b.count} sesi · {b.hours}j</span>
+                            <span className="text-xs text-gray-500">{b.count} sesi · {b.hours}j</span>
                             <span className="font-semibold text-gray-700">{formatRupiah(b.cost)}</span>
                           </div>
                         </button>
@@ -649,7 +650,7 @@ export default function PaymentsPage() {
                                 <div key={s.id} className="flex items-center justify-between text-xs px-2 py-1">
                                   <span className="text-gray-500 font-mono">{s.date.slice(5).replace("-", "/")}</span>
                                   <span className="text-gray-600 flex-1 ml-2 truncate">{s.status === "NO_SHOW" ? "Tidak hadir (ditagihkan)" : s.subjects.slice(0, 2).join(", ") || "—"}</span>
-                                  <span className="text-gray-400 mx-2">{s.durationHours}j</span>
+                                  <span className="text-gray-500 mx-2">{s.durationHours}j</span>
                                   <span className="font-medium text-gray-700">{formatRupiah(s.cost)}</span>
                                 </div>
                               ))}
@@ -673,14 +674,14 @@ export default function PaymentsPage() {
           ) : (
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Tagihan per Murid</p>
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Tagihan per Murid</p>
                 <button onClick={handleReopenMonth}
                   className="text-xs font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg transition-colors">
                   ↩ Buka kembali
                 </button>
               </div>
               {billRows.length === 0 ? (
-                <p className="text-sm text-gray-400">Belum ada tagihan untuk bulan ini.</p>
+                <p className="text-sm text-gray-500">Belum ada tagihan untuk bulan ini.</p>
               ) : (
                 billRows.map(({ payment, student, sessions }) => {
                   const sid = payment.studentId;
@@ -696,7 +697,7 @@ export default function PaymentsPage() {
                         <span className={pill(paid)}>{paid ? "Lunas" : "Belum"}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-400">Rp</span>
+                        <span className="text-xs text-gray-500">Rp</span>
                         <input className="input flex-1 text-sm py-1.5" inputMode="numeric" value={amountStr} disabled={paid}
                           onChange={(e) => {
                             const { raw } = parseCurrencyDigits(e.target.value, MAX_PAYMENT_AMOUNT);
@@ -738,7 +739,7 @@ export default function PaymentsPage() {
                           </button>
                         )}
                       </div>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-gray-500">
                         {sessions.length} sesi · {totalHours}j{paid && payment.paidAt ? ` · dibayar ${payment.paidAt}` : ""}
                       </p>
                     </div>
@@ -751,7 +752,7 @@ export default function PaymentsPage() {
           {/* Riwayat Tutup Bulan */}
           {monthsOverview.length > 0 && (
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-              <p className="text-xs text-gray-400 font-medium mb-2 uppercase tracking-wide">Riwayat Tutup Bulan</p>
+              <p className="text-xs text-gray-500 font-medium mb-2 uppercase tracking-wide">Riwayat Tutup Bulan</p>
               <div className="space-y-1">
                 {monthsOverview.map((m) => (
                   <button key={m.month} onClick={() => setMonth(m.month)}
@@ -878,20 +879,20 @@ export default function PaymentsPage() {
             );
           })()}
 
-          {(expenses ?? []).length === 0 && <p className="text-gray-400 text-center py-8">Belum ada pengeluaran bulan ini.</p>}
+          {(expenses ?? []).length === 0 && <p className="text-gray-500 text-center py-8">Belum ada pengeluaran bulan ini.</p>}
           <div className="space-y-2">
             {(expenses ?? []).sort((a, b) => b.date.localeCompare(a.date)).map((e) => (
               <div key={e.id} className="bg-white border border-gray-100 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{CATEGORY_LABEL[e.category]}</span>
-                    <span className="text-xs text-gray-400">{e.date}</span>
+                    <span className="text-xs text-gray-500">{e.date}</span>
                   </div>
                   <p className="text-sm font-medium text-gray-800 mt-1 truncate">{e.description}</p>
                   <p className="text-sm font-bold text-red-600">{formatRupiah(e.amount)}</p>
                 </div>
                 <button aria-label="Hapus pengeluaran" onClick={async () => { if (confirm("Hapus pengeluaran ini?")) await deleteExpense(e.id); }}
-                  className="text-gray-300 hover:text-red-400 p-1.5 flex-shrink-0">🗑</button>
+                  className="text-gray-500 hover:text-red-400 p-1.5 flex-shrink-0">🗑</button>
               </div>
             ))}
           </div>
@@ -903,17 +904,17 @@ export default function PaymentsPage() {
         <div className="space-y-4">
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Audit Tahunan</p>
+              <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Audit Tahunan</p>
               <div className="flex items-center gap-3">
-                <button aria-label="Tahun sebelumnya" onClick={() => setAuditYear((y) => y - 1)} className="text-gray-400 hover:text-gray-700 text-lg leading-none">‹</button>
+                <button aria-label="Tahun sebelumnya" onClick={() => setAuditYear((y) => y - 1)} className="text-gray-500 hover:text-gray-700 text-lg leading-none">‹</button>
                 <span className="font-semibold text-gray-700">{auditYear}</span>
-                <button aria-label="Tahun berikutnya" onClick={() => setAuditYear((y) => y + 1)} className="text-gray-400 hover:text-gray-700 text-lg leading-none">›</button>
+                <button aria-label="Tahun berikutnya" onClick={() => setAuditYear((y) => y + 1)} className="text-gray-500 hover:text-gray-700 text-lg leading-none">›</button>
               </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="text-gray-400 text-left">
+                  <tr className="text-gray-500 text-left">
                     <th className="font-medium pb-1">Bln</th>
                     <th className="font-medium pb-1 text-right">Masuk</th>
                     <th className="font-medium pb-1 text-right">Keluar</th>
@@ -1056,7 +1057,7 @@ function InvoiceModal({
               className="bg-indigo-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
               {exporting ? "Ekspor..." : "📥 PDF"}
             </button>
-            <button aria-label="Tutup" onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg w-8">✕</button>
+            <button aria-label="Tutup" onClick={onClose} className="text-gray-500 hover:text-gray-600 text-lg w-10 h-10 flex items-center justify-center">✕</button>
           </div>
         </div>
 

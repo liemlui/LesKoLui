@@ -34,7 +34,7 @@ export default function BottomNav() {
           </NavLink>
         ))}
       </div>
-      <p className="text-center text-gray-300 pb-1" style={{ fontSize: 9 }}>{APP_VERSION}</p>
+      <p className="text-center text-gray-500 pb-1" style={{ fontSize: 10 }}>{APP_VERSION}</p>
     </nav>
   );
 }

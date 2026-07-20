@@ -153,14 +153,14 @@ export default function Analytics() {
       {/* Header */}
       <div className="px-4 pt-5 pb-3">
         <h1 className="text-2xl font-bold" style={{ fontFamily: "'Fredoka', sans-serif" }}>Analitik</h1>
-        <p className="text-gray-400 text-xs">Wawasan bisnis & operasional les privat</p>
+        <p className="text-gray-500 text-xs">Wawasan bisnis & operasional les privat</p>
       </div>
 
       {/* Month picker */}
       <div className="mx-4 mb-3 flex items-center justify-between bg-white rounded-xl border border-gray-100 px-3 py-2">
-        <button aria-label="Bulan sebelumnya" onClick={() => setCalMonth(prevMonth(calMonth))} className="text-gray-400 text-xl w-8 text-center">‹</button>
+        <button aria-label="Bulan sebelumnya" onClick={() => setCalMonth(prevMonth(calMonth))} className="text-gray-500 text-xl w-8 text-center">‹</button>
         <span className="font-semibold text-gray-800 text-sm">{monthLabel(calMonth)}</span>
-        <button aria-label="Bulan berikutnya" onClick={() => setCalMonth(nextMonth(calMonth))} className="text-gray-400 text-xl w-8 text-center">›</button>
+        <button aria-label="Bulan berikutnya" onClick={() => setCalMonth(nextMonth(calMonth))} className="text-gray-500 text-xl w-8 text-center">›</button>
       </div>
 
       {/* Tabs */}
@@ -230,7 +230,7 @@ export default function Analytics() {
                 <p className="text-lg font-bold text-blue-700">
                   {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(forecast.estimate)}
                 </p>
-                <p className="text-[10px] text-gray-400 mt-1">
+                <p className="text-[10px] text-gray-500 mt-1">
                   Terjadwal: {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(forecast.scheduled)}
                 </p>
               </div>
@@ -246,7 +246,7 @@ export default function Analytics() {
                     showLegend={false}
                   />
                 ) : (
-                  <p className="text-xs text-gray-400 py-4">Belum ada pengeluaran</p>
+                  <p className="text-xs text-gray-500 py-4">Belum ada pengeluaran</p>
                 )}
               </div>
             </div>
@@ -271,7 +271,7 @@ export default function Analytics() {
                   }
                 />
               ) : (
-                <p className="text-xs text-gray-400 text-center py-4">Belum ada sesi selesai bulan ini</p>
+                <p className="text-xs text-gray-500 text-center py-4">Belum ada sesi selesai bulan ini</p>
               )}
             </div>
 
@@ -294,7 +294,7 @@ export default function Analytics() {
             ))}
 
             {studentData.length === 0 && (
-              <p className="text-xs text-gray-400 text-center py-4">Belum ada data murid bulan ini</p>
+              <p className="text-xs text-gray-500 text-center py-4">Belum ada data murid bulan ini</p>
             )}
           </>
         )}
@@ -317,13 +317,13 @@ export default function Analytics() {
                 <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">Metrik</p>
                 <div className="space-y-2">
                   <div>
-                    <p className="text-[10px] text-gray-400">No-Show Rate</p>
+                    <p className="text-[10px] text-gray-500">No-Show Rate</p>
                     <p className={`text-sm font-bold ${opsData.noShowRate > 20 ? "text-red-600" : "text-green-600"}`}>
                       {opsData.noShowRate}%
                     </p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-gray-400">Rata-rata Durasi</p>
+                    <p className="text-[10px] text-gray-500">Rata-rata Durasi</p>
                     <p className="text-sm font-bold text-gray-700">{opsData.avgDuration.toFixed(1)} jam</p>
                   </div>
                 </div>

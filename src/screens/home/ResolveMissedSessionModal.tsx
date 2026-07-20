@@ -60,10 +60,10 @@ export default function ResolveMissedSessionModal({ session, studentName, onClos
           <h3 className="font-bold text-lg">Kelola Sesi Terlewat</h3>
           <p className="text-sm text-gray-500 mt-0.5">{studentName} · {dayLabel(session.date)}</p>
         </div>
-        <button aria-label="Tutup" onClick={onClose} className="text-gray-400 text-xl leading-none">✕</button>
+        <button aria-label="Tutup" onClick={onClose} className="text-gray-500 hover:text-gray-600 text-xl w-10 h-10 flex items-center justify-center">✕</button>
       </div>
 
-      <p className="text-xs text-gray-400 -mt-2">Pilih hasil sesi ini. Riwayat jadwal asal tetap tersimpan.</p>
+      <p className="text-xs text-gray-500 -mt-2">Pilih hasil sesi ini. Riwayat jadwal asal tetap tersimpan.</p>
 
       <div className="grid gap-2">
         <button type="button" onClick={() => setResolution("reschedule")}
@@ -127,7 +127,7 @@ export default function ResolveMissedSessionModal({ session, studentName, onClos
       )}
 
       <div>
-        <label className="label">Alasan <span className="text-gray-400 font-normal">(opsional)</span></label>
+        <label className="label">Alasan <span className="text-gray-500 font-normal">(opsional)</span></label>
         <textarea className="input min-h-20 resize-y" value={reason} onChange={(e) => setReason(e.target.value)}
           placeholder={resolution === "no-show" ? "Contoh: murid sakit / tidak ada kabar" : resolution === "reschedule" ? "Contoh: permintaan orang tua" : "Contoh: libur sekolah"} />
       </div>

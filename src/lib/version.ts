@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.28.0";
+export const APP_VERSION = "v1.29.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -8,6 +8,21 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.29.0",
+    date: "2026-07-20",
+    title: "UI/UX Overhaul — Touch Targets, Contrast, Loading States & Polish",
+    items: [
+      "Touch targets: semua tombol aksi kini ≥44px (Tugas, edit murid, panah kalender, tombol tutup modal, filter clear)",
+      "Kontras teks: text-gray-300/400 → gray-500 di seluruh app — lolos WCAG AA (min 4.5:1)",
+      "Font minimum: teks 8-9px → 10px di Gauge, Badge, BottomNav, dsb — lebih terbaca",
+      "Loading states: 7 layar kini pakai Skeleton shimmer, bukan teks 'Memuat...' polos",
+      "Hapus tombol 'Keluar' dari header Home — aksi destruktif jarang tidak perlu tempat utama",
+      "Press feedback: semua tombol kini punya efek scale(0.97) saat ditekan (via CSS global)",
+      "Settings Toast di-unify dengan ToastProvider global — tidak ada lagi toast duplikat",
+      "Hapus ExitAppModal (dead code setelah tombol Keluar dihapus)",
+    ],
+  },
   {
     version: "v1.28.0",
     date: "2026-07-20",

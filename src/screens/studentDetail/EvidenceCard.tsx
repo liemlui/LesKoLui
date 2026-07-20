@@ -40,39 +40,39 @@ export default function EvidenceCard({ hwStats, avgEngScore, engSessions, raporL
   return (
     <div className="bg-white rounded-2xl p-4 border border-gray-100 space-y-3">
       <h2 className="text-base font-semibold text-gray-700">Bukti Keaktifan</h2>
-      <p className="text-xs text-gray-400">Perbandingan PR, keaktifan sesi, dan nilai sekolah sebagai bukti progres.</p>
+      <p className="text-xs text-gray-500">Perbandingan PR, keaktifan sesi, dan nilai sekolah sebagai bukti progres.</p>
 
       <div className="grid grid-cols-3 gap-2">
         {/* PR Compliance */}
         <div className={`rounded-xl p-3 text-center ${hwRate === null ? "bg-gray-50" : hwRate >= 70 ? "bg-green-50" : hwRate >= 40 ? "bg-orange-50" : "bg-red-50"}`}>
-          <p className={`text-xl font-bold ${hwRate === null ? "text-gray-300" : hwRate >= 70 ? "text-green-700" : hwRate >= 40 ? "text-orange-600" : "text-red-600"}`}>
+          <p className={`text-xl font-bold ${hwRate === null ? "text-gray-500" : hwRate >= 70 ? "text-green-700" : hwRate >= 40 ? "text-orange-600" : "text-red-600"}`}>
             {hwRate !== null ? `${hwRate}%` : "—"}
           </p>
           <p className="text-xs font-medium text-gray-500 mt-0.5">Kepatuhan PR</p>
           {hwStats && hwStats.done + hwStats.notDone > 0 && (
-            <p className="text-xs text-gray-400 mt-0.5">{hwStats.done}✓ {hwStats.notDone}✗</p>
+            <p className="text-xs text-gray-500 mt-0.5">{hwStats.done}✓ {hwStats.notDone}✗</p>
           )}
         </div>
 
         {/* Avg Engagement */}
         <div className={`rounded-xl p-3 text-center ${avgEngScore === null ? "bg-gray-50" : avgEngScore >= 7 ? "bg-blue-50" : avgEngScore >= 5 ? "bg-yellow-50" : "bg-red-50"}`}>
-          <p className={`text-xl font-bold ${avgEngScore === null ? "text-gray-300" : avgEngScore >= 7 ? "text-blue-700" : avgEngScore >= 5 ? "text-yellow-600" : "text-red-600"}`}>
+          <p className={`text-xl font-bold ${avgEngScore === null ? "text-gray-500" : avgEngScore >= 7 ? "text-blue-700" : avgEngScore >= 5 ? "text-yellow-600" : "text-red-600"}`}>
             {avgEngScore !== null ? `${avgEngScore}` : "—"}
           </p>
           <p className="text-xs font-medium text-gray-500 mt-0.5">Avg Fokus</p>
           {engSessions.length > 0 && (
-            <p className="text-xs text-gray-400 mt-0.5">{engSessions.length} sesi</p>
+            <p className="text-xs text-gray-500 mt-0.5">{engSessions.length} sesi</p>
           )}
         </div>
 
         {/* Rapor */}
         <div className={`rounded-xl p-3 text-center ${!avgGradeStr ? "bg-gray-50" : "bg-indigo-50"}`}>
-          <p className={`text-xl font-bold ${!avgGradeStr ? "text-gray-300" : "text-indigo-700"}`}>
+          <p className={`text-xl font-bold ${!avgGradeStr ? "text-gray-500" : "text-indigo-700"}`}>
             {avgGradeStr ?? "—"}
           </p>
           <p className="text-xs font-medium text-gray-500 mt-0.5">Nilai Rapor</p>
           {latestRapor && (
-            <p className="text-xs text-gray-400 mt-0.5">{semesterLabel(latestRapor.semester)}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{semesterLabel(latestRapor.semester)}</p>
           )}
         </div>
       </div>
@@ -89,7 +89,7 @@ export default function EvidenceCard({ hwStats, avgEngScore, engSessions, raporL
             <div className="h-full bg-green-400 rounded-full transition-all"
               style={{ width: `${(hwStats.done / hwStats.total) * 100}%` }} />
           </div>
-          <span className="text-xs text-gray-400 flex-shrink-0">
+          <span className="text-xs text-gray-500 flex-shrink-0">
             {hwStats.done}/{hwStats.total} PR selesai
           </span>
         </div>

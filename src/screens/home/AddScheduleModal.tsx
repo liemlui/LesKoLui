@@ -65,7 +65,7 @@ export default function AddScheduleModal({ date, students, onClose, onResult }: 
     <Modal onClose={onClose} ariaLabel="Jadwalkan sesi">
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-lg">Jadwalkan Sesi</h3>
-        <button aria-label="Tutup" onClick={onClose} className="text-gray-400 text-xl leading-none">✕</button>
+        <button aria-label="Tutup" onClick={onClose} className="text-gray-500 text-xl leading-none">✕</button>
       </div>
       <p className="text-sm text-gray-500 -mt-2">{dayLabel(date)}</p>
 
@@ -112,7 +112,7 @@ export default function AddScheduleModal({ date, students, onClose, onResult }: 
               </button>
             ))}
           </div>
-          <p className="text-xs text-gray-400 mt-1.5">Jadwal otomatis dibuat ~1 tahun ke depan</p>
+          <p className="text-xs text-gray-500 mt-1.5">Jadwal otomatis dibuat ~1 tahun ke depan</p>
         </div>
       )}
       {conflicts.length > 0 && (

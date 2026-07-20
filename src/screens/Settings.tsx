@@ -9,6 +9,7 @@ import { exportBackup, importBackup, inspectBackup } from "../lib/backup";
 import { isDriveConfigured, uploadBackupToDrive, downloadBackupFromDrive, findDriveBackup, testRelay } from "../lib/driveBackup";
 import { exportDataCsvBlob } from "../lib/exportData";
 import { hashPin, verifyPin } from "../lib/crypto";
+import { useToastCtx } from "../components/ToastProvider";
 import { todayWIB } from "../lib/format";
 import { compressPhoto } from "../lib/foto";
 import { downloadBlob } from "../lib/download";
@@ -64,7 +65,7 @@ function StorageUsage() {
       <div className="w-full bg-gray-200 rounded-full h-2">
         <div className="bg-blue-500 h-2 rounded-full transition-all" style={{ width: `${Math.min(pct, 100)}%` }} />
       </div>
-      <p className="text-xs text-gray-400">{mb(info.used)} digunakan dari {mb(info.quota)} ({pct}%)</p>
+      <p className="text-xs text-gray-500">{mb(info.used)} digunakan dari {mb(info.quota)} ({pct}%)</p>
     </div>
   );
 }
@@ -121,30 +122,20 @@ const AUDIT_LABEL: Record<AuditAction, string> = {
 function AuditLogViewer() {
   const entries = useLiveQuery(() => listAuditLog(50), []);
   if (!entries || entries.length === 0)
-    return <p className="text-xs text-gray-400 pt-3">Belum ada aktivitas tercatat.</p>;
+    return <p className="text-xs text-gray-500 pt-3">Belum ada aktivitas tercatat.</p>;
   return (
     <div className="pt-3 space-y-1.5 max-h-72 overflow-y-auto">
       {entries.map((e) => (
         <div key={e.id} className="flex items-start justify-between gap-2 text-xs border-b border-gray-50 pb-1.5">
           <div className="min-w-0">
             <p className="font-medium text-gray-700">{AUDIT_LABEL[e.action] ?? e.action}</p>
-            {e.details && <p className="text-gray-400 truncate">{e.details}</p>}
+            {e.details && <p className="text-gray-500 truncate">{e.details}</p>}
           </div>
-          <span className="text-gray-400 flex-shrink-0">
+          <span className="text-gray-500 flex-shrink-0">
             {new Date(e.timestamp).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" })}
           </span>
         </div>
       ))}
-    </div>
-  );
-}
-
-function Toast({ msg, onClose }: { msg: string; onClose: () => void }) {
-  useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
-  const ok = msg.includes("✓");
-  return (
-    <div className={`fixed top-4 left-4 right-4 z-[70] max-w-md mx-auto px-4 py-3 rounded-xl shadow-lg text-sm font-medium ${ok ? "bg-green-600 text-white" : "bg-red-500 text-white"}`}>
-      {msg}
     </div>
   );
 }
@@ -181,7 +172,7 @@ function Section({
             <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">{badge}</span>
           )}
         </div>
-        <span className={`text-gray-400 text-sm transition-transform duration-200 ${open ? "rotate-180" : ""}`}>▼</span>
+        <span className={`text-gray-500 text-sm transition-transform duration-200 ${open ? "rotate-180" : ""}`}>▼</span>
       </button>
       {open && <div className="px-4 pb-4 pt-0 space-y-3 border-t border-gray-50">{children}</div>}
     </div>
@@ -202,7 +193,7 @@ export default function SettingsPage() {
   const [logoUrl,     setLogoUrl]     = useState<string | undefined>();
   const [dirty,       setDirty]       = useState(false);
   const [saving,      setSaving]      = useState(false);
-  const [toast,       setToast]       = useState("");
+  const toastCtx = useToastCtx();
   const [backupPass,  setBackupPass]  = useState("");
   const [showBackupPass, setShowBackupPass] = useState(false);
   const [driveAuto,   setDriveAuto]   = useState(() => localStorage.getItem("leskolui_drive_auto") === "1");
@@ -265,9 +256,9 @@ export default function SettingsPage() {
     try {
       await saveSettings(form);
       setDirty(false);
-      setToast("Pengaturan disimpan ✓");
+      toastCtx.info("Pengaturan disimpan ✓");
     } catch (e) {
-      setToast("Gagal: " + ((e as Error).message || "terjadi kesalahan."));
+      toastCtx.info("Gagal: " + ((e as Error).message || "terjadi kesalahan."));
     } finally {
       setSaving(false);
     }
@@ -276,12 +267,12 @@ export default function SettingsPage() {
   const handleLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) { setToast("File harus berupa gambar (JPG/PNG/WebP)."); e.target.value = ""; return; }
-    if (file.size > 5 * 1024 * 1024) { setToast("Ukuran logo maksimal 5 MB."); e.target.value = ""; return; }
+    if (!file.type.startsWith("image/")) { toastCtx.info("File harus berupa gambar (JPG/PNG/WebP)."); e.target.value = ""; return; }
+    if (file.size > 5 * 1024 * 1024) { toastCtx.info("Ukuran logo maksimal 5 MB."); e.target.value = ""; return; }
     try {
       update("logo", await compressPhoto(file));
     } catch (err) {
-      setToast("Logo gagal diproses: " + (err as Error).message);
+      toastCtx.info("Logo gagal diproses: " + (err as Error).message);
     } finally {
       e.target.value = "";
     }
@@ -319,7 +310,7 @@ export default function SettingsPage() {
     
     const updated = { ...form, financialPin: hashed, securityQuestion: secQ.trim(), securityAnswer: hashedAns };
     await saveSettings(updated as Settings);
-    setToast("PIN berhasil diperbarui ✓");
+    toastCtx.info("PIN berhasil diperbarui ✓");
     setPinMode("view"); setNewPin(""); setNewPinConf(""); setPinError(""); setSecQ(""); setSecA("");
     setForm(updated as Settings);
   };
@@ -327,38 +318,38 @@ export default function SettingsPage() {
   const requireFinancialPin = (action: typeof pinAction) => {
     if (!action) return;
     if (!form.financialPin) {
-      setToast("Buat PIN Keuangan dulu sebelum menjalankan aksi ini.");
+      toastCtx.info("Buat PIN Keuangan dulu sebelum menjalankan aksi ini.");
       return;
     }
     setPinAction(action);
   };
 
   const doExportBackup = async () => {
-    if (!backupPass) { setToast("Masukkan kata sandi backup!"); return; }
-    if (backupPass.length < MIN_PASS) { setToast(`Kata sandi minimal ${MIN_PASS} karakter!`); return; }
+    if (!backupPass) { toastCtx.info("Masukkan kata sandi backup!"); return; }
+    if (backupPass.length < MIN_PASS) { toastCtx.info(`Kata sandi minimal ${MIN_PASS} karakter!`); return; }
     const blob = await exportBackup(backupPass);
     downloadBlob(blob, `leskolui-backup-${todayWIB()}.jles`);
     const lastBackupAt = new Date().toISOString();
     await saveSettings({ lastBackupAt });
     setForm((f) => f ? { ...f, lastBackupAt } : f);
     markBackupReminderCurrent();
-    setToast("Backup berhasil diunduh ✓");
+    toastCtx.info("Backup berhasil diunduh ✓");
   };
 
 
 
   const doRestore = async () => {
     const file = restoreRef.current?.files?.[0];
-    if (!file || !backupPass) { setToast("Pilih file dan masukkan kata sandi!"); return; }
+    if (!file || !backupPass) { toastCtx.info("Pilih file dan masukkan kata sandi!"); return; }
     await importBackup(file, backupPass);
     await logAudit("data.restore", "data", undefined, "dari file");
-    setToast("Restore berhasil! Memuat ulang... ✓");
+    toastCtx.info("Restore berhasil! Memuat ulang... ✓");
     setTimeout(() => location.reload(), 1500);
   };
 
   const doDriveBackup = async () => {
-    if (!backupPass || backupPass.length < MIN_PASS) { setToast(`Kata sandi enkripsi minimal ${MIN_PASS} karakter!`); return; }
-    setToast("Backup ke Google Drive...");
+    if (!backupPass || backupPass.length < MIN_PASS) { toastCtx.info(`Kata sandi enkripsi minimal ${MIN_PASS} karakter!`); return; }
+    toastCtx.info("Backup ke Google Drive...");
     const blob = await exportBackup(backupPass);
     const fileId = await uploadBackupToDrive(blob, form.driveBackup?.fileId);
     const now = new Date().toISOString();
@@ -366,46 +357,46 @@ export default function SettingsPage() {
     await saveSettings({ driveBackup, lastBackupAt: now });
     setForm((f) => f ? { ...f, driveBackup, lastBackupAt: now } : f);
     markBackupReminderCurrent();
-    setToast("Backup ke Google Drive berhasil ✓");
+    toastCtx.info("Backup ke Google Drive berhasil ✓");
   };
 
   const doDriveRestore = async () => {
-    if (!backupPass) { setToast("Masukkan kata sandi backup!"); return; }
-    setToast("Mencari backup di Google Drive...");
+    if (!backupPass) { toastCtx.info("Masukkan kata sandi backup!"); return; }
+    toastCtx.info("Mencari backup di Google Drive...");
     let fileId = form.driveBackup?.fileId;
     if (!fileId) {
       const found = await findDriveBackup();
-      if (!found) { setToast("Tidak ada backup di Google Drive."); return; }
+      if (!found) { toastCtx.info("Tidak ada backup di Google Drive."); return; }
       fileId = found.id;
     }
     const blob = await downloadBackupFromDrive(fileId);
     await importBackup(blob, backupPass);
     await logAudit("data.restore", "data", undefined, "dari Google Drive");
-    setToast("Restore dari Drive berhasil! Memuat ulang... ✓");
+    toastCtx.info("Restore dari Drive berhasil! Memuat ulang... ✓");
     setTimeout(() => location.reload(), 1500);
   };
 
   const doExportCsv = async () => {
     const blob = await exportDataCsvBlob();
     downloadBlob(blob, `leskolui-data-${todayWIB()}.csv`);
-    setToast("Data diekspor ke CSV ✓");
+    toastCtx.info("Data diekspor ke CSV ✓");
   };
 
   // Verifikasi backup Drive: unduh + dekripsi untuk pastikan file valid & terbaca.
   const doVerifyDrive = async () => {
-    if (!backupPass) { setToast("Isi Kata Sandi Enkripsi dulu untuk verifikasi!"); return; }
+    if (!backupPass) { toastCtx.info("Isi Kata Sandi Enkripsi dulu untuk verifikasi!"); return; }
     setVerifying(true);
     try {
       const found = await findDriveBackup();
-      if (!found) { setToast("Tidak ada backup di Google Drive."); return; }
+      if (!found) { toastCtx.info("Tidak ada backup di Google Drive."); return; }
       const blob = await downloadBackupFromDrive(found.id);
       const summary = await inspectBackup(blob, backupPass);
       const nM = summary.tableCounts.students;
       const nS = summary.tableCounts.sessions;
       const when = new Date(found.modifiedTime).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" });
-      setToast(`Backup valid ✓ ${nM} murid, ${nS} sesi (${when})`);
+      toastCtx.info(`Backup valid ✓ ${nM} murid, ${nS} sesi (${when})`);
     } catch (e) {
-      setToast("Verifikasi gagal: " + ((e as Error).message || "kata sandi salah / file rusak"));
+      toastCtx.info("Verifikasi gagal: " + ((e as Error).message || "kata sandi salah / file rusak"));
     } finally {
       setVerifying(false);
     }
@@ -420,9 +411,9 @@ export default function SettingsPage() {
     setRelayBusy(true);
     try {
       await testRelay();
-      setToast("Relay backup OK ✓ — token diperoleh tanpa popup");
+      toastCtx.info("Relay backup OK ✓ — token diperoleh tanpa popup");
     } catch (e) {
-      setToast("Relay gagal: " + ((e as Error).message || "cek setup server"));
+      toastCtx.info("Relay gagal: " + ((e as Error).message || "cek setup server"));
     } finally {
       setRelayBusy(false);
     }
@@ -430,16 +421,16 @@ export default function SettingsPage() {
 
   const toggleDriveAuto = (v: boolean) => {
     if (v) {
-      if (!backupPass || backupPass.length < MIN_PASS) { setToast(`Isi Kata Sandi Enkripsi (min ${MIN_PASS} karakter) dulu untuk aktifkan auto.`); return; }
+      if (!backupPass || backupPass.length < MIN_PASS) { toastCtx.info(`Isi Kata Sandi Enkripsi (min ${MIN_PASS} karakter) dulu untuk aktifkan auto.`); return; }
       localStorage.setItem("leskolui_drive_auto", "1");
       localStorage.setItem("leskolui_drive_pass", backupPass);
       setDriveAuto(true);
-      setToast("Auto backup Drive aktif ✓ (passphrase tersimpan di perangkat)");
+      toastCtx.info("Auto backup Drive aktif ✓ (passphrase tersimpan di perangkat)");
     } else {
       localStorage.removeItem("leskolui_drive_auto");
       localStorage.removeItem("leskolui_drive_pass");
       setDriveAuto(false);
-      setToast("Auto backup Drive dimatikan");
+      toastCtx.info("Auto backup Drive dimatikan");
     }
   };
 
@@ -453,7 +444,7 @@ export default function SettingsPage() {
       for (const t of tables) await t.clear();
     });
     await logAudit("data.reset", "data");
-    setToast("Semua data berhasil dihapus ✓ Memuat ulang...");
+    toastCtx.info("Semua data berhasil dihapus ✓ Memuat ulang...");
     setTimeout(() => location.reload(), 1500);
   };
 
@@ -469,7 +460,7 @@ export default function SettingsPage() {
       if (pinAction === "exportCsv") await doExportCsv();
       setPinAction(null);
     } catch (e) {
-      setToast("Gagal: " + ((e as Error).message || "terjadi kesalahan."));
+      toastCtx.info("Gagal: " + ((e as Error).message || "terjadi kesalahan."));
     }
   };
 
@@ -510,7 +501,6 @@ export default function SettingsPage() {
   return (
     <AccordionContext.Provider value={{ openId: openSection, setOpenId: setOpenSection }}>
     <div className="p-4 space-y-3 pb-24">
-      {toast && <Toast msg={toast} onClose={() => setToast("")} />}
       {pinAction && form.financialPin && (
         <PinConfirmModal
           storedPin={form.financialPin}
@@ -547,19 +537,19 @@ export default function SettingsPage() {
               onChange={(e) => updateProfile("phone", e.target.value)} />
           </div>
           <div>
-            <label className="label">Email <span className="text-gray-400 font-normal">(opsional)</span></label>
+            <label className="label">Email <span className="text-gray-500 font-normal">(opsional)</span></label>
             <input className="input" placeholder="tutor@email.com" maxLength={100} type="email"
               value={form.tutorProfile.email ?? ""}
               onChange={(e) => updateProfile("email", e.target.value)} />
           </div>
           <div>
-            <label className="label">Alamat <span className="text-gray-400 font-normal">(opsional)</span></label>
+            <label className="label">Alamat <span className="text-gray-500 font-normal">(opsional)</span></label>
             <input className="input" placeholder="Jl. Contoh No.1, Jakarta" maxLength={150}
               value={form.tutorProfile.address ?? ""}
               onChange={(e) => updateProfile("address", e.target.value)} />
           </div>
           <div>
-            <label className="label">Logo <span className="text-gray-400 font-normal">(tampil di laporan)</span></label>
+            <label className="label">Logo <span className="text-gray-500 font-normal">(tampil di laporan)</span></label>
             {logoUrl && (
               <div className="flex items-center gap-3 mb-2">
                 <img src={logoUrl} className="h-14 w-14 object-contain rounded-lg border border-gray-200 bg-gray-50" alt="logo" />
@@ -583,7 +573,7 @@ export default function SettingsPage() {
       {/* ── PIN Keuangan ── */}
       <Section title="PIN Keuangan" icon="🔐" badge={form.financialPin ? "Aktif" : undefined}>
         <div className="pt-3 space-y-3">
-          <p className="text-xs text-gray-400">Melindungi akses rekap keuangan & hapus sesi</p>
+          <p className="text-xs text-gray-500">Melindungi akses rekap keuangan & hapus sesi</p>
 
           {pinMode === "view" ? (
             <div className="flex gap-2">
@@ -626,7 +616,7 @@ export default function SettingsPage() {
           ) : pinMode === "forgotPin" ? (
             <div className="space-y-3">
               <p className="text-sm font-medium text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                <span className="text-gray-400 block text-xs mb-1">Pertanyaan Keamanan:</span>
+                <span className="text-gray-500 block text-xs mb-1">Pertanyaan Keamanan:</span>
                 {form.securityQuestion}
               </p>
               <div>
@@ -675,7 +665,7 @@ export default function SettingsPage() {
             </div>
           )}
 
-          <p className="text-xs text-gray-400 pt-2 border-t border-gray-50">
+          <p className="text-xs text-gray-500 pt-2 border-t border-gray-50">
             Buka data keuangan dari tab <b>💰 Keuangan</b> di menu bawah (akan diminta PIN ini).
           </p>
         </div>
@@ -684,7 +674,7 @@ export default function SettingsPage() {
       {/* ── Rekening Bank ── */}
       <Section title="Rekening Bank" icon="🏦">
         <div className="pt-3 space-y-3">
-          <p className="text-xs text-gray-400">Ditampilkan di lembar absensi untuk memudahkan transfer</p>
+          <p className="text-xs text-gray-500">Ditampilkan di lembar absensi untuk memudahkan transfer</p>
           <div>
             <label className="label">Nama Pemilik Rekening</label>
             <input className="input" maxLength={60} placeholder="Nama AN rekening"
@@ -739,7 +729,7 @@ export default function SettingsPage() {
             <Toggle checked={form.ai.enabled} onChange={(v) => updateAi("enabled", v)} />
             <div>
               <p className="text-sm text-gray-700 font-medium">Aktifkan AI</p>
-              <p className="text-xs text-gray-400">Generate narasi sesi otomatis via DeepSeek</p>
+              <p className="text-xs text-gray-500">Generate narasi sesi otomatis via DeepSeek</p>
             </div>
           </label>
           {form.ai.enabled && (
@@ -749,7 +739,7 @@ export default function SettingsPage() {
                 <input className="input font-mono text-xs" type="password" placeholder="sk-..."
                   value={form.ai.apiKey ?? ""}
                   onChange={(e) => updateAi("apiKey", e.target.value)} />
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-gray-500 mt-1">
                   Dapatkan di <span className="font-medium text-blue-600">platform.deepseek.com → API Keys</span>.
                   Disimpan lokal di perangkat ini saja.
                 </p>
@@ -779,7 +769,7 @@ export default function SettingsPage() {
       <Section title="Backup & Restore" icon="💾">
         <div className="pt-3 space-y-3">
           <StorageUsage />
-          <PhotoMaintenance onToast={setToast} />
+          <PhotoMaintenance onToast={toastCtx.info} />
 
           {/* Kata sandi bersama — dipakai semua backup & restore */}
           <div className="bg-gray-50 rounded-xl p-3 space-y-2">
@@ -827,7 +817,7 @@ export default function SettingsPage() {
             <p className="text-sm font-semibold text-blue-700">📁 File (.jles)</p>
             <button className="w-full py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors"
               onClick={() => {
-                if (!backupPass || backupPass.length < MIN_PASS) { setToast(`Isi Kata Sandi Enkripsi (min ${MIN_PASS} karakter) dulu!`); return; }
+                if (!backupPass || backupPass.length < MIN_PASS) { toastCtx.info(`Isi Kata Sandi Enkripsi (min ${MIN_PASS} karakter) dulu!`); return; }
                 requireFinancialPin("exportBackup");
               }}>
               ⬇️ Backup ke File
@@ -843,8 +833,8 @@ export default function SettingsPage() {
               <button className="w-full py-2 rounded-xl bg-blue-100 text-blue-700 text-sm font-medium hover:bg-blue-200 transition-colors"
                 onClick={() => {
                   const file = restoreRef.current?.files?.[0];
-                  if (!file) { setToast("Pilih file .jles dulu!"); return; }
-                  if (!backupPass) { setToast("Isi Kata Sandi Enkripsi dulu!"); return; }
+                  if (!file) { toastCtx.info("Pilih file .jles dulu!"); return; }
+                  if (!backupPass) { toastCtx.info("Isi Kata Sandi Enkripsi dulu!"); return; }
                   if (!confirm("Restore akan mengganti semua data saat ini. Lanjut?")) return;
                   requireFinancialPin("restore");
                 }}>
@@ -866,14 +856,14 @@ export default function SettingsPage() {
               </div>
               <button className="w-full py-2.5 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition-colors"
                 onClick={() => {
-                  if (!backupPass || backupPass.length < MIN_PASS) { setToast(`Isi Kata Sandi Enkripsi (min ${MIN_PASS} karakter) dulu!`); return; }
+                  if (!backupPass || backupPass.length < MIN_PASS) { toastCtx.info(`Isi Kata Sandi Enkripsi (min ${MIN_PASS} karakter) dulu!`); return; }
                   requireFinancialPin("driveBackup");
                 }}>
                 ☁️⬆️ Backup ke Drive
               </button>
               <button className="w-full py-2 rounded-xl bg-green-100 text-green-700 text-sm font-medium hover:bg-green-200 transition-colors"
                 onClick={() => {
-                  if (!backupPass) { setToast("Isi Kata Sandi Enkripsi dulu!"); return; }
+                  if (!backupPass) { toastCtx.info("Isi Kata Sandi Enkripsi dulu!"); return; }
                   if (!confirm("Restore dari Google Drive akan mengganti semua data saat ini. Lanjut?")) return;
                   requireFinancialPin("driveRestore");
                 }}>
@@ -906,25 +896,25 @@ export default function SettingsPage() {
                     className="text-xs px-3 py-1.5 rounded-xl bg-green-100 text-green-700 font-medium disabled:opacity-50">
                     {relayBusy ? "Menguji..." : "Tes relay"}
                   </button>
-                  <span className="text-[11px] text-gray-400">{relaySecret ? "Aktif — backup tanpa popup" : "Nonaktif (pakai 1-tap)"}</span>
+                  <span className="text-[11px] text-gray-500">{relaySecret ? "Aktif — backup tanpa popup" : "Nonaktif (pakai 1-tap)"}</span>
                 </div>
-                <p className="text-[11px] text-gray-400">Butuh setup server 1x. Lihat docs/ZERO-TOUCH-BACKUP.md.</p>
+                <p className="text-[11px] text-gray-500">Butuh setup server 1x. Lihat docs/ZERO-TOUCH-BACKUP.md.</p>
               </div>
             </div>
           ) : (
             <div className="bg-gray-50 rounded-xl p-3">
-              <p className="text-xs text-gray-400">☁️ Backup Google Drive belum aktif.</p>
+              <p className="text-xs text-gray-500">☁️ Backup Google Drive belum aktif.</p>
             </div>
           )}
 
           <p className="text-xs text-orange-600">⚠️ Restore mengganti <b>semua</b> data saat ini. Sebelum mengganti, app otomatis mengunduh file <b>pre-restore</b> (cadangan data lama Anda).</p>
 
-          <p className="text-xs text-gray-400 pt-2 border-t border-gray-50">
+          <p className="text-xs text-gray-500 pt-2 border-t border-gray-50">
             🕒 Backup terakhir:{" "}
             {form.lastBackupAt ? (
               <b className="text-gray-600">{new Date(form.lastBackupAt).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}</b>
             ) : (
-              <span className="text-gray-400">belum pernah backup</span>
+              <span className="text-gray-500">belum pernah backup</span>
             )}
           </p>
         </div>
@@ -936,14 +926,14 @@ export default function SettingsPage() {
           <p className="text-xs text-red-600 font-semibold">
             ⚠️ Menghapus semua data murid, sesi, tagihan, laporan, dan pengeluaran.
           </p>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-500">
             Database tidak dihapus — hanya dikosongkan. Pengaturan, profil, dan PIN tetap aman.
           </p>
           <button
             onClick={async () => {
               if (!confirm("Yakin hapus SEMUA data? Tindakan ini tidak bisa dibatalkan!")) return;
               const word = prompt('Ketik "RESET" untuk konfirmasi:');
-              if (word !== "RESET") { setToast("Konfirmasi gagal — ketik RESET."); return; }
+              if (word !== "RESET") { toastCtx.info("Konfirmasi gagal — ketik RESET."); return; }
               requireFinancialPin("resetAll");
             }}
             className="w-full py-3 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition-colors">
@@ -990,7 +980,7 @@ export default function SettingsPage() {
                 const keys = await caches.keys();
                 await Promise.all(keys.map((k) => caches.delete(k)));
               }
-              setToast("Cache dibersihkan ✓ Muat ulang...");
+              toastCtx.info("Cache dibersihkan ✓ Muat ulang...");
               setTimeout(() => location.reload(), 1000);
             }}
             className="w-full py-2.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-semibold hover:bg-gray-200 transition-colors">
@@ -1004,7 +994,7 @@ export default function SettingsPage() {
         className={`w-full py-3.5 rounded-xl font-bold text-base transition-colors shadow-sm ${
           dirty
             ? "bg-blue-600 hover:bg-blue-700 text-white"
-            : "bg-gray-100 text-gray-400"
+            : "bg-gray-100 text-gray-500"
         } disabled:opacity-50`}>
         {saving ? "Menyimpan..." : dirty ? "Simpan Pengaturan" : "Tersimpan ✓"}
       </button>

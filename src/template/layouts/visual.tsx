@@ -38,7 +38,7 @@ export const dashboard: Layout = {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 <span style={{ fontSize: 10, fontWeight: 700, color: c, fontFamily: t.fontDisplay }}>{e.date}</span>
-                <span style={{ fontSize: 9, background: c + "20", color: c, padding: "1px 6px", borderRadius: 999, fontWeight: 600 }}>{e.subject.split(",")[0]}</span>
+                <span style={{ fontSize: 10, background: c + "20", color: c, padding: "1px 6px", borderRadius: 999, fontWeight: 600 }}>{e.subject.split(",")[0]}</span>
               </div>
               <p style={{ fontFamily: t.fontBody, fontSize: 11, lineHeight: 1.4, color: t.ink, margin: "2px 0 0" }}>{e.narrative}</p>
               <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
@@ -255,9 +255,9 @@ export const checklist: Layout = {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 2 }}>
                 <span style={{ fontSize: 10, fontWeight: 700, color: c }}>{e.date}</span>
-                <span style={{ fontSize: 9, background: c + "22", color: c, padding: "1px 6px", borderRadius: 999 }}>{e.subject}</span>
+                <span style={{ fontSize: 10, background: c + "22", color: c, padding: "1px 6px", borderRadius: 999 }}>{e.subject}</span>
                 {e.engagementScore != null && (
-                  <span style={{ fontSize: 9, fontWeight: 700, color: hasEngagement ? "#10B981" : "#EF4444", marginLeft: "auto" }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: hasEngagement ? "#10B981" : "#EF4444", marginLeft: "auto" }}>
                     {hasEngagement ? "🔥" : "⚡"} {e.engagementScore}
                   </span>
                 )}

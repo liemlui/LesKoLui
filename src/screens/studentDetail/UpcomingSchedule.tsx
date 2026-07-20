@@ -29,7 +29,7 @@ export default function UpcomingSchedule({
     <div>
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-lg font-semibold">Jadwal Mendatang</h2>
-        <span className="text-xs text-gray-400 font-medium">{(upcomingSched ?? []).length} jadwal</span>
+        <span className="text-xs text-gray-500 font-medium">{(upcomingSched ?? []).length} jadwal</span>
       </div>
 
       {availMonths.length > 1 && (
@@ -53,7 +53,7 @@ export default function UpcomingSchedule({
       {filteredList.length === 0 ? (
         <div className="bg-white rounded-2xl border border-dashed border-gray-200 py-6 text-center">
           <p className="text-2xl mb-1">📅</p>
-          <p className="text-sm text-gray-400">{schedMonth ? "Tidak ada jadwal di bulan ini" : "Belum ada jadwal mendatang"}</p>
+          <p className="text-sm text-gray-500">{schedMonth ? "Tidak ada jadwal di bulan ini" : "Belum ada jadwal mendatang"}</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -64,12 +64,12 @@ export default function UpcomingSchedule({
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   {s.date === today && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-semibold">Hari ini</span>}
-                  {s.seriesId && <span className="text-xs text-gray-400">🔁 Rutin</span>}
+                  {s.seriesId && <span className="text-xs text-gray-500">🔁 Rutin</span>}
                 </div>
                 <p className="text-sm font-semibold text-gray-800 mt-0.5">{dayLabel(s.date)}</p>
-                <p className="text-xs text-gray-400">{s.time ? `${s.time} · ` : ""}{s.durationHours} jam</p>
+                <p className="text-xs text-gray-500">{s.time ? `${s.time} · ` : ""}{s.durationHours} jam</p>
               </div>
-              <span className="text-gray-300 text-xs flex-shrink-0">✏️ Edit</span>
+              <span className="text-gray-500 text-xs flex-shrink-0">✏️ Edit</span>
             </div>
           ))}
           <PaginationControls

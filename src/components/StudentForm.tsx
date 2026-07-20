@@ -1,3 +1,4 @@
+import Skeleton from "./Skeleton";
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getSettings } from "../db/repos";
@@ -59,7 +60,7 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
   const [active,  setActive]  = useState(initial?.active ?? true);
   const [notes,   setNotes]   = useState(initial?.notes ?? "");
 
-  if (!settings) return <div className="p-4 text-gray-500">Memuat...</div>;
+  if (!settings) return <Skeleton variant="card" lines={4} className="p-4" />;
 
   const curriculumGroups = getSubjectGroups(curriculum);
   const curriculumSubjects = curriculumGroups.flatMap((g) => g.subjects);
@@ -140,12 +141,12 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
       {/* Grade + Sekolah */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label htmlFor="grade" className="label">Kelas / Grade <span className="text-gray-400 font-normal text-xs">(opsional)</span></label>
+          <label htmlFor="grade" className="label">Kelas / Grade <span className="text-gray-500 font-normal text-xs">(opsional)</span></label>
           <input id="grade" className="input" value={grade} maxLength={20} onChange={(e) => setGrade(e.target.value)}
             placeholder="mis. Grade 10, Year 11" />
         </div>
         <div>
-          <label htmlFor="school" className="label">Sekolah <span className="text-gray-400 font-normal text-xs">(opsional)</span></label>
+          <label htmlFor="school" className="label">Sekolah <span className="text-gray-500 font-normal text-xs">(opsional)</span></label>
           <input id="school" className="input" value={school} maxLength={80} onChange={(e) => setSchool(e.target.value)}
             placeholder="Nama sekolah" />
         </div>
@@ -155,7 +156,7 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
       <div className="bg-gray-50 rounded-xl p-3 space-y-3">
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Kontak Orang Tua</p>
         <div>
-          <label htmlFor="parentName" className="label">Nama Orang Tua <span className="text-gray-400 font-normal">(opsional)</span></label>
+          <label htmlFor="parentName" className="label">Nama Orang Tua <span className="text-gray-500 font-normal">(opsional)</span></label>
           <input id="parentName" className="input" maxLength={60} value={parentName} onChange={(e) => setParentName(e.target.value)} placeholder="Misal: Bpk. Budi" />
         </div>
         <div>
@@ -168,7 +169,7 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
           {phone && hasInvalidChars(phone) && (
             <p className="text-xs text-red-500 mt-0.5">⚠️ Hanya angka — karakter lain akan dihapus otomatis.</p>
           )}
-          {phone && !hasInvalidChars(phone) && <p className="text-xs text-gray-400 mt-0.5">wa.me/{toWaNumber(phone)}</p>}
+          {phone && !hasInvalidChars(phone) && <p className="text-xs text-gray-500 mt-0.5">wa.me/{toWaNumber(phone)}</p>}
         </div>
       </div>
 
@@ -176,7 +177,7 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
       <div className="bg-blue-50 rounded-xl p-3 space-y-3">
         <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide">Kontak Murid</p>
         <div>
-          <label htmlFor="studentPhone" className="label">No. WhatsApp Murid <span className="text-gray-400 font-normal">(opsional)</span></label>
+          <label htmlFor="studentPhone" className="label">No. WhatsApp Murid <span className="text-gray-500 font-normal">(opsional)</span></label>
           <div className="relative">
             <input id="studentPhone" className="input pl-10" type="tel" value={studentPhone}
               onChange={(e) => setStudentPhone(e.target.value)} placeholder="08xxxxxxxxxx" />
@@ -185,14 +186,14 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
           {studentPhone && hasInvalidChars(studentPhone) && (
             <p className="text-xs text-red-500 mt-0.5">⚠️ Hanya angka — karakter lain akan dihapus otomatis.</p>
           )}
-          {studentPhone && !hasInvalidChars(studentPhone) && <p className="text-xs text-gray-400 mt-0.5">wa.me/{toWaNumber(studentPhone)}</p>}
+          {studentPhone && !hasInvalidChars(studentPhone) && <p className="text-xs text-gray-500 mt-0.5">wa.me/{toWaNumber(studentPhone)}</p>}
         </div>
       </div>
 
       {/* Mata Pelajaran — curriculum-aware */}
       <div>
         <label className="label">
-          Mata Pelajaran <span className="text-gray-400 font-normal text-xs">(opsional)</span>
+          Mata Pelajaran <span className="text-gray-500 font-normal text-xs">(opsional)</span>
         </label>
 
         {curriculum === "Custom" ? (
@@ -211,7 +212,7 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
           <div className="space-y-3">
             {curriculumGroups.map((group) => (
               <div key={group.group}>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{group.group}</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">{group.group}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {group.subjects.map((s) => (
                     <button type="button" key={s}
@@ -228,7 +229,7 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
 
             {extraSubjects.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Mata Pelajaran Tambahan</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Mata Pelajaran Tambahan</p>
                 <div className="flex flex-wrap gap-1.5">
                   {extraSubjects.map((s) => (
                     <button type="button" key={s}
@@ -272,7 +273,7 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
             onBlur={() => setRateInput(String(hourlyRate || 0))}
             placeholder="mis. 200000"
           />
-          <span className="text-sm text-gray-400">/ jam</span>
+          <span className="text-sm text-gray-500">/ jam</span>
         </div>
         {settings?.defaultRate && hourlyRate === settings.defaultRate && (
           <p className="text-xs text-orange-500">Menggunakan tarif default dari Pengaturan</p>
@@ -280,7 +281,7 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
       </div>
 
       <div>
-        <label htmlFor="notes" className="label">Catatan <span className="text-gray-400 font-normal text-xs">(opsional)</span></label>
+        <label htmlFor="notes" className="label">Catatan <span className="text-gray-500 font-normal text-xs">(opsional)</span></label>
         <textarea id="notes" className="input" rows={2} maxLength={300} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </div>
 

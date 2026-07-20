@@ -1,3 +1,4 @@
+import Skeleton from "../components/Skeleton";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -457,7 +458,7 @@ export default function CaptureSession() {
     else handleSave();
   };
 
-  if (!students) return <div className="p-4 text-gray-500">Memuat...</div>;
+  if (!students) return <Skeleton variant="card" lines={4} className="p-4" />;
 
   const tutorName    = settings?.tutorProfile?.name || "Ko Lui";
   const waNumber     = currentStudent?.parentContact.phone.replace(/^0/, "62").replace(/[^0-9]/g, "") ?? "";
@@ -477,7 +478,7 @@ export default function CaptureSession() {
       {/* ── PAGE HEADER ── */}
       <div className="px-4 pt-4 pb-3">
         <h1 className="text-2xl font-bold text-gray-800">📓 Catat Sesi</h1>
-        <p className="text-xs text-gray-400 mt-0.5">Langkah {currentStep} dari {STEPS.length}</p>
+        <p className="text-xs text-gray-500 mt-0.5">Langkah {currentStep} dari {STEPS.length}</p>
       </div>
 
       {/* ── PROGRESS STEPPER ── */}
@@ -492,11 +493,11 @@ export default function CaptureSession() {
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all shadow-sm
                   ${done   ? "bg-green-500 text-white scale-95"
                   : active ? "bg-blue-600 text-white ring-4 ring-blue-100 scale-110"
-                  :          "bg-white text-gray-400 border-2 border-gray-200"}`}>
+                  :          "bg-white text-gray-500 border-2 border-gray-200"}`}>
                   {done ? "✓" : step.icon}
                 </div>
                 <span className={`text-[10px] font-bold tracking-wide transition-colors
-                  ${active ? "text-blue-600" : done ? "text-green-600" : "text-gray-400"}`}>
+                  ${active ? "text-blue-600" : done ? "text-green-600" : "text-gray-500"}`}>
                   {step.label}
                 </span>
               </div>
@@ -521,10 +522,10 @@ export default function CaptureSession() {
         </div>
         <div className="flex-1 min-w-0">
           <h2 className="font-bold text-gray-800 text-base">{stepMeta.label}</h2>
-          <p className="text-xs text-gray-400">{stepMeta.desc}</p>
+          <p className="text-xs text-gray-500">{stepMeta.desc}</p>
         </div>
         {stepMeta.optional && (
-          <span className="text-[10px] bg-gray-100 text-gray-400 px-2 py-1 rounded-full font-semibold uppercase tracking-wide flex-shrink-0">
+          <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded-full font-semibold uppercase tracking-wide flex-shrink-0">
             opsional
           </span>
         )}
@@ -582,7 +583,7 @@ export default function CaptureSession() {
 
           {/* Tipe sesi */}
           <div>
-            <label className="label">🗂️ Tipe Sesi <span className="text-gray-400 font-normal text-xs">(opsional)</span></label>
+            <label className="label">🗂️ Tipe Sesi <span className="text-gray-500 font-normal text-xs">(opsional)</span></label>
             <div className="flex flex-wrap gap-2 mt-1">
               {SESSION_TYPE_OPTIONS.map((opt) => (
                 <button key={opt.value} type="button"
@@ -633,8 +634,8 @@ export default function CaptureSession() {
                     <p key={h.id} className="text-xs text-gray-600 flex items-center gap-1">
                       <span className={h.status === "overdue" ? "text-red-500" : "text-amber-500"}>•</span>
                       <span className="font-medium">{h.title}</span>
-                      <span className="text-gray-400">({h.subject})</span>
-                      {h.dueAt && <span className={`text-xs ml-auto ${h.status === "overdue" ? "text-red-500 font-semibold" : "text-gray-400"}`}>deadline: {h.dueAt.slice(5)}</span>}
+                      <span className="text-gray-500">({h.subject})</span>
+                      {h.dueAt && <span className={`text-xs ml-auto ${h.status === "overdue" ? "text-red-500 font-semibold" : "text-gray-500"}`}>deadline: {h.dueAt.slice(5)}</span>}
                     </p>
                   ))}
                   <PaginationControls page={safeBriefHwPage} total={briefHW.length} onPageChange={setBriefHwPage} label="PR" />
@@ -663,7 +664,7 @@ export default function CaptureSession() {
           {/* Galeri — browse dari gallery / file picker */}
           <input ref={galleryRef} type="file" accept="image/*"
             onChange={handlePhoto} className="hidden" />
-          <p className="text-xs text-gray-400 text-center -mt-2">💡 Di HP, tap ⋮ atau menu Browse untuk pilih folder</p>
+          <p className="text-xs text-gray-500 text-center -mt-2">💡 Di HP, tap ⋮ atau menu Browse untuk pilih folder</p>
 
           {/* Foto */}
           {photoUrl ? (
@@ -682,19 +683,19 @@ export default function CaptureSession() {
           ) : (
             <div className="grid grid-cols-2 gap-3">
               <button onClick={() => cameraRef.current?.click()}
-                className="flex flex-col items-center justify-center gap-2 py-12 rounded-2xl border-2 border-dashed border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors bg-gray-50">
+                className="flex flex-col items-center justify-center gap-2 py-12 rounded-2xl border-2 border-dashed border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-colors bg-gray-50">
                 <span className="text-4xl">📷</span>
                 <div className="text-center">
                   <p className="font-semibold text-sm">Ambil Foto</p>
-                  <p className="text-xs mt-0.5 text-gray-400">Buka kamera</p>
+                  <p className="text-xs mt-0.5 text-gray-500">Buka kamera</p>
                 </div>
               </button>
               <button onClick={() => galleryRef.current?.click()}
-                className="flex flex-col items-center justify-center gap-2 py-12 rounded-2xl border-2 border-dashed border-gray-300 text-gray-400 hover:border-green-400 hover:text-green-500 transition-colors bg-gray-50">
+                className="flex flex-col items-center justify-center gap-2 py-12 rounded-2xl border-2 border-dashed border-gray-300 text-gray-500 hover:border-green-400 hover:text-green-500 transition-colors bg-gray-50">
                 <span className="text-4xl">🖼️</span>
                 <div className="text-center">
                   <p className="font-semibold text-sm">Pilih dari Galeri</p>
-                  <p className="text-xs mt-0.5 text-gray-400">Cari di gallery</p>
+                  <p className="text-xs mt-0.5 text-gray-500">Cari di gallery</p>
                 </div>
               </button>
             </div>
@@ -721,11 +722,11 @@ export default function CaptureSession() {
             </div>
           ) : (
             <button type="button" onClick={() => setShowSigPad(true)}
-              className="flex flex-col items-center justify-center gap-3 w-full py-10 rounded-2xl border-2 border-dashed border-gray-300 text-gray-400 hover:border-indigo-400 hover:text-indigo-500 transition-colors bg-gray-50">
+              className="flex flex-col items-center justify-center gap-3 w-full py-10 rounded-2xl border-2 border-dashed border-gray-300 text-gray-500 hover:border-indigo-400 hover:text-indigo-500 transition-colors bg-gray-50">
               <span className="text-4xl">✍️</span>
               <div className="text-center">
                 <p className="font-semibold text-sm">Tanda Tangan Murid</p>
-                <p className="text-xs mt-0.5 text-gray-400">Tap untuk buka signature pad</p>
+                <p className="text-xs mt-0.5 text-gray-500">Tap untuk buka signature pad</p>
               </div>
             </button>
           )}
@@ -756,7 +757,7 @@ export default function CaptureSession() {
               📖 Mata Pelajaran
               {studentSubjects.length > 0
                 ? <span className="text-red-400 ml-1">*</span>
-                : <span className="text-gray-400 font-normal text-xs ml-1">(opsional)</span>}
+                : <span className="text-gray-500 font-normal text-xs ml-1">(opsional)</span>}
             </label>
             <div className="flex flex-wrap gap-2 mt-1">
               {studentSubjects.map((s) => (
@@ -796,7 +797,7 @@ export default function CaptureSession() {
                   <span className="text-xs bg-blue-100 text-blue-700 font-semibold px-2.5 py-1 rounded-full">{topic}</span>
                   <button type="button"
                     onClick={() => { setTopic(""); setTopicSearch(""); }}
-                    className="text-xs text-gray-400 hover:text-gray-600">✕ hapus</button>
+                    className="text-xs text-gray-500 hover:text-gray-600">✕ hapus</button>
                 </div>
               )}
               {showTopicPicker && (
@@ -921,12 +922,12 @@ export default function CaptureSession() {
             <button type="button"
               className="flex items-center justify-between w-full px-4 py-3 bg-gray-50 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
               onClick={() => setShowBehavior(!showBehavior)}>
-              <span>🧩 Observasi Lanjutan <span className="font-normal text-gray-400">(opsional)</span></span>
+              <span>🧩 Observasi Lanjutan <span className="font-normal text-gray-500">(opsional)</span></span>
               <div className="flex items-center gap-2">
                 {behaviorTags.length > 0 && (
                   <span className="bg-purple-100 text-purple-700 text-xs font-bold px-2 py-0.5 rounded-full">{behaviorTags.length}</span>
                 )}
-                <span className="text-gray-400">{showBehavior ? "▲" : "▼"}</span>
+                <span className="text-gray-500">{showBehavior ? "▲" : "▼"}</span>
               </div>
             </button>
             {showBehavior && (
@@ -945,7 +946,7 @@ export default function CaptureSession() {
                         <button type="button"
                           onClick={(e) => { e.stopPropagation(); setActiveTooltip({ tag, type: "behavior" }); }}
                           className={`px-1.5 py-1.5 rounded-r-full text-xs border-y border-r transition-all ${
-                            behaviorTags.includes(tag.id) ? "bg-green-400 text-white border-green-400" : "bg-gray-50 text-gray-300 border-gray-200 hover:text-green-500"}`}>
+                            behaviorTags.includes(tag.id) ? "bg-green-400 text-white border-green-400" : "bg-gray-50 text-gray-500 border-gray-200 hover:text-green-500"}`}>
                           ⓘ
                         </button>
                       </div>
@@ -966,7 +967,7 @@ export default function CaptureSession() {
                         <button type="button"
                           onClick={(e) => { e.stopPropagation(); setActiveTooltip({ tag, type: "behavior" }); }}
                           className={`px-1.5 py-1.5 rounded-r-full text-xs border-y border-r transition-all ${
-                            behaviorTags.includes(tag.id) ? "bg-gray-500 text-white border-gray-500" : "bg-gray-50 text-gray-300 border-gray-200 hover:text-gray-500"}`}>
+                            behaviorTags.includes(tag.id) ? "bg-gray-500 text-white border-gray-500" : "bg-gray-50 text-gray-500 border-gray-200 hover:text-gray-500"}`}>
                           ⓘ
                         </button>
                       </div>
@@ -987,7 +988,7 @@ export default function CaptureSession() {
                         <button type="button"
                           onClick={(e) => { e.stopPropagation(); setActiveTooltip({ tag, type: "behavior" }); }}
                           className={`px-1.5 py-1.5 rounded-r-full text-xs border-y border-r transition-all ${
-                            behaviorTags.includes(tag.id) ? "bg-orange-400 text-white border-orange-400" : "bg-gray-50 text-gray-300 border-gray-200 hover:text-orange-500"}`}>
+                            behaviorTags.includes(tag.id) ? "bg-orange-400 text-white border-orange-400" : "bg-gray-50 text-gray-500 border-gray-200 hover:text-orange-500"}`}>
                           ⓘ
                         </button>
                       </div>
@@ -1008,7 +1009,7 @@ export default function CaptureSession() {
 
           {/* Kualitas Respons Akademik */}
           <div>
-            <label className="label">🎓 Kualitas Respons Akademik <span className="text-gray-400 font-normal text-xs">(pilih satu)</span></label>
+            <label className="label">🎓 Kualitas Respons Akademik <span className="text-gray-500 font-normal text-xs">(pilih satu)</span></label>
             <div className="flex flex-wrap gap-2 mt-1">
               {RESPONSE_TAGS.map((tag) => (
                 <div key={tag.id} className="flex items-center">
@@ -1021,7 +1022,7 @@ export default function CaptureSession() {
                   <button type="button"
                     onClick={(e) => { e.stopPropagation(); setActiveTooltip({ tag, type: "response" }); }}
                     className={`px-1.5 py-1.5 rounded-r-full text-xs border-y border-r transition-all ${
-                      responseTag === tag.id ? "bg-blue-500 text-white border-blue-500" : "bg-gray-50 text-gray-300 border-gray-200 hover:text-blue-500"}`}>
+                      responseTag === tag.id ? "bg-blue-500 text-white border-blue-500" : "bg-gray-50 text-gray-500 border-gray-200 hover:text-blue-500"}`}>
                     ⓘ
                   </button>
                 </div>
@@ -1046,13 +1047,13 @@ export default function CaptureSession() {
                     className="block w-full text-left px-3 py-2 text-xs hover:bg-blue-50 border-b border-gray-50 last:border-0"
                     onClick={() => { setTopic(t.topic); setTopicSearch(t.topic); setTopicResults([]); }}>
                     <span className="font-semibold text-gray-700">{t.topic}</span>
-                    <span className="text-gray-400 ml-2">{t.unit} · {t.subject}</span>
+                    <span className="text-gray-500 ml-2">{t.unit} · {t.subject}</span>
                   </button>
                 ))}
               </div>
             )}
             {topic && topicResults.length === 0 && topicSearch.length > 0 && (
-              <p className="text-xs text-gray-400 mt-1">✏️ Topik custom: "{topic}"</p>
+              <p className="text-xs text-gray-500 mt-1">✏️ Topik custom: "{topic}"</p>
             )}
           </div>
 
@@ -1082,7 +1083,7 @@ export default function CaptureSession() {
               </button>
             </div>
             {noHW ? (
-              <p className="text-xs text-gray-400 text-center py-4">Tidak ada PR untuk sesi ini ✅</p>
+              <p className="text-xs text-gray-500 text-center py-4">Tidak ada PR untuk sesi ini ✅</p>
             ) : (
               <div className="p-3 space-y-2">
                 <input className="input text-sm" placeholder="Judul PR (mis. Latihan soal Paper 2)"
@@ -1139,10 +1140,10 @@ export default function CaptureSession() {
                           <span className="text-blue-400 text-sm">📋</span>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-gray-800 truncate">{hw.title}</p>
-                            <p className="text-xs text-gray-400">{hw.subject}{hw.dueAt ? ` · deadline ${hw.dueAt.slice(5)}` : ""}</p>
+                            <p className="text-xs text-gray-500">{hw.subject}{hw.dueAt ? ` · deadline ${hw.dueAt.slice(5)}` : ""}</p>
                           </div>
                           <button onClick={() => setCoHWItems((prev) => prev.filter((_, j) => j !== idx))}
-                            className="text-gray-300 hover:text-red-400 flex-shrink-0">✕</button>
+                            className="text-gray-500 hover:text-red-400 flex-shrink-0">✕</button>
                         </div>
                       );
                     })}
@@ -1234,7 +1235,7 @@ export default function CaptureSession() {
               onChange={(e) => setShortNote(e.target.value)}
               placeholder="Apa yang dibahas hari ini? Atau tekan ✨ Draft AI untuk generate otomatis..." />
             <div className="flex items-center justify-between mt-1">
-              <span className="text-xs text-gray-400">{shortNote.length}/300</span>
+              <span className="text-xs text-gray-500">{shortNote.length}/300</span>
               {settings?.ai?.enabled && settings.ai.apiKey && (subjects.length > 0 || studentSubjects.length > 0) && (
                 <button type="button" disabled={aiNoteLoading}
                   onClick={() => setShowAiCostModal(true)}
@@ -1305,7 +1306,7 @@ export default function CaptureSession() {
                   {activeTooltip.type === "behavior" ? "Observasi perilaku" : "Kualitas respons akademik"}
                 </p>
               </div>
-              <button onClick={() => setActiveTooltip(null)} className="text-gray-300 hover:text-gray-600 text-xl w-7 h-7 flex items-center justify-center">✕</button>
+              <button onClick={() => setActiveTooltip(null)} className="text-gray-500 hover:text-gray-600 text-xl w-7 h-7 flex items-center justify-center">✕</button>
             </div>
             <div className="px-4 py-3 space-y-3">
               <p className="text-sm text-gray-700 leading-relaxed">{activeTooltip.tag.description}</p>
@@ -1334,17 +1335,17 @@ export default function CaptureSession() {
               <div>
                 <h3 className="font-bold text-lg">Pilih Mata Pelajaran</h3>
                 {currentStudent?.curriculum && (
-                  <p className="text-xs text-gray-400 mt-0.5">{CURRICULUM_META[currentStudent.curriculum].label}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{CURRICULUM_META[currentStudent.curriculum].label}</p>
                 )}
               </div>
-              <button aria-label="Tutup" onClick={() => setShowIBPicker(false)} className="text-gray-400 text-xl">✕</button>
+              <button aria-label="Tutup" onClick={() => setShowIBPicker(false)} className="text-gray-500 text-xl">✕</button>
             </div>
 
             {currentStudent?.curriculum ? (
               <div className="p-4 space-y-4">
                 {getSubjectGroups(currentStudent.curriculum).map((grp) => (
                   <div key={grp.group}>
-                    <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2">{grp.group}</p>
+                    <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-2">{grp.group}</p>
                     <div className="flex flex-wrap gap-2">
                       {grp.subjects.map((s) => (
                         <button key={s} type="button"
@@ -1371,7 +1372,7 @@ export default function CaptureSession() {
                 <div className="p-4 space-y-4">
                   {ibTab === "MYP" ? (
                     <div>
-                      <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2">IB MYP Subjects</p>
+                      <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-2">IB MYP Subjects</p>
                       <div className="flex flex-wrap gap-2">
                         {IB_MYP_SUBJECTS.map((s) => (
                           <button key={s} type="button"
@@ -1387,7 +1388,7 @@ export default function CaptureSession() {
                     <div className="space-y-4">
                       {IB_DP_GROUPS.map((grp) => (
                         <div key={grp.group}>
-                          <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2">{grp.group}</p>
+                          <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-2">{grp.group}</p>
                           <div className="flex flex-wrap gap-2">
                             {grp.subjects.map((s) => (
                               <button key={s} type="button"
@@ -1408,7 +1409,7 @@ export default function CaptureSession() {
 
             <div className="px-4 pb-4 space-y-4">
               <div className="border-t border-gray-100 pt-3">
-                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2">Custom</p>
+                <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-2">Custom</p>
                 <div className="flex gap-2">
                   <input className="input flex-1 text-sm" placeholder="Ketik mapel lain..."
                     value={ibCustom} onChange={(e) => setIbCustom(e.target.value)}
@@ -1488,15 +1489,15 @@ export default function CaptureSession() {
                 {/* Stats row */}
                 <div className="grid grid-cols-3 gap-2">
                   <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
-                    <p className="text-white/70 text-[9px] font-bold uppercase tracking-wider">📅 Tanggal</p>
+                    <p className="text-white/70 text-[10px] font-bold uppercase tracking-wider">📅 Tanggal</p>
                     <p className="text-white text-sm font-black mt-0.5">{coSessionData.date.slice(5).replace("-", "/")}</p>
                   </div>
                   <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
-                    <p className="text-white/70 text-[9px] font-bold uppercase tracking-wider">⏱️ Durasi</p>
+                    <p className="text-white/70 text-[10px] font-bold uppercase tracking-wider">⏱️ Durasi</p>
                     <p className="text-white text-sm font-black mt-0.5">{coSessionData.durationHours} jam</p>
                   </div>
                   <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
-                    <p className="text-white/70 text-[9px] font-bold uppercase tracking-wider">🎯 Skor</p>
+                    <p className="text-white/70 text-[10px] font-bold uppercase tracking-wider">🎯 Skor</p>
                     <p className="text-white text-sm font-black mt-0.5">{engTouched ? `${engScore}/10` : "—"}</p>
                   </div>
                 </div>
@@ -1557,7 +1558,7 @@ export default function CaptureSession() {
               {/* PR */}
               {coHWItems.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">
                     📋 PR Diberikan ({coHWItems.length})
                   </p>
                   <div className="space-y-1.5">
@@ -1566,7 +1567,7 @@ export default function CaptureSession() {
                         <span className="text-blue-400 text-base">📋</span>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-bold text-gray-800 truncate">{hw.title}</p>
-                          {hw.subject && <p className="text-xs text-gray-400">{hw.subject}{hw.dueAt ? ` · deadline ${hw.dueAt.slice(5)}` : ""}</p>}
+                          {hw.subject && <p className="text-xs text-gray-500">{hw.subject}{hw.dueAt ? ` · deadline ${hw.dueAt.slice(5)}` : ""}</p>}
                         </div>
                         <span className="text-xs text-blue-300 flex-shrink-0">✓</span>
                       </div>
@@ -1577,8 +1578,8 @@ export default function CaptureSession() {
 
               {/* Follow-up */}
               <div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
-                  🔁 Fokus Sesi Berikutnya <span className="font-normal normal-case text-gray-400">(opsional)</span>
+                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">
+                  🔁 Fokus Sesi Berikutnya <span className="font-normal normal-case text-gray-500">(opsional)</span>
                 </p>
                 <div className="flex gap-2">
                   <input className="input flex-1 text-sm" placeholder="Topik/hal yang perlu dilanjutkan..."
@@ -1596,7 +1597,7 @@ export default function CaptureSession() {
                           <span className="text-amber-400">🔁</span>
                           <p className="flex-1 text-sm font-semibold text-gray-700">{f}</p>
                           <button onClick={() => setCoFollowUps((prev) => prev.filter((_, j) => j !== absIdx))}
-                            className="text-gray-300 hover:text-red-400">✕</button>
+                            className="text-gray-500 hover:text-red-400">✕</button>
                         </div>
                       );
                     })}
@@ -1608,7 +1609,7 @@ export default function CaptureSession() {
               {/* WhatsApp */}
               {waNumber && (
                 <div>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">💬 Update Orang Tua</p>
+                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">💬 Update Orang Tua</p>
                   {aiError && (
                     <p className="text-xs text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-2">{aiError}</p>
                   )}
@@ -1626,7 +1627,7 @@ export default function CaptureSession() {
                       </button>
                       {aiWaText && (
                         <button type="button" onClick={() => setAiWaText(null)}
-                          className="text-xs text-gray-400 hover:text-gray-600 px-3 py-2 rounded-xl border border-gray-200 bg-white font-semibold">
+                          className="text-xs text-gray-500 hover:text-gray-600 px-3 py-2 rounded-xl border border-gray-200 bg-white font-semibold">
                           ↩ Original
                         </button>
                       )}
@@ -1712,7 +1713,7 @@ export default function CaptureSession() {
                   ≈ ${est.usdCost.toFixed(6)} (Rp {est.idrCost.toFixed(4)})
                 </p>
               </div>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-500">
                 Catatan 30–50 kata berdasarkan mapel{topic ? `, topik (${topic})` : ""}{engTouched ? `, engagement (${engScore}/10)` : ""}{needsWork ? `, area perhatian` : ""}{briefLastSession ? `, dan konteks sesi lalu` : ""}.
               </p>
               <div className="flex gap-3">

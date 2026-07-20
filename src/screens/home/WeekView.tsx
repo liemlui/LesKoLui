@@ -24,7 +24,7 @@ export default function WeekView({
   return (
     <div className="mx-4 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
-        <button aria-label="Minggu sebelumnya" onClick={() => setAnchor(addDays(anchor, -7))} className="text-gray-400 text-xl w-8 text-center">‹</button>
+        <button aria-label="Minggu sebelumnya" onClick={() => setAnchor(addDays(anchor, -7))} className="text-gray-500 text-xl w-10 h-10 flex items-center justify-center">‹</button>
         <div className="flex items-center gap-2 min-w-0">
           <span className="font-semibold text-gray-700 text-sm truncate">
             {new Date(week[1] + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
@@ -35,7 +35,7 @@ export default function WeekView({
             <button onClick={onJumpToday} className="flex-shrink-0 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded-lg transition-colors">Hari Ini</button>
           )}
         </div>
-        <button aria-label="Minggu berikutnya" onClick={() => setAnchor(addDays(anchor, 7))} className="text-gray-400 text-xl w-8 text-center">›</button>
+        <button aria-label="Minggu berikutnya" onClick={() => setAnchor(addDays(anchor, 7))} className="text-gray-500 text-xl w-10 h-10 flex items-center justify-center">›</button>
       </div>
       <div className="grid grid-cols-7 border-b border-gray-100">
         {week.map((date) => {
@@ -50,9 +50,9 @@ export default function WeekView({
           return (
             <div key={date} className={`border-r border-gray-50 last:border-r-0 ${colBg}`}>
               <button className="w-full text-center py-1.5" onClick={() => setSelectedDay(isSelected ? null : date)}>
-                <p className={`text-xs ${isSunday ? "text-red-400" : "text-gray-400"}`}>{label}</p>
+                <p className={`text-xs ${isSunday ? "text-red-400" : "text-gray-500"}`}>{label}</p>
                 <span className={`text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full mx-auto ${
-                  isToday ? "bg-blue-600 text-white" : isPast ? "text-gray-300" : isSunday ? "text-red-500" : "text-gray-700"
+                  isToday ? "bg-blue-600 text-white" : isPast ? "text-gray-500" : isSunday ? "text-red-500" : "text-gray-700"
                 }`}>{d}</span>
               </button>
               <div className="px-0.5 pb-1 min-h-[56px]">
@@ -64,14 +64,14 @@ export default function WeekView({
                   return (
                     <button key={s.id} type="button"
                       className={`block w-full text-left rounded mb-0.5 px-1 py-0.5 ${isEditable ? "cursor-pointer" : "cursor-default"}`}
-                      style={{ background: color + (isDone ? "20" : "35"), fontSize: 9 }}
+                      style={{ background: color + (isDone ? "20" : "35"), fontSize: 10 }}
                       onClick={() => isEditable && (s.date < today ? actions.onResolveMissed(s) : actions.onEdit(s))}>
                       <p className="font-bold truncate" style={{ color }}>{info?.name?.split(" ")[0] ?? "—"}</p>
-                      {s.time && <p className="opacity-60" style={{ fontSize: 8 }}>{s.status === "NO_SHOW" ? "🚫 Tidak hadir" : s.time}</p>}
+                      {s.time && <p className="opacity-60" style={{ fontSize: 10 }}>{s.status === "NO_SHOW" ? "🚫 Tidak hadir" : s.time}</p>}
                     </button>
                   );
                 })}
-                <button aria-label={`Tambah jadwal ${date}`} onClick={() => onAdd(date)} className="w-full text-center text-gray-300 hover:text-blue-500 text-sm leading-none mt-0.5 py-0.5 rounded hover:bg-blue-50 transition-colors">+</button>
+                <button aria-label={`Tambah jadwal ${date}`} onClick={() => onAdd(date)} className="w-full text-center text-gray-500 hover:text-blue-500 text-sm leading-none mt-0.5 py-0.5 rounded hover:bg-blue-50 transition-colors">+</button>
               </div>
             </div>
           );

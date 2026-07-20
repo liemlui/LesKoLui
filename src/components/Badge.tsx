@@ -30,7 +30,7 @@ export default function Badge({ children, tone = "slate", count, variant = "soft
     <span className={`inline-flex items-center gap-1 rounded-full font-semibold ${sizeClass} ${borderClass} ${TONE_CLASSES[tone]}`}>
       {children}
       {count != null && count > 0 && (
-        <span className={`rounded-full px-1.5 py-0 text-[9px] font-bold ${variant === "outline" ? "bg-slate-100 text-slate-600" : "bg-white/60"}`}>
+        <span className={`rounded-full px-1.5 py-0 text-[10px] font-bold ${variant === "outline" ? "bg-slate-100 text-slate-600" : "bg-white/60"}`}>
           {count > 99 ? "99+" : count}
         </span>
       )}

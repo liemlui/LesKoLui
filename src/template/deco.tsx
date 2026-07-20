@@ -15,7 +15,7 @@ const SETS: Record<DecoKind, DecoItem[]> = {
   // ── NEW deco kinds ──────────────────────────────────────────────────────
 
   geometric: [
-    { c: "◢", style: { top: 0, right: 0, fontSize: 80, opacity: 0.08, color: "#fff" } },
+    { c: "◢", style: { top: 0, right: 0, fontSize: 100, opacity: 0.08, color: "#fff" } },
     { c: "◤", style: { bottom: 0, left: 0, fontSize: 60, opacity: 0.08, color: "#000" } },
     { c: "⬢", style: { top: 120, left: 10, fontSize: 28, opacity: 0.12 } },
     { c: "⬡", style: { bottom: 80, right: 16, fontSize: 32, opacity: 0.1 } },

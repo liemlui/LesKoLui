@@ -28,7 +28,7 @@ export default function EngagementSummary({
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
         <h2 className="font-semibold text-gray-700">Keseriusan Belajar</h2>
-        <span className="text-xs text-gray-400">{engSessions.length} sesi tercatat</span>
+        <span className="text-xs text-gray-500">{engSessions.length} sesi tercatat</span>
       </div>
 
       {/* Summary row */}
@@ -43,7 +43,7 @@ export default function EngagementSummary({
                     tone={avgEngScore >= 7 ? "green" : avgEngScore >= 4 ? "amber" : "red"} />
                 </div>
                 <p className="text-xs font-medium mt-0.5" style={{ color }}>{text}</p>
-                <p className="text-xs text-gray-400">rata-rata</p>
+                <p className="text-xs text-gray-500">rata-rata</p>
               </>
             );
           })()}
@@ -55,14 +55,14 @@ export default function EngagementSummary({
           <p className="text-xs font-medium text-gray-600">
             {engTrend === "up" ? "Membaik" : engTrend === "down" ? "Menurun" : engTrend === "stable" ? "Stabil" : "—"}
           </p>
-          <p className="text-xs text-gray-400">trend</p>
+          <p className="text-xs text-gray-500">trend</p>
         </div>
         <div className="p-3 text-center">
           <p className="text-2xl font-bold text-red-500">
             {Math.round((engSessions.filter((s) => s.engagement?.playingPhone).length / engSessions.length) * 100)}%
           </p>
           <p className="text-xs font-medium text-red-400">Main HP</p>
-          <p className="text-xs text-gray-400">dari sesi</p>
+          <p className="text-xs text-gray-500">dari sesi</p>
         </div>
       </div>
 
@@ -74,7 +74,7 @@ export default function EngagementSummary({
             {" "}dari {recentEng.length} sesi terakhir
             {engTrend === "up" && <span className="text-green-500 ml-1">↑ meningkat</span>}
             {engTrend === "down" && <span className="text-red-500 ml-1">↓ menurun</span>}
-            {engTrend === "stable" && <span className="text-gray-400 ml-1">→ stabil</span>}
+            {engTrend === "stable" && <span className="text-gray-500 ml-1">→ stabil</span>}
             {" "}— lihat grafik di atas
           </p>
         </div>
@@ -95,7 +95,7 @@ export default function EngagementSummary({
                       <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ color, background: bg }}>
                         {stat.avgScore}/10
                       </span>
-                      <span className="text-xs text-gray-400">{stat.count}×</span>
+                      <span className="text-xs text-gray-500">{stat.count}×</span>
                     </div>
                   </div>
                   <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">

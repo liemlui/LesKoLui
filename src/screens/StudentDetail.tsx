@@ -1,3 +1,4 @@
+import Skeleton from "../components/Skeleton";
 import { useMemo, useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -385,7 +386,7 @@ export default function StudentDetail() {
     });
   }, [billingSessions, billingMonth, student, settings]);
 
-  if (!student) return <div className="p-4 text-gray-500">Memuat...</div>;
+  if (!student) return <Skeleton variant="card" lines={4} className="p-4" />;
 
   const safeRaporPage = clampPage(raporPage, raporCorrelation.length);
   const paginatedRaporCorrelation = paginateItems(raporCorrelation, safeRaporPage);
@@ -419,12 +420,12 @@ export default function StudentDetail() {
                 {CURRICULUM_META[student.curriculum].shortLabel}
               </span>
             ) : (
-              <span className="text-xs text-gray-400">{student.level}</span>
+              <span className="text-xs text-gray-500">{student.level}</span>
             )}
-            {student.grade && <span className="text-xs text-gray-400">{student.grade}</span>}
-            {student.school && <span className="text-xs text-gray-400">· {student.school}</span>}
+            {student.grade && <span className="text-xs text-gray-500">{student.grade}</span>}
+            {student.school && <span className="text-xs text-gray-500">· {student.school}</span>}
             {student.subjects.length > 0 && (
-              <span className="text-xs text-gray-400">· {student.subjects.join(", ")}</span>
+              <span className="text-xs text-gray-500">· {student.subjects.join(", ")}</span>
             )}
           </div>
         </div>
@@ -468,22 +469,22 @@ export default function StudentDetail() {
         <h2 className="font-semibold text-gray-700 text-sm mb-2">Info Murid</h2>
         {student.school && (
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-400 w-28 flex-shrink-0">Sekolah</span>
+            <span className="text-gray-500 w-28 flex-shrink-0">Sekolah</span>
             <span className="text-gray-700 font-medium">{student.school}</span>
           </div>
         )}
         {student.grade && (
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-400 w-28 flex-shrink-0">Kelas</span>
+            <span className="text-gray-500 w-28 flex-shrink-0">Kelas</span>
             <span className="text-gray-700 font-medium">{student.grade}</span>
           </div>
         )}
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-gray-400 w-28 flex-shrink-0">Orang Tua</span>
+          <span className="text-gray-500 w-28 flex-shrink-0">Orang Tua</span>
           <span className="text-gray-700 font-medium">{student.parentContact.name || "—"}</span>
         </div>
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-gray-400 w-28 flex-shrink-0">WA Ortu</span>
+          <span className="text-gray-500 w-28 flex-shrink-0">WA Ortu</span>
           <a href={`https://wa.me/${student.parentContact.phone.replace(/^0/, "62").replace(/[^0-9]/g, "")}`}
             target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-1.5 text-green-600 font-medium hover:text-green-700">
@@ -492,7 +493,7 @@ export default function StudentDetail() {
         </div>
         {student.studentPhone && (
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-400 w-28 flex-shrink-0">WA Murid</span>
+            <span className="text-gray-500 w-28 flex-shrink-0">WA Murid</span>
             <a href={`https://wa.me/${student.studentPhone.replace(/^0/, "62").replace(/[^0-9]/g, "")}`}
               target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-blue-600 font-medium hover:text-blue-700">
@@ -502,14 +503,14 @@ export default function StudentDetail() {
         )}
         {student.notes && (
           <div className="flex items-start gap-2 text-sm">
-            <span className="text-gray-400 w-28 flex-shrink-0">Catatan</span>
+            <span className="text-gray-500 w-28 flex-shrink-0">Catatan</span>
             <span className="text-gray-700">{student.notes}</span>
           </div>
         )}
 
         {/* Tarif les — masked, unlock with PIN to reveal or edit */}
         <div className="flex items-center gap-2 text-sm pt-1 border-t border-gray-50">
-          <span className="text-gray-400 w-28 flex-shrink-0">Tarif les</span>
+          <span className="text-gray-500 w-28 flex-shrink-0">Tarif les</span>
           {rateUnlocked ? (
             showRateEdit ? (
               <div className="flex items-center gap-2 flex-1">
@@ -520,7 +521,7 @@ export default function StudentDetail() {
                   {rateSaving ? "..." : "Simpan"}
                 </button>
                 <button onClick={() => { setShowRateEdit(false); }}
-                  className="text-xs text-gray-400 px-1.5 py-1.5">✕</button>
+                  className="text-xs text-gray-500 px-1.5 py-1.5">✕</button>
               </div>
             ) : (
               <div className="flex items-center gap-2 flex-1">
@@ -528,12 +529,12 @@ export default function StudentDetail() {
                 <button onClick={() => { setShowRateEdit(true); setNewRate(student.hourlyRate); }}
                   className="ml-auto text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded-lg">✏️ Edit</button>
                 <button onClick={() => { setRateUnlocked(false); setRatePinInput(""); }}
-                  className="text-xs text-gray-300 px-1.5 py-1">🔒</button>
+                  className="text-xs text-gray-500 px-1.5 py-1">🔒</button>
               </div>
             )
           ) : (
             <div className="flex items-center gap-2 flex-1">
-              <span className="text-gray-400 tracking-widest text-base">•••••</span>
+              <span className="text-gray-500 tracking-widest text-base">•••••</span>
               {settings?.financialPin ? (
                 <div className="flex items-center gap-1.5 ml-auto">
                   <input type="password" inputMode="numeric" maxLength={6} placeholder="PIN"
@@ -634,7 +635,7 @@ export default function StudentDetail() {
               <div className="relative">
                 {/* Y-axis reference line at score 5 (netral) */}
                 <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 border-t border-dashed border-gray-200 z-0" />
-                <span className="absolute -left-0.5 top-1/2 -translate-y-1/2 text-gray-300 font-medium" style={{ fontSize: 8 }}>5</span>
+                <span className="absolute -left-0.5 top-1/2 -translate-y-1/2 text-gray-500 font-medium" style={{ fontSize: 10 }}>5</span>
                 <div className="flex items-end gap-1 h-20 relative z-[1]">
                   {scored.map((s) => {
                     const score = s.engagement!.score;
@@ -647,15 +648,15 @@ export default function StudentDetail() {
                         <div className="flex-1 w-full flex items-end min-h-0">
                           <div className="w-full rounded-t-sm" style={{ height: `${pct}%`, background: color }} />
                         </div>
-                        <span className="text-gray-500 font-semibold" style={{ fontSize: 9 }}>{score}</span>
+                        <span className="text-gray-500 font-semibold" style={{ fontSize: 10 }}>{score}</span>
                       </div>
                     );
                   })}
                 </div>
               </div>
               <div className="flex justify-between mt-1.5">
-                <span className="text-xs text-gray-300">{scored[0]?.date?.slice(5)}</span>
-                <span className="text-xs text-gray-300">{scored[scored.length - 1]?.date?.slice(5)}</span>
+                <span className="text-xs text-gray-500">{scored[0]?.date?.slice(5)}</span>
+                <span className="text-xs text-gray-500">{scored[scored.length - 1]?.date?.slice(5)}</span>
               </div>
             </div>
           );
@@ -676,7 +677,7 @@ export default function StudentDetail() {
                     {topics.slice(0, 20).map((t) => (
                       <span key={t} className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium border border-blue-100">{t}</span>
                     ))}
-                    {topics.length > 20 && <span className="text-xs text-gray-400">+{topics.length - 20} lagi</span>}
+                    {topics.length > 20 && <span className="text-xs text-gray-500">+{topics.length - 20} lagi</span>}
                   </div>
                 </div>
               )}
@@ -702,7 +703,7 @@ export default function StudentDetail() {
             <p className="text-3xl mb-2">📚</p>
             {historyMonth && (allSessions ?? []).length > 0 ? (
               <>
-                <p className="text-gray-400 text-sm">Tidak ada sesi di {monthLabel(historyMonth)}.</p>
+                <p className="text-gray-500 text-sm">Tidak ada sesi di {monthLabel(historyMonth)}.</p>
                 <button onClick={() => setHistoryMonth("")}
                   className="mt-3 px-4 py-2 rounded-xl bg-gray-100 text-gray-600 text-sm font-semibold">
                   Tampilkan Semua Bulan
@@ -710,7 +711,7 @@ export default function StudentDetail() {
               </>
             ) : (
               <>
-                <p className="text-gray-400 text-sm">Belum ada sesi yang dicatat.</p>
+                <p className="text-gray-500 text-sm">Belum ada sesi yang dicatat.</p>
                 <button onClick={() => navigate("/capture")}
                   className="mt-3 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold">
                   Catat Sesi Pertama
@@ -745,7 +746,7 @@ export default function StudentDetail() {
                       <p className="text-sm font-semibold text-gray-800">
                         {(s.subjects ?? []).join(", ") || "Sesi umum"}
                       </p>
-                      <p className="text-xs text-gray-400 mt-0.5">
+                      <p className="text-xs text-gray-500 mt-0.5">
                         {dayLabel(s.date).split(",")[1]?.trim() ?? s.date.slice(5)}
                         {s.timeIn && s.timeOut
                           ? ` · ${s.timeIn}–${s.timeOut}`
@@ -776,7 +777,7 @@ export default function StudentDetail() {
                       <div className="flex items-center gap-1">
                         {s.status === "DONE" && (
                           <button onClick={() => openEditNote(s)}
-                            className="text-gray-300 hover:text-blue-500 transition-colors text-xs px-1">✏️</button>
+                            className="text-gray-500 hover:text-blue-500 transition-colors text-xs px-1">✏️</button>
                         )}
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.status === "DONE" ? "bg-green-50 text-green-600" : s.status === "CANCELLED" ? "bg-red-50 text-red-500" : "bg-blue-50 text-blue-600"}`}>
                           {s.status === "DONE" ? `${s.durationHours}j` : s.status}
@@ -834,8 +835,8 @@ export default function StudentDetail() {
         {raporCorrelation.length === 0 ? (
           <div className="bg-white rounded-2xl border border-dashed border-gray-200 py-5 text-center">
             <p className="text-xl mb-1">📋</p>
-            <p className="text-sm text-gray-400">Belum ada nilai rapor.</p>
-            <p className="text-xs text-gray-300 mt-0.5">Tap "+ Input Rapor" untuk catat nilai dari sekolah</p>
+            <p className="text-sm text-gray-500">Belum ada nilai rapor.</p>
+            <p className="text-xs text-gray-500 mt-0.5">Tap "+ Input Rapor" untuk catat nilai dari sekolah</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -850,12 +851,12 @@ export default function StudentDetail() {
                         Skor les: {r.avgEng}/10
                       </span>
                     )}
-                    <button onClick={() => openRapor(r.semester)} className="text-xs text-gray-400 hover:text-blue-500">✏️</button>
+                    <button onClick={() => openRapor(r.semester)} className="text-xs text-gray-500 hover:text-blue-500">✏️</button>
                     <button onClick={async () => {
                       if (!confirm(`Hapus rapor ${semesterLabel(r.semester)}?`)) return;
                       await deleteRaporGrade(r.id); msg("Dihapus.");
                     }}
-                      className="text-xs text-gray-300 hover:text-red-400">✕</button>
+                      className="text-xs text-gray-500 hover:text-red-400">✕</button>
                   </div>
                 </div>
                 <div className="p-3 space-y-1.5">
@@ -872,7 +873,7 @@ export default function StudentDetail() {
                         <span className="text-sm text-gray-700">{g.subject}</span>
                         <div className="flex items-center gap-2">
                           {subEng !== null && (
-                            <span className="text-xs text-gray-400">Les: {subEng}/10</span>
+                            <span className="text-xs text-gray-500">Les: {subEng}/10</span>
                           )}
                           <span className="text-sm font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg">
                             {g.grade}
@@ -881,9 +882,9 @@ export default function StudentDetail() {
                       </div>
                     );
                   })}
-                  {r.notes && <p className="text-xs text-gray-400 italic mt-1 pt-1 border-t border-gray-100">"{r.notes}"</p>}
+                  {r.notes && <p className="text-xs text-gray-500 italic mt-1 pt-1 border-t border-gray-100">"{r.notes}"</p>}
                   {r.avgEng !== null && r.sessionCount > 0 && (
-                    <p className="text-xs text-gray-400 mt-1 pt-1 border-t border-gray-100">
+                    <p className="text-xs text-gray-500 mt-1 pt-1 border-t border-gray-100">
                       {r.sessionCount} sesi les tercatat · rata-rata skor {r.avgEng}/10 ({scoreLabel(r.avgEng).text})
                     </p>
                   )}
@@ -961,7 +962,7 @@ export default function StudentDetail() {
 
           {/* Project list */}
           {(iaeeProjects ?? []).length === 0 && !showIaEeForm && (
-            <p className="text-gray-400 text-sm text-center py-6">Belum ada proyek IA/EE.</p>
+            <p className="text-gray-500 text-sm text-center py-6">Belum ada proyek IA/EE.</p>
           )}
           <div className="divide-y divide-gray-100">
             {(iaeeProjects ?? []).map((proj: IaEeProject) => {
@@ -983,18 +984,18 @@ export default function StudentDetail() {
                           </span>
                           <span className="text-xs text-gray-500">{proj.subject}</span>
                           {daysLeft !== null && (
-                            <span className={`text-xs font-semibold ${daysLeft < 0 ? "text-red-500" : daysLeft < 14 ? "text-orange-500" : "text-gray-400"}`}>
+                            <span className={`text-xs font-semibold ${daysLeft < 0 ? "text-red-500" : daysLeft < 14 ? "text-orange-500" : "text-gray-500"}`}>
                               {daysLeft < 0 ? `${Math.abs(daysLeft)}h terlambat` : `${daysLeft}h lagi`}
                             </span>
                           )}
                         </div>
                         <p className="text-sm font-semibold text-gray-800 mt-1 line-clamp-2">{proj.title}</p>
                       </div>
-                      <span className="text-gray-300 flex-shrink-0">{isExpanded ? "▲" : "▼"}</span>
+                      <span className="text-gray-500 flex-shrink-0">{isExpanded ? "▲" : "▼"}</span>
                     </div>
                     {total > 0 && (
                       <div className="mt-2">
-                        <div className="flex justify-between text-xs text-gray-400 mb-1">
+                        <div className="flex justify-between text-xs text-gray-500 mb-1">
                           <span>{done}/{total} milestone</span>
                           <span>{pct}%</span>
                         </div>
@@ -1030,19 +1031,19 @@ export default function StudentDetail() {
                             {m.status === "done" ? "✓" : m.status === "in_progress" ? "…" : ""}
                           </button>
                           <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-medium ${m.status === "done" ? "line-through text-gray-400" : "text-gray-700"}`}>
+                            <p className={`text-sm font-medium ${m.status === "done" ? "line-through text-gray-500" : "text-gray-700"}`}>
                               {m.title}
                             </p>
                             {m.dueAt && (
-                              <p className="text-xs text-gray-400 mt-0.5">Due: {m.dueAt}</p>
+                              <p className="text-xs text-gray-500 mt-0.5">Due: {m.dueAt}</p>
                             )}
-                            {m.notes && <p className="text-xs text-gray-400 italic mt-0.5">{m.notes}</p>}
+                            {m.notes && <p className="text-xs text-gray-500 italic mt-0.5">{m.notes}</p>}
                           </div>
                           <button
                             onClick={async () => {
                               if (confirm(`Hapus milestone "${m.title}"?`)) await deleteMilestone(proj.id, m.id);
                             }}
-                            className="text-gray-300 hover:text-red-400 p-1 flex-shrink-0">
+                            className="text-gray-500 hover:text-red-400 p-1 flex-shrink-0">
                             ✕
                           </button>
                         </div>
@@ -1075,7 +1076,7 @@ export default function StudentDetail() {
                         </div>
                       ) : (
                         <button onClick={() => { setShowMsForm(proj.id); setMsTitle(""); setMsDue(""); }}
-                          className="w-full py-2 rounded-xl border border-dashed border-gray-300 text-xs text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors">
+                          className="w-full py-2 rounded-xl border border-dashed border-gray-300 text-xs text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-colors">
                           + Milestone
                         </button>
                       )}
@@ -1124,9 +1125,9 @@ export default function StudentDetail() {
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div>
                 <h3 className="font-bold text-base">Edit Catatan Sesi</h3>
-                <p className="text-xs text-gray-400 mt-0.5">{editSession.date} · {editSession.durationHours}j</p>
+                <p className="text-xs text-gray-500 mt-0.5">{editSession.date} · {editSession.durationHours}j</p>
               </div>
-              <button onClick={() => setEditSession(null)} aria-label="Tutup" className="text-gray-400 text-xl">✕</button>
+              <button onClick={() => setEditSession(null)} aria-label="Tutup" className="text-gray-500 text-xl">✕</button>
             </div>
             <div className="p-5 space-y-4">
               <div>
@@ -1164,7 +1165,7 @@ export default function StudentDetail() {
                       onClear={() => setEditSignature(undefined)}
                     />
                     <button type="button" onClick={() => setShowEditSigPad(false)}
-                      className="text-xs text-gray-400 w-full text-center">Tutup</button>
+                      className="text-xs text-gray-500 w-full text-center">Tutup</button>
                   </div>
                 ) : editSigUrl ? (
                   <div className="border border-gray-200 rounded-xl p-2 bg-gray-50 flex items-center gap-3">
@@ -1174,7 +1175,7 @@ export default function StudentDetail() {
                   </div>
                 ) : (
                   <button type="button" onClick={() => setShowEditSigPad(true)}
-                    className="w-full py-2.5 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-400 hover:border-blue-300 hover:text-blue-400 transition-colors">
+                    className="w-full py-2.5 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-500 hover:border-blue-300 hover:text-blue-400 transition-colors">
                     + Minta tanda tangan murid
                   </button>
                 )}
@@ -1195,7 +1196,7 @@ export default function StudentDetail() {
           <div className="bg-white w-full max-w-md rounded-t-2xl pb-8 max-h-[90vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h3 className="font-bold text-lg">Input Nilai Rapor</h3>
-              <button onClick={() => setShowRapor(false)} aria-label="Tutup" className="text-gray-400 text-xl">✕</button>
+              <button onClick={() => setShowRapor(false)} aria-label="Tutup" className="text-gray-500 text-xl">✕</button>
             </div>
             <div className="p-5 space-y-4">
               <div>
@@ -1222,13 +1223,13 @@ export default function StudentDetail() {
                         value={g.grade}
                         onChange={(e) => setRaporGrades((prev) => prev.map((x, j) => j === i ? { ...x, grade: e.target.value } : x))} />
                       <button type="button" onClick={() => setRaporGrades((prev) => prev.filter((_, j) => j !== i))}
-                        className="text-gray-300 hover:text-red-400 text-lg leading-none flex-shrink-0">✕</button>
+                        className="text-gray-500 hover:text-red-400 text-lg leading-none flex-shrink-0">✕</button>
                     </div>
                   ))}
                   {raporGrades.length === 0 && (
                     <button type="button"
                       onClick={() => setRaporGrades([{ subject: "", grade: "" }])}
-                      className="w-full py-2 border border-dashed border-gray-300 rounded-xl text-sm text-gray-400 hover:border-blue-300 hover:text-blue-400 transition-colors">
+                      className="w-full py-2 border border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:border-blue-300 hover:text-blue-400 transition-colors">
                       + Tambah nilai
                     </button>
                   )}
@@ -1236,7 +1237,7 @@ export default function StudentDetail() {
               </div>
 
               <div>
-                <label className="label">Catatan <span className="text-gray-400 font-normal">(opsional)</span></label>
+                <label className="label">Catatan <span className="text-gray-500 font-normal">(opsional)</span></label>
                 <textarea className="input" rows={2} placeholder="Catatan dari guru sekolah, komentar umum..."
                   value={raporNotes} onChange={(e) => setRaporNotes(e.target.value)} />
               </div>
@@ -1257,13 +1258,13 @@ export default function StudentDetail() {
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div>
                 <h3 className="font-bold text-lg">Edit Jadwal</h3>
-                <p className="text-xs text-gray-400">{dayLabel(editTarget.date)}{editTarget.seriesId ? " · Sesi berulang 🔁" : ""}</p>
+                <p className="text-xs text-gray-500">{dayLabel(editTarget.date)}{editTarget.seriesId ? " · Sesi berulang 🔁" : ""}</p>
               </div>
-              <button onClick={() => setEditTarget(null)} aria-label="Tutup" className="text-gray-400 text-xl">✕</button>
+              <button onClick={() => setEditTarget(null)} aria-label="Tutup" className="text-gray-500 text-xl">✕</button>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="label">Tanggal{editTarget.seriesId && editMode !== "this" && <span className="ml-2 text-xs text-gray-400 font-normal">(hanya bisa diubah untuk sesi ini saja)</span>}</label>
+                <label className="label">Tanggal{editTarget.seriesId && editMode !== "this" && <span className="ml-2 text-xs text-gray-500 font-normal">(hanya bisa diubah untuk sesi ini saja)</span>}</label>
                 <input className="input" type="date" value={editDate}
                   disabled={!!editTarget.seriesId && editMode !== "this"}
                   onChange={(e) => setEditDate(e.target.value)} />
@@ -1320,7 +1321,7 @@ export default function StudentDetail() {
                     ) : (
                       <button onClick={() => handleCancel("this")} className="w-full px-4 py-3 rounded-xl bg-red-50 text-red-600 font-medium text-sm border border-red-200">Ya, batalkan sesi ini</button>
                     )}
-                    <button onClick={() => setShowCancelSect(false)} className="w-full text-center text-gray-400 text-sm py-1">Jangan batalkan</button>
+                    <button onClick={() => setShowCancelSect(false)} className="w-full text-center text-gray-500 text-sm py-1">Jangan batalkan</button>
                   </div>
                 )}
               </div>
@@ -1336,9 +1337,9 @@ export default function StudentDetail() {
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div>
                 <h3 className="font-bold text-lg">💬 Tagihan via WA</h3>
-                <p className="text-xs text-gray-400 mt-0.5">{student.name}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{student.name}</p>
               </div>
-              <button onClick={() => setShowBilling(false)} aria-label="Tutup" className="text-gray-400 text-xl">✕</button>
+              <button onClick={() => setShowBilling(false)} aria-label="Tutup" className="text-gray-500 text-xl">✕</button>
             </div>
 
             {!settings?.financialPin ? (
@@ -1403,7 +1404,7 @@ export default function StudentDetail() {
 
                 {/* Tombol kirim */}
                 {buildBillingWA.count === 0 ? (
-                  <p className="text-sm text-center text-gray-400 py-2">Belum ada sesi yang dapat ditagihkan di bulan ini.</p>
+                  <p className="text-sm text-center text-gray-500 py-2">Belum ada sesi yang dapat ditagihkan di bulan ini.</p>
                 ) : (
                   <div className="space-y-2">
                     {student.parentContact.phone && (
