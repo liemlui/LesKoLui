@@ -35,14 +35,16 @@ export default function AttentionInbox({
   const [collapsed, setCollapsed] = useState(false);
 
   const total = missed.length + overdue.length + upcomingSoon.length + follows.length;
-  if (total === 0) return null;
-
   const tabs: Tab[] = useMemo(() => [
     { key: "missed", label: "Sesi", count: missed.length },
     { key: "overdue", label: "PR Telat", count: overdue.length },
     { key: "upcoming", label: "PR Segera", count: upcomingSoon.length },
     { key: "follows", label: "Follow-up", count: follows.length },
   ], [missed.length, overdue.length, upcomingSoon.length, follows.length]);
+
+  // Hooks selalu dipanggil pada urutan yang sama, baik inbox masih kosong
+  // saat query awal maupun setelah data Dexie selesai dimuat.
+  if (total === 0) return null;
 
   const safeMissedPage   = clampPage(missedPage, missed.length);
   const safeOverduePage  = clampPage(overduePage, overdue.length);

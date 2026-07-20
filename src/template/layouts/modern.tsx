@@ -365,7 +365,7 @@ export const infographic: Layout = {
               {divider}
               {kpi(hoursLabel, "Jam")}
               {divider}
-              {kpi(d.avgEngagement != null ? `${d.avgEngagement}` : "—", "Fokus", true)}
+              {kpi(d.avgEngagement != null ? `${d.avgEngagement}/10` : "—", "Fokus rata²", true)}
               {divider}
               {kpi(String(dist.length), "Mapel")}
             </div>
@@ -463,4 +463,3 @@ export const cover: Layout = {
     </div>
   ),
 };
-

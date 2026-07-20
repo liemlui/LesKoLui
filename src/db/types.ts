@@ -130,6 +130,32 @@ export interface TemplateKey {
   layoutId: string;
 }
 
+/** Rencana tindak lanjut yang disepakati di akhir laporan bulanan. */
+export type PlanOwner = "tutor" | "student" | "parent" | "shared";
+export type PlanStatus = "planned" | "in_progress" | "achieved";
+
+export interface MonthlyPlanItem {
+  id: string;
+  subject: string;
+  /** Bukti singkat dari perkembangan bulan yang baru selesai. */
+  evidence?: string;
+  /** Hasil belajar yang ingin dicapai pada bulan berikutnya. */
+  target: string;
+  /** Strategi atau aktivitas yang dilakukan tutor. */
+  tutorAction?: string;
+  /** Cara sederhana untuk mengecek target tercapai. */
+  successMetric?: string;
+  cadence?: string;
+  owner?: PlanOwner;
+  status?: PlanStatus;
+}
+
+export interface NextMonthPlan {
+  priorities: MonthlyPlanItem[];
+  parentSupport?: string;
+  updatedAt?: string;
+}
+
 export interface MonthlyReport {
   id: string;
   studentId: string;
@@ -139,6 +165,8 @@ export interface MonthlyReport {
   summaryText: string;
   teacherNote?: string;
   quote?: string;
+  /** Opsional agar seluruh laporan lama tetap kompatibel. */
+  nextMonthPlan?: NextMonthPlan;
   totalHours: number;
   totalCost: number;
   createdAt: string;

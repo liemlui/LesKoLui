@@ -48,6 +48,30 @@ describe("report layouts", () => {
     }
   });
 
+  it("renders a compact next-month plan on the last page", () => {
+    const planned: ReportData = {
+      ...data,
+      nextMonthPlan: {
+        priorities: [{
+          id: "plan-1",
+          subject: "Matematika",
+          evidence: "Operasi tanda masih perlu teliti.",
+          target: "Menyelesaikan 8/10 soal fungsi kuadrat dengan langkah lengkap.",
+          tutorAction: "Latihan bertahap dan cek langkah.",
+          successMetric: "8/10 soal tepat",
+          cadence: "2 sesi per minggu",
+          owner: "shared",
+          status: "planned",
+        }],
+        parentSupport: "Latihan mandiri 10 menit dua kali seminggu.",
+      },
+    };
+    const html = renderToStaticMarkup(getLayout("cards").render(planned, THEMES[0], { isFirst: true, isLast: true }));
+    expect(html).toContain("Fokus &amp; Rencana Bulan Depan");
+    expect(html).toContain("Menyelesaikan 8/10 soal fungsi kuadrat");
+    expect(html).toContain("Dukungan di rumah");
+  });
+
   it("parses the production date format ('12 Juni 2026') without NaN or stray year", () => {
     for (const layout of LAYOUTS) {
       const html = renderToStaticMarkup(layout.render(multiData, THEMES[0], { isFirst: true, isLast: true }));

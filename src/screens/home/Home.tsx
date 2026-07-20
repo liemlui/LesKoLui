@@ -22,6 +22,7 @@ import EditSessionModal from "./EditSessionModal";
 import ResolveMissedSessionModal from "./ResolveMissedSessionModal";
 import OperationalSnapshot from "./OperationalSnapshot";
 import QuickExpenseModal from "../../components/QuickExpenseModal";
+import ExitAppModal from "../../components/ExitAppModal";
 import type { SessionActions } from "./SessionPill";
 
 export default function Home() {
@@ -38,6 +39,7 @@ export default function Home() {
   const [resolveMissedTarget, setResolveMissedTarget] = useState<Session | null>(null);
   const [filterStudentId, setFilterStudentId] = useState<string>("");
   const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [showExitModal, setShowExitModal] = useState(false);
 
   const toast = useToastCtx();
   const [undoHw, setUndoHw] = useState<{ id: string; previousStatus: HomeworkStatus } | null>(null);
@@ -140,6 +142,10 @@ export default function Home() {
           <button onClick={() => setShowExpenseModal(true)}
             className="bg-amber-50 text-amber-700 border border-amber-200 rounded-xl px-3 py-2 text-sm font-semibold flex items-center gap-1 hover:bg-amber-100 transition-colors">
             <span>💸</span> Catat
+          </button>
+          <button onClick={() => setShowExitModal(true)} aria-label="Keluar aplikasi"
+            className="bg-gray-50 text-gray-600 border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold flex items-center gap-1 hover:bg-gray-100 transition-colors">
+            <span>⏻</span> Keluar
           </button>
           <button onClick={() => openAdd(today)}
             className="bg-blue-600 text-white rounded-xl px-4 py-2 text-sm font-semibold shadow flex items-center gap-1.5">
@@ -259,6 +265,7 @@ export default function Home() {
           onSaved={msg}
         />
       )}
+      {showExitModal && <ExitAppModal onClose={() => setShowExitModal(false)} />}
     </div>
   );
 }

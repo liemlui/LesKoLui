@@ -66,3 +66,36 @@ test("buat laporan lalu export JPG berhasil tanpa error", async ({ page }) => {
   // Tidak boleh muncul pesan gagal
   await expect(page.getByText(/Gagal ekspor/)).toHaveCount(0);
 });
+
+test("rencana bulan depan tersimpan dan ikut tampil di pratinjau", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForTimeout(4000);
+  await page.evaluate(async () => {
+    const fn = (window as unknown as { seedDummy?: (force?: boolean) => Promise<unknown> }).seedDummy;
+    if (typeof fn === "function") await fn(true);
+  });
+  await page.goto("/report");
+  await closeChangelog(page);
+  await page.locator('input[type="month"]').fill("2026-06");
+
+  const select = page.locator("select").first();
+  const optionValues = await select.locator("option").evaluateAll(
+    (opts) => (opts as HTMLOptionElement[]).map((option) => option.value).filter(Boolean),
+  );
+  for (const value of optionValues) {
+    await select.selectOption(value);
+    if (await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).isVisible({ timeout: 1500 }).catch(() => false)) break;
+  }
+
+  await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).click();
+  await expect(page.locator("[data-report-page]").first()).toBeVisible({ timeout: 10_000 });
+
+  await page.getByText("Fokus & Rencana Bulan Depan", { exact: false }).click();
+  await page.getByRole("button", { name: /Susun Rencana/ }).click();
+  await page.getByPlaceholder("Contoh: Matematika AA").fill("Matematika AA");
+  await page.getByPlaceholder("Contoh: Menyelesaikan 8 dari 10 soal fungsi kuadrat dengan langkah lengkap.")
+    .fill("Menyelesaikan 8 dari 10 soal fungsi kuadrat dengan langkah lengkap.");
+  await page.getByRole("button", { name: "Simpan Rencana" }).click();
+
+  await expect(page.getByText("Menyelesaikan 8 dari 10 soal fungsi kuadrat dengan langkah lengkap.")).toHaveCount(2);
+});

@@ -380,6 +380,44 @@ export function SummaryEl(d: ReportData, t: Theme) {
           “{d.quote}”
         </div>
       )}
+      <NextMonthPlanEl plan={d.nextMonthPlan} t={t} />
+    </div>
+  );
+}
+
+/** Rencana tindak lanjut ringkas untuk halaman terakhir laporan. */
+function NextMonthPlanEl({ plan, t }: { plan: ReportData["nextMonthPlan"]; t: Theme }) {
+  const priorities = plan?.priorities.filter((item) => item.target.trim()).slice(0, 3) ?? [];
+  if (priorities.length === 0) return null;
+
+  return (
+    <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${t.accent}33` }}>
+      <div style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 12, color: t.accent, marginBottom: 8, letterSpacing: 1, textTransform: "uppercase" as const }}>
+        Fokus & Rencana Bulan Depan
+      </div>
+      <div style={{ display: "grid", gap: 7 }}>
+        {priorities.map((item, index) => (
+          <div key={item.id} style={{ padding: "8px 9px", borderRadius: 9, background: `${t.palette[index % t.palette.length]}14`, border: `1px solid ${t.palette[index % t.palette.length]}30` }}>
+            <p style={{ fontFamily: t.fontBody, fontSize: 11.5, fontWeight: 800, color: t.ink, margin: 0 }}>
+              {item.subject.trim() || `Prioritas ${index + 1}`} — {item.target.trim()}
+            </p>
+            {(item.tutorAction || item.successMetric || item.cadence) && (
+              <p style={{ fontFamily: t.fontBody, fontSize: 10.5, lineHeight: 1.45, color: t.muted, margin: "3px 0 0" }}>
+                {item.tutorAction && `Langkah tutor: ${item.tutorAction}`}
+                {item.tutorAction && (item.successMetric || item.cadence) && " · "}
+                {item.successMetric && `Indikator: ${item.successMetric}`}
+                {item.successMetric && item.cadence && " · "}
+                {item.cadence && item.cadence}
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+      {plan?.parentSupport && (
+        <p style={{ fontFamily: t.fontBody, fontSize: 10.5, lineHeight: 1.45, color: t.ink, margin: "8px 0 0" }}>
+          <strong>Dukungan di rumah:</strong> {plan.parentSupport}
+        </p>
+      )}
     </div>
   );
 }
@@ -401,4 +439,3 @@ export function Sparkline(series: number[], t: Theme) {
     </svg>
   );
 }
-

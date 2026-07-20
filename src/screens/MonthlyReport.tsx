@@ -24,9 +24,56 @@ import type {
   ReportOptions, CustomTheme, Theme,
   HeaderStyle, LabelStyle, PhotoStyle, DecoKind,
 } from "../template/types";
-import type { Session } from "../db/types";
+import type { NextMonthPlan, MonthlyPlanItem, PlanOwner, PlanStatus, Session } from "../db/types";
 
 const EMPTY_SUBJECT_LABEL = "Mapel belum diisi";
+const PLAN_OWNERS: Array<{ value: PlanOwner; label: string }> = [
+  { value: "shared", label: "Bersama" },
+  { value: "tutor", label: "Tutor" },
+  { value: "student", label: "Murid" },
+  { value: "parent", label: "Orang tua" },
+];
+const PLAN_STATUSES: Array<{ value: PlanStatus; label: string }> = [
+  { value: "planned", label: "Belum dimulai" },
+  { value: "in_progress", label: "Berjalan" },
+  { value: "achieved", label: "Tercapai" },
+];
+
+function newPlanItem(): MonthlyPlanItem {
+  return {
+    id: crypto.randomUUID(),
+    subject: "",
+    target: "",
+    owner: "shared",
+    status: "planned",
+  };
+}
+
+function createEmptyPlan(): NextMonthPlan {
+  return { priorities: [newPlanItem()], parentSupport: "" };
+}
+
+function normaliseAiPlan(plan?: {
+  priorities?: Array<Partial<Omit<MonthlyPlanItem, "id">>>;
+  parentSupport?: string;
+}): NextMonthPlan | undefined {
+  const priorities = (plan?.priorities ?? [])
+    .filter((item) => item.target?.trim())
+    .slice(0, 3)
+    .map((item) => ({
+      id: crypto.randomUUID(),
+      subject: item.subject?.trim() || EMPTY_SUBJECT_LABEL,
+      evidence: item.evidence?.trim(),
+      target: item.target!.trim(),
+      tutorAction: item.tutorAction?.trim(),
+      successMetric: item.successMetric?.trim(),
+      cadence: item.cadence?.trim(),
+      owner: PLAN_OWNERS.some((owner) => owner.value === item.owner) ? item.owner : "shared",
+      status: "planned" as const,
+    }));
+  if (priorities.length === 0) return undefined;
+  return { priorities, parentSupport: plan?.parentSupport?.trim(), updatedAt: new Date().toISOString() };
+}
 
 function cleanText(value?: string): string {
   return value?.trim() ?? "";
@@ -94,6 +141,8 @@ export default function MonthlyReportPage() {
   const [editText,         setEditText]         = useState("");
   const [editingSummary,   setEditingSummary]   = useState(false);
   const [summaryText,      setSummaryText]      = useState("");
+  const [editingTeacherNote, setEditingTeacherNote] = useState(false);
+  const [teacherNoteText,    setTeacherNoteText]    = useState("");
   const [editingQuote,     setEditingQuote]     = useState(false);
   const [showPolishModal,  setShowPolishModal]  = useState(false);
   const [showNarrativesModal, setShowNarrativesModal] = useState(false);
@@ -101,6 +150,7 @@ export default function MonthlyReportPage() {
     summaryText: string;
     teacherNote?: string;
     quote?: string;
+    nextMonthPlan?: NextMonthPlan;
     /** Narasi per sesi sebelum ditimpa AI — untuk Undo penuh. */
     narratives?: Array<{ id: string; narrative?: string }>;
   } | null>(null);
@@ -111,6 +161,8 @@ export default function MonthlyReportPage() {
   const reportExportRef = useRef<HTMLDivElement>(null);
   const [openNarasi,       setOpenNarasi]       = useState(false);
   const [openTeks,         setOpenTeks]         = useState(false);
+  const [openPlan,         setOpenPlan]         = useState(false);
+  const [editingPlan,      setEditingPlan]      = useState(false);
   const [narrativePage,    setNarrativePage]    = useState(1);
 
   const student  = useLiveQuery(() => (studentId ? getStudent(studentId) : undefined), [studentId]);
@@ -119,10 +171,34 @@ export default function MonthlyReportPage() {
 
   const totalHours = useMemo(() => sessions?.reduce((s, x) => s + x.durationHours, 0) ?? 0, [sessions]);
   const totalCost  = useMemo(() => sessions?.reduce((s, x) => s + x.cost, 0) ?? 0, [sessions]);
-  const reportSessions         = sessions ?? [];
+  const reportSessions         = useMemo(() => sessions ?? [], [sessions]);
   const sessionsWithNarrative  = reportSessions.filter((s) => Boolean(s.narrative?.trim())).length;
-  const sessionsWithPhotos     = reportSessions.filter((s) => Boolean(s.photo)).length;
-  const reportCompletion       = reportSessions.length > 0 ? Math.round((sessionsWithNarrative / reportSessions.length) * 100) : 0;
+  const engagementScores = useMemo(() => reportSessions
+    .map((s) => s.engagement?.score ?? (s.engagement ? calcEngagementScore(s.engagement) : undefined))
+    .filter((score): score is number => score != null), [reportSessions]);
+  const avgEngagement = useMemo(() => engagementScores.length > 0
+    ? Math.round(engagementScores.reduce((sum, score) => sum + score, 0) / engagementScores.length)
+    : undefined, [engagementScores]);
+  const engagementTrend = useMemo(() => {
+    if (engagementScores.length < 2) return undefined;
+    const split = Math.ceil(engagementScores.length / 2);
+    const start = engagementScores.slice(0, split);
+    const end = engagementScores.slice(split);
+    const startAvg = start.reduce((sum, score) => sum + score, 0) / start.length;
+    const endAvg = end.reduce((sum, score) => sum + score, 0) / end.length;
+    if (endAvg - startAvg >= 1) return "Meningkat";
+    if (startAvg - endAvg >= 1) return "Perlu perhatian";
+    return "Stabil";
+  }, [engagementScores]);
+  const hasPlan = Boolean(report?.nextMonthPlan?.priorities.some((item) => item.target.trim()));
+  const reportReadinessItems = [
+    { label: "Narasi sesi", complete: reportSessions.length > 0 && sessionsWithNarrative === reportSessions.length },
+    { label: "Ringkasan", complete: Boolean(report?.summaryText.trim()) },
+    { label: "Catatan guru", complete: Boolean(report?.teacherNote?.trim()) },
+    { label: "Rencana depan", complete: hasPlan },
+  ];
+  const reportReadiness = reportReadinessItems.filter((item) => item.complete).length;
+  const reportReadinessPercent = Math.round((reportReadiness / reportReadinessItems.length) * 100);
 
   // Clear stale message when student or month changes
   useEffect(() => { setMessage(""); setPrevTexts(null); }, [studentId, month]);
@@ -214,6 +290,7 @@ export default function MonthlyReportPage() {
         summary: report?.summaryText ?? "",
         teacherNote: report?.teacherNote,
         quote: report?.quote,
+        nextMonthPlan: report?.nextMonthPlan,
         avgEngagement,
         photoUrls,
         totalHours,
@@ -340,17 +417,20 @@ export default function MonthlyReportPage() {
       if (draft) {
         setPrevTexts({
           summaryText: draft.summaryText, teacherNote: draft.teacherNote,
-          quote: draft.quote, narratives: prevNarratives,
+          quote: draft.quote, nextMonthPlan: draft.nextMonthPlan, narratives: prevNarratives,
         });
+        const aiPlan = normaliseAiPlan(out.nextMonthPlan);
         await upsertReport({
           ...draft,
           summaryText: out.summary?.trim() || draft.summaryText,
           teacherNote: out.teacherNote?.trim() || draft.teacherNote,
           quote: out.quote?.trim() || draft.quote,
+          nextMonthPlan: aiPlan ?? draft.nextMonthPlan,
         });
       }
       setMessage(`Narasi AI selesai ✓ ${applied} narasi sesi + ringkasan & kutipan terisi`);
       setOpenNarasi(true);
+      setOpenPlan(true);
     } catch (e) { setMessage("Gagal: " + (e as Error).message); }
     finally { setAiLoading(false); }
   };
@@ -378,7 +458,13 @@ export default function MonthlyReportPage() {
   const saveReportField = async (field: "summaryText" | "teacherNote" | "quote", value: string) => {
     if (!report) return;
     await upsertReport({ ...report, [field]: value });
-    setEditingSummary(false); setEditingQuote(false);
+    setEditingSummary(false); setEditingTeacherNote(false); setEditingQuote(false);
+  };
+  const saveNextMonthPlan = async (nextMonthPlan: NextMonthPlan) => {
+    if (!report) return;
+    await upsertReport({ ...report, nextMonthPlan: { ...nextMonthPlan, updatedAt: new Date().toISOString() } });
+    setEditingPlan(false);
+    setMessage("Rencana bulan depan disimpan ✓");
   };
 
   if (!students) return <div className="p-4 text-gray-500">Memuat...</div>;
@@ -397,7 +483,13 @@ export default function MonthlyReportPage() {
               <button
                 onClick={async () => {
                   if (!report) return;
-                  await upsertReport({ ...report, summaryText: prevTexts.summaryText, teacherNote: prevTexts.teacherNote, quote: prevTexts.quote });
+                  await upsertReport({
+                    ...report,
+                    summaryText: prevTexts.summaryText,
+                    teacherNote: prevTexts.teacherNote,
+                    quote: prevTexts.quote,
+                    nextMonthPlan: prevTexts.nextMonthPlan,
+                  });
                   // Kembalikan juga narasi per sesi bila Narasi AI yang menimpanya
                   for (const n of prevTexts.narratives ?? []) {
                     await updateSession(n.id, { narrative: n.narrative });
@@ -444,7 +536,7 @@ export default function MonthlyReportPage() {
 
               {studentId && sessions && sessions.length > 0 && (
                 <>
-                  {/* 4 stat chips */}
+                  {/* Ringkasan yang langsung menjawab kondisi belajar bulan ini. */}
                   <div className="grid grid-cols-4 gap-1.5">
                     <div className="bg-blue-50 rounded-xl py-2 text-center">
                       <p className="text-lg font-bold text-blue-700">{sessions.length}</p>
@@ -455,16 +547,21 @@ export default function MonthlyReportPage() {
                       <p className="text-[11px] text-indigo-500">Jam</p>
                     </div>
                     <div className="bg-purple-50 rounded-xl py-2 text-center">
-                      <p className="text-lg font-bold text-purple-700">{sessionsWithPhotos}</p>
-                      <p className="text-[11px] text-purple-500">Foto</p>
+                      <p className="text-lg font-bold text-purple-700">{avgEngagement != null ? `${avgEngagement}/10` : "—"}</p>
+                      <p className="text-[11px] text-purple-500">Fokus rata²</p>
                     </div>
-                    <div className={`rounded-xl py-2 text-center ${reportCompletion === 100 ? "bg-green-50" : "bg-amber-50"}`}>
-                      <p className={`text-base font-bold leading-tight ${reportCompletion === 100 ? "text-green-700" : "text-amber-700"}`}>
-                        {sessionsWithNarrative}/{reportSessions.length}
+                    <div className={`rounded-xl py-2 text-center ${reportReadiness === 4 ? "bg-green-50" : "bg-amber-50"}`}>
+                      <p className={`text-base font-bold leading-tight ${reportReadiness === 4 ? "text-green-700" : "text-amber-700"}`}>
+                        {report ? `${reportReadiness}/4` : "—"}
                       </p>
-                      <p className={`text-[11px] ${reportCompletion === 100 ? "text-green-500" : "text-amber-500"}`}>Narasi</p>
+                      <p className={`text-[11px] ${reportReadiness === 4 ? "text-green-500" : "text-amber-500"}`}>Siap kirim</p>
                     </div>
                   </div>
+                  {engagementTrend && (
+                    <p className={`text-xs rounded-lg px-2.5 py-2 ${engagementTrend === "Meningkat" ? "bg-green-50 text-green-700" : engagementTrend === "Perlu perhatian" ? "bg-amber-50 text-amber-700" : "bg-gray-50 text-gray-600"}`}>
+                      Tren fokus: <strong>{engagementTrend}</strong> dibandingkan awal bulan.
+                    </p>
+                  )}
 
                   {/* Action buttons */}
                   <div className="flex gap-2">
@@ -487,16 +584,23 @@ export default function MonthlyReportPage() {
                     </div>
                   )}
 
-                  {/* Progress bar */}
+                  {/* Kesiapan laporan, bukan hanya jumlah narasi. */}
                   {report && (
-                    <div>
+                    <div className="space-y-2">
                       <div className="flex justify-between text-xs text-gray-400 mb-1">
-                        <span>Kelengkapan narasi</span>
-                        <span className={reportCompletion === 100 ? "text-green-600 font-semibold" : ""}>{reportCompletion}%</span>
+                        <span>Kesiapan laporan</span>
+                        <span className={reportReadiness === 4 ? "text-green-600 font-semibold" : ""}>{reportReadinessPercent}%</span>
                       </div>
                       <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                        <div className={`h-full rounded-full transition-all ${reportCompletion === 100 ? "bg-green-500" : "bg-blue-500"}`}
-                          style={{ width: `${reportCompletion}%` }} />
+                        <div className={`h-full rounded-full transition-all ${reportReadiness === 4 ? "bg-green-500" : "bg-blue-500"}`}
+                          style={{ width: `${reportReadinessPercent}%` }} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {reportReadinessItems.map((item) => (
+                          <span key={item.label} className={`text-[11px] rounded-md px-2 py-1 ${item.complete ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-400"}`}>
+                            {item.complete ? "✓" : "○"} {item.label}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -735,6 +839,25 @@ export default function MonthlyReportPage() {
                         )}
                       </div>
                       <div>
+                        <label className="label">Catatan Guru</label>
+                        {editingTeacherNote ? (
+                          <div className="space-y-2">
+                            <textarea className="input text-sm" rows={3} value={teacherNoteText}
+                              onChange={(e) => setTeacherNoteText(e.target.value)}
+                              placeholder="Kemajuan terbesar bulan ini dan fokus prioritas bulan depan..." />
+                            <div className="flex gap-2">
+                              <button className="btn btn-primary text-xs" onClick={() => saveReportField("teacherNote", teacherNoteText)}>Simpan</button>
+                              <button className="btn btn-secondary text-xs" onClick={() => setEditingTeacherNote(false)}>Batal</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 cursor-pointer hover:bg-gray-100 min-h-[2.5rem]"
+                            onClick={() => { setTeacherNoteText(report.teacherNote ?? ""); setEditingTeacherNote(true); }}>
+                            {report.teacherNote || <span className="text-gray-400">Klik untuk menambahkan kemajuan dan fokus prioritas...</span>}
+                          </p>
+                        )}
+                      </div>
+                      <div>
                         <label className="label">Kutipan</label>
                         {editingQuote ? (
                           <div className="space-y-2">
@@ -752,6 +875,71 @@ export default function MonthlyReportPage() {
                           </p>
                         )}
                       </div>
+                    </div>
+                  )}
+                </section>
+
+                <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                  <button className="w-full flex items-center justify-between p-4 text-left"
+                    onClick={() => setOpenPlan((value) => !value)}>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-gray-800 text-sm">🎯 Fokus & Rencana Bulan Depan</p>
+                        {hasPlan && <span className="text-[10px] bg-green-50 text-green-600 font-bold px-1.5 py-0.5 rounded-full">Siap</span>}
+                      </div>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {hasPlan ? `${report.nextMonthPlan!.priorities.filter((item) => item.target.trim()).length} prioritas terukur` : "Tetapkan maksimal 3 prioritas yang bisa ditindaklanjuti."}
+                      </p>
+                    </div>
+                    <span className="text-gray-400 text-sm">{openPlan ? "▲" : "▼"}</span>
+                  </button>
+                  {openPlan && (
+                    <div className="px-4 pb-4 space-y-3 border-t border-gray-100">
+                      {editingPlan ? (
+                        <NextMonthPlanEditor
+                          initialPlan={report.nextMonthPlan}
+                          onSave={saveNextMonthPlan}
+                          onCancel={() => setEditingPlan(false)}
+                        />
+                      ) : (
+                        <>
+                          {hasPlan ? (
+                            <div className="space-y-2 pt-3">
+                              {report.nextMonthPlan!.priorities.filter((item) => item.target.trim()).slice(0, 3).map((item, index) => (
+                                <div key={item.id} className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-3">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <p className="text-sm font-semibold text-gray-800">{index + 1}. {item.subject || `Prioritas ${index + 1}`}</p>
+                                    <span className="text-[10px] font-semibold rounded-full bg-white text-indigo-600 px-2 py-0.5">
+                                      {PLAN_STATUSES.find((status) => status.value === item.status)?.label ?? "Belum dimulai"}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm text-gray-700 mt-1">{item.target}</p>
+                                  {item.evidence && <p className="text-xs text-gray-500 mt-1.5">Dasar: {item.evidence}</p>}
+                                  {(item.tutorAction || item.successMetric || item.cadence) && (
+                                    <p className="text-xs text-indigo-700 mt-1.5">
+                                      {item.tutorAction && `Tutor: ${item.tutorAction}`}
+                                      {item.tutorAction && (item.successMetric || item.cadence) && " · "}
+                                      {item.successMetric && `Cek: ${item.successMetric}`}
+                                      {item.successMetric && item.cadence && " · "}
+                                      {item.cadence}
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                              {report.nextMonthPlan?.parentSupport && (
+                                <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                  <strong>Dukungan di rumah:</strong> {report.nextMonthPlan.parentSupport}
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="pt-3 text-sm text-gray-500">Belum ada rencana. Mulai dari target yang spesifik, cara belajar, dan indikator keberhasilan.</p>
+                          )}
+                          <button className="btn btn-secondary w-full text-sm" onClick={() => setEditingPlan(true)}>
+                            {hasPlan ? "✏️ Edit Rencana" : "＋ Susun Rencana"}
+                          </button>
+                        </>
+                      )}
                     </div>
                   )}
                 </section>
@@ -786,6 +974,153 @@ export default function MonthlyReportPage() {
 }
 
 // ── Custom Theme Builder ─────────────────────────────────────────────
+
+function NextMonthPlanEditor({ initialPlan, onSave, onCancel }: {
+  initialPlan?: NextMonthPlan;
+  onSave: (plan: NextMonthPlan) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [draft, setDraft] = useState<NextMonthPlan>(() => initialPlan
+    ? {
+      priorities: initialPlan.priorities.length > 0 ? initialPlan.priorities.map((item) => ({ ...item })) : [newPlanItem()],
+      parentSupport: initialPlan.parentSupport ?? "",
+      updatedAt: initialPlan.updatedAt,
+    }
+    : createEmptyPlan());
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const updateItem = (id: string, patch: Partial<MonthlyPlanItem>) => {
+    setDraft((plan) => ({
+      ...plan,
+      priorities: plan.priorities.map((item) => item.id === id ? { ...item, ...patch } : item),
+    }));
+  };
+
+  const removeItem = (id: string) => {
+    setDraft((plan) => ({
+      ...plan,
+      priorities: plan.priorities.length === 1 ? plan.priorities : plan.priorities.filter((item) => item.id !== id),
+    }));
+  };
+
+  const save = async () => {
+    const priorities = draft.priorities
+      .map((item) => ({
+        ...item,
+        subject: item.subject.trim(),
+        evidence: item.evidence?.trim(),
+        target: item.target.trim(),
+        tutorAction: item.tutorAction?.trim(),
+        successMetric: item.successMetric?.trim(),
+        cadence: item.cadence?.trim(),
+      }))
+      .filter((item) => item.target);
+    if (priorities.length === 0) {
+      setError("Isi minimal satu target belajar yang spesifik.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await onSave({ priorities, parentSupport: draft.parentSupport?.trim() });
+    } catch (e) {
+      setError("Gagal menyimpan: " + (e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3 pt-3">
+      <div className="rounded-xl bg-indigo-50 px-3 py-2 text-xs text-indigo-700">
+        Pilih maksimal tiga prioritas. Buat target yang dapat dilihat hasilnya, bukan hanya “lebih memahami materi”.
+      </div>
+      {draft.priorities.map((item, index) => (
+        <div key={item.id} className="rounded-xl border border-gray-200 p-3 space-y-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-semibold text-gray-700">Prioritas {index + 1}</p>
+            {draft.priorities.length > 1 && (
+              <button type="button" className="text-xs font-semibold text-red-500" onClick={() => removeItem(item.id)}>Hapus</button>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="label">Mapel / area</label>
+              <input className="input text-sm" value={item.subject}
+                placeholder="Contoh: Matematika AA"
+                onChange={(event) => updateItem(item.id, { subject: event.target.value })} />
+            </div>
+            <div>
+              <label className="label">Penanggung jawab</label>
+              <select className="input text-sm" value={item.owner ?? "shared"}
+                onChange={(event) => updateItem(item.id, { owner: event.target.value as PlanOwner })}>
+                {PLAN_OWNERS.map((owner) => <option key={owner.value} value={owner.value}>{owner.label}</option>)}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="label">Target terukur *</label>
+            <textarea className="input text-sm" rows={2} value={item.target}
+              placeholder="Contoh: Menyelesaikan 8 dari 10 soal fungsi kuadrat dengan langkah lengkap."
+              onChange={(event) => updateItem(item.id, { target: event.target.value })} />
+          </div>
+          <div>
+            <label className="label">Dasar dari bulan ini</label>
+            <textarea className="input text-sm" rows={2} value={item.evidence ?? ""}
+              placeholder="Contoh: Masih keliru pada operasi tanda negatif di soal cerita."
+              onChange={(event) => updateItem(item.id, { evidence: event.target.value })} />
+          </div>
+          <div>
+            <label className="label">Langkah tutor</label>
+            <textarea className="input text-sm" rows={2} value={item.tutorAction ?? ""}
+              placeholder="Contoh: Latihan bertahap, cek langkah, lalu soal aplikasi."
+              onChange={(event) => updateItem(item.id, { tutorAction: event.target.value })} />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="label">Indikator berhasil</label>
+              <input className="input text-sm" value={item.successMetric ?? ""}
+                placeholder="8/10 soal tepat"
+                onChange={(event) => updateItem(item.id, { successMetric: event.target.value })} />
+            </div>
+            <div>
+              <label className="label">Frekuensi / waktu</label>
+              <input className="input text-sm" value={item.cadence ?? ""}
+                placeholder="2 sesi per minggu"
+                onChange={(event) => updateItem(item.id, { cadence: event.target.value })} />
+            </div>
+          </div>
+          <div>
+            <label className="label">Status</label>
+            <select className="input text-sm" value={item.status ?? "planned"}
+              onChange={(event) => updateItem(item.id, { status: event.target.value as PlanStatus })}>
+              {PLAN_STATUSES.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
+            </select>
+          </div>
+        </div>
+      ))}
+      {draft.priorities.length < 3 && (
+        <button type="button" className="w-full rounded-xl border border-dashed border-indigo-300 py-2 text-sm font-semibold text-indigo-600 hover:bg-indigo-50"
+          onClick={() => setDraft((plan) => ({ ...plan, priorities: [...plan.priorities, newPlanItem()] }))}>
+          ＋ Tambah Prioritas
+        </button>
+      )}
+      <div>
+        <label className="label">Dukungan di rumah (opsional)</label>
+        <textarea className="input text-sm" rows={2} value={draft.parentSupport ?? ""}
+          placeholder="Contoh: Sediakan 10 menit latihan mandiri dua kali seminggu."
+          onChange={(event) => setDraft((plan) => ({ ...plan, parentSupport: event.target.value }))} />
+      </div>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+      <div className="flex gap-2">
+        <button className="btn btn-secondary flex-1 text-sm" onClick={onCancel} disabled={saving}>Batal</button>
+        <button className="btn btn-primary flex-1 text-sm" onClick={save} disabled={saving}>
+          {saving ? "Menyimpan..." : "Simpan Rencana"}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 const FONTS = [
   { id: "'Fredoka', sans-serif", name: "Fredoka" },

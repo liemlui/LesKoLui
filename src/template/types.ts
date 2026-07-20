@@ -1,4 +1,5 @@
 import React from "react";
+import type { NextMonthPlan } from "../db/types";
 
 export type HeaderStyle = "bubble" | "script" | "plain" | "frame" | "minimal" | "badge" | "watercolor";
 export type LabelStyle  = "pill" | "rounded" | "flag" | "tag" | "underline" | "ribbon-label";
@@ -42,6 +43,7 @@ export interface ReportData {
   summary: string;
   teacherNote?: string;
   quote?: string;
+  nextMonthPlan?: NextMonthPlan;
   avgEngagement?: number;
   photoUrls?: string[];
   // Agregat sebulan penuh (dipakai layout infografis; aman bila tak diisi).
