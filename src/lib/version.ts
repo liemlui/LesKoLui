@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.27.2";
+export const APP_VERSION = "v1.28.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -8,6 +8,20 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.28.0",
+    date: "2026-07-20",
+    title: "Code Quality — Dead Code Removal, Deduplikasi, & Perbaikan Teknis",
+    items: [
+      "Hapus dead code: InvoiceCard.tsx & usePhotoCapture.ts (tidak pernah di-import)",
+      "Deduplikasi addDaysToDate di CaptureSession → pakai addDays() dari lib/calendar.ts",
+      "Deduplikasi toggleSubject → shared toggleArrayItem() di lib/arrays.ts (dipakai StudentForm & CaptureSession)",
+      "Deduplikasi monthLabel di exportAbsensi.ts → impor dari lib/format.ts",
+      "IA/EE logic dipisahkan dari paymentRepo.ts → iaeeRepo.ts sendiri",
+      "useToast: fix memory leak — cleanup semua timer saat unmount + mounted guard",
+      "A11y: tambah role='status' aria-live='polite' pada flash message di App.tsx",
+    ],
+  },
   {
     version: "v1.27.2",
     date: "2026-07-19",

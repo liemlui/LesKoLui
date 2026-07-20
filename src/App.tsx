@@ -234,7 +234,7 @@ function Layout() {
       {/* Flash hasil aksi (mis. backup Drive) */}
       {flash && (
         <div className="fixed bottom-20 inset-x-0 z-[160] px-4">
-          <div className="max-w-md mx-auto bg-gray-800 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-lg text-center">{flash}</div>
+          <div className="max-w-md mx-auto bg-gray-800 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-lg text-center" role="status" aria-live="polite">{flash}</div>
         </div>
       )}
 

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getSettings } from "../db/repos";
 import { todayWIB } from "../lib/format";
+import { toggleArrayItem } from "../lib/arrays";
 import type { Student, Level, CurriculumType } from "../db/types";
 import { DEFAULT_RATE } from "../db/types";
 import { ALL_CURRICULA, CURRICULUM_META, getSubjectGroups } from "../lib/ibSubjects";
@@ -65,8 +66,7 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
   // Custom subjects from settings not already in curriculum list
   const extraSubjects = settings.subjects.filter((s) => !curriculumSubjects.includes(s));
 
-  const toggleSubject = (s: string) =>
-    setSubjects((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]);
+  const toggleSubject = (s: string) => setSubjects((prev) => toggleArrayItem(prev, s));
 
   const handleCurriculumChange = (c: CurriculumType) => {
     setCurriculum(c);

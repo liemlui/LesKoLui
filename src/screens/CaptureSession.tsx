@@ -11,6 +11,8 @@ import {
 import { compressPhoto, stampPhoto } from "../lib/foto";
 import SignaturePad from "../components/SignaturePad";
 import { todayWIB, dayLabel } from "../lib/format";
+import { toggleArrayItem } from "../lib/arrays";
+import { addDays } from "../lib/calendar";
 import { calcEngagementScore, scoreLabel } from "../lib/engagement";
 import { IB_MYP_SUBJECTS, IB_DP_GROUPS, getSubjectGroups, CURRICULUM_META } from "../lib/ibSubjects";
 import { searchTopics, browseTopicsForSubjects } from "../lib/ibTopics";
@@ -47,12 +49,6 @@ const STEPS = [
 type StepNum = 1 | 2 | 3 | 4 | 5 | 6;
 
 
-
-function addDaysToDate(date: string, n: number): string {
-  const [y, m, d] = date.split("-").map(Number);
-  const dt = new Date(y, m - 1, d + n);
-  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
-}
 
 function buildWaMessage(
   student: Student,
@@ -300,8 +296,7 @@ export default function CaptureSession() {
     e.target.value = "";
   };
 
-  const toggleSubject = (s: string) =>
-    setSubjects((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]);
+  const toggleSubject = (s: string) => setSubjects((prev) => toggleArrayItem(prev, s));
 
   const resetForm = () => {
     setSubjects([]); setShowIBPicker(false); setIbCustom("");
@@ -390,7 +385,7 @@ export default function CaptureSession() {
         topic: topic.trim() || undefined, predictedGrade: predictedGrade.trim() || undefined,
       });
       setCoHWTitle(""); setCoHWSubject(subjects[0] ?? studentSubjects[0] ?? "");
-      setCoHWDueAt(addDaysToDate(sessionDate, 7));
+      setCoHWDueAt(addDays(sessionDate, 7));
       setCoFollowUps(needsWork.trim() ? [needsWork.trim()] : []);
       setCoFollowUpText("");
       setShowCloseOut(true);
@@ -404,7 +399,7 @@ export default function CaptureSession() {
   const addCoHW = () => {
     if (!coHWTitle.trim()) return;
     setCoHWItems((prev) => [...prev, { title: coHWTitle.trim(), subject: coHWSubject, dueAt: coHWDueAt }]);
-    setCoHWTitle(""); setCoHWDueAt(addDaysToDate(sessionDate, 7));
+    setCoHWTitle(""); setCoHWDueAt(addDays(sessionDate, 7));
   };
 
   const addCoFollowUp = () => {

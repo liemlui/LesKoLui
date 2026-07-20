@@ -38,7 +38,7 @@ export type { CancelMode, EditMode } from "./sessionRepo";
 // Reports
 export { getReport, upsertReport, listReportsByStudent } from "./reportRepo";
 
-// Payments + Month Closing + Expenses + IA/EE
+// Payments + Month Closing + Expenses
 export {
   getPayment, upsertPayment, listPayments,
   markPaymentTransferred, markPaymentUnpaid, updatePaymentAmount,
@@ -46,11 +46,16 @@ export {
   computeMonthBills, getCashSummary,
   createExpense, listExpenses, listExpensesByCategory, deleteExpense,
   getExpenseTotals, getMonthlyIncomeVsExpense,
-  createIaEeProject, listIaEeProjects, updateIaEeProject, deleteIaEeProject,
-  addMilestone, updateMilestone, deleteMilestone,
 } from "./paymentRepo";
 export type { StudentBill, MonthCashSummary } from "./paymentRepo";
-export type { ExpenseCategory, IaEeMilestone } from "./paymentRepo";
+export type { ExpenseCategory } from "./paymentRepo";
+
+// IA / EE Projects
+export {
+  createIaEeProject, listIaEeProjects, updateIaEeProject, deleteIaEeProject,
+  addMilestone, updateMilestone, deleteMilestone,
+} from "./iaeeRepo";
+export type { IaEeMilestone } from "./paymentRepo";
 
 // Homework
 export {

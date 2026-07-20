@@ -1,6 +1,7 @@
 import type { Session } from "../db/types";
 import { loadHtmlToImage, loadJsPdf } from "./exportDeps";
 import { blobToDataUrl } from "./imageUtils";
+import { monthLabel } from "./format";
 
 interface AbsensiOptions {
   studentName: string;
@@ -43,14 +44,6 @@ function fmtDate(dateStr: string): string {
   const months = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Ags","Sep","Okt","Nov","Des"];
   const yr = dateStr.slice(2, 4);
   return `${parseInt(d)} ${months[parseInt(m) - 1]} ${yr}`;
-}
-
-function monthLabel(month: string): string {
-  const [, m] = month.split("-");
-  const months = ["Januari","Februari","Maret","April","Mei","Juni",
-    "Juli","Agustus","September","Oktober","November","Desember"];
-  const yr = month.slice(0, 4);
-  return `${months[parseInt(m) - 1]} ${yr}`;
 }
 
 function buildPageHtml(
