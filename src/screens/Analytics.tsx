@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   listStudents,
@@ -6,10 +7,12 @@ import {
   listExpenses,
   listAllPendingHomework,
   listAllHomeworkFull,
+  getSettings,
 } from "../db/repos";
 import { monthOf, monthLabel, todayWIB } from "../lib/format";
 import { prevMonth, nextMonth } from "../lib/calendar";
 import { forecastNextMonth } from "../lib/forecast";
+import { usePinGate } from "../hooks/usePinGate";
 import Tabs from "../components/Tabs";
 import Skeleton from "../components/Skeleton";
 import {
@@ -22,6 +25,7 @@ type AnalyticsTab = "financial" | "students" | "operations";
 
 export default function Analytics() {
   const today = todayWIB();
+  const navigate = useNavigate();
   const [calMonth, setCalMonth] = useState(() => monthOf(today));
   const [activeTab, setActiveTab] = useState<AnalyticsTab>("financial");
 
@@ -30,6 +34,8 @@ export default function Analytics() {
   const monthExpenses = useLiveQuery(() => listExpenses(calMonth), [calMonth]);
   const allHomework = useLiveQuery(() => listAllHomeworkFull(), []);
   const pendingHomework = useLiveQuery(() => listAllPendingHomework(), []);
+  const settings = useLiveQuery(() => getSettings(), []);
+  const pin = usePinGate();
 
 
 
@@ -144,6 +150,42 @@ export default function Analytics() {
         <Skeleton variant="text" lines={2} width="40%" />
         <Skeleton variant="chart" height={200} />
         <Skeleton variant="chart" height={200} />
+      </div>
+    );
+  }
+
+  if (!settings?.financialPin) {
+    return (
+      <div className="p-4 flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <p className="text-4xl">🔐</p>
+        <p className="font-bold text-lg text-gray-800">PIN Keuangan Belum Aktif</p>
+        <p className="text-sm text-gray-500 text-center">Buat PIN dulu sebelum membuka data analitik keuangan.</p>
+        <button
+          onClick={() => navigate("/settings")}
+          className="px-8 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-colors">
+          Buka Pengaturan
+        </button>
+        <button onClick={() => navigate(-1)} className="text-sm text-gray-500 hover:text-gray-600">← Kembali</button>
+      </div>
+    );
+  }
+
+  if (!pin.unlocked) {
+    return (
+      <div className="p-4 flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <p className="text-4xl">🔐</p>
+        <p className="font-bold text-lg text-gray-800">Data Analitik</p>
+        <p className="text-sm text-gray-500 text-center">Masukkan PIN untuk mengakses analitik keuangan</p>
+        <input type="password" inputMode="numeric" maxLength={6} placeholder="PIN (6 digit)"
+          value={pin.pinInput} onChange={(e) => pin.setPinInput(e.target.value.replace(/\D/g, "").slice(0, 6))}
+          className="input text-center tracking-widest text-xl w-40" autoFocus />
+        {pin.pinError && <p className="text-sm text-red-500">{pin.pinError}</p>}
+        <button
+          onClick={async () => { await pin.attemptPin(settings.financialPin!); }}
+          className="px-8 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-colors">
+          Buka
+        </button>
+        <button onClick={() => navigate(-1)} className="text-sm text-gray-500 hover:text-gray-600">← Kembali</button>
       </div>
     );
   }
