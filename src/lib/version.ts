@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.29.0";
+export const APP_VERSION = "v1.30.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -8,6 +8,23 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.30.0",
+    date: "2026-07-30",
+    title: "UX Audit — Home Screen & Monthly Report Overhaul",
+    items: [
+      "Home: gauge charts diganti KPI tiles + inline mini progress bar — lebih cepat dibaca",
+      "Home: badge 'Perlu perhatian' → full-width alert strip dengan ⚠️ + count + tap-to-scroll ke inbox",
+      "Home: MetricCard kini punya CTA action + trailing chevron — 'Buka daftar', 'Lihat murid'",
+      "Home: tombol Catat jadi primary (blue filled), Keluar jadi ghost icon-only, tambah ⚙️ Settings di header",
+      "BottomNav: 6→5 item, ikon emoji diganti SVG outline konsisten, Settings pindah ke header",
+      "Kontras: semua teks secondary naik ke ≥4.5:1 — Gauge, ProgressBar, MetricCard, badge",
+      "ProgressBar: tinggi bar dinaikkan (sm 4→8px, md 10→12px), teks detail lebih kontras",
+      "MonthlyReport: 26 tema light-bg — token muted diperbaiki ke WCAG AA 4.5:1 (Lavender, Sakura, dll.)",
+      "MonthlyReport: tema selector kini collapsible (default tertutup), preview melebar di desktop (max-w-2xl)",
+      "MonthlyReport: filter subject chips (Semua + per-mapel) di atas daftar sesi",
+    ],
+  },
   {
     version: "v1.29.0",
     date: "2026-07-20",

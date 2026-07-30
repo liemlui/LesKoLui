@@ -165,6 +165,7 @@ export default function MonthlyReportPage() {
   const [openPlan,         setOpenPlan]         = useState(false);
   const [editingPlan,      setEditingPlan]      = useState(false);
   const [narrativePage,    setNarrativePage]    = useState(1);
+  const [subjectFilter,    setSubjectFilter]    = useState<string>("");
 
   const student  = useLiveQuery(() => (studentId ? getStudent(studentId) : undefined), [studentId]);
   const sessions = useLiveQuery(() => (studentId ? listSessionsByStudentMonth(studentId, month) : []), [studentId, month]);
@@ -173,7 +174,15 @@ export default function MonthlyReportPage() {
   const totalHours = useMemo(() => sessions?.reduce((s, x) => s + x.durationHours, 0) ?? 0, [sessions]);
   const totalCost  = useMemo(() => sessions?.reduce((s, x) => s + x.cost, 0) ?? 0, [sessions]);
   const reportSessions         = useMemo(() => sessions ?? [], [sessions]);
-  const sessionsWithNarrative  = reportSessions.filter((s) => Boolean(s.narrative?.trim())).length;
+  const uniqueSubjects         = useMemo(() => {
+    const set = new Set<string>();
+    (sessions ?? []).forEach((s) => s.subjects.forEach((subj) => { if (subj.trim()) set.add(subj.trim()); }));
+    return [...set].sort();
+  }, [sessions]);
+  const filteredSessions = useMemo(() =>
+    subjectFilter ? reportSessions.filter((s) => s.subjects.some((subj) => subj.trim() === subjectFilter)) : reportSessions,
+  [reportSessions, subjectFilter]);
+  const sessionsWithNarrative  = filteredSessions.filter((s) => Boolean(s.narrative?.trim())).length;
   const engagementScores = useMemo(() => reportSessions
     .map((s) => s.engagement?.score ?? (s.engagement ? calcEngagementScore(s.engagement) : undefined))
     .filter((score): score is number => score != null), [reportSessions]);
@@ -304,8 +313,8 @@ export default function MonthlyReportPage() {
     return () => { cancelled = true; };
   }, [student, sessions, month, report, settings, totalHours]);
 
-  const safeNarrativePage      = clampPage(narrativePage, reportSessions.length);
-  const paginatedNarrativeSessions = paginateItems(reportSessions, safeNarrativePage);
+  const safeNarrativePage      = clampPage(narrativePage, filteredSessions.length);
+  const paginatedNarrativeSessions = paginateItems(filteredSessions, safeNarrativePage);
 
   const ensureReport = async () => {
     if (!studentId) return undefined;
@@ -524,6 +533,23 @@ export default function MonthlyReportPage() {
                 </div>
               </div>
 
+              {uniqueSubjects.length > 1 && studentId && (
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    onClick={() => setSubjectFilter("")}
+                    className={`text-[11px] font-semibold rounded-full px-2.5 py-1 transition-colors ${!subjectFilter ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+                    Semua
+                  </button>
+                  {uniqueSubjects.map((subj) => (
+                    <button key={subj}
+                      onClick={() => setSubjectFilter(subj === subjectFilter ? "" : subj)}
+                      className={`text-[11px] font-semibold rounded-full px-2.5 py-1 transition-colors ${subj === subjectFilter ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+                      {subj}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {!studentId && (
                 <p className="text-sm text-gray-500 text-center py-1">Pilih murid untuk mulai menyusun laporan.</p>
               )}
@@ -614,7 +640,15 @@ export default function MonthlyReportPage() {
               <section className="space-y-3">
 
                 {/* Design toolbar */}
-                <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-2.5">
+                <details className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-2.5 group" open={false}>
+                  <summary className="flex items-center justify-between cursor-pointer select-none">
+                    <span className="text-sm font-semibold text-gray-700">
+                      🎨 Tema: {allThemes.find((t) => t.id === report.templateKey.themeId)?.name ?? "—"}
+                      {" · "}{LAYOUTS.find((l) => l.id === report.templateKey.layoutId)?.name ?? "—"}
+                    </span>
+                    <span className="text-xs text-blue-600 font-semibold group-open:hidden">Ubah tema & layout ▸</span>
+                    <span className="text-xs text-gray-400 font-semibold hidden group-open:inline">▾</span>
+                  </summary>
                   {/* Row 1: Random + Layout + Cover toggle */}
                   <div className="flex items-center gap-2">
                     <button className="btn btn-secondary text-sm py-1.5 px-2 flex-shrink-0 whitespace-nowrap"
@@ -715,15 +749,17 @@ export default function MonthlyReportPage() {
                   />
                 )}
 
+                </details>
+
                 <div ref={reportExportRef}>
                 {/* Preview */}
-                <div className="max-w-sm mx-auto">
+                <div className="max-w-sm lg:max-w-2xl mx-auto">
                   <ReportRenderer data={reportData} theme={theme} layoutId={report.templateKey.layoutId} options={reportOptions} />
                 </div>
 
                 {/* Rekap tanda tangan */}
                 {sessionSigUrls.size > 0 && (
-                  <div data-report-page className="bg-white rounded-xl border border-gray-100 p-4 max-w-sm mx-auto">
+                  <div data-report-page className="bg-white rounded-xl border border-gray-100 p-4 max-w-sm lg:max-w-2xl mx-auto">
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">✍️ Rekap Tanda Tangan</p>
                     <div className="space-y-2">
                       {(sessions ?? []).filter((s) => sessionSigUrls.has(s.id)).map((s) => (
@@ -767,7 +803,7 @@ export default function MonthlyReportPage() {
                     onClick={() => setOpenNarasi((v) => !v)}>
                     <div>
                       <p className="font-semibold text-gray-800 text-sm">✏️ Narasi Sesi</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{sessionsWithNarrative}/{reportSessions.length} narasi siap</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{sessionsWithNarrative}/{filteredSessions.length} narasi siap</p>
                     </div>
                     <span className="text-gray-500 text-sm">{openNarasi ? "▲" : "▼"}</span>
                   </button>
@@ -798,7 +834,7 @@ export default function MonthlyReportPage() {
                           )}
                         </div>
                       ))}
-                      <PaginationControls page={safeNarrativePage} total={reportSessions.length}
+                      <PaginationControls page={safeNarrativePage} total={filteredSessions.length}
                         onPageChange={setNarrativePage} label="narasi" />
                     </div>
                   )}
