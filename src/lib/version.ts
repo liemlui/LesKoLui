@@ -1,4 +1,6 @@
-export const APP_VERSION = "v1.31.0";
+import pkg from "../../package.json";
+
+export const APP_VERSION = `v${pkg.version}`;
 
 export interface ChangelogEntry {
   version: string;
@@ -9,7 +11,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: "v1.31.0",
+    version: "v1.32.0",
+    date: "2026-07-30",
+    title: "Foto Bukti Pertemuan di Semua Layout + AI Ringkasan & Rencana Depan",
+    items: [
+      "Semua 27 layout kini menampilkan foto sesi (PhotoEl) — 10 layout yang sebelumnya tanpa foto kini lengkap",
+      "Detail Sesi (DetailsEl: durasi, waktu, topik, mood) ditambahkan ke 9 layout yang belum memilikinya",
+      "Cover page kini menampilkan galeri foto bukti pertemuan (maks 8 foto)",
+      "Fix: counter kesiapan laporan kini menghitung shortNote sebagai narasi (tidak hanya narrative)",
+      "AI Ringkasan kini juga generate Rencana Bulan Depan — satu klik untuk ringkasan + kutipan + rencana",
+      "Tombol 🤖 Generate AI baru di section Fokus & Rencana — generate rencana depan via AI",
+      "APP_VERSION kini dinamis dari package.json — update versi di satu tempat saja",
+    ],
+  },
+  {
     date: "2026-07-30",
     title: "UX Audit Fixes — Kontras, Hierarki KPI, Navigasi & Aksesibilitas",
     items: [
