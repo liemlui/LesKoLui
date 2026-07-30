@@ -30,9 +30,15 @@ export const milestone: Layout = {
               </div>
               <div style={{ flex: 1, paddingBottom: i < d.entries.length - 1 ? 0 : 0 }}>
                 <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
-                <div style={{ marginTop: 6, background: c + "0a", borderRadius: 12, padding: "10px 12px" }}>
-                  <NarrEl t={t}>{e.narrative}</NarrEl>
-                  <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
+                <div style={{ marginTop: 6, background: c + "0a", borderRadius: 12, padding: "10px 12px", display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
+                    <PhotoEl t={t} url={e.photoUrl} color={c} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <NarrEl t={t}>{e.narrative}</NarrEl>
+                    <DetailsEl e={e} t={t} c={c} compact />
+                    <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -102,8 +108,16 @@ export const journal: Layout = {
               <span style={{ fontSize: 10, fontWeight: 700, color: c, background: c + "18", padding: "2px 8px", borderRadius: 999 }}>
                 {e.subject}
               </span>
-              <p style={{ fontFamily: t.fontBody, fontSize: 14, lineHeight: 1.5, color: t.ink, margin: "6px 0 0" }}>{e.narrative}</p>
-              <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
+              <div style={{ display: "flex", gap: 10, marginTop: 6, alignItems: "flex-start" }}>
+                <div style={{ width: 40, height: 40, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
+                  <PhotoEl t={t} url={e.photoUrl} color={c} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontFamily: t.fontBody, fontSize: 14, lineHeight: 1.5, color: t.ink, margin: 0 }}>{e.narrative}</p>
+                  <DetailsEl e={e} t={t} c={c} compact />
+                  <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
+                </div>
+              </div>
             </div>
           </div>
         );
@@ -155,14 +169,22 @@ export const minimal: Layout = {
           const c = t.palette[i % t.palette.length];
           return (
             <div key={i} style={{ marginBottom: 20 }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 4 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: c }}>{e.date}</span>
-                <span style={{ fontSize: 10, color: t.muted }}>{e.subject}</span>
-                {e.engagementScore != null && (
-                  <span style={{ fontSize: 10, fontWeight: 700, color: c, marginLeft: "auto" }}>{e.engagementScore}/10</span>
-                )}
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 4 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 7, overflow: "hidden", flexShrink: 0 }}>
+                  <PhotoEl t={t} url={e.photoUrl} color={c} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: c }}>{e.date}</span>
+                    <span style={{ fontSize: 10, color: t.muted }}>{e.subject}</span>
+                    {e.engagementScore != null && (
+                      <span style={{ fontSize: 10, fontWeight: 700, color: c, marginLeft: "auto" }}>{e.engagementScore}/10</span>
+                    )}
+                  </div>
+                  <p style={{ fontFamily: t.fontBody, fontSize: 11.5, lineHeight: 1.55, color: t.ink, margin: 0 }}>{e.narrative}</p>
+                  <DetailsEl e={e} t={t} c={c} compact />
+                </div>
               </div>
-              <p style={{ fontFamily: t.fontBody, fontSize: 11.5, lineHeight: 1.55, color: t.ink, margin: 0 }}>{e.narrative}</p>
               {i < d.entries.length - 1 && <div style={{ height: 1, background: t.muted + "15", marginTop: 16 }} />}
             </div>
           );
@@ -186,6 +208,9 @@ export const bullets: Layout = {
         return (
           <div key={i} style={{ display: "flex", gap: 10, marginBottom: 14, position: "relative", zIndex: 2 }}>
             <span style={{ fontSize: 16, color: c, flexShrink: 0, lineHeight: 1.2 }}>{bullet}</span>
+            <div style={{ width: 36, height: 36, borderRadius: 7, overflow: "hidden", flexShrink: 0 }}>
+              <PhotoEl t={t} url={e.photoUrl} color={c} />
+            </div>
             <div style={{ flex: 1 }}>
               <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 3 }}>
                 <span style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 11, color: c }}>{e.date}</span>
@@ -195,6 +220,7 @@ export const bullets: Layout = {
                 )}
               </div>
               <p style={{ fontFamily: t.fontBody, fontSize: 13, lineHeight: 1.5, color: t.ink, margin: 0 }}>{e.narrative}</p>
+              <DetailsEl e={e} t={t} c={c} compact />
             </div>
           </div>
         );
@@ -249,7 +275,10 @@ export const compare: Layout = {
           const c = t.palette[i % t.palette.length];
           const meta = detailText(e, 1);
           return (
-            <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, position: "relative", zIndex: 2, padding: "7px 8px", borderRadius: 8, background: c + "08" }}>
+            <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, position: "relative", zIndex: 2, padding: "7px 8px", borderRadius: 8, background: c + "08", alignItems: "flex-start" }}>
+              <div style={{ width: 30, height: 30, borderRadius: 6, overflow: "hidden", flexShrink: 0 }}>
+                <PhotoEl t={t} url={e.photoUrl} color={c} />
+              </div>
               <span style={{ fontSize: 10, fontWeight: 600, color: c, width: 55, flexShrink: 0 }}>{entryDateShort(e)}</span>
               <span style={{ fontFamily: t.fontBody, fontSize: 10, color: t.ink, flex: 1, lineHeight: 1.3 }}>
                 <strong style={{ color: c }}>{entrySubjectShort(e)}:</strong> {truncateText(entryNarrative(e), 62)}
@@ -459,6 +488,24 @@ export const cover: Layout = {
           )}
           <p style={{ fontSize: 11, color: t.muted, margin: "20px 0 0" }}>{d.entries.length} sesi tercatat</p>
         </div>
+        {/* Foto bukti pertemuan — galeri kecil */}
+        {d.photoUrls && d.photoUrls.length > 0 && (
+          <div style={{ marginTop: 18, display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap" }}>
+            {d.photoUrls.slice(0, 8).map((url, i) => (
+              <div key={i} style={{
+                width: 52, height: 52, borderRadius: 8, overflow: "hidden",
+                boxShadow: "0 2px 8px rgba(0,0,0,.10)", transform: `rotate(${((i % 3) - 1) * 1.5}deg)`,
+              }}>
+                <PhotoEl t={t} url={url} color={t.palette[i % t.palette.length]} />
+              </div>
+            ))}
+            {d.photoUrls.length > 8 && (
+              <span style={{ fontSize: 11, color: t.muted, alignSelf: "center", marginLeft: 4 }}>
+                +{d.photoUrls.length - 8} foto
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   ),

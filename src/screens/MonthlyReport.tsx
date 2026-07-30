@@ -182,7 +182,7 @@ export default function MonthlyReportPage() {
   const filteredSessions = useMemo(() =>
     subjectFilter ? reportSessions.filter((s) => s.subjects.some((subj) => subj.trim() === subjectFilter)) : reportSessions,
   [reportSessions, subjectFilter]);
-  const sessionsWithNarrative  = filteredSessions.filter((s) => Boolean(s.narrative?.trim())).length;
+  const sessionsWithNarrative  = filteredSessions.filter((s) => Boolean(s.narrative?.trim() || s.shortNote?.trim())).length;
   const engagementScores = useMemo(() => reportSessions
     .map((s) => s.engagement?.score ?? (s.engagement ? calcEngagementScore(s.engagement) : undefined))
     .filter((score): score is number => score != null), [reportSessions]);
@@ -393,12 +393,19 @@ export default function MonthlyReportPage() {
       const draft = await ensureReport();
       const out = await generateReportSummary(buildAiInput());
       if (draft) {
-        const prev = { summaryText: draft.summaryText, quote: draft.quote };
-        await upsertReport({ ...draft, summaryText: out.summary ?? "", quote: out.quote });
+        const prev = { summaryText: draft.summaryText, quote: draft.quote, nextMonthPlan: draft.nextMonthPlan };
+        const aiPlan = normaliseAiPlan(out.nextMonthPlan);
+        await upsertReport({
+          ...draft,
+          summaryText: out.summary ?? "",
+          quote: out.quote,
+          nextMonthPlan: aiPlan ?? draft.nextMonthPlan,
+        });
         setPrevTexts(prev);
       }
-      setMessage("Poles AI selesai ✓ Ringkasan & kutipan terisi");
+      setMessage("Poles AI selesai ✓ Ringkasan, kutipan & rencana depan terisi");
       setOpenTeks(true);
+      setOpenPlan(true);
     } catch (e) { setMessage("Gagal: " + (e as Error).message); }
     finally { setAiLoading(false); }
   };
@@ -974,6 +981,13 @@ export default function MonthlyReportPage() {
                           <button className="btn btn-secondary w-full text-sm" onClick={() => setEditingPlan(true)}>
                             {hasPlan ? "✏️ Edit Rencana" : "＋ Susun Rencana"}
                           </button>
+                          {settings?.ai?.enabled && settings.ai.apiKey && (
+                            <button className="btn w-full text-sm bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 disabled:opacity-50"
+                              onClick={() => setShowPolishModal(true)} disabled={aiLoading}
+                              title="AI akan buatkan ringkasan + kutipan + rencana depan">
+                              {aiLoading ? "⏳ AI..." : "🤖 Generate AI"}
+                            </button>
+                          )}
                         </>
                       )}
                     </div>
@@ -989,9 +1003,9 @@ export default function MonthlyReportPage() {
       {/* Ringkasan AI cost modal */}
       <AiCostModal
         open={showPolishModal}
-        title="Ringkasan AI — Ringkasan & Kutipan"
+        title="✨ Ringkasan AI — Ringkasan, Kutipan & Rencana Depan"
         estimatedIDR={estimateReportSummaryCost(sessions?.length ?? 0)}
-        description={`${sessions?.length ?? 0} sesi · ringkasan bulan + kutipan untuk ${student?.name ?? "murid"}`}
+        description={`${sessions?.length ?? 0} sesi · ringkasan bulan + kutipan + rencana depan untuk ${student?.name ?? "murid"}`}
         onCancel={() => setShowPolishModal(false)}
         onConfirm={() => { setShowPolishModal(false); handlePolish(); }}
       />
@@ -1001,7 +1015,7 @@ export default function MonthlyReportPage() {
         open={showNarrativesModal}
         title="Narasi AI — Semua Sesi"
         estimatedIDR={estimateNarrativesCost(sessions?.length ?? 0)}
-        description={`Perluas shortNote jadi narasi 40–60 kata untuk ${sessions?.length ?? 0} sesi + ringkasan, catatan guru & kutipan. Narasi lama ditimpa (bisa di-Undo).`}
+        description={`Perluas shortNote jadi narasi 40–60 kata untuk ${sessions?.length ?? 0} sesi + ringkasan, catatan guru, kutipan & rencana depan. Narasi lama ditimpa (bisa di-Undo).`}
         onCancel={() => setShowNarrativesModal(false)}
         onConfirm={() => { setShowNarrativesModal(false); handleGenerateNarratives(); }}
       />

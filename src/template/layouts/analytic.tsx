@@ -2,7 +2,7 @@
 import type { Layout } from "../types";
 import { Deco } from "../deco";
 import {
-  HeaderEl, LabelEl, PhotoEl, NarrEl, EngagementBar,
+  HeaderEl, LabelEl, PhotoEl, NarrEl, EngagementBar, DetailsEl,
   SummaryEl, onColor, entryDay,
 } from "./helpers";
 
@@ -105,8 +105,16 @@ export const dossier: Layout = {
               <span style={{ fontSize: 10, background: onColor(c) === "#fff" ? "rgba(255,255,255,.25)" : "rgba(0,0,0,.15)", color: onColor(c), padding: "2px 8px", borderRadius: 999 }}>{e.subject}</span>
             </div>
             <div style={{ padding: "12px 14px" }}>
-              <NarrEl t={t}>{e.narrative}</NarrEl>
-              <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
+              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <div style={{ width: 44, height: 44, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
+                  <PhotoEl t={t} url={e.photoUrl} color={c} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <NarrEl t={t}>{e.narrative}</NarrEl>
+                  <DetailsEl e={e} t={t} c={c} compact />
+                  <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
+                </div>
+              </div>
             </div>
           </div>
         );
