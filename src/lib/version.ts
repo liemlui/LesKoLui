@@ -23,6 +23,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Kalender Bulan/Minggu/Hari tetap utuh — hanya kontras panah navigasi yang ditingkatkan",
     ],
   },
+  {
     version: "v1.30.0",
     date: "2026-07-30",
     title: "UX Audit — Home Screen & Monthly Report Overhaul",
