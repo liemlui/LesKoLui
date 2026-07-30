@@ -1,5 +1,3 @@
-import { type JSX } from "react";
-
 type Tone = "blue" | "green" | "amber" | "red" | "slate";
 
 const TONE: Record<Tone, string> = {
@@ -33,7 +31,6 @@ interface Props {
 /** Reusable dashboard metric with optional action affordance. */
 export default function MetricCard({ label, value, description, icon, tone = "slate", action, onClick }: Props) {
   const isInteractive = !!onClick;
-  const as = isInteractive ? "button" : "div";
 
   const content = (
     <>
@@ -52,15 +49,10 @@ export default function MetricCard({ label, value, description, icon, tone = "sl
     </>
   );
 
-  const shared = {
-    className: `rounded-xl border p-3 w-full text-left ${TONE[tone]} ${isInteractive ? "cursor-pointer hover:shadow-sm transition-shadow active:scale-[0.98]" : ""}`,
-    ...(isInteractive ? { type: "button" as const, onClick } : {}),
-    ...(!isInteractive ? { role: undefined } : {}),
-  };
+  const btnClassName = `rounded-xl border p-3 w-full text-left ${TONE[tone]} cursor-pointer hover:shadow-sm transition-shadow active:scale-[0.98]`;
+  const divClassName = `rounded-xl border p-3 w-full text-left ${TONE[tone]}`;
 
-  // Render as a <button> when interactive for a11y, otherwise a <div>
-  const Tag = as as "div" | "button";
   return isInteractive
-    ? <button {...shared as JSX.IntrinsicElements["button"]}>{content}</button>
-    : <div {...shared as JSX.IntrinsicElements["div"]}>{content}</div>;
+    ? <button type="button" onClick={onClick} className={btnClassName}>{content}</button>
+    : <div className={divClassName}>{content}</div>;
 }

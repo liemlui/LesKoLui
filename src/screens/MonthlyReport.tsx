@@ -713,7 +713,6 @@ export default function MonthlyReportPage() {
                     {allThemes.find((t) => t.id === report.templateKey.themeId)?.name ?? "—"}
                     {showCompare && " • Klik tema untuk bandingkan, klik lagi untuk pilih"}
                   </p>
-                </div>
 
                 {/* Comparison mode */}
                 {showCompare && compareThemeId && (
