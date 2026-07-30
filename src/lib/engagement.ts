@@ -1,15 +1,71 @@
 import type { EngagementLog } from "../db/types";
 
-export function calcEngagementScore(e: Omit<EngagementLog, "score">): number {
+export interface ExtendedEngagementInput {
+  // Core engagement flags
+  prepared?: boolean;
+  focused?: boolean;
+  activeAsking?: boolean;
+  quickLearner?: boolean;
+  drowsy?: boolean;
+  playingPhone?: boolean;
+  needsRepetition?: boolean;
+  hwMissed?: boolean;
+  // Extended — behavior taxonomy
+  behaviorTagIds?: string[];   // BEHAVIOR_TAGS ids with valence info
+  behaviorValences?: ("positive" | "neutral" | "negative")[];  // parallel to behaviorTagIds
+  // Extended — academic response
+  responseTagId?: string;      // RESPONSE_TAGS id
+  // Extended — mood
+  mood?: string;
+}
+
+/**
+ * Compute engagement score (1–10) from all available signals.
+ * Positives are boosted; negatives are mild (-1 each).
+ * Behavior tags and response quality now contribute.
+ */
+export function calcEngagementScore(e: Omit<EngagementLog, "score"> & Partial<ExtendedEngagementInput>): number {
   let s = 5;
-  if (e.prepared)         s += 2;
-  if (e.focused)          s += 1;
-  if (e.activeAsking)     s += 1;
-  if (e.quickLearner)     s += 1;
+
+  // ── Core engagement indicators ──
+  if (e.prepared)         s += 3;  // was +2
+  if (e.focused)          s += 2;  // was +1
+  if (e.activeAsking)     s += 2;  // was +1
+  if (e.quickLearner)     s += 2;  // was +1
   if (e.hwMissed)         s -= 1;
   if (e.needsRepetition)  s -= 1;
   if (e.drowsy)           s -= 1;
   if (e.playingPhone)     s -= 1;
+
+  // ── Behavior tags (cap at ±3) ──
+  if (e.behaviorValences && e.behaviorValences.length > 0) {
+    let b = 0;
+    for (const v of e.behaviorValences) {
+      if (v === "positive") b += 1;
+      if (v === "negative") b -= 1;
+    }
+    b = Math.max(-3, Math.min(3, b));
+    s += b;
+  }
+
+  // ── Academic response quality ──
+  if (e.responseTagId) {
+    const rid = e.responseTagId;
+    if (rid === "correct-independent")                     s += 2;
+    if (rid === "correct-with-prompt")                     s += 1;
+    if (rid === "can-explain-orally")                      s += 1;
+    if (rid === "transfer-attempt")                        s += 1;
+    if (rid === "metacognitive")                           s += 1;
+    if (rid === "misconception")                           s -= 2;
+    if (rid === "prerequisite-gap")                        s -= 2;
+    if (rid === "guessing")                                s -= 1;
+    // partial-correct, can-do-procedurally, guessing = neutral
+  }
+
+  // ── Mood ──
+  if (e.mood === "Semangat")   s += 1;
+  if (e.mood === "Kesulitan")  s -= 1;
+
   return Math.max(1, Math.min(10, s));
 }
 

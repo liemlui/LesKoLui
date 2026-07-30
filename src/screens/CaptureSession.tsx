@@ -331,6 +331,9 @@ export default function CaptureSession() {
         prepared: engPrepared, focused: engFocused, drowsy: engDrowsy, playingPhone: engPhone,
         activeAsking: engActiveAsking, quickLearner: engQuickLearner,
         needsRepetition: engNeedsRepeat, hwMissed: engHwMissed,
+        behaviorValences: behaviorTags.length > 0 ? behaviorTags.map(id => BEHAVIOR_TAGS.find(t => t.id === id)?.valence).filter(Boolean) as ("positive" | "neutral" | "negative")[] : undefined,
+        responseTagId: responseTag,
+        mood,
       }),
     } : undefined;
     try {
@@ -463,12 +466,15 @@ export default function CaptureSession() {
   const tutorName    = settings?.tutorProfile?.name || "Ko Lui";
   const waNumber     = currentStudent?.parentContact.phone.replace(/^0/, "62").replace(/[^0-9]/g, "") ?? "";
   const stepMeta     = STEPS[currentStep - 1];
-  const engScore     = engTouched ? calcEngagementScore({
+  const engScore     = (engTouched || behaviorTags.length > 0 || responseTag || mood) ? calcEngagementScore({
     prepared: engPrepared, focused: engFocused, drowsy: engDrowsy, playingPhone: engPhone,
     activeAsking: engActiveAsking, quickLearner: engQuickLearner,
     needsRepetition: engNeedsRepeat, hwMissed: engHwMissed,
+    behaviorValences: behaviorTags.length > 0 ? behaviorTags.map(id => BEHAVIOR_TAGS.find(t => t.id === id)?.valence).filter(Boolean) as ("positive" | "neutral" | "negative")[] : undefined,
+    responseTagId: responseTag,
+    mood,
   }) : 0;
-  const engScoreInfo = engTouched ? scoreLabel(engScore) : null;
+  const engScoreInfo = engScore > 0 ? scoreLabel(engScore) : null;
 
   return (
     <div className="pb-36">
@@ -918,22 +924,22 @@ export default function CaptureSession() {
               <button type="button" onClick={() => setEngPrepared(!engPrepared)}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
                   engPrepared ? "bg-green-500 text-white border-green-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-green-300"}`}>
-                <span>📚</span> Sudah siap (+2)
+                <span>📚</span> Sudah siap (+3)
               </button>
               <button type="button" onClick={() => setEngFocused(!engFocused)}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
                   engFocused ? "bg-blue-500 text-white border-blue-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"}`}>
-                <span>🎯</span> Sangat fokus (+1)
+                <span>🎯</span> Sangat fokus (+2)
               </button>
               <button type="button" onClick={() => setEngActiveAsking(!engActiveAsking)}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
                   engActiveAsking ? "bg-teal-500 text-white border-teal-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-teal-300"}`}>
-                <span>🙋</span> Aktif bertanya (+1)
+                <span>🙋</span> Aktif bertanya (+2)
               </button>
               <button type="button" onClick={() => setEngQuickLearner(!engQuickLearner)}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
                   engQuickLearner ? "bg-purple-500 text-white border-purple-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-purple-300"}`}>
-                <span>⚡</span> Cepat paham (+1)
+                <span>⚡</span> Cepat paham (+2)
               </button>
             </div>
           </div>

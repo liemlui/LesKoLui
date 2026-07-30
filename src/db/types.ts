@@ -23,13 +23,13 @@ export interface ParentContact { name?: string; phone: string; }
 
 export interface EngagementLog {
   // Positif
-  prepared?: boolean;       // sudah siap belajar (+2)
-  focused?: boolean;        // sangat fokus (+1)
-  activeAsking?: boolean;   // aktif bertanya (+1)
-  quickLearner?: boolean;   // cepat paham (+1)
+  prepared?: boolean;       // sudah siap belajar (+3)
+  focused?: boolean;        // sangat fokus (+2)
+  activeAsking?: boolean;   // aktif bertanya (+2)
+  quickLearner?: boolean;   // cepat paham (+2)
   // Negatif
-  drowsy?: boolean;         // mengantuk (-2)
-  playingPhone?: boolean;   // main HP (-3)
+  drowsy?: boolean;         // mengantuk (-1)
+  playingPhone?: boolean;   // main HP (-1)
   needsRepetition?: boolean;// perlu diulang (-1)
   hwMissed?: boolean;       // PR tidak dikerjakan (-1)
   score: number;            // 1-10, computed

@@ -6,14 +6,14 @@ describe("calcEngagementScore", () => {
     expect(calcEngagementScore({})).toBe(5);
   });
 
-  it("applies positive modifiers", () => {
-    expect(calcEngagementScore({ prepared: true })).toBe(7);       // 5+2
-    expect(calcEngagementScore({ focused: true })).toBe(6);        // 5+1
-    expect(calcEngagementScore({ activeAsking: true })).toBe(6);   // 5+1
-    expect(calcEngagementScore({ quickLearner: true })).toBe(6);   // 5+1
+  it("applies positive modifiers (boosted)", () => {
+    expect(calcEngagementScore({ prepared: true })).toBe(8);       // 5+3
+    expect(calcEngagementScore({ focused: true })).toBe(7);        // 5+2
+    expect(calcEngagementScore({ activeAsking: true })).toBe(7);   // 5+2
+    expect(calcEngagementScore({ quickLearner: true })).toBe(7);   // 5+2
   });
 
-  it("applies negative modifiers", () => {
+  it("applies negative modifiers (mild)", () => {
     expect(calcEngagementScore({ playingPhone: true })).toBe(4);    // 5-1
     expect(calcEngagementScore({ drowsy: true })).toBe(4);          // 5-1
     expect(calcEngagementScore({ needsRepetition: true })).toBe(4); // 5-1
@@ -26,7 +26,96 @@ describe("calcEngagementScore", () => {
   });
 
   it("handles mixed modifiers", () => {
-    expect(calcEngagementScore({ prepared: true, playingPhone: true })).toBe(6); // 5+2-1
+    expect(calcEngagementScore({ prepared: true, playingPhone: true })).toBe(7); // 5+3-1
+  });
+
+  // ── New: behavior tags ──
+  it("adds positive behavior tags (+1 each, max +3)", () => {
+    expect(calcEngagementScore({
+      behaviorValences: ["positive"],
+    })).toBe(6); // 5+1
+
+    expect(calcEngagementScore({
+      behaviorValences: ["positive", "positive", "positive"],
+    })).toBe(8); // 5+3
+
+    expect(calcEngagementScore({
+      behaviorValences: ["positive", "positive", "positive", "positive", "positive"],
+    })).toBe(8); // 5+3, capped
+  });
+
+  it("subtracts negative behavior tags (-1 each, max -3)", () => {
+    expect(calcEngagementScore({
+      behaviorValences: ["negative"],
+    })).toBe(4); // 5-1
+
+    expect(calcEngagementScore({
+      behaviorValences: ["negative", "negative", "negative"],
+    })).toBe(2); // 5-3
+
+    expect(calcEngagementScore({
+      behaviorValences: ["negative", "negative", "negative", "negative"],
+    })).toBe(2); // 5-3, capped
+  });
+
+  it("neutral behavior tags have no effect", () => {
+    expect(calcEngagementScore({
+      behaviorValences: ["neutral", "neutral"],
+    })).toBe(5); // unchanged
+  });
+
+  it("handles mixed behavior valences", () => {
+    expect(calcEngagementScore({
+      behaviorValences: ["positive", "positive", "negative"],
+    })).toBe(6); // 5+2-1=6
+  });
+
+  // ── New: response quality ──
+  it("rewards high-quality academic response", () => {
+    expect(calcEngagementScore({ responseTagId: "correct-independent" })).toBe(7);   // 5+2
+    expect(calcEngagementScore({ responseTagId: "correct-with-prompt" })).toBe(6);   // 5+1
+    expect(calcEngagementScore({ responseTagId: "can-explain-orally" })).toBe(6);    // 5+1
+    expect(calcEngagementScore({ responseTagId: "transfer-attempt" })).toBe(6);      // 5+1
+    expect(calcEngagementScore({ responseTagId: "metacognitive" })).toBe(6);         // 5+1
+  });
+
+  it("penalizes misconception and prerequisite gaps", () => {
+    expect(calcEngagementScore({ responseTagId: "misconception" })).toBe(3);         // 5-2
+    expect(calcEngagementScore({ responseTagId: "prerequisite-gap" })).toBe(3);      // 5-2
+    expect(calcEngagementScore({ responseTagId: "guessing" })).toBe(4);              // 5-1
+  });
+
+  it("neutral response tags have no effect", () => {
+    expect(calcEngagementScore({ responseTagId: "partial-correct" })).toBe(5);
+    expect(calcEngagementScore({ responseTagId: "can-do-procedurally" })).toBe(5);
+  });
+
+  // ── New: mood ──
+  it("factors in mood", () => {
+    expect(calcEngagementScore({ mood: "Semangat" })).toBe(6);    // 5+1
+    expect(calcEngagementScore({ mood: "Kesulitan" })).toBe(4);   // 5-1
+    expect(calcEngagementScore({ mood: "Biasa" })).toBe(5);       // neutral
+    expect(calcEngagementScore({ mood: "Fokus" })).toBe(5);       // neutral
+    expect(calcEngagementScore({ mood: "Lelah" })).toBe(5);       // neutral
+  });
+
+  // ── Full combo ──
+  it("combines all signals correctly", () => {
+    // Best case: good indicators + positive behavior + correct response + semangat
+    expect(calcEngagementScore({
+      prepared: true, focused: true,
+      behaviorValences: ["positive", "positive"],
+      responseTagId: "correct-independent",
+      mood: "Semangat",
+    })).toBe(10); // 5+3+2+2+2+1 = 15 → clamp 10
+
+    // Worst case: bad indicators + negative behavior + misconception + kesulitan
+    expect(calcEngagementScore({
+      drowsy: true, playingPhone: true,
+      behaviorValences: ["negative", "negative"],
+      responseTagId: "misconception",
+      mood: "Kesulitan",
+    })).toBe(1); // 5-1-1-2-2-1 = -2 → clamp 1
   });
 });
 
