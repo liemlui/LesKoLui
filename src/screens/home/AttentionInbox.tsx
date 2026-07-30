@@ -60,7 +60,7 @@ export default function AttentionInbox({
         <span className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
           <Badge tone="red" size="sm" count={total}>Perlu Perhatian</Badge>
         </span>
-        <span className="text-gray-500 text-sm">{collapsed ? "▸" : "▾"}</span>
+        <span className="text-gray-600 text-sm">{collapsed ? "▸" : "▾"}</span>
       </button>
 
       {!collapsed && (
@@ -72,7 +72,7 @@ export default function AttentionInbox({
             {activeTab === "missed" && (
               <div className="space-y-2">
                 {missed.length === 0 ? (
-                  <p className="text-xs text-slate-400 text-center py-4">Tidak ada sesi terlewat 🎉</p>
+                  <p className="text-xs text-slate-500 text-center py-4">Tidak ada sesi terlewat 🎉</p>
                 ) : (
                   <>
                     {paginateItems(missed, safeMissedPage).map((s) => {
@@ -104,7 +104,7 @@ export default function AttentionInbox({
             {activeTab === "overdue" && (
               <div className="space-y-2">
                 {overdue.length === 0 ? (
-                  <p className="text-xs text-slate-400 text-center py-4">Tidak ada PR terlambat 🎉</p>
+                  <p className="text-xs text-slate-500 text-center py-4">Tidak ada PR terlambat 🎉</p>
                 ) : (
                   <>
                     {paginateItems(overdue, safeOverduePage).map((h) => (
@@ -129,7 +129,7 @@ export default function AttentionInbox({
             {activeTab === "upcoming" && (
               <div className="space-y-2">
                 {upcomingSoon.length === 0 ? (
-                  <p className="text-xs text-slate-400 text-center py-4">Tidak ada PR mendesak 🎉</p>
+                  <p className="text-xs text-slate-500 text-center py-4">Tidak ada PR mendesak 🎉</p>
                 ) : (
                   <>
                     {paginateItems(upcomingSoon, safeUpcomingPage).map((h) => (
@@ -154,7 +154,7 @@ export default function AttentionInbox({
             {activeTab === "follows" && (
               <div className="space-y-2">
                 {follows.length === 0 ? (
-                  <p className="text-xs text-slate-400 text-center py-4">Tidak ada follow-up 🎉</p>
+                  <p className="text-xs text-slate-500 text-center py-4">Tidak ada follow-up 🎉</p>
                 ) : (
                   <>
                     {paginateItems(follows, safeFollowUpPage).map((f) => {

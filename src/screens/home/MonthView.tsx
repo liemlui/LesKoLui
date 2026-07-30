@@ -40,17 +40,17 @@ export default function MonthView({
   return (
     <div className="mx-4 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
-        <button aria-label="Bulan sebelumnya" onClick={() => setCalMonth(prevMonth(calMonth))} className="text-gray-500 text-xl w-10 h-10 flex items-center justify-center">‹</button>
+        <button aria-label="Bulan sebelumnya" onClick={() => setCalMonth(prevMonth(calMonth))} className="text-gray-600 hover:text-gray-800 text-xl w-10 h-10 flex items-center justify-center">‹</button>
         <div className="flex items-center gap-2">
           <span className="font-semibold text-gray-800">{monthLabel(calMonth)}</span>
           {calMonth !== monthOf(today) && (
             <button onClick={onJumpToday} className="text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded-lg transition-colors">Hari Ini</button>
           )}
         </div>
-        <button aria-label="Bulan berikutnya" onClick={() => setCalMonth(nextMonth(calMonth))} className="text-gray-500 text-xl w-10 h-10 flex items-center justify-center">›</button>
+        <button aria-label="Bulan berikutnya" onClick={() => setCalMonth(nextMonth(calMonth))} className="text-gray-600 hover:text-gray-800 text-xl w-10 h-10 flex items-center justify-center">›</button>
       </div>
       <div className="grid grid-cols-7 text-center border-b border-gray-100">
-        {DOW_LABELS.map((d, i) => <div key={d} className={`py-1.5 text-xs font-medium ${i === 0 ? "text-red-400" : "text-gray-500"}`}>{d}</div>)}
+        {DOW_LABELS.map((d, i) => <div key={d} className={`py-1.5 text-xs font-medium ${i === 0 ? "text-red-500" : "text-gray-600"}`}>{d}</div>)}
       </div>
       <div className="grid grid-cols-7">
         {cells.map((date, i) => {
@@ -72,7 +72,7 @@ export default function MonthView({
               style={heatBg && !isSelected ? { background: heatBg } : undefined}>
               <span className={`text-xs font-medium w-5 h-5 flex items-center justify-center rounded-full mb-0.5 self-center ${
                 isToday ? "bg-blue-600 text-white"
-                : isPast ? "text-gray-500"
+                : isPast ? "text-gray-600"
                 : isSunday ? "text-red-500"
                 : "text-gray-600"
               }`}>
@@ -92,7 +92,7 @@ export default function MonthView({
                   );
                 })}
                 {sortedSess.length > 3 && (
-                  <div className="text-center text-gray-500 font-medium" style={{ fontSize: 10 }}>+{sortedSess.length - 3}</div>
+                  <div className="text-center text-gray-600 font-medium" style={{ fontSize: 10 }}>+{sortedSess.length - 3}</div>
                 )}
               </div>
             </button>

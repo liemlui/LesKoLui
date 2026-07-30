@@ -53,10 +53,10 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
-  `flex flex-col items-center justify-center px-3 py-1 text-xs transition-colors ${
+  `flex flex-col items-center justify-center gap-0.5 min-h-[48px] min-w-[48px] px-2 py-1 text-xs font-medium transition-colors rounded-xl ${
     isActive
-      ? "text-blue-600 font-semibold"
-      : "text-gray-400 hover:text-gray-600"
+      ? "text-blue-700 bg-blue-50"
+      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
   }`;
 
 export default function BottomNav() {
@@ -66,11 +66,11 @@ export default function BottomNav() {
         {NAV_ITEMS.map(({ to, icon, label }) => (
           <NavLink key={to} to={to} end={to === "/"} className={linkClass}>
             <span className="mb-0.5">{icon}</span>
-            <span>{label}</span>
+            <span style={{ fontSize: 11 }}>{label}</span>
           </NavLink>
         ))}
       </div>
-      <p className="text-center text-gray-400 pb-1" style={{ fontSize: 10 }}>{APP_VERSION}</p>
+      <p className="text-center text-gray-500 pb-1" style={{ fontSize: 10 }}>{APP_VERSION}</p>
     </nav>
   );
 }

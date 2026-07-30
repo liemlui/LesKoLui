@@ -22,7 +22,7 @@ export default function DayDetail({ date, sessions, studentMap, today, onAdd, ..
         </button>
       </div>
       {sessions.length === 0
-        ? <p className="text-xs text-gray-500 py-2 text-center">Belum ada sesi. Tap "+ Jadwal" untuk tambah.</p>
+        ? <p className="text-xs text-gray-600 py-2 text-center">Belum ada sesi. Tap "+ Jadwal" untuk tambah.</p>
         : [...sessions]
             .sort((a, b) => (a.time ?? "").localeCompare(b.time ?? ""))
             .map((s) => (

@@ -1,4 +1,4 @@
-export const APP_VERSION = "v1.30.0";
+export const APP_VERSION = "v1.31.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -9,6 +9,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.31.0",
+    date: "2026-07-30",
+    title: "UX Audit Fixes — Kontras, Hierarki KPI, Navigasi & Aksesibilitas",
+    items: [
+      "Kontras teks: semua secondary text naik ke ≥4.5:1 (gray-400→600, slate-400→600) di 13 file — WCAG AA",
+      "Command Center: Hari Ini jadi kartu full-width 32px + badge status eksplisit (✅⏳📋📅) + border kiri berwarna",
+      "Command Center: Minggu Ini, Sesi Terlewat, Tindak Lanjut, Murid Aktif di-grid ulang dengan prioritas",
+      "Progress bar ditebalkan ke 10-12px — lebih mudah dibaca dalam sekejap",
+      "Header: tombol ⚙️ Settings & ⏻ Power kini 44×44px tap target + hover bg-gray-100",
+      "BottomNav: tab aktif kini pakai pill bg-blue-50 + text-blue-700, min 48px touch target",
+      "MetricCard: semua kartu kini punya left-border accent 4px + CTA klik langsung (Buka daftar / Lihat murid)",
+      "Kalender Bulan/Minggu/Hari tetap utuh — hanya kontras panah navigasi yang ditingkatkan",
+    ],
+  },
     version: "v1.30.0",
     date: "2026-07-30",
     title: "UX Audit — Home Screen & Monthly Report Overhaul",

@@ -9,11 +9,19 @@ const TONE: Record<Tone, string> = {
 };
 
 const TONE_ACTION: Record<Tone, string> = {
-  blue: "text-blue-600",
-  green: "text-green-600",
-  amber: "text-amber-600",
-  red: "text-red-600",
+  blue: "text-blue-700",
+  green: "text-green-700",
+  amber: "text-amber-700",
+  red: "text-red-700",
   slate: "text-slate-600",
+};
+
+const TONE_LEFT_BAR: Record<Tone, string> = {
+  blue: "border-l-blue-400",
+  green: "border-l-green-400",
+  amber: "border-l-amber-400",
+  red: "border-l-red-400",
+  slate: "border-l-slate-300",
 };
 
 interface Props {
@@ -28,7 +36,7 @@ interface Props {
   onClick?: () => void;
 }
 
-/** Reusable dashboard metric with optional action affordance. */
+/** Reusable dashboard metric with optional action affordance and left-border accent. */
 export default function MetricCard({ label, value, description, icon, tone = "slate", action, onClick }: Props) {
   const isInteractive = !!onClick;
 
@@ -38,7 +46,7 @@ export default function MetricCard({ label, value, description, icon, tone = "sl
         <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-600">{label}</p>
         {icon && <span aria-hidden="true" className="text-sm leading-none">{icon}</span>}
       </div>
-      <p className="mt-1 text-xl font-bold leading-none">{value}</p>
+      <p className="mt-1 text-xl font-bold leading-none text-slate-800">{value}</p>
       <p className="mt-1.5 text-[11px] leading-snug text-slate-600">{description}</p>
       {action && (
         <p className={`mt-2 text-[11px] font-semibold flex items-center gap-1 ${TONE_ACTION[tone]}`}>
@@ -49,8 +57,9 @@ export default function MetricCard({ label, value, description, icon, tone = "sl
     </>
   );
 
-  const btnClassName = `rounded-xl border p-3 w-full text-left ${TONE[tone]} cursor-pointer hover:shadow-sm transition-shadow active:scale-[0.98]`;
-  const divClassName = `rounded-xl border p-3 w-full text-left ${TONE[tone]}`;
+  const sharedClass = `rounded-xl border-l-4 p-3 w-full text-left ${TONE[tone]} ${TONE_LEFT_BAR[tone]}`;
+  const btnClassName = `${sharedClass} cursor-pointer hover:shadow-md hover:brightness-95 transition-all active:scale-[0.98]`;
+  const divClassName = sharedClass;
 
   return isInteractive
     ? <button type="button" onClick={onClick} className={btnClassName}>{content}</button>

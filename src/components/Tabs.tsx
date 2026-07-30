@@ -35,13 +35,13 @@ export default function Tabs({ tabs, active, onChange, children, fullWidth }: Pr
               } ${
                 isActive
                   ? "text-blue-700"
-                  : "text-slate-500 hover:text-slate-700"
+                  : "text-slate-600 hover:text-slate-700"
               }`}>
               <span className="flex items-center gap-1.5 justify-center">
                 {tab.label}
                 {tab.count != null && tab.count > 0 && (
                   <span className={`rounded-full px-1.5 py-0 text-[10px] font-bold ${
-                    isActive ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500"
+                    isActive ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600"
                   }`}>
                     {tab.count > 99 ? "99+" : tab.count}
                   </span>

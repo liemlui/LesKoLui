@@ -35,7 +35,7 @@ function SessionPill({ session: s, studentMap, today, dateCtx, onEdit, onCapture
         <div className="flex items-start justify-between gap-2">
           <button className="min-w-0 text-left flex-1" onClick={() => isMissed ? onResolveMissed(s) : isScheduled && onEdit(s)}>
             <p className="text-sm font-semibold truncate" style={{ color }}>{info?.name ?? "—"}</p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-600">
               {s.time ? `${s.time} · ` : ""}{s.durationHours}j
               {isDone ? " ✓" : ""}{s.seriesId ? " 🔁" : ""}
               {isMissed ? " ⚠️ Terlewat" : ""}
@@ -44,7 +44,7 @@ function SessionPill({ session: s, studentMap, today, dateCtx, onEdit, onCapture
           {isDone ? (
             <span className="text-green-500 text-xs flex-shrink-0 pt-0.5 font-bold">✓ Selesai</span>
           ) : isNoShow ? (
-            <span className={`text-xs flex-shrink-0 pt-0.5 font-bold ${s.noShowBillable ? "text-orange-600" : "text-gray-500"}`}>
+            <span className={`text-xs flex-shrink-0 pt-0.5 font-bold ${s.noShowBillable ? "text-orange-600" : "text-gray-600"}`}>
               {s.noShowBillable ? "Tidak hadir · Tagih" : "Tidak hadir"}
             </span>
           ) : isMissed ? (
@@ -55,7 +55,7 @@ function SessionPill({ session: s, studentMap, today, dateCtx, onEdit, onCapture
                 className="text-xs bg-orange-50 text-orange-700 px-2 py-1 rounded-lg font-semibold">Atur</button>
             </div>
           ) : isFuture ? (
-            <span className="text-xs text-gray-500 flex-shrink-0 pt-0.5">Menunggu</span>
+            <span className="text-xs text-gray-600 flex-shrink-0 pt-0.5">Menunggu</span>
           ) : (isToday || isScheduled) ? (
             <button onClick={() => onCapture(s.id)} aria-label={`Catat sesi ${info?.name ?? "murid"}`}
               className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-semibold flex-shrink-0 hover:bg-blue-700 transition-colors">

@@ -119,12 +119,12 @@ export default function Home() {
       <div className="pb-20">
         <div className="px-4 pt-5 pb-3">
           <h1 className="text-2xl font-bold" style={{ fontFamily: "'Fredoka', sans-serif" }}>Les Ko Lui</h1>
-          <p className="text-gray-500 text-xs">{dayLabel(today)}</p>
+          <p className="text-gray-600 text-xs">{dayLabel(today)}</p>
         </div>
         <div className="mx-4 mt-6 bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
           <p className="text-4xl mb-3">👋</p>
           <h2 className="text-lg font-bold text-gray-800 mb-1">Selamat datang!</h2>
-          <p className="text-sm text-gray-500 mb-5">Mulai dengan menambahkan murid pertamamu, lalu jadwalkan sesi les.</p>
+          <p className="text-sm text-gray-600 mb-5">Mulai dengan menambahkan murid pertamamu, lalu jadwalkan sesi les.</p>
           <button onClick={() => navigate("/students")}
             className="btn-primary w-full py-3 font-semibold">
             + Tambah murid pertama
@@ -141,19 +141,19 @@ export default function Home() {
       <div className="px-4 pt-5 pb-3 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold" style={{ fontFamily: "'Fredoka', sans-serif" }}>Les Ko Lui</h1>
-          <p className="text-gray-500 text-xs">{dayLabel(today)}</p>
+          <p className="text-gray-600 text-xs">{dayLabel(today)}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <button onClick={() => setShowExpenseModal(true)}
-            className="bg-blue-600 text-white rounded-xl px-3 py-2 text-sm font-semibold flex items-center gap-1 hover:bg-blue-700 transition-colors shadow-sm">
+            className="bg-blue-600 text-white rounded-xl px-3.5 py-2.5 text-sm font-semibold flex items-center gap-1.5 hover:bg-blue-700 transition-colors shadow-sm">
             <span>💸</span> Catat
           </button>
           <Link to="/settings" aria-label="Pengaturan"
-            className="text-gray-400 hover:text-gray-600 rounded-xl p-2 text-sm transition-colors">
+            className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl w-[44px] h-[44px] flex items-center justify-center text-lg transition-colors">
             ⚙️
           </Link>
           <button onClick={() => setShowExitModal(true)} aria-label="Keluar aplikasi"
-            className="text-gray-400 hover:text-gray-600 rounded-xl px-2 py-2 text-sm flex items-center gap-1 transition-colors">
+            className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl w-[44px] h-[44px] flex items-center justify-center text-lg transition-colors">
             <span>⏻</span>
           </button>
         </div>
@@ -206,7 +206,7 @@ export default function Home() {
         <div className="bg-gray-100 rounded-xl p-1 grid grid-cols-3">
           {(["month", "week", "day"] as CalView[]).map((v) => (
             <button key={v} onClick={() => setView(v)}
-              className={`py-1.5 rounded-lg text-sm font-medium transition-colors ${view === v ? "bg-white shadow text-blue-700" : "text-gray-500"}`}>
+              className={`py-1.5 rounded-lg text-sm font-medium transition-colors ${view === v ? "bg-white shadow text-blue-700" : "text-gray-600"}`}>
               {v === "month" ? "Bulan" : v === "week" ? "Minggu" : "Hari"}
             </button>
           ))}
@@ -225,7 +225,7 @@ export default function Home() {
             </select>
             {filterStudentId && (
               <button aria-label="Hapus filter" onClick={() => setFilterStudentId("")}
-                className="text-xs text-gray-500 hover:text-gray-600 w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                className="text-xs text-gray-600 hover:text-gray-700 w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             )}
           </div>
         )}

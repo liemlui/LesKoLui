@@ -71,7 +71,7 @@ export default function ProgressBar({
         />
       </div>
       {detail && (
-        <p className={`mt-1 text-[11px] text-slate-500`}>{detail}</p>
+        <p className={`mt-1 text-[11px] text-slate-600`}>{detail}</p>
       )}
     </div>
   );
