@@ -13,7 +13,6 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/tugas",     label: "Tugas",    icon: "📋" },
   { to: "/analytics", label: "Analitik", icon: "📊" },
   { to: "/payments",  label: "Keuangan", icon: "💰" },
-  { to: "/settings",  label: "Atur",     icon: "⚙️" },
 ];
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>

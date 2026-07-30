@@ -1,5 +1,5 @@
-import { useMemo, useState, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useMemo, useState, useCallback, useEffect, useRef } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { useToastCtx } from "../../components/ToastProvider";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
@@ -44,6 +44,11 @@ export default function Home() {
   const toast = useToastCtx();
   const [undoHw, setUndoHw] = useState<{ id: string; previousStatus: HomeworkStatus } | null>(null);
   const [undoTimer, setUndoTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const attentionRef = useRef<HTMLDivElement>(null);
+
+  const scrollToAttention = useCallback(() => {
+    attentionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
   // ── Data ──────────────────────────────────────────────────────────────────
   const students = useLiveQuery(() => listStudents(true), []);
@@ -139,13 +144,17 @@ export default function Home() {
           <p className="text-gray-500 text-xs">{dayLabel(today)}</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => setShowExitModal(true)} aria-label="Keluar aplikasi"
-            className="bg-gray-50 text-gray-600 border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold flex items-center gap-1 hover:bg-gray-100 transition-colors">
-            <span>⏻</span> Keluar
-          </button>
           <button onClick={() => setShowExpenseModal(true)}
-            className="bg-amber-50 text-amber-700 border border-amber-200 rounded-xl px-3 py-2 text-sm font-semibold flex items-center gap-1 hover:bg-amber-100 transition-colors">
+            className="bg-blue-600 text-white rounded-xl px-3 py-2 text-sm font-semibold flex items-center gap-1 hover:bg-blue-700 transition-colors shadow-sm">
             <span>💸</span> Catat
+          </button>
+          <Link to="/settings" aria-label="Pengaturan"
+            className="text-gray-400 hover:text-gray-600 rounded-xl p-2 text-sm transition-colors">
+            ⚙️
+          </Link>
+          <button onClick={() => setShowExitModal(true)} aria-label="Keluar aplikasi"
+            className="text-gray-400 hover:text-gray-600 rounded-xl px-2 py-2 text-sm flex items-center gap-1 transition-colors">
+            <span>⏻</span>
           </button>
         </div>
       </div>
@@ -174,11 +183,14 @@ export default function Home() {
         weekPlanned={(currentWeekSessions ?? []).filter((s) => s.status === "DONE" || s.status === "SCHEDULED").length}
         missedCount={missed.length}
         attentionCount={missed.length + overdue.length + upcomingSoon.length + follows.length}
-
+        onAttentionClick={scrollToAttention}
+        onMissedClick={scrollToAttention}
+        onActiveStudentsClick={() => navigate("/students")}
       />
       <TodayHero today={today} sessions={todayList} studentMap={studentMap} onAdd={openAdd} {...actions} />
 
       {/* Perlu Perhatian */}
+      <div ref={attentionRef}>
       <AttentionInbox
         missed={missed} overdue={overdue} upcomingSoon={upcomingSoon} follows={follows}
         studentMap={studentMap}
@@ -187,6 +199,7 @@ export default function Home() {
         onMarkDone={handleMarkDone}
         onCompleteFollowUp={async (id) => { await completeFollowUp(id); msg("Tandai selesai ✓"); }}
       />
+      </div>
 
       {/* View toggle + filter murid */}
       <div className="mx-4 mb-3 mt-2 space-y-2">

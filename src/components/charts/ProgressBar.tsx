@@ -49,7 +49,7 @@ export default function ProgressBar({
     }
   }
 
-  const heights = { sm: "h-1.5", md: "h-2.5", lg: "h-4" };
+  const heights = { sm: "h-2", md: "h-3", lg: "h-4" };
   const textSizes = { sm: "text-[10px]", md: "text-xs", lg: "text-sm" };
 
   return (
@@ -71,7 +71,7 @@ export default function ProgressBar({
         />
       </div>
       {detail && (
-        <p className={`mt-1 text-[10px] text-slate-400`}>{detail}</p>
+        <p className={`mt-1 text-[11px] text-slate-500`}>{detail}</p>
       )}
     </div>
   );
