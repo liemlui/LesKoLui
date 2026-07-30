@@ -65,7 +65,7 @@ export default function AddScheduleModal({ date, students, onClose, onResult }: 
     <Modal onClose={onClose} ariaLabel="Jadwalkan sesi">
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-lg">Jadwalkan Sesi</h3>
-        <button aria-label="Tutup" onClick={onClose} className="text-gray-500 text-xl leading-none">✕</button>
+        <button aria-label="Tutup" onClick={onClose} className="text-gray-500 text-xl leading-none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
       </div>
       <p className="text-sm text-gray-500 -mt-2">{dayLabel(date)}</p>
 

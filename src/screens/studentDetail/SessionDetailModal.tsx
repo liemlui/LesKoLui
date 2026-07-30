@@ -41,7 +41,7 @@ export default function SessionDetailModal({
             <h3 className="font-bold text-base">{(s.subjects ?? []).join(", ") || "Sesi umum"}</h3>
             <p className="text-xs text-gray-500 mt-0.5">{dayLabel(s.date)}</p>
           </div>
-          <button onClick={() => setDetailSession(null)} aria-label="Tutup" className="text-gray-500 text-xl">✕</button>
+          <button onClick={() => setDetailSession(null)} aria-label="Tutup" className="text-gray-500 text-xl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
         </div>
 
         <div className="p-5 space-y-4">

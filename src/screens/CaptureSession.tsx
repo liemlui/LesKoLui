@@ -671,7 +671,7 @@ export default function CaptureSession() {
             <div className="relative">
               <img src={photoUrl} alt="preview" className="w-full h-52 object-cover rounded-2xl shadow-md" />
               <button aria-label="Hapus foto" onClick={() => setPhoto(undefined)}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-7 h-7 text-sm flex items-center justify-center shadow-md">✕</button>
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-7 h-7 text-sm flex items-center justify-center shadow-md"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
               <div className="absolute bottom-2 right-2 flex gap-1.5">
                 <button onClick={() => cameraRef.current?.click()}
                   className="bg-black/60 text-white text-xs px-2.5 py-1 rounded-full">📷 Kamera</button>
@@ -708,7 +708,7 @@ export default function CaptureSession() {
               <div className="relative bg-white rounded-xl border border-gray-200 p-2">
                 <img src={signatureUrl} alt="TTD" className="max-h-24 w-full object-contain" />
                 <button aria-label="Hapus tanda tangan" onClick={() => { setSignature(undefined); setShowSigPad(false); }}
-                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">✕</button>
+                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
               </div>
             </div>
           ) : showSigPad ? (
@@ -770,7 +770,7 @@ export default function CaptureSession() {
                 <button key={s} type="button"
                   className="px-3 py-1.5 rounded-full text-sm font-medium border bg-purple-600 text-white border-purple-600 flex items-center gap-1"
                   onClick={() => setSubjects((prev) => prev.filter((x) => x !== s))}>
-                  {s} <span className="text-purple-200 text-xs">✕</span>
+                  {s} <span className="text-purple-200 text-xs"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></span>
                 </button>
               ))}
               <button type="button"
@@ -797,7 +797,7 @@ export default function CaptureSession() {
                   <span className="text-xs bg-blue-100 text-blue-700 font-semibold px-2.5 py-1 rounded-full">{topic}</span>
                   <button type="button"
                     onClick={() => { setTopic(""); setTopicSearch(""); }}
-                    className="text-xs text-gray-500 hover:text-gray-600">✕ hapus</button>
+                    className="text-xs text-gray-500 hover:text-gray-600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg> hapus</button>
                 </div>
               )}
               {showTopicPicker && (
@@ -1143,7 +1143,7 @@ export default function CaptureSession() {
                             <p className="text-xs text-gray-500">{hw.subject}{hw.dueAt ? ` · deadline ${hw.dueAt.slice(5)}` : ""}</p>
                           </div>
                           <button onClick={() => setCoHWItems((prev) => prev.filter((_, j) => j !== idx))}
-                            className="text-gray-500 hover:text-red-400 flex-shrink-0">✕</button>
+                            className="text-gray-500 hover:text-red-400 flex-shrink-0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
                         </div>
                       );
                     })}
@@ -1306,7 +1306,7 @@ export default function CaptureSession() {
                   {activeTooltip.type === "behavior" ? "Observasi perilaku" : "Kualitas respons akademik"}
                 </p>
               </div>
-              <button onClick={() => setActiveTooltip(null)} className="text-gray-500 hover:text-gray-600 text-xl w-7 h-7 flex items-center justify-center">✕</button>
+              <button onClick={() => setActiveTooltip(null)} className="text-gray-500 hover:text-gray-600 text-xl w-7 h-7 flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
             <div className="px-4 py-3 space-y-3">
               <p className="text-sm text-gray-700 leading-relaxed">{activeTooltip.tag.description}</p>
@@ -1338,7 +1338,7 @@ export default function CaptureSession() {
                   <p className="text-xs text-gray-500 mt-0.5">{CURRICULUM_META[currentStudent.curriculum].label}</p>
                 )}
               </div>
-              <button aria-label="Tutup" onClick={() => setShowIBPicker(false)} className="text-gray-500 text-xl">✕</button>
+              <button aria-label="Tutup" onClick={() => setShowIBPicker(false)} className="text-gray-500 text-xl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
 
             {currentStudent?.curriculum ? (
@@ -1438,7 +1438,7 @@ export default function CaptureSession() {
                       <span key={s} className="inline-flex items-center gap-1 text-xs bg-blue-600 text-white px-2.5 py-1 rounded-full font-medium">
                         {s}
                         <button onClick={() => setSubjects((prev) => prev.filter((x) => x !== s))}
-                          className="text-blue-200 hover:text-white ml-0.5">✕</button>
+                          className="text-blue-200 hover:text-white ml-0.5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
                       </span>
                     ))}
                   </div>
@@ -1597,7 +1597,7 @@ export default function CaptureSession() {
                           <span className="text-amber-400">🔁</span>
                           <p className="flex-1 text-sm font-semibold text-gray-700">{f}</p>
                           <button onClick={() => setCoFollowUps((prev) => prev.filter((_, j) => j !== absIdx))}
-                            className="text-gray-500 hover:text-red-400">✕</button>
+                            className="text-gray-500 hover:text-red-400"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
                         </div>
                       );
                     })}

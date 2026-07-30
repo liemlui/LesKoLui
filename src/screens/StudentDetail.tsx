@@ -521,7 +521,7 @@ export default function StudentDetail() {
                   {rateSaving ? "..." : "Simpan"}
                 </button>
                 <button onClick={() => { setShowRateEdit(false); }}
-                  className="text-xs text-gray-500 px-1.5 py-1.5">✕</button>
+                  className="text-xs text-gray-500 px-1.5 py-1.5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
               </div>
             ) : (
               <div className="flex items-center gap-2 flex-1">
@@ -610,7 +610,7 @@ export default function StudentDetail() {
           <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 mb-3 space-y-2">
             <div className="flex items-center justify-between">
               <p className="text-xs font-bold text-indigo-700 uppercase tracking-wide">✨ Analisis AI</p>
-              <button onClick={() => setAiInsight(null)} className="text-indigo-300 hover:text-indigo-600 text-xs">✕</button>
+              <button onClick={() => setAiInsight(null)} className="text-indigo-300 hover:text-indigo-600 text-xs"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
             <div className="space-y-1">
               {aiInsight.patterns.map((p, i) => (
@@ -856,7 +856,7 @@ export default function StudentDetail() {
                       if (!confirm(`Hapus rapor ${semesterLabel(r.semester)}?`)) return;
                       await deleteRaporGrade(r.id); msg("Dihapus.");
                     }}
-                      className="text-xs text-gray-500 hover:text-red-400">✕</button>
+                      className="text-xs text-gray-500 hover:text-red-400"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
                   </div>
                 </div>
                 <div className="p-3 space-y-1.5">
@@ -1044,7 +1044,7 @@ export default function StudentDetail() {
                               if (confirm(`Hapus milestone "${m.title}"?`)) await deleteMilestone(proj.id, m.id);
                             }}
                             className="text-gray-500 hover:text-red-400 p-1 flex-shrink-0">
-                            ✕
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
                           </button>
                         </div>
                       ))}
@@ -1127,7 +1127,7 @@ export default function StudentDetail() {
                 <h3 className="font-bold text-base">Edit Catatan Sesi</h3>
                 <p className="text-xs text-gray-500 mt-0.5">{editSession.date} · {editSession.durationHours}j</p>
               </div>
-              <button onClick={() => setEditSession(null)} aria-label="Tutup" className="text-gray-500 text-xl">✕</button>
+              <button onClick={() => setEditSession(null)} aria-label="Tutup" className="text-gray-500 text-xl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
             <div className="p-5 space-y-4">
               <div>
@@ -1196,7 +1196,7 @@ export default function StudentDetail() {
           <div className="bg-white w-full max-w-md rounded-t-2xl pb-8 max-h-[90vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h3 className="font-bold text-lg">Input Nilai Rapor</h3>
-              <button onClick={() => setShowRapor(false)} aria-label="Tutup" className="text-gray-500 text-xl">✕</button>
+              <button onClick={() => setShowRapor(false)} aria-label="Tutup" className="text-gray-500 text-xl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
             <div className="p-5 space-y-4">
               <div>
@@ -1223,7 +1223,7 @@ export default function StudentDetail() {
                         value={g.grade}
                         onChange={(e) => setRaporGrades((prev) => prev.map((x, j) => j === i ? { ...x, grade: e.target.value } : x))} />
                       <button type="button" onClick={() => setRaporGrades((prev) => prev.filter((_, j) => j !== i))}
-                        className="text-gray-500 hover:text-red-400 text-lg leading-none flex-shrink-0">✕</button>
+                        className="text-gray-500 hover:text-red-400 text-lg leading-none flex-shrink-0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
                     </div>
                   ))}
                   {raporGrades.length === 0 && (
@@ -1260,7 +1260,7 @@ export default function StudentDetail() {
                 <h3 className="font-bold text-lg">Edit Jadwal</h3>
                 <p className="text-xs text-gray-500">{dayLabel(editTarget.date)}{editTarget.seriesId ? " · Sesi berulang 🔁" : ""}</p>
               </div>
-              <button onClick={() => setEditTarget(null)} aria-label="Tutup" className="text-gray-500 text-xl">✕</button>
+              <button onClick={() => setEditTarget(null)} aria-label="Tutup" className="text-gray-500 text-xl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
             <div className="p-5 space-y-4">
               <div>
@@ -1339,7 +1339,7 @@ export default function StudentDetail() {
                 <h3 className="font-bold text-lg">💬 Tagihan via WA</h3>
                 <p className="text-xs text-gray-500 mt-0.5">{student.name}</p>
               </div>
-              <button onClick={() => setShowBilling(false)} aria-label="Tutup" className="text-gray-500 text-xl">✕</button>
+              <button onClick={() => setShowBilling(false)} aria-label="Tutup" className="text-gray-500 text-xl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
 
             {!settings?.financialPin ? (

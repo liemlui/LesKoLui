@@ -210,7 +210,7 @@ function Layout() {
           <div className="max-w-md mx-auto bg-red-600 text-white text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-lg">
             <span>⚠️</span>
             <span className="flex-1">Penyimpanan hampir penuh — ekspor backup lalu hapus data/foto lama agar data baru tak gagal tersimpan.</span>
-            <button onClick={() => setStorageWarn(false)} className="font-bold px-1" aria-label="Tutup peringatan">✕</button>
+            <button onClick={() => setStorageWarn(false)} className="font-bold px-1" aria-label="Tutup peringatan"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
           </div>
         </div>
       )}
@@ -226,7 +226,7 @@ function Layout() {
                 : `Backup terakhir ${staleBackup.days} hari lalu. Segera backup agar datamu aman.`}
             </span>
             <button onClick={() => { setStaleBackup(null); navigate("/settings"); }} className="bg-white/20 px-2 py-1 rounded-lg font-bold">Backup</button>
-            <button onClick={() => setStaleBackup(null)} className="font-bold px-1" aria-label="Tutup peringatan">✕</button>
+            <button onClick={() => setStaleBackup(null)} className="font-bold px-1" aria-label="Tutup peringatan"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
           </div>
         </div>
       )}

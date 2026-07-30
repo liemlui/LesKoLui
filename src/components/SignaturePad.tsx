@@ -90,7 +90,7 @@ export default function SignaturePad({ onSave, onClear }: Props) {
       <div className="flex gap-2">
         <button type="button" onClick={handleClear}
           className="flex-1 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:border-red-300 hover:text-red-400 transition-colors">
-          ✕ Hapus
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg> Hapus
         </button>
         <button type="button" onClick={handleSave} disabled={!hasInk}
           className="flex-1 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold disabled:opacity-40 hover:bg-blue-700 transition-colors">
