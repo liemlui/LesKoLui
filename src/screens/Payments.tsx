@@ -14,7 +14,7 @@ import {
 import type { ExpenseCategory } from "../db/repos";
 import type { Payment, Student, Settings } from "../db/types";
 import { formatRupiah, todayWIB, monthLabel } from "../lib/format";
-import { weekDates, prevMonth, nextMonth } from "../lib/calendar";
+import { weekDates, prevMonth } from "../lib/calendar";
 import { usePinGate } from "../hooks/usePinGate";
 import { loadHtmlToImage, loadJsPdf } from "../lib/exportDeps";
 import { generatePaymentReminder, estimatePaymentReminderCost } from "../lib/aiClient";
@@ -77,14 +77,14 @@ export default function PaymentsPage() {
   const settings  = useLiveQuery(() => getSettings(), []);
   const pin = usePinGate();
 
-  // ── Analytics queries ──────────────────────────────────────────────
-  const allSessions = useLiveQuery(() => listAllSessionsForMonth(month), [month]);
-
   const [activeTab, setActiveTab] = useState<Tab>("ringkasan");
   const [message, setMessage] = useState("");
 
   // Shared month for Ringkasan + Tagihan/Tutup Bulan
   const [month, setMonth] = useState(() => todayWIB().slice(0, 7));
+
+  // ── Analytics query ────────────────────────────────────────────────
+  const allSessions = useLiveQuery(() => listAllSessionsForMonth(month), [month]);
 
   // Tutup Bulan workflow
   const [billEdits, setBillEdits] = useState<Record<string, string>>({});

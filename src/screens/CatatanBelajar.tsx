@@ -2,12 +2,8 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import { listStudents, listAllStudyNotes, saveStudyNote, getStudyNote } from "../db/repos";
-import type { Student, StudyNote } from "../db/types";
-import { todayWIB } from "../lib/format";
 import Breadcrumb from "../components/Breadcrumb";
 import Skeleton from "../components/Skeleton";
-
-type StudentWithNote = Student & { noteContent: string; noteUpdatedAt?: string };
 
 /**
  * CatatanBelajar — catatan belajar per murid.

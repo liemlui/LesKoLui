@@ -11,7 +11,7 @@ interface Props {
 export default function StudyNoteCard({ studentId, studyNote, onSave }: Props) {
   const [content, setContent] = useState(studyNote?.content ?? "");
   const [saving, setSaving] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     setContent(studyNote?.content ?? "");
