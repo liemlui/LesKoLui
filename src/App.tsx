@@ -7,7 +7,6 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import Skeleton from "./components/Skeleton";
 import { ToastProvider, useToastCtx } from "./components/ToastProvider";
 import ToastContainer from "./components/Toast";
-import { todayWIB } from "./lib/format";
 import { isQuotaError, isStorageNearFull } from "./lib/storageGuard";
 
 // Lazy-load startup data after mount so the first paint only carries the app shell.
@@ -24,9 +23,8 @@ const StudentDetail = lazy(() => import("./screens/StudentDetail"));
 const CaptureSession = lazy(() => import("./screens/CaptureSession"));
 const MonthlyReport = lazy(() => import("./screens/MonthlyReport"));
 const Payments = lazy(() => import("./screens/Payments"));
-const Tugas = lazy(() => import("./screens/Tugas"));
+const Tugas = lazy(() => import("./screens/CatatanBelajar"));
 const Settings = lazy(() => import("./screens/Settings"));
-const Analytics = lazy(() => import("./screens/Analytics"));
 
 const AUTO_BACKUP_KEY = "leskolui_last_auto_backup_prompt";
 const AUTO_BACKUP_INTERVAL_DAYS = 7;
@@ -51,41 +49,6 @@ function Layout() {
     window.addEventListener("online",  on);
     window.addEventListener("offline", off);
     return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
-  }, []);
-
-  // Notifikasi PR jatuh tempo (Web Notifications)
-  const scheduleHwNotifications = useCallback(async () => {
-    // Guard: Notification API tidak ada di iOS Safari < 16.4 / sebagian WebView
-    // — tanpa cek ini, akses Notification.permission melempar ReferenceError.
-    if (!("Notification" in window) || Notification.permission !== "granted") return;
-    const r = await appData();
-    const today = todayWIB();
-
-    // PR deadline hari ini
-    const homeworks = await r.listAllPendingHomework();
-    const dueToday = homeworks.filter((h) => h.status === "assigned" && h.dueAt === today);
-    if (dueToday.length > 0) {
-      new Notification("Les Ko Lui — PR Hari Ini", {
-        body: `${dueToday.length} PR deadline hari ini: ${dueToday.map(h => h.title).slice(0, 2).join(", ")}${dueToday.length > 2 ? "..." : ""}`,
-        icon: "/icon-192.png",
-      });
-    }
-
-    // Sesi besok (H-1 reminder)
-    const [y, m, d] = today.split("-").map(Number);
-    const tomorrowDt = new Date(y, m - 1, d + 1);
-    const tomorrow = `${tomorrowDt.getFullYear()}-${String(tomorrowDt.getMonth() + 1).padStart(2, "0")}-${String(tomorrowDt.getDate()).padStart(2, "0")}`;
-    const upcoming = await r.listAllUpcomingScheduled(tomorrow);
-    const sessTomorrow = upcoming.filter((s) => s.date === tomorrow);
-    if (sessTomorrow.length > 0) {
-      const studentList = await r.listStudents(true);
-      const studentMap  = new Map(studentList.map((s) => [s.id, s.name]));
-      const names = sessTomorrow.map((s) => studentMap.get(s.studentId) ?? "—").slice(0, 3);
-      new Notification("Les Ko Lui — Sesi Besok", {
-        body: `${sessTomorrow.length} sesi besok: ${names.join(", ")}${sessTomorrow.length > 3 ? "..." : ""}`,
-        icon: "/icon-192.png",
-      });
-    }
   }, []);
 
   // Backup otomatis mingguan — tanya user
@@ -145,15 +108,6 @@ function Layout() {
     navigator.storage?.persist?.();
     isStorageNearFull().then((full) => { if (full) setStorageWarn(true); });
 
-    // Request notification permission then schedule hw notifications
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission().then((p) => {
-        if (p === "granted") scheduleHwNotifications();
-      });
-    } else {
-      scheduleHwNotifications();
-    }
-
     // Check auto backup
     checkAutoBackup();
 
@@ -186,7 +140,7 @@ function Layout() {
       const days = Math.floor((Date.now() - lastMs) / 86400000);
       if (days >= STALE_BACKUP_DAYS) setStaleBackup({ days });
     })().catch((e: unknown) => { console.warn("auto-backup/silent relay failed:", e); });
-  }, [scheduleHwNotifications, checkAutoBackup]);
+  }, [checkAutoBackup]);
 
   return (
     <ErrorBoundary>
@@ -302,11 +256,10 @@ const router = createBrowserRouter([
       { path: "/students", element: <Students /> },
       { path: "/students/:id", element: <StudentDetail /> },
       { path: "/capture", element: <CaptureSession /> },
-      { path: "/tugas", element: <Tugas /> },
+      { path: "/catatan", element: <Tugas /> },
       { path: "/report", element: <MonthlyReport /> },
       { path: "/payments", element: <Payments /> },
       { path: "/settings", element: <Settings /> },
-      { path: "/analytics", element: <Analytics /> },
       { path: "*", element: <Navigate to="/" replace /> },
     ],
   },

@@ -437,7 +437,7 @@ export default function SettingsPage() {
   const doResetAll = async () => {
     const tables = [
       db.students, db.sessions, db.reports,
-      db.payments, db.homeworks, db.followUps,
+      db.payments, db.followUps,
       db.raporGrades, db.expenses, db.monthClosings, db.iaeeProjects,
     ];
     await db.transaction("rw", tables, async () => {

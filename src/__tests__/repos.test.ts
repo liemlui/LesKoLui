@@ -15,7 +15,6 @@ beforeEach(async () => {
   await db.payments.clear();
   await db.settings.clear();
   await db.raporGrades.clear();
-  await db.homeworks.clear();
   await db.followUps.clear();
   await db.expenses.clear();
   await db.iaeeProjects.clear();
@@ -340,26 +339,9 @@ describe("Payment CRUD", () => {
   });
 });
 
-// ── Homework & FollowUp Tests ──────────────────────────────────────
+// ── FollowUp Tests ─────────────────────────────────────────────────
 
-describe("Homework & FollowUps", () => {
-  it("creates and resolves homework", async () => {
-    const { createHomework, listPendingHomework, markHomeworkDone, getHomeworkStats } = await import("../db/repos");
-    const sid = crypto.randomUUID();
-    const hwId = await createHomework({
-      studentId: sid, subject: "Math", title: "PR 1",
-      assignedAt: wibDate(-7), dueAt: wibDate(), status: "assigned",
-    });
-    expect(hwId).toBeTruthy();
-
-    const pending = await listPendingHomework(sid);
-    expect(pending.length).toBe(1);
-
-    await markHomeworkDone(hwId);
-    const stats = await getHomeworkStats(sid);
-    expect(stats.done).toBe(1);
-  });
-
+describe("FollowUps", () => {
   it("creates and completes follow-up items", async () => {
     const { createFollowUp, listPendingFollowUps, completeFollowUp } = await import("../db/repos");
     const sid = crypto.randomUUID();

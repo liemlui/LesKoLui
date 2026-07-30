@@ -287,11 +287,8 @@ export async function rescheduleSession(
 }
 
 export async function deleteSession(id: string): Promise<void> {
-  await db.transaction("rw", db.sessions, db.homeworks, db.followUps, db.reports, async () => {
+  await db.transaction("rw", db.sessions, db.followUps, db.reports, async () => {
     await db.sessions.delete(id);
-    await db.homeworks
-      .filter((h) => h.sessionId === id)
-      .modify((h) => { delete h.sessionId; h.updatedAt = timestamp(); });
     await db.followUps
       .filter((f) => f.sourceSessionId === id)
       .modify((f) => { delete f.sourceSessionId; });

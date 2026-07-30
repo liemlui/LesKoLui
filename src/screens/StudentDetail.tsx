@@ -7,10 +7,11 @@ import {
   listBillableSessionsByStudentMonth,
   cancelSeriesSessions, updateSeriesSessions,
   listRaporGrades, upsertRaporGrade, deleteRaporGrade,
-  getSettings, updateStudent, getHomeworkStats,
+  getSettings, updateStudent,
   listIaEeProjects, createIaEeProject, deleteIaEeProject,
   addMilestone, updateMilestone, deleteMilestone,
   deleteSession, updateSession,
+  getStudyNote, saveStudyNote,
 } from "../db/repos";
 import type { IaEeMilestone } from "../db/repos";
 import { verifyPin } from "../lib/crypto";
@@ -37,6 +38,7 @@ import { AiCostModal } from "../components/AiCostModal";
 import { getBehaviorTag, getResponseTag } from "../lib/responseTaxonomy";
 import { MAX_HOURLY_RATE, clampCurrencyAmount, isValidCurrencyAmount } from "../lib/money";
 import EvidenceCard from "./studentDetail/EvidenceCard";
+import StudyNoteCard from "./studentDetail/StudyNoteCard";
 import UpcomingSchedule from "./studentDetail/UpcomingSchedule";
 import SessionDetailModal from "./studentDetail/SessionDetailModal";
 import EngagementSummary from "./studentDetail/EngagementSummary";
@@ -64,7 +66,7 @@ export default function StudentDetail() {
   const upcomingSched = useLiveQuery(() => (id ? listScheduledForStudent(id, today) : []), [id, today]);
   const raporList     = useLiveQuery(() => (id ? listRaporGrades(id) : []), [id]);
   const settings      = useLiveQuery(() => getSettings(), []);
-  const hwStats       = useLiveQuery(() => (id ? getHomeworkStats(id) : undefined), [id]);
+  const studyNote      = useLiveQuery(() => (id ? getStudyNote(id) : undefined), [id]);
   const iaeeProjects  = useLiveQuery(() => (id ? listIaEeProjects(id) : []), [id]);
 
   // Edit scheduled session modal
@@ -569,12 +571,20 @@ export default function StudentDetail() {
       {detailTab === "sesi" && (<>
 
       {/* ── BUKTI KEAKTIFAN ── */}
-      {(hwStats || avgEngScore !== null || (raporList && raporList.length > 0)) && (
+      {(avgEngScore !== null || (raporList && raporList.length > 0)) && (
         <EvidenceCard
-          hwStats={hwStats}
           avgEngScore={avgEngScore}
           engSessions={engSessions}
           raporList={raporList}
+        />
+      )}
+
+      {/* Study Note Card */}
+      {student && (
+        <StudyNoteCard
+          studentId={student.id}
+          studyNote={studyNote}
+          onSave={async (content) => { await saveStudyNote(student.id, content); }}
         />
       )}
 

@@ -1,6 +1,5 @@
 export type SessionType =
   | "regular"
-  | "homework"
   | "exam_prep"
   | "project"
   | "brainstorm"
@@ -9,7 +8,6 @@ export type SessionType =
 
 export const SESSION_TYPE_OPTIONS: { value: SessionType; label: string; icon: string; desc: string }[] = [
   { value: "regular",    label: "Sesi Reguler",      icon: "📚", desc: "Bahas materi & latihan soal" },
-  { value: "homework",   label: "PR / Latihan",      icon: "📝", desc: "Fokus mengerjakan tugas" },
   { value: "exam_prep",  label: "Persiapan Ujian",   icon: "📋", desc: "Latihan soal past paper & review" },
   { value: "project",    label: "Proyek / IA",       icon: "🛠️", desc: "Kerja proyek, IA, atau EE" },
   { value: "brainstorm", label: "Brainstorm",        icon: "💡", desc: "Diskusi ide, analisis topik" },
@@ -81,8 +79,6 @@ export function generateNote(
   switch (type) {
     case "regular":
       return `Bahas materi${s}${t}.`;
-    case "homework":
-      return `Kerjakan PR${s}${t}. Tidak ada materi baru hari ini.`;
     case "exam_prep":
       return `Persiapan ujian${s}${t}. Latihan soal past paper dan review konsep penting.`;
     case "project":

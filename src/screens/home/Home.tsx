@@ -1,16 +1,16 @@
-import { useMemo, useState, useCallback, useEffect, useRef } from "react";
+import { useMemo, useState, useCallback, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useToastCtx } from "../../components/ToastProvider";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   listStudents, listAllSessionsForMonth, listAllSessionsForWeek,
-  listAllPendingHomework, listPendingFollowUps,
-  markHomeworkDone, setHomeworkStatus, completeFollowUp,
+  listPendingFollowUps,
+  completeFollowUp,
   listPastScheduledSessions,
 } from "../../db/repos";
-import type { HomeworkStatus, Session } from "../../db/types";
+import type { Session } from "../../db/types";
 import { dayLabel, todayWIB, monthOf } from "../../lib/format";
-import { weekDates, byDay, addDays, type CalView } from "../../lib/calendar";
+import { weekDates, byDay, type CalView } from "../../lib/calendar";
 import { colorForStudent, type StudentMap } from "../../lib/studentColor";
 import TodayHero from "./TodayHero";
 import AttentionInbox from "./AttentionInbox";
@@ -42,8 +42,6 @@ export default function Home() {
   const [showExitModal, setShowExitModal] = useState(false);
 
   const toast = useToastCtx();
-  const [undoHw, setUndoHw] = useState<{ id: string; previousStatus: HomeworkStatus } | null>(null);
-  const [undoTimer, setUndoTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
   const attentionRef = useRef<HTMLDivElement>(null);
 
   const scrollToAttention = useCallback(() => {
@@ -64,7 +62,6 @@ export default function Home() {
   const daySessions   = useLiveQuery(() => listAllSessionsForWeek(anchor, anchor), [anchor]);
   const todaySessions = useLiveQuery(() => listAllSessionsForWeek(today, today), [today]);
 
-  const overdueHW       = useLiveQuery(() => listAllPendingHomework(), []);
   const allFollowUps    = useLiveQuery(() => listPendingFollowUps(), []);
   const missedSchedules = useLiveQuery(() => listPastScheduledSessions(today), [today]);
 
@@ -82,27 +79,11 @@ export default function Home() {
   const todayList  = useMemo(() => (todaySessions ?? []).filter((s) => !filterStudentId || s.studentId === filterStudentId), [todaySessions, filterStudentId]);
 
   // ── Attention inbox data (filtered) ─────────────────────────────────────────
-  const overdue      = (overdueHW ?? []).filter((h) => h.status === "overdue" && inFilter(h.studentId));
-  const upcoming     = (overdueHW ?? []).filter((h) => h.status === "assigned" && inFilter(h.studentId));
-  const upcomingSoon = upcoming.filter((h) => h.dueAt && h.dueAt <= addDays(today, 3));
   const follows      = (allFollowUps ?? []).filter((f) => inFilter(f.studentId));
   const missed       = (missedSchedules ?? []).filter((s) => inFilter(s.studentId));
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
   const msg = useCallback((t: string) => { toast.info(t); }, [toast]);
-
-  const handleMarkDone = async (id: string, previousStatus: HomeworkStatus) => {
-    try { await markHomeworkDone(id); } catch { msg("Gagal menandai PR."); return; }
-    setUndoHw({ id, previousStatus });
-    if (undoTimer) clearTimeout(undoTimer);
-    const t = setTimeout(() => { setUndoHw(null); setUndoTimer(null); }, 3000);
-    setUndoTimer(t);
-  };
-
-  // Cleanup undo timeout on unmount (prevents state update after navigation)
-  useEffect(() => {
-    return () => { if (undoTimer) clearTimeout(undoTimer); };
-  }, [undoTimer]);
 
   const openAdd = (date: string) => { setSelectedDay(date); setAddDate(date); };
   const jumpToday = () => { setCalMonth(monthOf(today)); setAnchor(today); setSelectedDay(today); };
@@ -159,21 +140,6 @@ export default function Home() {
         </div>
       </div>
 
-      {undoHw && (
-        <div className="mx-4 mb-2 p-2 rounded-lg text-sm flex items-center justify-between bg-green-50 border border-green-200">
-          <span className="text-green-700 font-medium">PR ditandai selesai ✓</span>
-          <button
-            onClick={async () => {
-              if (undoTimer) clearTimeout(undoTimer);
-              await setHomeworkStatus(undoHw.id, undoHw.previousStatus);
-              setUndoHw(null); setUndoTimer(null);
-            }}
-            className="text-xs font-bold text-green-600 underline ml-2">
-            Undo
-          </button>
-        </div>
-      )}
-
       {/* Agenda "Hari Ini" */}
       <OperationalSnapshot
         activeStudents={(students ?? []).length}
@@ -182,7 +148,7 @@ export default function Home() {
         weekDone={(currentWeekSessions ?? []).filter((s) => s.status === "DONE").length}
         weekPlanned={(currentWeekSessions ?? []).filter((s) => s.status === "DONE" || s.status === "SCHEDULED").length}
         missedCount={missed.length}
-        attentionCount={missed.length + overdue.length + upcomingSoon.length + follows.length}
+        attentionCount={missed.length + follows.length}
         onAttentionClick={scrollToAttention}
         onMissedClick={scrollToAttention}
         onActiveStudentsClick={() => navigate("/students")}
@@ -192,11 +158,10 @@ export default function Home() {
       {/* Perlu Perhatian */}
       <div ref={attentionRef}>
       <AttentionInbox
-        missed={missed} overdue={overdue} upcomingSoon={upcomingSoon} follows={follows}
+        missed={missed} follows={follows}
         studentMap={studentMap}
         onCapture={actions.onCapture}
         onResolveMissed={actions.onResolveMissed}
-        onMarkDone={handleMarkDone}
         onCompleteFollowUp={async (id) => { await completeFollowUp(id); msg("Tandai selesai ✓"); }}
       />
       </div>

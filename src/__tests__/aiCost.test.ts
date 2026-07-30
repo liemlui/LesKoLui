@@ -4,7 +4,6 @@ import {
   estimateNarrativesCost,
   estimatePolishWACost,
   estimateAnalysisCost,
-  estimateHomeworkCost,
   estimatePaymentReminderCost,
   estimateDraftNoteCost,
 } from "../lib/aiClient";
@@ -15,7 +14,6 @@ describe("AI cost estimators", () => {
       estimateReportSummaryCost(10),
       estimatePolishWACost(200),
       estimateAnalysisCost(10),
-      estimateHomeworkCost(),
       estimatePaymentReminderCost(),
     ]) {
       expect(Number.isFinite(v)).toBe(true);

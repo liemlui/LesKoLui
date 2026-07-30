@@ -19,6 +19,7 @@ const ROUTE_LABELS: Record<string, string> = {
   "": "Home",
   "students": "Murid",
   "tugas": "Tugas",
+  "catatan": "Catatan",
   "capture": "Catat Sesi",
   "report": "Laporan Bulanan",
   "payments": "Keuangan",

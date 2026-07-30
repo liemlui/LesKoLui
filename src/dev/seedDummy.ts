@@ -7,7 +7,7 @@
 import {
   createStudent, createSession, scheduleSession, scheduleBatch, closeMonth,
   markPaymentTransferred, updatePaymentAmount, createExpense, saveSettings, getSettings, listStudents,
-  createHomework, createFollowUp, upsertRaporGrade, createIaEeProject,
+  createFollowUp, upsertRaporGrade, createIaEeProject,
   upsertPayment, cancelSession, listSessionsByStudentMonth, upsertReport,
 } from "../db/repos";
 import { hashPin } from "../lib/crypto";
@@ -124,11 +124,11 @@ async function seedInner(force: boolean): Promise<void> {
     // duplikat (2× Andi dst.) alih-alih mengganti — data uji jadi tak deterministik.
     await db.transaction("rw",
       [db.students, db.sessions, db.reports, db.payments, db.raporGrades,
-       db.homeworks, db.followUps, db.expenses, db.iaeeProjects, db.monthClosings],
+       db.followUps, db.expenses, db.iaeeProjects, db.monthClosings],
       async () => {
         await Promise.all([
           db.students.clear(), db.sessions.clear(), db.reports.clear(),
-          db.payments.clear(), db.raporGrades.clear(), db.homeworks.clear(),
+          db.payments.clear(), db.raporGrades.clear(),
           db.followUps.clear(), db.expenses.clear(), db.iaeeProjects.clear(),
           db.monthClosings.clear(),
         ]);
@@ -310,29 +310,12 @@ async function seedInner(force: boolean): Promise<void> {
   await exp("2026-05-22", "lainnya",  "Print & jilid materi", 45000);
   await exp("2026-06-08", "buku",     "Beli buku AP Calculus review", 195000);
 
-  // ── PR / Homework (semua status) ──
-  // assigned + future due
-  await createHomework({ studentId: andi, subject: "Mathematics AA", title: "Latihan soal integral", instructions: "Kerjakan 10 soal di halaman 45-47.", assignedAt: "2026-06-18", dueAt: "2026-07-02", status: "assigned" });
-  await createHomework({ studentId: bella, subject: "Physics", title: "Rangkum bab gelombang", instructions: "Tulis rangkuman 1 halaman A4.", assignedAt: "2026-06-11", dueAt: "2026-07-05", status: "assigned" });
-  await createHomework({ studentId: eko, subject: "Economics", title: "Market failure essay", instructions: "Tulis esai 500 kata tentang eksternalitas.", assignedAt: "2026-06-05", dueAt: "2026-06-30", status: "assigned" });
-  // assigned + past due → akan otomatis tampil overdue
-  await createHomework({ studentId: andi, subject: "Physics", title: "Latihan Hukum Newton", instructions: "Kerjakan worksheet yang diberikan.", assignedAt: "2026-05-21", dueAt: "2026-06-10", status: "assigned" });
-  await createHomework({ studentId: citra, subject: "Economics", title: "Analisis pasar monopoli", instructions: "Cari contoh perusahaan monopoli di Indonesia.", assignedAt: "2026-04-26", dueAt: "2026-05-20", status: "assigned" });
-  await createHomework({ studentId: dewi, subject: "Biology", title: "Gambar siklus Krebs", instructions: "Gambar + jelaskan setiap tahap.", assignedAt: "2026-05-27", dueAt: "2026-06-15", status: "assigned" });
-  // done
-  await createHomework({ studentId: andi, subject: "Mathematics AA", title: "Latihan turunan", instructions: "Soal 1-20 halaman 30.", assignedAt: "2026-04-02", dueAt: "2026-04-16", status: "done", tutorFeedback: "Bagus! Hanya 1 soal salah." });
-  await createHomework({ studentId: bella, subject: "Chemistry", title: "Stoikiometri worksheet", instructions: "Worksheet dari sesi.", assignedAt: "2026-04-05", dueAt: "2026-04-19", status: "done", tutorFeedback: "Lengkap dan rapi." });
-  await createHomework({ studentId: fani, subject: "Calculus AB", title: "Derivative practice set", instructions: "AP-style FRQ problems.", assignedAt: "2026-06-10", dueAt: "2026-06-24", status: "done" });
-  // not_done
-  await createHomework({ studentId: citra, subject: "Economics", title: "Elastisitas studi kasus", instructions: "Cari data harga BBM 2025.", assignedAt: "2026-03-22", dueAt: "2026-04-05", status: "not_done", tutorFeedback: "Belum dikerjakan — perlu diulang." });
-  // cancelled
-  await createHomework({ studentId: dewi, subject: "Biology", title: "Presentasi sel", instructions: "Buat slide 5 halaman.", assignedAt: "2026-04-15", dueAt: "2026-04-29", status: "cancelled" });
 
   // ── Follow-up items (semua tipe) ──
   await createFollowUp({ studentId: andi,  type: "continue-topic", text: "Lanjutkan Bayesian inference — masih belum tuntas." });
   await createFollowUp({ studentId: bella, type: "misconception", text: "Koreksi miskonsepsi: Kc berubah hanya dengan suhu, bukan konsentrasi." });
   await createFollowUp({ studentId: citra, type: "send-resource", text: "Kirim video Khan Academy tentang market structures." });
-  await createFollowUp({ studentId: dewi,  type: "check-homework", text: "Cek PR gambar siklus Krebs — deadline 15 Juni." });
+  await createFollowUp({ studentId: dewi,  type: "continue-topic", text: "Lanjutkan latihan soal siklus Krebs." });
   await createFollowUp({ studentId: fani,  type: "other", text: "Tanyakan progres aplikasi universitas." });
   await createFollowUp({ studentId: eko,   type: "continue-topic", text: "Lanjutkan ke price elasticity of demand." });
   await createFollowUp({ studentId: bella, type: "send-resource", text: "Kirim past paper Physics HL 2024." });

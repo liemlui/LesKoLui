@@ -57,14 +57,9 @@ export {
 } from "./iaeeRepo";
 export type { IaEeMilestone } from "./paymentRepo";
 
-// Homework
-export {
-  createHomework, listPendingHomework, listAllPendingHomework, listAllHomeworkFull,
-  updateHomework, deleteHomework, markHomeworkDone, markHomeworkNotDone,
-  setHomeworkStatus, getHomeworkStats,
-} from "./homeworkRepo";
-export type { HomeworkStatus, HomeworkStats } from "./homeworkRepo";
-
 // Follow-ups
 export { createFollowUp, listPendingFollowUps, completeFollowUp, deleteFollowUp } from "./followUpRepo";
 export type { FollowUpType } from "./followUpRepo";
+
+// Study Notes
+export { getStudyNote, saveStudyNote, deleteStudyNote, listAllStudyNotes } from "./studyNotesRepo";

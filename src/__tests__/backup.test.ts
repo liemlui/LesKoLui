@@ -3,7 +3,7 @@ import { db } from "../db/db";
 import { exportBackup, importBackup, inspectBackup } from "../lib/backup";
 import { encryptJson } from "../lib/crypto";
 import type {
-  Expense, FollowUpItem, Homework, IaEeProject, MonthClosing, MonthlyReport,
+  Expense, FollowUpItem, IaEeProject, MonthClosing, MonthlyReport,
   Payment, RaporGrade, Session, Settings, Student,
 } from "../db/types";
 
@@ -12,12 +12,12 @@ const PASS = "backup-sangat-aman-2026";
 async function clearDomainData(): Promise<void> {
   await db.transaction("rw", [
     db.students, db.sessions, db.reports, db.payments, db.settings,
-    db.raporGrades, db.homeworks, db.followUps, db.expenses, db.iaeeProjects,
+    db.raporGrades, db.followUps, db.expenses, db.iaeeProjects,
     db.monthClosings, db.auditLog,
   ], async () => {
     await Promise.all([
       db.students.clear(), db.sessions.clear(), db.reports.clear(), db.payments.clear(), db.settings.clear(),
-      db.raporGrades.clear(), db.homeworks.clear(), db.followUps.clear(), db.expenses.clear(), db.iaeeProjects.clear(),
+      db.raporGrades.clear(), db.followUps.clear(), db.expenses.clear(), db.iaeeProjects.clear(),
       db.monthClosings.clear(), db.auditLog.clear(),
     ]);
   });
@@ -51,7 +51,6 @@ async function seedEveryBackupTable(): Promise<void> {
     ai: { enabled: false, model: "deepseek-v4-flash" }, templatePref: {},
   };
   const rapor: RaporGrade = { id: "rapor-1", studentId: student.id, semester: "2025/2026-S2", grades: [{ subject: "Physics", grade: "7" }], createdAt: now };
-  const homework: Homework = { id: "homework-1", studentId: student.id, subject: "Physics", title: "Latihan", assignedAt: "2026-07-20", status: "assigned", createdAt: now, updatedAt: now };
   const followUp: FollowUpItem = { id: "followup-1", studentId: student.id, type: "continue-topic", text: "Lanjut mekanika", createdAt: now };
   const expense: Expense = { id: "expense-1", date: "2026-07-20", category: "buku", description: "Buku", amount: 100_000, createdAt: now, updatedAt: now };
   const project: IaEeProject = { id: "project-1", studentId: student.id, type: "IA", subject: "Physics", title: "Eksperimen", milestones: [{ id: "milestone-1", title: "Proposal", status: "pending" }], createdAt: now, updatedAt: now };
@@ -59,7 +58,7 @@ async function seedEveryBackupTable(): Promise<void> {
 
   await db.transaction("rw", [
     db.students, db.sessions, db.reports, db.payments, db.settings, db.raporGrades,
-    db.homeworks, db.followUps, db.expenses, db.iaeeProjects, db.monthClosings, db.auditLog,
+    db.followUps, db.expenses, db.iaeeProjects, db.monthClosings, db.auditLog,
   ], async () => {
     await db.students.add(student);
     await db.sessions.add(session);
@@ -67,7 +66,6 @@ async function seedEveryBackupTable(): Promise<void> {
     await db.payments.add(payment);
     await db.settings.add(settings);
     await db.raporGrades.add(rapor);
-    await db.homeworks.add(homework);
     await db.followUps.add(followUp);
     await db.expenses.add(expense);
     await db.iaeeProjects.add(project);
@@ -107,7 +105,6 @@ describe("backup / restore", () => {
     await expect(db.payments.count()).resolves.toBe(1);
     await expect(db.settings.count()).resolves.toBe(1);
     await expect(db.raporGrades.count()).resolves.toBe(1);
-    await expect(db.homeworks.count()).resolves.toBe(1);
     await expect(db.followUps.count()).resolves.toBe(1);
     await expect(db.expenses.count()).resolves.toBe(1);
     await expect(db.iaeeProjects.count()).resolves.toBe(1);

@@ -6,7 +6,7 @@ import {
   listPayments, listStudents, getPayment, upsertPayment, getSettings,
   createExpense, listExpenses, deleteExpense,
   listBillableSessionsForMonth, listBillableSessionsByStudentMonth, listAllUpcomingScheduled,
-  listScheduledForMonth, listAllSessionsForWeek,
+  listScheduledForMonth, listAllSessionsForWeek, listAllSessionsForMonth,
   getMonthClosing, listMonthClosings, closeMonth, reopenMonth,
   markPaymentTransferred, markPaymentUnpaid, updatePaymentAmount, getCashSummary,
   getMonthlyIncomeVsExpense,
@@ -14,7 +14,7 @@ import {
 import type { ExpenseCategory } from "../db/repos";
 import type { Payment, Student, Settings } from "../db/types";
 import { formatRupiah, todayWIB, monthLabel } from "../lib/format";
-import { weekDates } from "../lib/calendar";
+import { weekDates, prevMonth, nextMonth } from "../lib/calendar";
 import { usePinGate } from "../hooks/usePinGate";
 import { loadHtmlToImage, loadJsPdf } from "../lib/exportDeps";
 import { generatePaymentReminder, estimatePaymentReminderCost } from "../lib/aiClient";
@@ -28,8 +28,13 @@ import ActivityRing from "../components/dashboard/ActivityRing";
 import Breadcrumb from "../components/Breadcrumb";
 import Tabs from "../components/Tabs";
 import MetricCard from "../components/dashboard/MetricCard";
+import {
+  BarChart, LineChart, DonutChart, Gauge,
+} from "../components/charts";
+import type { BarSeries, DonutSegment } from "../components/charts";
+import RatingIndicator from "../components/charts/RatingIndicator";
 
-type Tab = "ringkasan" | "tagihan" | "pengeluaran" | "audit";
+type Tab = "ringkasan" | "tagihan" | "pengeluaran" | "audit" | "murid" | "operasional";
 
 const CATEGORY_LABEL: Record<ExpenseCategory, string> = {
   transport: "🚗 Transport",
@@ -71,6 +76,9 @@ export default function PaymentsPage() {
   const students  = useLiveQuery(() => listStudents(true), []);
   const settings  = useLiveQuery(() => getSettings(), []);
   const pin = usePinGate();
+
+  // ── Analytics queries ──────────────────────────────────────────────
+  const allSessions = useLiveQuery(() => listAllSessionsForMonth(month), [month]);
 
   const [activeTab, setActiveTab] = useState<Tab>("ringkasan");
   const [message, setMessage] = useState("");
@@ -392,6 +400,82 @@ export default function PaymentsPage() {
     laba: (auditData ?? []).reduce((s, r) => s + r.laba, 0),
   };
 
+  // ── Analytics: financial chart data ──────────────────────────────────
+  const analyticsFinancial = useMemo(() => {
+    const sessions = allSessions ?? [];
+    const done = sessions.filter((s) => s.status === "DONE");
+    const revenue = done.reduce((sum, s) => sum + (s.cost ?? 0), 0);
+    const expenses = (monthExpenses ?? []).reduce((sum, e) => sum + e.amount, 0);
+    const scheduledRevenue = sessions
+      .filter((s) => s.status === "SCHEDULED")
+      .reduce((sum, s) => sum + (s.cost ?? 0), 0);
+    const catMap = new Map<string, number>();
+    (monthExpenses ?? []).forEach((e) => {
+      catMap.set(e.category, (catMap.get(e.category) ?? 0) + e.amount);
+    });
+    const expenseSegments: DonutSegment[] = Array.from(catMap.entries()).map(
+      ([cat, amt]) => ({ label: cat, value: amt })
+    );
+    return { revenue, expenses, scheduledRevenue, expenseSegments };
+  }, [allSessions, monthExpenses]);
+
+  const revenueTrend = useMemo(() => {
+    const prevM = prevMonth(month);
+    const currentRev = analyticsFinancial.revenue;
+    return [
+      { x: prevM.slice(5), y: 0 },
+      { x: month.slice(5), y: currentRev },
+    ];
+  }, [month, analyticsFinancial.revenue]);
+
+  // ── Analytics: student data ─────────────────────────────────────────
+  const studentAnalytics = useMemo(() => {
+    if (!students || !allSessions) return [];
+    const done = allSessions.filter((s) => s.status === "DONE");
+    const map = new Map<string, { name: string; revenue: number; sessions: number; avgEngagement: number }>();
+    students.forEach((s) => map.set(s.id, { name: s.name, revenue: 0, sessions: 0, avgEngagement: 0 }));
+    const engScores = new Map<string, number[]>();
+    done.forEach((s) => {
+      const entry = map.get(s.studentId);
+      if (entry) {
+        entry.revenue += s.cost ?? 0;
+        entry.sessions += 1;
+      }
+      if (s.engagement?.score != null) {
+        const arr = engScores.get(s.studentId) ?? [];
+        arr.push(s.engagement.score);
+        engScores.set(s.studentId, arr);
+      }
+    });
+    engScores.forEach((scores, id) => {
+      const entry = map.get(id);
+      if (entry && scores.length > 0) {
+        entry.avgEngagement = scores.reduce((a, b) => a + b, 0) / scores.length;
+      }
+    });
+    return Array.from(map.values()).filter((e) => e.sessions > 0 || e.revenue > 0);
+  }, [students, allSessions]);
+
+  const studentBarSeries: BarSeries[] = studentAnalytics.map((s) => ({
+    label: s.name.split(" ")[0],
+    value: s.revenue,
+  }));
+  const studentLabels = studentAnalytics.map((s) => s.name.split(" ")[0]);
+
+  // ── Analytics: operations data ──────────────────────────────────────
+  const opsData = useMemo(() => {
+    const sessions = allSessions ?? [];
+    const done = sessions.filter((s) => s.status === "DONE");
+    const noShow = sessions.filter((s) => s.status === "NO_SHOW");
+    const total = sessions.length;
+    const completionRate = total > 0 ? Math.round((done.length / total) * 100) : 0;
+    const noShowRate = total > 0 ? Math.round((noShow.length / total) * 100) : 0;
+    const avgDuration = done.length > 0
+      ? done.reduce((sum, s) => sum + (s.durationHours ?? 0), 0) / done.length
+      : 0;
+    return { completionRate, noShowRate, avgDuration };
+  }, [allSessions]);
+
   const revenueByStudent = (monthSessions ?? []).reduce<Map<string, number>>((m, sess) => {
     m.set(sess.studentId, (m.get(sess.studentId) ?? 0) + sess.cost);
     return m;
@@ -434,6 +518,8 @@ export default function PaymentsPage() {
           { key: "tagihan", label: "Tagihan" },
           { key: "pengeluaran", label: "Pengeluaran" },
           { key: "audit", label: "Audit" },
+          { key: "murid", label: "Murid" },
+          { key: "operasional", label: "Ops" },
         ]}
         active={activeTab}
         onChange={(k) => setActiveTab(k as Tab)}
@@ -561,11 +647,81 @@ export default function PaymentsPage() {
             </div>
           )}
 
-          {/* Income vs expense chart with a deliberately small, readable range control. */}
+          {/* Income vs expense bar chart (analytics) */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">
+              Pendapatan vs Pengeluaran
+            </p>
+            <BarChart
+              series={[
+                { label: "Pendapatan", value: analyticsFinancial.revenue, color: "#16a34a" },
+                { label: "Pengeluaran", value: analyticsFinancial.expenses, color: "#dc2626" },
+              ]}
+              labels={[month.slice(5)]}
+              height={160}
+              formatValue={(v) =>
+                new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v)
+              }
+            />
+          </div>
+
+          {/* Revenue trend line chart */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">
+              Tren Pendapatan
+            </p>
+            <LineChart
+              series={[
+                {
+                  label: "Pendapatan",
+                  data: revenueTrend,
+                  areaFill: true,
+                  color: "#2563eb",
+                },
+              ]}
+              height={160}
+              dateXAxis
+              formatY={(v) =>
+                new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v)
+              }
+            />
+          </div>
+
+          {/* Expense donut + forecast mini */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 flex flex-col items-center">
+              <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2 text-center">
+                Estimasi Bulan Depan
+              </p>
+              <p className="text-lg font-bold text-blue-700">
+                {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(forecast.estimate)}
+              </p>
+              <p className="text-[10px] text-gray-500 mt-1">
+                Terjadwal: {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(forecast.scheduled)}
+              </p>
+            </div>
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 flex flex-col items-center">
+              <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Pengeluaran per Kategori</p>
+              {analyticsFinancial.expenseSegments.length > 0 ? (
+                <DonutChart
+                  segments={analyticsFinancial.expenseSegments}
+                  size={120}
+                  thickness={12}
+                  centerLabel="Total"
+                  centerValue={new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(analyticsFinancial.expenses)}
+                  showLegend={false}
+                />
+              ) : (
+                <p className="text-xs text-gray-500 py-4">Belum ada pengeluaran</p>
+              )}
+            </div>
+          </div>
+
+          {/* Income vs expense trend with range control */}
           {trendData.length > 0 && (
             <div className="bg-white border border-gray-100 rounded-2xl p-4 space-y-3">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-gray-500">Pendapatan vs Pengeluaran</p>
+                <p className="text-sm font-semibold text-gray-500">Pendapatan vs Pengeluaran ({trendRange} Bulan)</p>
                 <div className="flex rounded-lg bg-gray-100 p-0.5" aria-label="Rentang grafik">
                   {([3, 6, 12] as const).map((range) => (
                     <button key={range} onClick={() => setTrendRange(range)}
@@ -971,6 +1127,105 @@ export default function PaymentsPage() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── MURID TAB (Analitik) ────────────────────────────── */}
+      {activeTab === "murid" && (
+        <div className="space-y-4">
+          {/* Revenue per student */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">
+              Pendapatan per Murid — {monthLabel(month)}
+            </p>
+            {studentBarSeries.length > 0 ? (
+              <BarChart
+                series={studentBarSeries}
+                labels={studentLabels}
+                height={Math.max(120, studentAnalytics.length * 28)}
+                formatValue={(v) =>
+                  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v)
+                }
+              />
+            ) : (
+              <p className="text-xs text-gray-500 text-center py-4">Belum ada sesi selesai bulan ini</p>
+            )}
+          </div>
+
+          {/* Per-student detail cards */}
+          {studentAnalytics.map((s) => (
+            <div key={s.name} className="bg-white rounded-xl border border-gray-100 p-3 flex items-center justify-between">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-gray-800 truncate">{s.name}</p>
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="text-xs text-gray-500">{s.sessions} sesi</span>
+                  <span className="text-xs font-semibold text-green-700">
+                    {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(s.revenue)}
+                  </span>
+                </div>
+              </div>
+              {s.avgEngagement > 0 && (
+                <RatingIndicator value={Math.round(s.avgEngagement)} max={10} size="sm" variant="dots" tone="blue" />
+              )}
+            </div>
+          ))}
+
+          {studentAnalytics.length === 0 && (
+            <p className="text-xs text-gray-500 text-center py-4">Belum ada data murid bulan ini</p>
+          )}
+        </div>
+      )}
+
+      {/* ── OPERASIONAL TAB (Analitik) ───────────────────────── */}
+      {activeTab === "operasional" && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 flex flex-col items-center">
+              <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Sesi Selesai</p>
+              <Gauge
+                value={opsData.completionRate} max={100}
+                label="Completion"
+                tone={opsData.completionRate >= 80 ? "green" : opsData.completionRate >= 50 ? "amber" : "red"}
+                size="sm"
+                showTicks={false}
+              />
+            </div>
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
+              <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">Metrik</p>
+              <div className="space-y-2">
+                <div>
+                  <p className="text-[10px] text-gray-500">No-Show Rate</p>
+                  <p className={`text-sm font-bold ${opsData.noShowRate > 20 ? "text-red-600" : "text-green-600"}`}>
+                    {opsData.noShowRate}%
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-500">Rata-rata Durasi</p>
+                  <p className="text-sm font-bold text-gray-700">{opsData.avgDuration.toFixed(1)} jam</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+          {/* Monthly summary */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Ringkasan {monthLabel(month)}</p>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="bg-green-50 rounded-xl p-2">
+                <p className="text-lg font-bold text-green-700">{(allSessions ?? []).filter((s) => s.status === "DONE").length}</p>
+                <p className="text-[10px] text-green-600 font-semibold">Selesai</p>
+              </div>
+              <div className="bg-blue-50 rounded-xl p-2">
+                <p className="text-lg font-bold text-blue-700">{(allSessions ?? []).filter((s) => s.status === "SCHEDULED").length}</p>
+                <p className="text-[10px] text-blue-600 font-semibold">Terjadwal</p>
+              </div>
+              <div className="bg-red-50 rounded-xl p-2">
+                <p className="text-lg font-bold text-red-700">{(allSessions ?? []).filter((s) => s.status === "NO_SHOW").length}</p>
+                <p className="text-[10px] text-red-600 font-semibold">No-Show</p>
+              </div>
+            </div>
           </div>
         </div>
       )}

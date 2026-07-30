@@ -11,6 +11,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.34.0",
+    date: "2026-07-30",
+    title: "Gabung Keuangan & Analitik, Tugas → Catatan Belajar",
+    items: [
+      "Halaman Keuangan & Analitik digabung jadi satu — 6 tab: Ringkasan, Tagihan, Pengeluaran, Audit, Murid, Operasional",
+      "Ringkasan kini punya BarChart, LineChart, DonutChart & forecast — wawasan finansial langsung di satu tempat",
+      "Fitur Tugas/PR dihapus total — diganti Catatan Belajar per murid (auto-save textarea)",
+      "Catatan Belajar bisa diedit dari halaman /catatan (daftar semua murid + search) dan dari StudentDetail",
+      "Navigasi bawah: Home · Murid · Catatan · Keuangan (4 item, turun dari 5)",
+      "EvidenceCard di StudentDetail disederhanakan — hanya Avg Fokus + Nilai Rapor (tanpa Kepatuhan PR)",
+      "AI suggest homework, notifikasi PR, template sesi PR, dan semua referensi homework dihapus",
+    ],
+  },
+  {
     version: "v1.33.0",
     date: "2026-07-30",
     title: "Catat Sesi — Step Reorder, Quick Presets & IB DP Full Syllabus Topics",

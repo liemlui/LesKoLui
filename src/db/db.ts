@@ -1,6 +1,6 @@
 import Dexie from "dexie";
 import type { Table } from "dexie";
-import type { Student, Session, MonthlyReport, Payment, Settings, RaporGrade, Homework, FollowUpItem, Expense, IaEeProject, MonthClosing, AuditEntry } from "./types";
+import type { Student, Session, MonthlyReport, Payment, Settings, RaporGrade, FollowUpItem, Expense, IaEeProject, MonthClosing, AuditEntry, StudyNote } from "./types";
 
 type LegacySessionRow = {
   subject?: unknown;
@@ -14,12 +14,12 @@ export class JurnalDB extends Dexie {
   payments!:    Table<Payment,       string>;
   settings!:    Table<Settings,      string>;
   raporGrades!: Table<RaporGrade,    string>;
-  homeworks!:   Table<Homework,      string>;
   followUps!:   Table<FollowUpItem,  string>;
   expenses!:    Table<Expense,       string>;
   iaeeProjects!:Table<IaEeProject,   string>;
   monthClosings!:Table<MonthClosing, string>;
   auditLog!:    Table<AuditEntry,    string>;
+  studyNotes!:  Table<StudyNote,     string>;
 
   constructor() {
     super("jurnalles");
@@ -46,9 +46,8 @@ export class JurnalDB extends Dexie {
     this.version(5).stores({
       raporGrades: "id, studentId, semester, [studentId+semester]",
     });
-    // v6: add homework and follow-up tables
+    // v6: add follow-up table
     this.version(6).stores({
-      homeworks: "id, studentId, assignedAt, status, dueAt, [studentId+status]",
       followUps: "id, studentId, completedAt",
     });
     // v7: add expenses and IA/EE project tables
@@ -63,6 +62,10 @@ export class JurnalDB extends Dexie {
     // v9: add audit-log table (riwayat aktivitas penting — lokal, tak ikut backup/restore)
     this.version(9).stores({
       auditLog: "id, timestamp, entityType",
+    });
+    // v10: add study-notes table (catatan belajar per murid)
+    this.version(10).stores({
+      studyNotes: "studentId",
     });
   }
 }

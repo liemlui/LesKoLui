@@ -35,23 +35,7 @@ export interface EngagementLog {
   score: number;            // 1-10, computed
 }
 
-export type HomeworkStatus = "assigned" | "done" | "not_done" | "overdue" | "cancelled";
-export type FollowUpType   = "continue-topic" | "misconception" | "send-resource" | "check-homework" | "other";
-
-export interface Homework {
-  id: string;
-  studentId: string;
-  sessionId?: string;
-  subject: string;
-  title: string;
-  instructions?: string;
-  assignedAt: string;   // YYYY-MM-DD
-  dueAt?: string;       // YYYY-MM-DD
-  status: HomeworkStatus;
-  tutorFeedback?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+export type FollowUpType   = "continue-topic" | "misconception" | "send-resource" | "other";
 
 export interface FollowUpItem {
   id: string;
@@ -237,6 +221,14 @@ export interface IaEeProject {
 }
 
 // ── Audit Trail (riwayat aktivitas penting — lokal per perangkat) ────────────
+
+// ── Study Notes (catatan belajar per murid) ─────────────────────────────────
+
+export interface StudyNote {
+  studentId: string;     // PK
+  content: string;
+  updatedAt: string;
+}
 
 export type AuditAction =
   | "session.delete"

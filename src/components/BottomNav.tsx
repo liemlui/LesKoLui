@@ -26,19 +26,10 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
-    to: "/tugas", label: "Tugas", icon: (
+    to: "/catatan", label: "Catatan", icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="18" height="18" rx="3" />
-        <path d="M8 12h3M8 16h7M8 8h1" />
-      </svg>
-    ),
-  },
-  {
-    to: "/analytics", label: "Analitik", icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="12" width="4" height="8" rx="1" />
-        <rect x="10" y="7" width="4" height="13" rx="1" />
-        <rect x="17" y="3" width="4" height="17" rx="1" />
+        <path d="M12 20h9" />
+        <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
       </svg>
     ),
   },

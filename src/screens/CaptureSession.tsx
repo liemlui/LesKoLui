@@ -5,7 +5,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db/db";
 import {
   listStudents, getStudent, createSession, recentShortNotes,
-  createHomework, createFollowUp, listPendingHomework, listPendingFollowUps,
+  createFollowUp, listPendingFollowUps,
   getLastDoneSession, getSettings, listDoneSessionsForDate,
   markSessionDone,
 } from "../db/repos";
@@ -13,7 +13,6 @@ import { compressPhoto, stampPhoto } from "../lib/foto";
 import SignaturePad from "../components/SignaturePad";
 import { todayWIB, dayLabel } from "../lib/format";
 import { toggleArrayItem } from "../lib/arrays";
-import { addDays } from "../lib/calendar";
 import { calcEngagementScore, scoreLabel } from "../lib/engagement";
 import { IB_MYP_SUBJECTS, IB_DP_GROUPS, getSubjectGroups, CURRICULUM_META } from "../lib/ibSubjects";
 import { searchTopics, browseTopicsForSubjects } from "../lib/ibTopics";
@@ -22,10 +21,10 @@ import { BEHAVIOR_TAGS, RESPONSE_TAGS } from "../lib/responseTaxonomy";
 import type { BehaviorTag, ResponseTag } from "../lib/responseTaxonomy";
 import type { SessionType } from "../lib/sessionTemplates";
 import { MIN_DURATION } from "../db/types";
-import { draftShortNote, polishWhatsApp, suggestHomework, estimateDraftNoteCost, estimateHomeworkCost, estimatePolishWACost } from "../lib/aiClient";
+import { draftShortNote, polishWhatsApp, estimateDraftNoteCost, estimatePolishWACost } from "../lib/aiClient";
 import { AiCostModal } from "../components/AiCostModal";
 import Breadcrumb from "../components/Breadcrumb";
-import type { Student, Session, Homework, FollowUpItem } from "../db/types";
+import type { Student, Session, FollowUpItem } from "../db/types";
 import PaginationControls from "../components/PaginationControls";
 import { PAGE_SIZE, clampPage, paginateItems } from "../lib/pagination";
 
@@ -42,7 +41,7 @@ const STEPS = [
   { id: 1, label: "Jadwal",  icon: "🎯", desc: "Murid & waktu",       optional: false },
   { id: 2, label: "Materi",  icon: "📚", desc: "Mapel & topik",       optional: false },
   { id: 3, label: "Kondisi", icon: "😊", desc: "Mood & perilaku",     optional: true  },
-  { id: 4, label: "Detail",  icon: "📋", desc: "Topik & PR",          optional: true  },
+  { id: 4, label: "Detail",  icon: "📋", desc: "Topik",              optional: true  },
   { id: 5, label: "Catatan", icon: "✏️", desc: "Ringkasan sesi",      optional: false },
   { id: 6, label: "Bukti",   icon: "📸", desc: "Foto & tanda tangan", optional: true  },
 ] as const;
@@ -54,7 +53,6 @@ type StepNum = 1 | 2 | 3 | 4 | 5 | 6;
 function buildWaMessage(
   student: Student,
   session: { date: string; subjects: string[]; durationHours: number; shortNote: string; topic?: string; predictedGrade?: string },
-  hwItems: { title: string; subject: string; dueAt: string }[],
   followUps: string[],
   tutorName: string
 ): string {
@@ -67,13 +65,6 @@ function buildWaMessage(
     session.topic ? `*Topik:* ${session.topic}` : "",
     session.predictedGrade ? `*Prediksi nilai:* ${session.predictedGrade}` : "",
   ].filter((l) => l !== "");
-
-  if (hwItems.length > 0) {
-    lines.push(``, `📋 *PR yang diberikan:*`);
-    hwItems.forEach((h) =>
-      lines.push(`• ${h.title}${h.dueAt ? ` _(deadline: ${h.dueAt})_` : ""}`)
-    );
-  }
 
   if (followUps.length > 0) {
     lines.push(``, `🎯 *Fokus sesi berikutnya:*`);
@@ -161,9 +152,7 @@ export default function CaptureSession() {
 
   // Brief (loaded on student change)
   const [briefLastSession, setBriefLastSession] = useState<Session | undefined>();
-  const [briefHW,          setBriefHW]          = useState<Homework[]>([]);
   const [briefFollowUps,   setBriefFollowUps]   = useState<FollowUpItem[]>([]);
-  const [briefHwPage,      setBriefHwPage]      = useState(1);
   const [briefFollowPage,  setBriefFollowPage]  = useState(1);
 
   // Close-out state
@@ -172,15 +161,9 @@ export default function CaptureSession() {
     id: string; date: string; subjects: string[]; durationHours: number;
     shortNote: string; topic?: string; predictedGrade?: string;
   } | null>(null);
-  const [noHW,           setNoHW]           = useState(false);
-  const [coHWItems,      setCoHWItems]      = useState<{title:string;subject:string;dueAt:string}[]>([]);
-  const [coHWTitle,      setCoHWTitle]      = useState("");
-  const [coHWSubject,    setCoHWSubject]    = useState("");
-  const [coHWDueAt,      setCoHWDueAt]      = useState("");
   const [coFollowUps,    setCoFollowUps]    = useState<string[]>([]);
   const [coFollowUpText, setCoFollowUpText] = useState("");
   const [coSaving,       setCoSaving]       = useState(false);
-  const [coHwPage,       setCoHwPage]       = useState(1);
   const [coFollowPage,   setCoFollowPage]   = useState(1);
 
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -188,14 +171,11 @@ export default function CaptureSession() {
 
   // AI states
   const [aiNoteLoading,    setAiNoteLoading]    = useState(false);
-  const [aiHwLoading,      setAiHwLoading]      = useState(false);
-  const [aiHwSuggestions,  setAiHwSuggestions]  = useState<{ title: string; subject: string }[]>([]);
   const [aiWaLoading,      setAiWaLoading]      = useState(false);
   const [aiWaText,         setAiWaText]         = useState<string | null>(null);
   const [aiError,          setAiError]          = useState("");
   const [showTopicPicker,  setShowTopicPicker]  = useState(false);
   const [showAiCostModal,  setShowAiCostModal]  = useState(false);
-  const [showAiHwModal,    setShowAiHwModal]    = useState(false);
   const [showAiWaModal,    setShowAiWaModal]    = useState(false);
 
   const topicGroups = useMemo(
@@ -247,20 +227,18 @@ export default function CaptureSession() {
   useEffect(() => {
     if (!studentId) {
       setCurrentStudent(undefined); setStudentSubjects([]); setSubjects([]);
-      setBriefLastSession(undefined); setBriefHW([]); setBriefFollowUps([]);
+      setBriefLastSession(undefined); setBriefFollowUps([]);
       return;
     }
     Promise.all([
       getStudent(studentId),
       getLastDoneSession(studentId),
-      listPendingHomework(studentId),
       listPendingFollowUps(studentId),
-    ]).then(([stud, lastSess, hw, fu]) => {
+    ]).then(([stud, lastSess, fu]) => {
       setCurrentStudent(stud);
       setStudentSubjects(stud?.subjects ?? []);
       setSubjects([]);
       setBriefLastSession(lastSess);
-      setBriefHW(hw);
       setBriefFollowUps(fu);
     });
   }, [studentId]);
@@ -269,12 +247,8 @@ export default function CaptureSession() {
     ? (allNotes ?? []).filter((n) => n.toLowerCase().includes(shortNote.toLowerCase()) && n !== shortNote).slice(0, 4)
     : [];
 
-  const safeBriefHwPage     = clampPage(briefHwPage, briefHW.length);
-  const paginatedBriefHW    = paginateItems(briefHW, safeBriefHwPage);
   const safeBriefFollowPage = clampPage(briefFollowPage, briefFollowUps.length);
   const paginatedBriefFollowUps = paginateItems(briefFollowUps, safeBriefFollowPage);
-  const safeCoHwPage        = clampPage(coHwPage, coHWItems.length);
-  const paginatedCoHWItems  = paginateItems(coHWItems, safeCoHwPage);
   const safeCoFollowPage    = clampPage(coFollowPage, coFollowUps.length);
   const paginatedCoFollowUps = paginateItems(coFollowUps, safeCoFollowPage);
 
@@ -310,8 +284,6 @@ export default function CaptureSession() {
     setSignature(undefined); setShowSigPad(false);
     setDuration(MIN_DURATION); setSessionDate(today);
     setSessionType(undefined); setConflictWarn([]);
-    setNoHW(false);
-    setCoHWItems([]); setCoHWTitle(""); setCoHWSubject(""); setCoHWDueAt("");
     setCurrentStep(1); setMessage("");
   };
 
@@ -372,24 +344,11 @@ export default function CaptureSession() {
         });
       }
 
-      if (!noHW) {
-        for (const hw of coHWItems) {
-          await createHomework({
-            studentId, sessionId: newId,
-            subject: hw.subject, title: hw.title,
-            assignedAt: sessionDate, dueAt: hw.dueAt || undefined,
-            status: "assigned",
-          });
-        }
-      }
-
       setCoSessionData({
         id: newId, date: sessionDate, subjects: subjects.length > 0 ? subjects : [],
         durationHours: duration, shortNote: shortNote.trim(),
         topic: topic.trim() || undefined, predictedGrade: predictedGrade.trim() || undefined,
       });
-      setCoHWTitle(""); setCoHWSubject(subjects[0] ?? studentSubjects[0] ?? "");
-      setCoHWDueAt(addDays(sessionDate, 7));
       setCoFollowUps(needsWork.trim() ? [needsWork.trim()] : []);
       setCoFollowUpText("");
       setShowCloseOut(true);
@@ -398,12 +357,6 @@ export default function CaptureSession() {
     } finally {
       setSaving(false);
     }
-  };
-
-  const addCoHW = () => {
-    if (!coHWTitle.trim()) return;
-    setCoHWItems((prev) => [...prev, { title: coHWTitle.trim(), subject: coHWSubject, dueAt: coHWDueAt }]);
-    setCoHWTitle(""); setCoHWDueAt(addDays(sessionDate, 7));
   };
 
   const addCoFollowUp = () => {
@@ -619,7 +572,7 @@ export default function CaptureSession() {
           )}
 
           {/* Brief persiapan */}
-          {studentId && (briefLastSession || briefHW.length > 0 || briefFollowUps.length > 0) && (
+          {studentId && (briefLastSession || briefFollowUps.length > 0) && (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 space-y-2.5">
               <p className="text-xs font-bold text-amber-700 uppercase tracking-wide">📋 Persiapan Sesi</p>
               {briefLastSession && (
@@ -631,20 +584,6 @@ export default function CaptureSession() {
                   <p className="text-xs text-gray-600 leading-relaxed">"{briefLastSession.shortNote}"</p>
                   {briefLastSession.topic && <p className="text-xs text-gray-500">💡 Topik: {briefLastSession.topic}</p>}
                   {briefLastSession.predictedGrade && <p className="text-xs text-gray-500">📊 Prediksi: {briefLastSession.predictedGrade}</p>}
-                </div>
-              )}
-              {briefHW.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-red-600 mb-1">📋 PR belum selesai ({briefHW.length}):</p>
-                  {paginatedBriefHW.map((h) => (
-                    <p key={h.id} className="text-xs text-gray-600 flex items-center gap-1">
-                      <span className={h.status === "overdue" ? "text-red-500" : "text-amber-500"}>•</span>
-                      <span className="font-medium">{h.title}</span>
-                      <span className="text-gray-500">({h.subject})</span>
-                      {h.dueAt && <span className={`text-xs ml-auto ${h.status === "overdue" ? "text-red-500 font-semibold" : "text-gray-500"}`}>deadline: {h.dueAt.slice(5)}</span>}
-                    </p>
-                  ))}
-                  <PaginationControls page={safeBriefHwPage} total={briefHW.length} onPageChange={setBriefHwPage} label="PR" />
                 </div>
               )}
               {briefFollowUps.length > 0 && (
@@ -1178,88 +1117,6 @@ export default function CaptureSession() {
               onChange={(e) => setPredictedGrade(e.target.value)} />
           </div>
 
-          {/* PR */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <p className="text-sm font-bold text-gray-700">📋 Pekerjaan Rumah</p>
-              <button type="button"
-                onClick={() => { setNoHW(!noHW); if (!noHW) setCoHWItems([]); }}
-                className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
-                  noHW ? "bg-gray-100 text-gray-500 hover:bg-gray-200" : "bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100"}`}>
-                {noHW ? "↩ Ada PR" : "📭 Tidak ada PR"}
-              </button>
-            </div>
-            {noHW ? (
-              <p className="text-xs text-gray-500 text-center py-4">Tidak ada PR untuk sesi ini ✅</p>
-            ) : (
-              <div className="p-3 space-y-2">
-                <input className="input text-sm" placeholder="Judul PR (mis. Latihan soal Paper 2)"
-                  value={coHWTitle} onChange={(e) => setCoHWTitle(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && addCoHW()} />
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    {studentSubjects.length > 0 ? (
-                      <select className="input text-sm" value={coHWSubject} onChange={(e) => setCoHWSubject(e.target.value)}>
-                        <option value="">Pilih mapel</option>
-                        {studentSubjects.map((s) => <option key={s} value={s}>{s}</option>)}
-                        {subjects.filter((s) => !studentSubjects.includes(s)).map((s) => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    ) : (
-                      <input className="input text-sm" placeholder="Mapel" value={coHWSubject} onChange={(e) => setCoHWSubject(e.target.value)} />
-                    )}
-                  </div>
-                  <div>
-                    <input className="input text-sm" type="date" value={coHWDueAt} min={today} onChange={(e) => setCoHWDueAt(e.target.value)} />
-                  </div>
-                </div>
-                {settings?.ai?.enabled && settings.ai.apiKey && (subjects.length > 0 || studentSubjects.length > 0) && (
-                  <div>
-                    <button type="button" disabled={aiHwLoading}
-                      onClick={() => setShowAiHwModal(true)}
-                      className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-2 rounded-lg transition-colors disabled:opacity-50">
-                      {aiHwLoading ? "⏳ Saran PR AI..." : "✨ Saran PR AI"}
-                    </button>
-                    {aiHwSuggestions.length > 0 && (
-                      <div className="mt-1.5 space-y-1">
-                        {aiHwSuggestions.map((hw, i) => (
-                          <button key={i} type="button"
-                            onClick={() => { setCoHWTitle(hw.title); setCoHWSubject(hw.subject); setAiHwSuggestions([]); }}
-                            className="w-full text-left px-3 py-2 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-100 text-sm transition-colors">
-                            <span className="font-medium text-gray-800">{hw.title}</span>
-                            {hw.subject && <span className="text-xs text-indigo-500 ml-2">{hw.subject}</span>}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {aiError && <p className="text-xs text-red-500 mt-1">{aiError}</p>}
-                  </div>
-                )}
-                <button type="button" onClick={addCoHW} disabled={!coHWTitle.trim()}
-                  className="w-full py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold disabled:opacity-40 hover:bg-blue-700 transition-colors">
-                  + Tambah PR
-                </button>
-                {coHWItems.length > 0 && (
-                  <div className="space-y-1.5">
-                    {paginatedCoHWItems.map((hw, i) => {
-                      const idx = (safeCoHwPage - 1) * PAGE_SIZE + i;
-                      return (
-                        <div key={idx} className="flex items-center gap-2 bg-blue-50 rounded-xl px-3 py-2">
-                          <span className="text-blue-400 text-sm">📋</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-800 truncate">{hw.title}</p>
-                            <p className="text-xs text-gray-500">{hw.subject}{hw.dueAt ? ` · deadline ${hw.dueAt.slice(5)}` : ""}</p>
-                          </div>
-                          <button onClick={() => setCoHWItems((prev) => prev.filter((_, j) => j !== idx))}
-                            className="text-gray-500 hover:text-red-400 flex-shrink-0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-                        </div>
-                      );
-                    })}
-                    <PaginationControls page={safeCoHwPage} total={coHWItems.length} onPageChange={setCoHwPage} label="PR" />
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
         </div>
       )}
 
@@ -1662,27 +1519,6 @@ export default function CaptureSession() {
                 </div>
               )}
 
-              {/* PR */}
-              {coHWItems.length > 0 && (
-                <div>
-                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">
-                    📋 PR Diberikan ({coHWItems.length})
-                  </p>
-                  <div className="space-y-1.5">
-                    {coHWItems.map((hw, i) => (
-                      <div key={i} className="flex items-center gap-2.5 bg-blue-50 rounded-xl px-3 py-2.5 border border-blue-100">
-                        <span className="text-blue-400 text-base">📋</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-gray-800 truncate">{hw.title}</p>
-                          {hw.subject && <p className="text-xs text-gray-500">{hw.subject}{hw.dueAt ? ` · deadline ${hw.dueAt.slice(5)}` : ""}</p>}
-                        </div>
-                        <span className="text-xs text-blue-300 flex-shrink-0">✓</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Follow-up */}
               <div>
                 <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">
@@ -1722,7 +1558,7 @@ export default function CaptureSession() {
                   )}
                   <div className="bg-green-50 border border-green-200 rounded-2xl p-3.5 mb-2">
                     <pre className="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed font-sans">
-                      {aiWaText ?? buildWaMessage(currentStudent, coSessionData, coHWItems, coFollowUps, tutorName)}
+                      {aiWaText ?? buildWaMessage(currentStudent, coSessionData, coFollowUps, tutorName)}
                     </pre>
                   </div>
                   {settings?.ai?.enabled && settings.ai.apiKey && (
@@ -1740,7 +1576,7 @@ export default function CaptureSession() {
                       )}
                     </div>
                   )}
-                  <a href={`https://wa.me/${waNumber}?text=${encodeURIComponent(aiWaText ?? buildWaMessage(currentStudent, coSessionData, coHWItems, coFollowUps, tutorName))}`}
+                  <a href={`https://wa.me/${waNumber}?text=${encodeURIComponent(aiWaText ?? buildWaMessage(currentStudent, coSessionData, coFollowUps, tutorName))}`}
                     target="_blank" rel="noopener noreferrer"
                     className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl bg-green-500 text-white font-black text-sm hover:bg-green-600 transition-colors shadow-md shadow-green-200">
                     <span className="text-lg">💬</span> Kirim ke {currentStudent.parentContact.name || "Orang Tua"}
@@ -1759,28 +1595,6 @@ export default function CaptureSession() {
         </div>
       )}
 
-      {/* Saran PR AI modal */}
-      <AiCostModal
-        open={showAiHwModal}
-        title="Saran PR AI"
-        estimatedIDR={estimateHomeworkCost()}
-        description={`Saran PR untuk ${(subjects.length > 0 ? subjects : studentSubjects).join(", ") || "mapel ini"}`}
-        onCancel={() => setShowAiHwModal(false)}
-        onConfirm={async () => {
-          setShowAiHwModal(false);
-          setAiHwLoading(true); setAiError(""); setAiHwSuggestions([]);
-          try {
-            const res = await suggestHomework({
-              student: { name: currentStudent?.name ?? "", level: currentStudent?.level ?? "" },
-              subjects: subjects.length > 0 ? subjects : studentSubjects,
-              topic, needsWork,
-            });
-            if (res.items?.length) setAiHwSuggestions(res.items);
-          } catch (e) { setAiError((e as Error).message); }
-          finally { setAiHwLoading(false); }
-        }}
-      />
-
       {/* Poles WA AI modal */}
       <AiCostModal
         open={showAiWaModal}
@@ -1793,7 +1607,7 @@ export default function CaptureSession() {
           if (!currentStudent || !coSessionData) return;
           setAiWaLoading(true); setAiError("");
           try {
-            const original = buildWaMessage(currentStudent, coSessionData, coHWItems, coFollowUps, tutorName ?? "");
+            const original = buildWaMessage(currentStudent, coSessionData, coFollowUps, tutorName ?? "");
             const res = await polishWhatsApp({ original, studentName: currentStudent.name, tutorName: tutorName ?? "" });
             if (res.message) setAiWaText(res.message);
           } catch (e) { setAiError((e as Error).message); }

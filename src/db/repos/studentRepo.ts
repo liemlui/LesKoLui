@@ -30,18 +30,18 @@ export async function deleteStudent(id: string): Promise<void> {
   const student = await db.students.get(id);
   const tables = [
     db.students, db.sessions, db.reports,
-    db.payments, db.homeworks, db.followUps, db.raporGrades,
-    db.iaeeProjects,
+    db.payments, db.followUps, db.raporGrades,
+    db.iaeeProjects, db.studyNotes,
   ];
   await db.transaction("rw", tables, async () => {
     await db.students.delete(id);
     await db.sessions.where({ studentId: id }).delete();
     await db.reports.where({ studentId: id }).delete();
     await db.payments.where({ studentId: id }).delete();
-    await db.homeworks.where({ studentId: id }).delete();
     await db.followUps.where({ studentId: id }).delete();
     await db.raporGrades.where({ studentId: id }).delete();
     await db.iaeeProjects.where({ studentId: id }).delete();
+    await db.studyNotes.where({ studentId: id }).delete();
   });
   await logAudit("student.delete", "student", id, student?.name);
 }

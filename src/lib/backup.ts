@@ -9,7 +9,7 @@ import type { Table } from "dexie";
  */
 export const BACKUP_TABLES = [
   "students", "sessions", "reports", "payments", "settings",
-  "raporGrades", "homeworks", "followUps", "expenses", "iaeeProjects",
+  "raporGrades", "followUps", "expenses", "iaeeProjects",
   "monthClosings",
 ] as const;
 
