@@ -1659,7 +1659,7 @@ export interface TopicGroup { unit: string; topics: TopicEntry[]; }
 export function browseTopicsForSubjects(
   subjects: string[],
   studentLevel?: string,
-  curriculum?: string,
+  _curriculum?: string,
   maxGroups = 8,
 ): TopicGroup[] {
   if (subjects.length === 0) return [];
