@@ -14,8 +14,8 @@ describe("calcEngagementScore", () => {
   });
 
   it("applies negative modifiers", () => {
-    expect(calcEngagementScore({ playingPhone: true })).toBe(2);    // 5-3
-    expect(calcEngagementScore({ drowsy: true })).toBe(3);          // 5-2
+    expect(calcEngagementScore({ playingPhone: true })).toBe(4);    // 5-1
+    expect(calcEngagementScore({ drowsy: true })).toBe(4);          // 5-1
     expect(calcEngagementScore({ needsRepetition: true })).toBe(4); // 5-1
     expect(calcEngagementScore({ hwMissed: true })).toBe(4);        // 5-1
   });
@@ -26,22 +26,22 @@ describe("calcEngagementScore", () => {
   });
 
   it("handles mixed modifiers", () => {
-    expect(calcEngagementScore({ prepared: true, playingPhone: true })).toBe(4); // 5+2-3
+    expect(calcEngagementScore({ prepared: true, playingPhone: true })).toBe(6); // 5+2-1
   });
 });
 
 describe("scoreLabel", () => {
   it("returns correct labels for score ranges", () => {
-    expect(scoreLabel(10).text).toBe("Sangat Serius");
-    expect(scoreLabel(9).text).toBe("Sangat Serius");
-    expect(scoreLabel(8).text).toBe("Serius");
-    expect(scoreLabel(7).text).toBe("Serius");
+    expect(scoreLabel(10).text).toBe("Sangat Baik");
+    expect(scoreLabel(9).text).toBe("Sangat Baik");
+    expect(scoreLabel(8).text).toBe("Baik");
+    expect(scoreLabel(7).text).toBe("Baik");
     expect(scoreLabel(6).text).toBe("Cukup");
     expect(scoreLabel(5).text).toBe("Cukup");
-    expect(scoreLabel(4).text).toBe("Kurang Serius");
-    expect(scoreLabel(3).text).toBe("Kurang Serius");
-    expect(scoreLabel(2).text).toBe("Tidak Serius");
-    expect(scoreLabel(1).text).toBe("Tidak Serius");
+    expect(scoreLabel(4).text).toBe("Kurang Fokus");
+    expect(scoreLabel(3).text).toBe("Kurang Fokus");
+    expect(scoreLabel(2).text).toBe("Perlu Perhatian");
+    expect(scoreLabel(1).text).toBe("Perlu Perhatian");
   });
 });
 

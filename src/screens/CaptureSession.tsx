@@ -40,11 +40,11 @@ const MOODS = [
 
 const STEPS = [
   { id: 1, label: "Jadwal",  icon: "🎯", desc: "Murid & waktu",       optional: false },
-  { id: 2, label: "Bukti",   icon: "📸", desc: "Foto & tanda tangan", optional: true  },
-  { id: 3, label: "Materi",  icon: "📚", desc: "Mapel & topik",       optional: false },
-  { id: 4, label: "Kondisi", icon: "😊", desc: "Mood & perilaku",     optional: true  },
-  { id: 5, label: "Detail",  icon: "📋", desc: "Topik & PR",          optional: true  },
-  { id: 6, label: "Catatan", icon: "✏️", desc: "Ringkasan sesi",      optional: false },
+  { id: 2, label: "Materi",  icon: "📚", desc: "Mapel & topik",       optional: false },
+  { id: 3, label: "Kondisi", icon: "😊", desc: "Mood & perilaku",     optional: true  },
+  { id: 4, label: "Detail",  icon: "📋", desc: "Topik & PR",          optional: true  },
+  { id: 5, label: "Catatan", icon: "✏️", desc: "Ringkasan sesi",      optional: false },
+  { id: 6, label: "Bukti",   icon: "📸", desc: "Foto & tanda tangan", optional: true  },
 ] as const;
 
 type StepNum = 1 | 2 | 3 | 4 | 5 | 6;
@@ -86,7 +86,7 @@ function buildWaMessage(
 
 /**
  * CaptureSession — wizard 6 langkah untuk merekam sesi les yang selesai.
- * Step: Pilih Murid → Mapel → Catatan → Foto → PR → Review.
+ * Step: Jadwal → Materi → Kondisi → Detail → Catatan → Bukti (foto & TTD, bisa ditunda).
  *
  * Mengintegrasikan: AI auto-fill catatan, foto kamera, tanda tangan digital,
  * PR follow-up, deteksi konflik jadwal, dan beberapa template catatan.
@@ -432,10 +432,10 @@ export default function CaptureSession() {
   // Step validation & navigation
   const validateCurrentStep = (): string | null => {
     if (currentStep === 1 && !studentId) return "👤 Pilih murid dulu.";
-    if (currentStep === 3) {
+    if (currentStep === 2) {
       if (studentSubjects.length > 0 && subjects.length === 0) return "📖 Pilih minimal 1 mata pelajaran.";
     }
-    if (currentStep === 6 && !shortNote.trim()) return "✏️ Tulis catatan singkat dulu.";
+    if (currentStep === 5 && !shortNote.trim()) return "✏️ Tulis catatan singkat dulu.";
     return null;
   };
 
@@ -654,10 +654,29 @@ export default function CaptureSession() {
       )}
 
       {/* ══════════════════════════════════════════
-          STEP 2: BUKTI — Foto & Tanda Tangan
+          STEP 6: BUKTI — Foto & Tanda Tangan
           ══════════════════════════════════════════ */}
-      {currentStep === 2 && (
+      {currentStep === 6 && (
         <div className="px-4 space-y-3">
+          {/* Info: bisa diisi nanti */}
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-2.5">
+            <span className="text-amber-500 text-xl">⏭️</span>
+            <div className="flex-1">
+              <p className="text-xs font-bold text-amber-700">Foto & tanda tangan bisa diisi nanti</p>
+              <p className="text-xs text-amber-600 mt-0.5">Lengkapi dari profil murid setelah sesi. Simpan dulu detailnya sekarang.</p>
+            </div>
+          </div>
+          <button type="button" onClick={handleSave}
+            className="w-full py-3 rounded-xl bg-amber-500 text-white font-bold text-sm hover:bg-amber-600 transition-colors shadow-sm">
+            ⏭️ Nanti Saja — Simpan Tanpa Foto
+          </button>
+
+          <div className="flex items-center gap-3 my-1">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-xs text-gray-500 font-medium">atau isi sekarang</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+
           {/* Kamera — capture langsung */}
           <input ref={cameraRef} type="file" accept="image/*" capture="environment"
             onChange={handlePhoto} className="hidden" />
@@ -746,9 +765,9 @@ export default function CaptureSession() {
       )}
 
       {/* ══════════════════════════════════════════
-          STEP 3: MATERI — Mapel & Catatan
+          STEP 2: MATERI — Mapel & Topik
           ══════════════════════════════════════════ */}
-      {currentStep === 3 && (
+      {currentStep === 2 && (
         <div className="px-4 space-y-4">
 
           {/* Mapel */}
@@ -779,6 +798,13 @@ export default function CaptureSession() {
                 + Lainnya{currentStudent?.curriculum ? ` (${CURRICULUM_META[currentStudent.curriculum].shortLabel})` : ""}
               </button>
             </div>
+          </div>
+
+          {/* Fokus Utama */}
+          <div>
+            <label className="label">🎯 Fokus Utama <span className="text-gray-500 font-normal text-xs">(opsional, isi cepat)</span></label>
+            <input className="input" maxLength={100} placeholder="mis. Integral substitution, Essay structure, Stoikiometri..." 
+              value={topic} onChange={(e) => { setTopic(e.target.value); setTopicSearch(e.target.value); }} />
           </div>
 
           {/* Sub-Topik picker (grade-filtered) */}
@@ -825,10 +851,50 @@ export default function CaptureSession() {
       )}
 
       {/* ══════════════════════════════════════════
-          STEP 4: KONDISI — Mood & Engagement
+          STEP 3: KONDISI — Mood & Engagement
           ══════════════════════════════════════════ */}
-      {currentStep === 4 && (
+      {currentStep === 3 && (
         <div className="px-4 space-y-4">
+
+          {/* Quick Presets — isi sekali klik */}
+          <div>
+            <label className="label">⚡ Cepat <span className="text-gray-500 font-normal text-xs">(isi 1 detik)</span></label>
+            <div className="flex flex-wrap gap-2">
+              <button type="button"
+                onClick={() => {
+                  setMood("Fokus"); setEngPrepared(true); setEngFocused(true); setEngActiveAsking(true); setEngQuickLearner(false);
+                  setEngDrowsy(false); setEngPhone(false); setEngNeedsRepeat(false); setEngHwMissed(false);
+                }}
+                className="px-3 py-2 rounded-full text-sm font-semibold bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors">
+                ✨ Lancar
+              </button>
+              <button type="button"
+                onClick={() => {
+                  setMood("Biasa"); setEngPrepared(false); setEngFocused(false); setEngActiveAsking(false);
+                  setEngQuickLearner(false); setEngDrowsy(false); setEngPhone(false); setEngNeedsRepeat(false); setEngHwMissed(false);
+                }}
+                className="px-3 py-2 rounded-full text-sm font-semibold bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 transition-colors">
+                😐 Biasa
+              </button>
+              <button type="button"
+                onClick={() => {
+                  setMood("Lelah"); setEngPrepared(false); setEngFocused(false); setEngActiveAsking(false);
+                  setEngQuickLearner(false); setEngDrowsy(true); setEngPhone(false); setEngNeedsRepeat(false); setEngHwMissed(false);
+                }}
+                className="px-3 py-2 rounded-full text-sm font-semibold bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 transition-colors">
+                😴 Kurang Fit
+              </button>
+              <button type="button"
+                onClick={() => {
+                  setMood(undefined); setEngPrepared(false); setEngFocused(false); setEngActiveAsking(false);
+                  setEngQuickLearner(false); setEngDrowsy(false); setEngPhone(false); setEngNeedsRepeat(false); setEngHwMissed(false);
+                  setBehaviorTags([]);
+                }}
+                className="px-3 py-2 rounded-full text-sm font-semibold bg-white text-gray-500 border border-gray-200 hover:bg-gray-50 transition-colors">
+                🔄 Reset
+              </button>
+            </div>
+          </div>
 
           {/* Mood */}
           <div>
@@ -879,12 +945,12 @@ export default function CaptureSession() {
               <button type="button" onClick={() => setEngPhone(!engPhone)}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
                   engPhone ? "bg-red-500 text-white border-red-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-red-300"}`}>
-                <span>📱</span> Main HP (−3)
+                <span>📱</span> Main HP (−1)
               </button>
               <button type="button" onClick={() => setEngDrowsy(!engDrowsy)}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
                   engDrowsy ? "bg-orange-500 text-white border-orange-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-orange-300"}`}>
-                <span>😴</span> Mengantuk (−2)
+                <span>😴</span> Mengantuk (−1)
               </button>
               <button type="button" onClick={() => setEngNeedsRepeat(!engNeedsRepeat)}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
@@ -912,7 +978,7 @@ export default function CaptureSession() {
               </div>
               <div>
                 <p className="font-bold text-base" style={{ color: engScoreInfo.color }}>{engScoreInfo.text}</p>
-                <p className="text-xs mt-0.5" style={{ color: engScoreInfo.color, opacity: 0.75 }}>Skor keseriusan: {engScore}/10</p>
+                <p className="text-xs mt-0.5" style={{ color: engScoreInfo.color, opacity: 0.75 }}>Skor keterlibatan: {engScore}/10</p>
               </div>
             </div>
           )}
@@ -1002,10 +1068,45 @@ export default function CaptureSession() {
       )}
 
       {/* ══════════════════════════════════════════
-          STEP 5: DETAIL — Topik, Nilai & PR
+          STEP 4: DETAIL — Topik, Nilai & PR
           ══════════════════════════════════════════ */}
-      {currentStep === 5 && (
+      {currentStep === 4 && (
         <div className="px-4 space-y-4">
+
+          {/* Quick Presets */}
+          <div>
+            <label className="label">⚡ Cepat <span className="text-gray-500 font-normal text-xs">(isi 1 detik)</span></label>
+            <div className="flex flex-wrap gap-2">
+              <button type="button"
+                onClick={() => {
+                  setResponseTag("correct-independent"); setNeedsWork(""); setPredictedGrade("");
+                }}
+                className="px-3 py-2 rounded-full text-sm font-semibold bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors">
+                ⭐ Lancar
+              </button>
+              <button type="button"
+                onClick={() => {
+                  setResponseTag("partial-correct"); setNeedsWork(""); setPredictedGrade("");
+                }}
+                className="px-3 py-2 rounded-full text-sm font-semibold bg-yellow-50 text-yellow-700 border border-yellow-200 hover:bg-yellow-100 transition-colors">
+                🟡 Butuh Latihan
+              </button>
+              <button type="button"
+                onClick={() => {
+                  setResponseTag("misconception"); setNeedsWork(""); setPredictedGrade("");
+                }}
+                className="px-3 py-2 rounded-full text-sm font-semibold bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 transition-colors">
+                🔴 Miskonsepsi
+              </button>
+              <button type="button"
+                onClick={() => {
+                  setResponseTag(undefined); setNeedsWork(""); setPredictedGrade("");
+                }}
+                className="px-3 py-2 rounded-full text-sm font-semibold bg-white text-gray-500 border border-gray-200 hover:bg-gray-50 transition-colors">
+                🔄 Reset
+              </button>
+            </div>
+          </div>
 
           {/* Kualitas Respons Akademik */}
           <div>
@@ -1038,7 +1139,7 @@ export default function CaptureSession() {
                 const q = e.target.value;
                 setTopicSearch(q);
                 setTopic(q);
-                setTopicResults(searchTopics(q, subjects[0] ?? studentSubjects[0]));
+                setTopicResults(searchTopics(q, subjects[0] ?? studentSubjects[0], currentStudent?.level));
               }} />
             {topicResults.length > 0 && (
               <div className="mt-1 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm max-h-40 overflow-y-auto">
@@ -1047,7 +1148,7 @@ export default function CaptureSession() {
                     className="block w-full text-left px-3 py-2 text-xs hover:bg-blue-50 border-b border-gray-50 last:border-0"
                     onClick={() => { setTopic(t.topic); setTopicSearch(t.topic); setTopicResults([]); }}>
                     <span className="font-semibold text-gray-700">{t.topic}</span>
-                    <span className="text-gray-500 ml-2">{t.unit} · {t.subject}</span>
+                    <span className="text-gray-500 ml-2">{t.gradeLabel} · {t.unit}</span>
                   </button>
                 ))}
               </div>
@@ -1157,9 +1258,9 @@ export default function CaptureSession() {
       )}
 
       {/* ══════════════════════════════════════════
-          STEP 6: CATATAN — Ringkasan Sesi
+          STEP 5: CATATAN — Ringkasan Sesi
           ══════════════════════════════════════════ */}
-      {currentStep === 6 && (
+      {currentStep === 5 && (
         <div className="px-4 space-y-4">
 
           {/* Context summary — what AI will use */}

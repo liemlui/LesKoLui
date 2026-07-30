@@ -11,6 +11,22 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.33.0",
+    date: "2026-07-30",
+    title: "Catat Sesi — Step Reorder, Quick Presets & IB DP Full Syllabus Topics",
+    items: [
+      "Step order baru: Jadwal → Materi → Kondisi → Detail → Catatan → Bukti — isi detail dulu, foto & TTD belakangan",
+      "Bukti (foto & tanda tangan) bisa ditunda — tombol ⏭️ Nanti Saja di step akhir",
+      "Quick presets ⚡ di step Kondisi (Lancar/Biasa/Kurang Fit/Reset) & Detail (Lancar/Butuh Latihan/Miskonsepsi) — isi 1 detik",
+      "Engagement scoring lebih longgar & objektif — label Sangat Baik/Baik/Cukup/Kurang Fokus/Perlu Perhatian",
+      "Materi step: tambah field 🎯 Fokus Utama untuk isi topik cepat",
+      "IB Topics database restruktur: 600+ topik terorganisir per grade (MYP 1-5, DP, IGCSE) selaras textbook Haese & Harris",
+      "11 IB DP subjects diperbarui ke full syllabus detail (Chemistry, Biology, Physics, Economics, Business, ESS, Geography, Math AA HL/SL, AI HL/SL) — ~500 subtopics",
+      "Search & browse topik diprioritaskan berdasarkan grade siswa — topik cocok grade dapat +30 bonus score",
+      "Mapping grade: Grade 6=MYP 1, Grade 7=MYP 2, Grade 8-9=MYP 3-4, Grade 10=MYP 5, Grade 11-12=DP",
+    ],
+  },
+  {
     version: "v1.32.0",
     date: "2026-07-30",
     title: "Foto Bukti Pertemuan di Semua Layout + AI Ringkasan & Rencana Depan",
@@ -25,6 +41,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     ],
   },
   {
+    version: "v1.31.0",
     date: "2026-07-30",
     title: "UX Audit Fixes — Kontras, Hierarki KPI, Navigasi & Aksesibilitas",
     items: [

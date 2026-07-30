@@ -8,17 +8,17 @@ export function calcEngagementScore(e: Omit<EngagementLog, "score">): number {
   if (e.quickLearner)     s += 1;
   if (e.hwMissed)         s -= 1;
   if (e.needsRepetition)  s -= 1;
-  if (e.drowsy)           s -= 2;
-  if (e.playingPhone)     s -= 3;
+  if (e.drowsy)           s -= 1;
+  if (e.playingPhone)     s -= 1;
   return Math.max(1, Math.min(10, s));
 }
 
 export function scoreLabel(score: number): { text: string; color: string; bg: string } {
-  if (score >= 9) return { text: "Sangat Serius",  color: "#059669", bg: "#D1FAE5" };
-  if (score >= 7) return { text: "Serius",          color: "#2563EB", bg: "#DBEAFE" };
-  if (score >= 5) return { text: "Cukup",           color: "#D97706", bg: "#FEF3C7" };
-  if (score >= 3) return { text: "Kurang Serius",   color: "#EA580C", bg: "#FFEDD5" };
-  return             { text: "Tidak Serius",    color: "#DC2626", bg: "#FEE2E2" };
+  if (score >= 9) return { text: "Sangat Baik",     color: "#059669", bg: "#D1FAE5" };
+  if (score >= 7) return { text: "Baik",             color: "#2563EB", bg: "#DBEAFE" };
+  if (score >= 5) return { text: "Cukup",            color: "#D97706", bg: "#FEF3C7" };
+  if (score >= 3) return { text: "Kurang Fokus",     color: "#EA580C", bg: "#FFEDD5" };
+  return             { text: "Perlu Perhatian",  color: "#DC2626", bg: "#FEE2E2" };
 }
 
 export function scoreBarColor(score: number): string {
