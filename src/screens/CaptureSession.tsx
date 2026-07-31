@@ -1066,23 +1066,84 @@ export default function CaptureSession() {
           {/* Kualitas Respons Akademik */}
           <div>
             <label className="label">🎓 Kualitas Respons Akademik <span className="text-gray-500 font-normal text-xs">(pilih satu)</span></label>
-            <div className="flex flex-wrap gap-2 mt-1">
-              {RESPONSE_TAGS.map((tag) => (
-                <div key={tag.id} className="flex items-center">
-                  <button type="button"
-                    onClick={() => setResponseTag(responseTag === tag.id ? undefined : tag.id)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-l-full text-xs font-medium border-y border-l transition-all ${
-                      responseTag === tag.id ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"}`}>
-                    <span>{tag.icon}</span> {tag.label}
-                  </button>
-                  <button type="button"
-                    onClick={(e) => { e.stopPropagation(); setActiveTooltip({ tag, type: "response" }); }}
-                    className={`px-1.5 py-1.5 rounded-r-full text-xs border-y border-r transition-all ${
-                      responseTag === tag.id ? "bg-blue-500 text-white border-blue-500" : "bg-gray-50 text-gray-500 border-gray-200 hover:text-blue-500"}`}>
-                    ⓘ
-                  </button>
+            <div className="space-y-3 mt-2">
+              {/* ── Pemahaman Baik ── */}
+              <div>
+                <p className="text-[11px] font-semibold text-green-600 uppercase tracking-wide mb-1.5">✨ Pemahaman Baik</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {RESPONSE_TAGS.filter(t => ["correct-independent","correct-with-prompt","can-explain-orally","transfer-attempt","metacognitive"].includes(t.id)).map((tag) => {
+                    const score = tag.id === "correct-independent" ? "+2" : "+1";
+                    return (
+                      <button key={tag.id} type="button"
+                        onClick={() => setResponseTag(responseTag === tag.id ? undefined : tag.id)}
+                        className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition-all ${
+                          responseTag === tag.id
+                            ? "bg-green-500 text-white border-green-500 shadow-sm"
+                            : "bg-white text-gray-700 border-gray-200 hover:border-green-300 hover:bg-green-50"}`}>
+                        <span>{tag.icon}</span> {tag.label}
+                        <span className={`ml-0.5 text-[9px] font-bold rounded px-1 ${responseTag === tag.id ? "bg-green-300 text-green-800" : "bg-green-50 text-green-600"}`}>{score}</span>
+                      </button>
+                    );
+                  })}
                 </div>
-              ))}
+              </div>
+
+              {/* ── Perlu Pendalaman ── */}
+              <div>
+                <p className="text-[11px] font-semibold text-yellow-600 uppercase tracking-wide mb-1.5">📊 Perlu Pendalaman</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {RESPONSE_TAGS.filter(t => ["partial-correct","can-do-procedurally","guessing"].includes(t.id)).map((tag) => {
+                    const score = tag.id === "guessing" ? "−1" : "0";
+                    return (
+                      <button key={tag.id} type="button"
+                        onClick={() => setResponseTag(responseTag === tag.id ? undefined : tag.id)}
+                        className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition-all ${
+                          responseTag === tag.id
+                            ? "bg-yellow-500 text-white border-yellow-500 shadow-sm"
+                            : "bg-white text-gray-700 border-gray-200 hover:border-yellow-300 hover:bg-yellow-50"}`}>
+                        <span>{tag.icon}</span> {tag.label}
+                        <span className={`ml-0.5 text-[9px] font-bold rounded px-1 ${responseTag === tag.id ? "bg-yellow-300 text-yellow-800" : "bg-yellow-50 text-yellow-600"}`}>{score}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ── Perlu Perhatian ── */}
+              <div>
+                <p className="text-[11px] font-semibold text-red-600 uppercase tracking-wide mb-1.5">⚠️ Perlu Perhatian</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {RESPONSE_TAGS.filter(t => ["misconception","prerequisite-gap"].includes(t.id)).map((tag) => {
+                    return (
+                      <button key={tag.id} type="button"
+                        onClick={() => setResponseTag(responseTag === tag.id ? undefined : tag.id)}
+                        className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition-all ${
+                          responseTag === tag.id
+                            ? "bg-red-500 text-white border-red-500 shadow-sm"
+                            : "bg-white text-gray-700 border-gray-200 hover:border-red-300 hover:bg-red-50"}`}>
+                        <span>{tag.icon}</span> {tag.label}
+                        <span className={`ml-0.5 text-[9px] font-bold rounded px-1 ${responseTag === tag.id ? "bg-red-300 text-red-800" : "bg-red-50 text-red-600"}`}>−2</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Selected tag description */}
+              {responseTag && (() => {
+                const tag = RESPONSE_TAGS.find(t => t.id === responseTag);
+                if (!tag) return null;
+                return (
+                  <div className="bg-blue-50 border border-blue-100 rounded-xl px-3.5 py-2.5">
+                    <p className="text-xs text-gray-700 leading-relaxed">
+                      <span className="font-semibold">{tag.icon} {tag.label}:</span> {tag.description}
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1">
+                      💡 {tag.teacherNote}
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
