@@ -1,5 +1,5 @@
 import Skeleton from "../components/Skeleton";
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db/db";
@@ -15,7 +15,7 @@ import { todayWIB, dayLabel } from "../lib/format";
 import { toggleArrayItem } from "../lib/arrays";
 import { calcEngagementScore, scoreLabel } from "../lib/engagement";
 import { IB_MYP_SUBJECTS, IB_DP_GROUPS, getSubjectGroups, CURRICULUM_META } from "../lib/ibSubjects";
-import { searchTopics, browseTopicsForSubjects } from "../lib/ibTopics";
+import { searchTopics } from "../lib/ibTopics";
 import { SESSION_TYPE_OPTIONS, generateNote, generateEngagementNarrative } from "../lib/sessionTemplates";
 import { BEHAVIOR_TAGS, RESPONSE_TAGS } from "../lib/responseTaxonomy";
 import type { BehaviorTag, ResponseTag } from "../lib/responseTaxonomy";
@@ -41,7 +41,7 @@ const STEPS = [
   { id: 1, label: "Jadwal",  icon: "🎯", desc: "Murid & waktu",       optional: false },
   { id: 2, label: "Materi",  icon: "📚", desc: "Mapel & topik",       optional: false },
   { id: 3, label: "Kondisi", icon: "😊", desc: "Mood & perilaku",     optional: true  },
-  { id: 4, label: "Detail",  icon: "📋", desc: "Topik",              optional: true  },
+  { id: 4, label: "Detail",  icon: "📋", desc: "Respons & nilai",    optional: true  },
   { id: 5, label: "Catatan", icon: "✏️", desc: "Ringkasan sesi",      optional: false },
   { id: 6, label: "Bukti",   icon: "📸", desc: "Foto & tanda tangan", optional: true  },
 ] as const;
@@ -174,18 +174,8 @@ export default function CaptureSession() {
   const [aiWaLoading,      setAiWaLoading]      = useState(false);
   const [aiWaText,         setAiWaText]         = useState<string | null>(null);
   const [aiError,          setAiError]          = useState("");
-  const [showTopicPicker,  setShowTopicPicker]  = useState(false);
   const [showAiCostModal,  setShowAiCostModal]  = useState(false);
   const [showAiWaModal,    setShowAiWaModal]    = useState(false);
-
-  const topicGroups = useMemo(
-    () => browseTopicsForSubjects(
-      subjects.length ? subjects : studentSubjects,
-      currentStudent?.level,
-      currentStudent?.curriculum,
-    ),
-    [subjects, studentSubjects, currentStudent],
-  );
 
   useEffect(() => {
     if (!photo) { setPhotoUrl(undefined); return; }
@@ -745,52 +735,52 @@ export default function CaptureSession() {
             </div>
           </div>
 
-          {/* Fokus Utama */}
+          {/* Topik — search + dropdown */}
           <div>
-            <label className="label">🎯 Fokus Utama <span className="text-gray-500 font-normal text-xs">(opsional, isi cepat)</span></label>
-            <input className="input" maxLength={100} placeholder="mis. Integral substitution, Essay structure, Stoikiometri..." 
-              value={topic} onChange={(e) => { setTopic(e.target.value); setTopicSearch(e.target.value); }} />
-          </div>
-
-          {/* Sub-Topik picker (grade-filtered) */}
-          {topicGroups.length > 0 && (
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="label mb-0">💡 Sub-Topik</label>
-                <button type="button"
-                  onClick={() => setShowTopicPicker((v) => !v)}
-                  className="text-xs text-blue-600 font-semibold">
-                  {showTopicPicker ? "▲ Sembunyikan" : "▾ Pilih topik"}
-                </button>
-              </div>
+            <label className="label">🎯 Topik <span className="text-gray-500 font-normal text-xs">(cari topik IB atau ketik bebas)</span></label>
+            <div className="relative">
+              <input className="input pr-8" maxLength={150}
+                placeholder="Cari topik atau ketik custom — mis. Integral substitution, Essay structure..."
+                value={topicSearch}
+                onChange={(e) => {
+                  const q = e.target.value;
+                  setTopicSearch(q);
+                  setTopic(q);
+                  setTopicResults(searchTopics(q, subjects[0] ?? studentSubjects[0], currentStudent?.level));
+                }}
+                onFocus={() => {
+                  if (topicSearch.trim()) setTopicResults(searchTopics(topicSearch, subjects[0] ?? studentSubjects[0], currentStudent?.level));
+                }}
+                onBlur={() => setTimeout(() => setTopicResults([]), 150)}
+              />
               {topic && (
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs bg-blue-100 text-blue-700 font-semibold px-2.5 py-1 rounded-full">{topic}</span>
-                  <button type="button"
-                    onClick={() => { setTopic(""); setTopicSearch(""); }}
-                    className="text-xs text-gray-500 hover:text-gray-600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg> hapus</button>
-                </div>
-              )}
-              {showTopicPicker && (
-                <div className="bg-gray-50 rounded-xl p-3 space-y-3 max-h-60 overflow-y-auto border border-gray-200">
-                  {topicGroups.map((g) => (
-                    <div key={g.unit}>
-                      <p className="text-xs font-semibold text-gray-500 mb-1.5">{g.unit}</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {g.topics.map((t) => (
-                          <button key={t.topic} type="button"
-                            onClick={() => { setTopic(t.topic); setTopicSearch(t.topic); setShowTopicPicker(false); }}
-                            className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${topic === t.topic ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:border-blue-400 hover:text-blue-600"}`}>
-                            {t.topic}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <button type="button" tabIndex={-1}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => { setTopic(""); setTopicSearch(""); setTopicResults([]); }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
               )}
             </div>
-          )}
+            {/* Dropdown hasil pencarian */}
+            {topicResults.length > 0 && (
+              <div className="mt-1 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm max-h-52 overflow-y-auto">
+                {topicResults.map((t, i) => (
+                  <button key={i} type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    className={`block w-full text-left px-3.5 py-2.5 border-b border-gray-50 last:border-0 hover:bg-blue-50 transition-colors ${topic === t.topic ? "bg-blue-50" : ""}`}
+                    onClick={() => { setTopic(t.topic); setTopicSearch(t.topic); setTopicResults([]); }}>
+                    <span className="font-semibold text-gray-800 text-sm">{t.topic}</span>
+                    <span className="text-[11px] text-gray-500 ml-2">{t.gradeLabel} · {t.unit}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {/* Indikator topik custom */}
+            {topic && topicResults.length === 0 && topicSearch.length > 0 && (
+              <p className="text-xs text-gray-500 mt-1.5">✏️ Topik custom: "{topic}"</p>
+            )}
+          </div>
 
         </div>
       )}
@@ -1074,33 +1064,6 @@ export default function CaptureSession() {
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* Topik */}
-          <div>
-            <label className="label">💡 Topik yang Dibahas</label>
-            <input className="input" maxLength={150} placeholder="Cari topik IB atau ketik bebas..." value={topicSearch}
-              onChange={(e) => {
-                const q = e.target.value;
-                setTopicSearch(q);
-                setTopic(q);
-                setTopicResults(searchTopics(q, subjects[0] ?? studentSubjects[0], currentStudent?.level));
-              }} />
-            {topicResults.length > 0 && (
-              <div className="mt-1 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm max-h-40 overflow-y-auto">
-                {topicResults.map((t, i) => (
-                  <button key={i} type="button"
-                    className="block w-full text-left px-3 py-2 text-xs hover:bg-blue-50 border-b border-gray-50 last:border-0"
-                    onClick={() => { setTopic(t.topic); setTopicSearch(t.topic); setTopicResults([]); }}>
-                    <span className="font-semibold text-gray-700">{t.topic}</span>
-                    <span className="text-gray-500 ml-2">{t.gradeLabel} · {t.unit}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-            {topic && topicResults.length === 0 && topicSearch.length > 0 && (
-              <p className="text-xs text-gray-500 mt-1">✏️ Topik custom: "{topic}"</p>
-            )}
           </div>
 
           {/* Perlu perhatian */}

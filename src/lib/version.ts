@@ -13,13 +13,15 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "v1.34.1",
     date: "2026-07-31",
-    title: "Catatan Belajar — Backup, Konteks Sesi & AI Ringkas",
+    title: "Catatan Belajar — Backup, Konteks Sesi, AI Ringkas & Wizard Simpler",
     items: [
       "Catatan Belajar sekarang ikut backup/restore — tidak hilang saat ganti perangkat",
       "Konteks sesi di halaman Catatan: chip expandable 📋 menampilkan shortNote 5 sesi terakhir per murid",
       "Tombol ✨ Ringkas: AI merangkum shortNote sesi terakhir + catatan existing → StudyNote terstruktur (Topik / PR / Kelemahan / Rencana)",
       "AI draftStudyNote() — prompt khusus untuk merangkum sesi ke catatan belajar berkelanjutan",
       "getRecentDoneSessions() — fungsi baru untuk mengambil N sesi DONE terakhir per murid",
+      "Wizard Catat Sesi: Step 2 Materi — Fokus Utama + Sub-Topik digabung jadi satu combobox cari-topik (dropdown IB + bisa ketik custom)",
+      "Wizard Catat Sesi: Step 4 Detail — input Topik dihapus (cukup di step 2), sekarang fokus ke Respons & Nilai",
     ],
   },
   {
