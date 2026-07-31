@@ -863,22 +863,22 @@ export default function CaptureSession() {
               <button type="button" onClick={() => setEngPrepared(!engPrepared)}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
                   engPrepared ? "bg-green-500 text-white border-green-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-green-300"}`}>
-                <span>📚</span> Sudah siap (+3)
+                <span>📚</span> Sudah siap (+2)
               </button>
               <button type="button" onClick={() => setEngFocused(!engFocused)}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
                   engFocused ? "bg-blue-500 text-white border-blue-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"}`}>
-                <span>🎯</span> Sangat fokus (+2)
+                <span>🎯</span> Sangat fokus (+1)
               </button>
               <button type="button" onClick={() => setEngActiveAsking(!engActiveAsking)}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
                   engActiveAsking ? "bg-teal-500 text-white border-teal-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-teal-300"}`}>
-                <span>🙋</span> Aktif bertanya (+2)
+                <span>🙋</span> Aktif bertanya (+1)
               </button>
               <button type="button" onClick={() => setEngQuickLearner(!engQuickLearner)}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
                   engQuickLearner ? "bg-purple-500 text-white border-purple-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-purple-300"}`}>
-                <span>⚡</span> Cepat paham (+2)
+                <span>⚡</span> Cepat paham (+1)
               </button>
             </div>
           </div>

@@ -31,10 +31,10 @@ export function calcEngagementScore(e: Omit<EngagementLog, "score"> & Partial<Ex
   let s = 5;
 
   // ── Core engagement indicators ──
-  if (e.prepared)         s += 3;  // was +2
-  if (e.focused)          s += 2;  // was +1
-  if (e.activeAsking)     s += 2;  // was +1
-  if (e.quickLearner)     s += 2;  // was +1
+  if (e.prepared)         s += 2;  // datang siap
+  if (e.focused)          s += 1;  // fokus
+  if (e.activeAsking)     s += 1;  // aktif bertanya
+  if (e.quickLearner)     s += 1;  // cepat paham
   if (e.hwMissed)         s -= 1;
   if (e.needsRepetition)  s -= 1;
   if (e.drowsy)           s -= 1;
