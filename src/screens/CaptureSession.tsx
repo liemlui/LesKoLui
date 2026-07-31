@@ -1023,7 +1023,7 @@ export default function CaptureSession() {
       )}
 
       {/* ══════════════════════════════════════════
-          STEP 4: DETAIL — Topik, Nilai & PR
+          STEP 4: DETAIL — Respons & Nilai
           ══════════════════════════════════════════ */}
       {currentStep === 4 && (
         <div className="px-4 space-y-4">
