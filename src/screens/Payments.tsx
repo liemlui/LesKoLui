@@ -4,14 +4,13 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useNavigate } from "react-router-dom";
 import {
   listPayments, listStudents, getPayment, upsertPayment, getSettings,
-  createExpense, listExpenses, deleteExpense,
+  listExpenses,
   listBillableSessionsForMonth, listBillableSessionsByStudentMonth, listAllUpcomingScheduled,
   listScheduledForMonth, listAllSessionsForWeek, listAllSessionsForMonth,
   getMonthClosing, listMonthClosings, closeMonth, reopenMonth,
   markPaymentTransferred, markPaymentUnpaid, updatePaymentAmount, getCashSummary,
   getMonthlyIncomeVsExpense,
 } from "../db/repos";
-import type { ExpenseCategory } from "../db/repos";
 import type { Payment, Student, Settings } from "../db/types";
 import { formatRupiah, todayWIB, monthLabel } from "../lib/format";
 import { weekDates, prevMonth } from "../lib/calendar";
@@ -29,20 +28,12 @@ import Breadcrumb from "../components/Breadcrumb";
 import Tabs from "../components/Tabs";
 import MetricCard from "../components/dashboard/MetricCard";
 import {
-  BarChart, LineChart, DonutChart, Gauge,
+  BarChart, LineChart, DonutChart,
 } from "../components/charts";
 import type { BarSeries, DonutSegment } from "../components/charts";
 import RatingIndicator from "../components/charts/RatingIndicator";
 
-type Tab = "ringkasan" | "tagihan" | "pengeluaran" | "audit" | "murid" | "operasional";
-
-const CATEGORY_LABEL: Record<ExpenseCategory, string> = {
-  transport: "🚗 Transport",
-  buku: "📚 Buku",
-  alat: "🛠 Alat",
-  platform: "💻 Platform",
-  lainnya: "🗂 Lainnya",
-};
+type Tab = "ringkasan" | "tagihan" | "audit" | "murid";
 
 function getLast12Months(): string[] {
   const months: string[] = [];
@@ -104,15 +95,6 @@ export default function PaymentsPage() {
   const [invoiceTarget, setInvoiceTarget] = useState<{ payment: Payment; student: Student } | null>(null);
   const [invoiceExporting, setInvoiceExporting] = useState(false);
   const invoiceRef = useRef<HTMLDivElement>(null);
-
-  // Pengeluaran state
-  const [expMonth, setExpMonth] = useState(() => todayWIB().slice(0, 7));
-  const [expDate, setExpDate] = useState(() => todayWIB());
-  const [expCategory, setExpCategory] = useState<ExpenseCategory>("transport");
-  const [expDesc, setExpDesc] = useState("");
-  const [expAmount, setExpAmount] = useState(0);
-  const [expMsg, setExpMsg] = useState("");
-  const expenses = useLiveQuery(() => listExpenses(expMonth || undefined), [expMonth]);
 
   // Audit
   const [auditYear, setAuditYear] = useState(() => Number(todayWIB().slice(0, 4)));
@@ -205,13 +187,6 @@ export default function PaymentsPage() {
     const n = Number(raw);
     if (!isValidCurrencyAmount(n)) { setMessage(`Nominal harus 1 sampai ${formatRupiah(MAX_PAYMENT_AMOUNT)}.`); return; }
     if (n !== fallback) await updatePaymentAmount(studentId, month, n);
-  };
-
-  const handleAddExpense = async () => {
-    if (!expDate || !expDesc || expAmount <= 0) { setExpMsg("Lengkapi semua data!"); return; }
-    await createExpense({ date: expDate, category: expCategory, description: expDesc, amount: expAmount });
-    setExpMsg("Pengeluaran ditambahkan ✓");
-    setExpDesc(""); setExpAmount(0);
   };
 
   const handleExportInvoicePdf = async () => {
@@ -339,20 +314,6 @@ export default function PaymentsPage() {
     });
     return Array.from(map.values()).filter((e) => e.sessions > 0 || e.revenue > 0);
   }, [students, allSessions]);
-
-  // ── Analytics: operations data ──────────────────────────────────────
-  const opsData = useMemo(() => {
-    const sessions = allSessions ?? [];
-    const done = sessions.filter((s) => s.status === "DONE");
-    const noShow = sessions.filter((s) => s.status === "NO_SHOW");
-    const total = sessions.length;
-    const completionRate = total > 0 ? Math.round((done.length / total) * 100) : 0;
-    const noShowRate = total > 0 ? Math.round((noShow.length / total) * 100) : 0;
-    const avgDuration = done.length > 0
-      ? done.reduce((sum, s) => sum + (s.durationHours ?? 0), 0) / done.length
-      : 0;
-    return { completionRate, noShowRate, avgDuration };
-  }, [allSessions]);
 
   if (!payments || !students || !settings) return <Skeleton variant="card" lines={4} className="p-4" />;
 
@@ -517,10 +478,8 @@ export default function PaymentsPage() {
         tabs={[
           { key: "ringkasan", label: "Ringkasan" },
           { key: "tagihan", label: "Tagihan" },
-          { key: "pengeluaran", label: "Pengeluaran" },
           { key: "audit", label: "Audit" },
           { key: "murid", label: "Murid" },
-          { key: "operasional", label: "Ops" },
         ]}
         active={activeTab}
         onChange={(k) => setActiveTab(k as Tab)}
@@ -991,71 +950,6 @@ export default function PaymentsPage() {
         </div>
       )}
 
-      {/* ── PENGELUARAN TAB ───────────────────────────────── */}
-      {activeTab === "pengeluaran" && (
-        <div className="space-y-4">
-          <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-            <h2 className="text-base font-semibold">Catat Pengeluaran</h2>
-            <div className="grid grid-cols-2 gap-2">
-              <input className="input" type="date" value={expDate} onChange={(e) => setExpDate(e.target.value)} />
-              <select className="input" value={expCategory} onChange={(e) => setExpCategory(e.target.value as ExpenseCategory)}>
-                {(Object.entries(CATEGORY_LABEL) as [ExpenseCategory, string][]).map(([k, v]) => (
-                  <option key={k} value={k}>{v}</option>
-                ))}
-              </select>
-            </div>
-            <input className="input" placeholder="Deskripsi... (mis. Isi bensin, Service mobil)" value={expDesc} onChange={(e) => setExpDesc(e.target.value)} />
-            <input className="input" type="number" placeholder="Jumlah (IDR)" value={expAmount || ""} min={1}
-              onChange={(e) => setExpAmount(Math.max(0, Number(e.target.value)))} />
-            <button onClick={handleAddExpense} className="btn-primary w-full">+ Tambah</button>
-            {expMsg && <p className={`text-xs ${expMsg.includes("✓") ? "text-green-600" : "text-red-500"}`}>{expMsg}</p>}
-          </div>
-
-          <input className="input w-full" type="month" value={expMonth} onChange={(e) => setExpMonth(e.target.value)} />
-
-          {(expenses ?? []).length > 0 && (
-            <div className="bg-red-50 rounded-xl px-4 py-3 flex items-center justify-between">
-              <span className="text-sm font-semibold text-red-700">Total Pengeluaran</span>
-              <span className="text-sm font-bold text-red-700">{formatRupiah((expenses ?? []).reduce((s, e) => s + e.amount, 0))}</span>
-            </div>
-          )}
-
-          {(expenses ?? []).length > 0 && (() => {
-            const bycat = (expenses ?? []).reduce<Record<string, number>>((acc, e) => {
-              acc[e.category] = (acc[e.category] ?? 0) + e.amount; return acc;
-            }, {});
-            return (
-              <div className="grid grid-cols-2 gap-2">
-                {(Object.entries(bycat) as [ExpenseCategory, number][]).map(([cat, total]) => (
-                  <div key={cat} className="bg-white border border-gray-100 rounded-xl px-3 py-2.5">
-                    <p className="text-xs text-gray-500">{CATEGORY_LABEL[cat]}</p>
-                    <p className="text-sm font-bold text-gray-800 mt-0.5">{formatRupiah(total)}</p>
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
-
-          {(expenses ?? []).length === 0 && <p className="text-gray-500 text-center py-8">Belum ada pengeluaran bulan ini.</p>}
-          <div className="space-y-2">
-            {(expenses ?? []).sort((a, b) => b.date.localeCompare(a.date)).map((e) => (
-              <div key={e.id} className="bg-white border border-gray-100 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{CATEGORY_LABEL[e.category]}</span>
-                    <span className="text-xs text-gray-500">{e.date}</span>
-                  </div>
-                  <p className="text-sm font-medium text-gray-800 mt-1 truncate">{e.description}</p>
-                  <p className="text-sm font-bold text-red-600">{formatRupiah(e.amount)}</p>
-                </div>
-                <button aria-label="Hapus pengeluaran" onClick={async () => { if (confirm("Hapus pengeluaran ini?")) await deleteExpense(e.id); }}
-                  className="text-gray-500 hover:text-red-400 p-1.5 flex-shrink-0">🗑</button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* ── AUDIT TAB ─────────────────────────────────────── */}
       {activeTab === "audit" && (
         <div className="space-y-4">
@@ -1175,59 +1069,6 @@ export default function PaymentsPage() {
           {studentAnalytics.length === 0 && (
             <p className="text-xs text-gray-500 text-center py-4">Belum ada data murid bulan ini</p>
           )}
-        </div>
-      )}
-
-      {/* ── OPERASIONAL TAB (Analitik) ───────────────────────── */}
-      {activeTab === "operasional" && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white rounded-2xl border border-gray-100 p-4 flex flex-col items-center">
-              <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Sesi Selesai</p>
-              <Gauge
-                value={opsData.completionRate} max={100}
-                label="Completion"
-                tone={opsData.completionRate >= 80 ? "green" : opsData.completionRate >= 50 ? "amber" : "red"}
-                size="sm"
-                showTicks={false}
-              />
-            </div>
-            <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
-              <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">Metrik</p>
-              <div className="space-y-2">
-                <div>
-                  <p className="text-[10px] text-gray-500">No-Show Rate</p>
-                  <p className={`text-sm font-bold ${opsData.noShowRate > 20 ? "text-red-600" : "text-green-600"}`}>
-                    {opsData.noShowRate}%
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-gray-500">Rata-rata Durasi</p>
-                  <p className="text-sm font-bold text-gray-700">{opsData.avgDuration.toFixed(1)} jam</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-
-          {/* Monthly summary */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-4">
-            <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Ringkasan {monthLabel(month)}</p>
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="bg-green-50 rounded-xl p-2">
-                <p className="text-lg font-bold text-green-700">{(allSessions ?? []).filter((s) => s.status === "DONE").length}</p>
-                <p className="text-[10px] text-green-600 font-semibold">Selesai</p>
-              </div>
-              <div className="bg-blue-50 rounded-xl p-2">
-                <p className="text-lg font-bold text-blue-700">{(allSessions ?? []).filter((s) => s.status === "SCHEDULED").length}</p>
-                <p className="text-[10px] text-blue-600 font-semibold">Terjadwal</p>
-              </div>
-              <div className="bg-red-50 rounded-xl p-2">
-                <p className="text-lg font-bold text-red-700">{(allSessions ?? []).filter((s) => s.status === "NO_SHOW").length}</p>
-                <p className="text-[10px] text-red-600 font-semibold">No-Show</p>
-              </div>
-            </div>
-          </div>
         </div>
       )}
 

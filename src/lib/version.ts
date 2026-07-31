@@ -26,6 +26,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Rekalibrasi skor engagement: bonus positif dinerf (prepared +3→+2, focused/activeAsking/quickLearner +2→+1) — skala 5-10 kini lebih granular",
       "Fix React #310: 4 useMemo di halaman Keuangan dipindahkan sebelum early return — tidak lagi crash saat unlock PIN",
       "Step 4 Detail: Kualitas Respons Akademik dikelompokkan 3 tingkat — ✨ Pemahaman Baik / 📊 Perlu Pendalaman / ⚠️ Perlu Perhatian — dengan badge skor (+2/+1/0/−1/−2) dan deskripsi + teacher note langsung terlihat saat dipilih",
+      "Halaman Keuangan: tab Pengeluaran dihapus (redundan dengan 💸 Catat di Home), tab Operasional dihapus (metrik tidak jelas + no-show tidak update)",
     ],
   },
   {
