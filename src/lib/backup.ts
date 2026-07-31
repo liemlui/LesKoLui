@@ -10,7 +10,7 @@ import type { Table } from "dexie";
 export const BACKUP_TABLES = [
   "students", "sessions", "reports", "payments", "settings",
   "raporGrades", "followUps", "expenses", "iaeeProjects",
-  "monthClosings",
+  "monthClosings", "studyNotes",
 ] as const;
 
 /** Format payload JSON di dalam file terenkripsi. Versi 1 tetap didukung saat restore. */

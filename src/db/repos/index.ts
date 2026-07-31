@@ -29,7 +29,7 @@ export {
   findConflicts,
   listScheduledForStudent, listAllUpcomingScheduled,
   recentShortNotes,
-  getLastDoneSession, listSessionsInDateRange,
+  getLastDoneSession, getRecentDoneSessions, listSessionsInDateRange,
   getStreak,
   countSessionPhotos, pruneSessionPhotosBefore,
 } from "./sessionRepo";

@@ -488,6 +488,17 @@ export async function getLastDoneSession(studentId: string): Promise<Session | u
   return all[all.length - 1];
 }
 
+/** Ambil N sesi DONE terakhir untuk satu murid, terurut dari terbaru. */
+export async function getRecentDoneSessions(
+  studentId: string, limit = 5
+): Promise<Session[]> {
+  const all = await db.sessions
+    .where({ studentId })
+    .filter((s) => s.status === "DONE")
+    .sortBy("date");
+  return all.slice(-limit).reverse();
+}
+
 export async function listSessionsInDateRange(
   studentId: string, start: string, end: string
 ): Promise<Session[]> {

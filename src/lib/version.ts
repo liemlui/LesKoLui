@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.34.1",
+    date: "2026-07-31",
+    title: "Catatan Belajar — Backup, Konteks Sesi & AI Ringkas",
+    items: [
+      "Catatan Belajar sekarang ikut backup/restore — tidak hilang saat ganti perangkat",
+      "Konteks sesi di halaman Catatan: chip expandable 📋 menampilkan shortNote 5 sesi terakhir per murid",
+      "Tombol ✨ Ringkas: AI merangkum shortNote sesi terakhir + catatan existing → StudyNote terstruktur (Topik / PR / Kelemahan / Rencana)",
+      "AI draftStudyNote() — prompt khusus untuk merangkum sesi ke catatan belajar berkelanjutan",
+      "getRecentDoneSessions() — fungsi baru untuk mengambil N sesi DONE terakhir per murid",
+    ],
+  },
+  {
     version: "v1.34.0",
     date: "2026-07-30",
     title: "Gabung Keuangan & Analitik, Tugas → Catatan Belajar",

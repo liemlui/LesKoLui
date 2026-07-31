@@ -1,14 +1,19 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
-import { listStudents, listAllStudyNotes, saveStudyNote, getStudyNote } from "../db/repos";
+import {
+  listStudents, listAllStudyNotes, saveStudyNote, getStudyNote,
+  getRecentDoneSessions, getSettings,
+} from "../db/repos";
+import { draftStudyNote, estimateDraftStudyNoteCost } from "../lib/aiClient";
+import type { Session } from "../db/types";
 import Breadcrumb from "../components/Breadcrumb";
 import Skeleton from "../components/Skeleton";
 
 /**
  * CatatanBelajar — catatan belajar per murid.
  * Guru privat mencatat topik sekolah, progres, atau rencana sesi berikutnya.
- * Auto-save setelah 1 detik berhenti mengetik.
+ * Auto-save setelah 800ms berhenti mengetik.
  *
  * @component
  * @route /catatan
@@ -17,11 +22,18 @@ export default function CatatanBelajar() {
   const navigate = useNavigate();
   const students = useLiveQuery(() => listStudents(true), []);
   const savedNotes = useLiveQuery(() => listAllStudyNotes(), []);
+  const settings = useLiveQuery(() => getSettings(), []);
 
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [search, setSearch] = useState("");
   const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  // Session context per student
+  const [recentSessions, setRecentSessions] = useState<Record<string, Session[]>>({});
+  const [expandedSessions, setExpandedSessions] = useState<Record<string, boolean>>({});
+  const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
+  const [aiError, setAiError] = useState<Record<string, string>>({});
 
   // Sync from DB on load
   useEffect(() => {
@@ -30,7 +42,6 @@ export default function CatatanBelajar() {
     const noteMap = new Map(savedNotes.map((n) => [n.studentId, n.content]));
     for (const s of students) {
       map[s.id] = noteMap.get(s.id) ?? "";
-      // Preload any missing notes from DB directly (in case listAllStudyNotes missed)
       if (!noteMap.has(s.id)) {
         getStudyNote(s.id).then((n) => {
           if (n) setNotes((prev) => ({ ...prev, [s.id]: n.content }));
@@ -38,17 +49,31 @@ export default function CatatanBelajar() {
       }
     }
     setNotes((prev) => ({ ...map, ...prev }));
+
+    // Fetch recent sessions for context
+    (async () => {
+      const sessionsMap: Record<string, Session[]> = {};
+      await Promise.all(
+        students.map(async (s) => {
+          try {
+            const sessions = await getRecentDoneSessions(s.id, 5);
+            // Only keep sessions with actual shortNotes
+            sessionsMap[s.id] = sessions.filter((ses) => ses.shortNote?.trim());
+          } catch {
+            sessionsMap[s.id] = [];
+          }
+        })
+      );
+      setRecentSessions(sessionsMap);
+    })();
   }, [students, savedNotes]);
 
   const debouncedSave = useCallback((studentId: string, content: string) => {
-    // Clear existing timer
     const existing = timers.current.get(studentId);
     if (existing) clearTimeout(existing);
 
-    // Update local state immediately
     setNotes((prev) => ({ ...prev, [studentId]: content }));
 
-    // Debounce save to DB
     const timer = setTimeout(async () => {
       setSaving((prev) => ({ ...prev, [studentId]: true }));
       try {
@@ -59,6 +84,47 @@ export default function CatatanBelajar() {
     }, 800);
     timers.current.set(studentId, timer);
   }, []);
+
+  const handleAiDraft = useCallback(async (studentId: string, studentName: string, subjects: string[]) => {
+    if (!settings?.ai?.enabled || !settings.ai.apiKey) {
+      setAiError((prev) => ({ ...prev, [studentId]: "AI belum diaktifkan di Pengaturan." }));
+      return;
+    }
+    const sessions = recentSessions[studentId];
+    if (!sessions || sessions.length === 0) {
+      setAiError((prev) => ({ ...prev, [studentId]: "Tidak ada sesi dengan catatan untuk dirangkum." }));
+      return;
+    }
+
+    setAiLoading((prev) => ({ ...prev, [studentId]: true }));
+    setAiError((prev) => { const next = { ...prev }; delete next[studentId]; return next; });
+    try {
+      const result = await draftStudyNote({
+        studentName,
+        subjects,
+        sessions: sessions.map((s) => ({
+          date: s.date,
+          shortNote: s.shortNote ?? "",
+          topic: s.topic,
+          mood: s.mood,
+        })),
+        existingNote: notes[studentId]?.trim() || undefined,
+      });
+      // Update local state + save to DB
+      setNotes((prev) => ({ ...prev, [studentId]: result.content }));
+      await saveStudyNote(studentId, result.content);
+    } catch (err) {
+      setAiError((prev) => ({ ...prev, [studentId]: (err as Error).message || "Gagal merangkum." }));
+    } finally {
+      setAiLoading((prev) => ({ ...prev, [studentId]: false }));
+    }
+  }, [settings, recentSessions, notes]);
+
+  const toggleSessions = (studentId: string) => {
+    setExpandedSessions((prev) => ({ ...prev, [studentId]: !prev[studentId] }));
+  };
+
+  const aiEnabled = settings?.ai?.enabled && settings.ai.apiKey;
 
   if (!students || !savedNotes) {
     return (
@@ -120,8 +186,12 @@ export default function CatatanBelajar() {
         {sorted.map((s) => {
           const content = notes[s.id] ?? "";
           const isSaving = saving[s.id];
-          // Find the saved note for timestamp
+          const isLoading = aiLoading[s.id];
+          const error = aiError[s.id];
           const savedNote = savedNotes?.find((n) => n.studentId === s.id);
+          const sessions = recentSessions[s.id] ?? [];
+          const showSessions = expandedSessions[s.id] ?? false;
+          const hasSessions = sessions.length > 0;
 
           return (
             <div
@@ -145,6 +215,38 @@ export default function CatatanBelajar() {
                 <span className="text-gray-300 text-sm">›</span>
               </button>
 
+              {/* Session context — expandable chips */}
+              {hasSessions && (
+                <div className="px-4 pb-1">
+                  <button
+                    onClick={() => toggleSessions(s.id)}
+                    className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors py-1"
+                  >
+                    <span>{showSessions ? "▾" : "▸"}</span>
+                    <span>
+                      📋 {sessions.length} sesi terakhir
+                    </span>
+                  </button>
+                  {showSessions && (
+                    <div className="mb-2 space-y-1 max-h-32 overflow-y-auto">
+                      {sessions.map((ses) => (
+                        <div
+                          key={ses.id}
+                          className="text-[11px] text-gray-500 bg-gray-50 rounded-lg px-2.5 py-1.5 leading-relaxed"
+                        >
+                          <span className="font-medium text-gray-600">
+                            {new Date(ses.date).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}:
+                          </span>{" "}
+                          {ses.shortNote && ses.shortNote.length > 100
+                            ? ses.shortNote.slice(0, 100) + "…"
+                            : ses.shortNote}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Note textarea */}
               <div className="px-4 pb-3 relative">
                 <textarea
@@ -154,15 +256,42 @@ export default function CatatanBelajar() {
                   rows={3}
                   className="w-full text-sm rounded-xl border border-gray-200 p-3 resize-y focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition-colors"
                 />
-                {/* Saving indicator + timestamp */}
-                <div className="flex items-center justify-end gap-2 mt-1 min-h-[18px]">
-                  {isSaving && (
-                    <span className="text-[10px] text-blue-500 animate-pulse">menyimpan...</span>
-                  )}
-                  {!isSaving && content.trim() && savedNote?.updatedAt && (
-                    <span className="text-[10px] text-gray-400">
-                      Disimpan {formatRelative(savedNote.updatedAt)}
-                    </span>
+
+                {/* Error */}
+                {error && (
+                  <p className="text-[11px] text-red-500 mt-1">{error}</p>
+                )}
+
+                {/* Saving indicator + timestamp + AI button */}
+                <div className="flex items-center justify-between gap-2 mt-1 min-h-[18px]">
+                  <div className="flex items-center gap-2">
+                    {isSaving && (
+                      <span className="text-[10px] text-blue-500 animate-pulse">menyimpan...</span>
+                    )}
+                    {!isSaving && content.trim() && savedNote?.updatedAt && (
+                      <span className="text-[10px] text-gray-400">
+                        Disimpan {formatRelative(savedNote.updatedAt)}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* AI Ringkas button */}
+                  {aiEnabled && hasSessions && (
+                    <button
+                      onClick={() => handleAiDraft(s.id, s.name, s.subjects)}
+                      disabled={isLoading}
+                      className="flex items-center gap-1 text-[10px] font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2 py-1 rounded-lg transition-colors disabled:opacity-50 whitespace-nowrap"
+                      title={`~Rp${Math.round(estimateDraftStudyNoteCost(sessions.length)).toLocaleString("id-ID")}`}
+                    >
+                      {isLoading ? (
+                        <span className="inline-block w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        "✨ Ringkas"
+                      )}
+                      <span className="text-indigo-400">
+                        ({sessions.length})
+                      </span>
+                    </button>
                   )}
                 </div>
               </div>
