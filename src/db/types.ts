@@ -32,6 +32,8 @@ export interface EngagementLog {
   playingPhone?: boolean;   // main HP (-1)
   needsRepetition?: boolean;// perlu diulang (-1)
   hwMissed?: boolean;       // PR tidak dikerjakan (-1)
+  late?: boolean;           // telat (-1)
+  bathroomBreaks?: boolean; // sering ke toilet (-1)
   score: number;            // 1-10, computed
 }
 

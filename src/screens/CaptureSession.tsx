@@ -134,8 +134,10 @@ export default function CaptureSession() {
   const [engQuickLearner,   setEngQuickLearner]   = useState(false);
   const [engNeedsRepeat,    setEngNeedsRepeat]    = useState(false);
   const [engHwMissed,       setEngHwMissed]       = useState(false);
+  const [engLate,           setEngLate]           = useState(false);
+  const [engBathroom,       setEngBathroom]       = useState(false);
   const engTouched = engPrepared || engFocused || engDrowsy || engPhone ||
-    engActiveAsking || engQuickLearner || engNeedsRepeat || engHwMissed;
+    engActiveAsking || engQuickLearner || engNeedsRepeat || engHwMissed || engLate || engBathroom;
 
   // Topic search
   const [topicSearch,    setTopicSearch]    = useState("");
@@ -269,6 +271,7 @@ export default function CaptureSession() {
     setMood(undefined); setTopic(""); setTopicSearch(""); setTopicResults([]);
     setNeedsWork(""); setPredictedGrade("");
     setEngPrepared(false); setEngFocused(false); setEngDrowsy(false); setEngPhone(false);
+    setEngLate(false); setEngBathroom(false);
     setEngActiveAsking(false); setEngQuickLearner(false); setEngNeedsRepeat(false); setEngHwMissed(false);
     setBehaviorTags([]); setResponseTag(undefined); setShowBehavior(false); setActiveTooltip(null);
     setSignature(undefined); setShowSigPad(false);
@@ -289,10 +292,12 @@ export default function CaptureSession() {
       drowsy: engDrowsy, playingPhone: engPhone,
       activeAsking: engActiveAsking, quickLearner: engQuickLearner,
       needsRepetition: engNeedsRepeat, hwMissed: engHwMissed,
+      late: engLate, bathroomBreaks: engBathroom,
       score: calcEngagementScore({
         prepared: engPrepared, focused: engFocused, drowsy: engDrowsy, playingPhone: engPhone,
         activeAsking: engActiveAsking, quickLearner: engQuickLearner,
         needsRepetition: engNeedsRepeat, hwMissed: engHwMissed,
+        late: engLate, bathroomBreaks: engBathroom,
         behaviorValences: behaviorTags.length > 0 ? behaviorTags.map(id => BEHAVIOR_TAGS.find(t => t.id === id)?.valence).filter(Boolean) as ("positive" | "neutral" | "negative")[] : undefined,
         responseTagId: responseTag,
         mood,
@@ -413,6 +418,7 @@ export default function CaptureSession() {
     prepared: engPrepared, focused: engFocused, drowsy: engDrowsy, playingPhone: engPhone,
     activeAsking: engActiveAsking, quickLearner: engQuickLearner,
     needsRepetition: engNeedsRepeat, hwMissed: engHwMissed,
+    late: engLate, bathroomBreaks: engBathroom,
     behaviorValences: behaviorTags.length > 0 ? behaviorTags.map(id => BEHAVIOR_TAGS.find(t => t.id === id)?.valence).filter(Boolean) as ("positive" | "neutral" | "negative")[] : undefined,
     responseTagId: responseTag,
     mood,
@@ -799,6 +805,7 @@ export default function CaptureSession() {
                 onClick={() => {
                   setMood("Fokus"); setEngPrepared(true); setEngFocused(true); setEngActiveAsking(true); setEngQuickLearner(false);
                   setEngDrowsy(false); setEngPhone(false); setEngNeedsRepeat(false); setEngHwMissed(false);
+                  setEngLate(false); setEngBathroom(false);
                 }}
                 className="px-3 py-2 rounded-full text-sm font-semibold bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors">
                 ✨ Lancar
@@ -807,6 +814,7 @@ export default function CaptureSession() {
                 onClick={() => {
                   setMood("Biasa"); setEngPrepared(false); setEngFocused(false); setEngActiveAsking(false);
                   setEngQuickLearner(false); setEngDrowsy(false); setEngPhone(false); setEngNeedsRepeat(false); setEngHwMissed(false);
+                  setEngLate(false); setEngBathroom(false);
                 }}
                 className="px-3 py-2 rounded-full text-sm font-semibold bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 transition-colors">
                 😐 Biasa
@@ -815,6 +823,7 @@ export default function CaptureSession() {
                 onClick={() => {
                   setMood("Lelah"); setEngPrepared(false); setEngFocused(false); setEngActiveAsking(false);
                   setEngQuickLearner(false); setEngDrowsy(true); setEngPhone(false); setEngNeedsRepeat(false); setEngHwMissed(false);
+                  setEngLate(false); setEngBathroom(false);
                 }}
                 className="px-3 py-2 rounded-full text-sm font-semibold bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 transition-colors">
                 😴 Kurang Fit
@@ -823,6 +832,7 @@ export default function CaptureSession() {
                 onClick={() => {
                   setMood(undefined); setEngPrepared(false); setEngFocused(false); setEngActiveAsking(false);
                   setEngQuickLearner(false); setEngDrowsy(false); setEngPhone(false); setEngNeedsRepeat(false); setEngHwMissed(false);
+                  setEngLate(false); setEngBathroom(false);
                   setBehaviorTags([]);
                 }}
                 className="px-3 py-2 rounded-full text-sm font-semibold bg-white text-gray-500 border border-gray-200 hover:bg-gray-50 transition-colors">
@@ -896,6 +906,16 @@ export default function CaptureSession() {
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
                   engHwMissed ? "bg-rose-500 text-white border-rose-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-rose-300"}`}>
                 <span>❌</span> PR tidak buat (−1)
+              </button>
+              <button type="button" onClick={() => setEngLate(!engLate)}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
+                  engLate ? "bg-red-500 text-white border-red-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-red-300"}`}>
+                <span>⏰</span> Telat (−1)
+              </button>
+              <button type="button" onClick={() => setEngBathroom(!engBathroom)}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
+                  engBathroom ? "bg-pink-500 text-white border-pink-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-pink-300"}`}>
+                <span>🚻</span> Sering ke toilet (−1)
               </button>
             </div>
           </div>
@@ -1115,6 +1135,7 @@ export default function CaptureSession() {
                   engActiveAsking && "aktif bertanya", engQuickLearner && "cepat paham",
                   engDrowsy && "mengantuk", engPhone && "main HP",
                   engNeedsRepeat && "perlu diulang", engHwMissed && "PR tidak buat",
+                  engLate && "telat", engBathroom && "sering ke toilet",
                 ].filter(Boolean).join(", ")}
               </p>
             )}
@@ -1473,7 +1494,8 @@ export default function CaptureSession() {
                         {generateEngagementNarrative(
                           { prepared: engPrepared, focused: engFocused, activeAsking: engActiveAsking,
                             quickLearner: engQuickLearner, drowsy: engDrowsy, playingPhone: engPhone,
-                            needsRepetition: engNeedsRepeat, hwMissed: engHwMissed, score: engScore },
+                            needsRepetition: engNeedsRepeat, hwMissed: engHwMissed,
+                            late: engLate, bathroomBreaks: engBathroom, score: engScore },
                           currentStudent.name,
                         )}
                       </p>
@@ -1619,6 +1641,8 @@ export default function CaptureSession() {
                         ...(engPhone         ? ["main HP"]              : []),
                         ...(engNeedsRepeat   ? ["perlu pengulangan"]    : []),
                         ...(engHwMissed      ? ["PR tidak dikerjakan"]  : []),
+                        ...(engLate          ? ["telat"]                : []),
+                        ...(engBathroom      ? ["sering ke toilet"]     : []),
                       ] : undefined;
                       const bLabels = behaviorTags.length > 0
                         ? behaviorTags.map(id => BEHAVIOR_TAGS.find(t => t.id === id)?.label).filter(Boolean) as string[]

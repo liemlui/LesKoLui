@@ -22,6 +22,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "getRecentDoneSessions() — fungsi baru untuk mengambil N sesi DONE terakhir per murid",
       "Wizard Catat Sesi: Step 2 Materi — Fokus Utama + Sub-Topik digabung jadi satu combobox cari-topik (dropdown IB + bisa ketik custom)",
       "Wizard Catat Sesi: Step 4 Detail — input Topik dihapus (cukup di step 2), sekarang fokus ke Respons & Nilai",
+      "Step 3 Kondisi: tambah indikator negatif ⏰ Telat (−1) dan 🚻 Sering ke toilet (−1) — skor engagement ikut terpengaruh",
     ],
   },
   {

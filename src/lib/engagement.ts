@@ -10,6 +10,9 @@ export interface ExtendedEngagementInput {
   playingPhone?: boolean;
   needsRepetition?: boolean;
   hwMissed?: boolean;
+  // Extended — negative
+  late?: boolean;
+  bathroomBreaks?: boolean;
   // Extended — behavior taxonomy
   behaviorTagIds?: string[];   // BEHAVIOR_TAGS ids with valence info
   behaviorValences?: ("positive" | "neutral" | "negative")[];  // parallel to behaviorTagIds
@@ -36,6 +39,8 @@ export function calcEngagementScore(e: Omit<EngagementLog, "score"> & Partial<Ex
   if (e.needsRepetition)  s -= 1;
   if (e.drowsy)           s -= 1;
   if (e.playingPhone)     s -= 1;
+  if (e.late)             s -= 1;
+  if (e.bathroomBreaks)   s -= 1;
 
   // ── Behavior tags (cap at ±3) ──
   if (e.behaviorValences && e.behaviorValences.length > 0) {
