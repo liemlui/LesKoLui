@@ -11,9 +11,9 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: "v1.34.1",
+    version: "v1.35.0",
     date: "2026-07-31",
-    title: "Catatan Belajar — Backup, Konteks Sesi, AI Ringkas & Wizard Simpler",
+    title: "Catatan Belajar Pintar + Wizard Simpler + Engagement Granular",
     items: [
       "Catatan Belajar sekarang ikut backup/restore — tidak hilang saat ganti perangkat",
       "Konteks sesi di halaman Catatan: chip expandable 📋 menampilkan shortNote 5 sesi terakhir per murid",
@@ -22,7 +22,9 @@ export const CHANGELOG: ChangelogEntry[] = [
       "getRecentDoneSessions() — fungsi baru untuk mengambil N sesi DONE terakhir per murid",
       "Wizard Catat Sesi: Step 2 Materi — Fokus Utama + Sub-Topik digabung jadi satu combobox cari-topik (dropdown IB + bisa ketik custom)",
       "Wizard Catat Sesi: Step 4 Detail — input Topik dihapus (cukup di step 2), sekarang fokus ke Respons & Nilai",
-      "Step 3 Kondisi: tambah indikator negatif ⏰ Telat (−1) dan 🚻 Sering ke toilet (−1) — skor engagement ikut terpengaruh",
+      "Step 3 Kondisi: tambah indikator negatif ⏰ Telat (−1) dan 🚻 Sering ke toilet (−1)",
+      "Rekalibrasi skor engagement: bonus positif dinerf (prepared +3→+2, focused/activeAsking/quickLearner +2→+1) — skala 5-10 kini lebih granular",
+      "Fix React #310: 4 useMemo di halaman Keuangan dipindahkan sebelum early return — tidak lagi crash saat unlock PIN",
     ],
   },
   {
