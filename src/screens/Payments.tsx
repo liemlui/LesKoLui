@@ -283,6 +283,77 @@ export default function PaymentsPage() {
     downloadBlob(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }), `Audit-Keuangan-${auditYear}.csv`);
   };
 
+
+  // ── Analytics: financial chart data ──────────────────────────────────
+  const analyticsFinancial = useMemo(() => {
+    const sessions = allSessions ?? [];
+    const done = sessions.filter((s) => s.status === "DONE");
+    const revenue = done.reduce((sum, s) => sum + (s.cost ?? 0), 0);
+    const expenses = (monthExpenses ?? []).reduce((sum, e) => sum + e.amount, 0);
+    const scheduledRevenue = sessions
+      .filter((s) => s.status === "SCHEDULED")
+      .reduce((sum, s) => sum + (s.cost ?? 0), 0);
+    const catMap = new Map<string, number>();
+    (monthExpenses ?? []).forEach((e) => {
+      catMap.set(e.category, (catMap.get(e.category) ?? 0) + e.amount);
+    });
+    const expenseSegments: DonutSegment[] = Array.from(catMap.entries()).map(
+      ([cat, amt]) => ({ label: cat, value: amt })
+    );
+    return { revenue, expenses, scheduledRevenue, expenseSegments };
+  }, [allSessions, monthExpenses]);
+
+  const revenueTrend = useMemo(() => {
+    const prevM = prevMonth(month);
+    const currentRev = analyticsFinancial.revenue;
+    return [
+      { x: prevM.slice(5), y: 0 },
+      { x: month.slice(5), y: currentRev },
+    ];
+  }, [month, analyticsFinancial.revenue]);
+
+  // ── Analytics: student data ─────────────────────────────────────────
+  const studentAnalytics = useMemo(() => {
+    if (!students || !allSessions) return [];
+    const done = allSessions.filter((s) => s.status === "DONE");
+    const map = new Map<string, { name: string; revenue: number; sessions: number; avgEngagement: number }>();
+    students.forEach((s) => map.set(s.id, { name: s.name, revenue: 0, sessions: 0, avgEngagement: 0 }));
+    const engScores = new Map<string, number[]>();
+    done.forEach((s) => {
+      const entry = map.get(s.studentId);
+      if (entry) {
+        entry.revenue += s.cost ?? 0;
+        entry.sessions += 1;
+      }
+      if (s.engagement?.score != null) {
+        const arr = engScores.get(s.studentId) ?? [];
+        arr.push(s.engagement.score);
+        engScores.set(s.studentId, arr);
+      }
+    });
+    engScores.forEach((scores, id) => {
+      const entry = map.get(id);
+      if (entry && scores.length > 0) {
+        entry.avgEngagement = scores.reduce((a, b) => a + b, 0) / scores.length;
+      }
+    });
+    return Array.from(map.values()).filter((e) => e.sessions > 0 || e.revenue > 0);
+  }, [students, allSessions]);
+
+  // ── Analytics: operations data ──────────────────────────────────────
+  const opsData = useMemo(() => {
+    const sessions = allSessions ?? [];
+    const done = sessions.filter((s) => s.status === "DONE");
+    const noShow = sessions.filter((s) => s.status === "NO_SHOW");
+    const total = sessions.length;
+    const completionRate = total > 0 ? Math.round((done.length / total) * 100) : 0;
+    const noShowRate = total > 0 ? Math.round((noShow.length / total) * 100) : 0;
+    const avgDuration = done.length > 0
+      ? done.reduce((sum, s) => sum + (s.durationHours ?? 0), 0) / done.length
+      : 0;
+    return { completionRate, noShowRate, avgDuration };
+  }, [allSessions]);
+
   if (!payments || !students || !settings) return <Skeleton variant="card" lines={4} className="p-4" />;
 
   if (!settings.financialPin) {
@@ -400,81 +471,11 @@ export default function PaymentsPage() {
     laba: (auditData ?? []).reduce((s, r) => s + r.laba, 0),
   };
 
-  // ── Analytics: financial chart data ──────────────────────────────────
-  const analyticsFinancial = useMemo(() => {
-    const sessions = allSessions ?? [];
-    const done = sessions.filter((s) => s.status === "DONE");
-    const revenue = done.reduce((sum, s) => sum + (s.cost ?? 0), 0);
-    const expenses = (monthExpenses ?? []).reduce((sum, e) => sum + e.amount, 0);
-    const scheduledRevenue = sessions
-      .filter((s) => s.status === "SCHEDULED")
-      .reduce((sum, s) => sum + (s.cost ?? 0), 0);
-    const catMap = new Map<string, number>();
-    (monthExpenses ?? []).forEach((e) => {
-      catMap.set(e.category, (catMap.get(e.category) ?? 0) + e.amount);
-    });
-    const expenseSegments: DonutSegment[] = Array.from(catMap.entries()).map(
-      ([cat, amt]) => ({ label: cat, value: amt })
-    );
-    return { revenue, expenses, scheduledRevenue, expenseSegments };
-  }, [allSessions, monthExpenses]);
-
-  const revenueTrend = useMemo(() => {
-    const prevM = prevMonth(month);
-    const currentRev = analyticsFinancial.revenue;
-    return [
-      { x: prevM.slice(5), y: 0 },
-      { x: month.slice(5), y: currentRev },
-    ];
-  }, [month, analyticsFinancial.revenue]);
-
-  // ── Analytics: student data ─────────────────────────────────────────
-  const studentAnalytics = useMemo(() => {
-    if (!students || !allSessions) return [];
-    const done = allSessions.filter((s) => s.status === "DONE");
-    const map = new Map<string, { name: string; revenue: number; sessions: number; avgEngagement: number }>();
-    students.forEach((s) => map.set(s.id, { name: s.name, revenue: 0, sessions: 0, avgEngagement: 0 }));
-    const engScores = new Map<string, number[]>();
-    done.forEach((s) => {
-      const entry = map.get(s.studentId);
-      if (entry) {
-        entry.revenue += s.cost ?? 0;
-        entry.sessions += 1;
-      }
-      if (s.engagement?.score != null) {
-        const arr = engScores.get(s.studentId) ?? [];
-        arr.push(s.engagement.score);
-        engScores.set(s.studentId, arr);
-      }
-    });
-    engScores.forEach((scores, id) => {
-      const entry = map.get(id);
-      if (entry && scores.length > 0) {
-        entry.avgEngagement = scores.reduce((a, b) => a + b, 0) / scores.length;
-      }
-    });
-    return Array.from(map.values()).filter((e) => e.sessions > 0 || e.revenue > 0);
-  }, [students, allSessions]);
-
   const studentBarSeries: BarSeries[] = studentAnalytics.map((s) => ({
     label: s.name.split(" ")[0],
     value: s.revenue,
   }));
   const studentLabels = studentAnalytics.map((s) => s.name.split(" ")[0]);
-
-  // ── Analytics: operations data ──────────────────────────────────────
-  const opsData = useMemo(() => {
-    const sessions = allSessions ?? [];
-    const done = sessions.filter((s) => s.status === "DONE");
-    const noShow = sessions.filter((s) => s.status === "NO_SHOW");
-    const total = sessions.length;
-    const completionRate = total > 0 ? Math.round((done.length / total) * 100) : 0;
-    const noShowRate = total > 0 ? Math.round((noShow.length / total) * 100) : 0;
-    const avgDuration = done.length > 0
-      ? done.reduce((sum, s) => sum + (s.durationHours ?? 0), 0) / done.length
-      : 0;
-    return { completionRate, noShowRate, avgDuration };
-  }, [allSessions]);
 
   const revenueByStudent = (monthSessions ?? []).reduce<Map<string, number>>((m, sess) => {
     m.set(sess.studentId, (m.get(sess.studentId) ?? 0) + sess.cost);
