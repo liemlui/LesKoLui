@@ -11,6 +11,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.36.0",
+    date: "2026-08-01",
+    title: "Keuangan Terhubung & Rekonsiliasi Kas",
+    items: [
+      "Kas masuk dan laba kini mengikuti tanggal pembayaran aktual, bukan bulan tagihan",
+      "Ringkasan memisahkan potensi sesi, tagihan terbit, tagihan terbayar, piutang, kas masuk, dan pengeluaran",
+      "Grafik tren mengikuti bulan yang dipilih dan tidak lagi mengisi bulan sebelumnya dengan angka nol palsu",
+      "Rekonsiliasi sesi dan tagihan menandai penyesuaian manual atau perubahan setelah tutup bulan",
+      "Tab Pengeluaran kembali dengan daftar transaksi, tambah, hapus, kategori, dan total bulanan yang live",
+      "Audit tahunan kini menyertakan potensi, kas masuk, piutang, pengeluaran, dan laba kas",
+      "Histori keuangan tetap menampilkan nama murid nonaktif dan semua tagihan belum lunas",
+    ],
+  },
+  {
     version: "v1.35.0",
     date: "2026-07-31",
     title: "Catatan Belajar Pintar + Wizard Simpler + Engagement Granular",

@@ -15,6 +15,7 @@ import { isValidCurrencyAmount } from "../lib/money";
 interface Props {
   onClose: () => void;
   onSaved: (msg: string) => void;
+  initialDate?: string;
 }
 
 const CATEGORY_LABEL: Record<ExpenseCategory, string> = {
@@ -27,8 +28,8 @@ const CATEGORY_LABEL: Record<ExpenseCategory, string> = {
 
 const CATEGORIES: ExpenseCategory[] = ["transport", "buku", "alat", "platform", "lainnya"];
 
-export default function QuickExpenseModal({ onClose, onSaved }: Props) {
-  const [date, setDate] = useState(() => todayWIB());
+export default function QuickExpenseModal({ onClose, onSaved, initialDate }: Props) {
+  const [date, setDate] = useState(() => initialDate ?? todayWIB());
   const [category, setCategory] = useState<ExpenseCategory>("transport");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState(0);
@@ -61,13 +62,13 @@ export default function QuickExpenseModal({ onClose, onSaved }: Props) {
         </div>
         <div className="p-4 space-y-3">
           <div>
-            <label className="text-xs text-gray-500 font-medium">Tanggal</label>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
+            <label htmlFor="expense-date" className="text-xs text-gray-500 font-medium">Tanggal</label>
+            <input id="expense-date" type="date" value={date} onChange={(e) => setDate(e.target.value)}
               className="input w-full mt-1" />
           </div>
           <div>
-            <label className="text-xs text-gray-500 font-medium">Kategori</label>
-            <select value={category} onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
+            <label htmlFor="expense-category" className="text-xs text-gray-500 font-medium">Kategori</label>
+            <select id="expense-category" value={category} onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
               className="input w-full mt-1">
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>
@@ -75,14 +76,14 @@ export default function QuickExpenseModal({ onClose, onSaved }: Props) {
             </select>
           </div>
           <div>
-            <label className="text-xs text-gray-500 font-medium">Deskripsi</label>
-            <input type="text" value={description} onChange={(e) => setDescription(e.target.value)}
+            <label htmlFor="expense-description" className="text-xs text-gray-500 font-medium">Deskripsi</label>
+            <input id="expense-description" type="text" value={description} onChange={(e) => setDescription(e.target.value)}
               placeholder="Misal: Bensin 2 minggu"
               className="input w-full mt-1" />
           </div>
           <div>
-            <label className="text-xs text-gray-500 font-medium">Jumlah (IDR)</label>
-            <input type="number" value={amount || ""} onChange={(e) => setAmount(Number(e.target.value))}
+            <label htmlFor="expense-amount" className="text-xs text-gray-500 font-medium">Jumlah (IDR)</label>
+            <input id="expense-amount" type="number" value={amount || ""} onChange={(e) => setAmount(Number(e.target.value))}
               placeholder="0" min={1}
               className="input w-full mt-1" />
           </div>

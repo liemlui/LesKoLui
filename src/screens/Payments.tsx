@@ -4,16 +4,16 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useNavigate } from "react-router-dom";
 import {
   listPayments, listStudents, getPayment, upsertPayment, getSettings,
-  listExpenses,
+  listExpenses, deleteExpense,
   listBillableSessionsForMonth, listBillableSessionsByStudentMonth, listAllUpcomingScheduled,
-  listScheduledForMonth, listAllSessionsForWeek, listAllSessionsForMonth,
+  listScheduledForMonth,
   getMonthClosing, listMonthClosings, closeMonth, reopenMonth,
   markPaymentTransferred, markPaymentUnpaid, updatePaymentAmount, getCashSummary,
   getMonthlyIncomeVsExpense,
 } from "../db/repos";
 import type { Payment, Student, Settings } from "../db/types";
 import { formatRupiah, todayWIB, monthLabel } from "../lib/format";
-import { weekDates, prevMonth } from "../lib/calendar";
+import { weekDates } from "../lib/calendar";
 import { usePinGate } from "../hooks/usePinGate";
 import { loadHtmlToImage, loadJsPdf } from "../lib/exportDeps";
 import { generatePaymentReminder, estimatePaymentReminderCost } from "../lib/aiClient";
@@ -32,18 +32,27 @@ import {
 } from "../components/charts";
 import type { BarSeries, DonutSegment } from "../components/charts";
 import RatingIndicator from "../components/charts/RatingIndicator";
+import QuickExpenseModal from "../components/QuickExpenseModal";
 
-type Tab = "ringkasan" | "tagihan" | "audit" | "murid";
+type Tab = "ringkasan" | "tagihan" | "pengeluaran" | "audit" | "murid";
 
-function getLast12Months(): string[] {
+function getLast12Months(endMonth: string): string[] {
   const months: string[] = [];
-  const now = new Date(Date.now() + 7 * 3600000);
+  const [year, month] = endMonth.split("-").map(Number);
   for (let i = 11; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const d = new Date(year, month - 1 - i, 1);
     months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
   }
   return months;
 }
+
+const EXPENSE_LABELS: Record<string, string> = {
+  transport: "Transport",
+  buku: "Buku",
+  alat: "Alat",
+  platform: "Platform",
+  lainnya: "Lainnya",
+};
 
 const monthsBetween = (a: string, b: string): number => {
   const [ay, am] = a.split("-").map(Number);
@@ -64,7 +73,9 @@ const monthsBetween = (a: string, b: string): number => {
 export default function PaymentsPage() {
   const navigate = useNavigate();
   const payments  = useLiveQuery(() => listPayments(), []);
-  const students  = useLiveQuery(() => listStudents(true), []);
+  // Historical invoices must retain their student names even after a student
+  // becomes inactive, so finance intentionally loads active + inactive rows.
+  const students  = useLiveQuery(() => listStudents(), []);
   const settings  = useLiveQuery(() => getSettings(), []);
   const pin = usePinGate();
 
@@ -75,18 +86,17 @@ export default function PaymentsPage() {
   const [month, setMonth] = useState(() => todayWIB().slice(0, 7));
 
   // ── Analytics query ────────────────────────────────────────────────
-  const allSessions = useLiveQuery(() => listAllSessionsForMonth(month), [month]);
-
   // Tutup Bulan workflow
   const [billEdits, setBillEdits] = useState<Record<string, string>>({});
   const [closingBusy, setClosingBusy] = useState(false);
   const [expandedPreview, setExpandedPreview] = useState<string | null>(null);
 
   // Manual invoice
-  const [selectedMonth, setSelectedMonth] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState(() => todayWIB().slice(0, 7));
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [totalCost, setTotalCost] = useState(0);
   const [showManual, setShowManual] = useState(false);
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
 
   // Invoice / reminder
   const [pdfExporting, setPdfExporting] = useState(false);
@@ -106,7 +116,8 @@ export default function PaymentsPage() {
   const closings = useLiveQuery(() => listMonthClosings(), []);
   const monthClosing = useLiveQuery(() => getMonthClosing(month), [month]);
 
-  const chartData = useLiveQuery(() => getMonthlyIncomeVsExpense(getLast12Months()), []);
+  const chartMonths = useMemo(() => getLast12Months(month), [month]);
+  const chartData = useLiveQuery(() => getMonthlyIncomeVsExpense(chartMonths), [chartMonths]);
   const trendData = useMemo(() => (chartData ?? []).slice(-trendRange), [chartData, trendRange]);
 
   const nextMonthStr = useMemo(() => {
@@ -134,15 +145,13 @@ export default function PaymentsPage() {
   // ── Today & week revenue (for Ringkasan) ──
   const todayStr = useMemo(() => todayWIB(), []);
   const currentWeek = useMemo(() => weekDates(todayStr), [todayStr]);
-  const todaySessions = useLiveQuery(() => listAllSessionsForWeek(todayStr, todayStr), [todayStr]);
-  const currentWeekSessions = useLiveQuery(() => listAllSessionsForWeek(currentWeek[0], currentWeek[6]), [currentWeek[0], currentWeek[6]]);
   const todayRevenue = useMemo(
-    () => (todaySessions ?? []).filter((s) => s.status === "DONE").reduce((sum, s) => sum + (s.cost ?? 0), 0),
-    [todaySessions],
+    () => (payments ?? []).filter((p) => p.status === "PAID" && p.paidAt === todayStr).reduce((sum, p) => sum + p.totalCost, 0),
+    [payments, todayStr],
   );
   const weekRevenue = useMemo(
-    () => (currentWeekSessions ?? []).filter((s) => s.status === "DONE").reduce((sum, s) => sum + (s.cost ?? 0), 0),
-    [currentWeekSessions],
+    () => (payments ?? []).filter((p) => p.status === "PAID" && !!p.paidAt && p.paidAt >= currentWeek[0] && p.paidAt <= currentWeek[6]).reduce((sum, p) => sum + p.totalCost, 0),
+    [payments, currentWeek],
   );
 
   // ── Handlers ──
@@ -153,6 +162,16 @@ export default function PaymentsPage() {
     await upsertPayment({ studentId: selectedStudentId, month: selectedMonth, totalCost, status: "UNPAID" });
     setMessage("Tagihan baru dibuat ✓");
     setTotalCost(0);
+  };
+
+  const handleDeleteExpense = async (id: string, description: string) => {
+    if (!window.confirm(`Hapus pengeluaran "${description}"?`)) return;
+    try {
+      await deleteExpense(id);
+      setMessage("Pengeluaran dihapus ✓");
+    } catch (e) {
+      setMessage("Gagal: " + (e as Error).message);
+    }
   };
 
   const handleCloseMonth = async () => {
@@ -251,9 +270,9 @@ export default function PaymentsPage() {
 
   const exportAuditCsv = () => {
     const rows = auditData ?? [];
-    const header = "Bulan,Pemasukan (Realisasi),Pengeluaran,Laba,Status";
-    const body = rows.map((r) => `${r.month},${r.realisasi},${r.pengeluaran},${r.laba},${r.closed ? "Ditutup" : "Terbuka"}`);
-    const total = `Total ${auditYear},${auditTotals.realisasi},${auditTotals.pengeluaran},${auditTotals.laba},`;
+    const header = "Bulan,Potensi Sesi,Kas Masuk,Piutang,Pengeluaran,Laba Kas,Status";
+    const body = rows.map((r) => `${r.month},${r.potensi},${r.realisasi},${r.piutang},${r.pengeluaran},${r.laba},${r.closed ? "Ditutup" : "Terbuka"}`);
+    const total = `Total ${auditYear},${auditTotals.potensi},${auditTotals.realisasi},${auditTotals.piutang},${auditTotals.pengeluaran},${auditTotals.laba},`;
     const csv = [header, ...body, total].join("\n");
     downloadBlob(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }), `Audit-Keuangan-${auditYear}.csv`);
   };
@@ -261,40 +280,32 @@ export default function PaymentsPage() {
 
   // ── Analytics: financial chart data ──────────────────────────────────
   const analyticsFinancial = useMemo(() => {
-    const sessions = allSessions ?? [];
-    const done = sessions.filter((s) => s.status === "DONE");
-    const revenue = done.reduce((sum, s) => sum + (s.cost ?? 0), 0);
+    const cashIn = (payments ?? [])
+      .filter((p) => p.status === "PAID" && (p.paidAt?.slice(0, 7) ?? p.month) === month)
+      .reduce((sum, p) => sum + p.totalCost, 0);
     const expenses = (monthExpenses ?? []).reduce((sum, e) => sum + e.amount, 0);
-    const scheduledRevenue = sessions
-      .filter((s) => s.status === "SCHEDULED")
-      .reduce((sum, s) => sum + (s.cost ?? 0), 0);
     const catMap = new Map<string, number>();
     (monthExpenses ?? []).forEach((e) => {
       catMap.set(e.category, (catMap.get(e.category) ?? 0) + e.amount);
     });
     const expenseSegments: DonutSegment[] = Array.from(catMap.entries()).map(
-      ([cat, amt]) => ({ label: cat, value: amt })
+      ([cat, amt]) => ({ label: EXPENSE_LABELS[cat] ?? cat, value: amt })
     );
-    return { revenue, expenses, scheduledRevenue, expenseSegments };
-  }, [allSessions, monthExpenses]);
+    return { cashIn, expenses, expenseSegments };
+  }, [payments, month, monthExpenses]);
 
-  const revenueTrend = useMemo(() => {
-    const prevM = prevMonth(month);
-    const currentRev = analyticsFinancial.revenue;
-    return [
-      { x: prevM.slice(5), y: 0 },
-      { x: month.slice(5), y: currentRev },
-    ];
-  }, [month, analyticsFinancial.revenue]);
+  const revenueTrend = useMemo(
+    () => trendData.map((row) => ({ x: row.month, y: row.income })),
+    [trendData],
+  );
 
   // ── Analytics: student data ─────────────────────────────────────────
   const studentAnalytics = useMemo(() => {
-    if (!students || !allSessions) return [];
-    const done = allSessions.filter((s) => s.status === "DONE");
+    if (!students || !monthSessions) return [];
     const map = new Map<string, { name: string; revenue: number; sessions: number; avgEngagement: number }>();
     students.forEach((s) => map.set(s.id, { name: s.name, revenue: 0, sessions: 0, avgEngagement: 0 }));
     const engScores = new Map<string, number[]>();
-    done.forEach((s) => {
+    monthSessions.forEach((s) => {
       const entry = map.get(s.studentId);
       if (entry) {
         entry.revenue += s.cost ?? 0;
@@ -313,7 +324,7 @@ export default function PaymentsPage() {
       }
     });
     return Array.from(map.values()).filter((e) => e.sessions > 0 || e.revenue > 0);
-  }, [students, allSessions]);
+  }, [students, monthSessions]);
 
   if (!payments || !students || !settings) return <Skeleton variant="card" lines={4} className="p-4" />;
 
@@ -356,10 +367,15 @@ export default function PaymentsPage() {
   // ── Derived ──
   const studentMap = new Map(students.map((s) => [s.id, s]));
   const monthPayments = payments.filter((p) => p.month === month);
+  const sessionPotential = (monthSessions ?? []).reduce((s, x) => s + x.cost, 0);
+  const totalBilled = monthPayments.reduce((s, p) => s + p.totalCost, 0);
+  const invoicePaid = monthPayments.filter((p) => p.status === "PAID").reduce((s, p) => s + p.totalCost, 0);
 
   const cash = {
-    potensi: (monthSessions ?? []).reduce((s, x) => s + x.cost, 0),
-    realisasi: monthPayments.filter((p) => p.status === "PAID").reduce((s, p) => s + p.totalCost, 0),
+    potensi: sessionPotential,
+    tagihan: totalBilled,
+    realisasi: analyticsFinancial.cashIn,
+    lunas: invoicePaid,
     piutang: monthPayments.filter((p) => p.status === "UNPAID").reduce((s, p) => s + p.totalCost, 0),
     pengeluaran: (monthExpenses ?? []).reduce((s, e) => s + e.amount, 0),
     hours: (monthSessions ?? []).reduce((s, x) => s + x.durationHours, 0),
@@ -367,8 +383,8 @@ export default function PaymentsPage() {
   };
   cash.laba = cash.realisasi - cash.pengeluaran;
   const paidCount = monthPayments.filter((p) => p.status === "PAID").length;
-  const collectionRate = monthPayments.length > 0 ? Math.round((paidCount / monthPayments.length) * 100) : 0;
-  const conversionRate = cash.potensi > 0 ? Math.round((cash.realisasi / cash.potensi) * 100) : 0;
+  const collectionRate = totalBilled > 0 ? Math.round((invoicePaid / totalBilled) * 100) : 0;
+  const billingGap = totalBilled - sessionPotential;
 
   // Tutup Bulan availability: current month only from the 28th; past months always; future never.
   const _today = todayWIB();
@@ -415,9 +431,8 @@ export default function PaymentsPage() {
     };
   });
 
-  const closedMonths = new Set((closings ?? []).map((c) => c.month));
   const piutangRows = payments
-    .filter((p) => p.status === "UNPAID" && closedMonths.has(p.month))
+    .filter((p) => p.status === "UNPAID")
     .map((p) => ({ payment: p, student: studentMap.get(p.studentId) }))
     .sort((a, b) => a.payment.month.localeCompare(b.payment.month));
 
@@ -427,7 +442,9 @@ export default function PaymentsPage() {
   });
 
   const auditTotals = {
+    potensi: (auditData ?? []).reduce((s, r) => s + r.potensi, 0),
     realisasi: (auditData ?? []).reduce((s, r) => s + r.realisasi, 0),
+    piutang: (auditData ?? []).reduce((s, r) => s + r.piutang, 0),
     pengeluaran: (auditData ?? []).reduce((s, r) => s + r.pengeluaran, 0),
     laba: (auditData ?? []).reduce((s, r) => s + r.laba, 0),
   };
@@ -478,6 +495,7 @@ export default function PaymentsPage() {
         tabs={[
           { key: "ringkasan", label: "Ringkasan" },
           { key: "tagihan", label: "Tagihan" },
+          { key: "pengeluaran", label: "Pengeluaran" },
           { key: "audit", label: "Audit" },
           { key: "murid", label: "Murid" },
         ]}
@@ -509,12 +527,20 @@ export default function PaymentsPage() {
               <p className="text-[11px] text-gray-500">{cash.hours} jam ditagihkan</p>
             </div>
             <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
-              <p className="text-[11px] text-gray-500 uppercase tracking-wide">Realisasi (cash)</p>
-              <p className="text-lg font-bold text-green-700">{formatRupiah(cash.realisasi)}</p>
+              <p className="text-[11px] text-gray-500 uppercase tracking-wide">Tagihan Terbit</p>
+              <p className="text-lg font-bold text-blue-700">{formatRupiah(cash.tagihan)}</p>
             </div>
             <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
-              <p className="text-[11px] text-gray-500 uppercase tracking-wide">Piutang</p>
+              <p className="text-[11px] text-gray-500 uppercase tracking-wide">Tagihan Terbayar</p>
+              <p className="text-lg font-bold text-green-700">{formatRupiah(cash.lunas)}</p>
+            </div>
+            <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
+              <p className="text-[11px] text-gray-500 uppercase tracking-wide">Piutang Bulan Ini</p>
               <p className="text-lg font-bold text-amber-600">{formatRupiah(cash.piutang)}</p>
+            </div>
+            <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
+              <p className="text-[11px] text-gray-500 uppercase tracking-wide">Kas Masuk Bulan Ini</p>
+              <p className="text-lg font-bold text-green-700">{formatRupiah(cash.realisasi)}</p>
             </div>
             <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
               <p className="text-[11px] text-gray-500 uppercase tracking-wide">Pengeluaran</p>
@@ -526,16 +552,28 @@ export default function PaymentsPage() {
             </div>
           </div>
 
+          {(monthClosing || monthPayments.length > 0) && (
+            <div className={`rounded-xl border px-3 py-2.5 text-xs ${billingGap === 0 ? "border-green-200 bg-green-50 text-green-800" : "border-amber-200 bg-amber-50 text-amber-800"}`}>
+              <div className="flex items-center justify-between gap-3 font-semibold">
+                <span>Rekonsiliasi sesi dan tagihan</span>
+                <span>{billingGap === 0 ? "Sinkron" : `Selisih ${formatRupiah(Math.abs(billingGap))}`}</span>
+              </div>
+              {billingGap !== 0 && (
+                <p className="mt-1 leading-relaxed">Total tagihan berbeda dari nilai sesi. Periksa penyesuaian nominal, tagihan manual, atau sesi yang berubah setelah tutup bulan.</p>
+              )}
+            </div>
+          )}
+
           {/* Today & week revenue glance */}
           <div className="flex items-center gap-3 text-xs">
             <div className="flex-1 rounded-lg bg-blue-50 border border-blue-100 px-3 py-2">
-              <p className="text-blue-500 font-semibold uppercase tracking-wide text-[10px]">Pendapatan Hari Ini</p>
+              <p className="text-blue-500 font-semibold uppercase tracking-wide text-[10px]">Kas Masuk Hari Ini</p>
               <p className="text-blue-700 font-bold text-sm">
                 {formatRupiah(todayRevenue)}
               </p>
             </div>
             <div className="flex-1 rounded-lg bg-green-50 border border-green-100 px-3 py-2">
-              <p className="text-green-500 font-semibold uppercase tracking-wide text-[10px]">Minggu Ini</p>
+              <p className="text-green-500 font-semibold uppercase tracking-wide text-[10px]">Kas Masuk Minggu Ini</p>
               <p className="text-green-700 font-bold text-sm">
                 {formatRupiah(weekRevenue)}
               </p>
@@ -562,8 +600,8 @@ export default function PaymentsPage() {
                 />
               </div>
               <div className="grid gap-2 w-[148px]">
-                <MetricCard label="Konversi kas" value={`${conversionRate}%`} description="Potensi sesi yang sudah menjadi kas." icon="↗" tone={conversionRate >= 80 ? "green" : "amber"} />
-                <MetricCard label="Laba kas" value={formatRupiah(cash.laba)} description="Realisasi setelah pengeluaran bulan ini." icon="◎" tone={cash.laba >= 0 ? "blue" : "red"} />
+                <MetricCard label="Tagihan tertagih" value={`${collectionRate}%`} description="Porsi nominal tagihan bulan ini yang sudah lunas." icon="↗" tone={collectionRate >= 80 ? "green" : "amber"} />
+                <MetricCard label="Laba kas" value={formatRupiah(cash.laba)} description="Kas masuk dikurangi pengeluaran bulan ini." icon="◎" tone={cash.laba >= 0 ? "blue" : "red"} />
               </div>
             </div>
             <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-600">
@@ -589,7 +627,7 @@ export default function PaymentsPage() {
           {/* Revenue per student */}
           {revenueByStudent.size > 0 && (
             <div className="bg-white border border-gray-100 rounded-2xl p-4 space-y-3">
-              <p className="text-sm font-semibold text-gray-500">Pendapatan per Murid</p>
+              <p className="text-sm font-semibold text-gray-500">Potensi Sesi per Murid</p>
               {Array.from(revenueByStudent.entries()).sort((a, b) => b[1] - a[1]).map(([sid, rev]) => {
                 const pct = cash.potensi > 0 ? Math.round((rev / cash.potensi) * 100) : 0;
                 return (
@@ -610,11 +648,11 @@ export default function PaymentsPage() {
           {/* Income vs expense bar chart (analytics) */}
           <div className="bg-white rounded-2xl border border-gray-100 p-4">
             <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">
-              Pendapatan vs Pengeluaran
+              Kas Masuk vs Pengeluaran
             </p>
             <BarChart
               series={[
-                { label: "Pendapatan", value: analyticsFinancial.revenue, color: "#16a34a" },
+                { label: "Kas Masuk", value: analyticsFinancial.cashIn, color: "#16a34a" },
                 { label: "Pengeluaran", value: analyticsFinancial.expenses, color: "#dc2626" },
               ]}
               labels={[month.slice(5)]}
@@ -628,12 +666,12 @@ export default function PaymentsPage() {
           {/* Revenue trend line chart */}
           <div className="bg-white rounded-2xl border border-gray-100 p-4">
             <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">
-              Tren Pendapatan
+              Tren Kas Masuk
             </p>
             <LineChart
               series={[
                 {
-                  label: "Pendapatan",
+                  label: "Kas Masuk",
                   data: revenueTrend,
                   areaFill: true,
                   color: "#2563eb",
@@ -681,7 +719,7 @@ export default function PaymentsPage() {
           {trendData.length > 0 && (
             <div className="bg-white border border-gray-100 rounded-2xl p-4 space-y-3">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-gray-500">Pendapatan vs Pengeluaran ({trendRange} Bulan)</p>
+                <p className="text-sm font-semibold text-gray-500">Kas Masuk vs Pengeluaran ({trendRange} Bulan)</p>
                 <div className="flex rounded-lg bg-gray-100 p-0.5" aria-label="Rentang grafik">
                   {([3, 6, 12] as const).map((range) => (
                     <button key={range} onClick={() => setTrendRange(range)}
@@ -709,7 +747,7 @@ export default function PaymentsPage() {
                 </svg>
               </div>
               <div className="flex gap-4 text-xs text-gray-500">
-                <span className="flex items-center gap-1"><span className="w-3 h-2 rounded bg-blue-500 inline-block" /> Pendapatan</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-2 rounded bg-blue-500 inline-block" /> Kas Masuk</span>
                 <span className="flex items-center gap-1"><span className="w-3 h-2 rounded bg-red-400 inline-block" /> Pengeluaran</span>
               </div>
             </div>
@@ -894,7 +932,7 @@ export default function PaymentsPage() {
               <div className="space-y-3 mt-3">
                 <select className="input" value={selectedStudentId} onChange={(e) => setSelectedStudentId(e.target.value)}>
                   <option value="">Pilih murid...</option>
-                  {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  {students.filter((s) => s.active).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
                 <input className="input" type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} />
                 <input className="input" type="number" placeholder="Total biaya (IDR)" value={totalCost || ""} min={1} max={100000000}
@@ -950,6 +988,67 @@ export default function PaymentsPage() {
         </div>
       )}
 
+      {/* ── PENGELUARAN TAB ───────────────────────────────── */}
+      {activeTab === "pengeluaran" && (
+        <div className="space-y-4">
+          <div className="flex gap-3 items-center">
+            <label className="text-sm text-gray-500 flex-shrink-0">Bulan:</label>
+            <input className="input flex-1" type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
+            <button onClick={() => setShowExpenseModal(true)}
+              className="px-3 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors">
+              + Catat
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
+              <p className="text-[11px] text-gray-500 uppercase tracking-wide">Total Pengeluaran</p>
+              <p className="text-lg font-bold text-red-600">{formatRupiah(cash.pengeluaran)}</p>
+            </div>
+            <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
+              <p className="text-[11px] text-gray-500 uppercase tracking-wide">Jumlah Transaksi</p>
+              <p className="text-lg font-bold text-gray-700">{monthExpenses?.length ?? 0}</p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Rincian {monthLabel(month)}</p>
+              <span className="text-[11px] text-gray-400">Terbaru di atas</span>
+            </div>
+            {!monthExpenses ? (
+              <Skeleton variant="text" lines={3} />
+            ) : monthExpenses.length === 0 ? (
+              <div className="py-8 text-center">
+                <p className="text-sm text-gray-500">Belum ada pengeluaran bulan ini.</p>
+                <button onClick={() => setShowExpenseModal(true)} className="mt-2 text-sm font-semibold text-blue-600">Catat pengeluaran pertama</button>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {[...monthExpenses].reverse().map((expense) => (
+                  <div key={expense.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                          {EXPENSE_LABELS[expense.category] ?? expense.category}
+                        </span>
+                        <span className="text-[11px] text-gray-400">{expense.date}</span>
+                      </div>
+                      <p className="mt-1 text-sm font-medium text-gray-700 break-words">{expense.description}</p>
+                    </div>
+                    <div className="flex-shrink-0 text-right">
+                      <p className="text-sm font-bold text-red-600">{formatRupiah(expense.amount)}</p>
+                      <button onClick={() => handleDeleteExpense(expense.id, expense.description)}
+                        className="mt-1 text-[11px] text-gray-400 hover:text-red-600">Hapus</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── AUDIT TAB ─────────────────────────────────────── */}
       {activeTab === "audit" && (
         <div className="space-y-4">
@@ -963,23 +1062,27 @@ export default function PaymentsPage() {
               </div>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+              <table className="w-full min-w-[620px] text-xs">
                 <thead>
                   <tr className="text-gray-500 text-left">
                     <th className="font-medium pb-1">Bln</th>
-                    <th className="font-medium pb-1 text-right">Masuk</th>
+                    <th className="font-medium pb-1 text-right">Potensi</th>
+                    <th className="font-medium pb-1 text-right">Kas Masuk</th>
+                    <th className="font-medium pb-1 text-right">Piutang</th>
                     <th className="font-medium pb-1 text-right">Keluar</th>
-                    <th className="font-medium pb-1 text-right">Laba</th>
+                    <th className="font-medium pb-1 text-right">Laba Kas</th>
                     <th className="font-medium pb-1 text-center"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {(auditData ?? []).map((r) => {
-                    const has = r.realisasi || r.pengeluaran;
+                    const has = r.potensi || r.realisasi || r.piutang || r.pengeluaran;
                     return (
                       <tr key={r.month} className="border-t border-gray-50">
                         <td className="py-1 text-gray-600">{r.month.slice(5)}</td>
+                        <td className="py-1 text-right text-gray-600">{r.potensi ? formatRupiah(r.potensi) : "–"}</td>
                         <td className="py-1 text-right text-green-700">{r.realisasi ? formatRupiah(r.realisasi) : "–"}</td>
+                        <td className="py-1 text-right text-amber-600">{r.piutang ? formatRupiah(r.piutang) : "–"}</td>
                         <td className="py-1 text-right text-red-600">{r.pengeluaran ? formatRupiah(r.pengeluaran) : "–"}</td>
                         <td className={`py-1 text-right font-semibold ${r.laba >= 0 ? "text-green-700" : "text-red-600"}`}>{has ? formatRupiah(r.laba) : "–"}</td>
                         <td className="py-1 text-center">{r.closed ? "🔒" : ""}</td>
@@ -990,7 +1093,9 @@ export default function PaymentsPage() {
                 <tfoot>
                   <tr className="border-t-2 border-gray-100 font-bold">
                     <td className="py-1 text-gray-700">Total</td>
+                    <td className="py-1 text-right text-gray-700">{formatRupiah(auditTotals.potensi)}</td>
                     <td className="py-1 text-right text-green-700">{formatRupiah(auditTotals.realisasi)}</td>
+                    <td className="py-1 text-right text-amber-600">{formatRupiah(auditTotals.piutang)}</td>
                     <td className="py-1 text-right text-red-600">{formatRupiah(auditTotals.pengeluaran)}</td>
                     <td className={`py-1 text-right ${auditTotals.laba >= 0 ? "text-green-700" : "text-red-600"}`}>{formatRupiah(auditTotals.laba)}</td>
                     <td></td>
@@ -1032,7 +1137,7 @@ export default function PaymentsPage() {
           {/* Revenue per student */}
           <div className="bg-white rounded-2xl border border-gray-100 p-4">
             <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">
-              Pendapatan per Murid — {monthLabel(month)}
+              Potensi Sesi per Murid — {monthLabel(month)}
             </p>
             {studentBarSeries.length > 0 ? (
               <BarChart
@@ -1073,6 +1178,14 @@ export default function PaymentsPage() {
       )}
 
       {/* ── INVOICE MODAL ── */}
+      {showExpenseModal && (
+        <QuickExpenseModal
+          onClose={() => setShowExpenseModal(false)}
+          onSaved={(msg) => setMessage(msg)}
+          initialDate={month === todayStr.slice(0, 7) ? todayStr : `${month}-01`}
+        />
+      )}
+
       {invoiceTarget && (
         <InvoiceModal
           payment={invoiceTarget.payment}

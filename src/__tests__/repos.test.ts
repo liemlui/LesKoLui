@@ -59,7 +59,8 @@ describe("Payment upsert atomicity", () => {
   });
 
   it("markPaymentTransferred is idempotent and keeps a single row", async () => {
-    const { markPaymentTransferred, listPayments } = await import("../db/repos");
+    const { upsertPayment, markPaymentTransferred, listPayments } = await import("../db/repos");
+    await upsertPayment({ studentId: "s-pay", month: "2026-06", totalCost: 250000, status: "UNPAID" });
     await Promise.all([
       markPaymentTransferred("s-pay", "2026-06"),
       markPaymentTransferred("s-pay", "2026-06"),
@@ -67,6 +68,12 @@ describe("Payment upsert atomicity", () => {
     const rows = (await listPayments("2026-06")).filter((p) => p.studentId === "s-pay");
     expect(rows.length).toBe(1);
     expect(rows[0].status).toBe("PAID");
+  });
+
+  it("does not create a zero-value paid row when the invoice is missing", async () => {
+    const { markPaymentTransferred, listPayments } = await import("../db/repos");
+    await expect(markPaymentTransferred("missing", "2026-06")).rejects.toThrow("Payment not found");
+    expect(await listPayments("2026-06")).toEqual([]);
   });
 });
 
@@ -336,6 +343,36 @@ describe("Payment CRUD", () => {
     await markPaymentUnpaid("p3", "2026-04");
     const p = await getPayment("p3", "2026-04");
     expect(p?.status).toBe("UNPAID");
+  });
+});
+
+describe("Financial summaries", () => {
+  it("books cash in the payment month, not the invoice month", async () => {
+    const { upsertPayment, createExpense, getCashSummary, getMonthlyIncomeVsExpense } = await import("../db/repos");
+    await upsertPayment({
+      studentId: "late-payment", month: "2026-04", totalCost: 300_000,
+      status: "PAID", paidAt: "2026-06-05", method: "transfer",
+    });
+    await upsertPayment({
+      studentId: "june-payment", month: "2026-06", totalCost: 200_000,
+      status: "PAID", paidAt: "2026-06-20", method: "cash",
+    });
+    await upsertPayment({ studentId: "june-unpaid", month: "2026-06", totalCost: 150_000, status: "UNPAID" });
+    await createExpense({ date: "2026-06-10", category: "transport", description: "Bensin", amount: 50_000 });
+
+    const summary = await getCashSummary(["2026-04", "2026-05", "2026-06"]);
+    expect(summary[0].realisasi).toBe(0);
+    expect(summary[2]).toMatchObject({ realisasi: 500_000, piutang: 150_000, pengeluaran: 50_000, laba: 450_000 });
+
+    const trend = await getMonthlyIncomeVsExpense(["2026-04", "2026-05", "2026-06"]);
+    expect(trend.map((row) => row.income)).toEqual([0, 0, 500_000]);
+    expect(trend[2]).toMatchObject({ expense: 50_000, net: 450_000 });
+  });
+
+  it("handles an empty month range", async () => {
+    const { getCashSummary, getMonthlyIncomeVsExpense } = await import("../db/repos");
+    expect(await getCashSummary([])).toEqual([]);
+    expect(await getMonthlyIncomeVsExpense([])).toEqual([]);
   });
 });
 

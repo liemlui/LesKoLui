@@ -6,6 +6,7 @@ import { timestamp, monthRange } from "./helpers";
 import { todayWIB } from "../../lib/format";
 import { logAudit } from "./auditRepo";
 import { isBillableSession } from "./sessionRepo";
+import { isValidCurrencyAmount } from "../../lib/money";
 
 // Re-export types for convenience
 export type { ExpenseCategory, IaEeMilestone };
@@ -16,13 +17,19 @@ export async function getPayment(
   studentId: string, month: string
 ): Promise<Payment | undefined> {
   return db.payments
-    .where({ studentId })
-    .filter((p) => p.month === month)
+    .where("[studentId+month]")
+    .equals([studentId, month])
     .first();
 }
 
 export async function upsertPayment(payment: Omit<Payment, "id">): Promise<void> {
-  const normalized: Omit<Payment, "id"> = { source: "manual", ...payment };
+  if (!isValidCurrencyAmount(payment.totalCost)) throw new Error("Invalid payment amount");
+  const normalized: Omit<Payment, "id"> = {
+    source: "manual",
+    ...payment,
+    paidAt: payment.status === "PAID" ? (payment.paidAt ?? todayWIB()) : undefined,
+    method: payment.status === "PAID" ? payment.method : undefined,
+  };
   await db.transaction("rw", db.payments, async () => {
     const existing = await getPayment(payment.studentId, payment.month);
     if (existing) {
@@ -44,20 +51,14 @@ export async function listPayments(month?: string): Promise<Payment[]> {
 
 /** Set a payment as transferred (cash received). */
 export async function markPaymentTransferred(
-  studentId: string, month: string, method = "transfer"
+  studentId: string, month: string, method = "transfer", paidAt = todayWIB()
 ): Promise<void> {
   await db.transaction("rw", db.payments, async () => {
     const existing = await getPayment(studentId, month);
-    if (existing) {
-      await db.payments.update(existing.id, { status: "PAID", paidAt: todayWIB(), method });
-    } else {
-      await db.payments.add({
-        id: crypto.randomUUID(), studentId, month, totalCost: 0,
-        status: "PAID", source: "manual", paidAt: todayWIB(), method,
-      });
-    }
+    if (!existing) throw new Error("Payment not found");
+    await db.payments.update(existing.id, { status: "PAID", paidAt, method });
   });
-  await logAudit("payment.paid", "payment", studentId, `${month} via ${method}`);
+  await logAudit("payment.paid", "payment", studentId, `${month} paid ${paidAt} via ${method}`);
 }
 
 /** Mark a payment back to unpaid (undo "Sudah Transfer"). */
@@ -75,10 +76,13 @@ export async function markPaymentUnpaid(studentId: string, month: string): Promi
 export async function updatePaymentAmount(
   studentId: string, month: string, totalCost: number
 ): Promise<void> {
+  if (!isValidCurrencyAmount(totalCost)) throw new Error("Invalid payment amount");
   await db.transaction("rw", db.payments, async () => {
     const existing = await getPayment(studentId, month);
-    if (existing) await db.payments.update(existing.id, { totalCost });
+    if (!existing) throw new Error("Payment not found");
+    await db.payments.update(existing.id, { totalCost });
   });
+  await logAudit("payment.amount", "payment", studentId, `${month}: ${totalCost}`);
 }
 
 // ── Month Closing (Tutup Bulan) ────────────────────────────────────
@@ -177,6 +181,7 @@ export interface MonthCashSummary {
 }
 
 export async function getCashSummary(months: string[]): Promise<MonthCashSummary[]> {
+  if (months.length === 0) return [];
   const { start: s1 } = monthRange(months[0]);
   const { end: eN } = monthRange(months[months.length - 1]);
   const sessions = await db.sessions
@@ -192,7 +197,11 @@ export async function getCashSummary(months: string[]): Promise<MonthCashSummary
   return months.map((month) => {
     const { start, end } = monthRange(month);
     const potensi = sessions.filter((s) => s.date >= start && s.date <= end).reduce((sum, s) => sum + s.cost, 0);
-    const realisasi = payments.filter((p) => p.status === "PAID" && p.month === month).reduce((sum, p) => sum + p.totalCost, 0);
+    // Cash follows the actual payment date. Legacy PAID rows without paidAt fall
+    // back to their invoice month so old data does not disappear from reports.
+    const realisasi = payments
+      .filter((p) => p.status === "PAID" && (p.paidAt?.slice(0, 7) ?? p.month) === month)
+      .reduce((sum, p) => sum + p.totalCost, 0);
     const piutang = payments.filter((p) => p.status === "UNPAID" && p.month === month).reduce((sum, p) => sum + p.totalCost, 0);
     const pengeluaran = expenses.filter((e) => e.date >= start && e.date <= end).reduce((sum, e) => sum + e.amount, 0);
     return { month, potensi, realisasi, piutang, pengeluaran, laba: realisasi - pengeluaran, closed: closedSet.has(month) };
@@ -204,9 +213,13 @@ export async function getCashSummary(months: string[]): Promise<MonthCashSummary
 export async function createExpense(
   input: Omit<Expense, "id" | "createdAt" | "updatedAt">
 ): Promise<string> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) throw new Error("Invalid expense date");
+  if (!input.description.trim()) throw new Error("Expense description is required");
+  if (!isValidCurrencyAmount(input.amount)) throw new Error("Invalid expense amount");
   const id = crypto.randomUUID();
   const now = timestamp();
-  await db.expenses.add({ ...input, id, createdAt: now, updatedAt: now });
+  await db.expenses.add({ ...input, description: input.description.trim(), id, createdAt: now, updatedAt: now });
+  await logAudit("expense.create", "expense", id, `${input.date}: ${input.amount}`);
   return id;
 }
 
@@ -225,7 +238,10 @@ export async function listExpensesByCategory(category: ExpenseCategory): Promise
 }
 
 export async function deleteExpense(id: string): Promise<void> {
+  const expense = await db.expenses.get(id);
+  if (!expense) return;
   await db.expenses.delete(id);
+  await logAudit("expense.delete", "expense", id, `${expense.date}: ${expense.amount}`);
 }
 
 export async function getExpenseTotals(month: string): Promise<Record<string, number>> {
@@ -243,18 +259,24 @@ export async function getMonthlyIncomeVsExpense(
   if (months.length === 0) return [];
   const { start: s1 } = monthRange(months[0]);
   const { end: eN } = monthRange(months[months.length - 1]);
-  const sessions = await db.sessions
-    .filter((s) => isBillableSession(s) && s.date >= s1 && s.date <= eN)
-    .toArray();
+  const payments = await db.payments.filter((p) => {
+    if (p.status !== "PAID") return false;
+    const cashDate = p.paidAt ?? `${p.month}-01`;
+    return cashDate >= s1 && cashDate <= eN;
+  }).toArray();
   const expenses = await db.expenses
     .where("date").between(s1, eN, true, true)
     .toArray();
 
   return months.map((month) => {
     const { start, end } = monthRange(month);
-    const income = sessions.filter((s) => s.date >= start && s.date <= end).reduce((sum, sess) => sum + sess.cost, 0);
+    const income = payments
+      .filter((p) => {
+        const cashDate = p.paidAt ?? `${p.month}-01`;
+        return cashDate >= start && cashDate <= end;
+      })
+      .reduce((sum, payment) => sum + payment.totalCost, 0);
     const expense = expenses.filter((e) => e.date >= start && e.date <= end).reduce((sum, e) => sum + e.amount, 0);
     return { month, income, expense, net: income - expense };
   });
 }
-

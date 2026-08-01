@@ -284,15 +284,15 @@ async function seedInner(force: boolean): Promise<void> {
 
   // ── Tutup bulan + status transfer (untuk Realisasi & Piutang) ──
   await closeMonth("2026-03");                       // semua lunas
-  await markPaymentTransferred(andi,  "2026-03");
-  await markPaymentTransferred(bella, "2026-03");
-  await markPaymentTransferred(citra, "2026-03");
+  await markPaymentTransferred(andi,  "2026-03", "transfer", "2026-03-29");
+  await markPaymentTransferred(bella, "2026-03", "transfer", "2026-03-30");
+  await markPaymentTransferred(citra, "2026-03", "transfer", "2026-03-31");
 
   await closeMonth("2026-04");                       // sebagian lunas → ada piutang
-  await markPaymentTransferred(andi,  "2026-04");
+  await markPaymentTransferred(andi,  "2026-04", "transfer", "2026-04-29");
 
   await closeMonth("2026-05");                       // baru 1 lunas → piutang lebih besar
-  await markPaymentTransferred(citra, "2026-05");
+  await markPaymentTransferred(citra, "2026-05", "transfer", "2026-05-30");
   // Juni sengaja dibiarkan terbuka agar bisa dites manual.
 
   // ── Pengeluaran ──
