@@ -1130,7 +1130,7 @@ export default function StudentDetail() {
 
       {/* ── EDIT SESSION NOTES MODAL ── */}
       {editSession && (
-        <div className="fixed inset-0 bg-black/40 z-[60] flex items-end justify-center" onClick={() => setEditSession(null)}>
+        <div role="dialog" aria-modal="true" aria-label="Edit catatan sesi" className="fixed inset-0 bg-black/40 z-[60] flex items-end justify-center" onClick={() => setEditSession(null)}>
           <div className="bg-white w-full max-w-md rounded-t-2xl pb-8 max-h-[80vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div>
@@ -1141,20 +1141,20 @@ export default function StudentDetail() {
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="label">Catatan Singkat</label>
-                <textarea className="input" rows={3} value={editShortNote}
+                <label htmlFor="sd-catatan-singkat" className="label">Catatan Singkat</label>
+                <textarea id="sd-catatan-singkat" className="input" rows={3} value={editShortNote}
                   onChange={(e) => setEditShortNote(e.target.value)}
                   placeholder="Apa yang dibahas hari ini?" />
               </div>
               <div>
-                <label className="label">Topik Spesifik</label>
-                <input className="input" value={editTopic}
+                <label htmlFor="sd-topik" className="label">Topik Spesifik</label>
+                <input id="sd-topik" className="input" value={editTopic}
                   onChange={(e) => setEditTopic(e.target.value)}
                   placeholder="Mis. Quadratic Functions, Essay Structure..." />
               </div>
               <div>
-                <label className="label">Perlu Diulang / Follow-up</label>
-                <input className="input" value={editNeedsWork}
+                <label htmlFor="sd-followup" className="label">Perlu Diulang / Follow-up</label>
+                <input id="sd-followup" className="input" value={editNeedsWork}
                   onChange={(e) => setEditNeedsWork(e.target.value)}
                   placeholder="Hal yang perlu dikerjakan di sesi berikutnya..." />
               </div>
@@ -1202,7 +1202,7 @@ export default function StudentDetail() {
 
       {/* ── RAPOR INPUT MODAL ── */}
       {showRapor && (
-        <div className="fixed inset-0 bg-black/40 z-[60] flex items-end justify-center" onClick={() => setShowRapor(false)}>
+        <div role="dialog" aria-modal="true" aria-label="Input Nilai Rapor" className="fixed inset-0 bg-black/40 z-[60] flex items-end justify-center" onClick={() => setShowRapor(false)}>
           <div className="bg-white w-full max-w-md rounded-t-2xl pb-8 max-h-[90vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h3 className="font-bold text-lg">Input Nilai Rapor</h3>
@@ -1210,8 +1210,8 @@ export default function StudentDetail() {
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="label">Semester</label>
-                <select className="input" value={raporSem} onChange={(e) => setRaporSem(e.target.value)}>
+                <label htmlFor="sd-semester" className="label">Semester</label>
+                <select id="sd-semester" className="input" value={raporSem} onChange={(e) => setRaporSem(e.target.value)}>
                   {SEMESTERS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
               </div>
@@ -1226,10 +1226,10 @@ export default function StudentDetail() {
                 <div className="space-y-2">
                   {raporGrades.map((g, i) => (
                     <div key={i} className="flex gap-2 items-center">
-                      <input className="input flex-1 text-sm" placeholder="Mata pelajaran"
+                      <input aria-label="Mata pelajaran" className="input flex-1 text-sm" placeholder="Mata pelajaran"
                         value={g.subject}
                         onChange={(e) => setRaporGrades((prev) => prev.map((x, j) => j === i ? { ...x, subject: e.target.value } : x))} />
-                      <input className="input w-24 text-sm text-center font-bold" placeholder="Nilai"
+                      <input aria-label="Nilai" className="input w-24 text-sm text-center font-bold" placeholder="Nilai"
                         value={g.grade}
                         onChange={(e) => setRaporGrades((prev) => prev.map((x, j) => j === i ? { ...x, grade: e.target.value } : x))} />
                       <button type="button" onClick={() => setRaporGrades((prev) => prev.filter((_, j) => j !== i))}
@@ -1247,8 +1247,8 @@ export default function StudentDetail() {
               </div>
 
               <div>
-                <label className="label">Catatan <span className="text-gray-500 font-normal">(opsional)</span></label>
-                <textarea className="input" rows={2} placeholder="Catatan dari guru sekolah, komentar umum..."
+                <label htmlFor="sd-rapor-catatan" className="label">Catatan <span className="text-gray-500 font-normal">(opsional)</span></label>
+                <textarea id="sd-rapor-catatan" className="input" rows={2} placeholder="Catatan dari guru sekolah, komentar umum..."
                   value={raporNotes} onChange={(e) => setRaporNotes(e.target.value)} />
               </div>
 
@@ -1263,7 +1263,7 @@ export default function StudentDetail() {
 
       {/* ── EDIT SCHEDULE MODAL ── */}
       {editTarget && (
-        <div className="fixed inset-0 bg-black/40 z-[60] flex items-end justify-center" onClick={() => setEditTarget(null)}>
+        <div role="dialog" aria-modal="true" aria-label="Edit jadwal" className="fixed inset-0 bg-black/40 z-[60] flex items-end justify-center" onClick={() => setEditTarget(null)}>
           <div className="bg-white w-full max-w-md rounded-t-2xl pb-8 max-h-[88vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div>
@@ -1274,8 +1274,8 @@ export default function StudentDetail() {
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="label">Tanggal{editTarget.seriesId && editMode !== "this" && <span className="ml-2 text-xs text-gray-500 font-normal">(hanya bisa diubah untuk sesi ini saja)</span>}</label>
-                <input className="input" type="date" value={editDate}
+                <label htmlFor="sd-tanggal" className="label">Tanggal{editTarget.seriesId && editMode !== "this" && <span className="ml-2 text-xs text-gray-500 font-normal">(hanya bisa diubah untuk sesi ini saja)</span>}</label>
+                <input id="sd-tanggal" className="input" type="date" value={editDate}
                   disabled={!!editTarget.seriesId && editMode !== "this"}
                   onChange={(e) => setEditDate(e.target.value)} />
               </div>
@@ -1319,8 +1319,8 @@ export default function StudentDetail() {
                   </button>
                 ) : (
                   <div className="space-y-2">
-                    <p className="text-sm font-semibold text-red-600 mb-2">Batalkan — pilih scope:</p>
-                    <textarea className="input min-h-20 resize-y text-sm" value={cancelReason}
+                    <label htmlFor="sd-alasan" className="text-sm font-semibold text-red-600 mb-2 block">Batalkan — pilih scope:</label>
+                    <textarea id="sd-alasan" className="input min-h-20 resize-y text-sm" value={cancelReason}
                       onChange={(e) => setCancelReason(e.target.value)} placeholder="Alasan pembatalan (opsional)" />
                     {editTarget.seriesId ? (
                       <>
@@ -1342,7 +1342,7 @@ export default function StudentDetail() {
 
       {/* ── BILLING WA BOTTOM SHEET ── */}
       {showBilling && (
-        <div className="fixed inset-0 bg-black/50 z-[70] flex items-end justify-center" onClick={() => setShowBilling(false)}>
+        <div role="dialog" aria-modal="true" aria-label="Tagihan via WA" className="fixed inset-0 bg-black/50 z-[70] flex items-end justify-center" onClick={() => setShowBilling(false)}>
           <div className="bg-white w-full max-w-md rounded-t-2xl max-h-[85vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div>
@@ -1381,8 +1381,8 @@ export default function StudentDetail() {
               <div className="p-5 space-y-4">
                 {/* Pilih bulan */}
                 <div>
-                  <label className="label">Bulan Tagihan</label>
-                  <input className="input" type="month" value={billingMonth}
+                  <label htmlFor="sd-bulan-tagihan" className="label">Bulan Tagihan</label>
+                  <input id="sd-bulan-tagihan" className="input" type="month" value={billingMonth}
                     onChange={(e) => setBillingMonth(e.target.value)} />
                 </div>
 

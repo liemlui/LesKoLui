@@ -70,8 +70,8 @@ export default function AddScheduleModal({ date, students, onClose, onResult }: 
       <p className="text-sm text-gray-500 -mt-2">{dayLabel(date)}</p>
 
       <div>
-        <label className="label">Murid</label>
-        <select className="input" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
+        <label htmlFor="as-murid" className="label">Murid</label>
+        <select id="as-murid" className="input" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
           <option value="">Pilih murid...</option>
           {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>

@@ -505,8 +505,8 @@ export default function CaptureSession() {
 
           {/* Murid */}
           <div>
-            <label className="label">👤 Murid <span className="text-red-400">*</span></label>
-            <select className="input" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
+            <label htmlFor="cs-murid" className="label">👤 Murid <span className="text-red-400">*</span></label>
+            <select id="cs-murid" className="input" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
               <option value="">Pilih murid...</option>
               {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
@@ -514,8 +514,8 @@ export default function CaptureSession() {
 
           {/* Tanggal */}
           <div>
-            <label className="label">📅 Tanggal Sesi</label>
-            <input className="input" type="date" value={sessionDate}
+            <label htmlFor="cs-tanggal" className="label">📅 Tanggal Sesi</label>
+            <input id="cs-tanggal" className="input" type="date" value={sessionDate}
               max={today}
               onChange={(e) => setSessionDate(e.target.value)} />
             {sessionDate !== today && (
@@ -743,9 +743,9 @@ export default function CaptureSession() {
 
           {/* Topik — search + dropdown */}
           <div>
-            <label className="label">🎯 Topik <span className="text-gray-500 font-normal text-xs">(cari topik IB atau ketik bebas)</span></label>
+            <label htmlFor="cs-topik" className="label">🎯 Topik <span className="text-gray-500 font-normal text-xs">(cari topik IB atau ketik bebas)</span></label>
             <div className="relative">
-              <input className="input pr-8" maxLength={150}
+              <input id="cs-topik" className="input pr-8" maxLength={150}
                 placeholder="Cari topik atau ketik custom — mis. Integral substitution, Essay structure..."
                 value={topicSearch}
                 onChange={(e) => {
@@ -1149,15 +1149,15 @@ export default function CaptureSession() {
 
           {/* Perlu perhatian */}
           <div>
-            <label className="label">⚠️ Perlu Perhatian Lebih</label>
-            <input className="input" maxLength={150} placeholder="mis. ketelitian angka, time management" value={needsWork}
+            <label htmlFor="cs-perhatian" className="label">⚠️ Perlu Perhatian Lebih</label>
+            <input id="cs-perhatian" className="input" maxLength={150} placeholder="mis. ketelitian angka, time management" value={needsWork}
               onChange={(e) => setNeedsWork(e.target.value)} />
           </div>
 
           {/* Prediksi nilai */}
           <div>
-            <label className="label">📊 Prediksi Nilai</label>
-            <input className="input" placeholder="mis. 5–6/7, B+" value={predictedGrade}
+            <label htmlFor="cs-prediksi" className="label">📊 Prediksi Nilai</label>
+            <input id="cs-prediksi" className="input" placeholder="mis. 5–6/7, B+" value={predictedGrade}
               onChange={(e) => setPredictedGrade(e.target.value)} />
           </div>
 
@@ -1228,7 +1228,7 @@ export default function CaptureSession() {
           {/* Catatan singkat */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="label">✏️ Catatan Singkat <span className="text-red-400">*</span></label>
+              <label htmlFor="cs-catatan" className="label">✏️ Catatan Singkat <span className="text-red-400">*</span></label>
               {sessionType && (
                 <button type="button"
                   className="text-xs text-blue-600 hover:text-blue-800 font-semibold"
@@ -1240,7 +1240,7 @@ export default function CaptureSession() {
                 </button>
               )}
             </div>
-            <textarea className="input" rows={4} value={shortNote} maxLength={300}
+            <textarea id="cs-catatan" className="input" rows={4} value={shortNote} maxLength={300}
               onChange={(e) => setShortNote(e.target.value)}
               placeholder="Apa yang dibahas hari ini? Atau tekan ✨ Draft AI untuk generate otomatis..." />
             <div className="flex items-center justify-between mt-1">
@@ -1300,7 +1300,7 @@ export default function CaptureSession() {
           TOOLTIP OVERLAY
           ══════════════════════════════════════════ */}
       {activeTooltip && (
-        <div className="fixed inset-0 z-[80]" onClick={() => setActiveTooltip(null)}>
+        <div role="dialog" aria-modal="true" aria-label="Info tag" className="fixed inset-0 z-[80]" onClick={() => setActiveTooltip(null)}>
           <div className="absolute bottom-24 left-4 right-4 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden"
             onClick={(e) => e.stopPropagation()}>
             <div className={`px-4 py-3 flex items-center gap-3 ${
@@ -1338,7 +1338,7 @@ export default function CaptureSession() {
           SUBJECT PICKER MODAL
           ══════════════════════════════════════════ */}
       {showIBPicker && (
-        <div className="fixed inset-0 bg-black/50 z-[70] flex items-end justify-center" onClick={() => setShowIBPicker(false)}>
+        <div role="dialog" aria-modal="true" aria-label="Pilih Mata Pelajaran" className="fixed inset-0 bg-black/50 z-[70] flex items-end justify-center" onClick={() => setShowIBPicker(false)}>
           <div className="bg-white w-full max-w-md rounded-t-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div>
@@ -1466,7 +1466,7 @@ export default function CaptureSession() {
           CLOSE-OUT LAPORAN SESI
           ══════════════════════════════════════════ */}
       {showCloseOut && coSessionData && currentStudent && (
-        <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-3 overflow-y-auto">
+        <div role="dialog" aria-modal="true" aria-label="Laporan sesi" className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-3 overflow-y-auto">
           <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden my-auto"
             style={{ fontFamily: "'Nunito', sans-serif" }}>
 
@@ -1666,7 +1666,7 @@ export default function CaptureSession() {
         const activeSubjects = subjects.length ? subjects : studentSubjects;
         const est = estimateDraftNoteCost(activeSubjects, topic || undefined);
         return (
-          <div className="fixed inset-0 bg-black/50 z-[90] flex items-end justify-center"
+          <div role="dialog" aria-modal="true" aria-label="Draft Catatan dengan AI" className="fixed inset-0 bg-black/50 z-[90] flex items-end justify-center"
             onClick={() => setShowAiCostModal(false)}>
             <div className="bg-white w-full max-w-md rounded-t-2xl p-5 pb-8 space-y-4"
               onClick={(e) => e.stopPropagation()}>

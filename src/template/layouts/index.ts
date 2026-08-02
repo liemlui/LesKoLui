@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 // ── Barrel export — semua layout + helpers ──────────────────────────
 // Di-split dari layouts.tsx (sebelumnya 1504 baris).
 // Import dari "../template/layouts" tetap jalan tanpa perubahan.

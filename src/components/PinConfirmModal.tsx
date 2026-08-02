@@ -54,7 +54,7 @@ export default function PinConfirmModal({
         autoFocus
         value={pin}
         onChange={(e) => { setPin(e.target.value.replace(/\D/g, "").slice(0, 6)); setError(""); }}
-        onKeyDown={(e) => e.key === "Enter" && submit()}
+        onKeyDown={(e) => { if (e.key === "Enter" && !busy) submit(); }}
         className="input text-center tracking-widest text-xl font-mono"
         placeholder="PIN"
       />

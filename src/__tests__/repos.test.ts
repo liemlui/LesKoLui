@@ -20,6 +20,7 @@ beforeEach(async () => {
   await db.iaeeProjects.clear();
   await db.monthClosings.clear();
   await db.auditLog.clear();
+  await db.studyNotes.clear();
 });
 
 // ── Helpers ────────────────────────────────────────────────────────
@@ -430,18 +431,132 @@ describe("Month Closing", () => {
     const after = await getMonthClosing("2026-07");
     expect(after).toBeUndefined();
   });
+
+  it("closeMonth snapshot only counts newly created bills (existing payment skipped)", async () => {
+    const { createStudent, createSession, closeMonth, getMonthClosing, upsertPayment, getPayment } = await import("../db/repos");
+    const s1 = await createStudent({
+      name: "Tanpa Tagihan", level: "IBDP", subjects: [], parentContact: { phone: "088" },
+      hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30),
+    });
+    const s2 = await createStudent({
+      name: "Sudah Ditagih", level: "IBDP", subjects: [], parentContact: { phone: "089" },
+      hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30),
+    });
+    await createSession({ studentId: s1, date: "2026-08-05", durationHours: 2, subjects: ["Math"], shortNote: "x", status: "DONE" });
+    await createSession({ studentId: s2, date: "2026-08-06", durationHours: 1, subjects: ["Math"], shortNote: "y", status: "DONE" });
+
+    // s2 sudah punya tagihan manual → closeMonth harus melewatinya.
+    await upsertPayment({ studentId: s2, month: "2026-08", totalCost: 999_000, status: "UNPAID" });
+    await closeMonth("2026-08");
+
+    const closing = await getMonthClosing("2026-08");
+    expect(closing!.studentCount).toBe(1);                      // hanya s1
+    expect(closing!.totalHours).toBe(2);
+    expect(closing!.totalPotensi).toBe(2 * DEFAULT_RATE);
+    const manual = await getPayment(s2, "2026-08");
+    expect(manual!.totalCost).toBe(999_000);                    // tagihan manual utuh
+    expect(manual!.source).toBe("manual");
+  });
+
+  it("deleteSession reduces the auto UNPAID payment of the same month", async () => {
+    const { createStudent, createSession, closeMonth, deleteSession, getPayment } = await import("../db/repos");
+    const sid = await createStudent({
+      name: "Sync Pay", level: "IBDP", subjects: [], parentContact: { phone: "090" },
+      hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30),
+    });
+    const sess1 = await createSession({ studentId: sid, date: "2026-08-10", durationHours: 2, subjects: ["Math"], shortNote: "a", status: "DONE" });
+    await createSession({ studentId: sid, date: "2026-08-12", durationHours: 1, subjects: ["Math"], shortNote: "b", status: "DONE" });
+    await closeMonth("2026-08");
+
+    let pay = await getPayment(sid, "2026-08");
+    expect(pay!.totalCost).toBe(3 * DEFAULT_RATE);
+
+    await deleteSession(sess1);
+    pay = await getPayment(sid, "2026-08");
+    expect(pay!.totalCost).toBe(DEFAULT_RATE);                  // 1 sesi tersisa
+    expect(pay!.status).toBe("UNPAID");
+  });
+
+  it("deleteSession leaves manual/PAID payments untouched", async () => {
+    const { createStudent, createSession, upsertPayment, deleteSession, getPayment } = await import("../db/repos");
+    const sid = await createStudent({
+      name: "Manual Pay", level: "IBDP", subjects: [], parentContact: { phone: "091" },
+      hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30),
+    });
+    const sessId = await createSession({ studentId: sid, date: "2026-08-15", durationHours: 2, subjects: ["Math"], shortNote: "a", status: "DONE" });
+    await upsertPayment({ studentId: sid, month: "2026-08", totalCost: 2 * DEFAULT_RATE, status: "UNPAID" });
+
+    await deleteSession(sessId);
+    const pay = await getPayment(sid, "2026-08");
+    expect(pay).toBeDefined();
+    expect(pay!.totalCost).toBe(2 * DEFAULT_RATE);              // tidak dikurangi
+    expect(pay!.source).toBe("manual");
+  });
+
+  it("deleteSession does not reduce payment for non-billable sessions", async () => {
+    const { createStudent, createSession, closeMonth, deleteSession, getPayment } = await import("../db/repos");
+    const sid = await createStudent({
+      name: "Scheduled Pay", level: "IBDP", subjects: [], parentContact: { phone: "092" },
+      hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30),
+    });
+    await createSession({ studentId: sid, date: "2026-08-20", durationHours: 1, subjects: ["Math"], shortNote: "x", status: "DONE" });
+    const scheduledId = await createSession({ studentId: sid, date: "2026-08-21", durationHours: 2, subjects: ["Math"], shortNote: "y", status: "SCHEDULED" });
+    await closeMonth("2026-08");
+
+    let pay = await getPayment(sid, "2026-08");
+    expect(pay!.totalCost).toBe(DEFAULT_RATE);                  // hanya sesi DONE
+
+    await deleteSession(scheduledId);                           // sesi SCHEDULED tidak billable
+    pay = await getPayment(sid, "2026-08");
+    expect(pay!.totalCost).toBe(DEFAULT_RATE);                  // tagihan tidak berubah
+  });
+
+  it("closeMonth twice is idempotent (re-close does not zero the snapshot)", async () => {
+    const { createStudent, createSession, closeMonth, getMonthClosing } = await import("../db/repos");
+    const sid = await createStudent({
+      name: "Reclose Pay", level: "IBDP", subjects: [], parentContact: { phone: "093" },
+      hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30),
+    });
+    await createSession({ studentId: sid, date: "2026-08-25", durationHours: 2, subjects: ["Math"], shortNote: "x", status: "DONE" });
+    await closeMonth("2026-08");
+    await closeMonth("2026-08");                                // double-tap / re-close
+
+    const closing = await getMonthClosing("2026-08");
+    expect(closing!.totalPotensi).toBe(2 * DEFAULT_RATE);       // tidak jadi nol
+    expect(closing!.totalHours).toBe(2);
+    expect(closing!.studentCount).toBe(1);
+  });
+
+  it("updatePaymentAmount flips the bill to manual (no longer auto-adjusted)", async () => {
+    const { createStudent, createSession, closeMonth, updatePaymentAmount, deleteSession, getPayment } = await import("../db/repos");
+    const sid = await createStudent({
+      name: "Edited Pay", level: "IBDP", subjects: [], parentContact: { phone: "094" },
+      hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30),
+    });
+    const sessId = await createSession({ studentId: sid, date: "2026-08-28", durationHours: 2, subjects: ["Math"], shortNote: "x", status: "DONE" });
+    await closeMonth("2026-08");
+    await updatePaymentAmount(sid, "2026-08", 500_000);         // tutor edit nominal
+
+    await deleteSession(sessId);
+    const pay = await getPayment(sid, "2026-08");
+    expect(pay!.source).toBe("manual");
+    expect(pay!.totalCost).toBe(500_000);                       // nominal sepakatan tetap
+  });
 });
 
 // ── Expenses Tests ─────────────────────────────────────────────────
 
 describe("Expenses", () => {
   it("creates and lists expenses by month", async () => {
-    const { createExpense, listExpenses, getExpenseTotals } = await import("../db/repos");
+    const { createExpense, listExpenses } = await import("../db/repos");
     await createExpense({ date: "2026-06-10", category: "transport", description: "Bensin", amount: 50000 });
     await createExpense({ date: "2026-06-12", category: "buku", description: "Buku Paket", amount: 150000 });
     const all = await listExpenses("2026-06");
     expect(all.length).toBe(2);
-    const totals = await getExpenseTotals("2026-06");
+    const totals = all.reduce<Record<string, number>>((acc, e) => {
+      acc[e.category] = (acc[e.category] ?? 0) + e.amount;
+      return acc;
+    }, {});
     expect(totals.transport).toBe(50000);
     expect(totals.buku).toBe(150000);
   });

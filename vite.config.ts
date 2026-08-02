@@ -15,7 +15,11 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: "autoUpdate",
+      // "prompt" (bukan autoUpdate): SW baru menunggu konfirmasi user.
+      // autoUpdate memaksa window.location.reload() saat SW aktif — bisa
+      // menghapus input form yang sedang diisi. Dengan prompt, banner
+      // "Muat Ulang" (PwaPrompts) yang memutuskan kapan reload.
+      registerType: "prompt",
       includeAssets: ["favicon.svg", "icon-192.png", "icon-512.png"],
       manifest: {
         id: "/",

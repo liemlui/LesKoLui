@@ -304,9 +304,11 @@ export default function CatatanBelajar() {
 }
 
 function formatRelative(iso: string): string {
-  const now = new Date(Date.now() + 7 * 3600000); // WIB
+  // Bandingkan instan absolut (epoch ms). Tidak perlu konversi WIB — menambah
+  // +7 jam ke "sekarang" justru membuat "x menit lalu" jadi "x+7 jam lalu".
+  const now = Date.now();
   const d = new Date(iso);
-  const diffMs = now.getTime() - d.getTime();
+  const diffMs = now - d.getTime();
   const diffMin = Math.floor(diffMs / 60000);
   if (diffMin < 1) return "baru saja";
   if (diffMin < 60) return `${diffMin} menit lalu`;

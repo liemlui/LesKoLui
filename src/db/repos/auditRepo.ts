@@ -22,7 +22,3 @@ export async function logAudit(
 export async function listAuditLog(limit = 50): Promise<AuditEntry[]> {
   return db.auditLog.orderBy("timestamp").reverse().limit(limit).toArray();
 }
-
-export async function clearAuditLog(): Promise<void> {
-  await db.auditLog.clear();
-}

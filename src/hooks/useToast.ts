@@ -19,10 +19,11 @@ export function useToast() {
   // Cleanup all pending timers on unmount
   useEffect(() => {
     mounted.current = true;
+    const pending = timers.current;
     return () => {
       mounted.current = false;
-      for (const t of timers.current.values()) clearTimeout(t);
-      timers.current.clear();
+      for (const t of pending.values()) clearTimeout(t);
+      pending.clear();
     };
   }, []);
 

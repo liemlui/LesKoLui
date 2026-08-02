@@ -64,21 +64,21 @@ export default function EditSessionModal({ target, students, onClose, onResult }
       <div className="p-5 space-y-4">
         {/* Murid */}
         <div>
-          <label className="label">Murid</label>
-          <select className="input" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
+          <label htmlFor="esm-murid" className="label">Murid</label>
+          <select id="esm-murid" className="input" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
             {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
         </div>
 
         {/* Tanggal — hanya bisa edit untuk mode "this" */}
         <div>
-          <label className="label">
+          <label htmlFor="esm-tanggal" className="label">
             Tanggal
             {target.seriesId && mode !== "this" && (
               <span className="ml-2 text-xs text-gray-500 font-normal">(tanggal hanya bisa diubah untuk sesi ini saja)</span>
             )}
           </label>
-          <input className="input" type="date" value={date}
+          <input id="esm-tanggal" className="input" type="date" value={date}
             disabled={!!target.seriesId && mode !== "this"}
             onChange={(e) => setDate(e.target.value)} />
         </div>
@@ -133,8 +133,8 @@ export default function EditSessionModal({ target, students, onClose, onResult }
             </button>
           ) : (
             <div className="space-y-2">
-              <p className="text-sm font-semibold text-red-600 mb-2">Batalkan jadwal — pilih scope:</p>
-              <textarea className="input min-h-20 resize-y text-sm" value={cancelReason}
+              <label htmlFor="esm-alasan" className="text-sm font-semibold text-red-600 mb-2 block">Batalkan jadwal — pilih scope:</label>
+              <textarea id="esm-alasan" className="input min-h-20 resize-y text-sm" value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)} placeholder="Alasan pembatalan (opsional)" />
               {target.seriesId ? (
                 <>

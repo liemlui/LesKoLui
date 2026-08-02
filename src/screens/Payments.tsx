@@ -515,8 +515,8 @@ export default function PaymentsPage() {
       {activeTab === "ringkasan" && (
         <div className="space-y-4">
           <div className="flex gap-3 items-center">
-            <label className="text-sm text-gray-500 flex-shrink-0">Bulan:</label>
-            <input className="input flex-1" type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
+            <label htmlFor="pay-bulan-ringkasan" className="text-sm text-gray-500 flex-shrink-0">Bulan:</label>
+            <input id="pay-bulan-ringkasan" className="input flex-1" type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
           </div>
 
           {/* Cash summary cards */}
@@ -759,8 +759,8 @@ export default function PaymentsPage() {
       {activeTab === "tagihan" && (
         <div className="space-y-4">
           <div className="flex gap-3 items-center">
-            <label className="text-sm text-gray-500 flex-shrink-0">Bulan:</label>
-            <input className="input flex-1" type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
+            <label htmlFor="pay-bulan-tagihan" className="text-sm text-gray-500 flex-shrink-0">Bulan:</label>
+            <input id="pay-bulan-tagihan" className="input flex-1" type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
             {monthClosing ? (
               <span className="text-[11px] font-semibold text-green-700 bg-green-100 px-2 py-1 rounded-full flex-shrink-0">🔒 Ditutup</span>
             ) : (
@@ -992,8 +992,8 @@ export default function PaymentsPage() {
       {activeTab === "pengeluaran" && (
         <div className="space-y-4">
           <div className="flex gap-3 items-center">
-            <label className="text-sm text-gray-500 flex-shrink-0">Bulan:</label>
-            <input className="input flex-1" type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
+            <label htmlFor="pay-bulan-pengeluaran" className="text-sm text-gray-500 flex-shrink-0">Bulan:</label>
+            <input id="pay-bulan-pengeluaran" className="input flex-1" type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
             <button onClick={() => setShowExpenseModal(true)}
               className="px-3 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors">
               + Catat
@@ -1258,7 +1258,7 @@ function InvoiceModal({
   const monthStr = `${MONTH_NAMES[mo - 1]} ${y}`;
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-[100] flex items-end justify-center px-0">
+    <div role="dialog" aria-modal="true" aria-label="Invoice Profesional" className="fixed inset-0 bg-black/60 z-[100] flex items-end justify-center px-0">
       <div className="w-full max-w-md bg-white rounded-t-2xl overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
           <h3 className="font-bold text-base">Invoice Profesional</h3>

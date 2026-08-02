@@ -17,10 +17,6 @@ export async function listIaEeProjects(studentId: string): Promise<IaEeProject[]
   return db.iaeeProjects.where({ studentId }).sortBy("createdAt");
 }
 
-export async function updateIaEeProject(id: string, patch: Partial<IaEeProject>): Promise<void> {
-  await db.iaeeProjects.update(id, { ...patch, updatedAt: timestamp() });
-}
-
 export async function deleteIaEeProject(id: string): Promise<void> {
   await db.iaeeProjects.delete(id);
 }

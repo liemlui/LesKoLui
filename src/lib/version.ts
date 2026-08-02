@@ -11,6 +11,24 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.37.0",
+    date: "2026-08-02",
+    title: "Perbaikan Audit Total: Baseline Hijau & Konsistensi Data",
+    items: [
+      "Lint bersih total (0 error 0 warning) dan 166 unit test lulus — CI kembali hijau",
+      "Recovery PIN (PIN lama & jawaban keamanan) kini dilindungi lockout bertahap — tidak bisa dibrute-force",
+      "Hapus sesi otomatis menyesuaikan tagihan otomatis yang belum lunas dan total laporan bulanan — tidak ada lagi piutang hantu",
+      "Tutup bulan mencatat snapshot hanya tagihan yang benar-benar dibuat dan aman dipanggil berulang (double-tap)",
+      "Mengubah nominal tagihan menandainya sebagai manual — tidak lagi ikut berubah saat sesi dihapus",
+      "Catatan Belajar menampilkan waktu relatif yang benar (bukan selalu '+7 jam')",
+      "Reset semua data kini benar-benar menghapus semuanya, termasuk catatan belajar dan pengaturan",
+      "Pembaruan aplikasi tidak lagi memuat ulang paksa di tengah mengisi form — banner 'Muat Ulang' yang memutuskan",
+      "Label form terhubung ke kolomnya (aksesibilitas) dan semua dialog dikenali pembaca layar",
+      "Kode mati dibersihkan dan TypeScript strict mode aktif",
+      "Backup memperbaiki bug tabel Catatan Belajar yang gagal divalidasi saat restore",
+    ],
+  },
+  {
     version: "v1.36.0",
     date: "2026-08-01",
     title: "Keuangan Terhubung & Rekonsiliasi Kas",

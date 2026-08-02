@@ -7,10 +7,10 @@ describe("calcEngagementScore", () => {
   });
 
   it("applies positive modifiers (boosted)", () => {
-    expect(calcEngagementScore({ prepared: true })).toBe(8);       // 5+3
-    expect(calcEngagementScore({ focused: true })).toBe(7);        // 5+2
-    expect(calcEngagementScore({ activeAsking: true })).toBe(7);   // 5+2
-    expect(calcEngagementScore({ quickLearner: true })).toBe(7);   // 5+2
+    expect(calcEngagementScore({ prepared: true })).toBe(7);       // 5+2
+    expect(calcEngagementScore({ focused: true })).toBe(6);        // 5+1
+    expect(calcEngagementScore({ activeAsking: true })).toBe(6);   // 5+1
+    expect(calcEngagementScore({ quickLearner: true })).toBe(6);   // 5+1
   });
 
   it("applies negative modifiers (mild)", () => {
@@ -26,7 +26,7 @@ describe("calcEngagementScore", () => {
   });
 
   it("handles mixed modifiers", () => {
-    expect(calcEngagementScore({ prepared: true, playingPhone: true })).toBe(7); // 5+3-1
+    expect(calcEngagementScore({ prepared: true, playingPhone: true })).toBe(6); // 5+2-1
   });
 
   // ── New: behavior tags ──

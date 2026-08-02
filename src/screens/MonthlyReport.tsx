@@ -528,15 +528,15 @@ export default function MonthlyReportPage() {
             <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="label">Murid</label>
-                  <select className="input" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
+                  <label htmlFor="mr-murid" className="label">Murid</label>
+                  <select id="mr-murid" className="input" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
                     <option value="">Pilih murid...</option>
                     {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="label">Bulan</label>
-                  <input className="input" type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
+                  <label htmlFor="mr-bulan" className="label">Bulan</label>
+                  <input id="mr-bulan" className="input" type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
                 </div>
               </div>
 
@@ -864,10 +864,10 @@ export default function MonthlyReportPage() {
                   {openTeks && (
                     <div className="px-4 pb-4 space-y-3 border-t border-gray-100">
                       <div className="pt-3">
-                        <label className="label">Ringkasan</label>
+                        <label htmlFor="mr-ringkasan" className="label">Ringkasan</label>
                         {editingSummary ? (
                           <div className="space-y-2">
-                            <textarea className="input text-sm" rows={3} value={summaryText}
+                            <textarea id="mr-ringkasan" className="input text-sm" rows={3} value={summaryText}
                               onChange={(e) => setSummaryText(e.target.value)} />
                             <div className="flex gap-2">
                               <button className="btn btn-primary text-xs" onClick={() => saveReportField("summaryText", summaryText)}>Simpan</button>
@@ -882,10 +882,10 @@ export default function MonthlyReportPage() {
                         )}
                       </div>
                       <div>
-                        <label className="label">Catatan Guru</label>
+                        <label htmlFor="mr-catatan-guru" className="label">Catatan Guru</label>
                         {editingTeacherNote ? (
                           <div className="space-y-2">
-                            <textarea className="input text-sm" rows={3} value={teacherNoteText}
+                            <textarea id="mr-catatan-guru" className="input text-sm" rows={3} value={teacherNoteText}
                               onChange={(e) => setTeacherNoteText(e.target.value)}
                               placeholder="Kemajuan terbesar bulan ini dan fokus prioritas bulan depan..." />
                             <div className="flex gap-2">
@@ -901,10 +901,10 @@ export default function MonthlyReportPage() {
                         )}
                       </div>
                       <div>
-                        <label className="label">Kutipan</label>
+                        <label htmlFor="mr-kutipan" className="label">Kutipan</label>
                         {editingQuote ? (
                           <div className="space-y-2">
-                            <input className="input text-sm" value={quoteText}
+                            <input id="mr-kutipan" className="input text-sm" value={quoteText}
                               onChange={(e) => setQuoteText(e.target.value)} />
                             <div className="flex gap-2">
                               <button className="btn btn-primary text-xs" onClick={() => saveReportField("quote", quoteText)}>Simpan</button>
@@ -1095,54 +1095,54 @@ function NextMonthPlanEditor({ initialPlan, onSave, onCancel }: {
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="label">Mapel / area</label>
-              <input className="input text-sm" value={item.subject}
+              <label htmlFor={`mr-mapel-${item.id}`} className="label">Mapel / area</label>
+              <input id={`mr-mapel-${item.id}`} className="input text-sm" value={item.subject}
                 placeholder="Contoh: Matematika AA"
                 onChange={(event) => updateItem(item.id, { subject: event.target.value })} />
             </div>
             <div>
-              <label className="label">Penanggung jawab</label>
-              <select className="input text-sm" value={item.owner ?? "shared"}
+              <label htmlFor={`mr-penanggung-jawab-${item.id}`} className="label">Penanggung jawab</label>
+              <select id={`mr-penanggung-jawab-${item.id}`} className="input text-sm" value={item.owner ?? "shared"}
                 onChange={(event) => updateItem(item.id, { owner: event.target.value as PlanOwner })}>
                 {PLAN_OWNERS.map((owner) => <option key={owner.value} value={owner.value}>{owner.label}</option>)}
               </select>
             </div>
           </div>
           <div>
-            <label className="label">Target terukur *</label>
-            <textarea className="input text-sm" rows={2} value={item.target}
+            <label htmlFor={`mr-target-${item.id}`} className="label">Target terukur *</label>
+            <textarea id={`mr-target-${item.id}`} className="input text-sm" rows={2} value={item.target}
               placeholder="Contoh: Menyelesaikan 8 dari 10 soal fungsi kuadrat dengan langkah lengkap."
               onChange={(event) => updateItem(item.id, { target: event.target.value })} />
           </div>
           <div>
-            <label className="label">Dasar dari bulan ini</label>
-            <textarea className="input text-sm" rows={2} value={item.evidence ?? ""}
+            <label htmlFor={`mr-dasar-${item.id}`} className="label">Dasar dari bulan ini</label>
+            <textarea id={`mr-dasar-${item.id}`} className="input text-sm" rows={2} value={item.evidence ?? ""}
               placeholder="Contoh: Masih keliru pada operasi tanda negatif di soal cerita."
               onChange={(event) => updateItem(item.id, { evidence: event.target.value })} />
           </div>
           <div>
-            <label className="label">Langkah tutor</label>
-            <textarea className="input text-sm" rows={2} value={item.tutorAction ?? ""}
+            <label htmlFor={`mr-langkah-tutor-${item.id}`} className="label">Langkah tutor</label>
+            <textarea id={`mr-langkah-tutor-${item.id}`} className="input text-sm" rows={2} value={item.tutorAction ?? ""}
               placeholder="Contoh: Latihan bertahap, cek langkah, lalu soal aplikasi."
               onChange={(event) => updateItem(item.id, { tutorAction: event.target.value })} />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="label">Indikator berhasil</label>
-              <input className="input text-sm" value={item.successMetric ?? ""}
+              <label htmlFor={`mr-indikator-${item.id}`} className="label">Indikator berhasil</label>
+              <input id={`mr-indikator-${item.id}`} className="input text-sm" value={item.successMetric ?? ""}
                 placeholder="8/10 soal tepat"
                 onChange={(event) => updateItem(item.id, { successMetric: event.target.value })} />
             </div>
             <div>
-              <label className="label">Frekuensi / waktu</label>
-              <input className="input text-sm" value={item.cadence ?? ""}
+              <label htmlFor={`mr-frekuensi-${item.id}`} className="label">Frekuensi / waktu</label>
+              <input id={`mr-frekuensi-${item.id}`} className="input text-sm" value={item.cadence ?? ""}
                 placeholder="2 sesi per minggu"
                 onChange={(event) => updateItem(item.id, { cadence: event.target.value })} />
             </div>
           </div>
           <div>
-            <label className="label">Status</label>
-            <select className="input text-sm" value={item.status ?? "planned"}
+            <label htmlFor={`mr-status-${item.id}`} className="label">Status</label>
+            <select id={`mr-status-${item.id}`} className="input text-sm" value={item.status ?? "planned"}
               onChange={(event) => updateItem(item.id, { status: event.target.value as PlanStatus })}>
               {PLAN_STATUSES.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
             </select>
@@ -1156,8 +1156,8 @@ function NextMonthPlanEditor({ initialPlan, onSave, onCancel }: {
         </button>
       )}
       <div>
-        <label className="label">Dukungan di rumah (opsional)</label>
-        <textarea className="input text-sm" rows={2} value={draft.parentSupport ?? ""}
+        <label htmlFor="mr-dukungan" className="label">Dukungan di rumah (opsional)</label>
+        <textarea id="mr-dukungan" className="input text-sm" rows={2} value={draft.parentSupport ?? ""}
           placeholder="Contoh: Sediakan 10 menit latihan mandiri dua kali seminggu."
           onChange={(event) => setDraft((plan) => ({ ...plan, parentSupport: event.target.value }))} />
       </div>
@@ -1232,66 +1232,66 @@ function CustomThemeBuilder({ onSave }: {
       <p className="font-bold text-gray-800 text-sm">🎨 Custom Theme Builder</p>
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="label">Nama Tema</label>
-          <input className="input text-sm" value={name} onChange={(e) => setName(e.target.value)} />
+          <label htmlFor="mr-nama-tema" className="label">Nama Tema</label>
+          <input id="mr-nama-tema" className="input text-sm" value={name} onChange={(e) => setName(e.target.value)} />
         </div>
         <div>
-          <label className="label">Header Text</label>
-          <input className="input text-sm" value={headerText} onChange={(e) => setHeaderText(e.target.value)} />
+          <label htmlFor="mr-header-text" className="label">Header Text</label>
+          <input id="mr-header-text" className="input text-sm" value={headerText} onChange={(e) => setHeaderText(e.target.value)} />
         </div>
         <div>
-          <label className="label">Background</label>
-          <input type="color" className="w-full h-8 rounded cursor-pointer" value={bg} onChange={(e) => setBg(e.target.value)} />
+          <label htmlFor="mr-bg" className="label">Background</label>
+          <input id="mr-bg" type="color" className="w-full h-8 rounded cursor-pointer" value={bg} onChange={(e) => setBg(e.target.value)} />
         </div>
         <div>
-          <label className="label">Accent</label>
-          <input type="color" className="w-full h-8 rounded cursor-pointer" value={accent} onChange={(e) => setAccent(e.target.value)} />
+          <label htmlFor="mr-accent" className="label">Accent</label>
+          <input id="mr-accent" type="color" className="w-full h-8 rounded cursor-pointer" value={accent} onChange={(e) => setAccent(e.target.value)} />
         </div>
         <div>
-          <label className="label">Ink (teks)</label>
-          <input type="color" className="w-full h-8 rounded cursor-pointer" value={ink} onChange={(e) => setInk(e.target.value)} />
+          <label htmlFor="mr-ink" className="label">Ink (teks)</label>
+          <input id="mr-ink" type="color" className="w-full h-8 rounded cursor-pointer" value={ink} onChange={(e) => setInk(e.target.value)} />
         </div>
         <div>
-          <label className="label">Muted (sekunder)</label>
-          <input type="color" className="w-full h-8 rounded cursor-pointer" value={muted} onChange={(e) => setMuted(e.target.value)} />
+          <label htmlFor="mr-muted" className="label">Muted (sekunder)</label>
+          <input id="mr-muted" type="color" className="w-full h-8 rounded cursor-pointer" value={muted} onChange={(e) => setMuted(e.target.value)} />
         </div>
       </div>
 
       {/* Style selectors */}
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="label">Header Style</label>
-          <select className="input text-sm" value={header} onChange={(e) => setHeader(e.target.value as HeaderStyle)}>
+          <label htmlFor="mr-header-style" className="label">Header Style</label>
+          <select id="mr-header-style" className="input text-sm" value={header} onChange={(e) => setHeader(e.target.value as HeaderStyle)}>
             {HEADER_STYLES.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
           </select>
         </div>
         <div>
-          <label className="label">Label Style</label>
-          <select className="input text-sm" value={label} onChange={(e) => setLabel(e.target.value as LabelStyle)}>
+          <label htmlFor="mr-label-style" className="label">Label Style</label>
+          <select id="mr-label-style" className="input text-sm" value={label} onChange={(e) => setLabel(e.target.value as LabelStyle)}>
             {LABEL_STYLES.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
         </div>
         <div>
-          <label className="label">Photo Style</label>
-          <select className="input text-sm" value={photo} onChange={(e) => setPhoto(e.target.value as PhotoStyle)}>
+          <label htmlFor="mr-photo-style" className="label">Photo Style</label>
+          <select id="mr-photo-style" className="input text-sm" value={photo} onChange={(e) => setPhoto(e.target.value as PhotoStyle)}>
             {PHOTO_STYLES.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </div>
         <div>
-          <label className="label">Decoration</label>
-          <select className="input text-sm" value={deco} onChange={(e) => setDeco(e.target.value as DecoKind)}>
+          <label htmlFor="mr-deco" className="label">Decoration</label>
+          <select id="mr-deco" className="input text-sm" value={deco} onChange={(e) => setDeco(e.target.value as DecoKind)}>
             {DECO_KINDS.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
         </div>
         <div>
-          <label className="label">Display Font</label>
-          <select className="input text-sm" value={fontDisplay} onChange={(e) => setFontDisplay(e.target.value)}>
+          <label htmlFor="mr-font-display" className="label">Display Font</label>
+          <select id="mr-font-display" className="input text-sm" value={fontDisplay} onChange={(e) => setFontDisplay(e.target.value)}>
             {FONTS.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
         </div>
         <div>
-          <label className="label">Body Font</label>
-          <select className="input text-sm" value={fontBody} onChange={(e) => setFontBody(e.target.value)}>
+          <label htmlFor="mr-font-body" className="label">Body Font</label>
+          <select id="mr-font-body" className="input text-sm" value={fontBody} onChange={(e) => setFontBody(e.target.value)}>
             {FONTS.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
         </div>
@@ -1302,7 +1302,7 @@ function CustomThemeBuilder({ onSave }: {
         <label className="label">Palette (4 warna)</label>
         <div className="flex gap-2">
           {palette.map((c, i) => (
-            <input key={i} type="color" className="w-full h-8 rounded cursor-pointer" value={c}
+            <input key={i} type="color" aria-label={`Warna palet ${i + 1}`} className="w-full h-8 rounded cursor-pointer" value={c}
               onChange={(e) => { const p = [...palette]; p[i] = e.target.value; setPalette(p); }} />
           ))}
         </div>

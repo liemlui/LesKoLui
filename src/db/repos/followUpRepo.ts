@@ -27,7 +27,3 @@ export async function listPendingFollowUps(studentId?: string): Promise<FollowUp
 export async function completeFollowUp(id: string): Promise<void> {
   await db.followUps.update(id, { completedAt: timestamp() });
 }
-
-export async function deleteFollowUp(id: string): Promise<void> {
-  await db.followUps.delete(id);
-}

@@ -9,6 +9,7 @@ import { exportBackup, importBackup, inspectBackup } from "../lib/backup";
 import { isDriveConfigured, uploadBackupToDrive, downloadBackupFromDrive, findDriveBackup, testRelay } from "../lib/driveBackup";
 import { exportDataCsvBlob } from "../lib/exportData";
 import { hashPin, verifyPin } from "../lib/crypto";
+import { getPinLockoutDelay, recordPinFailure, resetPinLockout } from "../lib/pinLockout";
 import { useToastCtx } from "../components/ToastProvider";
 import { todayWIB } from "../lib/format";
 import { compressPhoto } from "../lib/foto";
@@ -283,8 +284,11 @@ export default function SettingsPage() {
 
   const handleVerifyOldPin = async () => {
     if (!form?.financialPin) return;
+    const delay = getPinLockoutDelay();
+    if (delay > 0) { setPinError(`Terlalu banyak percobaan. Tunggu ${Math.ceil(delay / 1000)} detik.`); return; }
     const ok = await verifyPin(oldPin, form.financialPin);
-    if (!ok) { setPinError("PIN lama salah."); return; }
+    if (!ok) { recordPinFailure(); setPinError("PIN lama salah."); return; }
+    resetPinLockout();
     setPinError(""); setOldPin("");
     setSecQ(form.securityQuestion || ""); setSecA("");
     setPinMode("edit");
@@ -292,8 +296,11 @@ export default function SettingsPage() {
 
   const handleVerifyForgot = async () => {
     if (!form?.securityAnswer) { setPinError("Pertanyaan keamanan belum disetel."); return; }
+    const delay = getPinLockoutDelay();
+    if (delay > 0) { setPinError(`Terlalu banyak percobaan. Tunggu ${Math.ceil(delay / 1000)} detik.`); return; }
     const ok = await verifyPin(forgotA.trim().toLowerCase(), form.securityAnswer);
-    if (!ok) { setPinError("Jawaban salah."); return; }
+    if (!ok) { recordPinFailure(); setPinError("Jawaban salah."); return; }
+    resetPinLockout();
     setPinError(""); setForgotA("");
     setSecQ(form.securityQuestion || ""); setSecA("");
     setPinMode("edit");
@@ -442,10 +449,12 @@ export default function SettingsPage() {
       db.students, db.sessions, db.reports,
       db.payments, db.followUps,
       db.raporGrades, db.expenses, db.monthClosings, db.iaeeProjects,
+      db.studyNotes, db.settings, db.auditLog,
     ];
     await db.transaction("rw", tables, async () => {
       for (const t of tables) await t.clear();
     });
+    // Catat reset setelah clear agar jejak auditnya tetap ada (satu entri).
     await logAudit("data.reset", "data");
     toastCtx.info("Semua data berhasil dihapus ✓ Memuat ulang...");
     setTimeout(() => location.reload(), 1500);
@@ -528,31 +537,31 @@ export default function SettingsPage() {
       <Section title="Profil Tutor" icon="👤">
         <div className="pt-3 space-y-3">
           <div>
-            <label className="label">Nama Tutor</label>
-            <input className="input" placeholder="mis. Ko Lui" maxLength={60}
+            <label htmlFor="set-nama-tutor" className="label">Nama Tutor</label>
+            <input id="set-nama-tutor" className="input" placeholder="mis. Ko Lui" maxLength={60}
               value={form.tutorProfile.name}
               onChange={(e) => updateProfile("name", e.target.value)} />
           </div>
           <div>
-            <label className="label">No. WhatsApp</label>
-            <input className="input" placeholder="08xxxxxxxxxx" maxLength={20} type="tel"
+            <label htmlFor="set-no-wa" className="label">No. WhatsApp</label>
+            <input id="set-no-wa" className="input" placeholder="08xxxxxxxxxx" maxLength={20} type="tel"
               value={form.tutorProfile.phone}
               onChange={(e) => updateProfile("phone", e.target.value)} />
           </div>
           <div>
-            <label className="label">Email <span className="text-gray-500 font-normal">(opsional)</span></label>
-            <input className="input" placeholder="tutor@email.com" maxLength={100} type="email"
+            <label htmlFor="set-email" className="label">Email <span className="text-gray-500 font-normal">(opsional)</span></label>
+            <input id="set-email" className="input" placeholder="tutor@email.com" maxLength={100} type="email"
               value={form.tutorProfile.email ?? ""}
               onChange={(e) => updateProfile("email", e.target.value)} />
           </div>
           <div>
-            <label className="label">Alamat <span className="text-gray-500 font-normal">(opsional)</span></label>
-            <input className="input" placeholder="Jl. Contoh No.1, Jakarta" maxLength={150}
+            <label htmlFor="set-alamat" className="label">Alamat <span className="text-gray-500 font-normal">(opsional)</span></label>
+            <input id="set-alamat" className="input" placeholder="Jl. Contoh No.1, Jakarta" maxLength={150}
               value={form.tutorProfile.address ?? ""}
               onChange={(e) => updateProfile("address", e.target.value)} />
           </div>
           <div>
-            <label className="label">Logo <span className="text-gray-500 font-normal">(tampil di laporan)</span></label>
+            <label htmlFor="set-logo" className="label">Logo <span className="text-gray-500 font-normal">(tampil di laporan)</span></label>
             {logoUrl && (
               <div className="flex items-center gap-3 mb-2">
                 <img src={logoUrl} className="h-14 w-14 object-contain rounded-lg border border-gray-200 bg-gray-50" alt="logo" />
@@ -562,7 +571,7 @@ export default function SettingsPage() {
                 </button>
               </div>
             )}
-            <input ref={fileRef} type="file" accept="image/*" onChange={handleLogo} className="hidden" />
+            <input id="set-logo" ref={fileRef} type="file" accept="image/*" onChange={handleLogo} className="hidden" />
             <button onClick={() => fileRef.current?.click()}
               className="flex items-center gap-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-xl font-medium transition-colors">
               📷 {logoUrl ? "Ganti Logo" : "Upload Logo"}
@@ -597,8 +606,8 @@ export default function SettingsPage() {
           ) : pinMode === "verifyOld" ? (
             <div className="space-y-3">
               <div>
-                <label className="label">Masukkan PIN Lama</label>
-                <input className="input text-center text-xl tracking-widest font-mono" type="password"
+                <label htmlFor="set-pin-lama" className="label">Masukkan PIN Lama</label>
+                <input id="set-pin-lama" className="input text-center text-xl tracking-widest font-mono" type="password"
                   inputMode="numeric" maxLength={6} placeholder="••••••"
                   value={oldPin} onChange={(e) => { setOldPin(e.target.value.replace(/\D/g, "").slice(0, 6)); setPinError(""); }} />
               </div>
@@ -623,8 +632,8 @@ export default function SettingsPage() {
                 {form.securityQuestion}
               </p>
               <div>
-                <label className="label">Jawaban Anda</label>
-                <input className="input" type="text" placeholder="Jawaban rahasia..."
+                <label htmlFor="set-jawaban-anda" className="label">Jawaban Anda</label>
+                <input id="set-jawaban-anda" className="input" type="text" placeholder="Jawaban rahasia..."
                   value={forgotA} onChange={(e) => { setForgotA(e.target.value); setPinError(""); }} />
               </div>
               {pinError && <p className="text-red-500 text-sm">{pinError}</p>}
@@ -638,24 +647,24 @@ export default function SettingsPage() {
           ) : (
             <div className="space-y-3">
               <div>
-                <label className="label">PIN Baru (6 digit)</label>
-                <input className="input text-center text-xl tracking-widest font-mono" type="password"
+                <label htmlFor="set-pin-baru" className="label">PIN Baru (6 digit)</label>
+                <input id="set-pin-baru" className="input text-center text-xl tracking-widest font-mono" type="password"
                   inputMode="numeric" maxLength={6} placeholder="••••••"
                   value={newPin} onChange={(e) => { setNewPin(e.target.value.replace(/\D/g, "").slice(0, 6)); setPinError(""); }} />
               </div>
               <div>
-                <label className="label">Konfirmasi PIN Baru</label>
-                <input className={`input text-center text-xl tracking-widest font-mono ${pinError?.includes("cocok") ? "border-red-400" : ""}`}
+                <label htmlFor="set-pin-konfirmasi" className="label">Konfirmasi PIN Baru</label>
+                <input id="set-pin-konfirmasi" className={`input text-center text-xl tracking-widest font-mono ${pinError?.includes("cocok") ? "border-red-400" : ""}`}
                   type="password" inputMode="numeric" maxLength={6} placeholder="••••••"
                   value={newPinConf} onChange={(e) => { setNewPinConf(e.target.value.replace(/\D/g, "").slice(0, 6)); setPinError(""); }} />
               </div>
               <div className="pt-2 border-t border-gray-100">
                 <p className="text-xs text-blue-600 mb-2 font-medium">Lupa PIN Recovery (Wajib):</p>
-                <label className="label">Pertanyaan Keamanan</label>
-                <input className="input mb-2" type="text" maxLength={100} placeholder="Contoh: Nama hewan peliharaan?"
+                <label htmlFor="set-sec-q" className="label">Pertanyaan Keamanan</label>
+                <input id="set-sec-q" className="input mb-2" type="text" maxLength={100} placeholder="Contoh: Nama hewan peliharaan?"
                   value={secQ} onChange={(e) => { setSecQ(e.target.value); setPinError(""); }} />
-                <label className="label">Jawaban Keamanan</label>
-                <input className="input" type="text" maxLength={100} placeholder={form.securityAnswer ? "(Biarkan kosong jika tak ganti)" : "Jawaban rahasia..."}
+                <label htmlFor="set-sec-a" className="label">Jawaban Keamanan</label>
+                <input id="set-sec-a" className="input" type="text" maxLength={100} placeholder={form.securityAnswer ? "(Biarkan kosong jika tak ganti)" : "Jawaban rahasia..."}
                   value={secA} onChange={(e) => { setSecA(e.target.value); setPinError(""); }} />
               </div>
               {pinError && <p className="text-red-500 text-sm">{pinError}</p>}
@@ -679,45 +688,45 @@ export default function SettingsPage() {
         <div className="pt-3 space-y-3">
           <p className="text-xs text-gray-500">Ditampilkan di lembar absensi untuk memudahkan transfer</p>
           <div>
-            <label className="label">Nama Pemilik Rekening</label>
-            <input className="input" maxLength={60} placeholder="Nama AN rekening"
+            <label htmlFor="set-nama-rekening" className="label">Nama Pemilik Rekening</label>
+            <input id="set-nama-rekening" className="input" maxLength={60} placeholder="Nama AN rekening"
               value={form.bankAccounts?.accountName ?? ""}
               onChange={(e) => updateBank("accountName", e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">BCA</label>
-              <input className="input" maxLength={20} placeholder="No rekening"
+              <label htmlFor="set-rek-bca" className="label">BCA</label>
+              <input id="set-rek-bca" className="input" maxLength={20} placeholder="No rekening"
                 value={form.bankAccounts?.bca ?? ""}
                 onChange={(e) => updateBank("bca", e.target.value)} />
             </div>
             <div>
-              <label className="label">Mandiri</label>
-              <input className="input" maxLength={20} placeholder="No rekening"
+              <label htmlFor="set-rek-mandiri" className="label">Mandiri</label>
+              <input id="set-rek-mandiri" className="input" maxLength={20} placeholder="No rekening"
                 value={form.bankAccounts?.mandiri ?? ""}
                 onChange={(e) => updateBank("mandiri", e.target.value)} />
             </div>
             <div>
-              <label className="label">BRI</label>
-              <input className="input" maxLength={20} placeholder="No rekening"
+              <label htmlFor="set-rek-bri" className="label">BRI</label>
+              <input id="set-rek-bri" className="input" maxLength={20} placeholder="No rekening"
                 value={form.bankAccounts?.bri ?? ""}
                 onChange={(e) => updateBank("bri", e.target.value)} />
             </div>
             <div>
-              <label className="label">CIMB Niaga</label>
-              <input className="input" maxLength={20} placeholder="No rekening"
+              <label htmlFor="set-rek-cimb" className="label">CIMB Niaga</label>
+              <input id="set-rek-cimb" className="input" maxLength={20} placeholder="No rekening"
                 value={form.bankAccounts?.cimb ?? ""}
                 onChange={(e) => updateBank("cimb", e.target.value)} />
             </div>
             <div>
-              <label className="label">BSI</label>
-              <input className="input" maxLength={20} placeholder="No rekening"
+              <label htmlFor="set-rek-bsi" className="label">BSI</label>
+              <input id="set-rek-bsi" className="input" maxLength={20} placeholder="No rekening"
                 value={form.bankAccounts?.bsi ?? ""}
                 onChange={(e) => updateBank("bsi", e.target.value)} />
             </div>
             <div>
-              <label className="label">GoPay / OVO / DANA</label>
-              <input className="input" maxLength={20} placeholder="No HP ewallet"
+              <label htmlFor="set-rek-ewallet" className="label">GoPay / OVO / DANA</label>
+              <input id="set-rek-ewallet" className="input" maxLength={20} placeholder="No HP ewallet"
                 value={form.bankAccounts?.ewallet ?? ""}
                 onChange={(e) => updateBank("ewallet", e.target.value)} />
             </div>
@@ -738,8 +747,8 @@ export default function SettingsPage() {
           {form.ai.enabled && (
             <>
               <div>
-                <label className="label">DeepSeek API Key</label>
-                <input className="input font-mono text-xs" type="password" placeholder="sk-..."
+                <label htmlFor="set-ai-key" className="label">DeepSeek API Key</label>
+                <input id="set-ai-key" className="input font-mono text-xs" type="password" placeholder="sk-..."
                   value={form.ai.apiKey ?? ""}
                   onChange={(e) => updateAi("apiKey", e.target.value)} />
                 <p className="text-xs text-gray-500 mt-1">
@@ -748,8 +757,8 @@ export default function SettingsPage() {
                 </p>
               </div>
               <div>
-                <label className="label">Model</label>
-                <select className="input" value={["deepseek-v4-flash","deepseek-v4-pro"].includes(form.ai.model) ? form.ai.model : "custom"}
+                <label htmlFor="set-ai-model" className="label">Model</label>
+                <select id="set-ai-model" className="input" value={["deepseek-v4-flash","deepseek-v4-pro"].includes(form.ai.model) ? form.ai.model : "custom"}
                   onChange={(e) => updateAi("model", e.target.value === "custom" ? "" : e.target.value)}>
                   <option value="deepseek-v4-flash">deepseek-v4-flash (cepat, hemat)</option>
                   <option value="deepseek-v4-pro">deepseek-v4-pro (lebih dalam)</option>
@@ -776,9 +785,9 @@ export default function SettingsPage() {
 
           {/* Kata sandi bersama — dipakai semua backup & restore */}
           <div className="bg-gray-50 rounded-xl p-3 space-y-2">
-            <label className="label">🔑 Kata Sandi Enkripsi</label>
+            <label htmlFor="set-backup-pass" className="label">🔑 Kata Sandi Enkripsi</label>
             <div className="flex gap-2">
-              <input className="input flex-1" type={showBackupPass ? "text" : "password"} value={backupPass}
+              <input id="set-backup-pass" className="input flex-1" type={showBackupPass ? "text" : "password"} value={backupPass}
                 onChange={(e) => setBackupPass(e.target.value)} placeholder="Kata sandi backup & restore" />
               <button
                 onClick={() => {
@@ -831,8 +840,8 @@ export default function SettingsPage() {
             </button>
             <p className="text-[11px] text-blue-500">CSV terbaca tanpa app (cadangan tambahan). Backup .jles tetap utama (terenkripsi).</p>
             <div className="border-t border-blue-100 pt-2.5 space-y-2">
-              <label className="label text-blue-800">Restore dari file</label>
-              <input ref={restoreRef} type="file" accept=".jles" className="text-sm text-gray-600 w-full" />
+              <label htmlFor="set-restore-file" className="label text-blue-800">Restore dari file</label>
+              <input id="set-restore-file" ref={restoreRef} type="file" accept=".jles" className="text-sm text-gray-600 w-full" />
               <button className="w-full py-2 rounded-xl bg-blue-100 text-blue-700 text-sm font-medium hover:bg-blue-200 transition-colors"
                 onClick={() => {
                   const file = restoreRef.current?.files?.[0];
@@ -890,8 +899,8 @@ export default function SettingsPage() {
 
               {/* Backup senyap (relay) — backup tanpa popup saat app dibuka & sudah due */}
               <div className="pt-2 border-t border-green-100 space-y-1.5">
-                <label className="label text-green-800">⚡ Backup senyap (relay, lanjutan)</label>
-                <input className="input font-mono text-xs" type="password" placeholder="Secret relay (BACKUP_API_SECRET)"
+                <label htmlFor="set-relay-secret" className="label text-green-800">⚡ Backup senyap (relay, lanjutan)</label>
+                <input id="set-relay-secret" className="input font-mono text-xs" type="password" placeholder="Secret relay (BACKUP_API_SECRET)"
                   value={relaySecret} onChange={(e) => saveRelaySecret(e.target.value)} />
                 <div className="flex items-center gap-2">
                   <button disabled={relayBusy || !relaySecret}

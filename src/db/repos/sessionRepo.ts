@@ -166,14 +166,6 @@ export async function listSessionsByStudentMonth(
     .sortBy("date");
 }
 
-export async function listSessionsToday(): Promise<Session[]> {
-  const today = todayWIB();
-  return db.sessions
-    .where({ status: "SCHEDULED" })
-    .filter((s) => s.date === today)
-    .toArray();
-}
-
 export async function listScheduledForMonth(month: string): Promise<Session[]> {
   const { start, end } = monthRange(month);
   return db.sessions
@@ -191,12 +183,6 @@ export async function listAllSessionsForMonth(month: string): Promise<Session[]>
 export async function listAllSessionsForWeek(weekStart: string, weekEnd: string): Promise<Session[]> {
   return db.sessions
     .filter((s) => s.status !== "CANCELLED" && s.status !== "RESCHEDULED" && s.date >= weekStart && s.date <= weekEnd)
-    .toArray();
-}
-
-export async function listDoneSessionsForDateRange(start: string, end: string): Promise<Session[]> {
-  return db.sessions
-    .filter((s) => s.status === "DONE" && s.date >= start && s.date <= end)
     .toArray();
 }
 
@@ -287,14 +273,50 @@ export async function rescheduleSession(
 }
 
 export async function deleteSession(id: string): Promise<void> {
-  await db.transaction("rw", db.sessions, db.followUps, db.reports, async () => {
+  await db.transaction("rw", db.sessions, db.followUps, db.reports, db.payments, async () => {
+    const session = await db.sessions.get(id);
     await db.sessions.delete(id);
     await db.followUps
       .filter((f) => f.sourceSessionId === id)
       .modify((f) => { delete f.sourceSessionId; });
     await db.reports
       .filter((r) => r.sessionIds.includes(id))
-      .modify((r) => { r.sessionIds = r.sessionIds.filter((sid) => sid !== id); });
+      .toArray()
+      .then(async (affected) => {
+        for (const r of affected) {
+          const sessionIds = r.sessionIds.filter((sid) => sid !== id);
+          // Hitung ulang total laporan dari sesi yang tersisa agar tidak melayang.
+          const remaining = await db.sessions.bulkGet(sessionIds);
+          await db.reports.update(r.id, {
+            sessionIds,
+            totalHours: remaining.reduce((s, x) => s + (x?.durationHours ?? 0), 0),
+            totalCost: remaining.reduce((s, x) => s + (x?.cost ?? 0), 0),
+          });
+        }
+      });
+
+    // Jaga konsistensi keuangan: tagihan otomatis (auto, UNPAID) harus mencerminkan
+    // sesi billable yang tersisa di bulan itu. Sesi yang dihapus bisa pernah masuk
+    // tagihan (piutang hantu) — atau sesi billable yang ditambah SETELAH closeMonth
+    // yang tidak pernah masuk tagihan. Jadi hitung ulang dari sesi yang tersisa,
+    // bukan sekadar mengurangi biaya sesi yang dihapus.
+    // Tagihan manual/PAID sengaja dibiarkan: nominalnya sudah disepakati/diterima.
+    if (session && isBillableSession(session)) {
+      const payment = await db.payments
+        .where("[studentId+month]")
+        .equals([session.studentId, session.date.slice(0, 7)])
+        .first();
+      if (payment && payment.status === "UNPAID" && payment.source === "auto") {
+        const month = session.date.slice(0, 7);
+        const { start, end } = monthRange(month);
+        const remaining = await db.sessions
+          .filter((s) => s.studentId === session.studentId && isBillableSession(s) && s.date >= start && s.date <= end)
+          .toArray();
+        await db.payments.update(payment.id, {
+          totalCost: Math.max(0, remaining.reduce((sum, s) => sum + s.cost, 0)),
+        });
+      }
+    }
   });
   await logAudit("session.delete", "session", id);
 }
@@ -499,33 +521,6 @@ export async function getRecentDoneSessions(
   return all.slice(-limit).reverse();
 }
 
-export async function listSessionsInDateRange(
-  studentId: string, start: string, end: string
-): Promise<Session[]> {
-  return db.sessions
-    .where({ studentId })
-    .filter((s) => s.status === "DONE" && s.date >= start && s.date <= end)
-    .toArray();
-}
-
 // ── Streak ─────────────────────────────────────────────────────────
 
-export async function getStreak(studentId: string): Promise<number> {
-  const today = todayWIB();
-  // hitung dari kemarin (today-1) mundur, karena today belum tentu ada sesi DONE
-  const yesterday = new Date(new Date(today + "T00:00:00+07:00").getTime() - 86400000);
-  const yyyymmdd = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
-  let streak = 0;
-  const sessions = await db.sessions
-    .where({ studentId })
-    .filter((s) => s.status === "DONE")
-    .sortBy("date");
-  const dateSet = new Set(sessions.map((s) => s.date));
-  const check = new Date(new Date(yyyymmdd + "T00:00:00+07:00").getTime());
-  while (true) {
-    const d = `${check.getFullYear()}-${String(check.getMonth() + 1).padStart(2, "0")}-${String(check.getDate()).padStart(2, "0")}`;
-    if (dateSet.has(d)) { streak++; check.setDate(check.getDate() - 1); }
-    else break;
-  }
-  return streak;
-}
+// (getStreak dihapus — dead code tanpa pemanggil)

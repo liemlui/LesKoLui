@@ -18,10 +18,6 @@ export async function saveStudyNote(studentId: string, content: string): Promise
   }
 }
 
-export async function deleteStudyNote(studentId: string): Promise<void> {
-  await db.studyNotes.delete(studentId);
-}
-
 export async function listAllStudyNotes(): Promise<(StudyNote & { studentName?: string })[]> {
   const notes = await db.studyNotes.toArray();
   const studentIds = [...new Set(notes.map((n) => n.studentId))];

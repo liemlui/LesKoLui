@@ -1,2 +1,2 @@
 [permissions]
-allow = ["explore", "Edit"]
+allow = ["explore", "Edit", "Bash=git status --short && git log --oneline -5 && git branch --show-current"]

@@ -2,9 +2,45 @@
 
 > Tanggal audit: 2025-07-16
 > Tanggal perbaikan: 2026-06-21
-> Revisi: 2026-06-26 — L-5 selesai (Vitest+CI), H-2 di-waive (threat model solo), tambah H-6 (backup off-device)
+> Revisi: 2026-08-02 — Ronde 3 (v1.36.0): baseline hijau (lint 0/0, test 163/163), tutup H-4 PIN lockout recovery, konsistensi uang deleteSession/closeMonth, PWA prompt mode, a11y label+dialog, dead code, strict mode
 > Cakupan: full codebase (46 source files, 1 worker, seluruh config)
 > Status: **22/26 dikerjakan** — sisa: H-6 (backup cloud), L-1 (audit trail), M-5 (foto GC partial); H-2 di-waive
+
+---
+
+## 🔄 Ronde 3 — v1.36.0 (2026-08-02)
+
+> Audit total fresh setelah ~15 rilis sejak Ronde 2. **Temuan utama: baseline CI merah** — `npm run lint` = 1 error + 6 warning, `npm test` = 3 gagal/160 (**test basi**, bukan bug source). Semua diperbaiki di ronde ini. Verifikasi akhir: `lint` **0 error 0 warning**, **163 test lulus** (160 + 3 regression baru), `build` OK.
+
+### Dikerjakan (✅) — perbaikan audit v1.36.0
+
+| Kode | Item | File |
+|------|------|------|
+| **B-0** | Lint: error `react-refresh/only-export-components` di `layouts.tsx` (barrel `export *`) + 5 directive `eslint-disable` tak terpakai di layouts/ + warning `react-hooks/exhaustive-deps` di `useToast` → **lint 0/0** | `src/template/layouts*.tsx`, `src/hooks/useToast.ts` |
+| **T-0** | Test basi disesuaikan source: bobot engagement dinerf di v1.34.1 (`prepared +2`, sisanya +1); `backup.test` di-seed `studyNotes` + **fix bug nyata**: `assertRows` memakai PK per tabel (`studyNotes` ber-PK `studentId`, bukan `id`) | `src/__tests__/engagement.test.ts`, `src/__tests__/backup.test.ts`, `src/lib/backup.ts` |
+| **S-1** | **Recovery PIN tanpa lockout (HIGH)** — `handleVerifyOldPin`/`handleVerifyForgot` kini `getPinLockoutDelay` + `recordPinFailure` + `resetPinLockout` (sebelumnya brute-force bebas pertanyaan keamanan). Bonus: Enter di `PinConfirmModal` tak memicu submit saat busy | `src/screens/Settings.tsx`, `src/components/PinConfirmModal.tsx` |
+| **S-2** | `.env.local` berisi `VERCEL_OIDC_TOKEN` (klaim C-1 "dihapus" Ronde 1 salah) → file **dihapus** dari disk | `.env.local` |
+| **M-1** | `deleteSession` kini sinkron `payments`: tagihan **auto+UNPAID** dikurangi sebesar biaya sesi (piutang hantu hilang); `reports.totalHours/totalCost` dihitung ulang dari sesi tersisa. Tagihan manual/PAID sengaja tak disentuh | `src/db/repos/sessionRepo.ts` |
+| **M-2** | `closeMonth` snapshot `totalPotensi/totalHours/studentCount` hanya tagihan yang **benar-benar dibuat** (siswa ber-tagihan manual tak digandakan) + pesan audit log akurat | `src/db/repos/paymentRepo.ts` |
+| **M-3** | `formatRelative` CatatanBelajar memakai `Date.now()+7h` untuk diff → "x menit lalu" jadi "x+7 jam lalu"; kini diff instan absolut | `src/screens/CatatanBelajar.tsx` |
+| **M-4** | `doResetAll` lupa `studyNotes` (+ `settings`, `auditLog`) — reset kini benar-benar menghapus semua data; jejak `data.reset` tetap dicatat | `src/screens/Settings.tsx` |
+| **P-1** | PWA `registerType: "autoUpdate"` **memaksa reload** saat SW baru aktif → bisa hilang input form. Ganti **`prompt`**: banner "Muat Ulang" (yang tadinya dead code) kini aktif, user yang memutuskan | `vite.config.ts` |
+| **A-1** | 10 overlay modal custom (tanpa role) diberi `role="dialog"` + `aria-modal` + `aria-label` | `CaptureSession`, `Payments`, `StudentDetail`, `SessionDetailModal`, `ChangelogModal`, `QuickExpenseModal` |
+| **A-2** | ~95 label form tanpa `htmlFor` kini berasosiasi (id unik per kontrol); yang non-native (button group/picker) dibiarkan | 10 file screens/components |
+| **D-1** | Dead code dihapus: `lib/exportAbsensi.ts`, `components/Popover.tsx`, `charts/Gauge.tsx`, folder `screens/captureSession/` kosong, **10 export mati** di barrel repos (definisi + re-export) | `src/db/repos/*` |
+| **S-3** | `tsconfig.app.json` kini `"strict": true` (terverifikasi 0 error) | `tsconfig.app.json` |
+
+### Regression tests baru (Ronde 3)
+
+- `closeMonth` snapshot hanya tagihan baru (siswa ber-payment manual dilewati)
+- `deleteSession` mengurangi tagihan auto-UNPAID bulan yang sama
+- `deleteSession` tidak menyentuh tagihan manual/PAID
+
+### Sisa terbuka (bukan bug, backlog)
+
+- H-2 di-waive (threat model solo) — tetap
+- Refactor screen monolith (lihat TODO.md) — CaptureSession ~1.7k baris, StudentDetail ~1.5k baris
+- `formatRelative` + test getStreak timezone — dokumentasikan di TODO
 
 ---
 
@@ -106,7 +142,7 @@ Estimasi ~4-6 jam + setup Google Cloud olehmu. Sampai itu ada, **1-tap mingguan 
 | **Dampak** | Jika file ter-commit atau ter-upload, attacker bisa mengambil alih deployment, environment variables, dan domain. |
 | **Cara perbaikan** | 1. Hapus file `.env.local` dari production. 2. Rotate token via Vercel dashboard. 3. Pastikan `.gitignore` mencakup `.env*` (sudah ada) — tapi verifikasi file tidak terlanjur ter-track. |
 | **Verifikasi** | `cat .env.local` → harus kosong atau tidak ada. `git log -- .env.local` → tidak ada commit. |
-| **Status** | ☑ Selesai — token dihapus dari `.env.local`. **Rotate token via Vercel dashboard secara manual.** |
+| **Status** | ☑ Selesai — file `.env.local` (berisi `VERCEL_OIDC_TOKEN`) **dihapus dari disk 2026-08-02** (klaim "selesai" Ronde 1 salah; token ter-regenerasi tiap `vercel pull`). **Rotate token via Vercel dashboard secara manual, dan jangan jalankan `vercel pull` tanpa perlu.** |
 
 ---
 

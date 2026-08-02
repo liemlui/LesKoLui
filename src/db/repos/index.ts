@@ -6,7 +6,7 @@ export { monthRange, timestamp, nowTimeWIB, subtractHoursFromTime, timeToMin } f
 export { todayWIB } from "../../lib/format";
 
 // Audit
-export { logAudit, listAuditLog, clearAuditLog } from "./auditRepo";
+export { logAudit, listAuditLog } from "./auditRepo";
 
 // Settings
 export { getSettings, initSettings, saveSettings } from "./settingsRepo";
@@ -21,16 +21,15 @@ export {
   cancelSession, markSessionNoShow, rescheduleSession,
   listSessionsByStudent, listSessionsForMonth, listSessionsByStudentMonth,
   isBillableSession, listBillableSessionsForMonth, listBillableSessionsByStudentMonth,
-  listSessionsToday, listScheduledForMonth, listAllSessionsForMonth,
-  listAllSessionsForWeek, listDoneSessionsForDateRange, listDoneSessionsForDate,
+  listScheduledForMonth, listAllSessionsForMonth,
+  listAllSessionsForWeek, listDoneSessionsForDate,
   listPastScheduledSessions,
   scheduleSession, scheduleBatch,
   cancelSeriesSessions, updateSeriesSessions,
   findConflicts,
   listScheduledForStudent, listAllUpcomingScheduled,
   recentShortNotes,
-  getLastDoneSession, getRecentDoneSessions, listSessionsInDateRange,
-  getStreak,
+  getLastDoneSession, getRecentDoneSessions,
   countSessionPhotos, pruneSessionPhotosBefore,
 } from "./sessionRepo";
 export type { CancelMode, EditMode } from "./sessionRepo";
@@ -44,22 +43,22 @@ export {
   markPaymentTransferred, markPaymentUnpaid, updatePaymentAmount,
   getMonthClosing, listMonthClosings, closeMonth, reopenMonth,
   computeMonthBills, getCashSummary,
-  createExpense, listExpenses, listExpensesByCategory, deleteExpense,
-  getExpenseTotals, getMonthlyIncomeVsExpense,
+  createExpense, listExpenses, deleteExpense,
+  getMonthlyIncomeVsExpense,
 } from "./paymentRepo";
 export type { StudentBill, MonthCashSummary } from "./paymentRepo";
 export type { ExpenseCategory } from "./paymentRepo";
 
 // IA / EE Projects
 export {
-  createIaEeProject, listIaEeProjects, updateIaEeProject, deleteIaEeProject,
+  createIaEeProject, listIaEeProjects, deleteIaEeProject,
   addMilestone, updateMilestone, deleteMilestone,
 } from "./iaeeRepo";
 export type { IaEeMilestone } from "./paymentRepo";
 
 // Follow-ups
-export { createFollowUp, listPendingFollowUps, completeFollowUp, deleteFollowUp } from "./followUpRepo";
+export { createFollowUp, listPendingFollowUps, completeFollowUp } from "./followUpRepo";
 export type { FollowUpType } from "./followUpRepo";
 
 // Study Notes
-export { getStudyNote, saveStudyNote, deleteStudyNote, listAllStudyNotes } from "./studyNotesRepo";
+export { getStudyNote, saveStudyNote, listAllStudyNotes } from "./studyNotesRepo";

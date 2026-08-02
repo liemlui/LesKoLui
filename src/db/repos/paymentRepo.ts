@@ -80,7 +80,9 @@ export async function updatePaymentAmount(
   await db.transaction("rw", db.payments, async () => {
     const existing = await getPayment(studentId, month);
     if (!existing) throw new Error("Payment not found");
-    await db.payments.update(existing.id, { totalCost });
+    // Nominal diubah manual → tagihan bukan lagi "auto" dari sesi; sesi yang
+    // dihapus setelah ini tidak boleh mengubah nominal yang sudah disepakati.
+    await db.payments.update(existing.id, { totalCost, source: "manual" });
   });
   await logAudit("payment.amount", "payment", studentId, `${month}: ${totalCost}`);
 }
@@ -127,6 +129,7 @@ export async function computeMonthBills(month: string): Promise<StudentBill[]> {
 /** Close a month: auto-create a Payment (UNPAID) from completed sessions and chargeable no-shows. Idempotent. */
 export async function closeMonth(month: string): Promise<void> {
   const bills = await computeMonthBills(month);
+  const addedBills: typeof bills = [];
   await db.transaction("rw", db.payments, db.monthClosings, async () => {
     for (const b of bills) {
       const existing = await db.payments
@@ -142,18 +145,24 @@ export async function closeMonth(month: string): Promise<void> {
         status: "UNPAID",
         source: "auto",
       });
+      addedBills.push(b);
     }
     const existingClosing = await db.monthClosings.where("month").equals(month).first();
-    await db.monthClosings.put({
-      id: existingClosing?.id ?? crypto.randomUUID(),
-      month,
-      closedAt: timestamp(),
-      totalPotensi: bills.reduce((s, b) => s + b.cost, 0),
-      totalHours: bills.reduce((s, b) => s + b.hours, 0),
-      studentCount: bills.length,
-    });
+    // Re-close bulan yang sudah ditutup (mis. double-tap "Tutup Bulan") harus
+    // idempoten: semua tagihan sudah ada → addedBills kosong → JANGAN menimpa
+    // snapshot dengan nol. Snapshot hanya dihitung dari tagihan baru yang dibuat.
+    if (!existingClosing || addedBills.length > 0) {
+      await db.monthClosings.put({
+        id: existingClosing?.id ?? crypto.randomUUID(),
+        month,
+        closedAt: timestamp(),
+        totalPotensi: (existingClosing?.totalPotensi ?? 0) + addedBills.reduce((s, b) => s + b.cost, 0),
+        totalHours: (existingClosing?.totalHours ?? 0) + addedBills.reduce((s, b) => s + b.hours, 0),
+        studentCount: (existingClosing?.studentCount ?? 0) + addedBills.length,
+      });
+    }
   });
-  await logAudit("month.close", "data", month, `${bills.length} tagihan dibuat`);
+  await logAudit("month.close", "data", month, `${addedBills.length} tagihan dibuat`);
 }
 
 /** Reopen a month: drop the closing + any still-UNPAID auto-generated bills. */
@@ -233,24 +242,11 @@ export async function listExpenses(month?: string): Promise<Expense[]> {
   return db.expenses.orderBy("date").reverse().toArray();
 }
 
-export async function listExpensesByCategory(category: ExpenseCategory): Promise<Expense[]> {
-  return db.expenses.where("category").equals(category).sortBy("date");
-}
-
 export async function deleteExpense(id: string): Promise<void> {
   const expense = await db.expenses.get(id);
   if (!expense) return;
   await db.expenses.delete(id);
   await logAudit("expense.delete", "expense", id, `${expense.date}: ${expense.amount}`);
-}
-
-export async function getExpenseTotals(month: string): Promise<Record<string, number>> {
-  const expenses = await listExpenses(month);
-  const totals: Record<string, number> = {};
-  for (const e of expenses) {
-    totals[e.category] = (totals[e.category] ?? 0) + e.amount;
-  }
-  return totals;
 }
 
 export async function getMonthlyIncomeVsExpense(

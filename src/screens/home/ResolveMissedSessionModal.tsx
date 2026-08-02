@@ -86,8 +86,8 @@ export default function ResolveMissedSessionModal({ session, studentName, onClos
       {resolution === "reschedule" && (
         <div className="space-y-4 rounded-xl bg-blue-50/60 border border-blue-100 p-3">
           <div>
-            <label className="label">Tanggal pengganti</label>
-            <input className="input" type="date" min={todayWIB()} value={date} onChange={(e) => setDate(e.target.value)} />
+            <label htmlFor="rms-tanggal" className="label">Tanggal pengganti</label>
+            <input id="rms-tanggal" className="input" type="date" min={todayWIB()} value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
           <div>
             <label className="label">Jam mulai</label>
@@ -127,8 +127,8 @@ export default function ResolveMissedSessionModal({ session, studentName, onClos
       )}
 
       <div>
-        <label className="label">Alasan <span className="text-gray-500 font-normal">(opsional)</span></label>
-        <textarea className="input min-h-20 resize-y" value={reason} onChange={(e) => setReason(e.target.value)}
+        <label htmlFor="rms-alasan" className="label">Alasan <span className="text-gray-500 font-normal">(opsional)</span></label>
+        <textarea id="rms-alasan" className="input min-h-20 resize-y" value={reason} onChange={(e) => setReason(e.target.value)}
           placeholder={resolution === "no-show" ? "Contoh: murid sakit / tidak ada kabar" : resolution === "reschedule" ? "Contoh: permintaan orang tua" : "Contoh: libur sekolah"} />
       </div>
 

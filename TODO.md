@@ -6,31 +6,31 @@ Dibuat 2025-07-19 sebagai bagian dari refactoring round.
 
 Setiap screen component besar perlu dipecah menjadi sub-components dan custom hooks.
 
-### StudentDetail.tsx (~98KB, 35+ useState)
+### StudentDetail.tsx (~82KB, ~1.490 baris, 47 useState)
 - [ ] Extract `useStudentData(studentId)` — fetch student + sessions + rapor + iaee
 - [ ] Extract `useBilling(studentId)` — billing logic, month closing per student
 - [ ] Extract `useAiInsights(studentId)` — AI summary generation
 - [ ] Split component: `StudentHeader`, `StudentSessionsTab`, `StudentRaporTab`, `StudentBillingTab`, `StudentIaeeTab`
 - [ ] Extract PIN verification into shared hook `usePinVerification`
 
-### CaptureSession.tsx (~96KB, 45+ useState)
+### CaptureSession.tsx (~99KB, ~1.743 baris, 34 useState)
 - [ ] Extract wizard steps: `StepStudent`, `StepSubject`, `StepNotes`, `StepPhoto`, `StepHomework`, `StepReview`
 - [ ] Extract `useSessionForm()` — form state + validation
 - [ ] Extract `useCamera()` — camera/capture logic (reusable)
 - [ ] Extract `useHomeworkAssignment()` — homework creation during session
 
-### Payments.tsx (~58KB)
+### Payments.tsx (~76KB, ~1.374 baris)
 - [ ] Split tabs: `RingkasanTab`, `TagihanTab`, `PengeluaranTab`, `AuditTab`
 - [ ] Extract `useMonthClosing()` — month close/reopen logic
 - [ ] Extract `useCashSummary()` — financial summary computation
 - [ ] Extract billing list into `BillingCard` component
 
-### Settings.tsx (~49KB)
+### Settings.tsx (~50KB, ~1.016 baris)
 - [ ] Split sections: `BackupSection`, `PinSection`, `DriveSection`, `RelaySection`, `TemplateSection`, `StorageSection`
 - [ ] Extract `useStorageQuota()` — storage monitoring hook
 - [ ] Extract `useBackup()` — backup/restore logic hook
 
-### MonthlyReport.tsx (~49KB)
+### MonthlyReport.tsx (~72KB, ~1.331 baris)
 - [ ] Extract `useReportGeneration()` — AI narrative + report creation
 - [ ] Extract `useReportExport()` — JPG/PNG/PDF export logic
 - [ ] Split layout selector into `LayoutPicker` component
@@ -58,6 +58,9 @@ Setiap screen component besar perlu dipecah menjadi sub-components dan custom ho
 - [x] CaptureSession.tsx — usePhotoCapture hook extracted (photo + signature lifecycle)
 - [x] All 5 big screens — JSDoc @component headers added
 - [x] TODO.md created with prioritized debt tracking
+- [x] Dead code cleanup (2026-08-02): `exportAbsensi.ts`, `Popover.tsx`, `Gauge.tsx`, folder `captureSession/`, 10 export mati di barrel repos
+- [x] `tsconfig.app.json` → `"strict": true` (2026-08-02, 0 error)
+- [x] Audit v1.36.0 fixes (2026-08-02) — detail di `AUDIT-CHECKLIST.md` Ronde 3: PIN lockout recovery, konsistensi uang deleteSession/closeMonth, PWA prompt mode, a11y label+dialog
 
 ## 🟡 Screen Component Splits (Partial — remaining tracked below)
 

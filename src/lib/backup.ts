@@ -83,20 +83,31 @@ function assertValidExportedAt(value: unknown): string {
   return value;
 }
 
+/**
+ * Nama kolom primary key per tabel backup. Hampir semua tabel memakai `id`;
+ * studyNotes memakai `studentId` sebagai primary key (lihat db.ts:68).
+ */
+const TABLE_ID_FIELD: Record<BackupTable, string> = {
+  students: "id", sessions: "id", reports: "id", payments: "id", settings: "id",
+  raporGrades: "id", followUps: "id", expenses: "id", iaeeProjects: "id",
+  monthClosings: "id", studyNotes: "studentId",
+};
+
 function assertRows(table: BackupTable, value: unknown): BackupRow[] {
   if (!Array.isArray(value)) {
     throw new Error(`File backup tidak valid: data tabel ${table} harus berupa daftar.`);
   }
 
+  const idField = TABLE_ID_FIELD[table];
   const ids = new Set<string>();
   for (const row of value) {
-    if (!isRecord(row) || typeof row.id !== "string" || !row.id) {
-      throw new Error(`File backup tidak valid: baris pada tabel ${table} tidak memiliki id.`);
+    if (!isRecord(row) || typeof row[idField] !== "string" || !row[idField]) {
+      throw new Error(`File backup tidak valid: baris pada tabel ${table} tidak memiliki ${idField}.`);
     }
-    if (ids.has(row.id)) {
+    if (ids.has(row[idField])) {
       throw new Error(`File backup tidak valid: id ganda pada tabel ${table}.`);
     }
-    ids.add(row.id);
+    ids.add(row[idField]);
   }
   return value as BackupRow[];
 }
