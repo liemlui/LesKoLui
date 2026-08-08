@@ -13,6 +13,13 @@ export type CurriculumType =
 export type SessionStatus = "SCHEDULED" | "DONE" | "CANCELLED" | "NO_SHOW" | "RESCHEDULED";
 export type PaymentStatus = "UNPAID" | "PAID";
 export type PaymentSource = "auto" | "manual";
+export type ReportStatus = "draft" | "confirmed";
+
+/** Status tagihan laporan. Draft = belum sah, tidak mengunci tanggal & tidak terbit tagihan.
+ *  Laporan lama (sebelum v1.39) tidak punya status → dianggap "confirmed". */
+export function reportStatus(report: { status?: ReportStatus }): ReportStatus {
+  return report.status ?? "confirmed";
+}
 
 export const DEFAULT_RATE = 200_000;   // IDR per hour
 export const MIN_DURATION = 1;         // hours
@@ -151,6 +158,8 @@ export interface MonthlyReport {
   periodStart: string;
   /** Akhir periode rekap (YYYY-MM-DD, inklusif) — laporan lama = akhir bulan kalender. */
   periodEnd: string;
+  /** Status laporan: draft (belum sah, bisa dibatalkan) atau confirmed (sudah dikirim ke ortu). */
+  status?: ReportStatus;
   sessionIds: string[];
   templateKey: TemplateKey;
   summaryText: string;

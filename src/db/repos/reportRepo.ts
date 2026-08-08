@@ -1,7 +1,8 @@
 // ── Monthly Reports Repository ─────────────────────────────────────
 
 import { db } from "../db";
-import type { MonthlyReport } from "../types";
+import type { MonthlyReport, ReportStatus } from "../types";
+import { reportStatus } from "../types";
 import { timestamp } from "./helpers";
 
 /** Laporan lama (tanpa periode) dianggap satu bulan kalender penuh. */
@@ -29,14 +30,33 @@ export async function findReportByPeriod(
   return reports.find((r) => r.periodStart === periodStart && r.periodEnd === periodEnd);
 }
 
-/** Laporan murid yang periodenya BERTUMPUK dengan [start, end] — dasar larangan rekap ganda. */
+/** Laporan murid YANG SUDAH SAH yang periodenya BERTUMPUK dengan [start, end] —
+ *  draft tidak mengunci tanggal. */
 export async function listOverlappingReports(
   studentId: string, start: string, end: string, excludeId?: string
 ): Promise<MonthlyReport[]> {
-  const reports = await listReportsByStudent(studentId);
+  const reports = await listConfirmedReportsByStudent(studentId);
   return reports.filter(
     (r) => r.id !== excludeId && r.periodStart <= end && r.periodEnd >= start
   );
+}
+
+/** Laporan murid yang sudah disahkan (bukan draft). */
+export async function listConfirmedReportsByStudent(studentId: string): Promise<MonthlyReport[]> {
+  return db.reports
+    .where({ studentId })
+    .filter((r) => reportStatus(r) === "confirmed")
+    .sortBy("createdAt");
+}
+
+/** Hapus laporan draft — tanggal & sesi kembali bebas. */
+export async function discardReport(id: string): Promise<void> {
+  await db.reports.delete(id);
+}
+
+/** Sahkan laporan draft → kunci tanggal + terbitkan tagihan (dipanggil terpisah). */
+export async function confirmReport(id: string): Promise<void> {
+  await db.reports.update(id, { status: "confirmed" as ReportStatus });
 }
 
 export async function upsertReport(

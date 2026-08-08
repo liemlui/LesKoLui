@@ -2,6 +2,7 @@
 
 import { db } from "../db";
 import type { Payment, MonthClosing, Expense, ExpenseCategory, IaEeMilestone, MonthlyReport } from "../types";
+import { reportStatus } from "../types";
 import { timestamp, monthRange } from "./helpers";
 import { todayWIB } from "../../lib/format";
 import { logAudit } from "./auditRepo";
@@ -203,10 +204,11 @@ export async function computeMonthBills(
   let sessions = await db.sessions
     .filter((s) => isBillableSession(s) && s.date >= start && s.date <= end)
     .toArray();
-  // Sesi yang sudah masuk laporan periode tidak boleh ditagih ulang oleh tutup bulan.
+  // Sesi yang sudah masuk laporan SAH tidak boleh ditagih ulang oleh tutup bulan.
+  // Draft belum mengunci — sesi di dalamnya masih bisa masuk tagihan tutup bulan.
   if (opts.excludeReportCovered) {
-    const covered = new Set((await db.reports.toArray()).flatMap((r) => r.sessionIds));
-    sessions = sessions.filter((s) => !covered.has(s.id));
+    const confirmed = new Set((await db.reports.toArray()).filter((r) => reportStatus(r) === "confirmed").flatMap((r) => r.sessionIds));
+    sessions = sessions.filter((s) => !confirmed.has(s.id));
   }
   const map = new Map<string, { count: number; hours: number; cost: number }>();
   for (const s of sessions) {

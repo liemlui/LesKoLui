@@ -14,6 +14,7 @@ import {
   markPaymentTransferredById, markPaymentUnpaidById, updatePaymentAmountById,
 } from "../db/repos";
 import type { Payment, Student, Settings, Session } from "../db/types";
+import { reportStatus } from "../db/types";
 import { formatRupiah, todayWIB, monthLabel, periodLabel } from "../lib/format";
 import { weekDates } from "../lib/calendar";
 import { usePinGate } from "../hooks/usePinGate";
@@ -121,7 +122,7 @@ export default function PaymentsPage() {
   // Semua laporan periode — sesi yang sudah direkap tidak boleh ditagih ulang.
   const reports = useLiveQuery(() => listAllReports(), []);
   const coveredSessionIds = useMemo(
-    () => new Set((reports ?? []).flatMap((r) => r.sessionIds)),
+    () => new Set((reports ?? []).filter((r) => reportStatus(r) === "confirmed").flatMap((r) => r.sessionIds)),
     [reports]
   );
   // Sesi billable bulan ini yang BELUM masuk laporan — dasar preview & tutup bulan.

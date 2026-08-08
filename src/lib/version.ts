@@ -11,6 +11,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.39.0",
+    date: "2026-08-08",
+    title: "Status Draft/Sah Laporan: rekap coba-coba dulu, sahkan kalau sudah yakin",
+    items: [
+      "Buat Laporan sekarang jadi draft — tanggal belum terkunci & tagihan belum terbit",
+      "Tombol Sahkan setelah review: kunci tanggal + terbitkan tagihan otomatis di Keuangan",
+      "Tombol Batalkan Draft: hapus laporan percobaan tanpa jejak",
+      "Draft tidak memblokir rekap lain (overlap guard hanya mengecek laporan yang sudah sah)",
+      "Tutup bulan tidak mengecualikan sesi draft — hanya sesi laporan sah yang dilindungi",
+      "Laporan lama (sebelum v1.39) otomatis dianggap sah (status confirmed)",
+    ],
+  },
+  {
     version: "v1.38.0",
     date: "2026-08-08",
     title: "Laporan Periode Bebas: Rekap N Pertemuan / Rentang Tanggal + Tagihan per Laporan",

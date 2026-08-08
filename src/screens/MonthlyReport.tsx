@@ -5,9 +5,11 @@ import { useLiveQuery } from "dexie-react-hooks";
 import {
   listStudents, getStudent, getSettings,
   listSessionsByStudentRange,
-  findReportByPeriod, listReportsByStudent, upsertReport, updateSession, saveSettings,
+  findReportByPeriod, listConfirmedReportsByStudent,
+  upsertReport, confirmReport, discardReport, updateSession, saveSettings,
   listMonthClosings, getPaymentByReport, syncReportPayment,
 } from "../db/repos";
+import { reportStatus, type ReportStatus } from "../db/types";
 import { monthRange } from "../db/repos/helpers";
 import { pickTemplate } from "../lib/rotation";
 import { generateReportSummary, generateNarratives, estimateReportSummaryCost, estimateNarrativesCost } from "../lib/aiClient";
@@ -176,7 +178,8 @@ export default function MonthlyReportPage() {
   const [subjectFilter,    setSubjectFilter]    = useState<string>("");
 
   const student  = useLiveQuery(() => (studentId ? getStudent(studentId) : undefined), [studentId]);
-  const studentReports = useLiveQuery(() => (studentId ? listReportsByStudent(studentId) : []), [studentId]);
+  // Hanya laporan yang sudah SAH yang mengunci tanggal (overlap guard).
+  const confirmedReports = useLiveQuery(() => (studentId ? listConfirmedReportsByStudent(studentId) : []), [studentId]);
   const closings = useLiveQuery(() => listMonthClosings(), []);
 
   // Batas periode per mode
@@ -193,9 +196,10 @@ export default function MonthlyReportPage() {
   }, [studentId, mode, monthStart, monthEnd, rangeStart, rangeEnd, todayStr]);
 
   // Periode rekap efektif + sesi yang masuk laporan
+  // Draft tidak mengunci — sesi draft masih bisa direkap ulang di mode jumlah.
   const coveredIds = useMemo(
-    () => new Set((studentReports ?? []).flatMap((r) => r.sessionIds)),
-    [studentReports]
+    () => new Set((confirmedReports ?? []).flatMap((r) => r.sessionIds)),
+    [confirmedReports]
   );
   const { periodStart, periodEnd, reportSessions } = useMemo(() => {
     if (!studentId) return { periodStart: "", periodEnd: "", reportSessions: [] as Session[] };
@@ -232,7 +236,7 @@ export default function MonthlyReportPage() {
     if (mode === "range" && rangeStart > rangeEnd) {
       return { ok: false, reason: "Tanggal awal harus lebih dulu dari tanggal akhir." };
     }
-    const overlap = (studentReports ?? []).find(
+    const overlap = (confirmedReports ?? []).find(
       (r) => r.id !== report?.id && r.periodStart <= periodEnd && r.periodEnd >= periodStart
     );
     if (overlap) {
@@ -255,7 +259,7 @@ export default function MonthlyReportPage() {
       };
     }
     return { ok: true, reason: "" };
-  }, [studentId, periodStart, periodEnd, studentReports, closings, report, mode, rangeStart, rangeEnd]);
+  }, [studentId, periodStart, periodEnd, confirmedReports, closings, report, mode, rangeStart, rangeEnd]);
 
   const totalHours = useMemo(() => reportSessions.reduce((s, x) => s + x.durationHours, 0), [reportSessions]);
   const totalCost  = useMemo(() => reportSessions.reduce((s, x) => s + x.cost, 0), [reportSessions]);
@@ -414,7 +418,8 @@ export default function MonthlyReportPage() {
         totalHours, totalCost,
       };
       await upsertReport(refreshed);
-      await syncReportPayment(refreshed);
+      // Kalau sudah disahkan, tagihan ikut disesuaikan.
+      if (reportStatus(current) === "confirmed") await syncReportPayment(refreshed);
       return refreshed;
     }
     const templateKey = await pickTemplate(studentId);
@@ -423,10 +428,11 @@ export default function MonthlyReportPage() {
       month: monthOf(periodEnd), periodStart, periodEnd,
       sessionIds: reportSessions.map((s) => s.id),
       templateKey, summaryText: "", totalHours, totalCost,
+      status: "draft" as ReportStatus,
       createdAt: new Date().toISOString(),
     };
     await upsertReport(created);
-    await syncReportPayment(created);
+    // Draft belum terbitkan tagihan — baru setelah ditekan Sahkan.
     current = await findReportByPeriod(studentId, periodStart, periodEnd);
     return current;
   };
@@ -436,6 +442,7 @@ export default function MonthlyReportPage() {
     try {
       if (!availability.ok) { setMessage("Gagal: " + availability.reason); return; }
       const r = await findReportByPeriod(studentId, periodStart, periodEnd);
+      const isConfirmed = r && reportStatus(r) === "confirmed";
       if (!r) {
         const picked = await pickTemplate(studentId);
         const templateKey = newLayoutId ? { ...picked, layoutId: newLayoutId } : picked;
@@ -444,11 +451,11 @@ export default function MonthlyReportPage() {
           month: monthOf(periodEnd), periodStart, periodEnd,
           sessionIds: reportSessions.map((s) => s.id),
           templateKey, summaryText: "", totalHours, totalCost,
+          status: "draft" as ReportStatus,
           createdAt: new Date().toISOString(),
         };
         await upsertReport(created);
-        await syncReportPayment(created);
-        setMessage("Laporan dibuat! Tagihan otomatis terbit di Keuangan.");
+        setMessage("Laporan draft dibuat. Tekan Sahkan bila sudah yakin — tagihan akan terbit di Keuangan.");
       } else if (newLayoutId) {
         const updated = {
           ...r,
@@ -458,7 +465,7 @@ export default function MonthlyReportPage() {
           templateKey: { themeId: r.templateKey.themeId, layoutId: newLayoutId },
         };
         await upsertReport(updated);
-        await syncReportPayment(updated);
+        if (isConfirmed) await syncReportPayment(updated);
         setMessage("Layout diganti!");
       } else {
         const updated = {
@@ -468,9 +475,39 @@ export default function MonthlyReportPage() {
           totalHours, totalCost,
         };
         await upsertReport(updated);
-        await syncReportPayment(updated);
-        setMessage("Data laporan diperbarui ✓");
+        if (isConfirmed) await syncReportPayment(updated);
+        setMessage(isConfirmed ? "Data laporan diperbarui ✓" : "Draft diperbarui.");
       }
+    } catch (e) { setMessage("Error: " + (e as Error).message); }
+  };
+
+  const handleConfirm = async () => {
+    if (!report) return;
+    if (!availability.ok) { setMessage("Gagal: " + availability.reason); return; }
+    try {
+      await confirmReport(report.id);
+      const refreshed = {
+        ...report,
+        status: "confirmed" as ReportStatus,
+        month: monthOf(periodEnd), periodStart, periodEnd,
+        sessionIds: reportSessions.map((s) => s.id),
+        totalHours, totalCost,
+      };
+      await upsertReport(refreshed);
+      await syncReportPayment(refreshed);
+      setMessage("Laporan disahkan! Tagihan sudah terbit di Keuangan. ✅");
+    } catch (e) { setMessage("Error: " + (e as Error).message); }
+  };
+
+  const handleDiscard = async () => {
+    if (!report) return;
+    if (reportStatus(report) === "confirmed") {
+      setMessage("Gagal: Laporan yang sudah disahkan tidak bisa dibatalkan begitu saja. Kalau perlu, hapus tagihannya dulu dari Keuangan.");
+      return;
+    }
+    try {
+      await discardReport(report.id);
+      setMessage("Laporan draft dibatalkan.");
     } catch (e) { setMessage("Error: " + (e as Error).message); }
   };
 
@@ -767,24 +804,42 @@ export default function MonthlyReportPage() {
                     </p>
                   )}
 
-                  {/* Status tagihan periode (terbit otomatis dari laporan) */}
-                  {report && payment && (
+                  {/* Status tagihan / laporan */}
+                  {report && reportStatus(report) === "draft" && (
+                    <div className="rounded-lg px-3 py-2 text-sm bg-blue-50 text-blue-700 flex items-center justify-between">
+                      <span className="font-semibold">📋 Draft — belum disahkan</span>
+                      <span className="font-bold">{formatRupiah(totalCost)}</span>
+                    </div>
+                  )}
+                  {report && reportStatus(report) === "confirmed" && payment && (
                     <div className={`rounded-lg px-3 py-2 text-sm flex items-center justify-between ${payment.status === "PAID" ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>
                       <span className="font-semibold">{payment.status === "PAID" ? "✓ Tagihan Lunas" : "💳 Tagihan Belum Dibayar"}</span>
                       <span className="font-bold">{formatRupiah(payment.totalCost)}</span>
                     </div>
                   )}
-                  {report && !payment && (
-                    <p className="text-[11px] text-gray-400">Tagihan periode akan terbit saat laporan disimpan.</p>
+                  {report && reportStatus(report) === "confirmed" && !payment && (
+                    <p className="text-[11px] text-gray-400">Tagihan tidak ditemukan — coba Sahkan ulang atau hubungi dukungan.</p>
                   )}
 
                   {/* Action buttons */}
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     <button className="btn btn-primary flex-1 text-sm disabled:opacity-40" disabled={!availability.ok}
                       onClick={() => handleCreateOrSwitch()}>
-                      {report ? "🔄 Update Laporan" : "📝 Buat Laporan"}
+                      {report ? (reportStatus(report) === "confirmed" ? "🔄 Update Laporan" : "✏️ Update Draft") : "📝 Buat Laporan"}
                     </button>
+                    {report && reportStatus(report) === "draft" && (
+                      <button className="btn flex-1 text-sm bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40" disabled={!availability.ok}
+                        onClick={handleConfirm}>
+                        ✅ Sahkan
+                      </button>
+                    )}
                   </div>
+                  {report && reportStatus(report) === "draft" && (
+                    <button className="w-full py-2 text-xs text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      onClick={handleDiscard}>
+                      🗑 Batalkan Draft
+                    </button>
+                  )}
                   {settings?.ai?.enabled && settings.ai.apiKey && (
                     <div className="flex gap-2">
                       <button className="flex-1 btn text-sm bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"

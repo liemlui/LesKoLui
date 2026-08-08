@@ -38,7 +38,8 @@ export type { CancelMode, EditMode } from "./sessionRepo";
 // Reports
 export {
   getReport, upsertReport, listReportsByStudent, listAllReports,
-  findReportByPeriod, listOverlappingReports,
+  findReportByPeriod, listOverlappingReports, listConfirmedReportsByStudent,
+  confirmReport, discardReport,
 } from "./reportRepo";
 
 // Payments + Month Closing + Expenses

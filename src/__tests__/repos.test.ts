@@ -829,3 +829,63 @@ describe("closeMonth with report periods", () => {
     expect((await listPayments("2026-02")).filter((p) => p.studentId === sid && !p.reportId)).toHaveLength(0);
   });
 });
+
+// ── Draft / Confirmed Report Status ───────────────────────────────
+
+describe("Report draft / confirm", () => {
+  it("draft reports do NOT block new reports via overlap guard", async () => {
+    const { upsertReport, listOverlappingReports } = await import("../db/repos");
+    const id = crypto.randomUUID();
+    await upsertReport({
+      id, studentId: "s-draft", month: "2026-02", periodStart: "2026-02-01", periodEnd: "2026-02-10",
+      status: "draft", sessionIds: [], templateKey: { themeId: "blue", layoutId: "cards" },
+      summaryText: "", totalHours: 0, totalCost: 0,
+    });
+    expect(await listOverlappingReports("s-draft", "2026-02-05", "2026-02-15")).toHaveLength(0);
+  });
+
+  it("confirm locks the report and makes it visible to overlap guard", async () => {
+    const { upsertReport, confirmReport, listOverlappingReports } = await import("../db/repos");
+    const id = crypto.randomUUID();
+    await upsertReport({
+      id, studentId: "s-draft2", month: "2026-02", periodStart: "2026-02-01", periodEnd: "2026-02-10",
+      status: "draft", sessionIds: [], templateKey: { themeId: "blue", layoutId: "cards" },
+      summaryText: "", totalHours: 0, totalCost: 0,
+    });
+    await confirmReport(id);
+    expect((await listOverlappingReports("s-draft2", "2026-02-05", "2026-02-15")).map((r) => r.id)).toEqual([id]);
+  });
+
+  it("discard deletes a draft report completely", async () => {
+    const { upsertReport, discardReport, getReport } = await import("../db/repos");
+    const id = crypto.randomUUID();
+    await upsertReport({
+      id, studentId: "s-draft3", month: "2026-02", periodStart: "2026-02-01", periodEnd: "2026-02-10",
+      status: "draft", sessionIds: [], templateKey: { themeId: "blue", layoutId: "cards" },
+      summaryText: "", totalHours: 0, totalCost: 0,
+    });
+    await discardReport(id);
+    expect(await getReport("s-draft3", "2026-02")).toBeUndefined();
+  });
+
+  it("closeMonth excludes only confirmed report sessions", async () => {
+    const { createStudent, createSession, upsertReport, closeMonth, getPayment, listMonthClosings } = await import("../db/repos");
+    const sid = await createStudent({
+      name: "Draft Close", level: "IBDP", subjects: [], parentContact: { phone: "087" },
+      hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30),
+    });
+    const s1 = await createSession({ studentId: sid, date: "2026-06-03", durationHours: 1, subjects: ["Math"], shortNote: "", status: "DONE" });
+    await createSession({ studentId: sid, date: "2026-06-20", durationHours: 1, subjects: ["Math"], shortNote: "", status: "DONE" });
+    // Report draft — sesinya TIDAK dikecualikan dari closeMonth.
+    await upsertReport({
+      id: crypto.randomUUID(), studentId: sid, month: "2026-06", periodStart: "2026-06-01", periodEnd: "2026-06-30",
+      status: "draft", sessionIds: [s1], templateKey: { themeId: "blue", layoutId: "cards" },
+      summaryText: "", totalHours: 1, totalCost: DEFAULT_RATE,
+    });
+    await closeMonth("2026-06");
+    // Draft tidak mengecualikan sesi → kedua sesi ditagih tutup bulan.
+    const p = await getPayment(sid, "2026-06");
+    expect(p?.totalCost).toBe(2 * DEFAULT_RATE);
+    expect((await listMonthClosings())[0].totalPotensi).toBe(2 * DEFAULT_RATE);
+  });
+});
