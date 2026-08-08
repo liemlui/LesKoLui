@@ -132,6 +132,16 @@ export default function PaymentsPage() {
     [monthSessions, coveredSessionIds]
   );
   const closingPotential = closingSessions.reduce((s, x) => s + x.cost, 0);
+  /** Tagihan rekap vs bulanan per bulan — untuk tabel audit. */
+  const auditPaymentBreakdown = useMemo(() => {
+    const map = new Map<string, { rekap: number; bulanan: number }>();
+    for (const p of (payments ?? [])) {
+      const cur = map.get(p.month) ?? { rekap: 0, bulanan: 0 };
+      if (p.reportId) cur.rekap++; else cur.bulanan++;
+      map.set(p.month, cur);
+    }
+    return map;
+  }, [payments]);
   // Semua sesi yang pernah masuk laporan, untuk baris tagihan laporan (akurat lintas bulan).
   const allReportSessions = useLiveQuery(async () => {
     const ids = [...new Set((reports ?? []).flatMap((r) => r.sessionIds))];
@@ -328,8 +338,21 @@ export default function PaymentsPage() {
   // ── Analytics: student data ─────────────────────────────────────────
   const studentAnalytics = useMemo(() => {
     if (!students || !monthSessions) return [];
-    const map = new Map<string, { name: string; revenue: number; sessions: number; avgEngagement: number }>();
-    students.forEach((s) => map.set(s.id, { name: s.name, revenue: 0, sessions: 0, avgEngagement: 0 }));
+    const map = new Map<string, { name: string; revenue: number; sessions: number; avgEngagement: number; reportBilled: number; draftCount: number; confirmedCount: number }>();
+    students.forEach((s) => map.set(s.id, { name: s.name, revenue: 0, sessions: 0, avgEngagement: 0, reportBilled: 0, draftCount: 0, confirmedCount: 0 }));
+    // Laporan rekap per murid
+    (reports ?? []).forEach((r) => {
+      const entry = map.get(r.studentId);
+      if (!entry) return;
+      if (reportStatus(r) === "confirmed") entry.confirmedCount++;
+      else entry.draftCount++;
+    });
+    // Tagihan dari laporan yang sudah sah
+    (payments ?? []).forEach((p) => {
+      if (p.reportId && p.status !== "UNPAID") return; // hanya tagihan aktif
+      const entry = map.get(p.studentId);
+      if (entry && p.reportId) entry.reportBilled += p.totalCost;
+    });
     const engScores = new Map<string, number[]>();
     monthSessions.forEach((s) => {
       const entry = map.get(s.studentId);
@@ -350,7 +373,7 @@ export default function PaymentsPage() {
       }
     });
     return Array.from(map.values()).filter((e) => e.sessions > 0 || e.revenue > 0);
-  }, [students, monthSessions]);
+  }, [students, monthSessions, reports, payments]);
 
   if (!payments || !students || !settings) return <Skeleton variant="card" lines={4} className="p-4" />;
 
@@ -408,6 +431,13 @@ export default function PaymentsPage() {
     laba: 0,
   };
   cash.laba = cash.realisasi - cash.pengeluaran;
+  // Split: tagihan dari rekap laporan vs tutup bulan / manual
+  const reportBilled = monthPayments.filter((p) => p.reportId).reduce((s, p) => s + p.totalCost, 0);
+  const monthlyBilled = monthPayments.filter((p) => !p.reportId).reduce((s, p) => s + p.totalCost, 0);
+  const reportPaid = monthPayments.filter((p) => p.reportId && p.status === "PAID").reduce((s, p) => s + p.totalCost, 0);
+  const monthlyPaid = monthPayments.filter((p) => !p.reportId && p.status === "PAID").reduce((s, p) => s + p.totalCost, 0);
+  const reportPiutang = monthPayments.filter((p) => p.reportId && p.status === "UNPAID").reduce((s, p) => s + p.totalCost, 0);
+  const monthlyPiutang = monthPayments.filter((p) => !p.reportId && p.status === "UNPAID").reduce((s, p) => s + p.totalCost, 0);
   const paidCount = monthPayments.filter((p) => p.status === "PAID").length;
   const collectionRate = totalBilled > 0 ? Math.round((invoicePaid / totalBilled) * 100) : 0;
   const billingGap = totalBilled - sessionPotential;
@@ -567,14 +597,26 @@ export default function PaymentsPage() {
             <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
               <p className="text-[11px] text-gray-500 uppercase tracking-wide">Tagihan Terbit</p>
               <p className="text-lg font-bold text-blue-700">{formatRupiah(cash.tagihan)}</p>
+              <div className="flex gap-2 mt-0.5 text-[10px]">
+                {reportBilled > 0 && <span className="text-indigo-500">🏷 {formatRupiah(reportBilled)} rekap</span>}
+                {monthlyBilled > 0 && <span className="text-gray-400">📅 {formatRupiah(monthlyBilled)} bln</span>}
+              </div>
             </div>
             <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
               <p className="text-[11px] text-gray-500 uppercase tracking-wide">Tagihan Terbayar</p>
               <p className="text-lg font-bold text-green-700">{formatRupiah(cash.lunas)}</p>
+              <div className="flex gap-2 mt-0.5 text-[10px]">
+                {reportPaid > 0 && <span className="text-green-600">🏷 {formatRupiah(reportPaid)} rekap</span>}
+                {monthlyPaid > 0 && <span className="text-gray-400">📅 {formatRupiah(monthlyPaid)} bln</span>}
+              </div>
             </div>
             <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
               <p className="text-[11px] text-gray-500 uppercase tracking-wide">Piutang Bulan Ini</p>
               <p className="text-lg font-bold text-amber-600">{formatRupiah(cash.piutang)}</p>
+              <div className="flex gap-2 mt-0.5 text-[10px]">
+                {reportPiutang > 0 && <span className="text-amber-600">🏷 {formatRupiah(reportPiutang)} rekap</span>}
+                {monthlyPiutang > 0 && <span className="text-gray-400">📅 {formatRupiah(monthlyPiutang)} bln</span>}
+              </div>
             </div>
             <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
               <p className="text-[11px] text-gray-500 uppercase tracking-wide">Kas Masuk Bulan Ini</p>
@@ -1069,6 +1111,22 @@ export default function PaymentsPage() {
               <p className="text-lg font-bold text-gray-700">{monthExpenses?.length ?? 0}</p>
             </div>
           </div>
+          {/* Kategori */}
+          {(monthExpenses ?? []).length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {(() => {
+                const cats = (monthExpenses ?? []).reduce((m, e) => {
+                  m.set(e.category, (m.get(e.category) ?? 0) + e.amount);
+                  return m;
+                }, new Map<string, number>());
+                return [...cats.entries()].sort((a, b) => b[1] - a[1]).map(([cat, total]) => (
+                  <span key={cat} className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                    {EXPENSE_LABELS[cat] ?? cat}: {formatRupiah(total)}
+                  </span>
+                ));
+              })()}
+            </div>
+          )}
 
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-3">
@@ -1129,7 +1187,9 @@ export default function PaymentsPage() {
                     <th className="font-medium pb-1 text-right">Kas Masuk</th>
                     <th className="font-medium pb-1 text-right">Piutang</th>
                     <th className="font-medium pb-1 text-right">Keluar</th>
-                    <th className="font-medium pb-1 text-right">Laba Kas</th>
+                    <th className="font-medium pb-1 text-right">Laba</th>
+                    <th className="font-medium pb-1 text-center w-12">Rkp</th>
+                    <th className="font-medium pb-1 text-center w-12">Bln</th>
                     <th className="font-medium pb-1 text-center"></th>
                   </tr>
                 </thead>
@@ -1144,6 +1204,8 @@ export default function PaymentsPage() {
                         <td className="py-1 text-right text-amber-600">{r.piutang ? formatRupiah(r.piutang) : "–"}</td>
                         <td className="py-1 text-right text-red-600">{r.pengeluaran ? formatRupiah(r.pengeluaran) : "–"}</td>
                         <td className={`py-1 text-right font-semibold ${r.laba >= 0 ? "text-green-700" : "text-red-600"}`}>{has ? formatRupiah(r.laba) : "–"}</td>
+                        <td className="py-1 text-center text-[10px] text-indigo-500">{auditPaymentBreakdown.get(r.month)?.rekap || "–"}</td>
+                        <td className="py-1 text-center text-[10px] text-gray-400">{auditPaymentBreakdown.get(r.month)?.bulanan || "–"}</td>
                         <td className="py-1 text-center">{r.closed ? "🔒" : ""}</td>
                       </tr>
                     );
@@ -1157,6 +1219,7 @@ export default function PaymentsPage() {
                     <td className="py-1 text-right text-amber-600">{formatRupiah(auditTotals.piutang)}</td>
                     <td className="py-1 text-right text-red-600">{formatRupiah(auditTotals.pengeluaran)}</td>
                     <td className={`py-1 text-right ${auditTotals.laba >= 0 ? "text-green-700" : "text-red-600"}`}>{formatRupiah(auditTotals.laba)}</td>
+                    <td></td><td></td>
                     <td></td>
                   </tr>
                 </tfoot>
@@ -1224,6 +1287,13 @@ export default function PaymentsPage() {
                     {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(s.revenue)}
                   </span>
                 </div>
+                {(s.confirmedCount > 0 || s.draftCount > 0) && (
+                  <div className="flex gap-2 mt-1 text-[10px]">
+                    {s.confirmedCount > 0 && <span className="text-indigo-600">🏷 {s.confirmedCount} laporan sah</span>}
+                    {s.draftCount > 0 && <span className="text-amber-600">📋 {s.draftCount} draft</span>}
+                    {s.reportBilled > 0 && <span className="text-indigo-500">{formatRupiah(s.reportBilled)} tagihan rekap</span>}
+                  </div>
+                )}
               </div>
               {s.avgEngagement > 0 && (
                 <RatingIndicator value={Math.round(s.avgEngagement)} max={10} size="sm" variant="dots" tone="blue" />
