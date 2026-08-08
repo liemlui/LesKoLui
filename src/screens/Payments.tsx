@@ -15,6 +15,7 @@ import {
 } from "../db/repos";
 import type { Payment, Student, Settings, Session } from "../db/types";
 import { reportStatus } from "../db/types";
+import { monthRange } from "../db/repos/helpers";
 import { formatRupiah, todayWIB, monthLabel, periodLabel } from "../lib/format";
 import { weekDates } from "../lib/calendar";
 import { usePinGate } from "../hooks/usePinGate";
@@ -100,7 +101,7 @@ export default function PaymentsPage() {
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [totalCost, setTotalCost] = useState(0);
   const [showManual, setShowManual] = useState(false);
-  const [billFilter, setBillFilter] = useState<"semua" | "rekap" | "bulanan">("semua");
+  const [billFilter, setBillFilter] = useState<"semua" | "bulan" | "periode">("semua");
   const [showExpenseModal, setShowExpenseModal] = useState(false);
 
   // Invoice / reminder
@@ -132,16 +133,6 @@ export default function PaymentsPage() {
     [monthSessions, coveredSessionIds]
   );
   const closingPotential = closingSessions.reduce((s, x) => s + x.cost, 0);
-  /** Tagihan rekap vs bulanan per bulan — untuk tabel audit. */
-  const auditPaymentBreakdown = useMemo(() => {
-    const map = new Map<string, { rekap: number; bulanan: number }>();
-    for (const p of (payments ?? [])) {
-      const cur = map.get(p.month) ?? { rekap: 0, bulanan: 0 };
-      if (p.reportId) cur.rekap++; else cur.bulanan++;
-      map.set(p.month, cur);
-    }
-    return map;
-  }, [payments]);
   // Semua sesi yang pernah masuk laporan, untuk baris tagihan laporan (akurat lintas bulan).
   const allReportSessions = useLiveQuery(async () => {
     const ids = [...new Set((reports ?? []).flatMap((r) => r.sessionIds))];
@@ -431,13 +422,6 @@ export default function PaymentsPage() {
     laba: 0,
   };
   cash.laba = cash.realisasi - cash.pengeluaran;
-  // Split: tagihan dari rekap laporan vs tutup bulan / manual
-  const reportBilled = monthPayments.filter((p) => p.reportId).reduce((s, p) => s + p.totalCost, 0);
-  const monthlyBilled = monthPayments.filter((p) => !p.reportId).reduce((s, p) => s + p.totalCost, 0);
-  const reportPaid = monthPayments.filter((p) => p.reportId && p.status === "PAID").reduce((s, p) => s + p.totalCost, 0);
-  const monthlyPaid = monthPayments.filter((p) => !p.reportId && p.status === "PAID").reduce((s, p) => s + p.totalCost, 0);
-  const reportPiutang = monthPayments.filter((p) => p.reportId && p.status === "UNPAID").reduce((s, p) => s + p.totalCost, 0);
-  const monthlyPiutang = monthPayments.filter((p) => !p.reportId && p.status === "UNPAID").reduce((s, p) => s + p.totalCost, 0);
   const paidCount = monthPayments.filter((p) => p.status === "PAID").length;
   const collectionRate = totalBilled > 0 ? Math.round((invoicePaid / totalBilled) * 100) : 0;
   const billingGap = totalBilled - sessionPotential;
@@ -483,10 +467,16 @@ export default function PaymentsPage() {
     }))
     .sort((a, b) => b.payment.totalCost - a.payment.totalCost);
 
-  const filteredBillRows = billFilter === "rekap"
-    ? billRows.filter((r) => r.payment.reportId)
-    : billFilter === "bulanan"
-      ? billRows.filter((r) => !r.payment.reportId)
+  const filteredBillRows = billFilter === "bulan"
+    ? billRows.filter((r) => {
+        const p = r.payment;
+        return p.periodStart && p.periodEnd && p.periodStart === `${p.month}-01` && p.periodEnd === monthRange(p.month).end;
+      })
+    : billFilter === "periode"
+      ? billRows.filter((r) => {
+          const p = r.payment;
+          return p.periodStart && p.periodEnd && !(p.periodStart === `${p.month}-01` && p.periodEnd === monthRange(p.month).end);
+        })
       : billRows;
 
   const monthsOverview = (closings ?? []).map((c) => {
@@ -597,26 +587,14 @@ export default function PaymentsPage() {
             <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
               <p className="text-[11px] text-gray-500 uppercase tracking-wide">Tagihan Terbit</p>
               <p className="text-lg font-bold text-blue-700">{formatRupiah(cash.tagihan)}</p>
-              <div className="flex gap-2 mt-0.5 text-[10px]">
-                {reportBilled > 0 && <span className="text-indigo-500">🏷 {formatRupiah(reportBilled)} rekap</span>}
-                {monthlyBilled > 0 && <span className="text-gray-400">📅 {formatRupiah(monthlyBilled)} bln</span>}
-              </div>
             </div>
             <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
               <p className="text-[11px] text-gray-500 uppercase tracking-wide">Tagihan Terbayar</p>
               <p className="text-lg font-bold text-green-700">{formatRupiah(cash.lunas)}</p>
-              <div className="flex gap-2 mt-0.5 text-[10px]">
-                {reportPaid > 0 && <span className="text-green-600">🏷 {formatRupiah(reportPaid)} rekap</span>}
-                {monthlyPaid > 0 && <span className="text-gray-400">📅 {formatRupiah(monthlyPaid)} bln</span>}
-              </div>
             </div>
             <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
               <p className="text-[11px] text-gray-500 uppercase tracking-wide">Piutang Bulan Ini</p>
               <p className="text-lg font-bold text-amber-600">{formatRupiah(cash.piutang)}</p>
-              <div className="flex gap-2 mt-0.5 text-[10px]">
-                {reportPiutang > 0 && <span className="text-amber-600">🏷 {formatRupiah(reportPiutang)} rekap</span>}
-                {monthlyPiutang > 0 && <span className="text-gray-400">📅 {formatRupiah(monthlyPiutang)} bln</span>}
-              </div>
             </div>
             <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
               <p className="text-[11px] text-gray-500 uppercase tracking-wide">Kas Masuk Bulan Ini</p>
@@ -919,17 +897,17 @@ export default function PaymentsPage() {
               </div>
               {/* Filter: Semua / Periode Rekap / Bulanan */}
               <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
-                {(["semua", "rekap", "bulanan"] as const).map((f) => (
+                {(["semua", "bulan", "periode"] as const).map((f) => (
                   <button key={f} onClick={() => setBillFilter(f)}
                     className={`flex-1 text-[11px] font-semibold rounded-md py-1.5 transition-colors ${
                       billFilter === f ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700"
                     }`}>
-                    {f === "semua" ? "Semua" : f === "rekap" ? "🏷 Periode Rekap" : "📅 Bulanan"}
+                    {f === "semua" ? "Semua" : f === "bulan" ? "📅 Bulan Penuh" : "🏷 Periode Rekap"}
                   </button>
                 ))}
               </div>
               {filteredBillRows.length === 0 ? (
-                <p className="text-sm text-gray-500">{billFilter === "rekap" ? "Belum ada tagihan dari rekap laporan." : billFilter === "bulanan" ? "Belum ada tagihan bulanan." : "Belum ada tagihan untuk bulan ini."}</p>
+                <p className="text-sm text-gray-500">{billFilter === "bulan" ? "Belum ada tagihan bulan penuh." : billFilter === "periode" ? "Belum ada tagihan periode rekap." : "Belum ada tagihan untuk bulan ini."}</p>
               ) : (
                 filteredBillRows.map(({ payment, student, sessions }) => {
                   const paid = payment.status === "PAID";
@@ -1188,8 +1166,6 @@ export default function PaymentsPage() {
                     <th className="font-medium pb-1 text-right">Piutang</th>
                     <th className="font-medium pb-1 text-right">Keluar</th>
                     <th className="font-medium pb-1 text-right">Laba</th>
-                    <th className="font-medium pb-1 text-center w-12">Rkp</th>
-                    <th className="font-medium pb-1 text-center w-12">Bln</th>
                     <th className="font-medium pb-1 text-center"></th>
                   </tr>
                 </thead>
@@ -1204,8 +1180,6 @@ export default function PaymentsPage() {
                         <td className="py-1 text-right text-amber-600">{r.piutang ? formatRupiah(r.piutang) : "–"}</td>
                         <td className="py-1 text-right text-red-600">{r.pengeluaran ? formatRupiah(r.pengeluaran) : "–"}</td>
                         <td className={`py-1 text-right font-semibold ${r.laba >= 0 ? "text-green-700" : "text-red-600"}`}>{has ? formatRupiah(r.laba) : "–"}</td>
-                        <td className="py-1 text-center text-[10px] text-indigo-500">{auditPaymentBreakdown.get(r.month)?.rekap || "–"}</td>
-                        <td className="py-1 text-center text-[10px] text-gray-400">{auditPaymentBreakdown.get(r.month)?.bulanan || "–"}</td>
                         <td className="py-1 text-center">{r.closed ? "🔒" : ""}</td>
                       </tr>
                     );
@@ -1219,7 +1193,6 @@ export default function PaymentsPage() {
                     <td className="py-1 text-right text-amber-600">{formatRupiah(auditTotals.piutang)}</td>
                     <td className="py-1 text-right text-red-600">{formatRupiah(auditTotals.pengeluaran)}</td>
                     <td className={`py-1 text-right ${auditTotals.laba >= 0 ? "text-green-700" : "text-red-600"}`}>{formatRupiah(auditTotals.laba)}</td>
-                    <td></td><td></td>
                     <td></td>
                   </tr>
                 </tfoot>
@@ -1291,7 +1264,6 @@ export default function PaymentsPage() {
                   <div className="flex gap-2 mt-1 text-[10px]">
                     {s.confirmedCount > 0 && <span className="text-indigo-600">🏷 {s.confirmedCount} laporan sah</span>}
                     {s.draftCount > 0 && <span className="text-amber-600">📋 {s.draftCount} draft</span>}
-                    {s.reportBilled > 0 && <span className="text-indigo-500">{formatRupiah(s.reportBilled)} tagihan rekap</span>}
                   </div>
                 )}
               </div>
