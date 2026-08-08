@@ -100,6 +100,7 @@ export default function PaymentsPage() {
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [totalCost, setTotalCost] = useState(0);
   const [showManual, setShowManual] = useState(false);
+  const [billFilter, setBillFilter] = useState<"semua" | "rekap" | "bulanan">("semua");
   const [showExpenseModal, setShowExpenseModal] = useState(false);
 
   // Invoice / reminder
@@ -451,6 +452,12 @@ export default function PaymentsPage() {
         : (monthSessions ?? []).filter((s) => s.studentId === p.studentId),
     }))
     .sort((a, b) => b.payment.totalCost - a.payment.totalCost);
+
+  const filteredBillRows = billFilter === "rekap"
+    ? billRows.filter((r) => r.payment.reportId)
+    : billFilter === "bulanan"
+      ? billRows.filter((r) => !r.payment.reportId)
+      : billRows;
 
   const monthsOverview = (closings ?? []).map((c) => {
     const ps = payments.filter((p) => p.month === c.month);
@@ -868,10 +875,21 @@ export default function PaymentsPage() {
                   ↩ Buka kembali
                 </button>
               </div>
-              {billRows.length === 0 ? (
-                <p className="text-sm text-gray-500">Belum ada tagihan untuk bulan ini.</p>
+              {/* Filter: Semua / Periode Rekap / Bulanan */}
+              <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
+                {(["semua", "rekap", "bulanan"] as const).map((f) => (
+                  <button key={f} onClick={() => setBillFilter(f)}
+                    className={`flex-1 text-[11px] font-semibold rounded-md py-1.5 transition-colors ${
+                      billFilter === f ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                    }`}>
+                    {f === "semua" ? "Semua" : f === "rekap" ? "🏷 Periode Rekap" : "📅 Bulanan"}
+                  </button>
+                ))}
+              </div>
+              {filteredBillRows.length === 0 ? (
+                <p className="text-sm text-gray-500">{billFilter === "rekap" ? "Belum ada tagihan dari rekap laporan." : billFilter === "bulanan" ? "Belum ada tagihan bulanan." : "Belum ada tagihan untuk bulan ini."}</p>
               ) : (
-                billRows.map(({ payment, student, sessions }) => {
+                filteredBillRows.map(({ payment, student, sessions }) => {
                   const paid = payment.status === "PAID";
                   const periodLbl = payment.periodStart && payment.periodEnd ? periodLabel(payment.periodStart, payment.periodEnd) : "";
                   const amountStr = billEdits[payment.id] ?? String(payment.totalCost);
