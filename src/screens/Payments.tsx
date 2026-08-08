@@ -24,6 +24,7 @@ import { generatePaymentReminder, estimatePaymentReminderCost } from "../lib/aiC
 import { AiCostModal } from "../components/AiCostModal";
 import { buildBillingMessage, toWaNumber } from "../lib/waBilling";
 import { forecastNextMonth } from "../lib/forecast";
+import { generateFinancialInsights } from "../lib/aiClient";
 import { escapeCsvCell } from "../lib/csv";
 import { downloadBlob } from "../lib/download";
 import { MAX_PAYMENT_AMOUNT, clampCurrencyAmount, isValidCurrencyAmount, parseCurrencyDigits } from "../lib/money";
@@ -115,6 +116,8 @@ export default function PaymentsPage() {
   // Audit
   const [auditYear, setAuditYear] = useState(() => Number(todayWIB().slice(0, 4)));
   const [trendRange, setTrendRange] = useState<3 | 6 | 12>(6);
+  const [aiInsightLoading, setAiInsightLoading] = useState(false);
+  const [aiInsights, setAiInsights] = useState<import("../lib/aiClient").FinancialInsightOutput | null>(null);
 
   // ── Data for the selected month ──
   const monthSessions = useLiveQuery(() => listBillableSessionsForMonth(month), [month]);
@@ -197,6 +200,51 @@ export default function PaymentsPage() {
     } catch (e) {
       setMessage("Gagal: " + (e as Error).message);
     }
+  };
+
+  const handleGenerateInsights = async () => {
+    if (!navigator.onLine) { setMessage("Offline."); return; }
+    setAiInsightLoading(true);
+    try {
+      const prevMonths = getLast12Months(month).filter((m) => m !== month && m < month).slice(-3);
+      const prev = await getCashSummary(prevMonths);
+      const avg = prev.length > 0 ? {
+        potensi: Math.round(prev.reduce((s, r) => s + r.potensi, 0) / prev.length),
+        realisasi: Math.round(prev.reduce((s, r) => s + r.realisasi, 0) / prev.length),
+        laba: Math.round(prev.reduce((s, r) => s + r.laba, 0) / prev.length),
+        jam: 0, sesi: 0,
+      } : undefined;
+
+      const result = await generateFinancialInsights({
+        month, monthLabel: monthLabel(month),
+        current: {
+          potensi: cash.potensi, tagihan: cash.tagihan, terbayar: cash.lunas,
+          piutang: cash.piutang, realisasi: cash.realisasi, pengeluaran: cash.pengeluaran,
+          laba: cash.laba, jam: cash.hours, sesi: (monthSessions ?? []).length,
+          muridAktif: new Set((monthSessions ?? []).map((s) => s.studentId)).size,
+        },
+        piutangDetail: piutangRows.map((r) => ({
+          nama: r.student?.name ?? "(dihapus)", nominal: r.payment.totalCost,
+          umurHari: Math.round((Date.now() - new Date(r.payment.month + "-01").getTime()) / 86400000),
+        })),
+        murid: studentAnalytics.slice(0, 10).map((s) => {
+          const stu = students?.find((x) => x.id === s.id);
+          return {
+            nama: s.name, revenue: s.revenue, sesi: s.sessions,
+            level: stu?.level, tarif: stu?.hourlyRate,
+            engagementRata: s.avgEngagement,
+          };
+        }),
+        pengeluaranKategori: (monthExpenses ?? []).length > 0
+          ? [...(monthExpenses ?? []).reduce((m, e) => { m.set(e.category, (m.get(e.category) ?? 0) + e.amount); return m; }, new Map<string, number>()).entries()].map(([k, v]) => ({ kategori: k, nominal: v }))
+          : [],
+        previousAvg: avg,
+        proyeksiBulanDepan: forecast.estimate,
+      });
+      setAiInsights(result);
+      setMessage("Analisis AI selesai ✓");
+    } catch (e) { setMessage("Gagal: " + (e as Error).message); }
+    finally { setAiInsightLoading(false); }
   };
 
   const handleCloseMonth = async () => {
@@ -329,8 +377,8 @@ export default function PaymentsPage() {
   // ── Analytics: student data ─────────────────────────────────────────
   const studentAnalytics = useMemo(() => {
     if (!students || !monthSessions) return [];
-    const map = new Map<string, { name: string; revenue: number; sessions: number; avgEngagement: number; reportBilled: number; draftCount: number; confirmedCount: number }>();
-    students.forEach((s) => map.set(s.id, { name: s.name, revenue: 0, sessions: 0, avgEngagement: 0, reportBilled: 0, draftCount: 0, confirmedCount: 0 }));
+    const map = new Map<string, { name: string; id: string; revenue: number; sessions: number; avgEngagement: number; reportBilled: number; draftCount: number; confirmedCount: number }>();
+    students.forEach((s) => map.set(s.id, { name: s.name, id: s.id, revenue: 0, sessions: 0, avgEngagement: 0, reportBilled: 0, draftCount: 0, confirmedCount: 0 }));
     // Laporan rekap per murid
     (reports ?? []).forEach((r) => {
       const entry = map.get(r.studentId);
@@ -669,6 +717,51 @@ export default function PaymentsPage() {
                   ? "Fokus berikutnya: follow-up tagihan terbuka agar potensi pendapatan berubah menjadi kas masuk."
                   : "Penagihan bulan ini sudah lengkap. Pantau laba kas dan pengeluaran agar margin tetap sehat."}
             </p>
+          </section>
+
+          {/* ── AI: Anomali & Rekomendasi ───────────────────────── */}
+          <section className="rounded-2xl border border-indigo-200 bg-indigo-50/50 p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-indigo-400">AI Insight</p>
+                <h2 className="text-sm font-bold text-indigo-800">Anomali & Rekomendasi</h2>
+              </div>
+              <button onClick={handleGenerateInsights} disabled={aiInsightLoading}
+                className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+                {aiInsightLoading ? "Menganalisis..." : aiInsights ? "🔄 Analisis Ulang" : "✨ Analisis AI"}
+              </button>
+            </div>
+            <p className="text-[11px] text-indigo-500 mb-3">AI membaca data keuangan bulan ini + 3 bulan sebelumnya untuk mendeteksi anomali & memberi rekomendasi.</p>
+            {aiInsights && (
+              <div className="space-y-3">
+                {aiInsights.anomali.length > 0 && (
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-bold uppercase text-gray-500">Anomali</p>
+                    {aiInsights.anomali.map((a, i) => (
+                      <div key={i} className={`flex items-start gap-2 text-xs rounded-lg px-2.5 py-1.5 ${
+                        a.level === "warning" ? "bg-amber-100 text-amber-800" :
+                        a.level === "good" ? "bg-green-100 text-green-800" :
+                        "bg-white text-gray-700"
+                      }`}>
+                        <span className="mt-0.5 shrink-0">{a.level === "warning" ? "⚠️" : a.level === "good" ? "✅" : "ℹ️"}</span>
+                        <span>{a.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {aiInsights.rekomendasi.length > 0 && (
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-bold uppercase text-gray-500">Rekomendasi</p>
+                    {aiInsights.rekomendasi.map((r, i) => (
+                      <div key={i} className="flex items-start gap-2 text-xs bg-white rounded-lg px-2.5 py-1.5 text-gray-700">
+                        <span className="mt-0.5 shrink-0">💡</span>
+                        <span>{r}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </section>
 
           {/* Forecast */}
