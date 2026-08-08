@@ -40,6 +40,20 @@ export function monthLabel(monthStr: string): string {
   return date.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
 }
 
+/**
+ * Label periode rekap laporan (YYYY-MM-DD inklusif):
+ * satu bulan → "Juni 2026"; lintas bulan → "20 Januari – 3 Februari 2026".
+ */
+export function periodLabel(start: string, end: string): string {
+  if (!start || !end) return "";
+  if (start.slice(0, 7) === end.slice(0, 7)) return monthLabel(start.slice(0, 7));
+  const short = (d: string) => dayLabel(d).replace(/^\w+, /, "").replace(/ \d{4}$/, "");
+  if (start.slice(0, 4) !== end.slice(0, 4)) {
+    return `${short(start)} ${start.slice(0, 4)} – ${short(end)} ${end.slice(0, 4)}`;
+  }
+  return `${short(start)} – ${short(end)} ${end.slice(0, 4)}`;
+}
+
 /** Format as Indonesian Rupiah — e.g. 150000 → "Rp 150.000". Never shows decimals. */
 export function formatRupiah(n: number): string {
   return "Rp " + Math.round(n).toLocaleString("id-ID", {

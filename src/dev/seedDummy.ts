@@ -420,6 +420,7 @@ async function seedInner(force: boolean): Promise<void> {
   const andiJun = (await listSessionsByStudentMonth(andi, "2026-06")).filter((x) => x.status === "DONE");
   await upsertReport({
     id: crypto.randomUUID(), studentId: andi, month: "2026-06",
+    periodStart: "2026-06-01", periodEnd: "2026-06-30",
     sessionIds: andiJun.map((x) => x.id),
     templateKey: { themeId: "executive", layoutId: "infographic" },
     summaryText: "Juni jadi bulan paling produktif Andi: 8 sesi lintas Matematika AA & Fisika dengan rata-rata fokus tinggi. Kekuatan di pembuktian & koreksi diri; fokus berikutnya merapikan aplikasi vektor 3D dan soal kombinasi vektor–dinamika.",
@@ -432,6 +433,7 @@ async function seedInner(force: boolean): Promise<void> {
   const bellaJun = (await listSessionsByStudentMonth(bella, "2026-06")).filter((x) => x.status === "DONE");
   await upsertReport({
     id: crypto.randomUUID(), studentId: bella, month: "2026-06",
+    periodStart: "2026-06-01", periodEnd: "2026-06-30",
     sessionIds: bellaJun.map((x) => x.id),
     templateKey: { themeId: "ocean", layoutId: "analytics" },
     summaryText: "Bella konsisten di Fisika & Kimia meski jadwal padat ujian sekolah. Perlu penguatan di perhitungan kesetimbangan (Kc/Kp).",

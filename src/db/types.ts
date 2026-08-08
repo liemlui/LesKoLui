@@ -145,7 +145,12 @@ export interface NextMonthPlan {
 export interface MonthlyReport {
   id: string;
   studentId: string;
+  /** Bulan anchor tagihan = bulan akhir periode rekap (YYYY-MM). */
   month: string;
+  /** Awal periode rekap (YYYY-MM-DD, inklusif) — laporan lama = awal bulan kalender. */
+  periodStart: string;
+  /** Akhir periode rekap (YYYY-MM-DD, inklusif) — laporan lama = akhir bulan kalender. */
+  periodEnd: string;
   sessionIds: string[];
   templateKey: TemplateKey;
   summaryText: string;
@@ -162,12 +167,17 @@ export interface MonthlyReport {
 export interface Payment {
   id: string;
   studentId: string;
+  /** Bulan anchor tagihan (YYYY-MM). Untuk tagihan laporan = bulan akhir periode. */
   month: string;
   totalCost: number;
   status: PaymentStatus;
   source?: PaymentSource;
   paidAt?: string;
   method?: string;
+  /** Terbit dari laporan periode (rekap N pertemuan / rentang tanggal). */
+  reportId?: string;
+  periodStart?: string;
+  periodEnd?: string;
 }
 
 // ── Month Closing (Tutup Bulan) ──────────────────────────────────────────────

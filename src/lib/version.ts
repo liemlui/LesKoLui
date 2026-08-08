@@ -11,20 +11,36 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.38.0",
+    date: "2026-08-08",
+    title: "Laporan Periode Bebas: Rekap N Pertemuan / Rentang Tanggal + Tagihan per Laporan",
+    items: [
+      "Laporan bisa digenerate dari N pertemuan terakhir yang belum direkap atau rentang tanggal pilihan — tidak wajib tutup buku tiap bulan",
+      "Tanggal yang sudah pernah direkap atau masuk bulan yang sudah tutup buku tidak bisa digenerate lagi (anti rekap ganda, lengkap dengan alasan)",
+      "Setiap laporan otomatis menerbitkan tagihan; status Lunas/Belum + nominal tampil di halaman Keuangan per periode dan di layar laporan",
+      "Tagihan laporan masuk ke bulan akhir periode; kas masuk (realisasi) tetap dicatat sesuai tanggal pembayaran aktual",
+      "Tutup bulan tidak menagih ulang sesi yang sudah masuk laporan — sisa sesi yang belum direkap tetap ditagih terpisah",
+      "Tombol Sudah Transfer / Batalkan / ubah nominal kini berbasis id tagihan — aman walau ada lebih dari satu tagihan per murid-bulan",
+      "Tagihan WA, invoice PDF, dan CSV menampilkan periode laporan (mis. 20 Januari – 3 Februari 2026)",
+      "Laporan lama otomatis dianggap periode satu bulan kalender penuh (migrasi data v11)",
+    ],
+  },
+  {
     version: "v1.37.0",
     date: "2026-08-02",
     title: "Perbaikan Audit Total: Baseline Hijau & Konsistensi Data",
     items: [
       "Lint bersih total (0 error 0 warning) dan 166 unit test lulus — CI kembali hijau",
-      "Recovery PIN (PIN lama & jawaban keamanan) kini dilindungi lockout bertahap — tidak bisa dibrute-force",
+      "Recovery PIN (PIN lama & jawaban keamanan) kini dibatasi lockout bertahap dan guard percobaan paralel",
       "Hapus sesi otomatis menyesuaikan tagihan otomatis yang belum lunas dan total laporan bulanan — tidak ada lagi piutang hantu",
       "Tutup bulan mencatat snapshot hanya tagihan yang benar-benar dibuat dan aman dipanggil berulang (double-tap)",
       "Mengubah nominal tagihan menandainya sebagai manual — tidak lagi ikut berubah saat sesi dihapus",
       "Catatan Belajar menampilkan waktu relatif yang benar (bukan selalu '+7 jam')",
-      "Reset semua data kini benar-benar menghapus semuanya, termasuk catatan belajar dan pengaturan",
+      "Reset database kini menghapus semua data domain lama, termasuk catatan belajar dan pengaturan, lalu menyimpan satu jejak reset",
       "Pembaruan aplikasi tidak lagi memuat ulang paksa di tengah mengisi form — banner 'Muat Ulang' yang memutuskan",
       "Label form terhubung ke kolomnya (aksesibilitas) dan semua dialog dikenali pembaca layar",
       "Kode mati dibersihkan dan TypeScript strict mode aktif",
+      "Dependency transitif DOMPurify, PostCSS, fast-uri, dan brace-expansion diperbarui ke versi patched",
       "Backup memperbaiki bug tabel Catatan Belajar yang gagal divalidasi saat restore",
     ],
   },

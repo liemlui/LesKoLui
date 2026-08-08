@@ -67,6 +67,22 @@ export class JurnalDB extends Dexie {
     this.version(10).stores({
       studyNotes: "studentId",
     });
+    // v11: laporan periode bebas (rekap N pertemuan / rentang tanggal) + tagihan per laporan.
+    // Laporan lama di-backfill periodenya = satu bulan kalender penuh.
+    this.version(11).stores({
+      reports:  "id, studentId, month, periodStart, periodEnd, [studentId+month]",
+      payments: "id, studentId, [studentId+month], status, reportId",
+    }).upgrade(async (tx) => {
+      const reports = await tx.table("reports").toArray();
+      for (const r of reports) {
+        if (!r.periodStart || !r.periodEnd) {
+          const lastDay = new Date(+r.month.slice(0, 4), +r.month.slice(5, 7), 0).getDate();
+          r.periodStart = `${r.month}-01`;
+          r.periodEnd = `${r.month}-${String(lastDay).padStart(2, "0")}`;
+          await tx.table("reports").put(r);
+        }
+      }
+    });
   }
 }
 

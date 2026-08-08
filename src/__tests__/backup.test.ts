@@ -40,7 +40,9 @@ async function seedEveryBackupTable(): Promise<void> {
     signature: new Blob(["signature"], { type: "image/png" }),
   };
   const report: MonthlyReport = {
-    id: "report-1", studentId: student.id, month: "2026-07", sessionIds: [session.id],
+    id: "report-1", studentId: student.id, month: "2026-07",
+    periodStart: "2026-07-01", periodEnd: "2026-07-31",
+    sessionIds: [session.id],
     templateKey: { themeId: "blue", layoutId: "cards" }, summaryText: "Bagus", totalHours: 1.5,
     totalCost: 375_000, createdAt: now,
   };

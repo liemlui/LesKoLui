@@ -84,7 +84,10 @@ test("rencana bulan depan tersimpan dan ikut tampil di pratinjau", async ({ page
   );
   for (const value of optionValues) {
     await select.selectOption(value);
-    if (await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).isVisible({ timeout: 1500 }).catch(() => false)) break;
+    try {
+      await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).waitFor({ timeout: 2500 });
+      break;
+    } catch { /* murid ini tak punya sesi bulan ini — lanjut */ }
   }
 
   await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).click();

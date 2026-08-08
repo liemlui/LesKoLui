@@ -166,6 +166,16 @@ export async function listSessionsByStudentMonth(
     .sortBy("date");
 }
 
+/** Sesi DONE murid dalam rentang tanggal bebas [start, end] — dasar rekap periode. */
+export async function listSessionsByStudentRange(
+  studentId: string, start: string, end: string
+): Promise<Session[]> {
+  return db.sessions
+    .where({ studentId })
+    .filter((s) => s.status === "DONE" && s.date >= start && s.date <= end)
+    .sortBy("date");
+}
+
 export async function listScheduledForMonth(month: string): Promise<Session[]> {
   const { start, end } = monthRange(month);
   return db.sessions
@@ -287,11 +297,19 @@ export async function deleteSession(id: string): Promise<void> {
           const sessionIds = r.sessionIds.filter((sid) => sid !== id);
           // Hitung ulang total laporan dari sesi yang tersisa agar tidak melayang.
           const remaining = await db.sessions.bulkGet(sessionIds);
-          await db.reports.update(r.id, {
-            sessionIds,
-            totalHours: remaining.reduce((s, x) => s + (x?.durationHours ?? 0), 0),
-            totalCost: remaining.reduce((s, x) => s + (x?.cost ?? 0), 0),
-          });
+          const totalHours = remaining.reduce((s, x) => s + (x?.durationHours ?? 0), 0);
+          const totalCost = remaining.reduce((s, x) => s + (x?.cost ?? 0), 0);
+          await db.reports.update(r.id, { sessionIds, totalHours, totalCost });
+          // Tagihan yang terbit dari laporan periode ikut disesuaikan — asal
+          // belum lunas dan belum diedit manual (nominalnya sudah disepakati).
+          const pay = await db.payments.where("reportId").equals(r.id).first();
+          if (pay && pay.status === "UNPAID" && pay.source !== "manual") {
+            if (totalCost > 0) {
+              await db.payments.update(pay.id, { totalCost });
+            } else {
+              await db.payments.delete(pay.id); // sesi sudah nol — tagihan hantu dihapus
+            }
+          }
         }
       });
 
@@ -301,13 +319,15 @@ export async function deleteSession(id: string): Promise<void> {
     // yang tidak pernah masuk tagihan. Jadi hitung ulang dari sesi yang tersisa,
     // bukan sekadar mengurangi biaya sesi yang dihapus.
     // Tagihan manual/PAID sengaja dibiarkan: nominalnya sudah disepakati/diterima.
+    // Tagihan terikat laporan periode sudah disesuaikan lewat laporan di atas.
     if (session && isBillableSession(session)) {
-      const payment = await db.payments
-        .where("[studentId+month]")
-        .equals([session.studentId, session.date.slice(0, 7)])
-        .first();
-      if (payment && payment.status === "UNPAID" && payment.source === "auto") {
-        const month = session.date.slice(0, 7);
+      const month = session.date.slice(0, 7);
+      const payments = await db.payments
+        .where({ studentId: session.studentId })
+        .filter((p) => p.month === month)
+        .toArray();
+      const payment = payments.find((p) => !p.reportId); // hindari tagihan laporan (ada 2+ baris sebulan)
+      if (payment && payment.status === "UNPAID" && payment.source === "auto" && !payment.reportId) {
         const { start, end } = monthRange(month);
         const remaining = await db.sessions
           .filter((s) => s.studentId === session.studentId && isBillableSession(s) && s.date >= start && s.date <= end)

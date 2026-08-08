@@ -20,6 +20,7 @@ export {
   createSession, markSessionDone, updateSession, deleteSession,
   cancelSession, markSessionNoShow, rescheduleSession,
   listSessionsByStudent, listSessionsForMonth, listSessionsByStudentMonth,
+  listSessionsByStudentRange,
   isBillableSession, listBillableSessionsForMonth, listBillableSessionsByStudentMonth,
   listScheduledForMonth, listAllSessionsForMonth,
   listAllSessionsForWeek, listDoneSessionsForDate,
@@ -35,12 +36,17 @@ export {
 export type { CancelMode, EditMode } from "./sessionRepo";
 
 // Reports
-export { getReport, upsertReport, listReportsByStudent } from "./reportRepo";
+export {
+  getReport, upsertReport, listReportsByStudent, listAllReports,
+  findReportByPeriod, listOverlappingReports,
+} from "./reportRepo";
 
 // Payments + Month Closing + Expenses
 export {
   getPayment, upsertPayment, listPayments,
   markPaymentTransferred, markPaymentUnpaid, updatePaymentAmount,
+  getPaymentByReport, syncReportPayment,
+  markPaymentTransferredById, markPaymentUnpaidById, updatePaymentAmountById,
   getMonthClosing, listMonthClosings, closeMonth, reopenMonth,
   computeMonthBills, getCashSummary,
   createExpense, listExpenses, deleteExpense,

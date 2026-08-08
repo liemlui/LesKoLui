@@ -4,9 +4,11 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   listStudents, getStudent, getSettings,
-  listSessionsByStudentMonth,
-  getReport, upsertReport, updateSession, saveSettings,
+  listSessionsByStudentRange,
+  findReportByPeriod, listReportsByStudent, upsertReport, updateSession, saveSettings,
+  listMonthClosings, getPaymentByReport, syncReportPayment,
 } from "../db/repos";
+import { monthRange } from "../db/repos/helpers";
 import { pickTemplate } from "../lib/rotation";
 import { generateReportSummary, generateNarratives, estimateReportSummaryCost, estimateNarrativesCost } from "../lib/aiClient";
 import { BEHAVIOR_TAGS, RESPONSE_TAGS } from "../lib/responseTaxonomy";
@@ -14,7 +16,7 @@ import { AiCostModal } from "../components/AiCostModal";
 import { getTheme, THEMES } from "../template/themes";
 import { LAYOUTS } from "../template/layouts";
 import { ReportRenderer } from "../template/ReportRenderer";
-import { dayLabel, monthLabel, todayWIB, monthOf } from "../lib/format";
+import { dayLabel, monthLabel, todayWIB, monthOf, periodLabel, formatRupiah } from "../lib/format";
 import { exportJpeg, exportPng, exportPdf, shareFiles } from "../lib/exportReport";
 import { blobToDataUrl, blobToNormalizedDataUrl } from "../lib/imageUtils";
 import PaginationControls from "../components/PaginationControls";
@@ -135,8 +137,14 @@ export default function MonthlyReportPage() {
   const students = useLiveQuery(() => listStudents(true), []);
   const settings = useLiveQuery(() => getSettings(), []);
 
+  // ── Mode rekap: bulan kalender / N pertemuan terakhir / rentang tanggal ──
+  type RecapMode = "bulan" | "jumlah" | "range";
+  const [mode, setMode] = useState<RecapMode>("bulan");
   const [studentId, setStudentId] = useState(searchParams.get("studentId") ?? "");
   const [month, setMonth] = useState(() => monthOf(todayWIB()));
+  const [count, setCount] = useState(4);
+  const [rangeStart, setRangeStart] = useState(() => todayWIB());
+  const [rangeEnd, setRangeEnd] = useState(() => todayWIB());
 
   const [editingNarrative, setEditingNarrative] = useState<string | null>(null);
   const [editText,         setEditText]         = useState("");
@@ -168,17 +176,94 @@ export default function MonthlyReportPage() {
   const [subjectFilter,    setSubjectFilter]    = useState<string>("");
 
   const student  = useLiveQuery(() => (studentId ? getStudent(studentId) : undefined), [studentId]);
-  const sessions = useLiveQuery(() => (studentId ? listSessionsByStudentMonth(studentId, month) : []), [studentId, month]);
-  const report   = useLiveQuery(() => (studentId ? getReport(studentId, month) : undefined), [studentId, month]);
+  const studentReports = useLiveQuery(() => (studentId ? listReportsByStudent(studentId) : []), [studentId]);
+  const closings = useLiveQuery(() => listMonthClosings(), []);
 
-  const totalHours = useMemo(() => sessions?.reduce((s, x) => s + x.durationHours, 0) ?? 0, [sessions]);
-  const totalCost  = useMemo(() => sessions?.reduce((s, x) => s + x.cost, 0) ?? 0, [sessions]);
-  const reportSessions         = useMemo(() => sessions ?? [], [sessions]);
+  // Batas periode per mode
+  const monthStart = useMemo(() => (month ? `${month}-01` : ""), [month]);
+  const monthEnd = useMemo(() => (month ? monthRange(month).end : ""), [month]);
+  const todayStr = useMemo(() => todayWIB(), []);
+
+  // Sesi DONE murid sesuai mode rekap
+  const sessions = useLiveQuery(() => {
+    if (!studentId) return [];
+    if (mode === "bulan") return listSessionsByStudentRange(studentId, monthStart, monthEnd);
+    if (mode === "range") return listSessionsByStudentRange(studentId, rangeStart, rangeEnd);
+    return listSessionsByStudentRange(studentId, "0000-01-01", todayStr); // mode jumlah: ambil semua lalu pilih N terakhir
+  }, [studentId, mode, monthStart, monthEnd, rangeStart, rangeEnd, todayStr]);
+
+  // Periode rekap efektif + sesi yang masuk laporan
+  const coveredIds = useMemo(
+    () => new Set((studentReports ?? []).flatMap((r) => r.sessionIds)),
+    [studentReports]
+  );
+  const { periodStart, periodEnd, reportSessions } = useMemo(() => {
+    if (!studentId) return { periodStart: "", periodEnd: "", reportSessions: [] as Session[] };
+    if (mode === "jumlah") {
+      // N pertemuan terakhir yang BELUM direkap — tanggal sudah direkap tidak ikut dipilih.
+      // Jika semuanya sudah direkap (mis. membuka laporan yang sudah ada), fallback ke
+      // N terakhir apa adanya agar laporan yang sama tetap bisa di-update lewat mode ini;
+      // guard overlap di bawah tetap menolak periode baru yang menabrak laporan lama.
+      const uncovered = (sessions ?? []).filter((s) => !coveredIds.has(s.id));
+      const chosen = uncovered.length > 0 ? uncovered.slice(-count) : (sessions ?? []).slice(-count);
+      return {
+        periodStart: chosen[0]?.date ?? "",
+        periodEnd: chosen[chosen.length - 1]?.date ?? "",
+        reportSessions: chosen,
+      };
+    }
+    return {
+      periodStart: mode === "bulan" ? monthStart : rangeStart,
+      periodEnd: mode === "bulan" ? monthEnd : rangeEnd,
+      reportSessions: sessions ?? [],
+    };
+  }, [studentId, mode, sessions, coveredIds, count, monthStart, monthEnd, rangeStart, rangeEnd]);
+
+  // Laporan identik periode = laporan yang sama (basis edit); periode lain yang
+  // bertumpuk atau bulan yang sudah tutup buku → periode TIDAK bisa digenerate.
+  const report = useLiveQuery(
+    () => (studentId && periodStart && periodEnd ? findReportByPeriod(studentId, periodStart, periodEnd) : undefined),
+    [studentId, periodStart, periodEnd]
+  );
+  const payment = useLiveQuery(() => (report ? getPaymentByReport(report.id) : undefined), [report]);
+
+  const availability = useMemo(() => {
+    if (!studentId || !periodStart || !periodEnd) return { ok: false, reason: "" };
+    if (mode === "range" && rangeStart > rangeEnd) {
+      return { ok: false, reason: "Tanggal awal harus lebih dulu dari tanggal akhir." };
+    }
+    const overlap = (studentReports ?? []).find(
+      (r) => r.id !== report?.id && r.periodStart <= periodEnd && r.periodEnd >= periodStart
+    );
+    if (overlap) {
+      return {
+        ok: false,
+        reason: `Tanggal ${dayLabel(overlap.periodStart)} s/d ${dayLabel(overlap.periodEnd)} sudah pernah direkap (laporan ${periodLabel(overlap.periodStart, overlap.periodEnd)}). Pilih periode lain.`,
+      };
+    }
+    const closed = (closings ?? []).find((c) => {
+      // Laporan untuk periode ini sendiri dikecualikan: memperbarui laporan yang
+      // sudah ada bukan "generate lagi" — sesi di dalamnya sudah ter-rekap.
+      if (report?.id && report.periodStart === periodStart && report.periodEnd === periodEnd) return false;
+      const { start, end } = monthRange(c.month);
+      return periodStart <= end && periodEnd >= start;
+    });
+    if (closed) {
+      return {
+        ok: false,
+        reason: `Bulan ${monthLabel(closed.month)} sudah ditutup (tutup buku keuangan) — tanggal dalam periode ini tidak bisa direkap lagi.`,
+      };
+    }
+    return { ok: true, reason: "" };
+  }, [studentId, periodStart, periodEnd, studentReports, closings, report, mode, rangeStart, rangeEnd]);
+
+  const totalHours = useMemo(() => reportSessions.reduce((s, x) => s + x.durationHours, 0), [reportSessions]);
+  const totalCost  = useMemo(() => reportSessions.reduce((s, x) => s + x.cost, 0), [reportSessions]);
   const uniqueSubjects         = useMemo(() => {
     const set = new Set<string>();
-    (sessions ?? []).forEach((s) => s.subjects.forEach((subj) => { if (subj.trim()) set.add(subj.trim()); }));
+    reportSessions.forEach((s) => s.subjects.forEach((subj) => { if (subj.trim()) set.add(subj.trim()); }));
     return [...set].sort();
-  }, [sessions]);
+  }, [reportSessions]);
   const filteredSessions = useMemo(() =>
     subjectFilter ? reportSessions.filter((s) => s.subjects.some((subj) => subj.trim() === subjectFilter)) : reportSessions,
   [reportSessions, subjectFilter]);
@@ -210,8 +295,8 @@ export default function MonthlyReportPage() {
   const reportReadiness = reportReadinessItems.filter((item) => item.complete).length;
   const reportReadinessPercent = Math.round((reportReadiness / reportReadinessItems.length) * 100);
 
-  // Clear stale message when student or month changes
-  useEffect(() => { setMessage(""); setPrevTexts(null); }, [studentId, month]);
+  // Clear stale message when student or period changes
+  useEffect(() => { setMessage(""); setPrevTexts(null); }, [studentId, periodStart, periodEnd]);
 
   // Resolve theme: built-in or custom
   const theme: Theme = useMemo(() => {
@@ -261,9 +346,9 @@ export default function MonthlyReportPage() {
     let cancelled = false;
     (async () => {
       const logoUrl = settings?.logo ? await blobToDataUrl(settings.logo) : undefined;
-      // KRONOLOGIS (awal→akhir bulan): orang tua membaca laporan sebagai cerita perkembangan.
+      // KRONOLOGIS (awal→akhir periode): orang tua membaca laporan sebagai cerita perkembangan.
       // Semua visual tren (sparkline, growth, compare) mengandalkan urutan ini.
-      const sorted = [...sessions].sort((a, b) => a.date.localeCompare(b.date));
+      const sorted = [...reportSessions].sort((a, b) => a.date.localeCompare(b.date));
       const entries = await Promise.all(
         sorted.map(async (s) => {
           const engScore = s.engagement?.score ?? (s.engagement ? calcEngagementScore(s.engagement) : undefined);
@@ -284,16 +369,16 @@ export default function MonthlyReportPage() {
       const scores = entries.filter((e) => e.engagementScore != null).map((e) => e.engagementScore!);
       const avgEngagement = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : undefined;
       const photoUrls = entries.filter((e) => e.photoUrl).map((e) => e.photoUrl!);
-      // Agregat sebulan penuh untuk layout infografis (akurat lintas halaman).
+      // Agregat periode penuh untuk layout infografis (akurat lintas halaman).
       const distMap = new Map<string, number>();
-      sessions.forEach((s) => s.subjects.map((x) => x.trim()).filter(Boolean)
+      reportSessions.forEach((s) => s.subjects.map((x) => x.trim()).filter(Boolean)
         .forEach((sub) => distMap.set(sub, (distMap.get(sub) ?? 0) + 1)));
       const subjectDist = [...distMap.entries()]
         .map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
       if (cancelled) return;
       setReportData({
         studentName: student.name,
-        period: monthLabel(month),
+        period: periodLabel(periodStart, periodEnd) || monthLabel(month),
         tutorName: settings?.tutorProfile?.name ?? "",
         logoUrl,
         entries,
@@ -311,54 +396,79 @@ export default function MonthlyReportPage() {
       });
     })();
     return () => { cancelled = true; };
-  }, [student, sessions, month, report, settings, totalHours]);
+  }, [student, sessions, reportSessions, month, periodStart, periodEnd, report, settings, totalHours]);
 
   const safeNarrativePage      = clampPage(narrativePage, filteredSessions.length);
   const paginatedNarrativeSessions = paginateItems(filteredSessions, safeNarrativePage);
 
   const ensureReport = async () => {
     if (!studentId) return undefined;
-    let current = await getReport(studentId, month);
+    if (!availability.ok) { setMessage("Gagal: " + availability.reason); return undefined; }
+    let current = await findReportByPeriod(studentId, periodStart, periodEnd);
     if (current) {
-      const refreshed = { ...current, sessionIds: reportSessions.map((s) => s.id), totalHours, totalCost };
+      const refreshed = {
+        ...current,
+        month: monthOf(periodEnd),
+        periodStart, periodEnd,
+        sessionIds: reportSessions.map((s) => s.id),
+        totalHours, totalCost,
+      };
       await upsertReport(refreshed);
+      await syncReportPayment(refreshed);
       return refreshed;
     }
     const templateKey = await pickTemplate(studentId);
-    await upsertReport({
-      id: crypto.randomUUID(), studentId, month,
+    const created = {
+      id: crypto.randomUUID(), studentId,
+      month: monthOf(periodEnd), periodStart, periodEnd,
       sessionIds: reportSessions.map((s) => s.id),
       templateKey, summaryText: "", totalHours, totalCost,
       createdAt: new Date().toISOString(),
-    });
-    current = await getReport(studentId, month);
+    };
+    await upsertReport(created);
+    await syncReportPayment(created);
+    current = await findReportByPeriod(studentId, periodStart, periodEnd);
     return current;
   };
 
   const handleCreateOrSwitch = async (newLayoutId?: string) => {
     if (!studentId || reportSessions.length === 0) return;
     try {
-      const r = await getReport(studentId, month);
+      if (!availability.ok) { setMessage("Gagal: " + availability.reason); return; }
+      const r = await findReportByPeriod(studentId, periodStart, periodEnd);
       if (!r) {
         const picked = await pickTemplate(studentId);
         const templateKey = newLayoutId ? { ...picked, layoutId: newLayoutId } : picked;
-        await upsertReport({
-          id: crypto.randomUUID(), studentId, month,
+        const created = {
+          id: crypto.randomUUID(), studentId,
+          month: monthOf(periodEnd), periodStart, periodEnd,
           sessionIds: reportSessions.map((s) => s.id),
           templateKey, summaryText: "", totalHours, totalCost,
           createdAt: new Date().toISOString(),
-        });
-        setMessage("Laporan dibuat!");
+        };
+        await upsertReport(created);
+        await syncReportPayment(created);
+        setMessage("Laporan dibuat! Tagihan otomatis terbit di Keuangan.");
       } else if (newLayoutId) {
-        await upsertReport({
+        const updated = {
           ...r,
+          month: monthOf(periodEnd), periodStart, periodEnd,
           sessionIds: reportSessions.map((s) => s.id),
           totalHours, totalCost,
           templateKey: { themeId: r.templateKey.themeId, layoutId: newLayoutId },
-        });
+        };
+        await upsertReport(updated);
+        await syncReportPayment(updated);
         setMessage("Layout diganti!");
       } else {
-        await upsertReport({ ...r, sessionIds: reportSessions.map((s) => s.id), totalHours, totalCost });
+        const updated = {
+          ...r,
+          month: monthOf(periodEnd), periodStart, periodEnd,
+          sessionIds: reportSessions.map((s) => s.id),
+          totalHours, totalCost,
+        };
+        await upsertReport(updated);
+        await syncReportPayment(updated);
         setMessage("Data laporan diperbarui ✓");
       }
     } catch (e) { setMessage("Error: " + (e as Error).message); }
@@ -374,7 +484,7 @@ export default function MonthlyReportPage() {
   /** Payload sesi untuk AI — dipakai Poles AI (ringkasan) dan Narasi AI. */
   const buildAiInput = () => ({
     student: { name: student!.name, level: student!.level },
-    month: monthLabel(month),
+    month: periodLabel(periodStart, periodEnd) || monthLabel(month),
     sessions: (sessions ?? []).map((s) => ({
       id: s.id, date: dayLabel(s.date), subject: s.subjects.join(", "),
       shortNote: s.shortNote, mood: s.mood, topic: s.topic,
@@ -456,7 +566,7 @@ export default function MonthlyReportPage() {
     if (!student || !report || !reportData || exporting) return;
     setExporting(type);
     setMessage("");
-    const base = `Laporan-${student.name}-${monthLabel(month)}`.replace(/\s+/g, "-");
+    const base = `Laporan-${student.name}-${periodLabel(periodStart, periodEnd) || monthLabel(month)}`.replace(/\s+/g, "-");
     const exportRoot = reportExportRef.current ?? document;
     try {
       if (type === "jpg") await shareFiles(await exportJpeg(base, exportRoot), base);
@@ -524,9 +634,9 @@ export default function MonthlyReportPage() {
         {/* ── LAPORAN MURID ── */}
         <div className="space-y-3">
 
-            {/* CARD 1: Murid + Bulan + Stats + Actions */}
+            {/* CARD 1: Murid + Periode + Stats + Actions */}
             <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2">
                 <div>
                   <label htmlFor="mr-murid" className="label">Murid</label>
                   <select id="mr-murid" className="input" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
@@ -535,10 +645,52 @@ export default function MonthlyReportPage() {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="mr-bulan" className="label">Bulan</label>
-                  <input id="mr-bulan" className="input" type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
+                  <label className="label">Mode Rekap</label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {([["bulan", "🗓 Bulan"], ["jumlah", "🔢 Jumlah"], ["range", "📅 Rentang"]] as const).map(([m, label]) => (
+                      <button key={m} onClick={() => setMode(m)}
+                        className={`text-xs font-semibold rounded-lg py-2 transition-colors ${mode === m ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  {mode === "bulan" && (
+                    <>
+                      <label htmlFor="mr-bulan" className="label">Bulan</label>
+                      <input id="mr-bulan" className="input" type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
+                    </>
+                  )}
+                  {mode === "jumlah" && (
+                    <>
+                      <label htmlFor="mr-jumlah" className="label">Jumlah Pertemuan</label>
+                      <input id="mr-jumlah" className="input" type="number" min={1} max={20} value={count}
+                        onChange={(e) => setCount(Math.max(1, Math.min(20, Number(e.target.value) || 1)))} />
+                      <p className="text-[11px] text-gray-500 mt-1">N pertemuan terakhir yang belum direkap.</p>
+                    </>
+                  )}
+                  {mode === "range" && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label htmlFor="mr-tanggal-awal" className="label">Tanggal awal</label>
+                        <input id="mr-tanggal-awal" className="input" type="date" value={rangeStart} onChange={(e) => setRangeStart(e.target.value)} />
+                      </div>
+                      <div>
+                        <label htmlFor="mr-tanggal-akhir" className="label">Tanggal akhir</label>
+                        <input id="mr-tanggal-akhir" className="input" type="date" value={rangeEnd} onChange={(e) => setRangeEnd(e.target.value)} />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {studentId && periodStart && periodEnd && (
+                <p className="text-xs text-gray-500">
+                  Periode: <strong>{periodLabel(periodStart, periodEnd)}</strong>
+                  {mode === "jumlah" && reportSessions.length > 0 && ` · ${reportSessions.length} pertemuan`}
+                </p>
+              )}
 
               {uniqueSubjects.length > 1 && studentId && (
                 <div className="flex flex-wrap gap-1.5">
@@ -563,14 +715,32 @@ export default function MonthlyReportPage() {
 
               {studentId && sessions && sessions.length === 0 && (
                 <div className="text-center py-2 space-y-2">
-                  <p className="text-sm text-gray-500">Belum ada sesi di {monthLabel(month)}.</p>
+                  <p className="text-sm text-gray-500">Belum ada sesi di {periodLabel(periodStart, periodEnd) || monthLabel(month)}.</p>
                   <Link to="/capture" className="btn btn-primary w-full text-sm">Rekam Sesi Sekarang</Link>
                 </div>
               )}
 
-              {studentId && sessions && sessions.length > 0 && (
+              {studentId && sessions && sessions.length > 0 && reportSessions.length === 0 && (
+                <p className="text-sm text-gray-500 text-center py-1">
+                  Semua sesi di periode ini sudah pernah direkap — pilih periode lain.
+                </p>
+              )}
+
+              {studentId && periodStart && periodEnd && reportSessions.length > 0 && (
+                availability.ok ? (
+                  <p className="text-[11px] text-green-700 bg-green-50 border border-green-100 rounded-lg px-2.5 py-1.5">
+                    ✓ Periode tersedia — tanggal belum pernah direkap dan belum tutup buku.
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-red-700 bg-red-50 border border-red-100 rounded-lg px-2.5 py-1.5">
+                    ⛔ {availability.reason}
+                  </p>
+                )
+              )}
+
+              {studentId && sessions && sessions.length > 0 && reportSessions.length > 0 && (
                 <>
-                  {/* Ringkasan yang langsung menjawab kondisi belajar bulan ini. */}
+                  {/* Ringkasan yang langsung menjawab kondisi belajar periode ini. */}
                   <div className="grid grid-cols-4 gap-1.5">
                     <div className="bg-blue-50 rounded-xl py-2 text-center">
                       <p className="text-lg font-bold text-blue-700">{sessions.length}</p>
@@ -597,9 +767,21 @@ export default function MonthlyReportPage() {
                     </p>
                   )}
 
+                  {/* Status tagihan periode (terbit otomatis dari laporan) */}
+                  {report && payment && (
+                    <div className={`rounded-lg px-3 py-2 text-sm flex items-center justify-between ${payment.status === "PAID" ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>
+                      <span className="font-semibold">{payment.status === "PAID" ? "✓ Tagihan Lunas" : "💳 Tagihan Belum Dibayar"}</span>
+                      <span className="font-bold">{formatRupiah(payment.totalCost)}</span>
+                    </div>
+                  )}
+                  {report && !payment && (
+                    <p className="text-[11px] text-gray-400">Tagihan periode akan terbit saat laporan disimpan.</p>
+                  )}
+
                   {/* Action buttons */}
                   <div className="flex gap-2">
-                    <button className="btn btn-primary flex-1 text-sm" onClick={() => handleCreateOrSwitch()}>
+                    <button className="btn btn-primary flex-1 text-sm disabled:opacity-40" disabled={!availability.ok}
+                      onClick={() => handleCreateOrSwitch()}>
                       {report ? "🔄 Update Laporan" : "📝 Buat Laporan"}
                     </button>
                   </div>

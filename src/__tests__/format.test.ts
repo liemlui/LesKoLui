@@ -76,3 +76,26 @@ describe("parseDate", () => {
     expect(date.getMinutes()).toBe(0);
   });
 });
+
+describe("periodLabel", () => {
+  it("uses month label when the period is inside a single month", async () => {
+    const { periodLabel } = await import("../lib/format");
+    expect(periodLabel("2026-06-01", "2026-06-30")).toBe("Juni 2026");
+    expect(periodLabel("2026-06-05", "2026-06-20")).toBe("Juni 2026");
+  });
+
+  it("shows a range when the period spans months", async () => {
+    const { periodLabel } = await import("../lib/format");
+    expect(periodLabel("2026-01-20", "2026-02-03")).toBe("20 Januari – 3 Februari 2026");
+  });
+
+  it("includes both years when the period spans years", async () => {
+    const { periodLabel } = await import("../lib/format");
+    expect(periodLabel("2026-12-28", "2027-01-05")).toBe("28 Desember 2026 – 5 Januari 2027");
+  });
+
+  it("returns empty string when dates are missing", async () => {
+    const { periodLabel } = await import("../lib/format");
+    expect(periodLabel("", "")).toBe("");
+  });
+});

@@ -6,13 +6,15 @@ import {
   listPayments, listStudents, getPayment, upsertPayment, getSettings,
   listExpenses, deleteExpense,
   listBillableSessionsForMonth, listBillableSessionsByStudentMonth, listAllUpcomingScheduled,
-  listScheduledForMonth,
+  listScheduledForMonth, listSessionsByStudentRange,
   getMonthClosing, listMonthClosings, closeMonth, reopenMonth,
-  markPaymentTransferred, markPaymentUnpaid, updatePaymentAmount, getCashSummary,
+  getCashSummary,
   getMonthlyIncomeVsExpense,
+  listAllReports,
+  markPaymentTransferredById, markPaymentUnpaidById, updatePaymentAmountById,
 } from "../db/repos";
-import type { Payment, Student, Settings } from "../db/types";
-import { formatRupiah, todayWIB, monthLabel } from "../lib/format";
+import type { Payment, Student, Settings, Session } from "../db/types";
+import { formatRupiah, todayWIB, monthLabel, periodLabel } from "../lib/format";
 import { weekDates } from "../lib/calendar";
 import { usePinGate } from "../hooks/usePinGate";
 import { loadHtmlToImage, loadJsPdf } from "../lib/exportDeps";
@@ -23,6 +25,7 @@ import { forecastNextMonth } from "../lib/forecast";
 import { escapeCsvCell } from "../lib/csv";
 import { downloadBlob } from "../lib/download";
 import { MAX_PAYMENT_AMOUNT, clampCurrencyAmount, isValidCurrencyAmount, parseCurrencyDigits } from "../lib/money";
+import { db } from "../db/db";
 import ActivityRing from "../components/dashboard/ActivityRing";
 import Breadcrumb from "../components/Breadcrumb";
 import Tabs from "../components/Tabs";
@@ -115,6 +118,25 @@ export default function PaymentsPage() {
   const monthExpenses = useLiveQuery(() => listExpenses(month), [month]);
   const closings = useLiveQuery(() => listMonthClosings(), []);
   const monthClosing = useLiveQuery(() => getMonthClosing(month), [month]);
+  // Semua laporan periode — sesi yang sudah direkap tidak boleh ditagih ulang.
+  const reports = useLiveQuery(() => listAllReports(), []);
+  const coveredSessionIds = useMemo(
+    () => new Set((reports ?? []).flatMap((r) => r.sessionIds)),
+    [reports]
+  );
+  // Sesi billable bulan ini yang BELUM masuk laporan — dasar preview & tutup bulan.
+  const closingSessions = useMemo(
+    () => (monthSessions ?? []).filter((s) => !coveredSessionIds.has(s.id)),
+    [monthSessions, coveredSessionIds]
+  );
+  const closingPotential = closingSessions.reduce((s, x) => s + x.cost, 0);
+  // Semua sesi yang pernah masuk laporan, untuk baris tagihan laporan (akurat lintas bulan).
+  const allReportSessions = useLiveQuery(async () => {
+    const ids = [...new Set((reports ?? []).flatMap((r) => r.sessionIds))];
+    if (ids.length === 0) return new Map<string, Session>();
+    const rows = await db.sessions.bulkGet(ids);
+    return new Map(rows.filter((s): s is Session => Boolean(s)).map((s) => [s.id, s]));
+  }, [reports]);
 
   const chartMonths = useMemo(() => getLast12Months(month), [month]);
   const chartData = useLiveQuery(() => getMonthlyIncomeVsExpense(chartMonths), [chartMonths]);
@@ -199,13 +221,13 @@ export default function PaymentsPage() {
     setMessage(`Bulan ${monthLabel(month)} dibuka kembali.`);
   };
 
-  const saveBillAmount = async (studentId: string, fallback: number) => {
-    const raw = billEdits[studentId];
-    setBillEdits((prev) => { const c = { ...prev }; delete c[studentId]; return c; });
+  const saveBillAmount = async (paymentId: string, fallback: number) => {
+    const raw = billEdits[paymentId];
+    setBillEdits((prev) => { const c = { ...prev }; delete c[paymentId]; return c; });
     if (raw == null || raw === "") return;
     const n = Number(raw);
     if (!isValidCurrencyAmount(n)) { setMessage(`Nominal harus 1 sampai ${formatRupiah(MAX_PAYMENT_AMOUNT)}.`); return; }
-    if (n !== fallback) await updatePaymentAmount(studentId, month, n);
+    if (n !== fallback) await updatePaymentAmountById(paymentId, n);
   };
 
   const handleExportInvoicePdf = async () => {
@@ -230,10 +252,12 @@ export default function PaymentsPage() {
   // Bulk export for the selected month's bills
   const handleExportCsv = () => {
     const rows = [
-      ["Murid", "Bulan", "Total (IDR)", "Status", "Bayar Tgl", "Metode"],
+      ["Murid", "Bulan", "Periode", "Total (IDR)", "Status", "Bayar Tgl", "Metode"],
       ...monthPayments.map((p) => [
         studentMap.get(p.studentId)?.name ?? "(dihapus)",
-        p.month, String(p.totalCost),
+        p.month,
+        p.periodStart && p.periodEnd ? `${p.periodStart} s/d ${p.periodEnd}` : "",
+        String(p.totalCost),
         p.status === "PAID" ? "Lunas" : "Belum Bayar",
         p.paidAt ?? "", p.method ?? "",
       ]),
@@ -396,8 +420,9 @@ export default function PaymentsPage() {
     : "Tutup bulan berjalan tersedia mulai tanggal 28.";
 
   // Per-student preview (completed sessions + chargeable no-shows) before closing.
+  // Sesi yang sudah masuk laporan periode TIDAK ditagih ulang oleh tutup bulan.
   const previewBills = Array.from(
-    (monthSessions ?? []).reduce((m, s) => {
+    closingSessions.reduce((m, s) => {
       const cur = m.get(s.studentId) ?? { count: 0, hours: 0, cost: 0 };
       m.set(s.studentId, { count: cur.count + 1, hours: cur.hours + s.durationHours, cost: cur.cost + s.cost });
       return m;
@@ -406,7 +431,7 @@ export default function PaymentsPage() {
    .sort((a, b) => b.cost - a.cost);
 
   // Sessions grouped by student for expandable preview detail
-  const previewSessionsByStudent = (monthSessions ?? []).reduce<Map<string, import("../db/types").Session[]>>((m, s) => {
+  const previewSessionsByStudent = closingSessions.reduce<Map<string, Session[]>>((m, s) => {
     const arr = m.get(s.studentId) ?? [];
     arr.push(s);
     m.set(s.studentId, arr);
@@ -417,7 +442,12 @@ export default function PaymentsPage() {
     .map((p) => ({
       payment: p,
       student: studentMap.get(p.studentId),
-      sessions: (monthSessions ?? []).filter((s) => s.studentId === p.studentId),
+      // Tagihan laporan: sesi sesuai periode laporan (bisa lintas bulan).
+      sessions: p.reportId
+        ? (reports?.find((r) => r.id === p.reportId)?.sessionIds ?? [])
+            .map((id) => allReportSessions?.get(id))
+            .filter((s): s is Session => Boolean(s))
+        : (monthSessions ?? []).filter((s) => s.studentId === p.studentId),
     }))
     .sort((a, b) => b.payment.totalCost - a.payment.totalCost);
 
@@ -815,8 +845,11 @@ export default function PaymentsPage() {
                   })}
                   <div className="flex items-center justify-between pt-2 font-bold text-sm">
                     <span className="text-gray-700">Total</span>
-                    <span className="text-green-700">{formatRupiah(cash.potensi)}</span>
+                    <span className="text-green-700">{formatRupiah(closingPotential)}</span>
                   </div>
+                  {coveredSessionIds.size > 0 && (
+                    <p className="text-[11px] text-amber-600">Sesi yang sudah masuk laporan periode tidak ditagih ulang di sini.</p>
+                  )}
                 </div>
               )}
               <button onClick={handleCloseMonth} disabled={closingBusy || !canClose}
@@ -838,26 +871,33 @@ export default function PaymentsPage() {
                 <p className="text-sm text-gray-500">Belum ada tagihan untuk bulan ini.</p>
               ) : (
                 billRows.map(({ payment, student, sessions }) => {
-                  const sid = payment.studentId;
                   const paid = payment.status === "PAID";
-                  const amountStr = billEdits[sid] ?? String(payment.totalCost);
+                  const periodLbl = payment.periodStart && payment.periodEnd ? periodLabel(payment.periodStart, payment.periodEnd) : "";
+                  const amountStr = billEdits[payment.id] ?? String(payment.totalCost);
                   const totalHours = sessions.reduce((s, x) => s + x.durationHours, 0);
                   const phone = student?.parentContact?.phone ? toWaNumber(student.parentContact.phone) : "";
-                  const waText = student ? buildBillingMessage({ student, sessions, month, settings, amountOverride: payment.totalCost }).text : "";
+                  const waText = student ? buildBillingMessage({
+                    student, sessions, month, settings, amountOverride: payment.totalCost,
+                    period: payment.periodStart && payment.periodEnd ? { start: payment.periodStart, end: payment.periodEnd } : undefined,
+                    periodLabelText: periodLbl || undefined,
+                  }).text : "";
                   return (
                     <div key={payment.id} className="border border-gray-100 rounded-lg p-3 space-y-2">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-medium text-gray-700 text-sm">{student?.name ?? "(dihapus)"}</span>
                         <span className={pill(paid)}>{paid ? "Lunas" : "Belum"}</span>
                       </div>
+                      {periodLbl && (
+                        <p className="text-[11px] text-indigo-600 font-semibold">🗓 Periode {periodLbl}</p>
+                      )}
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-gray-500">Rp</span>
                         <input className="input flex-1 text-sm py-1.5" inputMode="numeric" value={amountStr} disabled={paid}
                           onChange={(e) => {
                             const { raw } = parseCurrencyDigits(e.target.value, MAX_PAYMENT_AMOUNT);
-                            setBillEdits((prev) => ({ ...prev, [sid]: raw }));
+                            setBillEdits((prev) => ({ ...prev, [payment.id]: raw }));
                           }}
-                          onBlur={() => saveBillAmount(sid, payment.totalCost)} />
+                          onBlur={() => saveBillAmount(payment.id, payment.totalCost)} />
                       </div>
                       <div className="flex gap-2">
                         {phone && !paid && (
@@ -867,12 +907,12 @@ export default function PaymentsPage() {
                           </a>
                         )}
                         {!paid ? (
-                          <button onClick={() => markPaymentTransferred(sid, month)}
+                          <button onClick={() => markPaymentTransferredById(payment.id)}
                             className="flex-1 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors">
                             ✓ Sudah Transfer
                           </button>
                         ) : (
-                          <button onClick={() => markPaymentUnpaid(sid, month)}
+                          <button onClick={() => markPaymentUnpaidById(payment.id)}
                             className="flex-1 py-2 rounded-lg border border-gray-200 text-gray-500 text-xs font-medium hover:bg-gray-50 transition-colors">
                             ↩ Batalkan
                           </button>
@@ -887,14 +927,14 @@ export default function PaymentsPage() {
                         )}
                         {!paid && student && settings.ai?.enabled && settings.ai.apiKey && (
                           <button disabled={reminderLoading === payment.id}
-                            onClick={() => setReminderModal({ paymentId: payment.id, studentName: student.name, parentName: student.parentContact?.name, month: payment.month, amount: payment.totalCost })}
+                            onClick={() => setReminderModal({ paymentId: payment.id, studentName: student.name, parentName: student.parentContact?.name, month: periodLbl || payment.month, amount: payment.totalCost })}
                             className="flex-1 py-1.5 rounded-lg border border-indigo-200 text-indigo-600 text-xs font-medium hover:bg-indigo-50 transition-colors disabled:opacity-50">
                             {reminderLoading === payment.id ? "⏳..." : "✨ Reminder AI"}
                           </button>
                         )}
                       </div>
                       <p className="text-xs text-gray-500">
-                        {sessions.length} sesi · {totalHours}j{paid && payment.paidAt ? ` · dibayar ${payment.paidAt}` : ""}
+                        {periodLbl ? `Periode ${periodLbl} · ` : ""}{sessions.length} sesi · {totalHours}j{paid && payment.paidAt ? ` · dibayar ${payment.paidAt}` : ""}
                       </p>
                     </div>
                   );
@@ -1114,9 +1154,10 @@ export default function PaymentsPage() {
                 <div className="space-y-1">
                   {piutangRows.map(({ payment, student }) => {
                     const age = monthsBetween(payment.month, todayWIB().slice(0, 7));
+                    const periodLbl = payment.periodStart && payment.periodEnd ? ` · ${periodLabel(payment.periodStart, payment.periodEnd)}` : "";
                     return (
                       <div key={payment.id} className="flex items-center justify-between text-xs">
-                        <span className="text-gray-700 min-w-0 truncate">{student?.name ?? "(dihapus)"} · {monthLabel(payment.month)}</span>
+                        <span className="text-gray-700 min-w-0 truncate">{student?.name ?? "(dihapus)"} · {monthLabel(payment.month)}{periodLbl}</span>
                         <span className="flex items-center gap-2 flex-shrink-0">
                           <span className="text-amber-700 font-semibold">{formatRupiah(payment.totalCost)}</span>
                           {age > 0 && <span className="text-red-500">{age} bln</span>}
@@ -1247,15 +1288,18 @@ function InvoiceModal({
   onClose: () => void;
 }) {
   const sessions = useLiveQuery(
-    () => listBillableSessionsByStudentMonth(student.id, payment.month),
-    [student.id, payment.month]
+    () => payment.periodStart && payment.periodEnd
+      ? listSessionsByStudentRange(student.id, payment.periodStart, payment.periodEnd)
+      : listBillableSessionsByStudentMonth(student.id, payment.month),
+    [student.id, payment.month, payment.periodStart, payment.periodEnd]
   ) ?? [];
 
   const bank = settings.bankAccounts;
   const tutor = settings.tutorProfile;
   const MONTH_NAMES = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+  const periodLbl = payment.periodStart && payment.periodEnd ? periodLabel(payment.periodStart, payment.periodEnd) : "";
   const [y, mo] = payment.month.split("-").map(Number);
-  const monthStr = `${MONTH_NAMES[mo - 1]} ${y}`;
+  const monthStr = periodLbl || `${MONTH_NAMES[mo - 1]} ${y}`;
 
   return (
     <div role="dialog" aria-modal="true" aria-label="Invoice Profesional" className="fixed inset-0 bg-black/60 z-[100] flex items-end justify-center px-0">

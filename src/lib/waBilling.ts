@@ -22,13 +22,18 @@ export interface BuildBillingArgs {
   settings?: Pick<Settings, "bankAccounts" | "tutorProfile">;
   /** Override the headline total (e.g. an edited Payment amount). */
   amountOverride?: number;
+  /** Periode bebas (tagihan laporan) — filter sesi pakai rentang ini, bukan bulan. */
+  period?: { start: string; end: string };
+  /** Label periode untuk baris judul pesan (mis. "20 Januari – 3 Februari 2026"). */
+  periodLabelText?: string;
 }
 
 export function buildBillingMessage(args: BuildBillingArgs): BillingResult {
-  const { student, sessions, month, settings, amountOverride } = args;
+  const { student, sessions, month, settings, amountOverride, period, periodLabelText } = args;
 
   const billableSessions = sessions
-    .filter((s) => (s.status === "DONE" || (s.status === "NO_SHOW" && s.noShowBillable)) && s.date.startsWith(month))
+    .filter((s) => (s.status === "DONE" || (s.status === "NO_SHOW" && s.noShowBillable))
+      && (period ? s.date >= period.start && s.date <= period.end : s.date.startsWith(month)))
     .sort((a, b) => a.date.localeCompare(b.date));
 
   const totalHours = billableSessions.reduce((sum, s) => sum + s.durationHours, 0);
@@ -39,7 +44,7 @@ export function buildBillingMessage(args: BuildBillingArgs): BillingResult {
   const lines: string[] = [
     `NAMA MURID: ${student.name}`,
     ``,
-    `${monthLabel(month)}`,
+    periodLabelText ?? monthLabel(month),
     ``,
   ];
 
