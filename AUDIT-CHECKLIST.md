@@ -1,34 +1,35 @@
-# Audit Checklist — Les Ko Lui v1.2.1
+# Audit Checklist — Les Ko Lui v1.37.0
 
 > Tanggal audit: 2025-07-16
 > Tanggal perbaikan: 2026-06-21
-> Revisi: 2026-08-02 — Ronde 3 (v1.36.0): baseline hijau (lint 0/0, test 163/163), tutup H-4 PIN lockout recovery, konsistensi uang deleteSession/closeMonth, PWA prompt mode, a11y label+dialog, dead code, strict mode
-> Cakupan: full codebase (46 source files, 1 worker, seluruh config)
-> Status: **22/26 dikerjakan** — sisa: H-6 (backup cloud), L-1 (audit trail), M-5 (foto GC partial); H-2 di-waive
+> Revisi: 2026-08-02 — Ronde 3 (v1.37.0): baseline hijau (lint 0/0, test 166/166), tutup H-4 PIN lockout recovery, konsistensi uang deleteSession/closeMonth, PWA prompt mode, a11y label+dialog, dead code, strict mode
+> Cakupan: full codebase (130 file di `src`, 1 API worker, seluruh config)
+> Status: **26/26 ditangani** — 25 selesai + H-2 di-waive sesuai threat model solo; backlog refactor aktif dicatat di `TODO.md`
 
 ---
 
-## 🔄 Ronde 3 — v1.36.0 (2026-08-02)
+## 🔄 Ronde 3 — v1.37.0 (2026-08-02)
 
-> Audit total fresh setelah ~15 rilis sejak Ronde 2. **Temuan utama: baseline CI merah** — `npm run lint` = 1 error + 6 warning, `npm test` = 3 gagal/160 (**test basi**, bukan bug source). Semua diperbaiki di ronde ini. Verifikasi akhir: `lint` **0 error 0 warning**, **163 test lulus** (160 + 3 regression baru), `build` OK.
+> Audit total fresh setelah ~15 rilis sejak Ronde 2. **Temuan utama: baseline CI merah** — `npm run lint` = 1 error + 6 warning, `npm test` = 3 gagal/160 (**test basi**, bukan bug source). Semua diperbaiki di ronde ini. Verifikasi akhir: `lint` **0 error 0 warning**, **166 test lulus** (160 + 6 regression baru), `build` OK.
 
-### Dikerjakan (✅) — perbaikan audit v1.36.0
+### Dikerjakan (✅) — perbaikan audit v1.37.0
 
 | Kode | Item | File |
 |------|------|------|
 | **B-0** | Lint: error `react-refresh/only-export-components` di `layouts.tsx` (barrel `export *`) + 5 directive `eslint-disable` tak terpakai di layouts/ + warning `react-hooks/exhaustive-deps` di `useToast` → **lint 0/0** | `src/template/layouts*.tsx`, `src/hooks/useToast.ts` |
 | **T-0** | Test basi disesuaikan source: bobot engagement dinerf di v1.34.1 (`prepared +2`, sisanya +1); `backup.test` di-seed `studyNotes` + **fix bug nyata**: `assertRows` memakai PK per tabel (`studyNotes` ber-PK `studentId`, bukan `id`) | `src/__tests__/engagement.test.ts`, `src/__tests__/backup.test.ts`, `src/lib/backup.ts` |
-| **S-1** | **Recovery PIN tanpa lockout (HIGH)** — `handleVerifyOldPin`/`handleVerifyForgot` kini `getPinLockoutDelay` + `recordPinFailure` + `resetPinLockout` (sebelumnya brute-force bebas pertanyaan keamanan). Bonus: Enter di `PinConfirmModal` tak memicu submit saat busy | `src/screens/Settings.tsx`, `src/components/PinConfirmModal.tsx` |
+| **S-1** | **Recovery PIN tanpa lockout (HIGH)** — `handleVerifyOldPin`/`handleVerifyForgot` kini memakai exponential backoff dan guard in-flight untuk membatasi percobaan berulang/paralel. Lockout lokal memperlambat brute-force, bukan jaminan absolut terhadap pengguna yang menguasai perangkat. Bonus: Enter di `PinConfirmModal` tak memicu submit saat busy | `src/screens/Settings.tsx`, `src/components/PinConfirmModal.tsx` |
 | **S-2** | `.env.local` berisi `VERCEL_OIDC_TOKEN` (klaim C-1 "dihapus" Ronde 1 salah) → file **dihapus** dari disk | `.env.local` |
 | **M-1** | `deleteSession` kini sinkron `payments`: tagihan **auto+UNPAID** dikurangi sebesar biaya sesi (piutang hantu hilang); `reports.totalHours/totalCost` dihitung ulang dari sesi tersisa. Tagihan manual/PAID sengaja tak disentuh | `src/db/repos/sessionRepo.ts` |
 | **M-2** | `closeMonth` snapshot `totalPotensi/totalHours/studentCount` hanya tagihan yang **benar-benar dibuat** (siswa ber-tagihan manual tak digandakan) + pesan audit log akurat | `src/db/repos/paymentRepo.ts` |
 | **M-3** | `formatRelative` CatatanBelajar memakai `Date.now()+7h` untuk diff → "x menit lalu" jadi "x+7 jam lalu"; kini diff instan absolut | `src/screens/CatatanBelajar.tsx` |
-| **M-4** | `doResetAll` lupa `studyNotes` (+ `settings`, `auditLog`) — reset kini benar-benar menghapus semua data; jejak `data.reset` tetap dicatat | `src/screens/Settings.tsx` |
+| **M-4** | `doResetAll` lupa `studyNotes` (+ `settings`, `auditLog`) — semua data domain lama kini dihapus; satu jejak `data.reset` sengaja dicatat kembali. Data operasional di `localStorage` tidak termasuk reset database | `src/screens/Settings.tsx` |
 | **P-1** | PWA `registerType: "autoUpdate"` **memaksa reload** saat SW baru aktif → bisa hilang input form. Ganti **`prompt`**: banner "Muat Ulang" (yang tadinya dead code) kini aktif, user yang memutuskan | `vite.config.ts` |
-| **A-1** | 10 overlay modal custom (tanpa role) diberi `role="dialog"` + `aria-modal` + `aria-label` | `CaptureSession`, `Payments`, `StudentDetail`, `SessionDetailModal`, `ChangelogModal`, `QuickExpenseModal` |
-| **A-2** | ~95 label form tanpa `htmlFor` kini berasosiasi (id unik per kontrol); yang non-native (button group/picker) dibiarkan | 10 file screens/components |
+| **A-1** | 12 overlay modal custom (tanpa role) diberi `role="dialog"` + `aria-modal` + `aria-label` | `CaptureSession`, `Payments`, `StudentDetail`, `SessionDetailModal`, `ChangelogModal`, `QuickExpenseModal` |
+| **A-2** | 72 label form native diberi pasangan `htmlFor` + `id` unik; 3 kontrol dinamis diberi `aria-label`; yang non-native (button group/picker) dibiarkan | 10 file screens/components |
 | **D-1** | Dead code dihapus: `lib/exportAbsensi.ts`, `components/Popover.tsx`, `charts/Gauge.tsx`, folder `screens/captureSession/` kosong, **10 export mati** di barrel repos (definisi + re-export) | `src/db/repos/*` |
 | **S-3** | `tsconfig.app.json` kini `"strict": true` (terverifikasi 0 error) | `tsconfig.app.json` |
+| **S-4** | `npm audit fix` non-breaking memperbarui DOMPurify, PostCSS, fast-uri, brace-expansion, Nano ID, dan React Router patch. Satu advisory masih dilaporkan sebagai 2 paket high (`react-router` + `react-router-dom`), tetapi [GHSA-qwww-vcr4-c8h2](https://github.com/advisories/GHSA-qwww-vcr4-c8h2) hanya memengaruhi unstable RSC API; aplikasi ini Vite SPA dan tidak memakai RSC. Waiver applicability dicatat sampai tersedia patch kompatibel | `package-lock.json` |
 
 ### Regression tests baru (Ronde 3)
 
@@ -161,7 +162,7 @@ Estimasi ~4-6 jam + setup Google Cloud olehmu. Sampai itu ada, **1-tap mingguan 
 
 | Item | Detail |
 |------|--------|
-| **File** | [`src/lib/exportAbsensi.ts`](src/lib/exportAbsensi.ts) |
+| **File historis** | `src/lib/exportAbsensi.ts` — dihapus sebagai dead code pada v1.37.0 |
 | **Deskripsi** | Ditambahkan helper `esc()` yang escape `& < > " '`. Semua field user-controlled di `buildPageHtml()` dibungkus `esc()`. |
 | **Status** | ☑ Selesai |
 
@@ -357,7 +358,7 @@ Tidak ada log untuk aksi penting: session delete, payment status change, student
 
 | Item | Detail |
 |------|--------|
-| **File** | [`src/lib/exportAbsensi.ts`](src/lib/exportAbsensi.ts) |
+| **File historis** | `src/lib/exportAbsensi.ts` — dihapus sebagai dead code pada v1.37.0 |
 | **Deskripsi** | Ganti `setTimeout(revoke, 200)` dengan `requestAnimationFrame` double-tick untuk delay minimal tapi pasti. |
 | **Status** | ☑ Selesai |
 
@@ -436,8 +437,8 @@ Tidak ada log untuk aksi penting: session delete, payment status change, student
 5. **C-5** ✅ — Hardcode worker URL via env var (30 menit)
 6. **C-6** ✅ — Auto-backup sebelum restore (45 menit)
 7. **H-1 sampai H-5** ✅ — Selesai (kecuali H-2)
-8. **M-1 sampai M-7** ✅ — Selesai (kecuali M-5 partial)
-9. **L-1 sampai L-7** ✅ — Selesai (kecuali L-1, L-5)
+8. **M-1 sampai M-7** ✅ — Selesai
+9. **L-1 sampai L-7** ✅ — Selesai
 
 ---
 

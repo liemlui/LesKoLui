@@ -209,6 +209,7 @@ export default function SettingsPage() {
   const [newPin,      setNewPin]      = useState("");
   const [newPinConf,  setNewPinConf]  = useState("");
   const [pinError,    setPinError]    = useState("");
+  const [pinRecoveryBusy, setPinRecoveryBusy] = useState(false);
   const [pinAction,   setPinAction]   = useState<"exportBackup" | "restore" | "resetAll" | "driveBackup" | "driveRestore" | "exportCsv" | null>(null);
   const [verifying,   setVerifying]   = useState(false);
   const [relaySecret, setRelaySecret] = useState(() => { try { return localStorage.getItem("leskolui_relay_secret") || ""; } catch { return ""; } });
@@ -216,6 +217,7 @@ export default function SettingsPage() {
   const [openSection, setOpenSection] = useState<string | null>(null);
   const restoreRef = useRef<HTMLInputElement>(null);
   const fileRef    = useRef<HTMLInputElement>(null);
+  const pinRecoveryInFlightRef = useRef(false);
 
   // Shallow copy preserves Blobs — JSON.stringify would corrupt them
   useEffect(() => {
@@ -283,27 +285,42 @@ export default function SettingsPage() {
   };
 
   const handleVerifyOldPin = async () => {
-    if (!form?.financialPin) return;
+    if (!form?.financialPin || pinRecoveryInFlightRef.current) return;
     const delay = getPinLockoutDelay();
     if (delay > 0) { setPinError(`Terlalu banyak percobaan. Tunggu ${Math.ceil(delay / 1000)} detik.`); return; }
-    const ok = await verifyPin(oldPin, form.financialPin);
-    if (!ok) { recordPinFailure(); setPinError("PIN lama salah."); return; }
-    resetPinLockout();
-    setPinError(""); setOldPin("");
-    setSecQ(form.securityQuestion || ""); setSecA("");
-    setPinMode("edit");
+    pinRecoveryInFlightRef.current = true;
+    setPinRecoveryBusy(true);
+    try {
+      const ok = await verifyPin(oldPin, form.financialPin);
+      if (!ok) { recordPinFailure(); setPinError("PIN lama salah."); return; }
+      resetPinLockout();
+      setPinError(""); setOldPin("");
+      setSecQ(form.securityQuestion || ""); setSecA("");
+      setPinMode("edit");
+    } finally {
+      pinRecoveryInFlightRef.current = false;
+      setPinRecoveryBusy(false);
+    }
   };
 
   const handleVerifyForgot = async () => {
+    if (pinRecoveryInFlightRef.current) return;
     if (!form?.securityAnswer) { setPinError("Pertanyaan keamanan belum disetel."); return; }
     const delay = getPinLockoutDelay();
     if (delay > 0) { setPinError(`Terlalu banyak percobaan. Tunggu ${Math.ceil(delay / 1000)} detik.`); return; }
-    const ok = await verifyPin(forgotA.trim().toLowerCase(), form.securityAnswer);
-    if (!ok) { recordPinFailure(); setPinError("Jawaban salah."); return; }
-    resetPinLockout();
-    setPinError(""); setForgotA("");
-    setSecQ(form.securityQuestion || ""); setSecA("");
-    setPinMode("edit");
+    pinRecoveryInFlightRef.current = true;
+    setPinRecoveryBusy(true);
+    try {
+      const ok = await verifyPin(forgotA.trim().toLowerCase(), form.securityAnswer);
+      if (!ok) { recordPinFailure(); setPinError("Jawaban salah."); return; }
+      resetPinLockout();
+      setPinError(""); setForgotA("");
+      setSecQ(form.securityQuestion || ""); setSecA("");
+      setPinMode("edit");
+    } finally {
+      pinRecoveryInFlightRef.current = false;
+      setPinRecoveryBusy(false);
+    }
   };
 
   const handleSetPin = async () => {
@@ -613,9 +630,9 @@ export default function SettingsPage() {
               </div>
               {pinError && <p className="text-red-500 text-sm">{pinError}</p>}
               <div className="flex gap-2">
-                <button onClick={handleVerifyOldPin} disabled={oldPin.length !== 6}
-                  className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-40 hover:bg-blue-700 transition-colors">Lanjut</button>
-                <button onClick={() => { setPinMode("view"); setOldPin(""); setPinError(""); }}
+                <button onClick={handleVerifyOldPin} disabled={pinRecoveryBusy || oldPin.length !== 6}
+                  className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-40 hover:bg-blue-700 transition-colors">{pinRecoveryBusy ? "Memeriksa..." : "Lanjut"}</button>
+                <button onClick={() => { setPinMode("view"); setOldPin(""); setPinError(""); }} disabled={pinRecoveryBusy}
                   className="px-4 py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-medium hover:bg-gray-200 transition-colors">Batal</button>
               </div>
               {form.securityQuestion && (
@@ -638,9 +655,9 @@ export default function SettingsPage() {
               </div>
               {pinError && <p className="text-red-500 text-sm">{pinError}</p>}
               <div className="flex gap-2">
-                <button onClick={handleVerifyForgot} disabled={!forgotA.trim()}
-                  className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-40 hover:bg-blue-700 transition-colors">Verifikasi</button>
-                <button onClick={() => { setPinMode("view"); setForgotA(""); setPinError(""); }}
+                <button onClick={handleVerifyForgot} disabled={pinRecoveryBusy || !forgotA.trim()}
+                  className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-40 hover:bg-blue-700 transition-colors">{pinRecoveryBusy ? "Memeriksa..." : "Verifikasi"}</button>
+                <button onClick={() => { setPinMode("view"); setForgotA(""); setPinError(""); }} disabled={pinRecoveryBusy}
                   className="px-4 py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-medium hover:bg-gray-200 transition-colors">Kembali</button>
               </div>
             </div>

@@ -60,7 +60,7 @@ Setiap screen component besar perlu dipecah menjadi sub-components dan custom ho
 - [x] TODO.md created with prioritized debt tracking
 - [x] Dead code cleanup (2026-08-02): `exportAbsensi.ts`, `Popover.tsx`, `Gauge.tsx`, folder `captureSession/`, 10 export mati di barrel repos
 - [x] `tsconfig.app.json` → `"strict": true` (2026-08-02, 0 error)
-- [x] Audit v1.36.0 fixes (2026-08-02) — detail di `AUDIT-CHECKLIST.md` Ronde 3: PIN lockout recovery, konsistensi uang deleteSession/closeMonth, PWA prompt mode, a11y label+dialog
+- [x] Audit v1.37.0 fixes (2026-08-02) — detail di `AUDIT-CHECKLIST.md` Ronde 3: PIN lockout recovery, konsistensi uang deleteSession/closeMonth, PWA prompt mode, a11y label+dialog
 
 ## 🟡 Screen Component Splits (Partial — remaining tracked below)
 
