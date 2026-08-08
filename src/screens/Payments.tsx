@@ -922,10 +922,32 @@ export default function PaymentsPage() {
           {/* Tutup Bulan panel */}
           {!monthClosing ? (
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 space-y-3">
-              <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Tagihan per Murid (preview)</p>
-              <p className="text-[11px] text-gray-500 -mt-2">Tap nama murid untuk lihat detail sesi</p>
+              {/* Sudah ada tagihan dari laporan? Tampilkan dulu */}
+              {monthPayments.length > 0 && (
+                <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-2.5 space-y-1">
+                  <p className="text-[10px] font-semibold text-indigo-600 uppercase">📋 Tagihan Sudah Terbit (dari laporan)</p>
+                  {monthPayments.map((p) => {
+                    const student = studentMap.get(p.studentId);
+                    const periodLbl = p.periodStart && p.periodEnd ? periodLabel(p.periodStart, p.periodEnd) : "";
+                    return (
+                      <div key={p.id} className="flex items-center justify-between text-[11px]">
+                        <span className="text-gray-700 truncate flex-1">{student?.name ?? "(dihapus)"}{periodLbl ? ` · ${periodLbl}` : ""}</span>
+                        <span className={p.status === "PAID" ? "text-green-600 font-semibold" : "text-amber-600 font-semibold"}>{p.status === "PAID" ? "✓ Lunas" : "Belum"} {formatRupiah(p.totalCost)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Preview sesi yang belum ditagih */}
+              <div>
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">⏳ Akan Ditagih Tutup Bulan</p>
+                <p className="text-[11px] text-gray-500 mt-0.5">Tap nama murid untuk lihat detail sesi</p>
+              </div>
               {previewBills.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-2">Belum ada sesi yang dapat ditagihkan bulan ini.</p>
+                <p className="text-sm text-gray-500 text-center py-2">
+                  {monthPayments.length > 0 ? "Semua sesi billable bulan ini sudah masuk tagihan laporan — tidak ada yang perlu ditutup." : "Belum ada sesi yang dapat ditagihkan bulan ini."}
+                </p>
               ) : (
                 <div className="space-y-1">
                   {previewBills.map((b) => {
@@ -933,7 +955,6 @@ export default function PaymentsPage() {
                     const sessions = previewSessionsByStudent.get(b.sid) ?? [];
                     return (
                       <div key={b.sid} className="border-b border-gray-50 last:border-0">
-                        {/* Header row — clickable to expand */}
                         <button
                           onClick={() => setExpandedPreview(isExpanded ? null : b.sid)}
                           className="w-full flex items-center justify-between text-sm py-2 hover:bg-gray-50 rounded-lg px-1 transition-colors">
@@ -946,19 +967,16 @@ export default function PaymentsPage() {
                             <span className="font-semibold text-gray-700">{formatRupiah(b.cost)}</span>
                           </div>
                         </button>
-                        {/* Expanded session details */}
                         {isExpanded && sessions.length > 0 && (
                           <div className="ml-5 mb-2 space-y-1 bg-gray-50 rounded-lg p-2">
-                            {sessions
-                              .sort((a, s) => a.date.localeCompare(s.date))
-                              .map((s) => (
-                                <div key={s.id} className="flex items-center justify-between text-xs px-2 py-1">
-                                  <span className="text-gray-500 font-mono">{s.date.slice(5).replace("-", "/")}</span>
-                                  <span className="text-gray-600 flex-1 ml-2 truncate">{s.status === "NO_SHOW" ? "Tidak hadir (ditagihkan)" : s.subjects.slice(0, 2).join(", ") || "—"}</span>
-                                  <span className="text-gray-500 mx-2">{s.durationHours}j</span>
-                                  <span className="font-medium text-gray-700">{formatRupiah(s.cost)}</span>
-                                </div>
-                              ))}
+                            {sessions.sort((a, s) => a.date.localeCompare(s.date)).map((s) => (
+                              <div key={s.id} className="flex items-center justify-between text-xs px-2 py-1">
+                                <span className="text-gray-500 font-mono">{s.date.slice(5).replace("-", "/")}</span>
+                                <span className="text-gray-600 flex-1 ml-2 truncate">{s.status === "NO_SHOW" ? "Tidak hadir (ditagihkan)" : s.subjects.slice(0, 2).join(", ") || "—"}</span>
+                                <span className="text-gray-500 mx-2">{s.durationHours}j</span>
+                                <span className="font-medium text-gray-700">{formatRupiah(s.cost)}</span>
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>
@@ -969,13 +987,20 @@ export default function PaymentsPage() {
                     <span className="text-green-700">{formatRupiah(closingPotential)}</span>
                   </div>
                   {coveredSessionIds.size > 0 && (
-                    <p className="text-[11px] text-amber-600">Sesi yang sudah masuk laporan periode tidak ditagih ulang di sini.</p>
+                    <p className="text-[11px] text-amber-600">Sesi yang sudah masuk laporan sah tidak ditagih ulang.</p>
                   )}
+                </div>
+              )}
+              {/* Summary: total tagihan (laporan + tutup buku) */}
+              {(monthPayments.length > 0 || previewBills.length > 0) && (
+                <div className="border-t border-gray-100 pt-2 flex items-center justify-between text-xs">
+                  <span className="font-semibold text-gray-600">Total Tagihan Bulan Ini</span>
+                  <span className="font-bold text-indigo-700">{formatRupiah(cash.tagihan + closingPotential)}</span>
                 </div>
               )}
               <button onClick={handleCloseMonth} disabled={closingBusy || !canClose}
                 className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold disabled:opacity-40 hover:bg-blue-700 transition-colors">
-                {closingBusy ? "Memproses..." : `🔒 Tutup Bulan ${monthLabel(month)}`}
+                {closingBusy ? "Memproses..." : previewBills.length === 0 ? "🔒 Tutup Bulan (kosong)" : `🔒 Tutup Bulan ${monthLabel(month)}`}
               </button>
               {!canClose && <p className="text-xs text-amber-600 text-center">{closeHint}</p>}
             </div>
