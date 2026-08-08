@@ -5,7 +5,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import {
   listStudents, getStudent, getSettings,
   listSessionsByStudentRange,
-  findReportByPeriod, listConfirmedReportsByStudent,
+  findReportByPeriod, listReportsByStudent, listConfirmedReportsByStudent,
   upsertReport, confirmReport, discardReport, updateSession, saveSettings,
   listMonthClosings, getPaymentByReport, syncReportPayment,
 } from "../db/repos";
@@ -178,6 +178,9 @@ export default function MonthlyReportPage() {
   const [subjectFilter,    setSubjectFilter]    = useState<string>("");
 
   const student  = useLiveQuery(() => (studentId ? getStudent(studentId) : undefined), [studentId]);
+  // Semua laporan murid — untuk daftar draft yang belum disahkan.
+  const allReports = useLiveQuery(() => (studentId ? listReportsByStudent(studentId) : []), [studentId]);
+  const drafts = useMemo(() => (allReports ?? []).filter((r) => reportStatus(r) === "draft"), [allReports]);
   // Hanya laporan yang sudah SAH yang mengunci tanggal (overlap guard).
   const confirmedReports = useLiveQuery(() => (studentId ? listConfirmedReportsByStudent(studentId) : []), [studentId]);
   const closings = useLiveQuery(() => listMonthClosings(), []);
@@ -511,6 +514,17 @@ export default function MonthlyReportPage() {
     } catch (e) { setMessage("Error: " + (e as Error).message); }
   };
 
+  /** Buka laporan draft yang sudah ada — isi mode & periode sesuai draft tersebut. */
+  const jumpToDraft = (r: { periodStart: string; periodEnd: string }) => {
+    const start = r.periodStart, end = r.periodEnd;
+    const startMonth = start.slice(0, 7), endMonth = end.slice(0, 7);
+    if (startMonth === endMonth && start === `${startMonth}-01` && end === monthRange(startMonth).end) {
+      setMode("bulan"); setMonth(startMonth);
+    } else {
+      setMode("range"); setRangeStart(start); setRangeEnd(end);
+    }
+  };
+
   const handleRegenerate = async () => {
     if (!report) return;
     setUndoStack((s) => [...s, { themeId: report.templateKey.themeId, layoutId: report.templateKey.layoutId }]);
@@ -681,6 +695,27 @@ export default function MonthlyReportPage() {
                     {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
+                {drafts.length > 0 && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 space-y-1.5">
+                    <p className="text-[11px] font-semibold text-amber-700">📋 {drafts.length} laporan draft — belum disahkan</p>
+                    {drafts.map((d) => (
+                      <div key={d.id} className="flex items-center justify-between gap-1 text-xs">
+                        <span className="text-gray-700 truncate font-medium">{periodLabel(d.periodStart, d.periodEnd)}</span>
+                        <span className="text-gray-400">{formatRupiah(d.totalCost)}</span>
+                        <div className="flex gap-1 shrink-0">
+                          <button onClick={() => jumpToDraft(d)}
+                            className="px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-[11px] font-medium hover:bg-blue-200 transition-colors">
+                            Buka
+                          </button>
+                          <button onClick={async () => { if (confirm("Hapus draft ini?")) { await discardReport(d.id); } }}
+                            className="px-2 py-0.5 rounded text-red-500 text-[11px] hover:bg-red-50 transition-colors">
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div>
                   <label className="label">Mode Rekap</label>
                   <div className="grid grid-cols-3 gap-1.5">
