@@ -11,6 +11,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.40.0",
+    date: "2026-08-08",
+    title: "Keuangan Unified + AI Insight — semua tagihan dari laporan, anomali & rekomendasi otomatis",
+    items: [
+      "Tutup Buku sekarang bikin laporan otomatis per murid (periode satu bulan penuh) + langsung sahkan — tidak ada lagi tagihan 'bulanan' terpisah",
+      "Semua tagihan bersumber dari laporan — filter Tagihan: Semua / Bulan Penuh / Periode Rekap",
+      "Buka Kembali: un-sahkan laporan otomatis, balik ke draft, hapus tagihan UNPAID",
+      "Ringkasan, Tagihan, Pengeluaran, Audit, Murid: seluruh tab diperkuat dengan info laporan & periode",
+      "AI Insight di Ringkasan: ✨ Analisis AI — deteksi anomali (⚠️/✅/ℹ️) & rekomendasi bisnis (💡) dari data bulan ini + 3 bulan sebelumnya",
+      "AI membaca potensi, tagihan, piutang, laba, pengeluaran, pendapatan per murid, proyeksi — kasih insight yang langsung bisa ditindaklanjuti",
+    ],
+  },
+  {
     version: "v1.39.0",
     date: "2026-08-08",
     title: "Status Draft/Sah Laporan: rekap coba-coba dulu, sahkan kalau sudah yakin",
