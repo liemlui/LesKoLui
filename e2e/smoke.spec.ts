@@ -18,8 +18,8 @@ test.describe("smoke", () => {
     await page.goto("/");
     // Bottom nav selalu ada di semua layar
     await expect(page.getByRole("link", { name: "Murid" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Catatan" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Keuangan" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Atur" })).toBeVisible();
   });
 
   test("navigasi ke Murid", async ({ page }) => {
@@ -29,10 +29,9 @@ test.describe("smoke", () => {
     await expect(page).toHaveURL(/\/students$/);
   });
 
-  test("navigasi ke Pengaturan menampilkan section Backup", async ({ page }) => {
-    await page.goto("/");
+  test("rute Pengaturan menampilkan section Backup", async ({ page }) => {
+    await page.goto("/settings");
     await closeChangelog(page);
-    await page.getByRole("link", { name: "Atur" }).click();
     await expect(page).toHaveURL(/\/settings$/);
     await expect(page.getByText("Backup & Restore")).toBeVisible();
   });

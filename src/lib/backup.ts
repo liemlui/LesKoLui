@@ -34,6 +34,8 @@ type BackupDumpV2 = {
 type ParsedBackup = {
   version: 1 | typeof BACKUP_VERSION;
   exportedAt: string;
+  /** v1 belum menyimpan versi skema; semua payload v1 diperlakukan sebagai pra-v11. */
+  databaseVersion?: number;
   data: BackupData;
 };
 
@@ -112,6 +114,97 @@ function assertRows(table: BackupTable, value: unknown): BackupRow[] {
   return value as BackupRow[];
 }
 
+function backupRowKey(studentId: unknown, month: unknown): string | undefined {
+  if (typeof studentId !== "string" || !studentId || typeof month !== "string" || !month) {
+    return undefined;
+  }
+  return JSON.stringify([studentId, month]);
+}
+
+function fullMonthPeriod(month: unknown): { periodStart: string; periodEnd: string } | undefined {
+  if (typeof month !== "string" || !/^\d{4}-\d{2}$/.test(month)) return undefined;
+  const year = Number(month.slice(0, 4));
+  const monthNumber = Number(month.slice(5, 7));
+  if (monthNumber < 1 || monthNumber > 12) return undefined;
+  const lastDay = new Date(year, monthNumber, 0).getDate();
+  return {
+    periodStart: `${month}-01`,
+    periodEnd: `${month}-${String(lastDay).padStart(2, "0")}`,
+  };
+}
+
+/**
+ * Restore memasukkan baris langsung ke DB yang sudah v11, sehingga callback
+ * upgrade Dexie v11 tidak pernah berjalan. Terapkan backfill yang sama pada
+ * payload pra-v11 dan hubungkan pasangan laporan/tagihan bulanan yang tidak
+ * ambigu. Nilai bisnis tagihan (nominal, status, sumber, tanggal bayar) tidak
+ * disentuh.
+ */
+function migrateLegacyReportBilling(data: BackupData): void {
+  const reportsById = new Map<string, BackupRow>();
+  const reportsByStudentMonth = new Map<string, BackupRow[]>();
+
+  for (const report of data.reports) {
+    if (typeof report.periodStart !== "string" || typeof report.periodEnd !== "string") {
+      const period = fullMonthPeriod(report.month);
+      if (period) Object.assign(report, period);
+    }
+    if (!hasOwn(report, "status") || report.status === undefined) report.status = "confirmed";
+
+    reportsById.set(report.id as string, report);
+    const key = backupRowKey(report.studentId, report.month);
+    if (key) reportsByStudentMonth.set(key, [...(reportsByStudentMonth.get(key) ?? []), report]);
+  }
+
+  // Payment yang sudah memiliki reportId tetap perlu memperoleh periode bila
+  // backup dibuat ketika kolom periode belum tersedia.
+  const linkedReportIds = new Set<string>();
+  for (const payment of data.payments) {
+    if (typeof payment.reportId !== "string" || !payment.reportId) continue;
+    const report = reportsById.get(payment.reportId);
+    if (!report) continue;
+    linkedReportIds.add(payment.reportId);
+    if (typeof payment.periodStart !== "string" && typeof report.periodStart === "string") {
+      payment.periodStart = report.periodStart;
+    }
+    if (typeof payment.periodEnd !== "string" && typeof report.periodEnd === "string") {
+      payment.periodEnd = report.periodEnd;
+    }
+  }
+
+  const unlinkedPaymentsByStudentMonth = new Map<string, BackupRow[]>();
+  for (const payment of data.payments) {
+    if (typeof payment.reportId === "string" && payment.reportId) continue;
+    const key = backupRowKey(payment.studentId, payment.month);
+    if (key) {
+      unlinkedPaymentsByStudentMonth.set(key, [
+        ...(unlinkedPaymentsByStudentMonth.get(key) ?? []),
+        payment,
+      ]);
+    }
+  }
+
+  // Skema lama lazimnya memiliki tepat satu laporan dan satu tagihan per
+  // murid-bulan. Jika ada duplikat, jangan menebak dan berisiko menautkan
+  // tagihan ke laporan yang salah.
+  for (const [key, payments] of unlinkedPaymentsByStudentMonth) {
+    const reports = (reportsByStudentMonth.get(key) ?? [])
+      .filter((report) => !linkedReportIds.has(report.id as string));
+    if (payments.length !== 1 || reports.length !== 1) continue;
+
+    const payment = payments[0];
+    const report = reports[0];
+    payment.reportId = report.id;
+    if (typeof payment.periodStart !== "string" && typeof report.periodStart === "string") {
+      payment.periodStart = report.periodStart;
+    }
+    if (typeof payment.periodEnd !== "string" && typeof report.periodEnd === "string") {
+      payment.periodEnd = report.periodEnd;
+    }
+    linkedReportIds.add(report.id as string);
+  }
+}
+
 /** Parse dan validasi struktur payload sebelum satu tabel pun diubah. */
 function parseBackupDump(value: unknown): ParsedBackup {
   if (!isRecord(value)) throw new Error("File backup tidak valid: format utama salah.");
@@ -145,10 +238,14 @@ function parseBackupDump(value: unknown): ParsedBackup {
     data[table] = hasOwn(rawData, table) ? assertRows(table, rawData[table]) : [];
   }
 
+  let databaseVersion: number | undefined;
   if (version === BACKUP_VERSION) {
-    if (!isRecord(value.schema) || !Number.isInteger(value.schema.databaseVersion)) {
+    if (!isRecord(value.schema)
+      || typeof value.schema.databaseVersion !== "number"
+      || !Number.isInteger(value.schema.databaseVersion)) {
       throw new Error("File backup tidak valid: metadata skema tidak ditemukan.");
     }
+    databaseVersion = value.schema.databaseVersion;
     if (!isRecord(value.schema.tableCounts)) {
       throw new Error("File backup tidak valid: jumlah data tabel tidak ditemukan.");
     }
@@ -160,7 +257,7 @@ function parseBackupDump(value: unknown): ParsedBackup {
     }
   }
 
-  return { version, exportedAt, data };
+  return { version, exportedAt, databaseVersion, data };
 }
 
 async function blobToB64(blob: Blob): Promise<string> {
@@ -267,6 +364,10 @@ async function prepareBackupImport(file: Blob, passphrase: string): Promise<{ pa
   const parsed = parseBackupDump(await decryptJson(file, passphrase));
   const decoded = {} as BackupData;
   for (const table of BACKUP_TABLES) decoded[table] = await decodeRows(parsed.data[table]);
+
+  if (parsed.version === 1 || (parsed.databaseVersion ?? 0) < 11) {
+    migrateLegacyReportBilling(decoded);
+  }
 
   // Metadata operasional tidak boleh kembali menjadi lebih baru/lebih lama secara
   // tidak konsisten: setelah restore, waktu backup menunjukkan file sumbernya.

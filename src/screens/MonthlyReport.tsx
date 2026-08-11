@@ -5,15 +5,21 @@ import { useLiveQuery } from "dexie-react-hooks";
 import {
   listStudents, getStudent, getSettings,
   listSessionsByStudentRange,
-  findReportByPeriod, listReportsByStudent, listConfirmedReportsByStudent,
-  upsertReport, confirmReport, discardReport, updateSession, saveSettings,
+  getReportById, findReportByPeriod, listReportsByStudent, listConfirmedReportsByStudent,
+  upsertReport, createReportForPeriod, discardReport, updateSession, saveSettings,
   listMonthClosings, getPaymentByReport, syncReportPayment,
 } from "../db/repos";
 import { reportStatus, type ReportStatus } from "../db/types";
 import { monthRange } from "../db/repos/helpers";
 import { pickTemplate } from "../lib/rotation";
 import { generateReportSummary, generateNarratives, estimateReportSummaryCost, estimateNarrativesCost } from "../lib/aiClient";
-import { BEHAVIOR_TAGS, RESPONSE_TAGS } from "../lib/responseTaxonomy";
+import {
+  buildReportAiInput,
+  findBlockingReportOverlap,
+  resolveReportMutationTarget,
+  selectCountReportSessions,
+  selectPeriodReportSessions,
+} from "../lib/reportSessionScope";
 import { AiCostModal } from "../components/AiCostModal";
 import { getTheme, THEMES } from "../template/themes";
 import { LAYOUTS } from "../template/layouts";
@@ -29,7 +35,8 @@ import type {
   ReportOptions, CustomTheme, Theme,
   HeaderStyle, LabelStyle, PhotoStyle, DecoKind,
 } from "../template/types";
-import type { NextMonthPlan, MonthlyPlanItem, PlanOwner, PlanStatus, Session } from "../db/types";
+import type { MonthlyReport, NextMonthPlan, MonthlyPlanItem, PlanOwner, PlanStatus, Session } from "../db/types";
+import { db } from "../db/db";
 
 const EMPTY_SUBJECT_LABEL = "Mapel belum diisi";
 const PLAN_OWNERS: Array<{ value: PlanOwner; label: string }> = [
@@ -135,7 +142,7 @@ function buildSessionNarrative(session: Session, subject: string): string {
  * @route /report/:studentId/:month
  */
 export default function MonthlyReportPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const students = useLiveQuery(() => listStudents(true), []);
   const settings = useLiveQuery(() => getSettings(), []);
 
@@ -147,6 +154,11 @@ export default function MonthlyReportPage() {
   const [count, setCount] = useState(4);
   const [rangeStart, setRangeStart] = useState(() => todayWIB());
   const [rangeEnd, setRangeEnd] = useState(() => todayWIB());
+  const reportIdParam = searchParams.get("reportId") ?? "";
+  const [editingReportId, setEditingReportId] = useState(reportIdParam);
+  const [snapshotLocked, setSnapshotLocked] = useState(Boolean(reportIdParam));
+  const appliedReportIdRef = useRef("");
+  const dismissedReportIdRef = useRef("");
 
   const [editingNarrative, setEditingNarrative] = useState<string | null>(null);
   const [editText,         setEditText]         = useState("");
@@ -167,6 +179,9 @@ export default function MonthlyReportPage() {
   } | null>(null);
   const [quoteText,        setQuoteText]        = useState("");
   const [aiLoading,        setAiLoading]        = useState(false);
+  const aiRequestRef = useRef(0);
+  const [reportMutationBusy, setReportMutationBusy] = useState(false);
+  const reportMutationBusyRef = useRef(false);
   const [message,          setMessage]          = useState("");
   const [exporting,        setExporting]        = useState<"jpg" | "png" | "pdf" | null>(null);
   const reportExportRef = useRef<HTMLDivElement>(null);
@@ -178,6 +193,57 @@ export default function MonthlyReportPage() {
   const [subjectFilter,    setSubjectFilter]    = useState<string>("");
 
   const student  = useLiveQuery(() => (studentId ? getStudent(studentId) : undefined), [studentId]);
+  const editingReportQuery = useLiveQuery(
+    async () => ({
+      reportId: editingReportId,
+      report: editingReportId ? await getReportById(editingReportId) : undefined,
+    }),
+    [editingReportId],
+  );
+  const editingReportLookupReady = editingReportQuery?.reportId === editingReportId;
+  const editingReport = editingReportLookupReady ? editingReportQuery.report : undefined;
+  const editingReportSessionKey = editingReport?.sessionIds.join("|") ?? "";
+  const editingReportSessionsQuery = useLiveQuery(async () => {
+    const reportId = editingReport?.id ?? "";
+    if (!editingReport) return { reportId, sessions: [] as Session[] };
+    const rows = await db.sessions.bulkGet(editingReport.sessionIds);
+    return {
+      reportId,
+      sessions: rows.filter((session): session is Session => session !== undefined),
+    };
+  }, [editingReport?.id, editingReportSessionKey]);
+  const editingReportSessionsReady = editingReportSessionsQuery?.reportId === (editingReport?.id ?? "");
+  const editingReportSessions = editingReportSessionsReady
+    ? editingReportSessionsQuery?.sessions
+    : undefined;
+
+  // A reportId deep-link opens the authoritative stored snapshot. Applying it
+  // once avoids resetting the user's controls after every report write.
+  useEffect(() => {
+    if (!editingReport || appliedReportIdRef.current === editingReport.id) return;
+    appliedReportIdRef.current = editingReport.id;
+    setStudentId(editingReport.studentId);
+    setMonth(editingReport.month);
+    setCount(Math.max(1, Math.min(20, editingReport.sessionIds.length || 1)));
+    setRangeStart(editingReport.periodStart);
+    setRangeEnd(editingReport.periodEnd);
+    const fullMonth = editingReport.periodStart === `${editingReport.month}-01`
+      && editingReport.periodEnd === monthRange(editingReport.month).end;
+    setMode(fullMonth ? "bulan" : "range");
+    setSnapshotLocked(true);
+  }, [editingReport]);
+
+  useEffect(() => {
+    if (!reportIdParam) {
+      dismissedReportIdRef.current = "";
+      return;
+    }
+    if (reportIdParam === dismissedReportIdRef.current || reportIdParam === editingReportId) return;
+    appliedReportIdRef.current = "";
+    setEditingReportId(reportIdParam);
+    setSnapshotLocked(true);
+  }, [reportIdParam, editingReportId]);
+
   // Semua laporan murid — untuk daftar draft yang belum disahkan.
   const allReports = useLiveQuery(() => (studentId ? listReportsByStudent(studentId) : []), [studentId]);
   const drafts = useMemo(() => (allReports ?? []).filter((r) => reportStatus(r) === "draft"), [allReports]);
@@ -198,49 +264,132 @@ export default function MonthlyReportPage() {
     return listSessionsByStudentRange(studentId, "0000-01-01", todayStr); // mode jumlah: ambil semua lalu pilih N terakhir
   }, [studentId, mode, monthStart, monthEnd, rangeStart, rangeEnd, todayStr]);
 
-  // Periode rekap efektif + sesi yang masuk laporan
-  // Draft tidak mengunci — sesi draft masih bisa direkap ulang di mode jumlah.
-  const coveredIds = useMemo(
-    () => new Set((confirmedReports ?? []).flatMap((r) => r.sessionIds)),
-    [confirmedReports]
+  // Month/range modes know their identity before loading session rows. Resolve
+  // that report early so its own confirmed sessions are not mistaken for a
+  // sibling's covered sessions after confirmation.
+  const fixedPeriodStart = mode === "bulan" ? monthStart : mode === "range" ? rangeStart : "";
+  const fixedPeriodEnd = mode === "bulan" ? monthEnd : mode === "range" ? rangeEnd : "";
+  const fixedPeriodKey = `${studentId}|${fixedPeriodStart}|${fixedPeriodEnd}`;
+  const fixedPeriodReportQuery = useLiveQuery(
+    async () => ({
+      key: fixedPeriodKey,
+      report: studentId && fixedPeriodStart && fixedPeriodEnd
+        ? await findReportByPeriod(studentId, fixedPeriodStart, fixedPeriodEnd)
+        : undefined,
+    }),
+    [studentId, fixedPeriodStart, fixedPeriodEnd],
   );
+  const fixedPeriodLookupReady = fixedPeriodReportQuery?.key === fixedPeriodKey;
+  const fixedPeriodReport = fixedPeriodLookupReady ? fixedPeriodReportQuery.report : undefined;
+  const scopeReport = editingReport ?? fixedPeriodReport;
+  const scopePaymentQuery = useLiveQuery(async () => ({
+    reportId: scopeReport?.id ?? "",
+    payment: scopeReport ? await getPaymentByReport(scopeReport.id) : undefined,
+  }), [scopeReport?.id]);
+  const scopePaymentLookupReady = !scopeReport || scopePaymentQuery?.reportId === scopeReport.id;
+  const scopePayment = scopePaymentLookupReady ? scopePaymentQuery?.payment : undefined;
+  const scopeHasProtectedInvoice = Boolean(
+    scopeReport
+    && reportStatus(scopeReport) === "confirmed"
+    && scopePayment
+    && (scopePayment.status === "PAID" || scopePayment.source === "manual")
+  );
+
+  // Sesi milik laporan yang sedang diedit tetap boleh dipakai. Sesi laporan
+  // sah lain (termasuk parent/sibling supplemental) tidak boleh terserap.
+  const ownedSessionIds = useMemo(
+    () => new Set(scopeReport?.sessionIds ?? []),
+    [scopeReport],
+  );
+  const blockedSessionIds = useMemo(
+    () => new Set(
+      (confirmedReports ?? [])
+        .filter((candidate) => candidate.id !== scopeReport?.id)
+        .flatMap((candidate) => candidate.sessionIds),
+    ),
+    [confirmedReports, scopeReport],
+  );
+
+  // Periode rekap efektif + sesi yang masuk laporan.
   const { periodStart, periodEnd, reportSessions } = useMemo(() => {
     if (!studentId) return { periodStart: "", periodEnd: "", reportSessions: [] as Session[] };
+    if (editingReport && snapshotLocked) {
+      return {
+        periodStart: editingReport.periodStart,
+        periodEnd: editingReport.periodEnd,
+        reportSessions: editingReportSessions ?? [],
+      };
+    }
     if (mode === "jumlah") {
-      // N pertemuan terakhir yang BELUM direkap — tanggal sudah direkap tidak ikut dipilih.
-      // Jika semuanya sudah direkap (mis. membuka laporan yang sudah ada), fallback ke
-      // N terakhir apa adanya agar laporan yang sama tetap bisa di-update lewat mode ini;
-      // guard overlap di bawah tetap menolak periode baru yang menabrak laporan lama.
-      const uncovered = (sessions ?? []).filter((s) => !coveredIds.has(s.id));
-      const chosen = uncovered.length > 0 ? uncovered.slice(-count) : (sessions ?? []).slice(-count);
+      const chosen = selectCountReportSessions(
+        sessions ?? [],
+        blockedSessionIds,
+        count,
+        ownedSessionIds,
+      );
       return {
         periodStart: chosen[0]?.date ?? "",
         periodEnd: chosen[chosen.length - 1]?.date ?? "",
         reportSessions: chosen,
       };
     }
+    const allowed = selectPeriodReportSessions(
+      sessions ?? [],
+      blockedSessionIds,
+      ownedSessionIds,
+      scopeHasProtectedInvoice,
+    );
     return {
       periodStart: mode === "bulan" ? monthStart : rangeStart,
       periodEnd: mode === "bulan" ? monthEnd : rangeEnd,
-      reportSessions: sessions ?? [],
+      reportSessions: allowed,
     };
-  }, [studentId, mode, sessions, coveredIds, count, monthStart, monthEnd, rangeStart, rangeEnd]);
+  }, [
+    studentId, editingReport, snapshotLocked, editingReportSessions,
+    mode, sessions, blockedSessionIds, ownedSessionIds, scopeHasProtectedInvoice, count,
+    monthStart, monthEnd, rangeStart, rangeEnd,
+  ]);
 
   // Laporan identik periode = laporan yang sama (basis edit); periode lain yang
   // bertumpuk atau bulan yang sudah tutup buku → periode TIDAK bisa digenerate.
-  const report = useLiveQuery(
-    () => (studentId && periodStart && periodEnd ? findReportByPeriod(studentId, periodStart, periodEnd) : undefined),
+  const periodReportKey = `${studentId}|${periodStart}|${periodEnd}`;
+  const periodReportQuery = useLiveQuery(
+    async () => ({
+      key: periodReportKey,
+      report: studentId && periodStart && periodEnd
+        ? await findReportByPeriod(studentId, periodStart, periodEnd)
+        : undefined,
+    }),
     [studentId, periodStart, periodEnd]
   );
+  const periodReportLookupReady = periodReportQuery?.key === periodReportKey;
+  const periodReport = periodReportLookupReady ? periodReportQuery.report : undefined;
+  const report = editingReportId ? editingReport : periodReport;
   const payment = useLiveQuery(() => (report ? getPaymentByReport(report.id) : undefined), [report]);
+  const invalidReportLink = Boolean(editingReportId && editingReportLookupReady && !editingReport);
+  const reportScopeDataReady = sessions !== undefined
+    && confirmedReports !== undefined
+    && closings !== undefined
+    && fixedPeriodLookupReady
+    && periodReportLookupReady
+    && scopePaymentLookupReady
+    && (!editingReportId || (editingReportLookupReady && (!editingReport || editingReportSessionsReady)));
 
   const availability = useMemo(() => {
     if (!studentId || !periodStart || !periodEnd) return { ok: false, reason: "" };
+    if (invalidReportLink) return { ok: false, reason: "Tautan laporan tidak ditemukan." };
+    if (!reportScopeDataReady) return { ok: false, reason: "Data laporan masih dimuat." };
     if (mode === "range" && rangeStart > rangeEnd) {
       return { ok: false, reason: "Tanggal awal harus lebih dulu dari tanggal akhir." };
     }
-    const overlap = (confirmedReports ?? []).find(
-      (r) => r.id !== report?.id && r.periodStart <= periodEnd && r.periodEnd >= periodStart
+    const overlap = findBlockingReportOverlap(
+      confirmedReports ?? [],
+      periodStart,
+      periodEnd,
+      report ? {
+        id: report.id,
+        supplementalForReportId: report.supplementalForReportId,
+      } : undefined,
     );
     if (overlap) {
       return {
@@ -262,10 +411,24 @@ export default function MonthlyReportPage() {
       };
     }
     return { ok: true, reason: "" };
-  }, [studentId, periodStart, periodEnd, confirmedReports, closings, report, mode, rangeStart, rangeEnd]);
+  }, [studentId, periodStart, periodEnd, invalidReportLink, reportScopeDataReady, confirmedReports, closings, report, mode, rangeStart, rangeEnd]);
 
   const totalHours = useMemo(() => reportSessions.reduce((s, x) => s + x.durationHours, 0), [reportSessions]);
   const totalCost  = useMemo(() => reportSessions.reduce((s, x) => s + x.cost, 0), [reportSessions]);
+  const protectedNewSessionCount = useMemo(() => scopeHasProtectedInvoice
+    ? (sessions ?? []).filter((session) =>
+        !ownedSessionIds.has(session.id) && !blockedSessionIds.has(session.id)
+      ).length
+    : 0,
+  [scopeHasProtectedInvoice, sessions, ownedSessionIds, blockedSessionIds]);
+  const reportScopeKey = useMemo(() => [
+    studentId, month, mode, count, rangeStart, rangeEnd,
+    editingReportId, snapshotLocked ? "snapshot" : "editable",
+    periodStart, periodEnd, reportSessions.map((session) => session.id).join(","),
+  ].join("|"), [
+    studentId, month, mode, count, rangeStart, rangeEnd,
+    editingReportId, snapshotLocked, periodStart, periodEnd, reportSessions,
+  ]);
   const uniqueSubjects         = useMemo(() => {
     const set = new Set<string>();
     reportSessions.forEach((s) => s.subjects.forEach((subj) => { if (subj.trim()) set.add(subj.trim()); }));
@@ -302,9 +465,6 @@ export default function MonthlyReportPage() {
   const reportReadiness = reportReadinessItems.filter((item) => item.complete).length;
   const reportReadinessPercent = Math.round((reportReadiness / reportReadinessItems.length) * 100);
 
-  // Clear stale message when student or period changes
-  useEffect(() => { setMessage(""); setPrevTexts(null); }, [studentId, periodStart, periodEnd]);
-
   // Resolve theme: built-in or custom
   const theme: Theme = useMemo(() => {
     if (!report) return THEMES[0];
@@ -323,8 +483,7 @@ export default function MonthlyReportPage() {
   // Per-session signature data URLs
   const [sessionSigUrls, setSessionSigUrls] = useState<Map<string, string>>(new Map());
   useEffect(() => {
-    const list = sessions ?? [];
-    const withSig = list.filter((s) => s.signature);
+    const withSig = reportSessions.filter((s) => s.signature);
     if (withSig.length === 0) { setSessionSigUrls(new Map()); return; }
     let cancelled = false;
     (async () => {
@@ -334,7 +493,7 @@ export default function MonthlyReportPage() {
       if (!cancelled) setSessionSigUrls(new Map(entries));
     })();
     return () => { cancelled = true; };
-  }, [sessions]);
+  }, [reportSessions]);
 
   // ── Undo stack for theme/layout changes ─────────────────────────────
   const [undoStack, setUndoStack] = useState<Array<{ themeId: string; layoutId: string }>>([]);
@@ -348,8 +507,42 @@ export default function MonthlyReportPage() {
   // ReportData — async photo normalization + engagement
   const [reportData, setReportData] = useState<import("../template/types").ReportData | null>(null);
 
+  // Every report scope owns its own preview, edit buffers, undo data, and AI
+  // request. Changing student/month/mode/count cannot leak results from the
+  // previous selection into the newly-visible report.
   useEffect(() => {
-    if (!student || !sessions) { setReportData(null); return; }
+    aiRequestRef.current += 1;
+    setAiLoading(false);
+    setMessage("");
+    setPrevTexts(null);
+    setShowPolishModal(false);
+    setShowNarrativesModal(false);
+    setEditingNarrative(null);
+    setEditText("");
+    setEditingSummary(false);
+    setSummaryText("");
+    setEditingTeacherNote(false);
+    setTeacherNoteText("");
+    setEditingQuote(false);
+    setQuoteText("");
+    setEditingPlan(false);
+    setSubjectFilter("");
+    setNarrativePage(1);
+    setOpenNarasi(false);
+    setOpenTeks(false);
+    setOpenPlan(false);
+    setSessionSigUrls(new Map());
+    setUndoStack([]);
+    setShowCompare(false);
+    setCompareThemeId(null);
+    setCoverPage(false);
+    setShowCustomBuilder(false);
+    setReportData(null);
+  }, [reportScopeKey]);
+
+  useEffect(() => {
+    if (!student || reportSessions.length === 0) { setReportData(null); return; }
+    setReportData(null);
     let cancelled = false;
     (async () => {
       const logoUrl = settings?.logo ? await blobToDataUrl(settings.logo) : undefined;
@@ -403,7 +596,7 @@ export default function MonthlyReportPage() {
       });
     })();
     return () => { cancelled = true; };
-  }, [student, sessions, reportSessions, month, periodStart, periodEnd, report, settings, totalHours]);
+  }, [student, reportSessions, month, periodStart, periodEnd, report, settings, totalHours]);
 
   const safeNarrativePage      = clampPage(narrativePage, filteredSessions.length);
   const paginatedNarrativeSessions = paginateItems(filteredSessions, safeNarrativePage);
@@ -411,7 +604,11 @@ export default function MonthlyReportPage() {
   const ensureReport = async () => {
     if (!studentId) return undefined;
     if (!availability.ok) { setMessage("Gagal: " + availability.reason); return undefined; }
-    let current = await findReportByPeriod(studentId, periodStart, periodEnd);
+    let current = await resolveReportMutationTarget(
+      editingReportId,
+      getReportById,
+      () => findReportByPeriod(studentId, periodStart, periodEnd),
+    );
     if (current) {
       const refreshed = {
         ...current,
@@ -434,17 +631,23 @@ export default function MonthlyReportPage() {
       status: "draft" as ReportStatus,
       createdAt: new Date().toISOString(),
     };
-    await upsertReport(created);
+    const result = await createReportForPeriod(created);
     // Draft belum terbitkan tagihan — baru setelah ditekan Sahkan.
-    current = await findReportByPeriod(studentId, periodStart, periodEnd);
+    current = await getReportById(result.reportId);
     return current;
   };
 
   const handleCreateOrSwitch = async (newLayoutId?: string) => {
-    if (!studentId || reportSessions.length === 0) return;
+    if (!studentId || reportSessions.length === 0 || reportMutationBusyRef.current) return;
+    reportMutationBusyRef.current = true;
+    setReportMutationBusy(true);
     try {
       if (!availability.ok) { setMessage("Gagal: " + availability.reason); return; }
-      const r = await findReportByPeriod(studentId, periodStart, periodEnd);
+      const r = await resolveReportMutationTarget(
+        editingReportId,
+        getReportById,
+        () => findReportByPeriod(studentId, periodStart, periodEnd),
+      );
       const isConfirmed = r && reportStatus(r) === "confirmed";
       if (!r) {
         const picked = await pickTemplate(studentId);
@@ -457,8 +660,10 @@ export default function MonthlyReportPage() {
           status: "draft" as ReportStatus,
           createdAt: new Date().toISOString(),
         };
-        await upsertReport(created);
-        setMessage("Laporan draft dibuat. Tekan Sahkan bila sudah yakin — tagihan akan terbit di Keuangan.");
+        const result = await createReportForPeriod(created);
+        setMessage(result.created
+          ? "Laporan draft dibuat. Tekan Sahkan bila sudah yakin — tagihan akan terbit di Keuangan."
+          : "Laporan untuk periode ini sudah tersedia.");
       } else if (newLayoutId) {
         const updated = {
           ...r,
@@ -481,14 +686,56 @@ export default function MonthlyReportPage() {
         if (isConfirmed) await syncReportPayment(updated);
         setMessage(isConfirmed ? "Data laporan diperbarui ✓" : "Draft diperbarui.");
       }
-    } catch (e) { setMessage("Error: " + (e as Error).message); }
+    } catch (e) {
+      setMessage("Error: " + (e as Error).message);
+    } finally {
+      reportMutationBusyRef.current = false;
+      setReportMutationBusy(false);
+    }
+  };
+
+  const replaceReportParam = (reportId?: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (reportId) next.set("reportId", reportId);
+    else next.delete("reportId");
+    setSearchParams(next, { replace: true });
+  };
+
+  const lockReportSnapshot = (selectedReport: MonthlyReport) => {
+    dismissedReportIdRef.current = "";
+    appliedReportIdRef.current = selectedReport.id;
+    setEditingReportId(selectedReport.id);
+    setStudentId(selectedReport.studentId);
+    setMonth(selectedReport.month);
+    setCount(Math.max(1, Math.min(20, selectedReport.sessionIds.length || 1)));
+    setRangeStart(selectedReport.periodStart);
+    setRangeEnd(selectedReport.periodEnd);
+    const fullMonth = selectedReport.periodStart === `${selectedReport.month}-01`
+      && selectedReport.periodEnd === monthRange(selectedReport.month).end;
+    setMode(fullMonth ? "bulan" : "range");
+    setSnapshotLocked(true);
+    replaceReportParam(selectedReport.id);
+  };
+
+  const leaveEditingReport = () => {
+    if (!editingReportId && !reportIdParam) return;
+    dismissedReportIdRef.current = reportIdParam || editingReportId;
+    appliedReportIdRef.current = "";
+    setEditingReportId("");
+    setSnapshotLocked(false);
+    replaceReportParam();
+  };
+
+  const beginControlScopeChange = () => {
+    aiRequestRef.current += 1;
+    setAiLoading(false);
+    leaveEditingReport();
   };
 
   const handleConfirm = async () => {
     if (!report) return;
     if (!availability.ok) { setMessage("Gagal: " + availability.reason); return; }
     try {
-      await confirmReport(report.id);
       const refreshed = {
         ...report,
         status: "confirmed" as ReportStatus,
@@ -498,6 +745,7 @@ export default function MonthlyReportPage() {
       };
       await upsertReport(refreshed);
       await syncReportPayment(refreshed);
+      lockReportSnapshot(refreshed);
       setMessage("Laporan disahkan! Tagihan sudah terbit di Keuangan. ✅");
     } catch (e) { setMessage("Error: " + (e as Error).message); }
   };
@@ -510,19 +758,14 @@ export default function MonthlyReportPage() {
     }
     try {
       await discardReport(report.id);
+      if (editingReportId === report.id) leaveEditingReport();
       setMessage("Laporan draft dibatalkan.");
     } catch (e) { setMessage("Error: " + (e as Error).message); }
   };
 
   /** Buka laporan draft yang sudah ada — isi mode & periode sesuai draft tersebut. */
-  const jumpToDraft = (r: { periodStart: string; periodEnd: string }) => {
-    const start = r.periodStart, end = r.periodEnd;
-    const startMonth = start.slice(0, 7), endMonth = end.slice(0, 7);
-    if (startMonth === endMonth && start === `${startMonth}-01` && end === monthRange(startMonth).end) {
-      setMode("bulan"); setMonth(startMonth);
-    } else {
-      setMode("range"); setRangeStart(start); setRangeEnd(end);
-    }
+  const jumpToDraft = (r: MonthlyReport) => {
+    lockReportSnapshot(r);
   };
 
   const handleRegenerate = async () => {
@@ -532,85 +775,94 @@ export default function MonthlyReportPage() {
     setMessage("Desain diganti!");
   };
 
-  /** Payload sesi untuk AI — dipakai Poles AI (ringkasan) dan Narasi AI. */
-  const buildAiInput = () => ({
-    student: { name: student!.name, level: student!.level },
-    month: periodLabel(periodStart, periodEnd) || monthLabel(month),
-    sessions: (sessions ?? []).map((s) => ({
-      id: s.id, date: dayLabel(s.date), subject: s.subjects.join(", "),
-      shortNote: s.shortNote, mood: s.mood, topic: s.topic,
-      needsWork: s.needsWork, predictedGrade: s.predictedGrade,
-      engagementScore: s.engagement?.score,
-      behaviorLabels: s.behaviorTags?.map(id => BEHAVIOR_TAGS.find(t => t.id === id)?.label).filter(Boolean) as string[] | undefined,
-      responseLabel: s.responseTag ? RESPONSE_TAGS.find(t => t.id === s.responseTag)?.label : undefined,
-    })),
-  });
-
   const handlePolish = async () => {
-    if (!student || !sessions?.length) return;
+    if (!student || reportSessions.length === 0) return;
     if (!navigator.onLine) { setMessage("Offline."); return; }
+    const requestId = ++aiRequestRef.current;
+    const selectedSessions = reportSessions;
     setAiLoading(true);
     try {
       const draft = await ensureReport();
-      const out = await generateReportSummary(buildAiInput());
-      if (draft) {
-        const prev = { summaryText: draft.summaryText, quote: draft.quote, nextMonthPlan: draft.nextMonthPlan };
-        const aiPlan = normaliseAiPlan(out.nextMonthPlan);
-        await upsertReport({
-          ...draft,
-          summaryText: out.summary ?? "",
-          quote: out.quote,
-          nextMonthPlan: aiPlan ?? draft.nextMonthPlan,
-        });
-        setPrevTexts(prev);
-      }
+      if (!draft || requestId !== aiRequestRef.current) return;
+      const out = await generateReportSummary(buildReportAiInput(
+        student,
+        periodLabel(periodStart, periodEnd) || monthLabel(month),
+        selectedSessions,
+      ));
+      if (requestId !== aiRequestRef.current) return;
+      const prev = { summaryText: draft.summaryText, quote: draft.quote, nextMonthPlan: draft.nextMonthPlan };
+      const aiPlan = normaliseAiPlan(out.nextMonthPlan);
+      await upsertReport({
+        ...draft,
+        summaryText: out.summary ?? "",
+        quote: out.quote,
+        nextMonthPlan: aiPlan ?? draft.nextMonthPlan,
+      });
+      if (requestId !== aiRequestRef.current) return;
+      setPrevTexts(prev);
       setMessage("Poles AI selesai ✓ Ringkasan, kutipan & rencana depan terisi");
       setOpenTeks(true);
       setOpenPlan(true);
-    } catch (e) { setMessage("Gagal: " + (e as Error).message); }
-    finally { setAiLoading(false); }
+    } catch (e) {
+      if (requestId === aiRequestRef.current) setMessage("Gagal: " + (e as Error).message);
+    } finally {
+      if (requestId === aiRequestRef.current) setAiLoading(false);
+    }
   };
 
   /** Narasi AI penuh: perluas shortNote tiap sesi jadi narasi 40–60 kata,
    *  plus ringkasan, catatan guru, dan kutipan. Semua bisa di-Undo. */
   const handleGenerateNarratives = async () => {
-    if (!student || !sessions?.length) return;
+    if (!student || reportSessions.length === 0) return;
     if (!navigator.onLine) { setMessage("Offline."); return; }
+    const requestId = ++aiRequestRef.current;
+    const selectedSessions = reportSessions;
     setAiLoading(true);
     try {
       const draft = await ensureReport();
-      const out = await generateNarratives(buildAiInput());
+      if (!draft || requestId !== aiRequestRef.current) return;
+      const out = await generateNarratives(buildReportAiInput(
+        student,
+        periodLabel(periodStart, periodEnd) || monthLabel(month),
+        selectedSessions,
+      ));
+      if (requestId !== aiRequestRef.current) return;
 
       // Simpan versi lama SEBELUM menimpa — untuk Undo penuh
-      const prevNarratives = sessions.map((s) => ({ id: s.id, narrative: s.narrative }));
+      const prevNarratives = selectedSessions.map((s) => ({ id: s.id, narrative: s.narrative }));
 
-      const validIds = new Set(sessions.map((s) => s.id));
+      const validIds = new Set(selectedSessions.map((s) => s.id));
       let applied = 0;
       for (const entry of out.entries ?? []) {
+        if (requestId !== aiRequestRef.current) return;
         if (validIds.has(entry.id) && entry.narrative?.trim()) {
           await updateSession(entry.id, { narrative: entry.narrative.trim() });
+          if (requestId !== aiRequestRef.current) return;
           applied++;
         }
       }
-      if (draft) {
-        setPrevTexts({
-          summaryText: draft.summaryText, teacherNote: draft.teacherNote,
-          quote: draft.quote, nextMonthPlan: draft.nextMonthPlan, narratives: prevNarratives,
-        });
-        const aiPlan = normaliseAiPlan(out.nextMonthPlan);
-        await upsertReport({
-          ...draft,
-          summaryText: out.summary?.trim() || draft.summaryText,
-          teacherNote: out.teacherNote?.trim() || draft.teacherNote,
-          quote: out.quote?.trim() || draft.quote,
-          nextMonthPlan: aiPlan ?? draft.nextMonthPlan,
-        });
-      }
+      if (requestId !== aiRequestRef.current) return;
+      const aiPlan = normaliseAiPlan(out.nextMonthPlan);
+      await upsertReport({
+        ...draft,
+        summaryText: out.summary?.trim() || draft.summaryText,
+        teacherNote: out.teacherNote?.trim() || draft.teacherNote,
+        quote: out.quote?.trim() || draft.quote,
+        nextMonthPlan: aiPlan ?? draft.nextMonthPlan,
+      });
+      if (requestId !== aiRequestRef.current) return;
+      setPrevTexts({
+        summaryText: draft.summaryText, teacherNote: draft.teacherNote,
+        quote: draft.quote, nextMonthPlan: draft.nextMonthPlan, narratives: prevNarratives,
+      });
       setMessage(`Narasi AI selesai ✓ ${applied} narasi sesi + ringkasan & kutipan terisi`);
       setOpenNarasi(true);
       setOpenPlan(true);
-    } catch (e) { setMessage("Gagal: " + (e as Error).message); }
-    finally { setAiLoading(false); }
+    } catch (e) {
+      if (requestId === aiRequestRef.current) setMessage("Gagal: " + (e as Error).message);
+    } finally {
+      if (requestId === aiRequestRef.current) setAiLoading(false);
+    }
   };
 
   const doExport = async (type: "jpg" | "png" | "pdf") => {
@@ -646,11 +898,23 @@ export default function MonthlyReportPage() {
   };
 
   if (!students) return <Skeleton variant="card" lines={4} className="p-4" />;
+  const studentOptions = student && !students.some((candidate) => candidate.id === student.id)
+    ? [...students, student].sort((a, b) => a.name.localeCompare(b.name))
+    : students;
 
   return (
     <div className="pb-20">
       <Breadcrumb />
       <div className="p-4 space-y-4">
+        {invalidReportLink && (
+          <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            <p className="font-semibold">Laporan tidak ditemukan</p>
+            <p className="mt-0.5 text-xs">Tautan mungkin sudah lama atau laporan telah dihapus.</p>
+            <button onClick={leaveEditingReport} className="mt-2 rounded-lg bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-200">
+              Pilih laporan lain
+            </button>
+          </div>
+        )}
         {message && (
           <div className="space-y-1.5">
             <div onClick={() => setMessage("")}
@@ -690,9 +954,12 @@ export default function MonthlyReportPage() {
               <div className="grid grid-cols-1 gap-2">
                 <div>
                   <label htmlFor="mr-murid" className="label">Murid</label>
-                  <select id="mr-murid" className="input" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
+                  <select id="mr-murid" className="input" value={studentId} onChange={(e) => {
+                    beginControlScopeChange();
+                    setStudentId(e.target.value);
+                  }}>
                     <option value="">Pilih murid...</option>
-                    {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    {studentOptions.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
                 {drafts.length > 0 && (
@@ -720,7 +987,10 @@ export default function MonthlyReportPage() {
                   <label className="label">Mode Rekap</label>
                   <div className="grid grid-cols-3 gap-1.5">
                     {([["bulan", "🗓 Bulan"], ["jumlah", "🔢 Jumlah"], ["range", "📅 Rentang"]] as const).map(([m, label]) => (
-                      <button key={m} onClick={() => setMode(m)}
+                      <button key={m} onClick={() => {
+                        beginControlScopeChange();
+                        setMode(m);
+                      }}
                         className={`text-xs font-semibold rounded-lg py-2 transition-colors ${mode === m ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
                         {label}
                       </button>
@@ -731,14 +1001,20 @@ export default function MonthlyReportPage() {
                   {mode === "bulan" && (
                     <>
                       <label htmlFor="mr-bulan" className="label">Bulan</label>
-                      <input id="mr-bulan" className="input" type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
+                      <input id="mr-bulan" className="input" type="month" value={month} onChange={(e) => {
+                        beginControlScopeChange();
+                        setMonth(e.target.value);
+                      }} />
                     </>
                   )}
                   {mode === "jumlah" && (
                     <>
                       <label htmlFor="mr-jumlah" className="label">Jumlah Pertemuan</label>
                       <input id="mr-jumlah" className="input" type="number" min={1} max={20} value={count}
-                        onChange={(e) => setCount(Math.max(1, Math.min(20, Number(e.target.value) || 1)))} />
+                        onChange={(e) => {
+                          beginControlScopeChange();
+                          setCount(Math.max(1, Math.min(20, Number(e.target.value) || 1)));
+                        }} />
                       <p className="text-[11px] text-gray-500 mt-1">N pertemuan terakhir yang belum direkap.</p>
                     </>
                   )}
@@ -746,11 +1022,17 @@ export default function MonthlyReportPage() {
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label htmlFor="mr-tanggal-awal" className="label">Tanggal awal</label>
-                        <input id="mr-tanggal-awal" className="input" type="date" value={rangeStart} onChange={(e) => setRangeStart(e.target.value)} />
+                        <input id="mr-tanggal-awal" className="input" type="date" value={rangeStart} onChange={(e) => {
+                          beginControlScopeChange();
+                          setRangeStart(e.target.value);
+                        }} />
                       </div>
                       <div>
                         <label htmlFor="mr-tanggal-akhir" className="label">Tanggal akhir</label>
-                        <input id="mr-tanggal-akhir" className="input" type="date" value={rangeEnd} onChange={(e) => setRangeEnd(e.target.value)} />
+                        <input id="mr-tanggal-akhir" className="input" type="date" value={rangeEnd} onChange={(e) => {
+                          beginControlScopeChange();
+                          setRangeEnd(e.target.value);
+                        }} />
                       </div>
                     </div>
                   )}
@@ -801,7 +1083,7 @@ export default function MonthlyReportPage() {
               {studentId && periodStart && periodEnd && reportSessions.length > 0 && (
                 availability.ok ? (
                   <p className="text-[11px] text-green-700 bg-green-50 border border-green-100 rounded-lg px-2.5 py-1.5">
-                    ✓ Periode tersedia — tanggal belum pernah direkap dan belum tutup buku.
+                    {report ? "✓ Laporan ini dapat diperbarui." : "✓ Periode tersedia — tanggal belum pernah direkap dan belum tutup buku."}
                   </p>
                 ) : (
                   <p className="text-[11px] text-red-700 bg-red-50 border border-red-100 rounded-lg px-2.5 py-1.5">
@@ -809,13 +1091,18 @@ export default function MonthlyReportPage() {
                   </p>
                 )
               )}
+              {protectedNewSessionCount > 0 && (
+                <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+                  🔒 {protectedNewSessionCount} sesi baru tidak dimasukkan ke invoice yang sudah manual/lunas. Gunakan Tutup Bulan untuk membuat laporan susulan.
+                </p>
+              )}
 
               {studentId && sessions && sessions.length > 0 && reportSessions.length > 0 && (
                 <>
                   {/* Ringkasan yang langsung menjawab kondisi belajar periode ini. */}
                   <div className="grid grid-cols-4 gap-1.5">
                     <div className="bg-blue-50 rounded-xl py-2 text-center">
-                      <p className="text-lg font-bold text-blue-700">{sessions.length}</p>
+                      <p className="text-lg font-bold text-blue-700">{reportSessions.length}</p>
                       <p className="text-[11px] text-blue-500">Sesi</p>
                     </div>
                     <div className="bg-indigo-50 rounded-xl py-2 text-center">
@@ -858,9 +1145,9 @@ export default function MonthlyReportPage() {
 
                   {/* Action buttons */}
                   <div className="flex gap-2 flex-wrap">
-                    <button className="btn btn-primary flex-1 text-sm disabled:opacity-40" disabled={!availability.ok}
+                    <button className="btn btn-primary flex-1 text-sm disabled:opacity-40" disabled={!availability.ok || reportMutationBusy}
                       onClick={() => handleCreateOrSwitch()}>
-                      {report ? (reportStatus(report) === "confirmed" ? "🔄 Update Laporan" : "✏️ Update Draft") : "📝 Buat Laporan"}
+                      {reportMutationBusy ? "Memproses..." : report ? (reportStatus(report) === "confirmed" ? "🔄 Update Laporan" : "✏️ Update Draft") : "📝 Buat Laporan"}
                     </button>
                     {report && reportStatus(report) === "draft" && (
                       <button className="btn flex-1 text-sm bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40" disabled={!availability.ok}
@@ -878,12 +1165,12 @@ export default function MonthlyReportPage() {
                   {settings?.ai?.enabled && settings.ai.apiKey && (
                     <div className="flex gap-2">
                       <button className="flex-1 btn text-sm bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
-                        onClick={() => setShowNarrativesModal(true)} disabled={aiLoading}
+                        onClick={() => setShowNarrativesModal(true)} disabled={aiLoading || !availability.ok}
                         title="Tulis narasi 40–60 kata per sesi dari shortNote + ringkasan + kutipan">
                         {aiLoading ? "⏳ AI..." : "📖 Narasi AI"}
                       </button>
                       <button className="flex-1 btn text-sm bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 disabled:opacity-50"
-                        onClick={() => setShowPolishModal(true)} disabled={aiLoading}
+                        onClick={() => setShowPolishModal(true)} disabled={aiLoading || !availability.ok}
                         title="Hanya ringkasan bulan + kutipan (lebih murah)">
                         {aiLoading ? "⏳ AI..." : "✨ Ringkasan AI"}
                       </button>
@@ -920,8 +1207,8 @@ export default function MonthlyReportPage() {
 
                 {/* Design toolbar */}
                 <details className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-2.5 group" open={false}>
-                  <summary className="flex items-center justify-between cursor-pointer select-none">
-                    <span className="text-sm font-semibold text-gray-700">
+                  <summary className="flex flex-wrap items-center justify-between gap-1 cursor-pointer select-none">
+                    <span className="min-w-0 text-sm font-semibold text-gray-700">
                       🎨 Tema: {allThemes.find((t) => t.id === report.templateKey.themeId)?.name ?? "—"}
                       {" · "}{LAYOUTS.find((l) => l.id === report.templateKey.layoutId)?.name ?? "—"}
                     </span>
@@ -929,7 +1216,7 @@ export default function MonthlyReportPage() {
                     <span className="text-xs text-gray-400 font-semibold hidden group-open:inline">▾</span>
                   </summary>
                   {/* Row 1: Random + Layout + Cover toggle */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <button className="btn btn-secondary text-sm py-1.5 px-2 flex-shrink-0 whitespace-nowrap"
                       onClick={handleRegenerate}>🎲 Acak</button>
                     {undoStack.length > 0 && (
@@ -940,7 +1227,7 @@ export default function MonthlyReportPage() {
                           await upsertReport({ ...report, templateKey: { themeId: prev.themeId, layoutId: prev.layoutId } });
                         }}>↩ Undo</button>
                     )}
-                    <select className="input flex-1 text-sm" value={report.templateKey.layoutId}
+                    <select className="input min-w-0 basis-[140px] flex-1 text-sm" value={report.templateKey.layoutId}
                       onChange={(e) => { setUndoStack((s) => [...s, { themeId: report.templateKey.themeId, layoutId: report.templateKey.layoutId }]); handleCreateOrSwitch(e.target.value); }}>
                       {LAYOUTS.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                     </select>
@@ -1040,7 +1327,7 @@ export default function MonthlyReportPage() {
                   <div data-report-page className="bg-white rounded-xl border border-gray-100 p-4 max-w-sm lg:max-w-2xl mx-auto">
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">✍️ Rekap Tanda Tangan</p>
                     <div className="space-y-2">
-                      {(sessions ?? []).filter((s) => sessionSigUrls.has(s.id)).map((s) => (
+                      {reportSessions.filter((s) => sessionSigUrls.has(s.id)).map((s) => (
                         <div key={s.id} className="flex items-center gap-3 py-1.5 border-b border-gray-50 last:border-0">
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-semibold text-gray-700">{dayLabel(s.date).split(",")[1]?.trim() ?? s.date.slice(5)}</p>
@@ -1255,7 +1542,7 @@ export default function MonthlyReportPage() {
                           </button>
                           {settings?.ai?.enabled && settings.ai.apiKey && (
                             <button className="btn w-full text-sm bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 disabled:opacity-50"
-                              onClick={() => setShowPolishModal(true)} disabled={aiLoading}
+                              onClick={() => setShowPolishModal(true)} disabled={aiLoading || !availability.ok}
                               title="AI akan buatkan ringkasan + kutipan + rencana depan">
                               {aiLoading ? "⏳ AI..." : "🤖 Generate AI"}
                             </button>
@@ -1276,8 +1563,8 @@ export default function MonthlyReportPage() {
       <AiCostModal
         open={showPolishModal}
         title="✨ Ringkasan AI — Ringkasan, Kutipan & Rencana Depan"
-        estimatedIDR={estimateReportSummaryCost(sessions?.length ?? 0)}
-        description={`${sessions?.length ?? 0} sesi · ringkasan bulan + kutipan + rencana depan untuk ${student?.name ?? "murid"}`}
+        estimatedIDR={estimateReportSummaryCost(reportSessions.length)}
+        description={`${reportSessions.length} sesi · ringkasan periode + kutipan + rencana depan untuk ${student?.name ?? "murid"}`}
         onCancel={() => setShowPolishModal(false)}
         onConfirm={() => { setShowPolishModal(false); handlePolish(); }}
       />
@@ -1286,8 +1573,8 @@ export default function MonthlyReportPage() {
       <AiCostModal
         open={showNarrativesModal}
         title="Narasi AI — Semua Sesi"
-        estimatedIDR={estimateNarrativesCost(sessions?.length ?? 0)}
-        description={`Perluas shortNote jadi narasi 40–60 kata untuk ${sessions?.length ?? 0} sesi + ringkasan, catatan guru, kutipan & rencana depan. Narasi lama ditimpa (bisa di-Undo).`}
+        estimatedIDR={estimateNarrativesCost(reportSessions.length)}
+        description={`Perluas shortNote jadi narasi 40–60 kata untuk ${reportSessions.length} sesi + ringkasan, catatan guru, kutipan & rencana depan. Narasi lama ditimpa (bisa di-Undo).`}
         onCancel={() => setShowNarrativesModal(false)}
         onConfirm={() => { setShowNarrativesModal(false); handleGenerateNarratives(); }}
       />

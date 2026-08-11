@@ -2,7 +2,7 @@
 // CRUD sessions, scheduling, conflicts, photo maintenance, streak.
 
 import { db } from "../db";
-import type { Session } from "../types";
+import type { Payment, Session } from "../types";
 import { MIN_DURATION, DURATION_STEP } from "../types";
 import { timestamp, nowTimeWIB, subtractHoursFromTime, monthRange, timeToMin } from "./helpers";
 import { todayWIB } from "../../lib/format";
@@ -156,6 +156,48 @@ export async function listBillableSessionsByStudentMonth(studentId: string, mont
     .sortBy("date");
 }
 
+/** Billing query for an arbitrary inclusive period, including chargeable no-shows. */
+export async function listBillableSessionsByStudentRange(
+  studentId: string, start: string, end: string
+): Promise<Session[]> {
+  return db.sessions
+    .where({ studentId })
+    .filter((s) => isBillableSession(s) && s.date >= start && s.date <= end)
+    .sortBy("date");
+}
+
+/**
+ * Resolve the session rows printed on an invoice.
+ *
+ * A report-backed payment uses the report's sessionIds as the authoritative
+ * snapshot. `bulkGet` preserves the requested order, so a partial report never
+ * absorbs other sessions merely because their dates overlap its period.
+ * Legacy/manual payments retain the previous period/month fallback, but use
+ * billing semantics (DONE + explicitly chargeable NO_SHOW). A standalone
+ * manual invoice beside a report invoice intentionally has no session rows:
+ * reusing the report's sessions would make the invoice look double-billed.
+ */
+export async function listInvoiceSessions(
+  payment: Pick<Payment, "studentId" | "month" | "reportId" | "periodStart" | "periodEnd">
+): Promise<Session[]> {
+  if (payment.reportId) {
+    const report = await db.reports.get(payment.reportId);
+    if (!report) return [];
+    const rows = await db.sessions.bulkGet(report.sessionIds);
+    return rows.filter((session): session is Session => session !== undefined);
+  }
+  const hasReportInvoice = await db.payments
+    .where("[studentId+month]")
+    .equals([payment.studentId, payment.month])
+    .filter((candidate) => Boolean(candidate.reportId))
+    .count();
+  if (hasReportInvoice > 0) return [];
+  if (payment.periodStart && payment.periodEnd) {
+    return listBillableSessionsByStudentRange(payment.studentId, payment.periodStart, payment.periodEnd);
+  }
+  return listBillableSessionsByStudentMonth(payment.studentId, payment.month);
+}
+
 export async function listSessionsByStudentMonth(
   studentId: string, month: string
 ): Promise<Session[]> {
@@ -170,10 +212,15 @@ export async function listSessionsByStudentMonth(
 export async function listSessionsByStudentRange(
   studentId: string, start: string, end: string
 ): Promise<Session[]> {
-  return db.sessions
+  const sessions = await db.sessions
     .where({ studentId })
     .filter((s) => s.status === "DONE" && s.date >= start && s.date <= end)
-    .sortBy("date");
+    .toArray();
+  return sessions.sort((a, b) =>
+    a.date.localeCompare(b.date)
+    || (a.time ?? "").localeCompare(b.time ?? "")
+    || a.id.localeCompare(b.id)
+  );
 }
 
 export async function listScheduledForMonth(month: string): Promise<Session[]> {

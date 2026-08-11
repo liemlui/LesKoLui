@@ -17,22 +17,70 @@ export type { ExpenseCategory, IaEeMilestone };
 export async function getPayment(
   studentId: string, month: string
 ): Promise<Payment | undefined> {
+  const payments = await db.payments
+    .where("[studentId+month]")
+    .equals([studentId, month])
+    .toArray();
+  // Legacy student+month actions mean the standalone/manual invoice when it
+  // coexists with report invoices. Fall back deterministically for old callers.
+  return payments.find((payment) => !payment.reportId)
+    ?? payments.sort((a, b) => a.id.localeCompare(b.id))[0];
+}
+
+async function getUnlinkedMonthPayment(
+  studentId: string,
+  month: string
+): Promise<Payment | undefined> {
   return db.payments
     .where("[studentId+month]")
     .equals([studentId, month])
+    .filter((payment) => !payment.reportId)
     .first();
+}
+
+export type ManualPaymentInput = Omit<
+  Payment,
+  "id" | "source" | "reportId" | "periodStart" | "periodEnd"
+>;
+
+function normalizeManualPayment(payment: ManualPaymentInput): Omit<Payment, "id"> {
+  return {
+    ...payment,
+    source: "manual",
+    paidAt: payment.status === "PAID" ? (payment.paidAt ?? todayWIB()) : undefined,
+    method: payment.status === "PAID" ? payment.method : undefined,
+  };
+}
+
+/**
+ * Create exactly one unlinked manual invoice for a student/month. Report-tied
+ * invoices are deliberately ignored, so a manual invoice may coexist beside
+ * them without ever overwriting their immutable accounting state.
+ */
+export async function createManualPayment(payment: ManualPaymentInput): Promise<string> {
+  if (!isValidCurrencyAmount(payment.totalCost)) throw new Error("Invalid payment amount");
+  return db.transaction("rw", db.payments, async () => {
+    if (await getUnlinkedMonthPayment(payment.studentId, payment.month)) {
+      throw new Error("Manual payment already exists for this student and month");
+    }
+    const id = crypto.randomUUID();
+    await db.payments.add({ ...normalizeManualPayment(payment), id });
+    return id;
+  });
 }
 
 export async function upsertPayment(payment: Omit<Payment, "id">): Promise<void> {
   if (!isValidCurrencyAmount(payment.totalCost)) throw new Error("Invalid payment amount");
   const normalized: Omit<Payment, "id"> = {
-    source: "manual",
     ...payment,
+    source: payment.reportId ? (payment.source ?? "auto") : "manual",
     paidAt: payment.status === "PAID" ? (payment.paidAt ?? todayWIB()) : undefined,
     method: payment.status === "PAID" ? payment.method : undefined,
   };
   await db.transaction("rw", db.payments, async () => {
-    const existing = await getPayment(payment.studentId, payment.month);
+    const existing = payment.reportId
+      ? await getPaymentByReport(payment.reportId)
+      : await getUnlinkedMonthPayment(payment.studentId, payment.month);
     if (existing) {
       await db.payments.update(existing.id, normalized);
     } else {
@@ -94,6 +142,64 @@ export async function getPaymentByReport(reportId: string): Promise<Payment | un
   return db.payments.where("reportId").equals(reportId).first();
 }
 
+type ReportPaymentInput = Pick<
+  MonthlyReport,
+  "id" | "studentId" | "month" | "periodStart" | "periodEnd" | "totalCost"
+>;
+
+/** Reconcile one report payment inside the caller's transaction. */
+async function syncReportPaymentRecord(report: ReportPaymentInput): Promise<void> {
+  const byReport = await getPaymentByReport(report.id);
+  if (byReport) {
+    if (report.totalCost <= 0) {
+      if (byReport.status === "UNPAID" && byReport.source !== "manual") {
+        await db.payments.delete(byReport.id);
+      }
+      return;
+    }
+    const patch: Partial<Payment> = {
+      month: report.month,
+      periodStart: report.periodStart,
+      periodEnd: report.periodEnd,
+    };
+    if (byReport.status === "UNPAID" && byReport.source !== "manual") {
+      patch.totalCost = report.totalCost;
+    }
+    await db.payments.update(byReport.id, patch);
+    return;
+  }
+
+  if (report.totalCost <= 0) return;
+
+  // The compound index is not unique. Find the unlinked row explicitly instead
+  // of accepting getPayment()'s first (possibly report-linked) match.
+  const unlinkedMonthPayment = await getUnlinkedMonthPayment(report.studentId, report.month);
+  const fullMonth = report.periodStart === `${report.month}-01`
+    && report.periodEnd === monthRange(report.month).end;
+  if (unlinkedMonthPayment && fullMonth) {
+    // Adoption is metadata-only: keep manual amount, status, source, paidAt,
+    // and method exactly as the user recorded them.
+    await db.payments.update(unlinkedMonthPayment.id, {
+      reportId: report.id,
+      periodStart: report.periodStart,
+      periodEnd: report.periodEnd,
+    });
+    return;
+  }
+
+  await db.payments.add({
+    id: crypto.randomUUID(),
+    studentId: report.studentId,
+    month: report.month,
+    totalCost: report.totalCost,
+    status: "UNPAID",
+    source: "auto",
+    reportId: report.id,
+    periodStart: report.periodStart,
+    periodEnd: report.periodEnd,
+  });
+}
+
 /**
  * Terbitkan / selaraskan tagihan dari laporan periode. Idempoten per laporan:
  * - Laporan tanpa nilai (0) → hapus tagihan laporan lama yang masih UNPAID otomatis.
@@ -106,52 +212,9 @@ export async function getPaymentByReport(reportId: string): Promise<Payment | un
  * - Lainnya → tagihan baru UNPAID otomatis.
  */
 export async function syncReportPayment(
-  report: Pick<MonthlyReport, "id" | "studentId" | "month" | "periodStart" | "periodEnd" | "totalCost">
+  report: ReportPaymentInput
 ): Promise<void> {
-  await db.transaction("rw", db.payments, async () => {
-    const byReport = await getPaymentByReport(report.id);
-    if (byReport) {
-      if (report.totalCost <= 0) {
-        if (byReport.status === "UNPAID" && byReport.source !== "manual") {
-          await db.payments.delete(byReport.id);
-        }
-        return;
-      }
-      const patch: Partial<Payment> = {
-        month: report.month,
-        periodStart: report.periodStart,
-        periodEnd: report.periodEnd,
-      };
-      if (byReport.status === "UNPAID" && byReport.source !== "manual") {
-        patch.totalCost = report.totalCost;
-      }
-      await db.payments.update(byReport.id, patch);
-      return;
-    }
-    if (report.totalCost <= 0) return;
-    const byMonth = await getPayment(report.studentId, report.month);
-    const fullMonth = report.periodStart === `${report.month}-01` && report.periodEnd === monthRange(report.month).end;
-    if (byMonth && !byMonth.reportId && fullMonth) {
-      await db.payments.update(byMonth.id, {
-        reportId: report.id,
-        month: report.month,
-        periodStart: report.periodStart,
-        periodEnd: report.periodEnd,
-      });
-      return;
-    }
-    await db.payments.add({
-      id: crypto.randomUUID(),
-      studentId: report.studentId,
-      month: report.month,
-      totalCost: report.totalCost,
-      status: "UNPAID",
-      source: "auto",
-      reportId: report.id,
-      periodStart: report.periodStart,
-      periodEnd: report.periodEnd,
-    });
-  });
+  await db.transaction("rw", db.payments, () => syncReportPaymentRecord(report));
 }
 
 /** Set a payment as transferred, by its row id (aman walau ada 2+ tagihan per murid-bulan). */
@@ -229,62 +292,229 @@ export async function computeMonthBills(
   return bills.sort((a, b) => b.cost - a.cost);
 }
 
-/** Close a month: auto-create a confirmed report (periode satu bulan penuh)
- *  for each student with uncovered sessions, plus the corresponding tagihan. Idempotent. */
+/** Close a month: reconcile confirmed auto reports and their invoices.
+ *  The first mutable report covers the calendar month; sessions arriving after
+ *  a manual/paid invoice use an explicitly linked supplemental report. */
 export async function closeMonth(month: string): Promise<void> {
-  const bills = await computeMonthBills(month, { excludeReportCovered: true });
-  const addedBills: typeof bills = [];
   const { start, end } = monthRange(month);
+  let reconciledReportCount = 0;
   await db.transaction("rw", db.sessions, db.reports, db.payments, db.monthClosings, async () => {
-    // Sesi yang sudah direkap laporan SAH tidak ikut dihitung (sama dengan computeMonthBills)
-    const coveredIds = new Set((await db.reports.toArray()).filter((r) => reportStatus(r) === "confirmed").flatMap((r) => r.sessionIds));
-    for (const b of bills) {
-      // Sudah ada laporan otomatis untuk murid & bulan ini? → skip (idempoten)
-      const existingAuto = await db.reports
-        .where({ studentId: b.studentId })
-        .filter((r) => r.autoGenerated === true && r.month === month)
-        .first();
-      if (existingAuto) continue;
-      // Ambil semua sesi billable murid di bulan ini (yang belum direkap)
-      const sessions = await db.sessions
-        .filter((s) => s.studentId === b.studentId && isBillableSession(s) && s.date >= start && s.date <= end && !coveredIds.has(s.id))
-        .toArray();
-      const totalHours = sessions.reduce((sum, s) => sum + s.durationHours, 0);
-      const totalCost = sessions.reduce((sum, s) => sum + s.cost, 0);
+    // Plan and mutate under one lock so concurrent close calls cannot both
+    // create a report/payment from the same stale list of sessions.
+    const monthSessions = (await db.sessions
+      .filter((session) => isBillableSession(session) && session.date >= start && session.date <= end)
+      .toArray())
+      .sort((a, b) =>
+        a.date.localeCompare(b.date)
+        || (a.time ?? "").localeCompare(b.time ?? "")
+        || a.id.localeCompare(b.id)
+      );
+    const reports = await db.reports.toArray();
+    const coveredIds = new Set(
+      reports
+        .filter((report) => reportStatus(report) === "confirmed")
+        .flatMap((report) => report.sessionIds)
+    );
+
+    const sessionsByStudent = new Map<string, typeof monthSessions>();
+    for (const session of monthSessions) {
+      const sessions = sessionsByStudent.get(session.studentId) ?? [];
+      sessions.push(session);
+      sessionsByStudent.set(session.studentId, sessions);
+    }
+
+    const autoReportsByStudent = new Map<string, MonthlyReport[]>();
+    for (const report of reports) {
+      if (report.autoGenerated !== true || report.month !== month) continue;
+      const studentReports = autoReportsByStudent.get(report.studentId) ?? [];
+      studentReports.push(report);
+      autoReportsByStudent.set(report.studentId, studentReports);
+    }
+    for (const studentReports of autoReportsByStudent.values()) {
+      studentReports.sort((a, b) =>
+        Number(Boolean(a.supplementalForReportId)) - Number(Boolean(b.supplementalForReportId))
+        || a.createdAt.localeCompare(b.createdAt)
+        || a.id.localeCompare(b.id)
+      );
+    }
+
+    // Include draft-only students so a paid/manual report can be reconfirmed
+    // even when its original sessions were removed while the month was open.
+    const studentIds = new Set([
+      ...sessionsByStudent.keys(),
+      ...autoReportsByStudent.keys(),
+    ]);
+    const paymentIsProtected = (payment: Payment | undefined): boolean =>
+      payment !== undefined && (payment.status === "PAID" || payment.source === "manual");
+
+    const confirmAutoReport = async (
+      report: MonthlyReport,
+      sessions: typeof monthSessions
+    ): Promise<void> => {
+      const totalHours = sessions.reduce((sum, session) => sum + session.durationHours, 0);
+      const totalCost = sessions.reduce((sum, session) => sum + session.cost, 0);
+      const reportPeriod = report.supplementalForReportId && sessions.length > 0
+        ? { periodStart: sessions[0].date, periodEnd: sessions[sessions.length - 1].date }
+        : { periodStart: report.supplementalForReportId ? report.periodStart : start, periodEnd: report.supplementalForReportId ? report.periodEnd : end };
+      await db.reports.update(report.id, {
+        month,
+        ...reportPeriod,
+        sessionIds: sessions.map((session) => session.id),
+        totalHours,
+        totalCost,
+        status: "confirmed" as ReportStatus,
+      });
+      await syncReportPaymentRecord({
+        id: report.id,
+        studentId: report.studentId,
+        month,
+        ...reportPeriod,
+        totalCost,
+      });
+      reconciledReportCount += 1;
+    };
+
+    // A confirmed report is itself a billing commitment. Repair missing
+    // report invoices before looking only at uncovered sessions; otherwise a
+    // legacy/seed report can cover every session yet never become collectible.
+    for (const report of reports) {
+      if (report.month !== month || reportStatus(report) !== "confirmed") continue;
+      if (await getPaymentByReport(report.id)) continue;
+      await syncReportPaymentRecord({
+        id: report.id,
+        studentId: report.studentId,
+        month: report.month,
+        periodStart: report.periodStart,
+        periodEnd: report.periodEnd,
+        totalCost: report.totalCost,
+      });
+      reconciledReportCount += 1;
+    }
+
+    for (const studentId of studentIds) {
+      const studentSessions = sessionsByStudent.get(studentId) ?? [];
+      const autoReports = autoReportsByStudent.get(studentId) ?? [];
+      const draftReports = autoReports.filter((report) => reportStatus(report) === "draft");
+      const draftPayments = new Map<string, Payment | undefined>();
+      for (const report of draftReports) {
+        draftPayments.set(report.id, await getPaymentByReport(report.id));
+      }
+
+      // Reconfirm reports whose invoice survived reopen, but reserve only their
+      // original sessions. A late session must not disappear into an immutable
+      // manual/paid amount.
+      for (const report of draftReports) {
+        if (!paymentIsProtected(draftPayments.get(report.id))) continue;
+        const previousIds = new Set(report.sessionIds);
+        const ownedSessions = studentSessions.filter(
+          (session) => previousIds.has(session.id) && !coveredIds.has(session.id)
+        );
+        await confirmAutoReport(report, ownedSessions);
+        for (const session of ownedSessions) coveredIds.add(session.id);
+      }
+
+      let uncoveredSessions = studentSessions.filter((session) => !coveredIds.has(session.id));
+      const reusableDraft = draftReports.find(
+        (report) => !paymentIsProtected(draftPayments.get(report.id))
+      );
+      if (reusableDraft && uncoveredSessions.length > 0) {
+        // Normal close -> reopen -> close: reuse the same report id, restore one
+        // payment, and include sessions added while the month was open.
+        await confirmAutoReport(reusableDraft, uncoveredSessions);
+        for (const session of uncoveredSessions) coveredIds.add(session.id);
+        uncoveredSessions = [];
+      }
+
+      if (uncoveredSessions.length === 0) continue;
+
+      // A confirmed auto report can absorb late sessions only while its invoice
+      // is still auto-generated and unpaid. Otherwise create a separate invoice.
+      let expandableConfirmed: MonthlyReport | undefined;
+      let immutableAutoParent: MonthlyReport | undefined;
+      for (const report of autoReports) {
+        if (reportStatus(report) !== "confirmed") continue;
+        const payment = await getPaymentByReport(report.id);
+        if (paymentIsProtected(payment)) {
+          immutableAutoParent ??= report;
+        } else {
+          expandableConfirmed = report;
+          break;
+        }
+      }
+      if (expandableConfirmed) {
+        const priorIds = new Set(expandableConfirmed.sessionIds);
+        const combinedSessions = studentSessions.filter(
+          (session) => priorIds.has(session.id) || !coveredIds.has(session.id)
+        );
+        await confirmAutoReport(expandableConfirmed, combinedSessions);
+        for (const session of uncoveredSessions) coveredIds.add(session.id);
+        continue;
+      }
+
+      const studentSessionIds = new Set(studentSessions.map((session) => session.id));
+      const fallbackParent = reports
+        .filter((report) =>
+          report.studentId === studentId
+          && reportStatus(report) === "confirmed"
+          && report.sessionIds.some((id) => studentSessionIds.has(id))
+        )
+        .sort((a, b) =>
+          Number(Boolean(a.supplementalForReportId)) - Number(Boolean(b.supplementalForReportId))
+          || a.createdAt.localeCompare(b.createdAt)
+          || a.id.localeCompare(b.id)
+        )[0];
+      const parentReport = immutableAutoParent ?? fallbackParent;
+      const supplementalForReportId = parentReport
+        ? (parentReport.supplementalForReportId ?? parentReport.id)
+        : undefined;
+      const reportPeriod = supplementalForReportId
+        ? {
+            periodStart: uncoveredSessions[0].date,
+            periodEnd: uncoveredSessions[uncoveredSessions.length - 1].date,
+          }
+        : { periodStart: start, periodEnd: end };
       const reportId = crypto.randomUUID();
-      // Laporan otomatis — periode satu bulan kalender penuh
+      const totalHours = uncoveredSessions.reduce((sum, session) => sum + session.durationHours, 0);
+      const totalCost = uncoveredSessions.reduce((sum, session) => sum + session.cost, 0);
       await db.reports.add({
-        id: reportId, studentId: b.studentId, month,
-        periodStart: start, periodEnd: end,
-        sessionIds: sessions.map((s) => s.id),
+        id: reportId,
+        studentId,
+        month,
+        ...reportPeriod,
+        supplementalForReportId,
+        sessionIds: uncoveredSessions.map((session) => session.id),
         templateKey: { themeId: "blue", layoutId: "cards" },
-        summaryText: "", totalHours, totalCost,
+        summaryText: "",
+        totalHours,
+        totalCost,
         status: "confirmed" as ReportStatus,
         autoGenerated: true,
         createdAt: timestamp(),
       });
-      // Tagihan dari laporan otomatis
-      await db.payments.add({
-        id: crypto.randomUUID(),
-        studentId: b.studentId, month,
-        totalCost, status: "UNPAID", source: "auto",
-        reportId, periodStart: start, periodEnd: end,
-      });
-      addedBills.push(b);
-    }
-    const existingClosing = await db.monthClosings.where("month").equals(month).first();
-    if (!existingClosing || addedBills.length > 0) {
-      await db.monthClosings.put({
-        id: existingClosing?.id ?? crypto.randomUUID(),
+      await syncReportPaymentRecord({
+        id: reportId,
+        studentId,
         month,
-        closedAt: timestamp(),
-        totalPotensi: (existingClosing?.totalPotensi ?? 0) + addedBills.reduce((s, b) => s + b.cost, 0),
-        totalHours: (existingClosing?.totalHours ?? 0) + addedBills.reduce((s, b) => s + b.hours, 0),
-        studentCount: (existingClosing?.studentCount ?? 0) + addedBills.length,
+        ...reportPeriod,
+        totalCost,
       });
+      reconciledReportCount += 1;
+      for (const session of uncoveredSessions) coveredIds.add(session.id);
     }
+
+    const existingClosing = await db.monthClosings.where("month").equals(month).first();
+    // Snapshot the whole month, never a delta. This stays idempotent and also
+    // accounts for sessions covered by manually-created confirmed reports.
+    await db.monthClosings.put({
+      id: existingClosing?.id ?? crypto.randomUUID(),
+      month,
+      closedAt: timestamp(),
+      totalPotensi: monthSessions.reduce((sum, session) => sum + session.cost, 0),
+      totalHours: monthSessions.reduce((sum, session) => sum + session.durationHours, 0),
+      studentCount: new Set(monthSessions.map((session) => session.studentId)).size,
+    });
   });
-  await logAudit("month.close", "data", month, `${addedBills.length} laporan otomatis dibuat`);
+  await logAudit("month.close", "data", month, `${reconciledReportCount} laporan/tagihan diselaraskan`);
 }
 
 /** Reopen a month: un-sahkan laporan otomatis (balik ke draft, hapus tagihannya
@@ -297,10 +527,14 @@ export async function reopenMonth(month: string): Promise<void> {
       .toArray();
     for (const r of autoReports) {
       const p = await db.payments.where("reportId").equals(r.id).first();
-      if (p && p.status === "UNPAID") {
-        await db.payments.delete(p.id);
+      const canReturnToDraft = !p || (p.status === "UNPAID" && p.source !== "manual");
+      if (canReturnToDraft) {
+        if (p) await db.payments.delete(p.id);
         await db.reports.update(r.id, { status: "draft" as ReportStatus });
       }
+      // Manual and paid invoices remain linked to a confirmed report. Besides
+      // preserving accounting history, this keeps their sessions covered in
+      // the finance preview while the month itself is open.
     }
     const closing = await db.monthClosings.where("month").equals(month).first();
     if (closing) await db.monthClosings.delete(closing.id);

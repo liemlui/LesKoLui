@@ -22,6 +22,7 @@ export {
   listSessionsByStudent, listSessionsForMonth, listSessionsByStudentMonth,
   listSessionsByStudentRange,
   isBillableSession, listBillableSessionsForMonth, listBillableSessionsByStudentMonth,
+  listBillableSessionsByStudentRange, listInvoiceSessions,
   listScheduledForMonth, listAllSessionsForMonth,
   listAllSessionsForWeek, listDoneSessionsForDate,
   listPastScheduledSessions,
@@ -37,14 +38,15 @@ export type { CancelMode, EditMode } from "./sessionRepo";
 
 // Reports
 export {
-  getReport, upsertReport, listReportsByStudent, listAllReports,
+  getReport, getReportById, upsertReport, createReportForPeriod, listReportsByStudent, listAllReports,
   findReportByPeriod, listOverlappingReports, listConfirmedReportsByStudent,
   confirmReport, discardReport,
 } from "./reportRepo";
+export type { ReportWrite } from "./reportRepo";
 
 // Payments + Month Closing + Expenses
 export {
-  getPayment, upsertPayment, listPayments,
+  getPayment, createManualPayment, upsertPayment, listPayments,
   markPaymentTransferred, markPaymentUnpaid, updatePaymentAmount,
   getPaymentByReport, syncReportPayment,
   markPaymentTransferredById, markPaymentUnpaidById, updatePaymentAmountById,
@@ -53,7 +55,7 @@ export {
   createExpense, listExpenses, deleteExpense,
   getMonthlyIncomeVsExpense,
 } from "./paymentRepo";
-export type { StudentBill, MonthCashSummary } from "./paymentRepo";
+export type { StudentBill, MonthCashSummary, ManualPaymentInput } from "./paymentRepo";
 export type { ExpenseCategory } from "./paymentRepo";
 
 // IA / EE Projects

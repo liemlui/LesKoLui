@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "../db/db";
-import { exportBackup, importBackup, inspectBackup } from "../lib/backup";
+import { BACKUP_TABLES, exportBackup, importBackup, inspectBackup } from "../lib/backup";
 import { encryptJson } from "../lib/crypto";
 import type {
   Expense, FollowUpItem, IaEeProject, MonthClosing, MonthlyReport,
@@ -159,5 +159,86 @@ describe("backup / restore", () => {
     await expect(db.students.get("student-legacy")).resolves.toMatchObject({ name: "Data Lama" });
     await expect(db.expenses.count()).resolves.toBe(0);
     await expect(db.settings.get("app")).resolves.toMatchObject({ lastBackupAt: "2025-12-31T00:00:00.000Z" });
+  }, 30_000);
+
+  it("migrates v1 monthly reports and links their legacy payments before restore", async () => {
+    const reportId = "report-v1-legacy";
+    const legacy = await encryptJson({
+      version: 1,
+      exportedAt: "2026-01-02T03:04:05.000Z",
+      data: {
+        students: [{ id: "student-v1", name: "Vina", level: "MYP", subjects: [], parentContact: { phone: "0800" }, hourlyRate: 410_000, active: true, enrolledAt: "2025-01-01" }],
+        sessions: [],
+        reports: [{
+          id: reportId, studentId: "student-v1", month: "2025-11", sessionIds: [],
+          templateKey: { themeId: "blue", layoutId: "cards" }, summaryText: "Laporan lama",
+          totalHours: 2, totalCost: 410_000, createdAt: "2025-12-01T00:00:00.000Z",
+        }],
+        payments: [{
+          id: "payment-v1-legacy", studentId: "student-v1", month: "2025-11",
+          totalCost: 399_000, status: "PAID", source: "manual",
+          paidAt: "2025-12-02", method: "transfer",
+        }],
+        settings: [{ id: "app", tutorProfile: { name: "Tutor Lama", phone: "0800" }, defaultRate: 1, paymentInfo: "", subjects: [], ai: { enabled: false, model: "legacy" }, templatePref: {} }],
+      },
+    }, PASS);
+
+    await importBackup(legacy, PASS, { onPreRestoreBackup: () => undefined });
+
+    const { findReportByPeriod, getPaymentByReport, listOverlappingReports } = await import("../db/repos");
+    const report = await findReportByPeriod("student-v1", "2025-11-01", "2025-11-30");
+    expect(report).toMatchObject({ id: reportId, status: "confirmed" });
+    await expect(listOverlappingReports("student-v1", "2025-11-15", "2025-12-01"))
+      .resolves.toEqual([expect.objectContaining({ id: reportId })]);
+    await expect(getPaymentByReport(reportId)).resolves.toMatchObject({
+      id: "payment-v1-legacy",
+      reportId,
+      periodStart: "2025-11-01",
+      periodEnd: "2025-11-30",
+      totalCost: 399_000,
+      status: "PAID",
+      source: "manual",
+      paidAt: "2025-12-02",
+      method: "transfer",
+    });
+  }, 30_000);
+
+  it("migrates v2 backups exported from a database older than v11", async () => {
+    const data = Object.fromEntries(BACKUP_TABLES.map((table) => [table, []])) as Record<string, Record<string, unknown>[]>;
+    data.students = [{ id: "student-v2", name: "Bimo", level: "IBDP", subjects: [], parentContact: { phone: "0800" }, hourlyRate: 500_000, active: true, enrolledAt: "2024-01-01" }];
+    data.reports = [{
+      id: "report-v2-legacy", studentId: "student-v2", month: "2024-02", sessionIds: [],
+      templateKey: { themeId: "blue", layoutId: "cards" }, summaryText: "Sebelum v11",
+      totalHours: 1, totalCost: 500_000, createdAt: "2024-03-01T00:00:00.000Z",
+    }];
+    data.payments = [{
+      id: "payment-v2-legacy", studentId: "student-v2", month: "2024-02",
+      totalCost: 500_000, status: "UNPAID", source: "auto",
+    }];
+    data.settings = [{ id: "app", tutorProfile: { name: "Tutor Lama", phone: "0800" }, defaultRate: 1, paymentInfo: "", subjects: [], ai: { enabled: false, model: "legacy" }, templatePref: {} }];
+    const tableCounts = Object.fromEntries(BACKUP_TABLES.map((table) => [table, data[table].length]));
+    const legacy = await encryptJson({
+      version: 2,
+      exportedAt: "2024-03-02T00:00:00.000Z",
+      schema: { databaseVersion: 10, tableCounts },
+      data,
+    }, PASS);
+
+    await importBackup(legacy, PASS, { onPreRestoreBackup: () => undefined });
+
+    const { findReportByPeriod, getPaymentByReport, listOverlappingReports } = await import("../db/repos");
+    await expect(findReportByPeriod("student-v2", "2024-02-01", "2024-02-29"))
+      .resolves.toMatchObject({ id: "report-v2-legacy", status: "confirmed" });
+    await expect(listOverlappingReports("student-v2", "2024-02-29", "2024-02-29"))
+      .resolves.toEqual([expect.objectContaining({ id: "report-v2-legacy" })]);
+    await expect(getPaymentByReport("report-v2-legacy")).resolves.toMatchObject({
+      id: "payment-v2-legacy",
+      reportId: "report-v2-legacy",
+      periodStart: "2024-02-01",
+      periodEnd: "2024-02-29",
+      totalCost: 500_000,
+      status: "UNPAID",
+      source: "auto",
+    });
   }, 30_000);
 });

@@ -11,6 +11,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.41.0",
+    date: "2026-08-11",
+    title: "Penguatan Keuangan & Laporan — invoice aman, laporan susulan, dan UI mobile",
+    items: [
+      "Tutup dan buka bulan kini idempoten; tagihan manual tidak dihitung ganda dan invoice laporan lama yang hilang dipulihkan otomatis",
+      "Invoice manual atau yang sudah lunas tetap utuh; sesi terlambat diterbitkan sebagai laporan susulan dengan periode dan tagihan terpisah",
+      "Pembuatan serta pengesahan laporan kini atomik dengan perlindungan overlap, double-click, dan perubahan data lintas tab",
+      "Mode Jumlah memakai tepat N sesi secara kronologis untuk tampilan, penyimpanan, dan estimasi biaya AI",
+      "AI Keuangan selalu meminta persetujuan biaya dan hasilnya terikat ke bulan aktif agar tidak menampilkan analisis lama",
+      "Restore backup lama menormalisasi periode laporan secara aman tanpa mengubah nominal atau status pembayaran",
+      "Tampilan Keuangan, invoice, dan laporan diperbaiki untuk layar 320 px serta membedakan tagihan Manual, Laporan, dan Susulan",
+      "Regresi lifecycle keuangan, invoice, backup, scope laporan, dan insight AI kini dilindungi oleh rangkaian test baru",
+    ],
+  },
+  {
     version: "v1.40.0",
     date: "2026-08-08",
     title: "Keuangan Unified + AI Insight — semua tagihan dari laporan, anomali & rekomendasi otomatis",

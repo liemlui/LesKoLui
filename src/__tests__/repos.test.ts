@@ -76,6 +76,78 @@ describe("Payment upsert atomicity", () => {
     await expect(markPaymentTransferred("missing", "2026-06")).rejects.toThrow("Payment not found");
     expect(await listPayments("2026-06")).toEqual([]);
   });
+
+  it("creates one manual invoice beside a report invoice without overwriting it", async () => {
+    const { syncReportPayment, createManualPayment, listPayments } = await import("../db/repos");
+    const reportId = crypto.randomUUID();
+    await syncReportPayment({
+      id: reportId,
+      studentId: "manual-beside-report",
+      month: "2026-06",
+      periodStart: "2026-06-10",
+      periodEnd: "2026-06-12",
+      totalCost: 300_000,
+    });
+
+    const manualId = await createManualPayment({
+      studentId: "manual-beside-report",
+      month: "2026-06",
+      totalCost: 125_000,
+      status: "UNPAID",
+    });
+    const rows = (await listPayments("2026-06")).filter((payment) => payment.studentId === "manual-beside-report");
+    expect(rows).toHaveLength(2);
+    expect(rows.find((payment) => payment.reportId === reportId)).toMatchObject({ totalCost: 300_000, source: "auto" });
+    const manual = rows.find((payment) => payment.id === manualId);
+    expect(manual).toMatchObject({ totalCost: 125_000, source: "manual" });
+    expect(manual?.reportId).toBeUndefined();
+    await expect(createManualPayment({
+      studentId: "manual-beside-report",
+      month: "2026-06",
+      totalCost: 99_000,
+      status: "UNPAID",
+    })).rejects.toThrow("Manual payment already exists");
+  });
+
+  it("atomically rejects concurrent duplicate manual invoices", async () => {
+    const { createManualPayment, listPayments } = await import("../db/repos");
+    const input = {
+      studentId: "manual-race",
+      month: "2026-06",
+      totalCost: 175_000,
+      status: "UNPAID" as const,
+    };
+    const results = await Promise.allSettled([
+      createManualPayment(input),
+      createManualPayment(input),
+    ]);
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
+    const rows = (await listPayments("2026-06")).filter((payment) => payment.studentId === "manual-race");
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ source: "manual", totalCost: 175_000 });
+  });
+
+  it("upsertPayment targets only the unlinked row when a report invoice shares the month", async () => {
+    const { syncReportPayment, upsertPayment, updatePaymentAmount, listPayments } = await import("../db/repos");
+    const reportId = crypto.randomUUID();
+    await syncReportPayment({
+      id: reportId,
+      studentId: "safe-upsert",
+      month: "2026-06",
+      periodStart: "2026-06-10",
+      periodEnd: "2026-06-12",
+      totalCost: 300_000,
+    });
+    await upsertPayment({ studentId: "safe-upsert", month: "2026-06", totalCost: 125_000, status: "UNPAID" });
+    await upsertPayment({ studentId: "safe-upsert", month: "2026-06", totalCost: 150_000, status: "UNPAID" });
+    await updatePaymentAmount("safe-upsert", "2026-06", 160_000);
+
+    const rows = (await listPayments("2026-06")).filter((payment) => payment.studentId === "safe-upsert");
+    expect(rows).toHaveLength(2);
+    expect(rows.find((payment) => payment.reportId === reportId)).toMatchObject({ totalCost: 300_000, source: "auto" });
+    expect(rows.find((payment) => !payment.reportId)).toMatchObject({ totalCost: 160_000, source: "manual" });
+  });
 });
 
 // ── Audit Trail (L-1) ──────────────────────────────────────────────
@@ -230,6 +302,29 @@ describe("Student CRUD", () => {
 // ── Session Tests ──────────────────────────────────────────────────
 
 describe("Session CRUD", () => {
+  it("orders same-day range sessions deterministically by time then id", async () => {
+    const { listSessionsByStudentRange } = await import("../db/repos");
+    const base = {
+      studentId: "same-day-order",
+      date: "2026-06-12",
+      durationHours: 1,
+      subjects: ["Math"],
+      shortNote: "",
+      status: "DONE" as const,
+      rateSnapshot: DEFAULT_RATE,
+      cost: DEFAULT_RATE,
+      createdAt: "2026-06-12T00:00:00.000Z",
+      updatedAt: "2026-06-12T00:00:00.000Z",
+    };
+    await db.sessions.bulkAdd([
+      { ...base, id: "session-z", time: "17:00" },
+      { ...base, id: "session-b", time: "09:00" },
+      { ...base, id: "session-a", time: "09:00" },
+    ]);
+
+    const rows = await listSessionsByStudentRange("same-day-order", "2026-06-01", "2026-06-30");
+    expect(rows.map((session) => session.id)).toEqual(["session-a", "session-b", "session-z"]);
+  });
   it("creates a DONE session with cost auto-calculated", async () => {
     const { createStudent, createSession } = await import("../db/repos");
     const sid = await createStudent({
@@ -528,6 +623,150 @@ describe("Report payments", () => {
 
 
 
+describe("Report identity", () => {
+  it("keeps ordinary full/partial lookup stable while supplemental reports stay addressable by id", async () => {
+    const { upsertReport, findReportByPeriod, getReportById } = await import("../db/repos");
+    const base = {
+      studentId: "report-identity",
+      month: "2026-06",
+      sessionIds: [] as string[],
+      templateKey: { themeId: "blue", layoutId: "cards" },
+      summaryText: "",
+      totalHours: 0,
+      totalCost: 0,
+      status: "confirmed" as const,
+      autoGenerated: true,
+    };
+    const fullId = "report-full-primary";
+    const legacyDuplicateId = "report-full-legacy-duplicate";
+    const supplementalId = "report-full-supplemental";
+    const partialId = "report-partial-primary";
+    await upsertReport({ ...base, id: fullId, periodStart: "2026-06-01", periodEnd: "2026-06-30", createdAt: "2026-06-30T01:00:00.000Z" });
+    // Simulate a legacy duplicate that predates the current atomic guard.
+    await db.reports.add({ ...base, id: legacyDuplicateId, periodStart: "2026-06-01", periodEnd: "2026-06-30", createdAt: "2026-06-30T02:00:00.000Z" });
+    await db.reports.add({ ...base, id: supplementalId, periodStart: "2026-06-01", periodEnd: "2026-06-30", createdAt: "2026-06-30T00:00:00.000Z", supplementalForReportId: fullId });
+    await db.reports.add({ ...base, id: partialId, periodStart: "2026-06-10", periodEnd: "2026-06-12", createdAt: "2026-06-12T01:00:00.000Z" });
+
+    expect((await findReportByPeriod("report-identity", "2026-06-01", "2026-06-30"))?.id).toBe(fullId);
+    expect((await findReportByPeriod("report-identity", "2026-06-10", "2026-06-12"))?.id).toBe(partialId);
+    expect(await getReportById(supplementalId)).toMatchObject({
+      id: supplementalId,
+      supplementalForReportId: fullId,
+    });
+  });
+
+  it("does not expose a supplemental report through ordinary period lookup", async () => {
+    const { upsertReport, findReportByPeriod, getReportById } = await import("../db/repos");
+    const supplementalId = "report-only-supplemental";
+    await upsertReport({
+      id: supplementalId,
+      studentId: "report-identity",
+      month: "2026-07",
+      periodStart: "2026-07-20",
+      periodEnd: "2026-07-20",
+      supplementalForReportId: "missing-legacy-parent",
+      sessionIds: [],
+      templateKey: { themeId: "blue", layoutId: "cards" },
+      summaryText: "",
+      totalHours: 0,
+      totalCost: 0,
+      status: "confirmed",
+      createdAt: "2026-07-20T00:00:00.000Z",
+    });
+
+    expect(await findReportByPeriod("report-identity", "2026-07-20", "2026-07-20")).toBeUndefined();
+    expect((await getReportById(supplementalId))?.id).toBe(supplementalId);
+  });
+
+  it("atomically get-or-creates one regular draft for concurrent period requests", async () => {
+    const { createReportForPeriod, listReportsByStudent } = await import("../db/repos");
+    const base = {
+      studentId: "report-concurrent",
+      month: "2026-08",
+      periodStart: "2026-08-01",
+      periodEnd: "2026-08-31",
+      sessionIds: [] as string[],
+      templateKey: { themeId: "blue", layoutId: "cards" },
+      summaryText: "",
+      totalHours: 0,
+      totalCost: 0,
+      status: "draft" as const,
+    };
+
+    const results = await Promise.all([
+      createReportForPeriod({ ...base, id: "concurrent-a" }),
+      createReportForPeriod({ ...base, id: "concurrent-b" }),
+    ]);
+    const reports = await listReportsByStudent(base.studentId);
+
+    expect(reports).toHaveLength(1);
+    expect(new Set(results.map((result) => result.reportId))).toEqual(new Set([reports[0].id]));
+    expect(results.filter((result) => result.created)).toHaveLength(1);
+  });
+
+  it("rejects a confirmed scope that overlaps an unrelated confirmed report", async () => {
+    const { upsertReport } = await import("../db/repos");
+    const base = {
+      studentId: "report-overlap-atomic",
+      month: "2026-08",
+      sessionIds: [] as string[],
+      templateKey: { themeId: "blue", layoutId: "cards" },
+      summaryText: "",
+      totalHours: 0,
+      totalCost: 0,
+      status: "confirmed" as const,
+    };
+    await upsertReport({ ...base, id: "confirmed-a", periodStart: "2026-08-01", periodEnd: "2026-08-20" });
+
+    await expect(upsertReport({
+      ...base,
+      id: "confirmed-b",
+      periodStart: "2026-08-15",
+      periodEnd: "2026-08-31",
+    })).rejects.toThrow("bertumpuk");
+  });
+
+  it("serializes concurrent confirmations and keeps legacy confirmed collisions editable", async () => {
+    const { upsertReport, getReportById } = await import("../db/repos");
+    const base = {
+      studentId: "report-confirm-race",
+      month: "2026-08",
+      periodStart: "2026-08-01",
+      periodEnd: "2026-08-31",
+      sessionIds: [] as string[],
+      templateKey: { themeId: "blue", layoutId: "cards" },
+      summaryText: "",
+      totalHours: 0,
+      totalCost: 0,
+      status: "draft" as const,
+      createdAt: "2026-08-31T00:00:00.000Z",
+    };
+    await db.reports.bulkAdd([
+      { ...base, id: "confirm-race-a" },
+      { ...base, id: "confirm-race-b", createdAt: "2026-08-31T00:00:01.000Z" },
+    ]);
+
+    const confirmations = await Promise.allSettled([
+      upsertReport({ ...base, id: "confirm-race-a", status: "confirmed" }),
+      upsertReport({ ...base, id: "confirm-race-b", status: "confirmed" }),
+    ]);
+    expect(confirmations.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(confirmations.filter((result) => result.status === "rejected")).toHaveLength(1);
+
+    const confirmed = (await db.reports.toArray()).find((report) => report.status === "confirmed")!;
+    // Once a collision already exists in legacy data, same-scope content edits
+    // remain possible; the guard blocks only creation/confirmation/new overlap.
+    const legacyTwin = {
+      ...confirmed,
+      id: "legacy-confirmed-twin",
+      createdAt: "2026-08-31T00:00:02.000Z",
+    };
+    await db.reports.add(legacyTwin);
+    await upsertReport({ ...confirmed, summaryText: "Updated safely" });
+    expect((await getReportById(confirmed.id))?.summaryText).toBe("Updated safely");
+  });
+});
+
 // ── Month Closing (v2 — unified: tutup buku → laporan otomatis + sahkan) ─
 
 describe("Month Closing", () => {
@@ -554,6 +793,263 @@ describe("Month Closing", () => {
     expect((await getMonthClosing("2026-06"))).toBeDefined();
   });
 
+  it("closeMonth adopts an existing manual month payment without changing it", async () => {
+    const {
+      createStudent, createSession, upsertPayment, getPayment, closeMonth,
+      listPayments, listReportsByStudent,
+    } = await import("../db/repos");
+    const sid = await createStudent({ name: "Adopt Manual", level: "IBDP", subjects: [], parentContact: { phone: "088" }, hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30) });
+    await createSession({ studentId: sid, date: "2026-06-03", durationHours: 1, subjects: ["Math"], shortNote: "", status: "DONE" });
+    await createSession({ studentId: sid, date: "2026-06-20", durationHours: 1, subjects: ["Math"], shortNote: "", status: "DONE" });
+    await upsertPayment({
+      studentId: sid,
+      month: "2026-06",
+      totalCost: 450_000,
+      status: "PAID",
+      paidAt: "2026-06-25",
+      method: "cash",
+    });
+    const manualBefore = await getPayment(sid, "2026-06");
+
+    await closeMonth("2026-06");
+
+    const reports = (await listReportsByStudent(sid)).filter((report) => report.autoGenerated);
+    const payments = (await listPayments("2026-06")).filter((payment) => payment.studentId === sid);
+    expect(reports).toHaveLength(1);
+    expect(payments).toHaveLength(1);
+    expect(payments[0]).toMatchObject({
+      id: manualBefore?.id,
+      reportId: reports[0].id,
+      totalCost: 450_000,
+      status: "PAID",
+      source: "manual",
+      paidAt: "2026-06-25",
+      method: "cash",
+      periodStart: "2026-06-01",
+      periodEnd: "2026-06-30",
+    });
+  });
+
+  it("close -> reopen -> close reuses the draft and includes newly added sessions", async () => {
+    const {
+      createStudent, createSession, closeMonth, reopenMonth, listPayments,
+      listReportsByStudent, getMonthClosing,
+    } = await import("../db/repos");
+    const sid = await createStudent({ name: "Reclose Draft", level: "IBDP", subjects: [], parentContact: { phone: "088" }, hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30) });
+    const firstSessionId = await createSession({ studentId: sid, date: "2026-06-03", durationHours: 1, subjects: ["Math"], shortNote: "", status: "DONE" });
+    await closeMonth("2026-06");
+    const originalReport = (await listReportsByStudent(sid)).find((report) => report.autoGenerated)!;
+
+    await reopenMonth("2026-06");
+    expect((await listReportsByStudent(sid)).find((report) => report.id === originalReport.id)?.status).toBe("draft");
+    expect((await listPayments("2026-06")).filter((payment) => payment.studentId === sid)).toHaveLength(0);
+    expect(await getMonthClosing("2026-06")).toBeUndefined();
+
+    const lateSessionId = await createSession({ studentId: sid, date: "2026-06-22", durationHours: 1, subjects: ["Math"], shortNote: "", status: "DONE" });
+    await closeMonth("2026-06");
+
+    const reports = (await listReportsByStudent(sid)).filter((report) => report.autoGenerated);
+    const payments = (await listPayments("2026-06")).filter((payment) => payment.studentId === sid);
+    expect(reports).toHaveLength(1);
+    expect(reports[0].id).toBe(originalReport.id);
+    expect(reports[0].status).toBe("confirmed");
+    expect(reports[0].sessionIds).toEqual([firstSessionId, lateSessionId]);
+    expect(reports[0].totalCost).toBe(2 * DEFAULT_RATE);
+    expect(payments).toHaveLength(1);
+    expect(payments[0]).toMatchObject({ reportId: originalReport.id, totalCost: 2 * DEFAULT_RATE, status: "UNPAID", source: "auto" });
+    expect(await getMonthClosing("2026-06")).toMatchObject({
+      totalPotensi: 2 * DEFAULT_RATE,
+      totalHours: 2,
+      studentCount: 1,
+    });
+  });
+
+  it("does not confirm an empty draft when all sessions are removed before reclose", async () => {
+    const {
+      createStudent, createSession, closeMonth, reopenMonth, deleteSession,
+      listPayments, listReportsByStudent, getMonthClosing,
+    } = await import("../db/repos");
+    const sid = await createStudent({ name: "Empty Reclose", level: "IBDP", subjects: [], parentContact: { phone: "088" }, hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30) });
+    const sessionId = await createSession({ studentId: sid, date: "2026-06-03", durationHours: 1, subjects: ["Math"], shortNote: "", status: "DONE" });
+    await closeMonth("2026-06");
+    const reportId = (await listReportsByStudent(sid)).find((report) => report.autoGenerated)!.id;
+
+    await reopenMonth("2026-06");
+    await deleteSession(sessionId);
+    await closeMonth("2026-06");
+
+    const report = (await listReportsByStudent(sid)).find((candidate) => candidate.id === reportId);
+    expect(report).toMatchObject({ status: "draft", sessionIds: [], totalHours: 0, totalCost: 0 });
+    expect((await listPayments("2026-06")).filter((payment) => payment.studentId === sid)).toHaveLength(0);
+    expect(await getMonthClosing("2026-06")).toMatchObject({ totalPotensi: 0, totalHours: 0, studentCount: 0 });
+  });
+
+  it("reopen preserves a manually edited report payment", async () => {
+    const {
+      createStudent, createSession, closeMonth, reopenMonth, updatePaymentAmountById,
+      listPayments, listReportsByStudent, getMonthClosing,
+    } = await import("../db/repos");
+    const sid = await createStudent({ name: "Manual Override", level: "IBDP", subjects: [], parentContact: { phone: "088" }, hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30) });
+    await createSession({ studentId: sid, date: "2026-06-03", durationHours: 1, subjects: ["Math"], shortNote: "", status: "DONE" });
+    await closeMonth("2026-06");
+    const paymentBefore = (await listPayments("2026-06")).find((payment) => payment.studentId === sid)!;
+    await updatePaymentAmountById(paymentBefore.id, 175_000);
+
+    await reopenMonth("2026-06");
+
+    const paymentsAfter = (await listPayments("2026-06")).filter((payment) => payment.studentId === sid);
+    expect(paymentsAfter).toHaveLength(1);
+    expect(paymentsAfter[0]).toMatchObject({
+      id: paymentBefore.id,
+      reportId: paymentBefore.reportId,
+      totalCost: 175_000,
+      status: "UNPAID",
+      source: "manual",
+    });
+    expect((await listReportsByStudent(sid)).find((report) => report.id === paymentBefore.reportId)?.status).toBe("confirmed");
+    expect(await getMonthClosing("2026-06")).toBeUndefined();
+
+    await closeMonth("2026-06");
+    const afterReclose = (await listPayments("2026-06")).filter((payment) => payment.studentId === sid);
+    expect(afterReclose).toHaveLength(1);
+    expect(afterReclose[0]).toMatchObject({ id: paymentBefore.id, totalCost: 175_000, source: "manual" });
+  });
+
+  it("closeMonth extends a confirmed auto report when late sessions appear", async () => {
+    const {
+      createStudent, createSession, closeMonth, listPayments,
+      listReportsByStudent, getMonthClosing,
+    } = await import("../db/repos");
+    const sid = await createStudent({ name: "Late Session", level: "IBDP", subjects: [], parentContact: { phone: "088" }, hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30) });
+    const firstSessionId = await createSession({ studentId: sid, date: "2026-06-03", durationHours: 1, subjects: ["Math"], shortNote: "", status: "DONE" });
+    await closeMonth("2026-06");
+    const originalReport = (await listReportsByStudent(sid)).find((report) => report.autoGenerated)!;
+    const lateSessionId = await createSession({ studentId: sid, date: "2026-06-24", durationHours: 1, subjects: ["Math"], shortNote: "", status: "DONE" });
+
+    await closeMonth("2026-06");
+
+    const reports = (await listReportsByStudent(sid)).filter((report) => report.autoGenerated);
+    const payments = (await listPayments("2026-06")).filter((payment) => payment.studentId === sid);
+    expect(reports).toHaveLength(1);
+    expect(reports[0].id).toBe(originalReport.id);
+    expect(reports[0].sessionIds).toEqual([firstSessionId, lateSessionId]);
+    expect(reports[0].totalCost).toBe(2 * DEFAULT_RATE);
+    expect(payments).toHaveLength(1);
+    expect(payments[0]).toMatchObject({ reportId: originalReport.id, totalCost: 2 * DEFAULT_RATE, source: "auto" });
+    expect(await getMonthClosing("2026-06")).toMatchObject({ totalPotensi: 2 * DEFAULT_RATE, totalHours: 2, studentCount: 1 });
+  });
+
+  it("repairs a missing invoice for sessions already covered by a confirmed report", async () => {
+    const {
+      createStudent, createSession, upsertReport, closeMonth,
+      getPaymentByReport, listReportsByStudent,
+    } = await import("../db/repos");
+    const sid = await createStudent({ name: "Legacy Missing Invoice", level: "IBDP", subjects: [], parentContact: { phone: "086" }, hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30) });
+    const sessionId = await createSession({ studentId: sid, date: "2026-06-08", durationHours: 1, subjects: ["Math"], shortNote: "", status: "DONE" });
+    const reportId = "confirmed-without-payment";
+    await upsertReport({
+      id: reportId,
+      studentId: sid,
+      month: "2026-06",
+      periodStart: "2026-06-01",
+      periodEnd: "2026-06-30",
+      sessionIds: [sessionId],
+      templateKey: { themeId: "blue", layoutId: "cards" },
+      summaryText: "",
+      totalHours: 1,
+      totalCost: DEFAULT_RATE,
+      status: "confirmed",
+    });
+    expect(await getPaymentByReport(reportId)).toBeUndefined();
+
+    await closeMonth("2026-06");
+
+    expect(await getPaymentByReport(reportId)).toMatchObject({
+      reportId,
+      totalCost: DEFAULT_RATE,
+      status: "UNPAID",
+      source: "auto",
+    });
+    expect(await listReportsByStudent(sid)).toHaveLength(1);
+  });
+
+  it("keeps close preview aligned when manual and report invoices coexist", async () => {
+    const {
+      createStudent, createSession, closeMonth, createManualPayment, listPayments,
+    } = await import("../db/repos");
+    const { buildMonthClosingProjection } = await import("../lib/billingPreview");
+    const sid = await createStudent({ name: "Preview Coexist", level: "IBDP", subjects: [], parentContact: { phone: "087" }, hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30) });
+    await createSession({ studentId: sid, date: "2026-06-03", durationHours: 1, subjects: ["Math"], shortNote: "", status: "DONE" });
+    await closeMonth("2026-06");
+    await createManualPayment({ studentId: sid, month: "2026-06", totalCost: 100_000, status: "UNPAID" });
+    await createSession({ studentId: sid, date: "2026-06-24", durationHours: 1, subjects: ["Math"], shortNote: "", status: "DONE" });
+
+    const before = (await listPayments("2026-06")).filter((payment) => payment.studentId === sid);
+    const beforeTotal = before.reduce((sum, payment) => sum + payment.totalCost, 0);
+    const projection = buildMonthClosingProjection([{ studentId: sid, cost: DEFAULT_RATE }], before);
+    expect(projection.rows[0].adoptedPayment).toBeUndefined();
+    expect(projection.additionalTotal).toBe(DEFAULT_RATE);
+
+    await closeMonth("2026-06");
+    const after = (await listPayments("2026-06")).filter((payment) => payment.studentId === sid);
+    expect(after.reduce((sum, payment) => sum + payment.totalCost, 0) - beforeTotal).toBe(projection.additionalTotal);
+    expect(after.find((payment) => !payment.reportId)?.totalCost).toBe(100_000);
+  });
+
+  it("creates addressable supplemental reports for late sessions after manual or paid invoices", async () => {
+    const {
+      createStudent, createSession, closeMonth, listPayments, listReportsByStudent,
+      updatePaymentAmountById, markPaymentTransferredById, getReportById, findReportByPeriod,
+    } = await import("../db/repos");
+    const manualSid = await createStudent({ name: "Late Manual", level: "IBDP", subjects: [], parentContact: { phone: "081" }, hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30) });
+    const paidSid = await createStudent({ name: "Late Paid", level: "IBDP", subjects: [], parentContact: { phone: "082" }, hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30) });
+    await createSession({ studentId: manualSid, date: "2026-06-03", durationHours: 1, subjects: ["Math"], shortNote: "", status: "DONE" });
+    await createSession({ studentId: paidSid, date: "2026-06-04", durationHours: 1, subjects: ["Math"], shortNote: "", status: "DONE" });
+    await closeMonth("2026-06");
+
+    const manualPrimary = (await listReportsByStudent(manualSid)).find((report) => report.autoGenerated)!;
+    const paidPrimary = (await listReportsByStudent(paidSid)).find((report) => report.autoGenerated)!;
+    const initialPayments = await listPayments("2026-06");
+    const manualPrimaryPayment = initialPayments.find((payment) => payment.reportId === manualPrimary.id)!;
+    const paidPrimaryPayment = initialPayments.find((payment) => payment.reportId === paidPrimary.id)!;
+    await updatePaymentAmountById(manualPrimaryPayment.id, 175_000);
+    await markPaymentTransferredById(paidPrimaryPayment.id, "transfer", "2026-06-25");
+    const manualLateId = await createSession({ studentId: manualSid, date: "2026-06-20", durationHours: 1, subjects: ["Math"], shortNote: "", status: "DONE" });
+    const paidLateId = await createSession({ studentId: paidSid, date: "2026-06-22", durationHours: 1, subjects: ["Math"], shortNote: "", status: "DONE" });
+
+    await closeMonth("2026-06");
+    await closeMonth("2026-06");
+
+    for (const scenario of [
+      { sid: manualSid, primary: manualPrimary, lateId: manualLateId, lateDate: "2026-06-20", protected: { totalCost: 175_000, status: "UNPAID", source: "manual" } },
+      { sid: paidSid, primary: paidPrimary, lateId: paidLateId, lateDate: "2026-06-22", protected: { totalCost: DEFAULT_RATE, status: "PAID", source: "auto", paidAt: "2026-06-25" } },
+    ]) {
+      const reports = (await listReportsByStudent(scenario.sid)).filter((report) => report.autoGenerated);
+      const supplemental = reports.find((report) => report.supplementalForReportId === scenario.primary.id);
+      expect(reports).toHaveLength(2);
+      expect(supplemental).toMatchObject({
+        periodStart: scenario.lateDate,
+        periodEnd: scenario.lateDate,
+        sessionIds: [scenario.lateId],
+        totalCost: DEFAULT_RATE,
+        status: "confirmed",
+      });
+      expect(await getReportById(supplemental!.id)).toMatchObject({ supplementalForReportId: scenario.primary.id });
+      expect((await findReportByPeriod(scenario.sid, "2026-06-01", "2026-06-30"))?.id).toBe(scenario.primary.id);
+
+      const payments = (await listPayments("2026-06")).filter((payment) => payment.studentId === scenario.sid);
+      expect(payments).toHaveLength(2);
+      expect(payments.find((payment) => payment.reportId === scenario.primary.id)).toMatchObject(scenario.protected);
+      expect(payments.find((payment) => payment.reportId === supplemental!.id)).toMatchObject({
+        totalCost: DEFAULT_RATE,
+        status: "UNPAID",
+        source: "auto",
+        periodStart: scenario.lateDate,
+        periodEnd: scenario.lateDate,
+      });
+    }
+  });
+
   it("closeMonth twice is idempotent (re-close tidak membuat duplikat)", async () => {
     const { createStudent, createSession, closeMonth, listReportsByStudent, listPayments } = await import("../db/repos");
     const sid = await createStudent({ name: "Idem", level: "IBDP", subjects: [], parentContact: { phone: "088" }, hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30) });
@@ -578,7 +1074,7 @@ describe("Month Closing", () => {
   });
 
   it("closeMonth excludes sessions from confirmed reports", async () => {
-    const { createStudent, createSession, upsertReport, syncReportPayment, closeMonth, listPayments } = await import("../db/repos");
+    const { createStudent, createSession, upsertReport, syncReportPayment, closeMonth, listPayments, listReportsByStudent } = await import("../db/repos");
     const sid = await createStudent({ name: "Covered2", level: "IBDP", subjects: [], parentContact: { phone: "088" }, hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30) });
     const s1 = await createSession({ studentId: sid, date: "2026-06-03", durationHours: 1, subjects: ["Math"], shortNote: "", status: "DONE" });
     await createSession({ studentId: sid, date: "2026-06-20", durationHours: 1, subjects: ["Math"], shortNote: "", status: "DONE" });
@@ -593,6 +1089,13 @@ describe("Month Closing", () => {
     const payments = await listPayments("2026-06");
     const autoPayment = payments.find((p) => p.studentId === sid && p.reportId !== rid);
     expect(autoPayment?.totalCost).toBe(DEFAULT_RATE);
+    expect(autoPayment).toMatchObject({ periodStart: "2026-06-20", periodEnd: "2026-06-20" });
+    const supplemental = (await listReportsByStudent(sid)).find((report) => report.supplementalForReportId === rid);
+    expect(supplemental).toMatchObject({
+      periodStart: "2026-06-20",
+      periodEnd: "2026-06-20",
+      supplementalForReportId: rid,
+    });
   });
 
   it("closeMonth skips students whose sessions are all covered by confirmed reports", async () => {

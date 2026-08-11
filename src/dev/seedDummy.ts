@@ -443,7 +443,7 @@ async function seedInner(force: boolean): Promise<void> {
   });
 
   console.info("%c[seedDummy] Data dummy berhasil dimasukkan ✓", "color:#10B981;font-weight:bold");
-  console.info("[seedDummy] PIN Rekap Keuangan: 123456 · Buka /report → tab Rekap Keuangan.");
+  console.info("[seedDummy] PIN Keuangan: 123456 · Buka /payments untuk melihat rekap dan tagihan.");
   console.info("[seedDummy] Laporan siap: Andi (Jun) = Infografis Expert, Bella (Jun) = Analitik. Foto/TTD & seri 🔁 tersedia.");
 }
 

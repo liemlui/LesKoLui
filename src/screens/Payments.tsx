@@ -1,12 +1,12 @@
 import Skeleton from "../components/Skeleton";
-import { useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useNavigate } from "react-router-dom";
 import {
-  listPayments, listStudents, getPayment, upsertPayment, getSettings,
+  listPayments, listStudents, createManualPayment, getSettings,
   listExpenses, deleteExpense,
-  listBillableSessionsForMonth, listBillableSessionsByStudentMonth, listAllUpcomingScheduled,
-  listScheduledForMonth, listSessionsByStudentRange,
+  listBillableSessionsForMonth, listAllUpcomingScheduled,
+  listScheduledForMonth, listInvoiceSessions,
   getMonthClosing, listMonthClosings, closeMonth, reopenMonth,
   getCashSummary,
   getMonthlyIncomeVsExpense,
@@ -20,14 +20,21 @@ import { formatRupiah, todayWIB, monthLabel, periodLabel } from "../lib/format";
 import { weekDates } from "../lib/calendar";
 import { usePinGate } from "../hooks/usePinGate";
 import { loadHtmlToImage, loadJsPdf } from "../lib/exportDeps";
-import { generatePaymentReminder, estimatePaymentReminderCost } from "../lib/aiClient";
+import {
+  generateFinancialInsights,
+  estimateFinancialInsightsCost,
+  generatePaymentReminder,
+  estimatePaymentReminderCost,
+  type FinancialInsightOutput,
+} from "../lib/aiClient";
 import { AiCostModal } from "../components/AiCostModal";
 import { buildBillingMessage, toWaNumber } from "../lib/waBilling";
 import { forecastNextMonth } from "../lib/forecast";
-import { generateFinancialInsights } from "../lib/aiClient";
+import { calculateFinancialHistoryAverage } from "../lib/financialInsights";
 import { escapeCsvCell } from "../lib/csv";
 import { downloadBlob } from "../lib/download";
 import { MAX_PAYMENT_AMOUNT, clampCurrencyAmount, isValidCurrencyAmount, parseCurrencyDigits } from "../lib/money";
+import { buildMonthClosingProjection } from "../lib/billingPreview";
 import { db } from "../db/db";
 import ActivityRing from "../components/dashboard/ActivityRing";
 import Breadcrumb from "../components/Breadcrumb";
@@ -116,14 +123,34 @@ export default function PaymentsPage() {
   // Audit
   const [auditYear, setAuditYear] = useState(() => Number(todayWIB().slice(0, 4)));
   const [trendRange, setTrendRange] = useState<3 | 6 | 12>(6);
-  const [aiInsightLoading, setAiInsightLoading] = useState(false);
-  const [aiInsights, setAiInsights] = useState<import("../lib/aiClient").FinancialInsightOutput | null>(null);
+  const [aiInsightLoadingMonth, setAiInsightLoadingMonth] = useState<string | null>(null);
+  const [aiInsightResult, setAiInsightResult] = useState<{ month: string; data: FinancialInsightOutput } | null>(null);
+  const [financialAiCostMonth, setFinancialAiCostMonth] = useState<string | null>(null);
+  const aiInsightRequestRef = useRef(0);
+  const financialAiConfigured = settings?.ai.enabled === true && Boolean(settings.ai.apiKey?.trim());
+  const aiInsightLoading = aiInsightLoadingMonth === month;
+  const aiInsights = aiInsightResult?.month === month ? aiInsightResult.data : null;
+
+  useEffect(() => {
+    // Batalkan secara logis request bulan lama. API tidak perlu selesai untuk
+    // membersihkan loading/hasil pada bulan yang baru dipilih.
+    aiInsightRequestRef.current += 1;
+    setAiInsightLoadingMonth(null);
+    setAiInsightResult(null);
+    setFinancialAiCostMonth(null);
+    setMessage((current) => current.startsWith("Analisis AI ") ? "" : current);
+  }, [month, financialAiConfigured]);
 
   // ── Data for the selected month ──
   const monthSessions = useLiveQuery(() => listBillableSessionsForMonth(month), [month]);
   const monthExpenses = useLiveQuery(() => listExpenses(month), [month]);
   const closings = useLiveQuery(() => listMonthClosings(), []);
-  const monthClosing = useLiveQuery(() => getMonthClosing(month), [month]);
+  const monthClosingQuery = useLiveQuery(async () => ({
+    month,
+    closing: await getMonthClosing(month),
+  }), [month]);
+  const monthClosingQueryReady = monthClosingQuery?.month === month;
+  const monthClosing = monthClosingQueryReady ? monthClosingQuery?.closing : undefined;
   // Semua laporan periode — sesi yang sudah direkap tidak boleh ditagih ulang.
   const reports = useLiveQuery(() => listAllReports(), []);
   const coveredSessionIds = useMemo(
@@ -135,7 +162,6 @@ export default function PaymentsPage() {
     () => (monthSessions ?? []).filter((s) => !coveredSessionIds.has(s.id)),
     [monthSessions, coveredSessionIds]
   );
-  const closingPotential = closingSessions.reduce((s, x) => s + x.cost, 0);
   // Semua sesi yang pernah masuk laporan, untuk baris tagihan laporan (akurat lintas bulan).
   const allReportSessions = useLiveQuery(async () => {
     const ids = [...new Set((reports ?? []).flatMap((r) => r.sessionIds))];
@@ -163,6 +189,11 @@ export default function PaymentsPage() {
     });
   }, [month]);
   const histData = useLiveQuery(() => getCashSummary(histMonths), [histMonths]);
+  const financialInsightDataReady = monthSessions !== undefined
+    && monthExpenses !== undefined
+    && reports !== undefined
+    && histData !== undefined
+    && nextSessions !== undefined;
 
   const auditMonths = useMemo(
     () => Array.from({ length: 12 }, (_, i) => `${auditYear}-${String(i + 1).padStart(2, "0")}`),
@@ -185,11 +216,16 @@ export default function PaymentsPage() {
   // ── Handlers ──
   const handleCreatePayment = async () => {
     if (!selectedStudentId || !selectedMonth || !isValidCurrencyAmount(totalCost)) { setMessage("Lengkapi semua data dengan nominal valid!"); return; }
-    const existing = await getPayment(selectedStudentId, selectedMonth);
-    if (existing) { setMessage("Tagihan untuk murid & bulan ini sudah ada!"); return; }
-    await upsertPayment({ studentId: selectedStudentId, month: selectedMonth, totalCost, status: "UNPAID" });
-    setMessage("Tagihan baru dibuat ✓");
-    setTotalCost(0);
+    try {
+      await createManualPayment({ studentId: selectedStudentId, month: selectedMonth, totalCost, status: "UNPAID" });
+      setMessage("Tagihan manual baru dibuat ✓");
+      setTotalCost(0);
+    } catch (error) {
+      const reason = (error as Error).message;
+      setMessage(reason.includes("Manual payment already exists")
+        ? "Tagihan manual untuk murid dan bulan ini sudah ada."
+        : `Gagal: ${reason}`);
+    }
   };
 
   const handleDeleteExpense = async (id: string, description: string) => {
@@ -202,21 +238,47 @@ export default function PaymentsPage() {
     }
   };
 
+  const handleRequestFinancialInsights = () => {
+    if (!financialAiConfigured) {
+      setMessage("Aktifkan AI dan masukkan DeepSeek API Key di Pengaturan.");
+      return;
+    }
+    if (!financialInsightDataReady) {
+      setMessage("Data keuangan masih dimuat. Coba lagi sebentar.");
+      return;
+    }
+    setFinancialAiCostMonth(month);
+  };
+
   const handleGenerateInsights = async () => {
+    if (!financialAiConfigured) {
+      setMessage("Aktifkan AI dan masukkan DeepSeek API Key di Pengaturan.");
+      return;
+    }
+    if (!financialInsightDataReady || aiInsightLoading) return;
     if (!navigator.onLine) { setMessage("Offline."); return; }
-    setAiInsightLoading(true);
+
+    const targetMonth = month;
+    const requestId = ++aiInsightRequestRef.current;
+    setAiInsightResult(null);
+    setAiInsightLoadingMonth(targetMonth);
     try {
-      const prevMonths = getLast12Months(month).filter((m) => m !== month && m < month).slice(-3);
-      const prev = await getCashSummary(prevMonths);
-      const avg = prev.length > 0 ? {
-        potensi: Math.round(prev.reduce((s, r) => s + r.potensi, 0) / prev.length),
-        realisasi: Math.round(prev.reduce((s, r) => s + r.realisasi, 0) / prev.length),
-        laba: Math.round(prev.reduce((s, r) => s + r.laba, 0) / prev.length),
-        jam: 0, sesi: 0,
-      } : undefined;
+      const prevMonths = getLast12Months(targetMonth)
+        .filter((previousMonth) => previousMonth < targetMonth)
+        .slice(-3);
+      const [prev, previousSessionGroups] = await Promise.all([
+        getCashSummary(prevMonths),
+        Promise.all(prevMonths.map((previousMonth) => listBillableSessionsForMonth(previousMonth))),
+      ]);
+      const avg = calculateFinancialHistoryAverage(prev.map((row, index) => ({
+        potensi: row.potensi,
+        realisasi: row.realisasi,
+        laba: row.laba,
+        sessions: previousSessionGroups[index] ?? [],
+      })));
 
       const result = await generateFinancialInsights({
-        month, monthLabel: monthLabel(month),
+        month: targetMonth, monthLabel: monthLabel(targetMonth),
         current: {
           potensi: cash.potensi, tagihan: cash.tagihan, terbayar: cash.lunas,
           piutang: cash.piutang, realisasi: cash.realisasi, pengeluaran: cash.pengeluaran,
@@ -241,10 +303,18 @@ export default function PaymentsPage() {
         previousAvg: avg,
         proyeksiBulanDepan: forecast.estimate,
       });
-      setAiInsights(result);
-      setMessage("Analisis AI selesai ✓");
-    } catch (e) { setMessage("Gagal: " + (e as Error).message); }
-    finally { setAiInsightLoading(false); }
+      if (aiInsightRequestRef.current !== requestId) return;
+      setAiInsightResult({ month: targetMonth, data: result });
+      setMessage(`Analisis AI ${monthLabel(targetMonth)} selesai ✓`);
+    } catch (e) {
+      if (aiInsightRequestRef.current === requestId) {
+        setMessage("Gagal: " + (e as Error).message);
+      }
+    } finally {
+      if (aiInsightRequestRef.current === requestId) {
+        setAiInsightLoadingMonth(null);
+      }
+    }
   };
 
   const handleCloseMonth = async () => {
@@ -261,7 +331,7 @@ export default function PaymentsPage() {
     setClosingBusy(true);
     try {
       await closeMonth(month);
-      setMessage(`Bulan ${monthLabel(month)} ditutup ✓ Tagihan dibuat otomatis.`);
+      setMessage(`Bulan ${monthLabel(month)} ditutup ✓ Laporan dan tagihan diselaraskan.`);
     } catch (e) { setMessage("Gagal: " + (e as Error).message); }
     finally { setClosingBusy(false); }
   };
@@ -414,7 +484,11 @@ export default function PaymentsPage() {
     return Array.from(map.values()).filter((e) => e.sessions > 0 || e.revenue > 0);
   }, [students, monthSessions, reports, payments]);
 
-  if (!payments || !students || !settings) return <Skeleton variant="card" lines={4} className="p-4" />;
+  if (!payments || !students || !settings
+    || monthSessions === undefined || monthExpenses === undefined
+    || closings === undefined || reports === undefined
+    || allReportSessions === undefined || !monthClosingQueryReady
+  ) return <Skeleton variant="card" lines={4} className="p-4" />;
 
   if (!settings.financialPin) {
     return (
@@ -491,8 +565,10 @@ export default function PaymentsPage() {
       m.set(s.studentId, { count: cur.count + 1, hours: cur.hours + s.durationHours, cost: cur.cost + s.cost });
       return m;
     }, new Map<string, { count: number; hours: number; cost: number }>())
-  ).map(([sid, d]) => ({ sid, name: studentMap.get(sid)?.name ?? "(dihapus)", ...d }))
+  ).map(([studentId, d]) => ({ studentId, name: studentMap.get(studentId)?.name ?? "(dihapus)", ...d }))
    .sort((a, b) => b.cost - a.cost);
+
+  const closingProjection = buildMonthClosingProjection(previewBills, monthPayments);
 
   // Sessions grouped by student for expandable preview detail
   const previewSessionsByStudent = closingSessions.reduce<Map<string, Session[]>>((m, s) => {
@@ -503,16 +579,20 @@ export default function PaymentsPage() {
   }, new Map());
 
   const billRows = monthPayments
-    .map((p) => ({
-      payment: p,
-      student: studentMap.get(p.studentId),
-      // Tagihan laporan: sesi sesuai periode laporan (bisa lintas bulan).
-      sessions: p.reportId
-        ? (reports?.find((r) => r.id === p.reportId)?.sessionIds ?? [])
-            .map((id) => allReportSessions?.get(id))
-            .filter((s): s is Session => Boolean(s))
-        : (monthSessions ?? []).filter((s) => s.studentId === p.studentId),
-    }))
+    .map((p) => {
+      const linkedReport = p.reportId ? reports?.find((report) => report.id === p.reportId) : undefined;
+      return {
+        payment: p,
+        report: linkedReport,
+        student: studentMap.get(p.studentId),
+        // Tagihan laporan: sesi sesuai snapshot report (bisa lintas bulan).
+        sessions: linkedReport
+          ? linkedReport.sessionIds
+              .map((id) => allReportSessions?.get(id))
+              .filter((s): s is Session => Boolean(s))
+          : (monthSessions ?? []).filter((s) => s.studentId === p.studentId),
+      };
+    })
     .sort((a, b) => b.payment.totalCost - a.payment.totalCost);
 
   const filteredBillRows = billFilter === "bulan"
@@ -599,9 +679,9 @@ export default function PaymentsPage() {
       {/* Tabs */}
       <Tabs
         tabs={[
-          { key: "ringkasan", label: "Ringkasan" },
-          { key: "tagihan", label: "Tagihan" },
-          { key: "pengeluaran", label: "Pengeluaran" },
+          { key: "ringkasan", label: "Ringkasan", compactLabel: "Ringkas" },
+          { key: "tagihan", label: "Tagihan", compactLabel: "Tagih" },
+          { key: "pengeluaran", label: "Pengeluaran", compactLabel: "Keluar" },
           { key: "audit", label: "Audit" },
           { key: "murid", label: "Murid" },
         ]}
@@ -697,7 +777,7 @@ export default function PaymentsPage() {
                 {monthPayments.length > 0 ? `${collectionRate}% tertagih` : "Belum ada tagihan"}
               </span>
             </div>
-            <div className="grid grid-cols-[1fr_auto] gap-3 items-stretch">
+            <div className="grid grid-cols-1 gap-3 items-stretch min-[380px]:grid-cols-[1fr_auto]">
               <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 flex items-center">
                 <ActivityRing
                   value={paidCount} total={monthPayments.length} label="Tagihan dilunasi"
@@ -705,7 +785,7 @@ export default function PaymentsPage() {
                   tone={collectionRate >= 80 ? "green" : collectionRate > 0 ? "amber" : "slate"}
                 />
               </div>
-              <div className="grid gap-2 w-[148px]">
+              <div className="grid gap-2 w-full min-[380px]:w-[148px]">
                 <MetricCard label="Tagihan tertagih" value={`${collectionRate}%`} description="Porsi nominal tagihan bulan ini yang sudah lunas." icon="↗" tone={collectionRate >= 80 ? "green" : "amber"} />
                 <MetricCard label="Laba kas" value={formatRupiah(cash.laba)} description="Kas masuk dikurangi pengeluaran bulan ini." icon="◎" tone={cash.laba >= 0 ? "blue" : "red"} />
               </div>
@@ -720,19 +800,37 @@ export default function PaymentsPage() {
           </section>
 
           {/* ── AI: Anomali & Rekomendasi ───────────────────────── */}
-          <section className="rounded-2xl border border-indigo-200 bg-indigo-50/50 p-4 shadow-sm">
-            <div className="flex items-center justify-between gap-3 mb-2">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-indigo-400">AI Insight</p>
-                <h2 className="text-sm font-bold text-indigo-800">Anomali & Rekomendasi</h2>
+          <section
+            aria-disabled={!financialAiConfigured}
+            className={`rounded-2xl border p-4 shadow-sm ${financialAiConfigured ? "border-indigo-200 bg-indigo-50/50" : "border-slate-200 bg-slate-50"}`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+              <div className="min-w-0">
+                <p className={`text-[11px] font-bold uppercase tracking-[0.12em] ${financialAiConfigured ? "text-indigo-400" : "text-slate-400"}`}>AI Insight</p>
+                <h2 className={`text-sm font-bold ${financialAiConfigured ? "text-indigo-800" : "text-slate-600"}`}>Anomali & Rekomendasi</h2>
               </div>
-              <button onClick={handleGenerateInsights} disabled={aiInsightLoading}
-                className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors">
-                {aiInsightLoading ? "Menganalisis..." : aiInsights ? "🔄 Analisis Ulang" : "✨ Analisis AI"}
+              <button
+                onClick={handleRequestFinancialInsights}
+                disabled={!financialAiConfigured || !financialInsightDataReady || aiInsightLoading}
+                className="max-w-full shrink-0 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed transition-colors"
+              >
+                {!financialAiConfigured
+                  ? "AI belum aktif"
+                  : !financialInsightDataReady
+                    ? "Menyiapkan..."
+                    : aiInsightLoading
+                      ? "Menganalisis..."
+                      : aiInsights
+                        ? "🔄 Analisis Ulang"
+                        : "✨ Analisis AI"}
               </button>
             </div>
-            <p className="text-[11px] text-indigo-500 mb-3">AI membaca data keuangan bulan ini + 3 bulan sebelumnya untuk mendeteksi anomali & memberi rekomendasi.</p>
-            {aiInsights && (
+            <p className={`text-[11px] mb-3 ${financialAiConfigured ? "text-indigo-500" : "text-slate-500"}`}>
+              {financialAiConfigured
+                ? "AI membaca data keuangan bulan ini + 3 bulan sebelumnya untuk mendeteksi anomali & memberi rekomendasi."
+                : "Aktifkan AI dan isi DeepSeek API Key di Pengaturan untuk menggunakan fitur ini."}
+            </p>
+            {financialAiConfigured && aiInsights && (
               <div className="space-y-3">
                 {aiInsights.anomali.length > 0 && (
                   <div className="space-y-1.5">
@@ -922,16 +1020,21 @@ export default function PaymentsPage() {
           {/* Tutup Bulan panel */}
           {!monthClosing ? (
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 space-y-3">
-              {/* Sudah ada tagihan dari laporan? Tampilkan dulu */}
+              {/* Tagihan yang sudah ada, baik manual maupun dari laporan. */}
               {monthPayments.length > 0 && (
                 <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-2.5 space-y-1">
-                  <p className="text-[10px] font-semibold text-indigo-600 uppercase">📋 Tagihan Sudah Terbit (dari laporan)</p>
+                  <p className="text-[10px] font-semibold text-indigo-600 uppercase">📋 Tagihan Sudah Terbit</p>
                   {monthPayments.map((p) => {
                     const student = studentMap.get(p.studentId);
                     const periodLbl = p.periodStart && p.periodEnd ? periodLabel(p.periodStart, p.periodEnd) : "";
                     return (
-                      <div key={p.id} className="flex items-center justify-between text-[11px]">
-                        <span className="text-gray-700 truncate flex-1">{student?.name ?? "(dihapus)"}{periodLbl ? ` · ${periodLbl}` : ""}</span>
+                      <div key={p.id} className="flex items-center justify-between gap-2 text-[11px]">
+                        <span className="text-gray-700 truncate flex-1">
+                          {student?.name ?? "(dihapus)"}{periodLbl ? ` · ${periodLbl}` : ""}
+                          <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${p.reportId ? "bg-indigo-100 text-indigo-700" : "bg-gray-200 text-gray-600"}`}>
+                            {p.reportId ? "Laporan" : "Manual"}
+                          </span>
+                        </span>
                         <span className={p.status === "PAID" ? "text-green-600 font-semibold" : "text-amber-600 font-semibold"}>{p.status === "PAID" ? "✓ Lunas" : "Belum"} {formatRupiah(p.totalCost)}</span>
                       </div>
                     );
@@ -941,22 +1044,22 @@ export default function PaymentsPage() {
 
               {/* Preview sesi yang belum ditagih */}
               <div>
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">⏳ Akan Ditagih Tutup Bulan</p>
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">⏳ Akan Direkap saat Tutup Bulan</p>
                 <p className="text-[11px] text-gray-500 mt-0.5">Tap nama murid untuk lihat detail sesi</p>
               </div>
               {previewBills.length === 0 ? (
                 <p className="text-sm text-gray-500 text-center py-2">
-                  {monthPayments.length > 0 ? "Semua sesi billable bulan ini sudah masuk tagihan laporan — tidak ada yang perlu ditutup." : "Belum ada sesi yang dapat ditagihkan bulan ini."}
+                  {monthPayments.length > 0 ? "Tidak ada sesi billable yang belum direkap untuk tutup bulan." : "Belum ada sesi yang dapat ditagihkan bulan ini."}
                 </p>
               ) : (
                 <div className="space-y-1">
-                  {previewBills.map((b) => {
-                    const isExpanded = expandedPreview === b.sid;
-                    const sessions = previewSessionsByStudent.get(b.sid) ?? [];
+                  {closingProjection.rows.map(({ bill: b, adoptedPayment }) => {
+                    const isExpanded = expandedPreview === b.studentId;
+                    const sessions = previewSessionsByStudent.get(b.studentId) ?? [];
                     return (
-                      <div key={b.sid} className="border-b border-gray-50 last:border-0">
+                      <div key={b.studentId} className="border-b border-gray-50 last:border-0">
                         <button
-                          onClick={() => setExpandedPreview(isExpanded ? null : b.sid)}
+                          onClick={() => setExpandedPreview(isExpanded ? null : b.studentId)}
                           className="w-full flex items-center justify-between text-sm py-2 hover:bg-gray-50 rounded-lg px-1 transition-colors">
                           <div className="flex items-center gap-2 min-w-0 flex-1">
                             <span className="text-gray-500 text-xs transition-transform" style={{ transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)" }}>▸</span>
@@ -964,9 +1067,14 @@ export default function PaymentsPage() {
                           </div>
                           <div className="flex items-center gap-3 flex-shrink-0">
                             <span className="text-xs text-gray-500">{b.count} sesi · {b.hours}j</span>
-                            <span className="font-semibold text-gray-700">{formatRupiah(b.cost)}</span>
+                            <span className="font-semibold text-gray-700">{formatRupiah(adoptedPayment?.totalCost ?? b.cost)}</span>
                           </div>
                         </button>
+                        {adoptedPayment && (
+                          <p className="ml-6 mb-1 text-[10px] text-indigo-600">
+                            Tagihan manual yang sudah ada akan ditautkan, bukan dibuat ulang.
+                          </p>
+                        )}
                         {isExpanded && sessions.length > 0 && (
                           <div className="ml-5 mb-2 space-y-1 bg-gray-50 rounded-lg p-2">
                             {sessions.sort((a, s) => a.date.localeCompare(s.date)).map((s) => (
@@ -983,8 +1091,8 @@ export default function PaymentsPage() {
                     );
                   })}
                   <div className="flex items-center justify-between pt-2 font-bold text-sm">
-                    <span className="text-gray-700">Total</span>
-                    <span className="text-green-700">{formatRupiah(closingPotential)}</span>
+                    <span className="text-gray-700">Tambahan tagihan saat ditutup</span>
+                    <span className="text-green-700">{formatRupiah(closingProjection.additionalTotal)}</span>
                   </div>
                   {coveredSessionIds.size > 0 && (
                     <p className="text-[11px] text-amber-600">Sesi yang sudah masuk laporan sah tidak ditagih ulang.</p>
@@ -995,7 +1103,7 @@ export default function PaymentsPage() {
               {(monthPayments.length > 0 || previewBills.length > 0) && (
                 <div className="border-t border-gray-100 pt-2 flex items-center justify-between text-xs">
                   <span className="font-semibold text-gray-600">Total Tagihan Bulan Ini</span>
-                  <span className="font-bold text-indigo-700">{formatRupiah(cash.tagihan + closingPotential)}</span>
+                  <span className="font-bold text-indigo-700">{formatRupiah(cash.tagihan + closingProjection.additionalTotal)}</span>
                 </div>
               )}
               <button onClick={handleCloseMonth} disabled={closingBusy || !canClose}
@@ -1027,7 +1135,7 @@ export default function PaymentsPage() {
               {filteredBillRows.length === 0 ? (
                 <p className="text-sm text-gray-500">{billFilter === "bulan" ? "Belum ada tagihan bulan penuh." : billFilter === "periode" ? "Belum ada tagihan periode rekap." : "Belum ada tagihan untuk bulan ini."}</p>
               ) : (
-                filteredBillRows.map(({ payment, student, sessions }) => {
+                filteredBillRows.map(({ payment, report, student, sessions }) => {
                   const paid = payment.status === "PAID";
                   const periodLbl = payment.periodStart && payment.periodEnd ? periodLabel(payment.periodStart, payment.periodEnd) : "";
                   const amountStr = billEdits[payment.id] ?? String(payment.totalCost);
@@ -1045,7 +1153,12 @@ export default function PaymentsPage() {
                         <span className={pill(paid)}>{paid ? "Lunas" : "Belum"}</span>
                       </div>
                       {periodLbl && (
-                        <p className="text-[11px] text-indigo-600 font-semibold">🗓 Periode {periodLbl}</p>
+                        <p className="text-[11px] text-indigo-600 font-semibold">
+                          🗓 Periode {periodLbl}
+                          {report?.supplementalForReportId && (
+                            <span className="ml-1.5 rounded-full bg-violet-100 px-1.5 py-0.5 text-[9px] font-bold text-violet-700">Susulan</span>
+                          )}
+                        </p>
                       )}
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-gray-500">Rp</span>
@@ -1075,17 +1188,23 @@ export default function PaymentsPage() {
                           </button>
                         )}
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        {report && (
+                          <button onClick={() => navigate(`/report?reportId=${encodeURIComponent(report.id)}`)}
+                            className="min-w-[88px] flex-1 py-1.5 rounded-lg border border-blue-200 text-blue-600 text-xs font-medium hover:bg-blue-50 transition-colors">
+                            📋 Laporan
+                          </button>
+                        )}
                         {student && (
                           <button onClick={() => setInvoiceTarget({ payment, student })}
-                            className="flex-1 py-1.5 rounded-lg border border-gray-200 text-gray-500 text-xs font-medium hover:bg-gray-50 transition-colors">
+                            className="min-w-[88px] flex-1 py-1.5 rounded-lg border border-gray-200 text-gray-500 text-xs font-medium hover:bg-gray-50 transition-colors">
                             📄 Invoice
                           </button>
                         )}
                         {!paid && student && settings.ai?.enabled && settings.ai.apiKey && (
                           <button disabled={reminderLoading === payment.id}
                             onClick={() => setReminderModal({ paymentId: payment.id, studentName: student.name, parentName: student.parentContact?.name, month: periodLbl || payment.month, amount: payment.totalCost })}
-                            className="flex-1 py-1.5 rounded-lg border border-indigo-200 text-indigo-600 text-xs font-medium hover:bg-indigo-50 transition-colors disabled:opacity-50">
+                            className="min-w-[88px] flex-1 py-1.5 rounded-lg border border-indigo-200 text-indigo-600 text-xs font-medium hover:bg-indigo-50 transition-colors disabled:opacity-50">
                             {reminderLoading === payment.id ? "⏳..." : "✨ Reminder AI"}
                           </button>
                         )}
@@ -1418,6 +1537,20 @@ export default function PaymentsPage() {
         />
       )}
 
+      {financialAiConfigured && financialAiCostMonth === month && (
+        <AiCostModal
+          open
+          title="Analisis AI Keuangan"
+          estimatedIDR={estimateFinancialInsightsCost()}
+          description={`Analisis ${monthLabel(month)} dengan pembanding 3 bulan sebelumnya.`}
+          onCancel={() => setFinancialAiCostMonth(null)}
+          onConfirm={() => {
+            setFinancialAiCostMonth(null);
+            void handleGenerateInsights();
+          }}
+        />
+      )}
+
       {/* Reminder WA AI cost modal */}
       {reminderModal && (
         <AiCostModal
@@ -1467,11 +1600,10 @@ function InvoiceModal({
   onClose: () => void;
 }) {
   const sessions = useLiveQuery(
-    () => payment.periodStart && payment.periodEnd
-      ? listSessionsByStudentRange(student.id, payment.periodStart, payment.periodEnd)
-      : listBillableSessionsByStudentMonth(student.id, payment.month),
-    [student.id, payment.month, payment.periodStart, payment.periodEnd]
-  ) ?? [];
+    () => listInvoiceSessions(payment),
+    [payment.studentId, payment.month, payment.reportId, payment.periodStart, payment.periodEnd]
+  );
+  const sessionsLoading = sessions === undefined;
 
   const bank = settings.bankAccounts;
   const tutor = settings.tutorProfile;
@@ -1486,24 +1618,30 @@ function InvoiceModal({
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
           <h3 className="font-bold text-base">Invoice Profesional</h3>
           <div className="flex gap-2">
-            <button onClick={onExport} disabled={exporting}
+            <button onClick={onExport} disabled={exporting || sessionsLoading}
               className="bg-indigo-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
-              {exporting ? "Ekspor..." : "📥 PDF"}
+              {sessionsLoading ? "Memuat..." : exporting ? "Ekspor..." : "📥 PDF"}
             </button>
             <button aria-label="Tutup" onClick={onClose} className="text-gray-500 hover:text-gray-600 text-lg w-10 h-10 flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
           </div>
         </div>
 
         <div className="overflow-y-auto max-h-[75vh] p-4">
-          <div style={{ position: "absolute", left: -9999, top: 0, pointerEvents: "none" }}>
-            <InvoiceContent
-              refProp={invoiceRef}
-              payment={payment} student={student} sessions={sessions}
-              tutor={tutor} bank={bank} monthStr={monthStr} />
-          </div>
-          <InvoiceContent
-            payment={payment} student={student} sessions={sessions}
-            tutor={tutor} bank={bank} monthStr={monthStr} />
+          {sessionsLoading ? (
+            <p role="status" className="py-12 text-center text-sm text-gray-500">Memuat sesi invoice...</p>
+          ) : (
+            <>
+              <div style={{ position: "absolute", left: -9999, top: 0, pointerEvents: "none" }}>
+                <InvoiceContent
+                  refProp={invoiceRef}
+                  payment={payment} student={student} sessions={sessions}
+                  tutor={tutor} bank={bank} monthStr={monthStr} />
+              </div>
+              <InvoiceContent
+                payment={payment} student={student} sessions={sessions}
+                tutor={tutor} bank={bank} monthStr={monthStr} responsive />
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -1511,7 +1649,7 @@ function InvoiceModal({
 }
 
 function InvoiceContent({
-  payment, student, sessions, tutor, bank, monthStr, refProp,
+  payment, student, sessions, tutor, bank, monthStr, refProp, responsive = false,
 }: {
   payment: Payment;
   student: Student;
@@ -1520,11 +1658,12 @@ function InvoiceContent({
   bank: Settings["bankAccounts"];
   monthStr: string;
   refProp?: React.RefObject<HTMLDivElement | null>;
+  responsive?: boolean;
 }) {
   const totalHours = sessions.reduce((s, x) => s + x.durationHours, 0);
 
   return (
-    <div ref={refProp} style={{ width: 360, background: "#fff", padding: "24px 20px", fontFamily: "sans-serif", fontSize: 12, color: "#111827" }}>
+    <div ref={refProp} style={{ width: responsive ? "100%" : 360, maxWidth: 360, boxSizing: "border-box", margin: responsive ? "0 auto" : undefined, background: "#fff", padding: "24px 20px", fontFamily: "sans-serif", fontSize: 12, color: "#111827" }}>
       <div style={{ borderBottom: "2px solid #1e40af", paddingBottom: 12, marginBottom: 14 }}>
         <p style={{ fontSize: 18, fontWeight: 800, color: "#1e40af", margin: 0 }}>LES KO LUI</p>
         <p style={{ fontSize: 12, color: "#6b7280", margin: "2px 0 0" }}>{monthStr}</p>
@@ -1549,9 +1688,17 @@ function InvoiceContent({
         </thead>
         <tbody>
           {sessions.length === 0 ? (
-            <tr><td colSpan={4} style={{ padding: "10px 8px", color: "#9ca3af", textAlign: "center", fontSize: 11 }}>Belum ada sesi tercatat bulan ini</td></tr>
+            payment.reportId ? (
+              <tr><td colSpan={4} style={{ padding: "10px 8px", color: "#9ca3af", textAlign: "center", fontSize: 11 }}>Sesi laporan tidak tersedia</td></tr>
+            ) : (
+              <tr>
+                <td style={{ padding: "8px", color: "#6b7280" }}>â€”</td>
+                <td colSpan={2} style={{ padding: "8px", color: "#374151", fontWeight: 600 }}>Tagihan manual (di luar laporan sesi)</td>
+                <td style={{ padding: "8px", textAlign: "right", fontWeight: 700 }}>{formatRupiah(payment.totalCost)}</td>
+              </tr>
+            )
           ) : (
-            [...sessions].sort((a, b) => a.date.localeCompare(b.date)).map((s, i) => (
+            sessions.map((s, i) => (
               <tr key={s.id} style={{ background: i % 2 === 0 ? "#fff" : "#f9fafb", borderBottom: "1px solid #f3f4f6" }}>
                 <td style={{ padding: "5px 8px" }}>{s.date.slice(5).replace("-", "/")}</td>
                 <td style={{ padding: "5px 8px" }}>{s.status === "NO_SHOW" ? "Tidak hadir" : s.subjects.slice(0, 2).join(", ") || "—"}</td>

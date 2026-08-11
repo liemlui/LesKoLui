@@ -112,10 +112,10 @@ test("05-catat-sesi", async ({ page }) => {
   await shot(page, "05-catat-sesi.png");
 });
 
-test("06-tugas-pr", async ({ page }) => {
-  await page.goto("/tugas"); await page.waitForTimeout(1500);
+test("06-catatan", async ({ page }) => {
+  await page.goto("/catatan"); await page.waitForTimeout(1500);
   await closeChangelog(page);
-  await shot(page, "06-tugas-pr.png");
+  await shot(page, "06-catatan.png");
 });
 
 /** Siapkan layar laporan BERISI DATA: bulan Juni (seed) + murid ber-sesi + laporan dibuat. */
@@ -150,6 +150,12 @@ test("07-laporan-bulanan", async ({ page }) => {
 test("08-keuangan", async ({ page }) => {
   await page.goto("/payments"); await page.waitForTimeout(1500);
   await closeChangelog(page);
+  const pin = page.getByPlaceholder("PIN (6 digit)");
+  if (await pin.isVisible()) {
+    await pin.fill("123456");
+    await page.getByRole("button", { name: "Buka", exact: true }).click();
+    await page.getByRole("heading", { name: "Keuangan", exact: true }).waitFor();
+  }
   await shot(page, "08-keuangan.png");
 });
 
