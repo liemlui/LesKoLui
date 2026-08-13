@@ -34,6 +34,7 @@ import SignaturePad from "../components/SignaturePad";
 import { analyzeStudent, estimateAnalysisCost } from "../lib/aiClient";
 import type { AiStudentInsight } from "../lib/aiClient";
 import { AiCostModal } from "../components/AiCostModal";
+import Modal from "../components/Modal";
 import { getBehaviorTag, getResponseTag } from "../lib/responseTaxonomy";
 import { MAX_HOURLY_RATE, clampCurrencyAmount, isValidCurrencyAmount } from "../lib/money";
 import EvidenceCard from "./studentDetail/EvidenceCard";
@@ -80,6 +81,7 @@ export default function StudentDetail() {
 
   // Rapor modal
   const [showRapor,      setShowRapor]      = useState(false);
+  const [showBillingHelp, setShowBillingHelp] = useState(false);
   const [raporSem,       setRaporSem]       = useState(currentSemester());
   const [raporGrades,    setRaporGrades]    = useState<{ subject: string; grade: string }[]>([]);
   const [raporNotes,     setRaporNotes]     = useState("");
@@ -549,6 +551,13 @@ export default function StudentDetail() {
                 ? "Manual"
                 : "Bulanan (Tutup Bulan)"}
           </span>
+          <button
+            type="button"
+            onClick={() => setShowBillingHelp(true)}
+            aria-label="Bantuan siklus tagihan"
+            title="Cara kerja siklus tagihan"
+            className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600 transition-colors hover:bg-blue-100 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          >?</button>
         </div>
 
         {totalSessions > 0 && (
@@ -1385,6 +1394,27 @@ export default function StudentDetail() {
           finally { setAiInsightLoading(false); }
         }}
       />
+
+      {/* Bantuan siklus tagihan */}
+      {showBillingHelp && (
+        <Modal onClose={() => setShowBillingHelp(false)} ariaLabel="Cara kerja siklus tagihan">
+          <h3 className="font-bold text-base">💳 Siklus Tagihan</h3>
+          <p className="text-xs leading-relaxed text-gray-600">
+            Cara murid ini ditagih. Ubah lewat <strong>Edit Profil → Siklus Tagihan</strong>; perubahan hanya memengaruhi sesi yang belum ditagih.
+          </p>
+          <ul className="space-y-2 text-xs leading-relaxed text-gray-700">
+            <li><strong>Bulanan (Tutup Bulan)</strong> — sesi yang dapat ditagih digabung per bulan lewat Tutup Bulan di Keuangan.</li>
+            <li><strong>Paket per N pertemuan</strong> — tagihan dibuat setiap N pertemuan (sesi tertua lebih dulu); sisa yang belum genap ditagih lewat Tagihan Penutup.</li>
+            <li><strong>Manual</strong> — buat tagihan nominal bebas tanpa mengambil sesi otomatis.</li>
+          </ul>
+          <div className="flex gap-3">
+            <button onClick={() => setShowBillingHelp(false)}
+              className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm">
+              Mengerti
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
