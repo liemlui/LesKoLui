@@ -135,9 +135,11 @@ export default function CatatanBelajar() {
       setAiError((prev) => ({ ...prev, [studentId]: "AI belum diaktifkan di Pengaturan." }));
       return;
     }
-    const sessions = recentSessions[studentId];
-    if (!sessions || sessions.length === 0) {
-      setAiError((prev) => ({ ...prev, [studentId]: "Tidak ada sesi dengan catatan untuk dirangkum." }));
+    const sessions = recentSessions[studentId] ?? [];
+    // Draft adalah bahan utama: AI memperkuat ketikan tutor. Sesi jadi pelengkap.
+    const draft = (notes[studentId] ?? "").trim();
+    if (sessions.length === 0 && !draft) {
+      setAiError((prev) => ({ ...prev, [studentId]: "Tulis catatan dulu, atau pastikan ada sesi dengan catatan." }));
       return;
     }
 
@@ -160,14 +162,14 @@ export default function CatatanBelajar() {
           topic: s.topic,
           mood: s.mood,
         })),
-        existingNote: notes[studentId]?.trim() || undefined,
+        existingNote: draft || undefined,
       });
       // Update local state + save to DB
       setNotes((prev) => ({ ...prev, [studentId]: result.content }));
       await saveStudyNote(studentId, result.content);
       setSaveError((prev) => { const next = { ...prev }; delete next[studentId]; return next; });
     } catch (err) {
-      setAiError((prev) => ({ ...prev, [studentId]: (err as Error).message || "Gagal merangkum." }));
+      setAiError((prev) => ({ ...prev, [studentId]: (err as Error).message || "Gagal memperkuat catatan." }));
     } finally {
       setAiLoading((prev) => ({ ...prev, [studentId]: false }));
     }
@@ -342,8 +344,8 @@ export default function CatatanBelajar() {
                     )}
                   </div>
 
-                  {/* AI Ringkas button */}
-                  {aiEnabled && hasSessions && (
+                  {/* AI Perkuat button — draft tutor jadi bahan utama, sesi jadi pelengkap */}
+                  {aiEnabled && (hasSessions || Boolean(content.trim())) && (
                     <button
                       onClick={() => handleAiDraft(s.id, s.name, s.subjects)}
                       disabled={isLoading}
@@ -353,11 +355,13 @@ export default function CatatanBelajar() {
                       {isLoading ? (
                         <span className="inline-block w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
                       ) : (
-                        "✨ Ringkas"
+                        "✨ Perkuat"
                       )}
-                      <span className="text-indigo-400">
-                        ({sessions.length})
-                      </span>
+                      {hasSessions && (
+                        <span className="text-indigo-400">
+                          ({sessions.length})
+                        </span>
+                      )}
                     </button>
                   )}
                 </div>
@@ -398,9 +402,10 @@ export default function CatatanBelajar() {
             </section>
 
             <section>
-              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">✨ Ringkas (AI)</h3>
+              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">✨ Perkuat (AI)</h3>
               <ul className="mt-2 space-y-2 text-xs leading-relaxed">
-                <li>Merangkum sesi terakhir menjadi catatan berkelanjutan (topik, PR, perhatian, rencana).</li>
+                <li><strong>Draft ketikanmu jadi bahan utama</strong> — AI mempertahankan tulisannya lalu melengkapi topik, PR, kesulitan, dan rencana dari sesi terakhir.</li>
+                <li>Tanpa sesi pun tetap bisa dipakai untuk merapikan catatan yang sudah ditulis.</li>
                 <li>Butuh AI aktif di Pengaturan; estimasi biaya tampil saat kursor diarahkan ke tombol.</li>
               </ul>
             </section>
