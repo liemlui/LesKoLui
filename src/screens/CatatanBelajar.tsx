@@ -8,6 +8,7 @@ import {
 import { draftStudyNote, estimateDraftStudyNoteCost } from "../lib/aiClient";
 import type { Session } from "../db/types";
 import Breadcrumb from "../components/Breadcrumb";
+import Modal from "../components/Modal";
 import Skeleton from "../components/Skeleton";
 
 /**
@@ -27,13 +28,17 @@ export default function CatatanBelajar() {
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [search, setSearch] = useState("");
+  const [showHelp, setShowHelp] = useState(false);
   const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  // Konten terbaru yang belum tersimpan — dipakai untuk flush saat unmount.
+  const pendingRef = useRef<Map<string, string>>(new Map());
 
   // Session context per student
   const [recentSessions, setRecentSessions] = useState<Record<string, Session[]>>({});
   const [expandedSessions, setExpandedSessions] = useState<Record<string, boolean>>({});
   const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
   const [aiError, setAiError] = useState<Record<string, string>>({});
+  const [saveError, setSaveError] = useState<Record<string, string>>({});
 
   // Sync from DB on load
   useEffect(() => {
@@ -68,16 +73,56 @@ export default function CatatanBelajar() {
     })();
   }, [students, savedNotes]);
 
+  // Flush autosave saat komponen di-unmount: ketikan terakhir (masih dalam
+  // debounce 800ms) langsung disimpan agar tidak hilang saat pindah halaman.
+  useEffect(() => {
+    // Map ini tidak pernah di-reassign, hanya dimutasi — menyalin referensinya
+    // ke variabel lokal tetap membaca isi terbaru saat cleanup (unmount).
+    const timersMap = timers.current;
+    const pendingMap = pendingRef.current;
+    return () => {
+      timersMap.forEach((t) => clearTimeout(t));
+      timersMap.clear();
+      pendingMap.forEach((content, studentId) => {
+        void saveStudyNote(studentId, content);
+      });
+      pendingMap.clear();
+    };
+  }, []);
+
+  // Peringatkan pengguna bila ada catatan belum tersimpan saat menutup/reload.
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (pendingRef.current.size === 0) return;
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, []);
+
   const debouncedSave = useCallback((studentId: string, content: string) => {
     const existing = timers.current.get(studentId);
     if (existing) clearTimeout(existing);
 
     setNotes((prev) => ({ ...prev, [studentId]: content }));
+    pendingRef.current.set(studentId, content);
 
     const timer = setTimeout(async () => {
       setSaving((prev) => ({ ...prev, [studentId]: true }));
       try {
         await saveStudyNote(studentId, content);
+        pendingRef.current.delete(studentId);
+        setSaveError((prev) => {
+          const next = { ...prev };
+          delete next[studentId];
+          return next;
+        });
+      } catch (err) {
+        setSaveError((prev) => ({
+          ...prev,
+          [studentId]: `Gagal menyimpan catatan: ${(err as Error).message || "coba lagi"}`,
+        }));
       } finally {
         setSaving((prev) => ({ ...prev, [studentId]: false }));
       }
@@ -98,6 +143,13 @@ export default function CatatanBelajar() {
 
     setAiLoading((prev) => ({ ...prev, [studentId]: true }));
     setAiError((prev) => { const next = { ...prev }; delete next[studentId]; return next; });
+
+    // Batalkan autosave tertunda untuk murid ini: hasil AI tidak boleh
+    // ditimpa oleh ketikan lama yang masih menunggu debounce.
+    const pendingTimer = timers.current.get(studentId);
+    if (pendingTimer) { clearTimeout(pendingTimer); timers.current.delete(studentId); }
+    pendingRef.current.delete(studentId);
+
     try {
       const result = await draftStudyNote({
         studentName,
@@ -113,6 +165,7 @@ export default function CatatanBelajar() {
       // Update local state + save to DB
       setNotes((prev) => ({ ...prev, [studentId]: result.content }));
       await saveStudyNote(studentId, result.content);
+      setSaveError((prev) => { const next = { ...prev }; delete next[studentId]; return next; });
     } catch (err) {
       setAiError((prev) => ({ ...prev, [studentId]: (err as Error).message || "Gagal merangkum." }));
     } finally {
@@ -137,12 +190,12 @@ export default function CatatanBelajar() {
   }
 
   const searchLower = search.toLowerCase();
-  const filtered = students.filter(
-    (s) =>
-      !searchLower ||
-      s.name.toLowerCase().includes(searchLower) ||
-      s.subjects.some((subj) => subj.toLowerCase().includes(searchLower))
-  );
+  const filtered = students.filter((s) => {
+    if (!searchLower) return true;
+    if (s.name.toLowerCase().includes(searchLower)) return true;
+    if (s.subjects.some((subj) => subj.toLowerCase().includes(searchLower))) return true;
+    return (notes[s.id] ?? "").toLowerCase().includes(searchLower);
+  });
 
   // Sort: students with notes first, then by name
   const sorted = [...filtered].sort((a, b) => {
@@ -156,19 +209,30 @@ export default function CatatanBelajar() {
     <div className="pb-24">
       <Breadcrumb />
       <div className="px-4 pt-2 pb-3">
-        <h1 className="text-2xl font-bold" style={{ fontFamily: "'Fredoka', sans-serif" }}>
-          📝 Catatan Belajar
-        </h1>
-        <p className="text-gray-500 text-xs mt-1">
-          Catat topik sekolah, progres, atau rencana sesi berikutnya per murid
-        </p>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold" style={{ fontFamily: "'Fredoka', sans-serif" }}>
+              📝 Catatan Belajar
+            </h1>
+            <p className="text-gray-500 text-xs mt-1">
+              Catat topik sekolah, progres, atau rencana sesi berikutnya per murid
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowHelp(true)}
+            aria-label="Bantuan cara memakai catatan"
+            title="Cara memakai catatan"
+            className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-gray-100 text-sm font-bold text-gray-600 transition-colors hover:bg-blue-100 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          >?</button>
+        </div>
       </div>
 
       {/* Search */}
       <div className="px-4 mb-3">
         <input
           type="search"
-          placeholder="Cari murid atau mata pelajaran..."
+          placeholder="Cari murid, mapel, atau isi catatan..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="input w-full"
@@ -261,6 +325,9 @@ export default function CatatanBelajar() {
                 {error && (
                   <p className="text-[11px] text-red-500 mt-1">{error}</p>
                 )}
+                {saveError[s.id] && !isSaving && (
+                  <p className="text-[11px] text-red-500 mt-1" role="alert">{saveError[s.id]}</p>
+                )}
 
                 {/* Saving indicator + timestamp + AI button */}
                 <div className="flex items-center justify-between gap-2 mt-1 min-h-[18px]">
@@ -299,6 +366,54 @@ export default function CatatanBelajar() {
           );
         })}
       </div>
+
+      {/* Bantuan cara memakai catatan */}
+      {showHelp && (
+        <Modal onClose={() => setShowHelp(false)} ariaLabel="Cara memakai catatan belajar"
+          panelClassName="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl outline-none">
+          <div className="flex items-start justify-between border-b border-gray-100 px-5 py-4">
+            <div>
+              <h2 className="text-lg font-bold text-gray-800">Cara Memakai Catatan</h2>
+              <p className="mt-0.5 text-xs text-gray-600">Catatan belajar per murid yang tersimpan otomatis.</p>
+            </div>
+            <button onClick={() => setShowHelp(false)} aria-label="Tutup"
+              className="text-xl leading-none text-gray-500 hover:text-gray-700">✕</button>
+          </div>
+
+          <div className="space-y-4 overflow-y-auto px-5 py-4 text-sm text-gray-700">
+            <section>
+              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">Auto-save</h3>
+              <ul className="mt-2 space-y-2 text-xs leading-relaxed">
+                <li>Ketik di kotak catatan murid — isi <strong>tersimpan otomatis</strong> sekitar 1 detik setelah berhenti mengetik.</li>
+                <li>Saat pindah halaman, ketikan terakhir ikut disimpan; ada peringatan bila menutup aplikasi sebelum tersimpan.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">Konteks Sesi</h3>
+              <ul className="mt-2 space-y-2 text-xs leading-relaxed">
+                <li>Tombol <strong>📋 N sesi terakhir</strong> membuka ringkasan sesi terbaru sebagai bahan menulis.</li>
+                <li>Pencarian juga menyentuh <strong>isi catatan</strong>, bukan cuma nama murid &amp; mapel.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">✨ Ringkas (AI)</h3>
+              <ul className="mt-2 space-y-2 text-xs leading-relaxed">
+                <li>Merangkum sesi terakhir menjadi catatan berkelanjutan (topik, PR, perhatian, rencana).</li>
+                <li>Butuh AI aktif di Pengaturan; estimasi biaya tampil saat kursor diarahkan ke tombol.</li>
+              </ul>
+            </section>
+          </div>
+
+          <div className="border-t border-gray-100 px-5 py-3">
+            <button onClick={() => setShowHelp(false)}
+              className="w-full rounded-xl bg-blue-600 py-2.5 text-sm font-bold text-white transition-colors hover:bg-blue-700">
+              Mengerti
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
