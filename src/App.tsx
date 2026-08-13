@@ -8,6 +8,7 @@ import Skeleton from "./components/Skeleton";
 import { ToastProvider, useToastCtx } from "./components/ToastProvider";
 import ToastContainer from "./components/Toast";
 import { isQuotaError, isStorageNearFull } from "./lib/storageGuard";
+import { Z } from "./lib/zIndex";
 
 // Lazy-load startup data after mount so the first paint only carries the app shell.
 type AppDataModule = typeof import("./lib/appData");
@@ -151,7 +152,7 @@ function Layout() {
     <div className={`max-w-md mx-auto min-h-screen ${backupPrompt ? "pb-40" : "pb-16"}`}>
       {/* Offline banner */}
       {offline && (
-        <div className="fixed top-0 inset-x-0 z-[200] px-4 pt-2">
+        <div className={`fixed top-0 inset-x-0 ${Z.toast} px-4 pt-2`}>
           <div className="max-w-md mx-auto bg-gray-800 text-white text-xs font-semibold px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg">
             <span>📵</span> Offline — data tetap aman, perubahan disimpan lokal
           </div>
@@ -160,7 +161,7 @@ function Layout() {
 
       {/* Peringatan penyimpanan penuh — risiko kehilangan data (persistent, bisa ditutup) */}
       {storageWarn && (
-        <div className="fixed top-0 inset-x-0 z-[210] px-4 pt-2">
+        <div className={`fixed top-0 inset-x-0 ${Z.bannerTop} px-4 pt-2`}>
           <div className="max-w-md mx-auto bg-red-600 text-white text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-lg">
             <span>⚠️</span>
             <span className="flex-1">Penyimpanan hampir penuh — ekspor backup lalu hapus data/foto lama agar data baru tak gagal tersimpan.</span>
@@ -171,7 +172,7 @@ function Layout() {
 
       {/* Peringatan backup menua — risiko kehilangan data bila HP hilang/rusak */}
       {staleBackup && !storageWarn && (
-        <div className="fixed top-0 inset-x-0 z-[205] px-4 pt-2">
+        <div className={`fixed top-0 inset-x-0 ${Z.banner} px-4 pt-2`}>
           <div className="max-w-md mx-auto bg-red-600 text-white text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-lg">
             <span>🛟</span>
             <span className="flex-1">
@@ -187,7 +188,7 @@ function Layout() {
 
       {/* Flash hasil aksi (mis. backup Drive) */}
       {flash && (
-        <div className="fixed bottom-20 inset-x-0 z-[160] px-4">
+        <div className={`fixed bottom-20 inset-x-0 ${Z.flash} px-4`}>
           <div className="max-w-md mx-auto bg-gray-800 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-lg text-center" role="status" aria-live="polite">{flash}</div>
         </div>
       )}
@@ -197,7 +198,7 @@ function Layout() {
           z-[55]: di atas nav (z-50) tapi DI BAWAH semua modal (Modal z-60,
           Changelog z-90) — nag tidak boleh menghalangi tombol modal. */}
       {backupPrompt && (
-        <div className="fixed bottom-20 inset-x-0 z-[55] px-4">
+        <div className={`fixed bottom-20 inset-x-0 ${Z.nag} px-4`}>
           <div className="max-w-md mx-auto bg-amber-50 border border-amber-300 rounded-2xl px-4 py-3 shadow-xl flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-amber-800">💾 Saatnya backup mingguan</p>

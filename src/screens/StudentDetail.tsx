@@ -35,6 +35,7 @@ import { analyzeStudent, estimateAnalysisCost } from "../lib/aiClient";
 import type { AiStudentInsight } from "../lib/aiClient";
 import { AiCostModal } from "../components/AiCostModal";
 import Modal from "../components/Modal";
+import { Z } from "../lib/zIndex";
 import { getBehaviorTag, getResponseTag } from "../lib/responseTaxonomy";
 import { MAX_HOURLY_RATE, clampCurrencyAmount, isValidCurrencyAmount } from "../lib/money";
 import EvidenceCard from "./studentDetail/EvidenceCard";
@@ -1136,7 +1137,7 @@ export default function StudentDetail() {
 
       {/* ── EDIT SESSION NOTES MODAL ── */}
       {editSession && (
-        <div role="dialog" aria-modal="true" aria-label="Edit catatan sesi" className="fixed inset-0 bg-black/40 z-[60] flex items-end justify-center" onClick={() => setEditSession(null)}>
+        <div role="dialog" aria-modal="true" aria-label="Edit catatan sesi" className={`fixed inset-0 bg-black/40 ${Z.modal} flex items-end justify-center`} onClick={() => setEditSession(null)}>
           <div className="bg-white w-full max-w-md rounded-t-2xl pb-8 max-h-[80vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div>
@@ -1208,7 +1209,7 @@ export default function StudentDetail() {
 
       {/* ── RAPOR INPUT MODAL ── */}
       {showRapor && (
-        <div role="dialog" aria-modal="true" aria-label="Input Nilai Rapor" className="fixed inset-0 bg-black/40 z-[60] flex items-end justify-center" onClick={() => setShowRapor(false)}>
+        <div role="dialog" aria-modal="true" aria-label="Input Nilai Rapor" className={`fixed inset-0 bg-black/40 ${Z.modal} flex items-end justify-center`} onClick={() => setShowRapor(false)}>
           <div className="bg-white w-full max-w-md rounded-t-2xl pb-8 max-h-[90vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h3 className="font-bold text-lg">Input Nilai Rapor</h3>
@@ -1269,7 +1270,7 @@ export default function StudentDetail() {
 
       {/* ── EDIT SCHEDULE MODAL ── */}
       {editTarget && (
-        <div role="dialog" aria-modal="true" aria-label="Edit jadwal" className="fixed inset-0 bg-black/40 z-[60] flex items-end justify-center" onClick={() => setEditTarget(null)}>
+        <div role="dialog" aria-modal="true" aria-label="Edit jadwal" className={`fixed inset-0 bg-black/40 ${Z.modal} flex items-end justify-center`} onClick={() => setEditTarget(null)}>
           <div className="bg-white w-full max-w-md rounded-t-2xl pb-8 max-h-[88vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div>

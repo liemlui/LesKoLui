@@ -1,4 +1,5 @@
 import type { ToastMessage } from "../hooks/useToast";
+import { Z } from "../lib/zIndex";
 
 const STYLE: Record<ToastMessage["type"], string> = {
   success: "bg-green-600 text-white",
@@ -14,7 +15,7 @@ interface Props {
 export default function ToastContainer({ toasts, onDismiss }: Props) {
   if (toasts.length === 0) return null;
   return (
-    <div className="fixed top-4 left-4 right-4 z-[200] max-w-md mx-auto space-y-2 pointer-events-none">
+    <div className={`fixed top-4 left-4 right-4 ${Z.toast} max-w-md mx-auto space-y-2 pointer-events-none`}>
       {toasts.map((t) => (
         <div
           key={t.id}

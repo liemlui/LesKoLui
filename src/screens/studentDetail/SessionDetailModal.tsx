@@ -1,5 +1,6 @@
 import type { Session, Settings } from "../../db/types";
 import { dayLabel, formatRupiah } from "../../lib/format";
+import { Z } from "../../lib/zIndex";
 
 interface SessionDetailModalProps {
   detailSession: Session | null;
@@ -34,7 +35,7 @@ export default function SessionDetailModal({
   const eng      = s.engagement;
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Detail Sesi" className="fixed inset-0 bg-black/50 z-[70] flex items-end justify-center" onClick={() => { setDetailSession(null); setShowDeletePin(false); setDeletePinInput(""); setDeletePinError(""); }}>
+    <div role="dialog" aria-modal="true" aria-label="Detail Sesi" className={`fixed inset-0 bg-black/50 ${Z.picker} flex items-end justify-center`} onClick={() => { setDetailSession(null); setShowDeletePin(false); setDeletePinInput(""); setDeletePinError(""); }}>
       <div className="bg-white w-full max-w-md rounded-t-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div>

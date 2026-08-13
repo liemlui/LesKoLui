@@ -3,6 +3,7 @@ import { createExpense } from "../db/repos";
 import type { ExpenseCategory } from "../db/repos";
 import { todayWIB } from "../lib/format";
 import { isValidCurrencyAmount } from "../lib/money";
+import { Z } from "../lib/zIndex";
 
 /**
  * QuickExpenseModal — catat pengeluaran cepat dari dashboard tanpa PIN.
@@ -54,7 +55,7 @@ export default function QuickExpenseModal({ onClose, onSaved, initialDate }: Pro
   };
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Catat Pengeluaran" className="fixed inset-0 bg-black/60 z-[100] flex items-end justify-center">
+    <div role="dialog" aria-modal="true" aria-label="Catat Pengeluaran" className={`fixed inset-0 bg-black/60 ${Z.invoice} flex items-end justify-center`}>
       <div className="w-full max-w-md bg-white rounded-t-2xl overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
           <h3 className="font-bold text-base">💰 Catat Pengeluaran</h3>

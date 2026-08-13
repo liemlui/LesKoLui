@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
+import { Z } from "../lib/zIndex";
 
 const FOCUSABLE =
   'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
@@ -50,7 +51,7 @@ export default function Modal({ onClose, children, ariaLabel, panelClassName }: 
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-[60] flex items-end justify-center sm:items-center sm:p-4" onClick={onClose}>
+    <div className={`fixed inset-0 bg-black/40 ${Z.modal} flex items-end justify-center sm:items-center sm:p-4`} onClick={onClose}>
       <div
         ref={panelRef}
         role="dialog"

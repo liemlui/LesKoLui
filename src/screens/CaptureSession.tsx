@@ -27,6 +27,7 @@ import Breadcrumb from "../components/Breadcrumb";
 import type { Student, Session, FollowUpItem } from "../db/types";
 import PaginationControls from "../components/PaginationControls";
 import { PAGE_SIZE, clampPage, paginateItems } from "../lib/pagination";
+import { Z } from "../lib/zIndex";
 
 const DURATIONS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
 const MOODS = [
@@ -1300,7 +1301,7 @@ export default function CaptureSession() {
           TOOLTIP OVERLAY
           ══════════════════════════════════════════ */}
       {activeTooltip && (
-        <div role="dialog" aria-modal="true" aria-label="Info tag" className="fixed inset-0 z-[80]" onClick={() => setActiveTooltip(null)}>
+        <div role="dialog" aria-modal="true" aria-label="Info tag" className={`fixed inset-0 ${Z.tooltip}`} onClick={() => setActiveTooltip(null)}>
           <div className="absolute bottom-24 left-4 right-4 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden"
             onClick={(e) => e.stopPropagation()}>
             <div className={`px-4 py-3 flex items-center gap-3 ${
@@ -1338,7 +1339,7 @@ export default function CaptureSession() {
           SUBJECT PICKER MODAL
           ══════════════════════════════════════════ */}
       {showIBPicker && (
-        <div role="dialog" aria-modal="true" aria-label="Pilih Mata Pelajaran" className="fixed inset-0 bg-black/50 z-[70] flex items-end justify-center" onClick={() => setShowIBPicker(false)}>
+        <div role="dialog" aria-modal="true" aria-label="Pilih Mata Pelajaran" className={`fixed inset-0 bg-black/50 ${Z.picker} flex items-end justify-center`} onClick={() => setShowIBPicker(false)}>
           <div className="bg-white w-full max-w-md rounded-t-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div>
@@ -1466,7 +1467,7 @@ export default function CaptureSession() {
           CLOSE-OUT LAPORAN SESI
           ══════════════════════════════════════════ */}
       {showCloseOut && coSessionData && currentStudent && (
-        <div role="dialog" aria-modal="true" aria-label="Laporan sesi" className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-3 overflow-y-auto">
+        <div role="dialog" aria-modal="true" aria-label="Laporan sesi" className={`fixed inset-0 bg-black/60 ${Z.picker} flex items-center justify-center p-3 overflow-y-auto`}>
           <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden my-auto"
             style={{ fontFamily: "'Nunito', sans-serif" }}>
 
@@ -1666,7 +1667,7 @@ export default function CaptureSession() {
         const activeSubjects = subjects.length ? subjects : studentSubjects;
         const est = estimateDraftNoteCost(activeSubjects, topic || undefined);
         return (
-          <div role="dialog" aria-modal="true" aria-label="Draft Catatan dengan AI" className="fixed inset-0 bg-black/50 z-[90] flex items-end justify-center"
+          <div role="dialog" aria-modal="true" aria-label="Draft Catatan dengan AI" className={`fixed inset-0 bg-black/50 ${Z.dialog} flex items-end justify-center`}
             onClick={() => setShowAiCostModal(false)}>
             <div className="bg-white w-full max-w-md rounded-t-2xl p-5 pb-8 space-y-4"
               onClick={(e) => e.stopPropagation()}>

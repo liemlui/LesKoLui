@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { APP_VERSION, CHANGELOG, type ChangelogEntry } from "../lib/version";
+import { Z } from "../lib/zIndex";
 
 const STORAGE_KEY = "leskolui-last-seen-version";
 
@@ -43,7 +44,7 @@ export default function ChangelogModal() {
   if (!entry) return null;
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Catatan perubahan" className="fixed inset-0 z-[90] bg-black/50 flex items-end sm:items-center justify-center p-4">
+    <div role="dialog" aria-modal="true" aria-label="Catatan perubahan" className={`fixed inset-0 ${Z.dialog} bg-black/50 flex items-end sm:items-center justify-center p-4`}>
       <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-slide-up">
         {/* Header */}
         <div className="bg-gradient-to-br from-blue-600 to-indigo-600 px-5 pt-6 pb-4 text-white">
