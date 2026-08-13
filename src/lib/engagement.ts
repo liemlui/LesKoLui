@@ -64,7 +64,7 @@ export function calcEngagementScore(e: Omit<EngagementLog, "score"> & Partial<Ex
     if (rid === "misconception")                           s -= 2;
     if (rid === "prerequisite-gap")                        s -= 2;
     if (rid === "guessing")                                s -= 1;
-    // partial-correct, can-do-procedurally, guessing = neutral
+    // partial-correct & can-do-procedurally = neutral (guessing is −1, handled above)
   }
 
   // ── Mood ──

@@ -150,6 +150,12 @@ export default function CaptureSession() {
   const [showBehavior,   setShowBehavior]   = useState(false);
   const [activeTooltip,  setActiveTooltip]  = useState<{ tag: BehaviorTag | ResponseTag; type: "behavior" | "response" } | null>(null);
 
+  // Skor keterlibatan dihitung + disimpan bila ada sinyal APAPUN: flag inti,
+  // tag perilaku, respons akademik, atau mood. Jangan hanya engTouched — kalau
+  // tutor hanya mencatat mood/tag, engagement (dan skornya) tetap harus tersimpan.
+  const hasEngagementInput =
+    engTouched || behaviorTags.length > 0 || Boolean(responseTag) || Boolean(mood);
+
   // Conflict warning
   const [conflictWarn, setConflictWarn] = useState<string[]>([]);
 
@@ -288,7 +294,7 @@ export default function CaptureSession() {
     }
     if (!shortNote.trim()) { setMessage("Tulis catatan singkat."); return; }
     setSaving(true);
-    const engData = engTouched ? {
+    const engData = hasEngagementInput ? {
       prepared: engPrepared, focused: engFocused,
       drowsy: engDrowsy, playingPhone: engPhone,
       activeAsking: engActiveAsking, quickLearner: engQuickLearner,
@@ -415,7 +421,7 @@ export default function CaptureSession() {
   const tutorName    = settings?.tutorProfile?.name || "Ko Lui";
   const waNumber     = currentStudent?.parentContact.phone.replace(/^0/, "62").replace(/[^0-9]/g, "") ?? "";
   const stepMeta     = STEPS[currentStep - 1];
-  const engScore     = (engTouched || behaviorTags.length > 0 || responseTag || mood) ? calcEngagementScore({
+  const engScore     = hasEngagementInput ? calcEngagementScore({
     prepared: engPrepared, focused: engFocused, drowsy: engDrowsy, playingPhone: engPhone,
     activeAsking: engActiveAsking, quickLearner: engQuickLearner,
     needsRepetition: engNeedsRepeat, hwMissed: engHwMissed,
@@ -922,7 +928,7 @@ export default function CaptureSession() {
           </div>
 
           {/* Score gauge */}
-          {engTouched && engScoreInfo && (
+          {engScoreInfo && (
             <div className="flex items-center gap-3 rounded-2xl p-4 shadow-sm" style={{ background: engScoreInfo.bg }}>
               <div className="relative w-14 h-14 flex-shrink-0">
                 <svg viewBox="0 0 36 36" className="w-14 h-14 -rotate-90">
