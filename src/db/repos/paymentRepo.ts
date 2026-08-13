@@ -367,6 +367,7 @@ async function createSessionCountInvoiceAtomic(
       billingTargetSessionCount: student.pendingBillingPolicy ? targetCount : undefined,
       billingPolicyAfterBatch,
       billingPolicyTransitionTarget: student.pendingBillingPolicy,
+      fromBillingQueue: true,
       sessionIds: selectedIds,
       templateKey: reusableDraft?.templateKey ?? { themeId: "blue", layoutId: "cards" },
       summaryText: reusableDraft?.summaryText ?? "",
@@ -439,7 +440,14 @@ export async function cancelSessionCountInvoice(paymentId: string): Promise<void
     await db.payments.delete(payment.id);
     await db.reports.delete(report.id);
     const student = await db.students.get(report.studentId);
-    if (student && billingPolicyOf(student) !== "session_count") {
+    // Hanya kembalikan kebijakan murid bila paket ini benar-benar berasal dari
+    // antrean billing. Laporan paket legacy yang dibuat lewat mode "Jumlah"
+    // untuk murid bulanan tidak boleh diam-diam mengubah murid jadi session_count.
+    const issuedFromBilling = report.fromBillingQueue === true
+      || report.finalBillingBatch === true
+      || report.billingPolicyTransitionTarget !== undefined
+      || report.billingPolicyAfterBatch !== undefined;
+    if (student && billingPolicyOf(student) !== "session_count" && issuedFromBilling) {
       const currentPolicy = billingPolicyOf(student);
       const currentQuota = validSessionCount(student.billingSessionCount)
         ? student.billingSessionCount

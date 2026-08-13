@@ -938,4 +938,23 @@ describe("session-count billing", () => {
       pendingBillingPolicy: "manual",
     });
   });
+
+  it("does not flip a non-package student to session_count when cancelling a legacy package", async () => {
+    const { cancelSessionCountInvoice, syncReportPayment } = await import("../db/repos");
+    await db.students.add(student("legacy-flip", "monthly", 3));
+    await db.sessions.bulkAdd([
+      session("legacy-flip-1", "legacy-flip", "2026-01-01"),
+      session("legacy-flip-2", "legacy-flip", "2026-01-02"),
+    ]);
+    // Simulasikan laporan paket legacy yang dibuat lewat mode "Jumlah" untuk
+    // murid bulanan (tanpa marker antrean billing).
+    const report = packageReport("legacy-flip-report", "legacy-flip", ["legacy-flip-1", "legacy-flip-2"]);
+    await db.reports.add(report);
+    await syncReportPayment(report);
+    const payment = await db.payments.where("reportId").equals(report.id).first();
+
+    await cancelSessionCountInvoice(payment!.id);
+
+    await expect(db.students.get("legacy-flip")).resolves.toMatchObject({ billingPolicy: "monthly" });
+  });
 });
