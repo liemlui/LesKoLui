@@ -174,6 +174,7 @@ async function seedInner(force: boolean): Promise<void> {
     subjects: ["Economics"],
     parentContact: { name: "Bpk. Dewanti", phone: "081234567803" },
     hourlyRate: 200000, active: true, enrolledAt: "2026-02-15",
+    billingPolicy: "session_count", billingSessionCount: 2,
   });
   const dewi = await createStudent({
     name: "Dewi Anggraini", level: "IBDP", curriculum: "IB DP", grade: "Grade 11",
@@ -286,13 +287,13 @@ async function seedInner(force: boolean): Promise<void> {
   await closeMonth("2026-03");                       // semua lunas
   await markPaymentTransferred(andi,  "2026-03", "transfer", "2026-03-29");
   await markPaymentTransferred(bella, "2026-03", "transfer", "2026-03-30");
-  await markPaymentTransferred(citra, "2026-03", "transfer", "2026-03-31");
 
   await closeMonth("2026-04");                       // sebagian lunas → ada piutang
   await markPaymentTransferred(andi,  "2026-04", "transfer", "2026-04-29");
 
   await closeMonth("2026-05");                       // baru 1 lunas → piutang lebih besar
-  await markPaymentTransferred(citra, "2026-05", "transfer", "2026-05-30");
+  // Citra memakai paket per 2 pertemuan, sehingga tidak memiliki baris tagihan
+  // Tutup Bulan. Tujuh sesinya sengaja dibiarkan di antrean paket untuk demo.
   // Juni sengaja dibiarkan terbuka agar bisa dites manual.
 
   // ── Pengeluaran ──

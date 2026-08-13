@@ -67,7 +67,7 @@ describe("report layouts", () => {
       },
     };
     const html = renderToStaticMarkup(getLayout("cards").render(planned, THEMES[0], { isFirst: true, isLast: true }));
-    expect(html).toContain("Fokus &amp; Rencana Bulan Depan");
+    expect(html).toContain("Fokus &amp; Rencana Berikutnya");
     expect(html).toContain("Menyelesaikan 8/10 soal fungsi kuadrat");
     expect(html).toContain("Dukungan di rumah");
   });

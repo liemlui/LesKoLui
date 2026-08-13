@@ -46,7 +46,7 @@ export interface ReportData {
   nextMonthPlan?: NextMonthPlan;
   avgEngagement?: number;
   photoUrls?: string[];
-  // Agregat sebulan penuh (dipakai layout infografis; aman bila tak diisi).
+  // Agregat seluruh periode (dipakai layout infografis; aman bila tak diisi).
   totalHours?: number;
   totalSessions?: number;
   subjectDist?: { name: string; count: number }[];

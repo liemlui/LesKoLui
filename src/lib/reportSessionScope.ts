@@ -3,7 +3,11 @@ import type { AiInput } from "./aiClient";
 import { dayLabel } from "./format";
 import { BEHAVIOR_TAGS, RESPONSE_TAGS } from "./responseTaxonomy";
 
-/** Select the latest N uncovered sessions while preserving chronological input order. */
+/**
+ * Select the oldest N uncovered sessions while preserving chronological input
+ * order. Billing cycles are FIFO: an older lesson must never be stranded while
+ * a newer lesson is charged first.
+ */
 export function selectCountReportSessions<T extends Pick<Session, "id">>(
   sessions: readonly T[],
   blockedIds: ReadonlySet<string>,
@@ -14,7 +18,7 @@ export function selectCountReportSessions<T extends Pick<Session, "id">>(
   const allowed = sessions.filter(
     (session) => ownedIds.has(session.id) || !blockedIds.has(session.id),
   );
-  return allowed.slice(-safeCount);
+  return allowed.slice(0, safeCount);
 }
 
 /** Select month/range rows while keeping an immutable paid/manual invoice's
@@ -36,6 +40,8 @@ export interface ReportPeriodCandidate {
   periodStart: string;
   periodEnd: string;
   supplementalForReportId?: string;
+  billingMode?: "monthly" | "session_count" | "range";
+  sessionIds?: readonly string[];
 }
 
 export interface EditedReportOverlapContext {
@@ -43,24 +49,35 @@ export interface EditedReportOverlapContext {
   supplementalForReportId?: string;
 }
 
-/** A parent and its supplemental children may overlap in either edit direction,
- *  but unrelated reports and supplemental siblings still block each other. */
+/** A parent and its supplemental children may overlap in either edit direction.
+ * Unrelated ordinary reports use calendar ranges; package reports use session ids. */
 export function findBlockingReportOverlap<T extends ReportPeriodCandidate>(
   reports: readonly T[],
   start: string,
   end: string,
   editedReport?: EditedReportOverlapContext,
+  selectedSessionIds: readonly string[] = [],
 ): T | undefined {
   const excludedIds = new Set([
     editedReport?.id,
     editedReport?.supplementalForReportId,
   ].filter((id): id is string => Boolean(id)));
-  return reports.find((report) =>
-    !excludedIds.has(report.id)
-    && report.supplementalForReportId !== editedReport?.id
-    && report.periodStart <= end
-    && report.periodEnd >= start
-  );
+  const selectedIds = new Set(selectedSessionIds);
+  return reports.find((report) => {
+    if (
+      excludedIds.has(report.id)
+      || (Boolean(editedReport?.id) && report.supplementalForReportId === editedReport?.id)
+    ) {
+      return false;
+    }
+    // Package dates are only descriptive. Their accounting scope is the
+    // immutable session snapshot, so a calendar overlap alone must not block
+    // an ordinary month/range report.
+    if (report.billingMode === "session_count") {
+      return report.sessionIds?.some((id) => selectedIds.has(id)) ?? false;
+    }
+    return report.periodStart <= end && report.periodEnd >= start;
+  });
 }
 
 /** Prefer explicit report identity over an ambiguous legacy period match. */

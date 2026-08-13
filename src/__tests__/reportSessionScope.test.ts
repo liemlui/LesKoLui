@@ -23,14 +23,14 @@ const makeSession = (index: number): Session => ({
 });
 
 describe("report session scope", () => {
-  it("selects only the latest N uncovered sessions", () => {
+  it("selects the oldest N uncovered sessions so billing stays FIFO", () => {
     const history = [1, 2, 3, 4, 5, 6].map(makeSession);
     const selected = selectCountReportSessions(history, new Set(["session-5"]), 3);
 
     expect(selected.map((session) => session.id)).toEqual([
+      "session-1",
+      "session-2",
       "session-3",
-      "session-4",
-      "session-6",
     ]);
   });
 
@@ -43,7 +43,7 @@ describe("report session scope", () => {
       new Set(["session-1", "session-2", "session-3"]),
     );
 
-    expect(selected.map((session) => session.id)).toEqual(["session-2", "session-3"]);
+    expect(selected.map((session) => session.id)).toEqual(["session-1", "session-2"]);
   });
 
   it("does not fall back to sessions owned by other confirmed reports", () => {
@@ -92,7 +92,7 @@ describe("report session scope", () => {
       selected,
     );
 
-    expect(input.sessions.map((session) => session.id)).toEqual(["session-4", "session-5"]);
+    expect(input.sessions.map((session) => session.id)).toEqual(["session-1", "session-2"]);
     expect(input.sessions).toHaveLength(2);
   });
 
@@ -125,6 +125,46 @@ describe("report session scope", () => {
       "2026-06-30",
       { id: "parent" },
     )).toBeUndefined();
+  });
+
+  it("blocks an ordinary calendar overlap when creating a new report", () => {
+    const existing = {
+      id: "existing",
+      periodStart: "2026-06-01",
+      periodEnd: "2026-06-30",
+      sessionIds: ["session-1"],
+    };
+
+    expect(findBlockingReportOverlap(
+      [existing],
+      "2026-06-15",
+      "2026-07-15",
+    )?.id).toBe("existing");
+  });
+
+  it("treats package overlap by selected session ids instead of calendar dates", () => {
+    const packageReport = {
+      id: "package",
+      periodStart: "2026-06-01",
+      periodEnd: "2026-06-30",
+      billingMode: "session_count" as const,
+      sessionIds: ["session-1", "session-2"],
+    };
+
+    expect(findBlockingReportOverlap(
+      [packageReport],
+      "2026-06-01",
+      "2026-06-30",
+      undefined,
+      ["session-3"],
+    )).toBeUndefined();
+    expect(findBlockingReportOverlap(
+      [packageReport],
+      "2026-07-01",
+      "2026-07-31",
+      undefined,
+      ["session-2"],
+    )?.id).toBe("package");
   });
 
   it("targets a deep-linked report id instead of an ambiguous period match", async () => {

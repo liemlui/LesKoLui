@@ -3,7 +3,7 @@
 
 import { db } from "../db";
 import type { Payment, Session } from "../types";
-import { MIN_DURATION, DURATION_STEP } from "../types";
+import { MIN_DURATION, DURATION_STEP, reportStatus } from "../types";
 import { timestamp, nowTimeWIB, subtractHoursFromTime, monthRange, timeToMin } from "./helpers";
 import { todayWIB } from "../../lib/format";
 import { logAudit } from "./auditRepo";
@@ -140,6 +140,16 @@ export function isBillableSession(session: Pick<Session, "status" | "noShowBilla
   return session.status === "DONE" || (session.status === "NO_SHOW" && session.noShowBillable === true);
 }
 
+/** Stable order used when a billing batch must always claim the oldest work first. */
+export function compareSessionsChronologically(
+  a: Pick<Session, "date" | "time" | "id">,
+  b: Pick<Session, "date" | "time" | "id">,
+): number {
+  return a.date.localeCompare(b.date)
+    || (a.time ?? "").localeCompare(b.time ?? "")
+    || a.id.localeCompare(b.id);
+}
+
 /** Revenue-only query; keeps chargeable no-shows out of academic lesson history. */
 export async function listBillableSessionsForMonth(month: string): Promise<Session[]> {
   const { start, end } = monthRange(month);
@@ -150,20 +160,22 @@ export async function listBillableSessionsForMonth(month: string): Promise<Sessi
 
 export async function listBillableSessionsByStudentMonth(studentId: string, month: string): Promise<Session[]> {
   const { start, end } = monthRange(month);
-  return db.sessions
+  const sessions = await db.sessions
     .where({ studentId })
     .filter((s) => isBillableSession(s) && s.date >= start && s.date <= end)
-    .sortBy("date");
+    .toArray();
+  return sessions.sort(compareSessionsChronologically);
 }
 
 /** Billing query for an arbitrary inclusive period, including chargeable no-shows. */
 export async function listBillableSessionsByStudentRange(
   studentId: string, start: string, end: string
 ): Promise<Session[]> {
-  return db.sessions
+  const sessions = await db.sessions
     .where({ studentId })
     .filter((s) => isBillableSession(s) && s.date >= start && s.date <= end)
-    .sortBy("date");
+    .toArray();
+  return sessions.sort(compareSessionsChronologically);
 }
 
 /**
@@ -216,11 +228,7 @@ export async function listSessionsByStudentRange(
     .where({ studentId })
     .filter((s) => s.status === "DONE" && s.date >= start && s.date <= end)
     .toArray();
-  return sessions.sort((a, b) =>
-    a.date.localeCompare(b.date)
-    || (a.time ?? "").localeCompare(b.time ?? "")
-    || a.id.localeCompare(b.id)
-  );
+  return sessions.sort(compareSessionsChronologically);
 }
 
 export async function listScheduledForMonth(month: string): Promise<Session[]> {
@@ -330,35 +338,49 @@ export async function rescheduleSession(
 }
 
 export async function deleteSession(id: string): Promise<void> {
-  await db.transaction("rw", db.sessions, db.followUps, db.reports, db.payments, async () => {
+  await db.transaction("rw", db.students, db.sessions, db.followUps, db.reports, db.payments, async () => {
     const session = await db.sessions.get(id);
+    const affectedReports = await db.reports
+      .filter((report) => report.sessionIds.includes(id))
+      .toArray();
+    const reportPayments = new Map<string, Payment | undefined>();
+    for (const report of affectedReports) {
+      const payment = await db.payments.where("reportId").equals(report.id).first();
+      reportPayments.set(report.id, payment);
+      if (report.billingMode === "session_count") {
+        if (reportStatus(report) === "draft") {
+          throw new Error("Sesi ada di draft paket. Hapus draft laporan terlebih dahulu.");
+        }
+        if (payment?.status === "UNPAID" && payment.source !== "manual") {
+          throw new Error("Sesi sudah masuk tagihan paket. Batalkan tagihan di Keuangan terlebih dahulu.");
+        }
+        throw new Error("Sesi sudah masuk tagihan paket yang lunas atau diedit manual, sehingga tidak dapat dihapus.");
+      }
+    }
+
     await db.sessions.delete(id);
     await db.followUps
       .filter((f) => f.sourceSessionId === id)
       .modify((f) => { delete f.sourceSessionId; });
-    await db.reports
-      .filter((r) => r.sessionIds.includes(id))
-      .toArray()
-      .then(async (affected) => {
-        for (const r of affected) {
-          const sessionIds = r.sessionIds.filter((sid) => sid !== id);
-          // Hitung ulang total laporan dari sesi yang tersisa agar tidak melayang.
-          const remaining = await db.sessions.bulkGet(sessionIds);
-          const totalHours = remaining.reduce((s, x) => s + (x?.durationHours ?? 0), 0);
-          const totalCost = remaining.reduce((s, x) => s + (x?.cost ?? 0), 0);
-          await db.reports.update(r.id, { sessionIds, totalHours, totalCost });
-          // Tagihan yang terbit dari laporan periode ikut disesuaikan — asal
-          // belum lunas dan belum diedit manual (nominalnya sudah disepakati).
-          const pay = await db.payments.where("reportId").equals(r.id).first();
-          if (pay && pay.status === "UNPAID" && pay.source !== "manual") {
-            if (totalCost > 0) {
-              await db.payments.update(pay.id, { totalCost });
-            } else {
-              await db.payments.delete(pay.id); // sesi sudah nol — tagihan hantu dihapus
-            }
-          }
+    for (const report of affectedReports) {
+      const payment = reportPayments.get(report.id);
+
+      const sessionIds = report.sessionIds.filter((sid) => sid !== id);
+      // Hitung ulang total laporan dari sesi yang tersisa agar tidak melayang.
+      const remaining = await db.sessions.bulkGet(sessionIds);
+      const totalHours = remaining.reduce((sum, item) => sum + (item?.durationHours ?? 0), 0);
+      const totalCost = remaining.reduce((sum, item) => sum + (item?.cost ?? 0), 0);
+      await db.reports.update(report.id, { sessionIds, totalHours, totalCost });
+      // Tagihan yang terbit dari laporan periode ikut disesuaikan — asal
+      // belum lunas dan belum diedit manual (nominalnya sudah disepakati).
+      if (payment && payment.status === "UNPAID" && payment.source !== "manual") {
+        if (totalCost > 0) {
+          await db.payments.update(payment.id, { totalCost });
+        } else {
+          await db.payments.delete(payment.id); // sesi sudah nol — tagihan hantu dihapus
         }
-      });
+      }
+    }
 
     // Jaga konsistensi keuangan: tagihan otomatis (auto, UNPAID) harus mencerminkan
     // sesi billable yang tersisa di bulan itu. Sesi yang dihapus bisa pernah masuk
@@ -382,6 +404,25 @@ export async function deleteSession(id: string): Promise<void> {
         await db.payments.update(payment.id, {
           totalCost: Math.max(0, remaining.reduce((sum, s) => sum + s.cost, 0)),
         });
+      }
+
+      const student = await db.students.get(session.studentId);
+      if (student?.billingPolicy === "session_count" && student.pendingBillingPolicy) {
+        const confirmedCoveredIds = new Set(
+          (await db.reports.where({ studentId: session.studentId }).toArray())
+            .filter((report) => reportStatus(report) === "confirmed")
+            .flatMap((report) => report.sessionIds),
+        );
+        const unbilledCount = await db.sessions
+          .where({ studentId: session.studentId })
+          .filter((candidate) => isBillableSession(candidate) && !confirmedCoveredIds.has(candidate.id))
+          .count();
+        if (unbilledCount === 0) {
+          await db.students.update(student.id, {
+            billingPolicy: student.pendingBillingPolicy,
+            pendingBillingPolicy: undefined,
+          });
+        }
       }
     }
   });

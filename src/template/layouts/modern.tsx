@@ -233,7 +233,7 @@ export const bullets: Layout = {
 export const compare: Layout = {
   id: "compare", name: "Perbandingan", maxEntriesPerPage: 8,
   render: (d, t, { isFirst, isLast }) => {
-    // entries KRONOLOGIS (awal→akhir bulan): paruh pertama array = AWAL bulan
+    // entries KRONOLOGIS (awal→akhir periode): paruh pertama array = AWAL periode
     const awalHalf  = d.entries.slice(0, Math.ceil(d.entries.length / 2));
     const akhirHalf = d.entries.slice(Math.ceil(d.entries.length / 2));
     const avgEng = (entries: typeof d.entries) => {
@@ -247,8 +247,8 @@ export const compare: Layout = {
         {/* Comparison header */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16, position: "relative", zIndex: 2 }}>
           {[
-            { label: "Awal Bulan", entries: awalHalf, ci: 0 },
-            { label: "Akhir Bulan", entries: akhirHalf, ci: 1 },
+            { label: "Awal Periode", entries: awalHalf, ci: 0 },
+            { label: "Akhir Periode", entries: akhirHalf, ci: 1 },
           ].map((col) => {
             const cc = t.palette[col.ci];
             const avg = avgEng(col.entries);
@@ -376,7 +376,7 @@ export const infographic: Layout = {
             {/* Header editorial */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 12 }}>
               <div style={{ minWidth: 0 }}>
-                <p style={overline}>Laporan Bulanan</p>
+                <p style={overline}>Laporan Perkembangan</p>
                 <div style={{ fontFamily: t.fontDisplay, fontWeight: 800, fontSize: 26, lineHeight: 1.05, color: t.ink, marginTop: 3 }}>{d.studentName}</div>
               </div>
               <div style={{ textAlign: "right", flexShrink: 0 }}>
@@ -478,7 +478,7 @@ export const cover: Layout = {
       <div style={{ position: "relative", zIndex: 2 }}>
         {HeaderEl(d, t)}
         <div style={{ marginTop: 24, borderTop: `2px solid ${t.accent}33`, paddingTop: 18, textAlign: "center" }}>
-          <p style={{ fontSize: 12, color: t.muted, margin: 0, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>Monthly Progress Report</p>
+          <p style={{ fontSize: 12, color: t.muted, margin: 0, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>Progress Report</p>
           <p style={{ fontFamily: t.fontDisplay, fontSize: 26, fontWeight: 800, color: t.accent, margin: "8px 0 0" }}>{d.period}</p>
           {d.summary && (
             <p style={{ fontSize: 13, lineHeight: 1.55, color: t.ink, margin: "18px auto 0", maxWidth: 300 }}>

@@ -1,13 +1,19 @@
 import { expect, test } from "@playwright/test";
 
+test.use({
+  launchOptions: process.env.SYSTEM_CHROME_PATH
+    ? { executablePath: process.env.SYSTEM_CHROME_PATH }
+    : undefined,
+});
+
 test("finance data stays connected across summary, expenses, and audit", async ({ page }) => {
-  await page.goto("/");
-  await page.waitForFunction(() => typeof (window as unknown as { seedDummy?: unknown }).seedDummy === "function");
-  await page.evaluate(async () => {
-    const appWindow = window as unknown as { seedDummy: (force?: boolean) => Promise<void> };
-    await appWindow.seedDummy(true);
-    localStorage.setItem("leskolui-last-seen-version", "v1.36.0");
+  const seedDone = page.waitForEvent("console", {
+    predicate: (message) => /berhasil dimasukkan|seed dilewati/.test(message.text()),
+    timeout: 60_000,
   });
+  await page.goto("/");
+  await seedDone;
+  await page.evaluate(() => localStorage.setItem("leskolui-last-seen-version", "v1.41.0"));
 
   await page.goto("/payments");
   const changelogButton = page.getByRole("button", { name: /Mengerti/ });

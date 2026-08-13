@@ -4,12 +4,12 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   listStudents, getStudent, getSettings,
-  listSessionsByStudentRange,
+  listSessionsByStudentRange, listBillableSessionsByStudentRange,
   getReportById, findReportByPeriod, listReportsByStudent, listConfirmedReportsByStudent,
   upsertReport, createReportForPeriod, discardReport, updateSession, saveSettings,
   listMonthClosings, getPaymentByReport, syncReportPayment,
 } from "../db/repos";
-import { reportStatus, type ReportStatus } from "../db/types";
+import { billingPolicyOf, reportStatus, type ReportStatus } from "../db/types";
 import { monthRange } from "../db/repos/helpers";
 import { pickTemplate } from "../lib/rotation";
 import { generateReportSummary, generateNarratives, estimateReportSummaryCost, estimateNarrativesCost } from "../lib/aiClient";
@@ -21,6 +21,7 @@ import {
   selectPeriodReportSessions,
 } from "../lib/reportSessionScope";
 import { AiCostModal } from "../components/AiCostModal";
+import Modal from "../components/Modal";
 import { getTheme, THEMES } from "../template/themes";
 import { LAYOUTS } from "../template/layouts";
 import { ReportRenderer } from "../template/ReportRenderer";
@@ -134,7 +135,7 @@ function buildSessionNarrative(session: Session, subject: string): string {
 }
 
 /**
- * MonthlyReportPage — halaman pembuatan laporan bulanan.
+ * MonthlyReportPage — halaman pembuatan laporan perkembangan per periode.
  * 20+ tema × 27 layout, AI narrative generation, export ke JPG/PNG/PDF,
  * pagination, dan template rotation logic.
  *
@@ -146,7 +147,7 @@ export default function MonthlyReportPage() {
   const students = useLiveQuery(() => listStudents(true), []);
   const settings = useLiveQuery(() => getSettings(), []);
 
-  // ── Mode rekap: bulan kalender / N pertemuan terakhir / rentang tanggal ──
+  // ── Mode rekap: bulan kalender / paket N pertemuan tertua / rentang tanggal ──
   type RecapMode = "bulan" | "jumlah" | "range";
   const [mode, setMode] = useState<RecapMode>("bulan");
   const [studentId, setStudentId] = useState(searchParams.get("studentId") ?? "");
@@ -159,6 +160,7 @@ export default function MonthlyReportPage() {
   const [snapshotLocked, setSnapshotLocked] = useState(Boolean(reportIdParam));
   const appliedReportIdRef = useRef("");
   const dismissedReportIdRef = useRef("");
+  const appliedStudentBillingRef = useRef("");
 
   const [editingNarrative, setEditingNarrative] = useState<string | null>(null);
   const [editText,         setEditText]         = useState("");
@@ -169,6 +171,7 @@ export default function MonthlyReportPage() {
   const [editingQuote,     setEditingQuote]     = useState(false);
   const [showPolishModal,  setShowPolishModal]  = useState(false);
   const [showNarrativesModal, setShowNarrativesModal] = useState(false);
+  const [showBillingHelp,   setShowBillingHelp]   = useState(false);
   const [prevTexts,        setPrevTexts]        = useState<{
     summaryText: string;
     teacherNote?: string;
@@ -193,6 +196,20 @@ export default function MonthlyReportPage() {
   const [subjectFilter,    setSubjectFilter]    = useState<string>("");
 
   const student  = useLiveQuery(() => (studentId ? getStudent(studentId) : undefined), [studentId]);
+
+  // Opening a student starts in the billing scope configured on their profile.
+  // The ref keeps later manual mode/count changes under the user's control.
+  useEffect(() => {
+    if (!student || student.id !== studentId || editingReportId) return;
+    if (appliedStudentBillingRef.current === student.id) return;
+    appliedStudentBillingRef.current = student.id;
+    if (billingPolicyOf(student) === "session_count") {
+      setMode("jumlah");
+      setCount(Math.max(1, Math.min(20, student.billingSessionCount ?? 8)));
+    } else {
+      setMode("bulan");
+    }
+  }, [student, studentId, editingReportId]);
   const editingReportQuery = useLiveQuery(
     async () => ({
       reportId: editingReportId,
@@ -229,7 +246,14 @@ export default function MonthlyReportPage() {
     setRangeEnd(editingReport.periodEnd);
     const fullMonth = editingReport.periodStart === `${editingReport.month}-01`
       && editingReport.periodEnd === monthRange(editingReport.month).end;
-    setMode(fullMonth ? "bulan" : "range");
+    setMode(editingReport.billingMode === "session_count"
+      ? "jumlah"
+      : editingReport.billingMode === "range"
+        ? "range"
+        : fullMonth ? "bulan" : "range");
+    if (editingReport.billingMode === "session_count") {
+      setCount(Math.max(1, Math.min(20, editingReport.billingSessionCount ?? (editingReport.sessionIds.length || 1))));
+    }
     setSnapshotLocked(true);
   }, [editingReport]);
 
@@ -256,12 +280,13 @@ export default function MonthlyReportPage() {
   const monthEnd = useMemo(() => (month ? monthRange(month).end : ""), [month]);
   const todayStr = useMemo(() => todayWIB(), []);
 
-  // Sesi DONE murid sesuai mode rekap
+  // Mode jumlah is a billing scope, so explicitly billable no-shows count too.
+  // Academic month/range reports continue to use completed lessons only.
   const sessions = useLiveQuery(() => {
     if (!studentId) return [];
     if (mode === "bulan") return listSessionsByStudentRange(studentId, monthStart, monthEnd);
     if (mode === "range") return listSessionsByStudentRange(studentId, rangeStart, rangeEnd);
-    return listSessionsByStudentRange(studentId, "0000-01-01", todayStr); // mode jumlah: ambil semua lalu pilih N terakhir
+    return listBillableSessionsByStudentRange(studentId, "0000-01-01", todayStr);
   }, [studentId, mode, monthStart, monthEnd, rangeStart, rangeEnd, todayStr]);
 
   // Month/range modes know their identity before loading session rows. Resolve
@@ -352,18 +377,35 @@ export default function MonthlyReportPage() {
 
   // Laporan identik periode = laporan yang sama (basis edit); periode lain yang
   // bertumpuk atau bulan yang sudah tutup buku → periode TIDAK bisa digenerate.
-  const periodReportKey = `${studentId}|${periodStart}|${periodEnd}`;
+  const reportSessionIds = useMemo(
+    () => reportSessions.map((session) => session.id),
+    [reportSessions],
+  );
+  const countSessionKey = reportSessionIds.join("|");
+  const countReport = mode === "jumlah" && allReports
+    ? [...allReports]
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id))
+      .find((candidate) =>
+        !candidate.supplementalForReportId
+        && candidate.sessionIds.join("|") === countSessionKey
+      )
+    : undefined;
+  const periodReportKey = `${studentId}|${mode}|${periodStart}|${periodEnd}|${countSessionKey}`;
   const periodReportQuery = useLiveQuery(
     async () => ({
       key: periodReportKey,
-      report: studentId && periodStart && periodEnd
+      report: mode !== "jumlah" && studentId && periodStart && periodEnd
         ? await findReportByPeriod(studentId, periodStart, periodEnd)
         : undefined,
     }),
-    [studentId, periodStart, periodEnd]
+    [studentId, mode, periodStart, periodEnd, countSessionKey]
   );
-  const periodReportLookupReady = periodReportQuery?.key === periodReportKey;
-  const periodReport = periodReportLookupReady ? periodReportQuery.report : undefined;
+  const periodReportLookupReady = mode === "jumlah"
+    ? allReports !== undefined
+    : periodReportQuery?.key === periodReportKey;
+  const periodReport = mode === "jumlah"
+    ? countReport
+    : periodReportLookupReady ? periodReportQuery?.report : undefined;
   const report = editingReportId ? editingReport : periodReport;
   const payment = useLiveQuery(() => (report ? getPaymentByReport(report.id) : undefined), [report]);
   const invalidReportLink = Boolean(editingReportId && editingReportLookupReady && !editingReport);
@@ -382,7 +424,53 @@ export default function MonthlyReportPage() {
     if (mode === "range" && rangeStart > rangeEnd) {
       return { ok: false, reason: "Tanggal awal harus lebih dulu dari tanggal akhir." };
     }
-    const overlap = findBlockingReportOverlap(
+    // Paket (session_count) beridentitas per-snapshot sesi, bukan rentang tanggal,
+    // sehingga cek tumpang-tindih kalender dan bulan tertutup dilewati. Laporan
+    // "jumlah" untuk murid bulanan/manual tetap laporan periode biasa.
+    const sessionCountCycle = mode === "jumlah"
+      && ((student && billingPolicyOf(student) === "session_count") || report?.billingMode === "session_count");
+    if (sessionCountCycle && reportSessions.length !== count) {
+      return {
+        ok: false,
+        reason: `Paket harus berisi tepat ${count} pertemuan. Saat ini tersedia ${reportSessions.length}/${count}.`,
+      };
+    }
+    if (
+      student
+      && billingPolicyOf(student) === "session_count"
+      && (
+        !report
+        || reportStatus(report) !== "confirmed"
+        || (
+          report.billingMode !== "session_count"
+          && (
+            report.sessionIds.length !== reportSessionIds.length
+            || report.sessionIds.some((id) => !reportSessionIds.includes(id))
+          )
+        )
+      )
+    ) {
+      return {
+        ok: false,
+        reason: mode === "jumlah"
+          ? "Paket pertemuan diterbitkan dari Keuangan agar kuota dan invoice dikunci dalam satu transaksi."
+          : "Murid ini memakai paket pertemuan. Buat tagihannya dari Keuangan agar sesi tidak keluar dari antrean paket.",
+      };
+    }
+    if (
+      mode === "jumlah"
+      && student
+      && billingPolicyOf(student) === "session_count"
+      && report
+      && reportStatus(report) === "confirmed"
+      && report.billingMode !== "session_count"
+    ) {
+      return {
+        ok: false,
+        reason: "Laporan non-paket lama tidak dapat diubah menjadi tagihan paket. Gunakan antrean Keuangan.",
+      };
+    }
+    const overlap = sessionCountCycle ? undefined : findBlockingReportOverlap(
       confirmedReports ?? [],
       periodStart,
       periodEnd,
@@ -390,6 +478,7 @@ export default function MonthlyReportPage() {
         id: report.id,
         supplementalForReportId: report.supplementalForReportId,
       } : undefined,
+      reportSessionIds,
     );
     if (overlap) {
       return {
@@ -397,7 +486,7 @@ export default function MonthlyReportPage() {
         reason: `Tanggal ${dayLabel(overlap.periodStart)} s/d ${dayLabel(overlap.periodEnd)} sudah pernah direkap (laporan ${periodLabel(overlap.periodStart, overlap.periodEnd)}). Pilih periode lain.`,
       };
     }
-    const closed = (closings ?? []).find((c) => {
+    const closed = sessionCountCycle ? undefined : (closings ?? []).find((c) => {
       // Laporan untuk periode ini sendiri dikecualikan: memperbarui laporan yang
       // sudah ada bukan "generate lagi" — sesi di dalamnya sudah ter-rekap.
       if (report?.id && report.periodStart === periodStart && report.periodEnd === periodEnd) return false;
@@ -411,10 +500,23 @@ export default function MonthlyReportPage() {
       };
     }
     return { ok: true, reason: "" };
-  }, [studentId, periodStart, periodEnd, invalidReportLink, reportScopeDataReady, confirmedReports, closings, report, mode, rangeStart, rangeEnd]);
+  }, [studentId, periodStart, periodEnd, invalidReportLink, reportScopeDataReady, confirmedReports, closings, report, mode, rangeStart, rangeEnd, reportSessions.length, reportSessionIds, count, student]);
 
   const totalHours = useMemo(() => reportSessions.reduce((s, x) => s + x.durationHours, 0), [reportSessions]);
   const totalCost  = useMemo(() => reportSessions.reduce((s, x) => s + x.cost, 0), [reportSessions]);
+  // Mode "jumlah" hanya menjadi paket (session_count) bila murid memang memakai
+  // siklus per pertemuan, atau sedang mengedit paket lama yang sudah sah. Murid
+  // bulanan/manual yang memakai "jumlah" tetap menghasilkan laporan periode
+  // biasa agar invoice tidak menyimpang dari siklus penagihannya.
+  const isPackageBilling = Boolean(student && billingPolicyOf(student) === "session_count");
+  const editingPackage = report?.billingMode === "session_count";
+  const reportBillingMode: NonNullable<MonthlyReport["billingMode"]> = mode === "jumlah"
+    ? (isPackageBilling || editingPackage ? "session_count" : "range")
+    : mode === "range" ? "range" : "monthly";
+  const reportBillingFields = {
+    billingMode: reportBillingMode,
+    billingSessionCount: reportBillingMode === "session_count" ? count : undefined,
+  };
   const protectedNewSessionCount = useMemo(() => scopeHasProtectedInvoice
     ? (sessions ?? []).filter((session) =>
         !ownedSessionIds.has(session.id) && !blockedSessionIds.has(session.id)
@@ -612,6 +714,7 @@ export default function MonthlyReportPage() {
     if (current) {
       const refreshed = {
         ...current,
+        ...reportBillingFields,
         month: monthOf(periodEnd),
         periodStart, periodEnd,
         sessionIds: reportSessions.map((s) => s.id),
@@ -625,6 +728,7 @@ export default function MonthlyReportPage() {
     const templateKey = await pickTemplate(studentId);
     const created = {
       id: crypto.randomUUID(), studentId,
+      ...reportBillingFields,
       month: monthOf(periodEnd), periodStart, periodEnd,
       sessionIds: reportSessions.map((s) => s.id),
       templateKey, summaryText: "", totalHours, totalCost,
@@ -654,6 +758,7 @@ export default function MonthlyReportPage() {
         const templateKey = newLayoutId ? { ...picked, layoutId: newLayoutId } : picked;
         const created = {
           id: crypto.randomUUID(), studentId,
+          ...reportBillingFields,
           month: monthOf(periodEnd), periodStart, periodEnd,
           sessionIds: reportSessions.map((s) => s.id),
           templateKey, summaryText: "", totalHours, totalCost,
@@ -667,6 +772,7 @@ export default function MonthlyReportPage() {
       } else if (newLayoutId) {
         const updated = {
           ...r,
+          ...reportBillingFields,
           month: monthOf(periodEnd), periodStart, periodEnd,
           sessionIds: reportSessions.map((s) => s.id),
           totalHours, totalCost,
@@ -678,6 +784,7 @@ export default function MonthlyReportPage() {
       } else {
         const updated = {
           ...r,
+          ...reportBillingFields,
           month: monthOf(periodEnd), periodStart, periodEnd,
           sessionIds: reportSessions.map((s) => s.id),
           totalHours, totalCost,
@@ -707,12 +814,16 @@ export default function MonthlyReportPage() {
     setEditingReportId(selectedReport.id);
     setStudentId(selectedReport.studentId);
     setMonth(selectedReport.month);
-    setCount(Math.max(1, Math.min(20, selectedReport.sessionIds.length || 1)));
+    setCount(Math.max(1, Math.min(20, selectedReport.billingSessionCount ?? (selectedReport.sessionIds.length || 1))));
     setRangeStart(selectedReport.periodStart);
     setRangeEnd(selectedReport.periodEnd);
     const fullMonth = selectedReport.periodStart === `${selectedReport.month}-01`
       && selectedReport.periodEnd === monthRange(selectedReport.month).end;
-    setMode(fullMonth ? "bulan" : "range");
+    setMode(selectedReport.billingMode === "session_count"
+      ? "jumlah"
+      : selectedReport.billingMode === "range"
+        ? "range"
+        : fullMonth ? "bulan" : "range");
     setSnapshotLocked(true);
     replaceReportParam(selectedReport.id);
   };
@@ -738,6 +849,7 @@ export default function MonthlyReportPage() {
     try {
       const refreshed = {
         ...report,
+        ...reportBillingFields,
         status: "confirmed" as ReportStatus,
         month: monthOf(periodEnd), periodStart, periodEnd,
         sessionIds: reportSessions.map((s) => s.id),
@@ -894,7 +1006,7 @@ export default function MonthlyReportPage() {
     if (!report) return;
     await upsertReport({ ...report, nextMonthPlan: { ...nextMonthPlan, updatedAt: new Date().toISOString() } });
     setEditingPlan(false);
-    setMessage("Rencana bulan depan disimpan ✓");
+    setMessage("Rencana berikutnya disimpan ✓");
   };
 
   if (!students) return <Skeleton variant="card" lines={4} className="p-4" />;
@@ -984,14 +1096,39 @@ export default function MonthlyReportPage() {
                   </div>
                 )}
                 <div>
-                  <label className="label">Mode Rekap</label>
+                  <div className="flex items-center justify-between">
+                    <label className="label">Mode Rekap</label>
+                    <button
+                      type="button"
+                      onClick={() => setShowBillingHelp(true)}
+                      aria-label="Bantuan cara kerja laporan dan tagihan"
+                      title="Cara kerja laporan & tagihan"
+                      className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-gray-100 text-sm font-bold text-gray-600 transition-colors hover:bg-blue-100 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    >?</button>
+                  </div>
                   <div className="grid grid-cols-3 gap-1.5">
                     {([["bulan", "🗓 Bulan"], ["jumlah", "🔢 Jumlah"], ["range", "📅 Rentang"]] as const).map(([m, label]) => (
                       <button key={m} onClick={() => {
                         beginControlScopeChange();
                         setMode(m);
                       }}
-                        className={`text-xs font-semibold rounded-lg py-2 transition-colors ${mode === m ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                        disabled={Boolean(
+                          student
+                          && billingPolicyOf(student) === "session_count"
+                          && (
+                            !report
+                            || reportStatus(report) !== "confirmed"
+                            || (
+                              report.billingMode !== "session_count"
+                              && (
+                                report.sessionIds.length !== reportSessionIds.length
+                                || report.sessionIds.some((id) => !reportSessionIds.includes(id))
+                              )
+                            )
+                          )
+                          && m !== "jumlah"
+                        )}
+                        className={`text-xs font-semibold rounded-lg py-2 transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${mode === m ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
                         {label}
                       </button>
                     ))}
@@ -1011,11 +1148,31 @@ export default function MonthlyReportPage() {
                     <>
                       <label htmlFor="mr-jumlah" className="label">Jumlah Pertemuan</label>
                       <input id="mr-jumlah" className="input" type="number" min={1} max={20} value={count}
+                        disabled={Boolean(student && billingPolicyOf(student) === "session_count")}
                         onChange={(e) => {
                           beginControlScopeChange();
                           setCount(Math.max(1, Math.min(20, Number(e.target.value) || 1)));
                         }} />
-                      <p className="text-[11px] text-gray-500 mt-1">N pertemuan terakhir yang belum direkap.</p>
+                      <p className="text-[11px] text-gray-500 mt-1">
+                        {student && billingPolicyOf(student) === "session_count"
+                          ? "Mengambil N pertemuan tertua yang belum ditagih. Tagihan baru dapat disahkan setelah kuota lengkap."
+                          : "Mengambil N pertemuan tertua yang belum direkap sebagai laporan periode."}
+                      </p>
+                      {student && billingPolicyOf(student) === "session_count" && (
+                        <div className="mt-1 space-y-1.5">
+                          <p className="text-[11px] font-semibold text-indigo-600">
+                            Siklus murid dikunci pada {student.billingSessionCount ?? 8} pertemuan. Terbitkan tagihan paket melalui Keuangan agar sesi diklaim secara atomik.
+                          </p>
+                          {(!report || reportStatus(report) !== "confirmed") && (
+                            <Link
+                              to={`/payments?tab=tagihan&studentId=${encodeURIComponent(student.id)}`}
+                              className="inline-flex rounded-lg bg-indigo-50 px-2.5 py-1.5 text-[11px] font-semibold text-indigo-700 hover:bg-indigo-100"
+                            >
+                              Buka Antrean Tagihan
+                            </Link>
+                          )}
+                        </div>
+                      )}
                     </>
                   )}
                   {mode === "range" && (
@@ -1042,7 +1199,7 @@ export default function MonthlyReportPage() {
               {studentId && periodStart && periodEnd && (
                 <p className="text-xs text-gray-500">
                   Periode: <strong>{periodLabel(periodStart, periodEnd)}</strong>
-                  {mode === "jumlah" && reportSessions.length > 0 && ` · ${reportSessions.length} pertemuan`}
+                  {mode === "jumlah" && ` · ${reportSessions.length}/${count} pertemuan`}
                 </p>
               )}
 
@@ -1076,14 +1233,20 @@ export default function MonthlyReportPage() {
 
               {studentId && sessions && sessions.length > 0 && reportSessions.length === 0 && (
                 <p className="text-sm text-gray-500 text-center py-1">
-                  Semua sesi di periode ini sudah pernah direkap — pilih periode lain.
+                  {mode === "jumlah"
+                    ? "Belum ada pertemuan yang siap dimasukkan ke paket ini."
+                    : "Semua sesi di periode ini sudah pernah direkap — pilih periode lain."}
                 </p>
               )}
 
               {studentId && periodStart && periodEnd && reportSessions.length > 0 && (
                 availability.ok ? (
                   <p className="text-[11px] text-green-700 bg-green-50 border border-green-100 rounded-lg px-2.5 py-1.5">
-                    {report ? "✓ Laporan ini dapat diperbarui." : "✓ Periode tersedia — tanggal belum pernah direkap dan belum tutup buku."}
+                    {report
+                      ? "✓ Laporan ini dapat diperbarui."
+                      : mode === "jumlah"
+                        ? "✓ Paket tersedia — seluruh pertemuan belum pernah ditagih."
+                        : "✓ Periode tersedia — tanggal belum pernah direkap dan belum tutup buku."}
                   </p>
                 ) : (
                   <p className="text-[11px] text-red-700 bg-red-50 border border-red-100 rounded-lg px-2.5 py-1.5">
@@ -1093,7 +1256,11 @@ export default function MonthlyReportPage() {
               )}
               {protectedNewSessionCount > 0 && (
                 <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
-                  🔒 {protectedNewSessionCount} sesi baru tidak dimasukkan ke invoice yang sudah manual/lunas. Gunakan Tutup Bulan untuk membuat laporan susulan.
+                  🔒 {protectedNewSessionCount} sesi baru tidak dimasukkan ke invoice yang sudah manual/lunas. {((student && billingPolicyOf(student) === "session_count") || report?.billingMode === "session_count")
+                    ? "Sesi tersebut tetap masuk antrean Tagihan untuk paket berikutnya."
+                    : student && billingPolicyOf(student) === "manual"
+                      ? "Buat laporan susulan secara manual dari sesi tersebut."
+                      : "Gunakan Tutup Bulan untuk membuat laporan susulan."}
                 </p>
               )}
 
@@ -1122,20 +1289,25 @@ export default function MonthlyReportPage() {
                   </div>
                   {engagementTrend && (
                     <p className={`text-xs rounded-lg px-2.5 py-2 ${engagementTrend === "Meningkat" ? "bg-green-50 text-green-700" : engagementTrend === "Perlu perhatian" ? "bg-amber-50 text-amber-700" : "bg-gray-50 text-gray-600"}`}>
-                      Tren fokus: <strong>{engagementTrend}</strong> dibandingkan awal bulan.
+                      Tren fokus: <strong>{engagementTrend}</strong> dibandingkan awal periode.
                     </p>
                   )}
 
                   {/* Status tagihan / laporan */}
                   {report && reportStatus(report) === "draft" && (
                     <div className="rounded-lg px-3 py-2 text-sm bg-blue-50 text-blue-700 flex items-center justify-between">
-                      <span className="font-semibold">📋 Draft — belum disahkan</span>
+                      <span className="font-semibold">
+                        📋 Draft{report.billingMode === "session_count" ? ` Paket ${report.billingSessionCount ?? report.sessionIds.length}` : ""} — belum disahkan
+                      </span>
                       <span className="font-bold">{formatRupiah(totalCost)}</span>
                     </div>
                   )}
                   {report && reportStatus(report) === "confirmed" && payment && (
                     <div className={`rounded-lg px-3 py-2 text-sm flex items-center justify-between ${payment.status === "PAID" ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>
-                      <span className="font-semibold">{payment.status === "PAID" ? "✓ Tagihan Lunas" : "💳 Tagihan Belum Dibayar"}</span>
+                      <span className="font-semibold">
+                        {payment.status === "PAID" ? "✓ Tagihan Lunas" : "💳 Tagihan Belum Dibayar"}
+                        {report.billingMode === "session_count" ? ` · Paket ${report.billingSessionCount ?? report.sessionIds.length}` : ""}
+                      </span>
                       <span className="font-bold">{formatRupiah(payment.totalCost)}</span>
                     </div>
                   )}
@@ -1171,7 +1343,7 @@ export default function MonthlyReportPage() {
                       </button>
                       <button className="flex-1 btn text-sm bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 disabled:opacity-50"
                         onClick={() => setShowPolishModal(true)} disabled={aiLoading || !availability.ok}
-                        title="Hanya ringkasan bulan + kutipan (lebih murah)">
+                        title="Hanya ringkasan periode + kutipan (lebih murah)">
                         {aiLoading ? "⏳ AI..." : "✨ Ringkasan AI"}
                       </button>
                     </div>
@@ -1446,7 +1618,7 @@ export default function MonthlyReportPage() {
                           <div className="space-y-2">
                             <textarea id="mr-catatan-guru" className="input text-sm" rows={3} value={teacherNoteText}
                               onChange={(e) => setTeacherNoteText(e.target.value)}
-                              placeholder="Kemajuan terbesar bulan ini dan fokus prioritas bulan depan..." />
+                              placeholder="Kemajuan terbesar periode ini dan fokus prioritas berikutnya..." />
                             <div className="flex gap-2">
                               <button className="btn btn-primary text-xs" onClick={() => saveReportField("teacherNote", teacherNoteText)}>Simpan</button>
                               <button className="btn btn-secondary text-xs" onClick={() => setEditingTeacherNote(false)}>Batal</button>
@@ -1486,7 +1658,7 @@ export default function MonthlyReportPage() {
                     onClick={() => setOpenPlan((value) => !value)}>
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold text-gray-800 text-sm">🎯 Fokus & Rencana Bulan Depan</p>
+                        <p className="font-semibold text-gray-800 text-sm">🎯 Fokus & Rencana Berikutnya</p>
                         {hasPlan && <span className="text-[10px] bg-green-50 text-green-600 font-bold px-1.5 py-0.5 rounded-full">Siap</span>}
                       </div>
                       <p className="text-xs text-gray-500 mt-0.5">
@@ -1558,6 +1730,57 @@ export default function MonthlyReportPage() {
           </div>
 
       </div>
+
+      {/* Bantuan cara kerja laporan & tagihan */}
+      {showBillingHelp && (
+        <Modal onClose={() => setShowBillingHelp(false)} ariaLabel="Cara kerja laporan dan tagihan"
+          panelClassName="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl outline-none">
+          <div className="flex items-start justify-between border-b border-gray-100 px-5 py-4">
+            <div>
+              <h2 className="text-lg font-bold text-gray-800">Cara Kerja Laporan & Tagihan</h2>
+              <p className="mt-0.5 text-xs text-gray-600">Pahami mode rekap dan siklus tagihan murid.</p>
+            </div>
+            <button onClick={() => setShowBillingHelp(false)} aria-label="Tutup"
+              className="text-xl leading-none text-gray-500 hover:text-gray-700">✕</button>
+          </div>
+
+          <div className="space-y-4 overflow-y-auto px-5 py-4 text-sm text-gray-700">
+            <section>
+              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">Mode Rekap</h3>
+              <ul className="mt-2 space-y-2 text-xs leading-relaxed">
+                <li><strong>🗓 Bulan</strong> — rekap satu bulan kalender penuh. Untuk murid Bulanan, tagihan terbit lewat <em>Tutup Bulan</em> di Keuangan.</li>
+                <li><strong>🔢 Jumlah</strong> — N pertemuan tertua. Untuk murid <em>Paket per N pertemuan</em>, ini pratinjau paket (pengesahan &amp; invoice dilakukan dari Keuangan). Untuk murid Bulanan/Manual, ini menjadi laporan rentang tanggal.</li>
+                <li><strong>📅 Rentang</strong> — pilih tanggal awal–akhir bebas, mis. minggu ke-4 September s/d akhir Oktober.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">Siklus Tagihan Murid</h3>
+              <ul className="mt-2 space-y-2 text-xs leading-relaxed">
+                <li><strong>Bulanan</strong> — gabung sesi yang dapat ditagih lewat Tutup Bulan.</li>
+                <li><strong>Paket per N pertemuan</strong> — tagihan setiap N pertemuan (8, 10, 12, dst). Sesi tertua ditagih lebih dulu; sisa yang belum genap ditagih lewat <em>Tagihan Penutup</em>.</li>
+                <li><strong>Manual</strong> — buat tagihan nominal bebas tanpa mengambil sesi otomatis.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">Penting</h3>
+              <ul className="mt-2 list-disc space-y-1 pl-4 text-xs leading-relaxed">
+                <li><strong>Draft</strong> belum sah dan bisa dihapus. <strong>Sahkan</strong> = tagihan langsung terbit di Keuangan.</li>
+                <li>Bulan yang sudah <strong>Tutup Buku</strong> tidak bisa masuk laporan baru.</li>
+                <li>Sesi yang sudah masuk laporan sah tidak akan ditagih dua kali.</li>
+              </ul>
+            </section>
+          </div>
+
+          <div className="border-t border-gray-100 px-5 py-3">
+            <button onClick={() => setShowBillingHelp(false)}
+              className="w-full rounded-xl bg-blue-600 py-2.5 text-sm font-bold text-white transition-colors hover:bg-blue-700">
+              Mengerti
+            </button>
+          </div>
+        </Modal>
+      )}
 
       {/* Ringkasan AI cost modal */}
       <AiCostModal
@@ -1674,7 +1897,7 @@ function NextMonthPlanEditor({ initialPlan, onSave, onCancel }: {
               onChange={(event) => updateItem(item.id, { target: event.target.value })} />
           </div>
           <div>
-            <label htmlFor={`mr-dasar-${item.id}`} className="label">Dasar dari bulan ini</label>
+            <label htmlFor={`mr-dasar-${item.id}`} className="label">Dasar dari periode ini</label>
             <textarea id={`mr-dasar-${item.id}`} className="input text-sm" rows={2} value={item.evidence ?? ""}
               placeholder="Contoh: Masih keliru pada operasi tanda negatif di soal cerita."
               onChange={(event) => updateItem(item.id, { evidence: event.target.value })} />

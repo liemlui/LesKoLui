@@ -21,7 +21,7 @@ const ROUTE_LABELS: Record<string, string> = {
   "tugas": "Tugas",
   "catatan": "Catatan",
   "capture": "Catat Sesi",
-  "report": "Laporan Bulanan",
+  "report": "Laporan Perkembangan",
   "payments": "Keuangan",
   "analytics": "Analitik",
   "settings": "Pengaturan",

@@ -1,7 +1,7 @@
 import Skeleton from "../components/Skeleton";
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   listPayments, listStudents, createManualPayment, getSettings,
   listExpenses, deleteExpense,
@@ -11,8 +11,10 @@ import {
   getCashSummary,
   getMonthlyIncomeVsExpense,
   listAllReports,
+  listSessionCountBillingProgress, createSessionCountInvoice, cancelSessionCountInvoice,
   markPaymentTransferredById, markPaymentUnpaidById, updatePaymentAmountById,
 } from "../db/repos";
+import type { SessionCountBillingProgress } from "../db/repos";
 import type { Payment, Student, Settings, Session } from "../db/types";
 import { reportStatus } from "../db/types";
 import { monthRange } from "../db/repos/helpers";
@@ -28,6 +30,7 @@ import {
   type FinancialInsightOutput,
 } from "../lib/aiClient";
 import { AiCostModal } from "../components/AiCostModal";
+import Modal from "../components/Modal";
 import { buildBillingMessage, toWaNumber } from "../lib/waBilling";
 import { forecastNextMonth } from "../lib/forecast";
 import { calculateFinancialHistoryAverage } from "../lib/financialInsights";
@@ -85,14 +88,18 @@ const monthsBetween = (a: string, b: string): number => {
  */
 export default function PaymentsPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const payments  = useLiveQuery(() => listPayments(), []);
   // Historical invoices must retain their student names even after a student
   // becomes inactive, so finance intentionally loads active + inactive rows.
   const students  = useLiveQuery(() => listStudents(), []);
   const settings  = useLiveQuery(() => getSettings(), []);
   const pin = usePinGate();
+  const requestedStudentId = searchParams.get("studentId") ?? "";
 
-  const [activeTab, setActiveTab] = useState<Tab>("ringkasan");
+  const [activeTab, setActiveTab] = useState<Tab>(() =>
+    searchParams.get("tab") === "tagihan" ? "tagihan" : "ringkasan"
+  );
   const [message, setMessage] = useState("");
 
   // Shared month for Ringkasan + Tagihan/Tutup Bulan
@@ -111,6 +118,12 @@ export default function PaymentsPage() {
   const [showManual, setShowManual] = useState(false);
   const [billFilter, setBillFilter] = useState<"semua" | "bulan" | "periode">("semua");
   const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [showBillingHelp, setShowBillingHelp] = useState(false);
+  const [expandedSessionCountStudent, setExpandedSessionCountStudent] = useState<string | null>(() => searchParams.get("studentId"));
+  const [focusStudentId, setFocusStudentId] = useState<string | null>(() => searchParams.get("studentId"));
+  const [sessionCountInvoiceBusy, setSessionCountInvoiceBusy] = useState<Record<string, boolean>>({});
+  const [sessionCountCancelBusy, setSessionCountCancelBusy] = useState<Record<string, boolean>>({});
+  const appliedFocusRef = useRef(false);
 
   // Invoice / reminder
   const [pdfExporting, setPdfExporting] = useState(false);
@@ -153,14 +166,39 @@ export default function PaymentsPage() {
   const monthClosing = monthClosingQueryReady ? monthClosingQuery?.closing : undefined;
   // Semua laporan periode — sesi yang sudah direkap tidak boleh ditagih ulang.
   const reports = useLiveQuery(() => listAllReports(), []);
+  // A package may span calendar months, so this queue intentionally does not
+  // depend on the month picker used by the rest of the finance dashboard.
+  const sessionCountBillingProgress = useLiveQuery(() => listSessionCountBillingProgress(), []);
+  useEffect(() => {
+    if (appliedFocusRef.current) return;
+    if (!requestedStudentId || sessionCountBillingProgress === undefined || students === undefined) return;
+    appliedFocusRef.current = true;
+    if (sessionCountBillingProgress.some((row) => row.studentId === requestedStudentId)) {
+      setExpandedSessionCountStudent(requestedStudentId);
+      return;
+    }
+    const requestedStudent = students.find((student) => student.id === requestedStudentId);
+    if (!requestedStudent) return;
+    if (requestedStudent.billingPolicy === "manual") {
+      setSelectedStudentId(requestedStudentId);
+      setShowManual(true);
+    } else if (requestedStudent.billingPolicy !== "session_count") {
+      // Murid Bulanan — sorot barisnya di preview "Akan Direkap" (bulan aktif).
+      setExpandedPreview(requestedStudentId);
+    }
+  }, [requestedStudentId, sessionCountBillingProgress, students]);
   const coveredSessionIds = useMemo(
     () => new Set((reports ?? []).filter((r) => reportStatus(r) === "confirmed").flatMap((r) => r.sessionIds)),
     [reports]
   );
   // Sesi billable bulan ini yang BELUM masuk laporan — dasar preview & tutup bulan.
   const closingSessions = useMemo(
-    () => (monthSessions ?? []).filter((s) => !coveredSessionIds.has(s.id)),
-    [monthSessions, coveredSessionIds]
+    () => (monthSessions ?? []).filter((session) => {
+      if (coveredSessionIds.has(session.id)) return false;
+      const student = students?.find((row) => row.id === session.studentId);
+      return (student?.billingPolicy ?? "monthly") === "monthly";
+    }),
+    [monthSessions, coveredSessionIds, students]
   );
   // Semua sesi yang pernah masuk laporan, untuk baris tagihan laporan (akurat lintas bulan).
   const allReportSessions = useLiveQuery(async () => {
@@ -225,6 +263,82 @@ export default function PaymentsPage() {
       setMessage(reason.includes("Manual payment already exists")
         ? "Tagihan manual untuk murid dan bulan ini sudah ada."
         : `Gagal: ${reason}`);
+    }
+  };
+
+  const handleCreateSessionCountInvoice = async (
+    progress: SessionCountBillingProgress,
+    finalBatch = false,
+  ) => {
+    const canIssue = finalBatch
+      ? Boolean(progress.pendingBillingPolicy)
+        && progress.unbilledCount > 0
+        && progress.unbilledCount < progress.targetCount
+      : progress.readyBatchCount > 0;
+    if (!canIssue || sessionCountInvoiceBusy[progress.studentId]) return;
+    const sessionCount = finalBatch ? progress.unbilledCount : progress.targetCount;
+    const pendingPolicyLabel = progress.pendingBillingPolicy === "manual" ? "Manual" : "Bulanan";
+    const confirmed = window.confirm(
+      `${finalBatch ? "Terbitkan tagihan penutup" : "Terbitkan tagihan paket"} ${sessionCount} pertemuan untuk ${progress.studentName}?\n\n`
+      + `Nominal ${formatRupiah(progress.nextBatchTotal)} akan langsung dibuat sebagai invoice belum lunas.`
+      + (progress.pendingBillingPolicy
+        ? ` Jika antrean menjadi kosong, siklus tagihan otomatis beralih ke ${pendingPolicyLabel}.`
+        : ""),
+    );
+    if (!confirmed) return;
+    setSessionCountInvoiceBusy((current) => ({ ...current, [progress.studentId]: true }));
+    try {
+      const result = await createSessionCountInvoice(progress.studentId, { finalBatch });
+      setMonth(result.month);
+      setFocusStudentId(null);
+      setExpandedSessionCountStudent(null);
+      setMessage(
+        `Tagihan ${result.finalBatch ? "penutup" : "paket"} ${result.sessionCount} pertemuan untuk ${progress.studentName} berhasil diterbitkan (${formatRupiah(result.totalCost)}) ✓`
+        + (result.activatedBillingPolicy
+          ? ` Siklus tagihan kini ${result.activatedBillingPolicy === "manual" ? "Manual" : "Bulanan"}.`
+          : "")
+      );
+    } catch (error) {
+      setMessage(`Gagal menerbitkan tagihan ${progress.studentName}: ${(error as Error).message}`);
+    } finally {
+      setSessionCountInvoiceBusy((current) => {
+        const next = { ...current };
+        delete next[progress.studentId];
+        return next;
+      });
+    }
+  };
+
+  const handleCancelSessionCountInvoice = async (
+    payment: Payment,
+    studentName: string,
+    restoresPolicy?: "monthly" | "manual",
+    finalBatch = false,
+  ) => {
+    const invoiceKind = finalBatch ? "tagihan penutup" : "tagihan paket";
+    if (sessionCountCancelBusy[payment.id]) return;
+    const currentPolicy = students?.find((student) => student.id === payment.studentId)?.billingPolicy ?? "monthly";
+    const effectiveRestoredPolicy = currentPolicy === "session_count" ? restoresPolicy : currentPolicy;
+    const restoredPolicyLabel = effectiveRestoredPolicy === "manual" ? "Manual" : "Bulanan";
+    if (!window.confirm(
+      `Batalkan ${invoiceKind} ${studentName}?\n\nInvoice dan laporan ${finalBatch ? "penutup" : "paket"} yang belum lunas akan dihapus. Semua sesinya kembali ke antrean dan dapat diterbitkan ulang.`
+      + (effectiveRestoredPolicy ? ` Siklus kembali ke paket, lalu peralihan ke ${restoredPolicyLabel} ditunda sampai antrean diselesaikan.` : ""),
+    )) return;
+    setSessionCountCancelBusy((current) => ({ ...current, [payment.id]: true }));
+    try {
+      await cancelSessionCountInvoice(payment.id);
+      setMessage(
+        `${finalBatch ? "Tagihan penutup" : "Tagihan paket"} ${studentName} dibatalkan; sesi dikembalikan ke antrean ✓`
+        + (effectiveRestoredPolicy ? ` Siklus kembali ke paket; peralihan ke ${restoredPolicyLabel} ditunda.` : ""),
+      );
+    } catch (error) {
+      setMessage(`Gagal membatalkan tagihan ${studentName}: ${(error as Error).message}`);
+    } finally {
+      setSessionCountCancelBusy((current) => {
+        const next = { ...current };
+        delete next[payment.id];
+        return next;
+      });
     }
   };
 
@@ -487,7 +601,8 @@ export default function PaymentsPage() {
   if (!payments || !students || !settings
     || monthSessions === undefined || monthExpenses === undefined
     || closings === undefined || reports === undefined
-    || allReportSessions === undefined || !monthClosingQueryReady
+    || allReportSessions === undefined || sessionCountBillingProgress === undefined
+    || !monthClosingQueryReady
   ) return <Skeleton variant="card" lines={4} className="p-4" />;
 
   if (!settings.financialPin) {
@@ -529,6 +644,8 @@ export default function PaymentsPage() {
   // ── Derived ──
   const studentMap = new Map(students.map((s) => [s.id, s]));
   const monthPayments = payments.filter((p) => p.month === month);
+  // Potensi kalender tetap berguna untuk kapasitas sesi. Rekonsiliasi invoice
+  // memakai snapshot report agar paket lintas bulan dibandingkan pada scope yang sama.
   const sessionPotential = (monthSessions ?? []).reduce((s, x) => s + x.cost, 0);
   const totalBilled = monthPayments.reduce((s, p) => s + p.totalCost, 0);
   const invoicePaid = monthPayments.filter((p) => p.status === "PAID").reduce((s, p) => s + p.totalCost, 0);
@@ -546,8 +663,6 @@ export default function PaymentsPage() {
   cash.laba = cash.realisasi - cash.pengeluaran;
   const paidCount = monthPayments.filter((p) => p.status === "PAID").length;
   const collectionRate = totalBilled > 0 ? Math.round((invoicePaid / totalBilled) * 100) : 0;
-  const billingGap = totalBilled - sessionPotential;
-
   // Tutup Bulan availability: current month only from the 28th; past months always; future never.
   const _today = todayWIB();
   const curMonth = _today.slice(0, 7);
@@ -567,6 +682,16 @@ export default function PaymentsPage() {
     }, new Map<string, { count: number; hours: number; cost: number }>())
   ).map(([studentId, d]) => ({ studentId, name: studentMap.get(studentId)?.name ?? "(dihapus)", ...d }))
    .sort((a, b) => b.cost - a.cost);
+
+  const skippedClosingStudents = new Set(
+    (monthSessions ?? [])
+      .filter((session) => {
+        if (coveredSessionIds.has(session.id)) return false;
+        const policy = studentMap.get(session.studentId)?.billingPolicy ?? "monthly";
+        return policy !== "monthly";
+      })
+      .map((session) => session.studentId)
+  ).size;
 
   const closingProjection = buildMonthClosingProjection(previewBills, monthPayments);
 
@@ -595,15 +720,25 @@ export default function PaymentsPage() {
     })
     .sort((a, b) => b.payment.totalCost - a.payment.totalCost);
 
+  const reconciliationPotential = billRows.reduce((sum, row) => {
+    if (row.payment.source === "manual") return sum + row.payment.totalCost;
+    return sum + row.sessions.reduce((sessionSum, session) => sessionSum + session.cost, 0);
+  }, 0);
+  const billingGap = totalBilled - reconciliationPotential;
+
   const filteredBillRows = billFilter === "bulan"
     ? billRows.filter((r) => {
         const p = r.payment;
-        return p.periodStart && p.periodEnd && p.periodStart === `${p.month}-01` && p.periodEnd === monthRange(p.month).end;
+        return r.report?.billingMode !== "session_count"
+          && p.periodStart && p.periodEnd
+          && p.periodStart === `${p.month}-01`
+          && p.periodEnd === monthRange(p.month).end;
       })
     : billFilter === "periode"
       ? billRows.filter((r) => {
           const p = r.payment;
-          return p.periodStart && p.periodEnd && !(p.periodStart === `${p.month}-01` && p.periodEnd === monthRange(p.month).end);
+          return r.report?.billingMode === "session_count"
+            || Boolean(p.periodStart && p.periodEnd && !(p.periodStart === `${p.month}-01` && p.periodEnd === monthRange(p.month).end));
         })
       : billRows;
 
@@ -691,7 +826,10 @@ export default function PaymentsPage() {
       />
 
       {message && (
-        <div onClick={() => setMessage("")}
+        <div
+          role={message.startsWith("Gagal") ? "alert" : "status"}
+          aria-live={message.startsWith("Gagal") ? "assertive" : "polite"}
+          onClick={() => setMessage("")}
           className={`p-3 rounded-lg text-sm cursor-pointer ${message.includes("✓") ? "bg-green-50 text-green-700" : message.startsWith("Gagal") ? "bg-red-50 text-red-600" : "bg-blue-50 text-blue-700"}`}>
           {message}
         </div>
@@ -1004,9 +1142,162 @@ export default function PaymentsPage() {
         </div>
       )}
 
-      {/* ── TAGIHAN TAB (Tutup Bulan) ─────────────────────── */}
+      {/* Tagihan: paket per pertemuan, invoice terbit, manual, dan tutup bulan. */}
       {activeTab === "tagihan" && (
         <div className="space-y-4">
+          <section aria-labelledby="session-count-billing-title" className="bg-white rounded-xl p-4 shadow-sm border border-indigo-100 space-y-3">
+            <div>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h2 id="session-count-billing-title" className="text-sm font-bold text-gray-800">Tagihan per Pertemuan</h2>
+                    <button
+                      type="button"
+                      onClick={() => setShowBillingHelp(true)}
+                      aria-label="Bantuan cara kerja tagihan"
+                      title="Cara kerja tagihan"
+                      className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-gray-100 text-sm font-bold text-gray-600 transition-colors hover:bg-indigo-100 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    >?</button>
+                  </div>
+                  <p className="text-[11px] text-gray-500 mt-0.5">Antrean global lintas bulan · sesi tertua ditagih lebih dahulu</p>
+                </div>
+                <span className="flex-shrink-0 rounded-full bg-indigo-50 px-2 py-1 text-[10px] font-semibold text-indigo-700">
+                  {sessionCountBillingProgress.filter((row) => (
+                    row.readyBatchCount > 0
+                    || Boolean(row.pendingBillingPolicy && row.unbilledCount > 0 && row.unbilledCount < row.targetCount)
+                  )).length} perlu tindakan
+                </span>
+              </div>
+            </div>
+
+            {sessionCountBillingProgress.length === 0 ? (
+              <p className="rounded-lg bg-gray-50 px-3 py-4 text-center text-xs text-gray-500">
+                Belum ada murid dengan aturan tagihan per pertemuan.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {sessionCountBillingProgress.map((progress) => {
+                  const ready = progress.readyBatchCount > 0;
+                  const busy = Boolean(sessionCountInvoiceBusy[progress.studentId]);
+                  const expanded = expandedSessionCountStudent === progress.studentId;
+                  const pendingPolicyLabel = progress.pendingBillingPolicy === "manual" ? "Manual" : "Bulanan";
+                  const invalidTarget = progress.targetCount <= 0;
+                  const currentCount = Math.min(progress.unbilledCount, progress.targetCount);
+                  const percentage = progress.targetCount > 0
+                    ? Math.min(100, Math.round((currentCount / progress.targetCount) * 100))
+                    : 0;
+                  return (
+                    <article key={progress.studentId} className={`rounded-xl border p-3 ${focusStudentId === progress.studentId ? "ring-2 ring-indigo-400 ring-offset-1" : ""} ${ready ? "border-indigo-200 bg-indigo-50/40" : "border-gray-100"}`}>
+                      <button
+                        type="button"
+                        aria-expanded={expanded}
+                        onClick={() => { setFocusStudentId(null); setExpandedSessionCountStudent(expanded ? null : progress.studentId); }}
+                        className="w-full text-left"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-gray-800">{progress.studentName}</p>
+                            <p className="mt-0.5 text-[11px] text-gray-500">
+                              {progress.unbilledCount} sesi belum ditagih
+                              {ready && progress.readyBatchCount > 1 ? ` · ${progress.readyBatchCount} paket siap` : ""}
+                            </p>
+                            {progress.pendingBillingPolicy && (
+                              <p className="mt-1 text-[10px] font-semibold text-amber-700">
+                                Peralihan ke {pendingPolicyLabel} tertunda
+                              </p>
+                            )}
+                          </div>
+                          <span className={`flex-shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${ready ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-600"}`}>
+                            {invalidTarget ? "Atur N" : ready ? "Paket siap" : `${currentCount}/${progress.targetCount}`}
+                          </span>
+                        </div>
+                        <div className="mt-2 flex items-center gap-2">
+                          {invalidTarget ? (
+                            <span className="min-w-0 flex-1 rounded-lg bg-amber-50 px-2 py-1.5 text-[11px] font-medium text-amber-700">
+                              Jumlah pertemuan belum diatur — buka profil murid.
+                            </span>
+                          ) : (
+                            <>
+                              <div
+                                role="progressbar"
+                                aria-label={`Progres paket ${progress.studentName}`}
+                                aria-valuemin={0}
+                                aria-valuemax={progress.targetCount}
+                                aria-valuenow={currentCount}
+                                className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-gray-200"
+                              >
+                                <div className={`h-full rounded-full ${ready ? "bg-indigo-600" : "bg-blue-500"}`} style={{ width: `${percentage}%` }} />
+                              </div>
+                              <span className="flex-shrink-0 text-xs font-bold text-gray-700">{currentCount}/{progress.targetCount}</span>
+                            </>
+                          )}
+                          <span className="flex-shrink-0 text-xs text-gray-400">{expanded ? "▾" : "▸"}</span>
+                        </div>
+                      </button>
+
+                      {expanded && (
+                        <div className="mt-3 border-t border-indigo-100 pt-3">
+                          <div className="mb-2 flex flex-wrap items-center justify-between gap-1 text-[11px]">
+                            <span className="font-semibold text-gray-600">
+                              {ready ? `${progress.targetCount} sesi paket berikutnya` : "Sesi terkumpul"}
+                            </span>
+                            <span className="text-gray-500">{progress.nextBatchHours}j · {formatRupiah(progress.nextBatchTotal)}</span>
+                          </div>
+                          {progress.nextBatchSessions.length === 0 ? (
+                            <p className="rounded-lg bg-white px-3 py-2 text-xs text-gray-500">Belum ada sesi billable.</p>
+                          ) : (
+                            <div className="space-y-1 rounded-lg bg-white p-2">
+                              {progress.nextBatchSessions.map((session) => (
+                                <div key={session.id} className="grid grid-cols-[46px_minmax(0,1fr)_auto] items-center gap-2 px-1 py-1 text-[11px]">
+                                  <span className="font-mono text-gray-500">{session.date.slice(5).replace("-", "/")}</span>
+                                  <span className="truncate text-gray-600">
+                                    {session.status === "NO_SHOW" ? "Tidak hadir (ditagihkan)" : session.subjects.slice(0, 2).join(", ") || "—"}
+                                  </span>
+                                  <span className="text-right font-medium text-gray-700">{formatRupiah(session.cost)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        disabled={!ready || busy}
+                        aria-label={`Terbitkan paket ${progress.targetCount} pertemuan untuk ${progress.studentName}`}
+                        onClick={() => void handleCreateSessionCountInvoice(progress)}
+                        className="mt-3 w-full rounded-lg bg-indigo-600 px-3 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-500"
+                      >
+                        {busy
+                          ? "Menerbitkan..."
+                          : invalidTarget
+                            ? "Atur jumlah pertemuan di profil murid"
+                            : ready
+                              ? `Terbitkan Paket ${progress.targetCount} · ${formatRupiah(progress.nextBatchTotal)}`
+                              : `Belum siap · ${currentCount}/${progress.targetCount} sesi`}
+                      </button>
+                      {!ready
+                        && progress.pendingBillingPolicy
+                        && progress.targetCount > 0
+                        && progress.unbilledCount > 0
+                        && progress.unbilledCount < progress.targetCount && (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          aria-label={`Terbitkan tagihan penutup ${progress.unbilledCount} pertemuan untuk ${progress.studentName}`}
+                          onClick={() => void handleCreateSessionCountInvoice(progress, true)}
+                          className="mt-2 w-full rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100 disabled:opacity-50"
+                        >
+                          {busy ? "Menerbitkan..." : `Tagihan Penutup ${progress.unbilledCount} Sesi · ${formatRupiah(progress.nextBatchTotal)}`}
+                        </button>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
           <div className="flex gap-3 items-center">
             <label htmlFor="pay-bulan-tagihan" className="text-sm text-gray-500 flex-shrink-0">Bulan:</label>
             <input id="pay-bulan-tagihan" className="input flex-1" type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
@@ -1020,32 +1311,14 @@ export default function PaymentsPage() {
           {/* Tutup Bulan panel */}
           {!monthClosing ? (
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 space-y-3">
-              {/* Tagihan yang sudah ada, baik manual maupun dari laporan. */}
-              {monthPayments.length > 0 && (
-                <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-2.5 space-y-1">
-                  <p className="text-[10px] font-semibold text-indigo-600 uppercase">📋 Tagihan Sudah Terbit</p>
-                  {monthPayments.map((p) => {
-                    const student = studentMap.get(p.studentId);
-                    const periodLbl = p.periodStart && p.periodEnd ? periodLabel(p.periodStart, p.periodEnd) : "";
-                    return (
-                      <div key={p.id} className="flex items-center justify-between gap-2 text-[11px]">
-                        <span className="text-gray-700 truncate flex-1">
-                          {student?.name ?? "(dihapus)"}{periodLbl ? ` · ${periodLbl}` : ""}
-                          <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${p.reportId ? "bg-indigo-100 text-indigo-700" : "bg-gray-200 text-gray-600"}`}>
-                            {p.reportId ? "Laporan" : "Manual"}
-                          </span>
-                        </span>
-                        <span className={p.status === "PAID" ? "text-green-600 font-semibold" : "text-amber-600 font-semibold"}>{p.status === "PAID" ? "✓ Lunas" : "Belum"} {formatRupiah(p.totalCost)}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
               {/* Preview sesi yang belum ditagih */}
               <div>
                 <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">⏳ Akan Direkap saat Tutup Bulan</p>
                 <p className="text-[11px] text-gray-500 mt-0.5">Tap nama murid untuk lihat detail sesi</p>
+                <p className="text-[11px] text-blue-700 mt-1 rounded-lg bg-blue-50 px-2.5 py-2">
+                  Hanya murid dengan aturan Bulanan. Paket N pertemuan ditagih melalui antrean di atas; aturan Manual dilewati.
+                  {skippedClosingStudents > 0 ? ` ${skippedClosingStudents} murid bulan ini tidak masuk preview.` : ""}
+                </p>
               </div>
               {previewBills.length === 0 ? (
                 <p className="text-sm text-gray-500 text-center py-2">
@@ -1057,9 +1330,9 @@ export default function PaymentsPage() {
                     const isExpanded = expandedPreview === b.studentId;
                     const sessions = previewSessionsByStudent.get(b.studentId) ?? [];
                     return (
-                      <div key={b.studentId} className="border-b border-gray-50 last:border-0">
+                      <div key={b.studentId} className={`border-b border-gray-50 last:border-0 ${focusStudentId === b.studentId ? "rounded-lg ring-2 ring-blue-400 ring-offset-1" : ""}`}>
                         <button
-                          onClick={() => setExpandedPreview(isExpanded ? null : b.studentId)}
+                          onClick={() => { setFocusStudentId(null); setExpandedPreview(isExpanded ? null : b.studentId); }}
                           className="w-full flex items-center justify-between text-sm py-2 hover:bg-gray-50 rounded-lg px-1 transition-colors">
                           <div className="flex items-center gap-2 min-w-0 flex-1">
                             <span className="text-gray-500 text-xs transition-transform" style={{ transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)" }}>▸</span>
@@ -1115,11 +1388,26 @@ export default function PaymentsPage() {
           ) : (
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Tagihan per Murid</p>
+                <div>
+                  <p className="text-xs text-green-700 font-semibold uppercase tracking-wide">Bulan sudah ditutup</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">Tagihan bulanan sudah diselaraskan.</p>
+                </div>
                 <button onClick={handleReopenMonth}
                   className="text-xs font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg transition-colors">
                   ↩ Buka kembali
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* Aksi tagihan selalu tersedia, termasuk ketika bulan masih terbuka. */}
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Tagihan Terbit</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">Kelola nominal, pembayaran, WhatsApp, laporan, dan invoice.</p>
+                </div>
+                <span className="flex-shrink-0 text-[10px] font-semibold text-gray-500 bg-gray-100 rounded-full px-2 py-1">{monthPayments.length} tagihan</span>
               </div>
               {/* Filter: Semua / Periode Rekap / Bulanan */}
               <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
@@ -1128,12 +1416,12 @@ export default function PaymentsPage() {
                     className={`flex-1 text-[11px] font-semibold rounded-md py-1.5 transition-colors ${
                       billFilter === f ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700"
                     }`}>
-                    {f === "semua" ? "Semua" : f === "bulan" ? "📅 Bulan Penuh" : "🏷 Periode Rekap"}
+                    {f === "semua" ? "Semua" : f === "bulan" ? "📅 Bulanan" : "🏷 Periode / Paket"}
                   </button>
                 ))}
               </div>
               {filteredBillRows.length === 0 ? (
-                <p className="text-sm text-gray-500">{billFilter === "bulan" ? "Belum ada tagihan bulan penuh." : billFilter === "periode" ? "Belum ada tagihan periode rekap." : "Belum ada tagihan untuk bulan ini."}</p>
+                <p className="text-sm text-gray-500">{billFilter === "bulan" ? "Belum ada tagihan bulanan." : billFilter === "periode" ? "Belum ada tagihan periode atau paket." : "Belum ada tagihan untuk bulan ini."}</p>
               ) : (
                 filteredBillRows.map(({ payment, report, student, sessions }) => {
                   const paid = payment.status === "PAID";
@@ -1148,8 +1436,17 @@ export default function PaymentsPage() {
                   }).text : "";
                   return (
                     <div key={payment.id} className="border border-gray-100 rounded-lg p-3 space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-medium text-gray-700 text-sm">{student?.name ?? "(dihapus)"}</span>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-gray-700 text-sm">{student?.name ?? "(dihapus)"}</p>
+                          <span className={`mt-1 inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold ${report?.billingMode === "session_count" ? "bg-indigo-100 text-indigo-700" : payment.reportId ? "bg-blue-50 text-blue-700" : "bg-gray-100 text-gray-600"}`}>
+                            {report?.billingMode === "session_count"
+                              ? report.finalBillingBatch
+                                ? `Paket Penutup ${report.billingSessionCount ?? sessions.length} Pertemuan`
+                                : `Paket ${report.billingSessionCount ?? sessions.length} Pertemuan`
+                              : payment.reportId ? "Laporan Bulanan/Periode" : "Manual"}
+                          </span>
+                        </div>
                         <span className={pill(paid)}>{paid ? "Lunas" : "Belum"}</span>
                       </div>
                       {periodLbl && (
@@ -1162,7 +1459,7 @@ export default function PaymentsPage() {
                       )}
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-gray-500">Rp</span>
-                        <input className="input flex-1 text-sm py-1.5" inputMode="numeric" value={amountStr} disabled={paid}
+                        <input aria-label={`Nominal tagihan ${student?.name ?? "murid"}`} className="input flex-1 text-sm py-1.5" inputMode="numeric" value={amountStr} disabled={paid}
                           onChange={(e) => {
                             const { raw } = parseCurrencyDigits(e.target.value, MAX_PAYMENT_AMOUNT);
                             setBillEdits((prev) => ({ ...prev, [payment.id]: raw }));
@@ -1208,6 +1505,25 @@ export default function PaymentsPage() {
                             {reminderLoading === payment.id ? "⏳..." : "✨ Reminder AI"}
                           </button>
                         )}
+                        {report?.billingMode === "session_count" && !paid && payment.source !== "manual" && (
+                          <button
+                            type="button"
+                            disabled={Boolean(sessionCountCancelBusy[payment.id])}
+                            onClick={() => void handleCancelSessionCountInvoice(
+                              payment,
+                              student?.name ?? "murid",
+                              report.billingPolicyTransitionTarget ?? report.billingPolicyAfterBatch,
+                              Boolean(report.finalBillingBatch),
+                            )}
+                            className="min-w-[128px] flex-1 py-1.5 rounded-lg border border-red-200 text-red-600 text-xs font-medium hover:bg-red-50 transition-colors disabled:cursor-wait disabled:opacity-50"
+                          >
+                            {sessionCountCancelBusy[payment.id]
+                              ? "Membatalkan..."
+                              : report.finalBillingBatch
+                                ? "Batalkan Tagihan Penutup"
+                                : "Batalkan Tagihan Paket"}
+                          </button>
+                        )}
                       </div>
                       <p className="text-xs text-gray-500">
                         {periodLbl ? `Periode ${periodLbl} · ` : ""}{sessions.length} sesi · {totalHours}j{paid && payment.paidAt ? ` · dibayar ${payment.paidAt}` : ""}
@@ -1217,7 +1533,6 @@ export default function PaymentsPage() {
                 })
               )}
             </div>
-          )}
 
           {/* Riwayat Tutup Bulan */}
           {monthsOverview.length > 0 && (
@@ -1583,6 +1898,56 @@ export default function PaymentsPage() {
             finally { setReminderLoading(null); }
           }}
         />
+      )}
+
+      {/* Bantuan cara kerja tagihan */}
+      {showBillingHelp && (
+        <Modal onClose={() => setShowBillingHelp(false)} ariaLabel="Cara kerja tagihan"
+          panelClassName="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl outline-none">
+          <div className="flex items-start justify-between border-b border-gray-100 px-5 py-4">
+            <div>
+              <h2 className="text-lg font-bold text-gray-800">Cara Kerja Tagihan</h2>
+              <p className="mt-0.5 text-xs text-gray-600">Cara menagih murid sesuai siklusnya.</p>
+            </div>
+            <button onClick={() => setShowBillingHelp(false)} aria-label="Tutup"
+              className="text-xl leading-none text-gray-500 hover:text-gray-700">✕</button>
+          </div>
+
+          <div className="space-y-4 overflow-y-auto px-5 py-4 text-sm text-gray-700">
+            <section>
+              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">Tagihan per Pertemuan (Paket)</h3>
+              <ul className="mt-2 space-y-2 text-xs leading-relaxed">
+                <li>Untuk murid <strong>Paket per N pertemuan</strong> (8, 10, 12, dst).</li>
+                <li>Antrean lintas bulan — sesi <strong>tertua</strong> ditagih lebih dulu.</li>
+                <li>Tombol <strong>Terbitkan Paket</strong> membuat invoice + laporan sekaligus untuk N sesi penuh.</li>
+                <li>Sisa yang belum genap: <strong>Tagihan Penutup</strong> (muncul saat peralihan kebijakan) menagih sisa 1–N-1 sesi.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">Bulanan & Tutup Bulan</h3>
+              <ul className="mt-2 space-y-2 text-xs leading-relaxed">
+                <li>Murid <strong>Bulanan</strong> ditagih lewat <strong>Tutup Bulan</strong> — gabungkan sesi yang dapat ditagih pada bulan terpilih.</li>
+                <li>Bulan yang sudah ditutup tidak bisa digabung ke laporan/rentang baru.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">Manual & Filter</h3>
+              <ul className="mt-2 space-y-2 text-xs leading-relaxed">
+                <li><strong>Manual</strong> — buat tagihan nominal bebas tanpa mengambil sesi.</li>
+                <li>Filter <strong>Semua / Bulanan / Periode &amp; Paket</strong> menyaring daftar tagihan terbit.</li>
+              </ul>
+            </section>
+          </div>
+
+          <div className="border-t border-gray-100 px-5 py-3">
+            <button onClick={() => setShowBillingHelp(false)}
+              className="w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-bold text-white transition-colors hover:bg-indigo-700">
+              Mengerti
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   );

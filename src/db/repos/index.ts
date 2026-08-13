@@ -14,6 +14,7 @@ export { getSettings, initSettings, saveSettings } from "./settingsRepo";
 // Students + Rapor Grades
 export { listStudents, getStudent, createStudent, updateStudent, deleteStudent } from "./studentRepo";
 export { listRaporGrades, upsertRaporGrade, deleteRaporGrade } from "./studentRepo";
+export type { StudentBillingUpdateOptions } from "./studentRepo";
 
 // Sessions + Scheduling + Photo maintenance + Streak
 export {
@@ -21,7 +22,8 @@ export {
   cancelSession, markSessionNoShow, rescheduleSession,
   listSessionsByStudent, listSessionsForMonth, listSessionsByStudentMonth,
   listSessionsByStudentRange,
-  isBillableSession, listBillableSessionsForMonth, listBillableSessionsByStudentMonth,
+  isBillableSession, compareSessionsChronologically,
+  listBillableSessionsForMonth, listBillableSessionsByStudentMonth,
   listBillableSessionsByStudentRange, listInvoiceSessions,
   listScheduledForMonth, listAllSessionsForMonth,
   listAllSessionsForWeek, listDoneSessionsForDate,
@@ -51,11 +53,19 @@ export {
   getPaymentByReport, syncReportPayment,
   markPaymentTransferredById, markPaymentUnpaidById, updatePaymentAmountById,
   getMonthClosing, listMonthClosings, closeMonth, reopenMonth,
-  computeMonthBills, getCashSummary,
+  computeMonthBills, listSessionCountBillingProgress, createSessionCountInvoice,
+  cancelSessionCountInvoice, getCashSummary,
   createExpense, listExpenses, deleteExpense,
   getMonthlyIncomeVsExpense,
 } from "./paymentRepo";
-export type { StudentBill, MonthCashSummary, ManualPaymentInput } from "./paymentRepo";
+export type {
+  StudentBill,
+  MonthCashSummary,
+  ManualPaymentInput,
+  SessionCountBillingProgress,
+  SessionCountInvoiceResult,
+  CreateSessionCountInvoiceOptions,
+} from "./paymentRepo";
 export type { ExpenseCategory } from "./paymentRepo";
 
 // IA / EE Projects

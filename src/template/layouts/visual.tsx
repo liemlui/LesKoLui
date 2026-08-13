@@ -13,7 +13,7 @@ export const dashboard: Layout = {
       {isFirst && HeaderEl(d, t)}
       {/* 4 KPI cards */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 18, position: "relative", zIndex: 2 }}>
-        {/* Agregat SEBULAN (bukan per halaman) bila tersedia — akurat saat laporan >1 halaman */}
+        {/* Agregat SELURUH PERIODE (bukan per halaman) bila tersedia — akurat saat laporan >1 halaman */}
         {[
           { label: "Sesi", value: d.totalSessions ?? d.entries.length },
           { label: "Rata² Engagement", value: d.avgEngagement != null ? `${d.avgEngagement}/10` : "—" },

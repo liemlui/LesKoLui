@@ -4,7 +4,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   getStudent, listSessionsByStudent, listScheduledForStudent,
-  listBillableSessionsByStudentMonth,
   cancelSeriesSessions, updateSeriesSessions,
   listRaporGrades, upsertRaporGrade, deleteRaporGrade,
   getSettings, updateStudent,
@@ -18,12 +17,12 @@ import { verifyPin } from "../lib/crypto";
 import { getPinLockoutDelay, recordPinFailure, resetPinLockout } from "../lib/pinLockout";
 import type { CancelMode, EditMode } from "../db/repos";
 import { dayLabel, monthLabel, todayWIB, formatRupiah } from "../lib/format";
-import { buildBillingMessage, toWaNumber } from "../lib/waBilling";
 import {
   scoreLabel,
   semesterOptions, semesterLabel, semesterDateRange, currentSemester,
 } from "../lib/engagement";
 import type { Session, IaEeProject } from "../db/types";
+import { billingPolicyOf } from "../db/types";
 import { CURRICULUM_META } from "../lib/ibSubjects";
 import PaginationControls from "../components/PaginationControls";
 import Breadcrumb from "../components/Breadcrumb";
@@ -95,11 +94,6 @@ export default function StudentDetail() {
   // "Semua bulan" padahal filter aktif bulan ini → riwayat tampak kosong.
   const [historyMonth,   setHistoryMonth]   = useState("");
   const [schedMonth,     setSchedMonth]     = useState<string>("");
-  const [showBilling,      setShowBilling]      = useState(false);
-  const [billingMonth,     setBillingMonth]     = useState(() => today.slice(0, 7));
-  const [billingUnlocked,  setBillingUnlocked]  = useState(false);
-  const [billingPinInput,  setBillingPinInput]  = useState("");
-  const [billingPinError,  setBillingPinError]  = useState("");
 
   // Session detail + delete
   const [detailSession,    setDetailSession]    = useState<import("../db/types").Session | null>(null);
@@ -136,19 +130,6 @@ export default function StudentDetail() {
   const [showRateEdit,  setShowRateEdit]  = useState(false);
   const [newRate,       setNewRate]       = useState(0);
   const [rateSaving,    setRateSaving]    = useState(false);
-  const billingSessions = useLiveQuery(
-    () => (id ? listBillableSessionsByStudentMonth(id, billingMonth) : []),
-    [id, billingMonth],
-  );
-
-  const handleUnlockBilling = async () => {
-    if (!settings?.financialPin) { setBillingPinError("Buat PIN Keuangan di Pengaturan dulu."); return; }
-    const delay = getPinLockoutDelay();
-    if (delay > 0) { setBillingPinError(`Tunggu ${Math.ceil(delay / 1000)} detik.`); return; }
-    const ok = await verifyPin(billingPinInput, settings.financialPin);
-    if (!ok) { recordPinFailure(); setBillingPinError("PIN salah."); return; }
-    resetPinLockout(); setBillingPinError(""); setBillingUnlocked(true); setBillingPinInput("");
-  };
 
   const handleDeleteSession = async () => {
     if (!detailSession) return;
@@ -161,7 +142,12 @@ export default function StudentDetail() {
     const ok = await verifyPin(deletePinInput, settings.financialPin);
     if (!ok) { recordPinFailure(); setDeletePinError("PIN salah."); return; }
     resetPinLockout();
-    await deleteSession(detailSession.id);
+    try {
+      await deleteSession(detailSession.id);
+    } catch (error) {
+      setDeletePinError(error instanceof Error ? error.message : "Sesi tidak dapat dihapus.");
+      return;
+    }
     setDetailSession(null); setShowDeletePin(false); setDeletePinInput(""); setDeletePinError("");
     msg("Sesi dihapus");
   };
@@ -378,17 +364,8 @@ export default function StudentDetail() {
     [allSessions, historyMonth]
   );
 
-  const buildBillingWA = useMemo(() => {
-    if (!student) return { text: "", totalHours: 0, totalCost: 0, count: 0 };
-    return buildBillingMessage({
-      student,
-      sessions: billingSessions ?? [],
-      month: billingMonth,
-      settings,
-    });
-  }, [billingSessions, billingMonth, student, settings]);
-
   if (!student) return <Skeleton variant="card" lines={4} className="p-4" />;
+  const studentBillingPolicy = billingPolicyOf(student);
 
   const safeRaporPage = clampPage(raporPage, raporCorrelation.length);
   const paginatedRaporCorrelation = paginateItems(raporCorrelation, safeRaporPage);
@@ -446,9 +423,14 @@ export default function StudentDetail() {
           className="flex items-center justify-center gap-2 py-3 rounded-xl bg-indigo-50 text-indigo-700 text-sm font-semibold border border-indigo-200 hover:bg-indigo-100 transition-colors">
           <span>📊</span> Lihat Laporan
         </button>
-        <button onClick={() => { setBillingMonth(today.slice(0,7)); setBillingUnlocked(false); setBillingPinInput(""); setBillingPinError(""); setShowBilling(true); }}
+        <button onClick={() => navigate(`/payments?tab=tagihan&studentId=${encodeURIComponent(id ?? "")}`)}
           className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-green-50 text-green-700 text-sm font-semibold border border-green-200 hover:bg-green-100 transition-colors">
-          <span>💬</span> Tagihan WA
+          <span>{studentBillingPolicy === "session_count" ? "🧾" : studentBillingPolicy === "manual" ? "💸" : "📅"}</span>
+          {studentBillingPolicy === "session_count"
+            ? "Kelola Tagihan"
+            : studentBillingPolicy === "manual"
+              ? "Buat Tagihan Manual"
+              : "Tagihan Bulanan"}
         </button>
       </div>
 
@@ -552,6 +534,21 @@ export default function StudentDetail() {
               {ratePinError && <span className="text-xs text-red-500">{ratePinError}</span>}
             </div>
           )}
+        </div>
+
+        <div className="flex items-start gap-2 border-t border-gray-50 pt-2 text-sm">
+          <span className="w-28 flex-shrink-0 text-gray-500">Siklus tagihan</span>
+          <span className="min-w-0 flex-1 font-medium text-gray-700">
+            {studentBillingPolicy === "session_count"
+              ? `Setiap ${student.billingSessionCount ?? 8} pertemuan yang dapat ditagih${
+                  student.pendingBillingPolicy
+                    ? ` · akan beralih ke ${student.pendingBillingPolicy === "monthly" ? "Bulanan" : "Manual"} setelah antrean selesai`
+                    : ""
+                }`
+              : studentBillingPolicy === "manual"
+                ? "Manual"
+                : "Bulanan (Tutup Bulan)"}
+          </span>
         </div>
 
         {totalSessions > 0 && (
@@ -1340,103 +1337,6 @@ export default function StudentDetail() {
         </div>
       )}
 
-      {/* ── BILLING WA BOTTOM SHEET ── */}
-      {showBilling && (
-        <div role="dialog" aria-modal="true" aria-label="Tagihan via WA" className="fixed inset-0 bg-black/50 z-[70] flex items-end justify-center" onClick={() => setShowBilling(false)}>
-          <div className="bg-white w-full max-w-md rounded-t-2xl max-h-[85vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <div>
-                <h3 className="font-bold text-lg">💬 Tagihan via WA</h3>
-                <p className="text-xs text-gray-500 mt-0.5">{student.name}</p>
-              </div>
-              <button onClick={() => setShowBilling(false)} aria-label="Tutup" className="text-gray-500 text-xl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-            </div>
-
-            {!settings?.financialPin ? (
-              <div className="p-5 space-y-4">
-                <p className="text-sm text-gray-600">Buat PIN Keuangan dulu sebelum melihat tagihan.</p>
-                <button onClick={() => navigate("/settings")}
-                  className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold">
-                  Buka Pengaturan
-                </button>
-              </div>
-            ) : !billingUnlocked ? (
-              <div className="p-5 space-y-4">
-                <p className="text-sm text-gray-600">Masukkan PIN untuk melihat tagihan</p>
-                <input
-                  type="password" inputMode="numeric" maxLength={6} placeholder="PIN"
-                  value={billingPinInput}
-                  onChange={(e) => { setBillingPinInput(e.target.value); setBillingPinError(""); }}
-                  onKeyDown={(e) => e.key === "Enter" && handleUnlockBilling()}
-                  className="input text-center tracking-widest text-lg w-full"
-                  autoFocus
-                />
-                {billingPinError && <p className="text-xs text-red-500">{billingPinError}</p>}
-                <button onClick={handleUnlockBilling}
-                  className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold">
-                  Buka
-                </button>
-              </div>
-            ) : (
-              <div className="p-5 space-y-4">
-                {/* Pilih bulan */}
-                <div>
-                  <label htmlFor="sd-bulan-tagihan" className="label">Bulan Tagihan</label>
-                  <input id="sd-bulan-tagihan" className="input" type="month" value={billingMonth}
-                    onChange={(e) => setBillingMonth(e.target.value)} />
-                </div>
-
-                {/* Summary */}
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div className="bg-blue-50 rounded-xl py-2">
-                    <p className="text-lg font-bold text-blue-700">{buildBillingWA.count}</p>
-                    <p className="text-xs text-blue-500">Sesi</p>
-                  </div>
-                  <div className="bg-indigo-50 rounded-xl py-2">
-                    <p className="text-lg font-bold text-indigo-700">{buildBillingWA.totalHours}j</p>
-                    <p className="text-xs text-indigo-500">Jam</p>
-                  </div>
-                  <div className="bg-green-50 rounded-xl py-2">
-                    <p className="text-base font-bold text-green-700">{formatRupiah(buildBillingWA.totalCost)}</p>
-                    <p className="text-xs text-green-500">Total</p>
-                  </div>
-                </div>
-
-                {/* Preview pesan */}
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Preview Pesan WA</p>
-                  <div className="bg-green-50 border border-green-200 rounded-xl p-3">
-                    <pre className="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed font-sans">
-                      {buildBillingWA.text}
-                    </pre>
-                  </div>
-                </div>
-
-                {/* Tombol kirim */}
-                {buildBillingWA.count === 0 ? (
-                  <p className="text-sm text-center text-gray-500 py-2">Belum ada sesi yang dapat ditagihkan di bulan ini.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {student.parentContact.phone && (
-                      <a
-                        href={`https://wa.me/${toWaNumber(student.parentContact.phone)}?text=${encodeURIComponent(buildBillingWA.text)}`}
-                        target="_blank" rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-green-500 text-white font-semibold text-sm hover:bg-green-600 transition-colors">
-                        <span className="text-lg">💬</span> Kirim ke {student.parentContact.name || "Orang Tua"}
-                      </a>
-                    )}
-                    <button
-                      onClick={() => navigator.clipboard?.writeText(buildBillingWA.text).then(() => msg("Pesan disalin ✓"))}
-                      className="w-full py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors">
-                      📋 Salin Pesan
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
       {/* ── SESSION DETAIL MODAL ── */}
       <SessionDetailModal
         detailSession={detailSession}

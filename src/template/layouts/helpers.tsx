@@ -361,7 +361,7 @@ export function SummaryEl(d: ReportData, t: Theme) {
       {d.summary && (
         <>
           <div style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 12, color: t.accent, marginBottom: 6, letterSpacing: 1, textTransform: "uppercase" as const }}>
-            Ringkasan Bulan Ini
+            Ringkasan Periode Ini
           </div>
           <p style={{ fontFamily: t.fontBody, fontSize: 12.5, lineHeight: 1.55, color: t.ink, margin: 0 }}>
             {d.summary}
@@ -393,7 +393,7 @@ function NextMonthPlanEl({ plan, t }: { plan: ReportData["nextMonthPlan"]; t: Th
   return (
     <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${t.accent}33` }}>
       <div style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 12, color: t.accent, marginBottom: 8, letterSpacing: 1, textTransform: "uppercase" as const }}>
-        Fokus & Rencana Bulan Depan
+        Fokus & Rencana Berikutnya
       </div>
       <div style={{ display: "grid", gap: 7 }}>
         {priorities.map((item, index) => (

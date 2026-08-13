@@ -50,14 +50,14 @@ export default function Modal({ onClose, children, ariaLabel, panelClassName }: 
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-[60] flex items-end justify-center" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/40 z-[60] flex items-end justify-center sm:items-center sm:p-4" onClick={onClose}>
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel}
         tabIndex={-1}
-        className={panelClassName ?? "bg-white w-full max-w-md rounded-t-2xl p-5 pb-8 space-y-4 max-h-[90vh] overflow-y-auto overflow-x-hidden outline-none"}
+        className={panelClassName ?? "bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 pb-8 space-y-4 max-h-[90vh] overflow-y-auto overflow-x-hidden outline-none"}
         onClick={(e) => e.stopPropagation()}
       >
         {children}

@@ -1,12 +1,12 @@
 // ── Payments + Month Closing + Expenses Repository ─────────────────
 
 import { db } from "../db";
-import type { Payment, MonthClosing, Expense, ExpenseCategory, IaEeMilestone, MonthlyReport, ReportStatus } from "../types";
-import { reportStatus } from "../types";
+import type { Payment, MonthClosing, Expense, ExpenseCategory, IaEeMilestone, MonthlyReport, ReportStatus, Session } from "../types";
+import { billingPolicyOf, reportStatus } from "../types";
 import { timestamp, monthRange } from "./helpers";
 import { todayWIB } from "../../lib/format";
 import { logAudit } from "./auditRepo";
-import { isBillableSession } from "./sessionRepo";
+import { compareSessionsChronologically, isBillableSession } from "./sessionRepo";
 import { isValidCurrencyAmount } from "../../lib/money";
 
 // Re-export types for convenience
@@ -144,18 +144,18 @@ export async function getPaymentByReport(reportId: string): Promise<Payment | un
 
 type ReportPaymentInput = Pick<
   MonthlyReport,
-  "id" | "studentId" | "month" | "periodStart" | "periodEnd" | "totalCost"
+  "id" | "studentId" | "month" | "periodStart" | "periodEnd" | "totalCost" | "billingMode"
 >;
 
 /** Reconcile one report payment inside the caller's transaction. */
-async function syncReportPaymentRecord(report: ReportPaymentInput): Promise<void> {
+async function syncReportPaymentRecord(report: ReportPaymentInput): Promise<string | undefined> {
   const byReport = await getPaymentByReport(report.id);
   if (byReport) {
     if (report.totalCost <= 0) {
       if (byReport.status === "UNPAID" && byReport.source !== "manual") {
         await db.payments.delete(byReport.id);
       }
-      return;
+      return report.totalCost > 0 ? byReport.id : undefined;
     }
     const patch: Partial<Payment> = {
       month: report.month,
@@ -166,15 +166,16 @@ async function syncReportPaymentRecord(report: ReportPaymentInput): Promise<void
       patch.totalCost = report.totalCost;
     }
     await db.payments.update(byReport.id, patch);
-    return;
+    return byReport.id;
   }
 
-  if (report.totalCost <= 0) return;
+  if (report.totalCost <= 0) return undefined;
 
   // The compound index is not unique. Find the unlinked row explicitly instead
   // of accepting getPayment()'s first (possibly report-linked) match.
   const unlinkedMonthPayment = await getUnlinkedMonthPayment(report.studentId, report.month);
-  const fullMonth = report.periodStart === `${report.month}-01`
+  const fullMonth = report.billingMode !== "session_count"
+    && report.periodStart === `${report.month}-01`
     && report.periodEnd === monthRange(report.month).end;
   if (unlinkedMonthPayment && fullMonth) {
     // Adoption is metadata-only: keep manual amount, status, source, paidAt,
@@ -184,11 +185,12 @@ async function syncReportPaymentRecord(report: ReportPaymentInput): Promise<void
       periodStart: report.periodStart,
       periodEnd: report.periodEnd,
     });
-    return;
+    return unlinkedMonthPayment.id;
   }
 
+  const id = crypto.randomUUID();
   await db.payments.add({
-    id: crypto.randomUUID(),
+    id,
     studentId: report.studentId,
     month: report.month,
     totalCost: report.totalCost,
@@ -198,6 +200,7 @@ async function syncReportPaymentRecord(report: ReportPaymentInput): Promise<void
     periodStart: report.periodStart,
     periodEnd: report.periodEnd,
   });
+  return id;
 }
 
 /**
@@ -217,13 +220,249 @@ export async function syncReportPayment(
   await db.transaction("rw", db.payments, () => syncReportPaymentRecord(report));
 }
 
+export interface SessionCountBillingProgress {
+  studentId: string;
+  studentName: string;
+  targetCount: number;
+  unbilledCount: number;
+  readyBatchCount: number;
+  nextBatchSessions: Session[];
+  nextBatchTotal: number;
+  nextBatchHours: number;
+  pendingBillingPolicy?: "monthly" | "manual";
+}
+
+export interface SessionCountInvoiceResult {
+  reportId: string;
+  paymentId: string;
+  month: string;
+  sessionCount: number;
+  totalCost: number;
+  finalBatch: boolean;
+  activatedBillingPolicy?: "monthly" | "manual";
+}
+
+export interface CreateSessionCountInvoiceOptions {
+  finalBatch?: boolean;
+}
+
+function validSessionCount(value: number | undefined): value is number {
+  return Number.isInteger(value) && (value ?? 0) >= 1 && (value ?? 0) <= 20;
+}
+
+function unbilledSessions(
+  sessions: readonly Session[],
+  reports: readonly MonthlyReport[],
+): Session[] {
+  const coveredIds = new Set(
+    reports
+      .filter((report) => reportStatus(report) === "confirmed")
+      .flatMap((report) => report.sessionIds),
+  );
+  return sessions
+    .filter((session) => isBillableSession(session) && !coveredIds.has(session.id))
+    .sort(compareSessionsChronologically);
+}
+
+/** Current package-billing queue for every active session-count student. */
+export async function listSessionCountBillingProgress(): Promise<SessionCountBillingProgress[]> {
+  const students = (await db.students.toArray())
+    .filter((student) => billingPolicyOf(student) === "session_count")
+    .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
+
+  const progress = await Promise.all(students.map(async (student) => {
+    const [sessions, reports] = await Promise.all([
+      db.sessions.where({ studentId: student.id }).toArray(),
+      db.reports.where({ studentId: student.id }).toArray(),
+    ]);
+    const pending = unbilledSessions(sessions, reports);
+    const targetCount = validSessionCount(student.billingSessionCount)
+      ? student.billingSessionCount
+      : 0;
+    const nextBatchSessions = targetCount > 0
+      ? pending.slice(0, targetCount)
+      : [];
+    return {
+      studentId: student.id,
+      studentName: student.name,
+      targetCount,
+      unbilledCount: pending.length,
+      readyBatchCount: targetCount > 0 ? Math.floor(pending.length / targetCount) : 0,
+      nextBatchSessions,
+      nextBatchTotal: nextBatchSessions.reduce((sum, session) => sum + session.cost, 0),
+      nextBatchHours: nextBatchSessions.reduce((sum, session) => sum + session.durationHours, 0),
+      pendingBillingPolicy: student.pendingBillingPolicy,
+    };
+  }));
+  // An inactive student must not disappear while lessons are still owed. Once
+  // their queue is empty, hiding the row keeps the operational list focused.
+  return progress.filter((row, index) => students[index].active || row.unbilledCount > 0);
+}
+
+const sessionCountInvoiceInflight = new Map<string, Promise<SessionCountInvoiceResult>>();
+
+async function createSessionCountInvoiceAtomic(
+  studentId: string,
+  options: CreateSessionCountInvoiceOptions,
+): Promise<SessionCountInvoiceResult> {
+  return db.transaction("rw", db.students, db.sessions, db.reports, db.payments, async () => {
+    const student = await db.students.get(studentId);
+    if (!student) throw new Error("Murid tidak ditemukan");
+    if (billingPolicyOf(student) !== "session_count") {
+      throw new Error("Murid tidak memakai penagihan per jumlah pertemuan");
+    }
+    if (!validSessionCount(student.billingSessionCount)) {
+      throw new Error("Jumlah sesi penagihan tidak valid");
+    }
+
+    const [sessions, reports] = await Promise.all([
+      db.sessions.where({ studentId }).toArray(),
+      db.reports.where({ studentId }).toArray(),
+    ]);
+    const pending = unbilledSessions(sessions, reports);
+    const targetCount = student.billingSessionCount;
+    const finalBatch = options.finalBatch === true;
+    if (finalBatch && !student.pendingBillingPolicy) {
+      throw new Error("Tagihan penutup hanya tersedia saat perubahan kebijakan penagihan tertunda");
+    }
+    if (finalBatch && (pending.length <= 0 || pending.length >= targetCount)) {
+      throw new Error(`Tagihan penutup hanya untuk sisa 1-${targetCount - 1} sesi`);
+    }
+    if (!finalBatch && pending.length < targetCount) {
+      throw new Error(`Belum cukup sesi untuk membuat tagihan (${pending.length}/${targetCount})`);
+    }
+
+    const selected = finalBatch ? pending : pending.slice(0, targetCount);
+    const periodStart = selected[0].date;
+    const periodEnd = selected[selected.length - 1].date;
+    const month = periodEnd.slice(0, 7);
+    const totalHours = selected.reduce((sum, session) => sum + session.durationHours, 0);
+    const totalCost = selected.reduce((sum, session) => sum + session.cost, 0);
+    const selectedIds = selected.map((session) => session.id);
+    const reusableDraft = reports
+      .filter((report) => {
+        if (reportStatus(report) !== "draft" || report.billingMode !== "session_count") return false;
+        if (report.sessionIds.length !== selectedIds.length) return false;
+        const ids = new Set(report.sessionIds);
+        return selectedIds.every((id) => ids.has(id));
+      })
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id))[0];
+    const reportId = reusableDraft?.id ?? crypto.randomUUID();
+    const createdAt = timestamp();
+    const remainingCount = pending.length - selected.length;
+    const billingPolicyAfterBatch = remainingCount === 0
+      ? student.pendingBillingPolicy
+      : undefined;
+
+    const report: MonthlyReport = {
+      id: reportId,
+      studentId,
+      month,
+      periodStart,
+      periodEnd,
+      status: "confirmed",
+      billingMode: "session_count",
+      billingSessionCount: selected.length,
+      finalBillingBatch: finalBatch || undefined,
+      billingTargetSessionCount: student.pendingBillingPolicy ? targetCount : undefined,
+      billingPolicyAfterBatch,
+      billingPolicyTransitionTarget: student.pendingBillingPolicy,
+      sessionIds: selectedIds,
+      templateKey: reusableDraft?.templateKey ?? { themeId: "blue", layoutId: "cards" },
+      summaryText: reusableDraft?.summaryText ?? "",
+      teacherNote: reusableDraft?.teacherNote,
+      quote: reusableDraft?.quote,
+      nextMonthPlan: reusableDraft?.nextMonthPlan,
+      totalHours,
+      totalCost,
+      createdAt: reusableDraft?.createdAt ?? createdAt,
+    };
+    if (reusableDraft) await db.reports.put(report);
+    else await db.reports.add(report);
+    const paymentId = await syncReportPaymentRecord(report);
+    if (!paymentId) throw new Error("Tagihan paket gagal diterbitkan");
+    if (billingPolicyAfterBatch) {
+      await db.students.update(studentId, {
+        billingPolicy: billingPolicyAfterBatch,
+        pendingBillingPolicy: undefined,
+      });
+    }
+
+    return {
+      reportId,
+      paymentId,
+      month,
+      sessionCount: selected.length,
+      totalCost,
+      finalBatch,
+      activatedBillingPolicy: billingPolicyAfterBatch,
+    };
+  });
+}
+
+/**
+ * Atomically claim the oldest exact N uncovered sessions and issue one report
+ * plus invoice. Same-runtime double taps share one in-flight operation, while
+ * the IndexedDB transaction prevents cross-context session overlap.
+ */
+export function createSessionCountInvoice(
+  studentId: string,
+  options: CreateSessionCountInvoiceOptions = {},
+): Promise<SessionCountInvoiceResult> {
+  const inflightKey = `${studentId}:${options.finalBatch === true ? "final" : "regular"}`;
+  const existing = sessionCountInvoiceInflight.get(inflightKey);
+  if (existing) return existing;
+
+  const operation = createSessionCountInvoiceAtomic(studentId, options);
+  sessionCountInvoiceInflight.set(inflightKey, operation);
+  void operation.finally(() => {
+    if (sessionCountInvoiceInflight.get(inflightKey) === operation) {
+      sessionCountInvoiceInflight.delete(inflightKey);
+    }
+  }).catch(() => undefined);
+  return operation;
+}
+
+/** Cancel one mutable package invoice and return its sessions to the queue. */
+export async function cancelSessionCountInvoice(paymentId: string): Promise<void> {
+  await db.transaction("rw", db.students, db.reports, db.payments, async () => {
+    const payment = await db.payments.get(paymentId);
+    if (!payment) throw new Error("Tagihan tidak ditemukan");
+    if (!payment.reportId) throw new Error("Tagihan bukan tagihan paket");
+    const report = await db.reports.get(payment.reportId);
+    if (!report || report.billingMode !== "session_count" || reportStatus(report) !== "confirmed") {
+      throw new Error("Tagihan bukan tagihan paket yang sah");
+    }
+    if (payment.status !== "UNPAID" || payment.source !== "auto") {
+      throw new Error("Tagihan paket yang lunas atau diedit manual tidak dapat dibatalkan");
+    }
+    await db.payments.delete(payment.id);
+    await db.reports.delete(report.id);
+    const student = await db.students.get(report.studentId);
+    if (student && billingPolicyOf(student) !== "session_count") {
+      const currentPolicy = billingPolicyOf(student);
+      const currentQuota = validSessionCount(student.billingSessionCount)
+        ? student.billingSessionCount
+        : undefined;
+      await db.students.update(report.studentId, {
+        billingPolicy: "session_count",
+        billingSessionCount: currentQuota ?? report.billingTargetSessionCount ?? report.billingSessionCount,
+        pendingBillingPolicy: currentPolicy === "session_count" ? undefined : currentPolicy,
+      });
+    }
+  });
+}
+
 /** Set a payment as transferred, by its row id (aman walau ada 2+ tagihan per murid-bulan). */
 export async function markPaymentTransferredById(
   id: string, method = "transfer", paidAt = todayWIB()
 ): Promise<void> {
-  const existing = await db.payments.get(id);
-  if (!existing) throw new Error("Payment not found");
-  await db.payments.update(id, { status: "PAID", paidAt, method });
+  const existing = await db.transaction("rw", db.payments, async () => {
+    const payment = await db.payments.get(id);
+    if (!payment) throw new Error("Payment not found");
+    await db.payments.update(id, { status: "PAID", paidAt, method });
+    return payment;
+  });
   await logAudit("payment.paid", "payment", id, `${existing.month} paid ${paidAt} via ${method}`);
 }
 
@@ -238,9 +477,12 @@ export async function markPaymentUnpaidById(id: string): Promise<void> {
 /** Update only the billed amount of a payment, by its row id. */
 export async function updatePaymentAmountById(id: string, totalCost: number): Promise<void> {
   if (!isValidCurrencyAmount(totalCost)) throw new Error("Invalid payment amount");
-  const existing = await db.payments.get(id);
-  if (!existing) throw new Error("Payment not found");
-  await db.payments.update(id, { totalCost, source: "manual" });
+  const existing = await db.transaction("rw", db.payments, async () => {
+    const payment = await db.payments.get(id);
+    if (!payment) throw new Error("Payment not found");
+    await db.payments.update(id, { totalCost, source: "manual" });
+    return payment;
+  });
   await logAudit("payment.amount", "payment", id, `${existing.month}: ${totalCost}`);
 }
 
@@ -267,6 +509,11 @@ export async function computeMonthBills(
   let sessions = await db.sessions
     .filter((s) => isBillableSession(s) && s.date >= start && s.date <= end)
     .toArray();
+  const students = new Map((await db.students.toArray()).map((student) => [student.id, student]));
+  sessions = sessions.filter((session) => {
+    const student = students.get(session.studentId);
+    return !student || billingPolicyOf(student) === "monthly";
+  });
   // Sesi yang sudah masuk laporan SAH tidak boleh ditagih ulang oleh tutup bulan.
   // Draft belum mengunci — sesi di dalamnya masih bisa masuk tagihan tutup bulan.
   if (opts.excludeReportCovered) {
@@ -298,12 +545,17 @@ export async function computeMonthBills(
 export async function closeMonth(month: string): Promise<void> {
   const { start, end } = monthRange(month);
   let reconciledReportCount = 0;
-  await db.transaction("rw", db.sessions, db.reports, db.payments, db.monthClosings, async () => {
+  await db.transaction("rw", db.students, db.sessions, db.reports, db.payments, db.monthClosings, async () => {
     // Plan and mutate under one lock so concurrent close calls cannot both
     // create a report/payment from the same stale list of sessions.
+    const students = new Map((await db.students.toArray()).map((student) => [student.id, student]));
     const monthSessions = (await db.sessions
       .filter((session) => isBillableSession(session) && session.date >= start && session.date <= end)
       .toArray())
+      .filter((session) => {
+        const student = students.get(session.studentId);
+        return !student || billingPolicyOf(student) === "monthly";
+      })
       .sort((a, b) =>
         a.date.localeCompare(b.date)
         || (a.time ?? "").localeCompare(b.time ?? "")
@@ -326,6 +578,8 @@ export async function closeMonth(month: string): Promise<void> {
     const autoReportsByStudent = new Map<string, MonthlyReport[]>();
     for (const report of reports) {
       if (report.autoGenerated !== true || report.month !== month) continue;
+      const student = students.get(report.studentId);
+      if (student && billingPolicyOf(student) !== "monthly") continue;
       const studentReports = autoReportsByStudent.get(report.studentId) ?? [];
       studentReports.push(report);
       autoReportsByStudent.set(report.studentId, studentReports);
@@ -359,6 +613,7 @@ export async function closeMonth(month: string): Promise<void> {
       await db.reports.update(report.id, {
         month,
         ...reportPeriod,
+        billingMode: report.billingMode ?? "monthly",
         sessionIds: sessions.map((session) => session.id),
         totalHours,
         totalCost,
@@ -370,6 +625,7 @@ export async function closeMonth(month: string): Promise<void> {
         month,
         ...reportPeriod,
         totalCost,
+        billingMode: report.billingMode ?? "monthly",
       });
       reconciledReportCount += 1;
     };
@@ -380,6 +636,10 @@ export async function closeMonth(month: string): Promise<void> {
     for (const report of reports) {
       if (report.month !== month || reportStatus(report) !== "confirmed") continue;
       if (await getPaymentByReport(report.id)) continue;
+      const student = students.get(report.studentId);
+      if (student && billingPolicyOf(student) !== "monthly" && report.billingMode !== "session_count") {
+        continue;
+      }
       await syncReportPaymentRecord({
         id: report.id,
         studentId: report.studentId,
@@ -387,6 +647,7 @@ export async function closeMonth(month: string): Promise<void> {
         periodStart: report.periodStart,
         periodEnd: report.periodEnd,
         totalCost: report.totalCost,
+        billingMode: report.billingMode,
       });
       reconciledReportCount += 1;
     }
@@ -488,6 +749,7 @@ export async function closeMonth(month: string): Promise<void> {
         totalHours,
         totalCost,
         status: "confirmed" as ReportStatus,
+        billingMode: "monthly",
         autoGenerated: true,
         createdAt: timestamp(),
       });
@@ -497,6 +759,7 @@ export async function closeMonth(month: string): Promise<void> {
         month,
         ...reportPeriod,
         totalCost,
+        billingMode: "monthly",
       });
       reconciledReportCount += 1;
       for (const session of uncoveredSessions) coveredIds.add(session.id);
@@ -523,7 +786,7 @@ export async function reopenMonth(month: string): Promise<void> {
   await db.transaction("rw", db.reports, db.payments, db.monthClosings, async () => {
     const autoReports = await db.reports
       .where({ month })
-      .filter((r) => r.autoGenerated === true)
+      .filter((r) => r.autoGenerated === true && r.billingMode !== "session_count")
       .toArray();
     for (const r of autoReports) {
       const p = await db.payments.where("reportId").equals(r.id).first();

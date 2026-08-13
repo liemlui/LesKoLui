@@ -2,17 +2,21 @@ import Skeleton from "./Skeleton";
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getSettings } from "../db/repos";
+import type { StudentBillingUpdateOptions } from "../db/repos";
 import { todayWIB } from "../lib/format";
 import { toggleArrayItem } from "../lib/arrays";
-import type { Student, Level, CurriculumType } from "../db/types";
-import { DEFAULT_RATE } from "../db/types";
+import type { Student, Level, CurriculumType, BillingPolicy } from "../db/types";
+import { DEFAULT_RATE, billingPolicyOf } from "../db/types";
 import { ALL_CURRICULA, CURRICULUM_META, getSubjectGroups } from "../lib/ibSubjects";
 import Toggle from "./Toggle";
 import { MAX_HOURLY_RATE, isValidCurrencyAmount, parseCurrencyDigits } from "../lib/money";
 
 interface Props {
   initial?: Student;
-  onSave: (data: Omit<Student, "id">) => void | Promise<void>;
+  onSave: (
+    data: Omit<Student, "id">,
+    options?: StudentBillingUpdateOptions,
+  ) => void | Promise<void>;
   onCancel?: () => void;
 }
 
@@ -57,6 +61,16 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
   const [rateInput,    setRateInput]    = useState(
     String(initial?.hourlyRate ?? settings?.defaultRate ?? DEFAULT_RATE)
   );
+  const [billingPolicy, setBillingPolicy] = useState<BillingPolicy>(
+    initial ? billingPolicyOf(initial) : "monthly"
+  );
+  const [billingSessionCountInput, setBillingSessionCountInput] = useState(
+    String(initial?.billingSessionCount ?? 8)
+  );
+  const [billingSessionCountError, setBillingSessionCountError] = useState("");
+  const [includeExistingUnbilledInPackage, setIncludeExistingUnbilledInPackage] = useState(false);
+  const [cancelPendingTransition, setCancelPendingTransition] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [active,  setActive]  = useState(initial?.active ?? true);
   const [notes,   setNotes]   = useState(initial?.notes ?? "");
 
@@ -82,21 +96,62 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
     e.preventDefault();
     if (!name.trim() || !phone.trim()) return;
     if (!isValidCurrencyAmount(hourlyRate, MAX_HOURLY_RATE)) return;
-    await onSave({
-      name: name.trim(),
-      level: curriculumToLevel(curriculum),
-      curriculum,
-      grade: grade.trim() || undefined,
-      school: school.trim() || undefined,
-      studentPhone: studentPhone.trim() || undefined,
-      parentContact: { name: parentName.trim() || undefined, phone: phone.trim() },
-      subjects,
-      hourlyRate,
-      active,
-      enrolledAt: initial?.enrolledAt ?? todayWIB(),
-      notes: notes.trim() || undefined,
-      photo: initial?.photo,
-    });
+    const billingSessionCount = Number(billingSessionCountInput);
+    if (
+      billingPolicy === "session_count"
+      && (!Number.isInteger(billingSessionCount) || billingSessionCount < 1 || billingSessionCount > 20)
+    ) {
+      setBillingSessionCountError("Jumlah pertemuan harus berupa angka bulat antara 1 dan 20.");
+      return;
+    }
+    setBillingSessionCountError("");
+    setSaveError("");
+    try {
+      const data: Omit<Student, "id"> = {
+        name: name.trim(),
+        level: curriculumToLevel(curriculum),
+        curriculum,
+        grade: grade.trim() || undefined,
+        school: school.trim() || undefined,
+        studentPhone: studentPhone.trim() || undefined,
+        parentContact: { name: parentName.trim() || undefined, phone: phone.trim() },
+        subjects,
+        hourlyRate,
+        billingPolicy,
+        // Simpan kuota terakhir saat policy lain aktif agar N tidak berubah
+        // diam-diam ketika pengguna kembali ke penagihan paket.
+        billingSessionCount: billingPolicy === "session_count"
+          ? billingSessionCount
+          : initial?.billingSessionCount,
+        active,
+        enrolledAt: initial?.enrolledAt ?? todayWIB(),
+        notes: notes.trim() || undefined,
+        photo: initial?.photo,
+      };
+      // Pertahankan peralihan tertunda saat user sekadar mengedit profil tanpa
+      // mengubah siklus: billingPolicy tidak dikirim agar updateStudent tidak
+      // membatalkan pendingBillingPolicy secara diam-diam.
+      const preservePendingTransition = Boolean(initial?.pendingBillingPolicy)
+        && billingPolicy === "session_count"
+        && billingPolicyOf(initial!) === "session_count"
+        && !cancelPendingTransition;
+      if (preservePendingTransition) {
+        delete data.billingPolicy;
+      }
+      await onSave(data, {
+        includeExistingUnbilledInPackage:
+          Boolean(initial)
+          && billingPolicy === "session_count"
+          && billingPolicyOf(initial!) !== "session_count"
+          && includeExistingUnbilledInPackage,
+        deferSessionCountPolicyChange:
+          Boolean(initial)
+          && billingPolicyOf(initial!) === "session_count"
+          && billingPolicy !== "session_count",
+      });
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Profil murid gagal disimpan.");
+    }
   };
 
   const meta = CURRICULUM_META[curriculum];
@@ -280,6 +335,134 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
         )}
       </div>
 
+      {/* Siklus tagihan */}
+      <fieldset className="rounded-2xl border border-blue-100 bg-blue-50/60 p-3 sm:p-4">
+        <legend className="px-1 text-sm font-semibold text-gray-800">Siklus Tagihan</legend>
+        <p id="billing-policy-help" className="mb-3 text-xs leading-relaxed text-gray-600">
+          Atur kapan tagihan murid ini dibuat. Hanya sesi selesai dan no-show yang ditandai dapat ditagih yang masuk hitungan.
+          Perubahan berlaku untuk sesi yang belum ditagih; invoice lama tetap utuh.
+        </p>
+        {initial?.pendingBillingPolicy && (
+          <p className="mb-3 rounded-lg border border-blue-200 bg-blue-50 p-2.5 text-xs leading-relaxed text-blue-900">
+            Ada peralihan tertunda: setelah antrean paket selesai, murid otomatis beralih ke {initial.pendingBillingPolicy === "monthly" ? "Bulanan" : "Manual"}.
+          </p>
+        )}
+        {initial?.pendingBillingPolicy && billingPolicy === "session_count" && (
+          <label className="mb-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900">
+            <input
+              type="checkbox"
+              checked={cancelPendingTransition}
+              onChange={(event) => setCancelPendingTransition(event.target.checked)}
+              className="mt-0.5 h-4 w-4 flex-none accent-amber-600"
+            />
+            <span>Batalkan peralihan ini — murid tetap memakai paket {initial.billingSessionCount ?? 8} pertemuan.</span>
+          </label>
+        )}
+        {initial && billingPolicyOf(initial) === "session_count" && billingPolicy !== "session_count" && (
+          <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-xs leading-relaxed text-amber-900">
+            Jika masih ada sesi belum ditagih, pilihan ini disimpan sebagai peralihan tertunda agar sesi lama tidak hilang. Terbitkan paket yang sudah penuh lalu gunakan “Tagihan Penutup” untuk sisanya; setelah antrean kosong, kebijakan otomatis beralih ke {billingPolicy === "monthly" ? "Bulanan" : "Manual"}. Jika antrean sudah kosong, perubahan langsung aktif.
+          </p>
+        )}
+
+        <div className="space-y-2">
+          {([
+            {
+              value: "monthly",
+              label: "Bulanan (Tutup Bulan)",
+              description: "Gabungkan sesi yang dapat ditagih melalui proses Tutup Bulan.",
+            },
+            {
+              value: "session_count",
+              label: "Setiap N pertemuan",
+              description: "Tagihan siap dibuat setiap target jumlah pertemuan tercapai.",
+            },
+            {
+              value: "manual",
+              label: "Manual",
+              description: "Buat tagihan nominal bebas tanpa mengambil sesi secara otomatis.",
+            },
+          ] as const).map((option) => {
+            const selected = billingPolicy === option.value;
+            return (
+              <label
+                key={option.value}
+                className={`flex min-h-12 cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors ${
+                  selected
+                    ? "border-blue-500 bg-white shadow-sm"
+                    : "border-gray-200 bg-white/70 hover:border-blue-300"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="billingPolicy"
+                  value={option.value}
+                  checked={selected}
+                  onChange={() => {
+                    setBillingPolicy(option.value);
+                    setBillingSessionCountError("");
+                  }}
+                  aria-describedby="billing-policy-help"
+                  className="mt-0.5 h-5 w-5 flex-none accent-blue-600"
+                />
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold text-gray-800">{option.label}</span>
+                  <span className="mt-0.5 block text-xs leading-relaxed text-gray-500">{option.description}</span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
+
+        {billingPolicy === "session_count" && (
+          <div className="mt-3 rounded-xl border border-blue-200 bg-white p-3">
+            <label htmlFor="billingSessionCount" className="label">
+              Jumlah pertemuan per tagihan
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                id="billingSessionCount"
+                className="input w-24 flex-none text-center"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={20}
+                step={1}
+                required
+                value={billingSessionCountInput}
+                onChange={(e) => {
+                  setBillingSessionCountInput(e.target.value);
+                  setBillingSessionCountError("");
+                }}
+                aria-invalid={billingSessionCountError ? "true" : undefined}
+                aria-describedby="billing-session-count-hint billing-session-count-error"
+              />
+              <span className="text-sm text-gray-600">pertemuan</span>
+            </div>
+            <p id="billing-session-count-hint" className="mt-1 text-xs text-gray-500">
+              Pilih 1–20. Contoh: 8 berarti tagihan dibuat per 8 sesi yang dapat ditagih.
+            </p>
+            {billingSessionCountError && (
+              <p id="billing-session-count-error" role="alert" className="mt-1 text-xs font-medium text-red-600">
+                {billingSessionCountError}
+              </p>
+            )}
+            {initial && billingPolicyOf(initial) !== "session_count" && (
+              <label className="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 p-2.5 text-xs text-amber-900">
+                <input
+                  type="checkbox"
+                  checked={includeExistingUnbilledInPackage}
+                  onChange={(event) => setIncludeExistingUnbilledInPackage(event.target.checked)}
+                  className="mt-0.5 h-4 w-4 flex-none accent-amber-600"
+                />
+                <span>
+                  Masukkan sesi lama yang belum terikat laporan ke antrean paket. Jika tidak dicentang, perubahan akan ditolak saat masih ada sesi lama agar tidak terjadi tagihan ganda.
+                </span>
+              </label>
+            )}
+          </div>
+        )}
+      </fieldset>
+
       <div>
         <label htmlFor="notes" className="label">Catatan <span className="text-gray-500 font-normal text-xs">(opsional)</span></label>
         <textarea id="notes" className="input" rows={2} maxLength={300} value={notes} onChange={(e) => setNotes(e.target.value)} />
@@ -294,6 +477,7 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
         <button type="submit" className="btn-primary flex-1">Simpan</button>
         {onCancel && <button type="button" className="btn-secondary" onClick={onCancel}>Batal</button>}
       </div>
+      {saveError && <p role="alert" className="text-sm font-medium text-red-600">{saveError}</p>}
     </form>
   );
 }

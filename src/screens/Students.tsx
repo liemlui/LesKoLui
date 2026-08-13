@@ -6,6 +6,7 @@ import {
   listStudents, createStudent, updateStudent, deleteStudent,
   listSessionsForMonth, getSettings, listAllUpcomingScheduled,
 } from "../db/repos";
+import type { StudentBillingUpdateOptions } from "../db/repos";
 import { todayWIB, monthOf, monthLabel, dayLabel } from "../lib/format";
 import { usePinGate } from "../hooks/usePinGate";
 import type { Student } from "../db/types";
@@ -88,9 +89,12 @@ export default function Students() {
 
   if (!allStudents) return <Skeleton variant="card" lines={4} className="p-4" />;
 
-  const handleSave = async (data: Omit<Student, "id">) => {
+  const handleSave = async (
+    data: Omit<Student, "id">,
+    options?: StudentBillingUpdateOptions,
+  ) => {
     if (editing) {
-      await updateStudent(editing.id, data);
+      await updateStudent(editing.id, data, options);
     } else {
       await createStudent(data);
     }

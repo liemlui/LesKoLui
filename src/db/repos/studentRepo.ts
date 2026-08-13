@@ -2,6 +2,8 @@
 
 import { db } from "../db";
 import type { Student } from "../types";
+import { billingPolicyOf, reportStatus } from "../types";
+import { isBillableSession } from "./sessionRepo";
 import { logAudit } from "./auditRepo";
 
 export async function listStudents(activeOnly?: boolean): Promise<Student[]> {
@@ -22,8 +24,60 @@ export async function createStudent(input: Omit<Student, "id">): Promise<string>
   return id;
 }
 
-export async function updateStudent(id: string, patch: Partial<Student>): Promise<void> {
-  await db.students.update(id, patch);
+export interface StudentBillingUpdateOptions {
+  includeExistingUnbilledInPackage?: boolean;
+  deferSessionCountPolicyChange?: boolean;
+}
+
+async function countUnbilledBillableSessions(studentId: string): Promise<number> {
+  const [sessions, reports] = await Promise.all([
+    db.sessions.where({ studentId }).toArray(),
+    db.reports.where({ studentId }).toArray(),
+  ]);
+  const coveredIds = new Set(
+    reports
+      .filter((report) => reportStatus(report) === "confirmed")
+      .flatMap((report) => report.sessionIds),
+  );
+  return sessions.filter((session) => isBillableSession(session) && !coveredIds.has(session.id)).length;
+}
+
+export async function updateStudent(
+  id: string,
+  patch: Partial<Student>,
+  options: StudentBillingUpdateOptions = {},
+): Promise<void> {
+  await db.transaction("rw", db.students, db.sessions, db.reports, async () => {
+    const existing = await db.students.get(id);
+    if (!existing) return;
+    const fromPolicy = billingPolicyOf(existing);
+    const toPolicy = billingPolicyOf({ billingPolicy: patch.billingPolicy ?? existing.billingPolicy });
+    if (fromPolicy !== toPolicy && (fromPolicy === "session_count" || toPolicy === "session_count")) {
+      const unbilledCount = await countUnbilledBillableSessions(id);
+      if (unbilledCount > 0 && fromPolicy === "session_count") {
+        if (!options.deferSessionCountPolicyChange) {
+          throw new Error("Selesaikan atau buat tagihan penutup untuk sesi paket yang belum ditagih terlebih dahulu");
+        }
+        if (toPolicy === "session_count") return;
+        await db.students.update(id, {
+          ...patch,
+          billingPolicy: "session_count",
+          billingSessionCount: existing.billingSessionCount,
+          pendingBillingPolicy: toPolicy,
+        });
+        return;
+      }
+      if (unbilledCount > 0 && toPolicy === "session_count" && !options.includeExistingUnbilledInPackage) {
+        throw new Error("Ada sesi lama yang belum ditagih; konfirmasi agar sesi tersebut masuk antrean paket");
+      }
+    }
+    await db.students.update(id, {
+      ...patch,
+      pendingBillingPolicy: patch.billingPolicy === "session_count" || fromPolicy !== toPolicy
+        ? undefined
+        : existing.pendingBillingPolicy,
+    });
+  });
 }
 
 export async function deleteStudent(id: string): Promise<void> {

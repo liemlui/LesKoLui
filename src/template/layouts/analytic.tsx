@@ -13,7 +13,7 @@ export const summary: Layout = {
       {isFirst && HeaderEl(d, t)}
       {/* 3 highlight pills */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", position: "relative", zIndex: 2 }}>
-        {/* Agregat SEBULAN bila tersedia — akurat saat laporan >1 halaman */}
+        {/* Agregat SELURUH PERIODE bila tersedia — akurat saat laporan >1 halaman */}
         {[
           { icon: "📊", label: `${d.totalSessions ?? d.entries.length} Sesi` },
           { icon: "📚", label: `${d.subjectDist?.length ?? [...new Set(d.entries.flatMap(e => e.subject.split(", ")))].length} Mapel` },
@@ -127,7 +127,7 @@ export const dossier: Layout = {
 export const analytics: Layout = {
   id: "analytics", name: "Analitik", maxEntriesPerPage: 6,
   render: (d, t, { isFirst, isLast }) => {
-    // Distribusi SEBULAN bila tersedia (akurat >1 halaman); fallback ke entri halaman ini
+    // Distribusi SELURUH PERIODE bila tersedia (akurat >1 halaman); fallback ke entri halaman ini
     const subjectCounts = new Map<string, number>();
     d.entries.forEach(e => e.subject.split(", ").forEach(s => subjectCounts.set(s.trim(), (subjectCounts.get(s.trim()) || 0) + 1)));
     const dist = (d.subjectDist && d.subjectDist.length > 0)
