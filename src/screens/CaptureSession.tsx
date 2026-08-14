@@ -743,14 +743,14 @@ export default function CaptureSession() {
               <button type="button"
                 className="px-3 py-1.5 rounded-full text-sm font-medium border bg-white text-gray-500 border-dashed border-gray-300 hover:border-purple-400 hover:text-purple-600 transition-colors"
                 onClick={() => { setShowIBPicker(true); setIbTab("MYP"); }}>
-                + Lainnya{currentStudent?.curriculum ? ` (${CURRICULUM_META[currentStudent.curriculum].shortLabel})` : ""}
+                + Tambah Mapel{currentStudent?.curriculum ? ` (${CURRICULUM_META[currentStudent.curriculum].shortLabel})` : ""}
               </button>
             </div>
           </div>
 
           {/* Topik — search + dropdown */}
           <div>
-            <label htmlFor="cs-topik" className="label">🎯 Topik <span className="text-gray-500 font-normal text-xs">(cari topik IB atau ketik bebas)</span></label>
+            <label htmlFor="cs-topik" className="label">🎯 Topik <span className="text-gray-500 font-normal text-xs">(cari topik atau ketik bebas)</span></label>
             <div className="relative">
               <input id="cs-topik" className="input pr-8" maxLength={150}
                 placeholder="Cari topik atau ketik custom — mis. Integral substitution, Essay structure..."
@@ -759,10 +759,18 @@ export default function CaptureSession() {
                   const q = e.target.value;
                   setTopicSearch(q);
                   setTopic(q);
-                  setTopicResults(searchTopics(q, subjects[0] ?? studentSubjects[0], currentStudent?.level));
+                  setTopicResults(searchTopics(q, {
+                    subject: subjects[0] ?? studentSubjects[0],
+                    grade: currentStudent?.grade,
+                    curriculum: currentStudent?.curriculum,
+                  }));
                 }}
                 onFocus={() => {
-                  if (topicSearch.trim()) setTopicResults(searchTopics(topicSearch, subjects[0] ?? studentSubjects[0], currentStudent?.level));
+                  if (topicSearch.trim()) setTopicResults(searchTopics(topicSearch, {
+                    subject: subjects[0] ?? studentSubjects[0],
+                    grade: currentStudent?.grade,
+                    curriculum: currentStudent?.curriculum,
+                  }));
                 }}
                 onBlur={() => setTimeout(() => setTopicResults([]), 150)}
               />

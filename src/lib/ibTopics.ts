@@ -39,6 +39,13 @@ const GRADE_LABELS: Record<string, string> = {
   "IGCSE":   "IGCSE",
   "A Level": "A Level",
   "AP":      "AP",
+  "O Level": "O Level",
+  "SMP 7":   "Kelas 7 (SMP)",
+  "SMP 8":   "Kelas 8 (SMP)",
+  "SMP 9":   "Kelas 9 (SMP)",
+  "SMA 10":  "Kelas 10 (SMA)",
+  "SMA 11":  "Kelas 11 (SMA)",
+  "SMA 12":  "Kelas 12 (SMA)",
 };
 
 function inferMypLevel(studentLevel?: string): string | null {
@@ -57,6 +64,53 @@ function inferMypLevel(studentLevel?: string): string | null {
     return "DP";
   }
   return null;
+}
+
+/** Map kelas Kurikulum Nasional ("VII", "X", "kelas 11", "12 SMA", "7") → level topik. */
+function inferNationalLevel(grade?: string): string | null {
+  if (!grade) return null;
+  const g = grade.toLowerCase().trim();
+  const roman: Record<string, number> = { vii: 7, viii: 8, ix: 9, x: 10, xi: 11, xii: 12 };
+  let n: number | null = null;
+  if (roman[g]) n = roman[g];
+  else {
+    const m = g.match(/(?:kelas\s*)?(\d{1,2})/);
+    if (m) n = parseInt(m[1]);
+  }
+  if (n == null) return null;
+  if (n >= 7 && n <= 9) return `SMP ${n}`;
+  if (n >= 10 && n <= 12) return `SMA ${n}`;
+  return null;
+}
+
+/** Predicate hard-filter: topik level mana yang valid untuk kurikulum tertentu. */
+function curriculumLevelFilter(curriculum?: string): ((level: string) => boolean) | null {
+  switch (curriculum) {
+    case "IB MYP":             return (l) => l.toLowerCase().startsWith("myp");
+    case "IB DP":              return (l) => l.toLowerCase() === "dp";
+    case "Cambridge IGCSE":    return (l) => l.toLowerCase() === "igcse";
+    case "Cambridge O Level":  return (l) => l.toLowerCase().startsWith("o level");
+    case "Cambridge AS Level":
+    case "Cambridge A Level":  return (l) => l.toLowerCase().startsWith("a level");
+    case "AP":                 return (l) => l.toLowerCase() === "ap";
+    case "National":           return (l) => { const x = l.toLowerCase(); return x.startsWith("smp") || x.startsWith("sma"); };
+    default:                   return null; // Custom / tanpa kurikulum → tampilkan semua
+  }
+}
+
+/** Level target murid (untuk bonus relevansi), dari kurikulum + grade. */
+function targetLevelFor(curriculum?: string, grade?: string): string | null {
+  switch (curriculum) {
+    case "IB MYP":            return inferMypLevel(grade);
+    case "IB DP":             return "DP";
+    case "Cambridge IGCSE":   return "IGCSE";
+    case "Cambridge O Level": return "O Level";
+    case "Cambridge AS Level":
+    case "Cambridge A Level": return "A Level";
+    case "AP":                return "AP";
+    case "National":          return inferNationalLevel(grade);
+    default:                  return null;
+  }
 }
 
 function gradeLabelFromLevel(level: string): string {
@@ -1537,6 +1591,817 @@ export const IB_TOPICS: TopicEntry[] = [
     "Vocabulary — academic word list, collocations",
     "Punctuation & sentence variety",
   ]),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // KURIKULUM NASIONAL — SMP (Matematika, Fisika, Kimia, Biologi)
+  // ═══════════════════════════════════════════════════════════════════════════
+  ...mk("Matematika", "SMP 7", "Kelas 7 (SMP)", "Bilangan", [
+    "Bilangan bulat & operasi hitung",
+    "Bilangan pecahan, desimal, persen",
+    "Perbandingan senilai & berbalik nilai",
+    "Skala pada peta & denah",
+    "Aritmetika sosial — untung, rugi, bunga, diskon",
+  ]),
+  ...mk("Matematika", "SMP 7", "Kelas 7 (SMP)", "Himpunan & Aljabar", [
+    "Himpunan — notasi, operasi, diagram Venn",
+    "Bentuk aljabar & operasinya",
+    "Persamaan linear satu variabel (PLSV)",
+    "Pertidaksamaan linear satu variabel",
+  ]),
+  ...mk("Matematika", "SMP 7", "Kelas 7 (SMP)", "Geometri & Data", [
+    "Garis, sudut, dan hubungan antar sudut",
+    "Segitiga & segiempat — sifat, keliling, luas",
+    "Penyajian data — tabel, diagram batang/garis/lingkaran",
+    "Ukuran pemusatan — mean, median, modus",
+  ]),
+  ...mk("Matematika", "SMP 8", "Kelas 8 (SMP)", "Aljabar & Fungsi", [
+    "Relasi & fungsi — domain, kodomain, range",
+    "Persamaan garis lurus & gradien",
+    "Sistem persamaan linear dua variabel (SPLDV)",
+    "Faktorisasi bentuk aljabar",
+  ]),
+  ...mk("Matematika", "SMP 8", "Kelas 8 (SMP)", "Geometri", [
+    "Teorema Pythagoras & penerapannya",
+    "Lingkaran — unsur, keliling, luas, sudut pusat & keliling",
+    "Bangun ruang sisi datar — kubus, balok, prisma, limas",
+    "Garis singgung lingkaran",
+  ]),
+  ...mk("Matematika", "SMP 8", "Kelas 8 (SMP)", "Statistika & Peluang", [
+    "Penyajian data kelompok",
+    "Peluang empirik & teoretik",
+    "Ruang sampel & titik sampel",
+  ]),
+  ...mk("Matematika", "SMP 9", "Kelas 9 (SMP)", "Bilangan & Aljabar", [
+    "Bilangan berpangkat & bentuk akar",
+    "Persamaan kuadrat — pemfaktoran, rumus abc",
+    "Fungsi kuadrat — grafik, titik puncak, diskriminan",
+  ]),
+  ...mk("Matematika", "SMP 9", "Kelas 9 (SMP)", "Transformasi & Geometri", [
+    "Transformasi — translasi, refleksi, rotasi, dilatasi",
+    "Kesebangunan & kekongruenan",
+    "Bangun ruang sisi lengkung — tabung, kerucut, bola",
+  ]),
+  ...mk("Matematika", "SMP 9", "Kelas 9 (SMP)", "Statistika & Peluang", [
+    "Statistika lanjut — kuartil, jangkauan",
+    "Peluang kejadian majemuk",
+  ]),
+
+  ...mk("Fisika", "SMP 7", "Kelas 7 (SMP)", "Besaran & Zat", [
+    "Besaran pokok & turunan, satuan SI",
+    "Pengukuran — jangka sorong, mikrometer",
+    "Suhu & pemuaian — termometer, kalibrasi",
+    "Wujud zat & perubahan wujud",
+  ]),
+  ...mk("Fisika", "SMP 7", "Kelas 7 (SMP)", "Kalor & Gerak", [
+    "Kalor — kalor jenis, kapasitas kalor, perpindahan kalor",
+    "Asas Black & perubahan wujud",
+    "Gerak lurus — kelajuan, kecepatan, percepatan",
+    "Gerak lurus beraturan (GLB) & GLBB",
+  ]),
+  ...mk("Fisika", "SMP 8", "Kelas 8 (SMP)", "Gaya & Energi", [
+    "Gaya & resultan gaya",
+    "Hukum Newton I, II, III",
+    "Usaha & energi — kinetik, potensial",
+    "Daya",
+    "Pesawat sederhana — tuas, katrol, bidang miring",
+  ]),
+  ...mk("Fisika", "SMP 8", "Kelas 8 (SMP)", "Tekanan & Gelombang", [
+    "Tekanan zat padat, cair (Hukum Pascal & Archimedes), gas",
+    "Getaran & gelombang — frekuensi, periode, cepat rambat",
+    "Bunyi — resonansi, gema, ultrasonik",
+    "Cahaya & alat optik — cermin, lensa, mata",
+  ]),
+  ...mk("Fisika", "SMP 9", "Kelas 9 (SMP)", "Listrik & Magnet", [
+    "Listrik statis — muatan, Hukum Coulomb",
+    "Listrik dinamis — Hukum Ohm, rangkaian seri & paralel",
+    "Energi & daya listrik",
+    "Kemagnetan — medan magnet, elektromagnet, induksi",
+  ]),
+  ...mk("Fisika", "SMP 9", "Kelas 9 (SMP)", "Tata Surya", [
+    "Tata surya — planet, satelit, gerhana",
+    "Rotasi & revolusi bumi",
+  ]),
+
+  ...mk("Kimia", "SMP 7", "Kelas 7 (SMP)", "Zat & Perubahan", [
+    "Klasifikasi materi — unsur, senyawa, campuran",
+    "Pemisahan campuran — filtrasi, distilasi, kromatografi",
+    "Perubahan fisika & kimia",
+    "Sifat asam, basa, garam & indikator",
+  ]),
+  ...mk("Kimia", "SMP 8", "Kelas 8 (SMP)", "Partikel Materi", [
+    "Atom, molekul, ion",
+    "Teori atom dasar",
+    "Partikel penyusun materi — proton, neutron, elektron",
+    "Zat aditif & adiktif",
+  ]),
+  ...mk("Kimia", "SMP 9", "Kelas 9 (SMP)", "Reaksi & Larutan", [
+    "Reaksi kimia sederhana — ciri & persamaan reaksi",
+    "Hukum kekekalan massa (Lavoisier)",
+    "Larutan asam-basa & pH",
+    "Korosi & pencegahannya",
+  ]),
+
+  ...mk("Biologi", "SMP 7", "Kelas 7 (SMP)", "Makhluk Hidup & Lingkungan", [
+    "Ciri-ciri makhluk hidup",
+    "Klasifikasi makhluk hidup — 5 kingdom",
+    "Ekosistem — komponen biotik & abiotik",
+    "Rantai makanan & jaring-jaring makanan",
+    "Interaksi antar makhluk hidup",
+  ]),
+  ...mk("Biologi", "SMP 8", "Kelas 8 (SMP)", "Sistem Tubuh Manusia", [
+    "Sistem gerak — rangka, otot, sendi",
+    "Sistem pencernaan & enzim",
+    "Sistem pernapasan",
+    "Sistem peredaran darah",
+    "Sistem ekskresi",
+  ]),
+  ...mk("Biologi", "SMP 9", "Kelas 9 (SMP)", "Reproduksi & Pewarisan Sifat", [
+    "Sistem reproduksi manusia",
+    "Pewarisan sifat — gen, kromosom, Hukum Mendel",
+    "Persilangan monohibrid & dihibrid",
+    "Bioteknologi — konvensional & modern",
+    "Kelangsungan hidup & adaptasi",
+  ]),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // KURIKULUM NASIONAL — SMA MIPA (Matematika, Fisika, Kimia, Biologi)
+  // ═══════════════════════════════════════════════════════════════════════════
+  ...mk("Matematika", "SMA 10", "Kelas 10 (SMA)", "Aljabar & Fungsi", [
+    "Eksponen & logaritma — sifat, persamaan, pertidaksamaan",
+    "Persamaan & pertidaksamaan nilai mutlak",
+    "Sistem persamaan linear tiga variabel (SPLTV)",
+    "Sistem pertidaksamaan dua variabel",
+    "Fungsi — komposisi & invers",
+  ]),
+  ...mk("Matematika", "SMA 10", "Kelas 10 (SMA)", "Trigonometri & Vektor", [
+    "Perbandingan trigonometri — sin, cos, tan",
+    "Sudut istimewa & kuadran",
+    "Aturan sinus & cosinus",
+    "Vektor — operasi, proyeksi, sudut antar vektor",
+  ]),
+  ...mk("Matematika", "SMA 10", "Kelas 10 (SMA)", "Barisan & Deret", [
+    "Barisan & deret aritmetika",
+    "Barisan & deret geometri",
+    "Deret geometri tak hingga",
+    "Notasi sigma",
+  ]),
+  ...mk("Matematika", "SMA 11", "Kelas 11 (SMA)", "Aljabar Lanjut", [
+    "Program linear — model matematika & nilai optimum",
+    "Matriks — operasi, determinan, invers",
+    "Transformasi geometri & komposisinya",
+    "Polinomial — teorema sisa & faktor",
+    "Lingkaran — persamaan & garis singgung",
+  ]),
+  ...mk("Matematika", "SMA 11", "Kelas 11 (SMA)", "Kalkulus", [
+    "Limit fungsi aljabar & trigonometri",
+    "Turunan — aturan, aplikasi (maks/min, laju)",
+    "Gradien & garis singgung kurva",
+    "Integral tak tentu",
+    "Integral tentu & luas daerah",
+  ]),
+  ...mk("Matematika", "SMA 12", "Kelas 12 (SMA)", "Statistika & Peluang", [
+    "Statistika — mean, median, modus, kuartil, simpangan baku",
+    "Kaidah pencacahan — aturan perkalian, permutasi, kombinasi",
+    "Peluang kejadian — tunggal & majemuk",
+    "Peluang bersyarat & kejadian saling bebas",
+    "Dimensi tiga — jarak titik, garis, bidang",
+  ]),
+
+  ...mk("Fisika", "SMA 10", "Kelas 10 (SMA)", "Mekanika", [
+    "Besaran, satuan & angka penting",
+    "Vektor & resultan gaya",
+    "Gerak lurus (GLB & GLBB) & gerak parabola",
+    "Hukum Newton & penerapan",
+    "Usaha, energi & daya",
+    "Momentum, impuls & tumbukan",
+    "Gerak melingkar beraturan",
+    "Hukum gravitasi Newton",
+  ]),
+  ...mk("Fisika", "SMA 11", "Kelas 11 (SMA)", "Fluida & Termodinamika", [
+    "Elastisitas & Hukum Hooke",
+    "Fluida statis — tekanan hidrostatis, Pascal, Archimedes",
+    "Fluida dinamis — debit, kontinuitas, Bernoulli",
+    "Suhu, kalor & perpindahan kalor",
+    "Termodinamika — hukum ke-0/1/2, mesin Carnot",
+  ]),
+  ...mk("Fisika", "SMA 11", "Kelas 11 (SMA)", "Gelombang & Optik", [
+    "Getaran harmonik sederhana",
+    "Gelombang mekanik — transversal & longitudinal",
+    "Bunyi — cepat rambat, efek Doppler",
+    "Gelombang cahaya — interferensi, difraksi, polarisasi",
+    "Alat optik — mata, lup, mikroskop, teleskop",
+  ]),
+  ...mk("Fisika", "SMA 12", "Kelas 12 (SMA)", "Listrik & Magnet", [
+    "Listrik statis — Hukum Coulomb, medan & potensial listrik",
+    "Kapasitor",
+    "Listrik dinamis — Hukum Ohm, Kirchhoff, rangkaian",
+    "Medan magnet & gaya Lorentz",
+    "Induksi elektromagnetik & Hukum Faraday",
+    "Arus bolak-balik (AC) — rangkaian RLC",
+  ]),
+  ...mk("Fisika", "SMA 12", "Kelas 12 (SMA)", "Fisika Modern", [
+    "Relativitas khusus",
+    "Radiasi benda hitam & efek fotolistrik",
+    "Fisika inti & radioaktivitas",
+    "Sumber energi & reaktor",
+  ]),
+
+  ...mk("Kimia", "SMA 10", "Kelas 10 (SMA)", "Struktur Atom & Ikatan", [
+    "Struktur atom & konfigurasi elektron",
+    "Sistem periodik unsur",
+    "Ikatan kimia — ion, kovalen, logam",
+    "Bentuk molekul & kepolaran",
+    "Stoikiometri — mol, massa, volume, pereaksi pembatas",
+  ]),
+  ...mk("Kimia", "SMA 10", "Kelas 10 (SMA)", "Larutan & Redoks", [
+    "Larutan elektrolit & non-elektrolit",
+    "Konsep reaksi redoks & bilangan oksidasi",
+    "Tata nama senyawa",
+    "Persamaan reaksi & penyetaraan",
+  ]),
+  ...mk("Kimia", "SMA 11", "Kelas 11 (SMA)", "Termokimia & Kinetika", [
+    "Termokimia — entalpi, Hukum Hess, kalorimeter",
+    "Laju reaksi & faktor yang memengaruhi",
+    "Kesetimbangan kimia & tetapan Kc/Kp",
+    "Pergeseran kesetimbangan (Le Chatelier)",
+  ]),
+  ...mk("Kimia", "SMA 11", "Kelas 11 (SMA)", "Asam-Basa & Kesetimbangan", [
+    "Teori asam-basa (Arrhenius, Bronsted-Lowry, Lewis)",
+    "pH larutan & perhitungannya",
+    "Hidrolisis garam",
+    "Larutan penyangga (buffer)",
+    "Titrasi asam-basa",
+    "Kelarutan & hasil kali kelarutan (Ksp)",
+  ]),
+  ...mk("Kimia", "SMA 12", "Kelas 12 (SMA)", "Sifat Koligatif & Unsur", [
+    "Sifat koligatif larutan — penurunan tekanan uap, kenaikan titik didih, penurunan titik beku, tekanan osmotik",
+    "Kimia unsur — golongan utama & transisi",
+    "Senyawa karbon & gugus fungsi",
+    "Reaksi senyawa karbon",
+    "Makromolekul — polimer, karbohidrat, protein, lemak",
+  ]),
+
+  ...mk("Biologi", "SMA 10", "Kelas 10 (SMA)", "Keanekaragaman Hayati", [
+    "Keanekaragaman hayati & klasifikasi",
+    "Virus — struktur, replikasi, peran",
+    "Bakteri & archaebacteria",
+    "Jamur (fungi) — ciri & peran",
+    "Plantae — lumut, paku, tumbuhan berbiji",
+    "Animalia — invertebrata & vertebrata",
+  ]),
+  ...mk("Biologi", "SMA 10", "Kelas 10 (SMA)", "Ekologi", [
+    "Ekosistem & aliran energi",
+    "Daur biogeokimia",
+    "Populasi & komunitas",
+    "Perubahan lingkungan & pencemaran",
+  ]),
+  ...mk("Biologi", "SMA 11", "Kelas 11 (SMA)", "Sel & Jaringan", [
+    "Struktur & fungsi sel",
+    "Transport membran — difusi, osmosis, transpor aktif",
+    "Jaringan tumbuhan & hewan",
+    "Sistem gerak — rangka & otot",
+    "Sistem sirkulasi — jantung, darah, pembuluh",
+  ]),
+  ...mk("Biologi", "SMA 11", "Kelas 11 (SMA)", "Sistem Organ", [
+    "Sistem pencernaan",
+    "Sistem pernapasan",
+    "Sistem ekskresi — ginjal, kulit, paru, hati",
+    "Sistem koordinasi — saraf, hormon, indra",
+    "Sistem reproduksi",
+    "Sistem imun",
+  ]),
+  ...mk("Biologi", "SMA 12", "Kelas 12 (SMA)", "Metabolisme & Genetika", [
+    "Pertumbuhan & perkembangan tumbuhan",
+    "Enzim & metabolisme",
+    "Fotosintesis & respirasi sel",
+    "Materi genetik — DNA, RNA, sintesis protein",
+    "Pembelahan sel — mitosis & meiosis",
+    "Hukum Mendel & persilangan",
+  ]),
+  ...mk("Biologi", "SMA 12", "Kelas 12 (SMA)", "Evolusi & Bioteknologi", [
+    "Teori evolusi & bukti-bukti",
+    "Seleksi alam & spesiasi",
+    "Bioteknologi — rekayasa genetika, kloning",
+    "Dampak bioteknologi",
+  ]),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // KURIKULUM NASIONAL — SMA IPS & BAHASA
+  // ═══════════════════════════════════════════════════════════════════════════
+  ...mk("Ekonomi", "SMA 10", "Kelas 10 (SMA)", "Dasar Ekonomi", [
+    "Konsep dasar ilmu ekonomi — kelangkaan, pilihan, biaya peluang",
+    "Masalah pokok ekonomi & sistem ekonomi",
+    "Pelaku ekonomi — rumah tangga, perusahaan, pemerintah",
+    "Permintaan, penawaran & keseimbangan pasar",
+    "Elastisitas permintaan & penawaran",
+    "Pasar & struktur pasar",
+  ]),
+  ...mk("Ekonomi", "SMA 11", "Kelas 11 (SMA)", "Makroekonomi", [
+    "Pendapatan nasional — PDB, PNB, metode perhitungan",
+    "Pertumbuhan & pembangunan ekonomi",
+    "Inflasi — jenis, sebab, dampak",
+    "Kebijakan fiskal & moneter",
+    "APBN & APBD",
+    "Perpajakan",
+    "Kerja sama ekonomi internasional & perdagangan internasional",
+  ]),
+  ...mk("Ekonomi", "SMA 12", "Kelas 12 (SMA)", "Badan Usaha & Manajemen", [
+    "BUMN, BUMD, BUMS & koperasi",
+    "Manajemen — fungsi & bidang",
+    "Pasar modal — saham, obligasi, reksa dana",
+    "Akuntansi dasar sebagai alat pengambilan keputusan",
+  ]),
+
+  ...mk("Akuntansi", "SMA 11", "Kelas 11 (SMA)", "Siklus Akuntansi", [
+    "Persamaan dasar akuntansi",
+    "Transaksi & bukti transaksi",
+    "Jurnal umum",
+    "Buku besar & neraca saldo",
+    "Jurnal penyesuaian",
+    "Neraca lajur (worksheet)",
+  ]),
+  ...mk("Akuntansi", "SMA 12", "Kelas 12 (SMA)", "Laporan Keuangan", [
+    "Laporan laba rugi",
+    "Laporan perubahan modal/ekuitas",
+    "Neraca (posisi keuangan)",
+    "Jurnal penutup & penutupan buku",
+    "Akuntansi perusahaan dagang — jurnal khusus",
+    "Persediaan — FIFO, LIFO, rata-rata",
+  ]),
+
+  ...mk("Sejarah", "SMA 10", "Kelas 10 (SMA)", "Sejarah Indonesia", [
+    "Konsep berpikir sejarah — kronologis, diakronik, sinkronik",
+    "Masa pra-aksara & masuknya Hindu-Buddha",
+    "Kerajaan Islam di Nusantara",
+    "Kolonialisme & imperialisme Eropa",
+    "Historiografi Indonesia",
+  ]),
+  ...mk("Sejarah", "SMA 11", "Kelas 11 (SMA)", "Pergerakan & Kemerdekaan", [
+    "Pergerakan nasional Indonesia",
+    "Pendudukan Jepang",
+    "Proklamasi kemerdekaan",
+    "Revolusi mempertahankan kemerdekaan",
+    "Konferensi Meja Bundar",
+  ]),
+  ...mk("Sejarah", "SMA 12", "Kelas 12 (SMA)", "Indonesia Modern & Dunia", [
+    "Demokrasi liberal & terpimpin",
+    "Orde Baru — pembangunan & krisis",
+    "Reformasi 1998",
+    "Perang Dunia I & II",
+    "Perang Dingin",
+    "Dekolonisasi Asia-Afrika & Gerakan Non-Blok",
+  ]),
+
+  ...mk("Geografi", "SMA 10", "Kelas 10 (SMA)", "Dasar Geografi", [
+    "Hakikat, ruang lingkup & prinsip geografi",
+    "Peta, proyeksi, skala & interpretasi",
+    "Penginderaan jauh & SIG",
+    "Litosfer — tenaga endogen & eksogen",
+    "Atmosfer — cuaca & iklim",
+    "Hidrosfer — siklus air, sungai, danau",
+  ]),
+  ...mk("Geografi", "SMA 11", "Kelas 11 (SMA)", "Lingkungan & SDA", [
+    "Biosfer — persebaran flora & fauna",
+    "Antroposfer — dinamika penduduk",
+    "Sumber daya alam & pengelolaannya",
+    "Lingkungan hidup & pembangunan berkelanjutan",
+    "Mitigasi bencana alam",
+  ]),
+  ...mk("Geografi", "SMA 12", "Kelas 12 (SMA)", "Kewilayahan", [
+    "Pola keruangan desa & kota",
+    "Interaksi desa-kota",
+    "Wilayah & pewilayahan",
+    "Negara maju & berkembang",
+    "Pusat pertumbuhan & pengembangan wilayah",
+  ]),
+
+  ...mk("Sosiologi", "SMA 10", "Kelas 10 (SMA)", "Interaksi & Sosialisasi", [
+    "Fungsi & peran sosiologi",
+    "Interaksi sosial — syarat & bentuk",
+    "Sosialisasi & pembentukan kepribadian",
+    "Nilai & norma sosial",
+    "Perilaku menyimpang",
+    "Lembaga sosial",
+  ]),
+  ...mk("Sosiologi", "SMA 11", "Kelas 11 (SMA)", "Struktur & Konflik", [
+    "Struktur sosial & diferensiasi",
+    "Stratifikasi sosial",
+    "Mobilitas sosial",
+    "Konflik sosial & integrasi",
+    "Kelompok sosial & dinamikanya",
+  ]),
+  ...mk("Sosiologi", "SMA 12", "Kelas 12 (SMA)", "Perubahan Sosial", [
+    "Perubahan sosial & modernisasi",
+    "Globalisasi & dampaknya",
+    "Ketimpangan sosial",
+    "Kearifan lokal & pemberdayaan komunitas",
+    "Evaluasi pemberdayaan",
+  ]),
+
+  ...mk("Bahasa Indonesia", "SMA 10", "Kelas 10 (SMA)", "Teks & Struktur", [
+    "Teks laporan hasil observasi",
+    "Teks eksposisi",
+    "Teks anekdot",
+    "Teks negosiasi",
+    "Teks biografi",
+    "Puisi — diksi, majas, imaji",
+  ]),
+  ...mk("Bahasa Indonesia", "SMA 11", "Kelas 11 (SMA)", "Teks Akademik & Sastra", [
+    "Teks prosedur",
+    "Teks eksplanasi",
+    "Teks ceramah",
+    "Teks cerpen — unsur intrinsik & ekstrinsik",
+    "Teks proposal",
+    "Teks drama",
+  ]),
+  ...mk("Bahasa Indonesia", "SMA 12", "Kelas 12 (SMA)", "Opini & Surat", [
+    "Teks editorial",
+    "Teks artikel opini",
+    "Teks kritik & esai",
+    "Teks novel — analisis unsur",
+    "Surat lamaran pekerjaan",
+    "Debat — argumen & tata cara",
+  ]),
+
+  ...mk("Bahasa Inggris", "SMA 10", "Kelas 10 (SMA)", "Genre Text Dasar", [
+    "Narrative text — legend, fable, fairy tale",
+    "Descriptive text",
+    "Recount text",
+    "Procedure text",
+    "Report text",
+    "Simple present, past, future tense",
+  ]),
+  ...mk("Bahasa Inggris", "SMA 11", "Kelas 11 (SMA)", "Exposition & Letter", [
+    "Analytical exposition",
+    "Hortatory exposition",
+    "Explanation text",
+    "Personal & formal letter",
+    "Passive voice & reported speech",
+    "Conditional sentences",
+  ]),
+  ...mk("Bahasa Inggris", "SMA 12", "Kelas 12 (SMA)", "Discussion & Application", [
+    "News item",
+    "Discussion text",
+    "Review text",
+    "Application letter & CV",
+    "Caption text",
+    "Conjunction & sentence connectors",
+  ]),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PENGUATAN MYP/DP — Sciences MYP 2 & 5, DP Humanities & Languages
+  // ═══════════════════════════════════════════════════════════════════════════
+  ...mk("Sciences", "MYP 2", "MYP 2 / Grade 7", "Biology & Chemistry Foundations", [
+    "Sel & organel dasar",
+    "Klasifikasi makhluk hidup sederhana",
+    "Reproduksi tumbuhan & hewan",
+    "Zat, campuran & pemisahan",
+    "Atom, unsur & senyawa",
+    "Reaksi kimia sederhana",
+  ]),
+  ...mk("Sciences", "MYP 2", "MYP 2 / Grade 7", "Physics Foundations", [
+    "Gaya & gerak",
+    "Energi — bentuk & transfer",
+    "Kelistrikan dasar — rangkaian sederhana",
+    "Magnet & elektromagnet",
+    "Bunyi & cahaya",
+  ]),
+  ...mk("Sciences", "MYP 5", "MYP 5 / Grade 10", "Biology & Chemistry", [
+    "Genetika dasar — DNA & pewarisan sifat",
+    "Evolusi & seleksi alam",
+    "Ekosistem & daur materi",
+    "Ikatan kimia & stoikiometri dasar",
+    "Asam-basa & reaksi redoks",
+  ]),
+  ...mk("Sciences", "MYP 5", "MYP 5 / Grade 10", "Physics", [
+    "Kinematika — GLB, GLBB, parabola",
+    "Hukum Newton & momentum",
+    "Energi, usaha & daya",
+    "Gelombang & bunyi",
+    "Listrik & rangkaian",
+  ]),
+
+  ...mk("History", "DP", "IB DP", "Prescribed Subjects & World History", [
+    "Military leaders — perang & strategi",
+    "Conquest & its impact",
+    "Rights & protest movements",
+    "Conflict & intervention",
+    "Perang Dunia I — sebab & dampak",
+    "Perang Dunia II & Perang Dingin",
+    "Dekolonisasi & kemerdekaan Asia-Afrika",
+    "Revolusi industri & sosial",
+    "Totalitarian regimes",
+  ]),
+  ...mk("Geography", "DP", "IB DP", "Core Themes", [
+    "Populasi & distribusi penduduk",
+    "Climate change & kerentanan",
+    "Sumber daya & konsumsi global",
+    "Globalisasi & interaksi spasial",
+    "Urbanisasi & megakota",
+    "Pembangunan berkelanjutan",
+    "Mitigasi & adaptasi bencana",
+    "Food security & pertanian",
+  ]),
+  ...mk("Psychology", "DP", "IB DP", "Core Approaches", [
+    "Biological approach — otak & perilaku",
+    "Cognitive approach — memori & berpikir",
+    "Sociocultural approach — budaya & kelompok",
+    "Research methods — eksperimen, studi kasus, korelasi",
+    "Ethics in psychological research",
+    "Abnormal psychology — gangguan & terapi",
+    "Developmental psychology",
+  ]),
+  ...mk("English A", "DP", "IB DP", "Language & Literature", [
+    "Textual analysis — prose, poetry, drama",
+    "Comparative essay structure",
+    "Literary devices — imagery, symbolism, tone",
+    "Paper 1 guided analysis",
+    "Paper 2 comparative study",
+    "Individual Oral (IO) — global issue & extract",
+    "Higher Level Essay (HLE)",
+  ]),
+  ...mk("English B", "DP", "IB DP", "Language Acquisition", [
+    "Reading comprehension — text types",
+    "Writing — blog, letter, article, speech",
+    "Listening — audio & video comprehension",
+    "Speaking — individual oral & interaction",
+    "Theme: identities, experiences, human ingenuity",
+    "Theme: social organization, sharing the planet",
+  ]),
+  ...mk("French B", "DP", "IB DP", "Language Acquisition", [
+    "Compréhension écrite & orale",
+    "Production écrite — formats variés",
+    "Individual oral & interaction",
+    "Grammaire — temps, subjonctif, pronoms",
+  ]),
+  ...mk("Spanish B", "DP", "IB DP", "Language Acquisition", [
+    "Comprensión de lectura & auditiva",
+    "Expresión escrita — formatos variados",
+    "Oral individual & interacción",
+    "Gramática — tiempos, subjuntivo, pronombres",
+  ]),
+  ...mk("Mandarin B", "DP", "IB DP", "Language Acquisition", [
+    "阅读理解 & 听力理解",
+    "写作 — 书信、日记、短文",
+    "口语 — 个人口头与互动",
+    "语法 — 量词、句型、时态标记",
+  ]),
+  ...mk("Bahasa Indonesia B", "DP", "IB DP", "Language Acquisition", [
+    "Pemahaman bacaan & mendengarkan",
+    "Menulis — surat, blog, artikel, pidato",
+    "Individual oral & interaksi",
+    "Tata bahasa — afiksasi, kalimat efektif, ejaan",
+  ]),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AP (College Board)
+  // ═══════════════════════════════════════════════════════════════════════════
+  ...mk("AP Calculus AB", "AP", "AP", "Differential & Integral Calculus", [
+    "Limits & continuity",
+    "Derivatives — rules & applications",
+    "Related rates & optimization",
+    "Integrals — definite & indefinite",
+    "Fundamental Theorem of Calculus",
+    "Applications of integration — area & volume",
+  ]),
+  ...mk("AP Calculus BC", "AP", "AP", "Calculus BC", [
+    "Parametric & polar calculus",
+    "Series — convergence & Taylor/Maclaurin",
+    "Integration techniques — parts, partial fractions",
+    "Improper integrals",
+    "Vector-valued functions & motion",
+  ]),
+  ...mk("AP Statistics", "AP", "AP", "Statistics", [
+    "Exploratory data analysis — distributions & graphs",
+    "Sampling & experimental design",
+    "Probability & random variables",
+    "Sampling distributions & CLT",
+    "Confidence intervals",
+    "Hypothesis testing — significance tests",
+  ]),
+  ...mk("AP Biology", "AP", "AP", "Biology", [
+    "Chemistry of life & macromolecules",
+    "Cell structure & function",
+    "Cellular energetics — respiration & photosynthesis",
+    "Cell communication & cycle",
+    "Heredity & gene expression",
+    "Natural selection & ecology",
+  ]),
+  ...mk("AP Chemistry", "AP", "AP", "Chemistry", [
+    "Atomic structure & periodicity",
+    "Chemical bonding & molecular geometry",
+    "Stoichiometry & reactions",
+    "Kinetics & equilibrium",
+    "Thermodynamics & electrochemistry",
+    "Acids, bases & buffers",
+  ]),
+  ...mk("AP Physics 1", "AP", "AP", "Algebra-Based Physics", [
+    "Kinematics & dynamics",
+    "Work, energy & power",
+    "Momentum & impulse",
+    "Circular motion & gravitation",
+    "Simple harmonic motion",
+    "Torque & rotational motion",
+    "Fluids & waves",
+  ]),
+  ...mk("AP Physics C: Mechanics", "AP", "AP", "Mechanics", [
+    "Kinematics with calculus",
+    "Newton's laws & friction",
+    "Work, energy & power",
+    "Systems of particles & momentum",
+    "Rotation — torque & angular momentum",
+    "Oscillations & gravitation",
+  ]),
+  ...mk("AP Microeconomics", "AP", "AP", "Microeconomics", [
+    "Supply, demand & elasticity",
+    "Consumer & producer surplus",
+    "Perfect competition & monopoly",
+    "Monopolistic competition & oligopoly",
+    "Factor markets & externalities",
+    "Government intervention",
+  ]),
+  ...mk("AP Macroeconomics", "AP", "AP", "Macroeconomics", [
+    "GDP, unemployment & inflation",
+    "Aggregate demand & supply",
+    "Fiscal & monetary policy",
+    "Money, banking & financial sector",
+    "Economic growth & international trade",
+  ]),
+  ...mk("AP World History: Modern", "AP", "AP", "World History", [
+    "Global tapestry 1200–1450",
+    "Networks of exchange 1450–1750",
+    "Land-based & maritime empires",
+    "Revolutions 1750–1900",
+    "Global conflicts 1900–present",
+    "Decolonization & globalization",
+  ]),
+  ...mk("AP US History", "AP", "AP", "US History", [
+    "Colonial America & revolution",
+    "Constitution & early republic",
+    "Civil War & reconstruction",
+    "Industrialization & progressive era",
+    "Great Depression & New Deal",
+    "Cold War & civil rights",
+    "Contemporary America",
+  ]),
+  ...mk("AP Psychology", "AP", "AP", "Psychology", [
+    "Research methods & statistics",
+    "Biological bases of behavior",
+    "Sensation & perception",
+    "Learning & memory",
+    "Cognition & intelligence",
+    "Development, personality & disorders",
+  ]),
+  ...mk("AP English Language & Composition", "AP", "AP", "Rhetoric & Composition", [
+    "Rhetorical analysis — appeals, tone, diction",
+    "Argument essay — claim, evidence, reasoning",
+    "Synthesis essay — sources & citations",
+    "Multiple choice — reading comprehension",
+    "Style, grammar & sentence variety",
+  ]),
+  ...mk("AP Computer Science A", "AP", "AP", "Java Programming", [
+    "Primitive types & objects",
+    "Control flow & iteration",
+    "Arrays & ArrayLists",
+    "Methods & recursion",
+    "Inheritance & polymorphism",
+    "Searching & sorting algorithms",
+  ]),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CAMBRIDGE O LEVEL
+  // ═══════════════════════════════════════════════════════════════════════════
+  ...mk("Mathematics (4024)", "O Level", "O Level", "Mathematics D", [
+    "Number, ratio & proportion",
+    "Algebra & equations",
+    "Functions & graphs",
+    "Geometry & mensuration",
+    "Trigonometry",
+    "Statistics & probability",
+  ]),
+  ...mk("Additional Mathematics (4037)", "O Level", "O Level", "Additional Mathematics", [
+    "Quadratics & polynomials",
+    "Indices, surds & logarithms",
+    "Binomial expansion",
+    "Trigonometric identities & equations",
+    "Differentiation & integration",
+    "Vectors & kinematics",
+  ]),
+  ...mk("Biology (5090)", "O Level", "O Level", "Biology", [
+    "Cell structure & organisation",
+    "Biological molecules & enzymes",
+    "Movement in & out of cells",
+    "Plant nutrition & transport",
+    "Human nutrition & systems",
+    "Reproduction, heredity & ecology",
+  ]),
+  ...mk("Chemistry (5070)", "O Level", "O Level", "Chemistry", [
+    "States of matter & atomic structure",
+    "Chemical bonding & formulas",
+    "Stoichiometry & the mole",
+    "Acids, bases & salts",
+    "Metals & electrochemistry",
+    "Organic chemistry basics",
+  ]),
+  ...mk("Physics (5054)", "O Level", "O Level", "Physics", [
+    "Measurement & motion",
+    "Forces, work & energy",
+    "Thermal physics & states of matter",
+    "Waves & light",
+    "Electricity & magnetism",
+    "Atomic physics & radioactivity",
+  ]),
+  ...mk("Economics (2281)", "O Level", "O Level", "Economics", [
+    "Basic economic problem & factors of production",
+    "Price mechanism — demand & supply",
+    "Market structures & elasticity",
+    "Money, banking & inflation",
+    "Government & the economy",
+    "International trade & development",
+  ]),
+  ...mk("English Language (1123)", "O Level", "O Level", "English Language", [
+    "Directed writing — letters, reports, speeches",
+    "Narrative & descriptive writing",
+    "Reading comprehension",
+    "Summary writing",
+    "Grammar, punctuation & vocabulary",
+  ]),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CAMBRIDGE A / AS LEVEL
+  // ═══════════════════════════════════════════════════════════════════════════
+  ...mk("Mathematics (9709)", "A Level", "A Level", "Pure Mathematics", [
+    "Quadratics, functions & transformations",
+    "Coordinate geometry & circles",
+    "Trigonometry & identities",
+    "Sequences & series",
+    "Differentiation & integration",
+    "Differential equations basics",
+    "Vectors & complex numbers",
+  ]),
+  ...mk("Mathematics (9709)", "A Level", "A Level", "Statistics & Mechanics", [
+    "Probability & distributions",
+    "Normal & binomial distribution",
+    "Hypothesis testing",
+    "Kinematics in one & two dimensions",
+    "Forces & Newton's laws",
+    "Moments & equilibrium",
+  ]),
+  ...mk("Further Mathematics (9231)", "A Level", "A Level", "Further Pure", [
+    "Complex numbers & polar form",
+    "Matrices & linear transformations",
+    "Hyperbolic functions",
+    "Further calculus & series",
+    "Polar coordinates & conics",
+  ]),
+  ...mk("Biology (9700)", "A Level", "A Level", "Biology", [
+    "Cell structure & microscopy",
+    "Biological molecules & enzymes",
+    "Cell membranes & transport",
+    "Cell division & genetics",
+    "Energy & respiration / photosynthesis",
+    "Homeostasis, coordination & ecology",
+  ]),
+  ...mk("Chemistry (9701)", "A Level", "A Level", "Chemistry", [
+    "Atomic structure & bonding",
+    "Energetics & kinetics",
+    "Equilibria & acids-bases",
+    "Electrochemistry & transition metals",
+    "Organic chemistry & mechanisms",
+    "Spectroscopy & analysis",
+  ]),
+  ...mk("Physics (9702)", "A Level", "A Level", "Physics", [
+    "Physical quantities & kinematics",
+    "Dynamics & forces",
+    "Work, energy & circular motion",
+    "Oscillations & waves",
+    "Electricity & capacitance",
+    "Magnetic fields & induction",
+    "Quantum & nuclear physics",
+  ]),
+  ...mk("Economics (9708)", "A Level", "A Level", "Economics", [
+    "Scarcity, choice & opportunity cost",
+    "Price system & market failure",
+    "Government intervention",
+    "Macroeconomic objectives & policies",
+    "International trade & exchange rates",
+    "Economic development",
+  ]),
+  ...mk("Psychology (9990)", "A Level", "A Level", "Psychology", [
+    "Research methods & experimental design",
+    "Biological, cognitive & learning approaches",
+    "Social approach — conformity & obedience",
+    "Clinical & abnormal psychology",
+    "Issues, debates & ethics",
+  ]),
+  ...mk("Computer Science (9618)", "A Level", "A Level", "Computer Science", [
+    "Data representation & number systems",
+    "Processors, memory & logic circuits",
+    "Programming — data structures & algorithms",
+    "Networks & the internet",
+    "Databases & SQL",
+    "Object-oriented programming",
+  ]),
 ];
 
 // ─── Canonical subject name map ────────────────────────────────────────────
@@ -1573,6 +2438,15 @@ const SUBJECT_ALIASES: Record<string, string[]> = {
   "english a":          ["English A", "English"],
   "english b":          ["English B", "English"],
   "bahasa indonesia":   ["Bahasa Indonesia"],
+  "bahasa inggris":     ["Bahasa Inggris", "English"],
+  "akuntansi":          ["Akuntansi", "Accounting"],
+  "accounting":         ["Accounting", "Akuntansi"],
+  "sosiologi":          ["Sosiologi", "Sociology"],
+  "sociology":          ["Sociology", "Sosiologi"],
+  "ipa":                ["IPA", "Sciences", "Fisika", "Kimia", "Biologi"],
+  "ips":                ["IPS", "Ekonomi", "Sejarah", "Geografi", "Sosiologi"],
+  "sastra indonesia":   ["Sastra Indonesia", "Bahasa Indonesia"],
+  "sastra inggris":     ["Sastra Inggris", "English Literature"],
   "psychology":         ["Psychology"],
   "tok":                ["Theory of Knowledge", "TOK"],
   "theory of knowledge":["Theory of Knowledge", "TOK"],
@@ -1590,19 +2464,37 @@ export function resolveSubjectAliases(subject: string): string[] {
 
 // ─── Search function ────────────────────────────────────────────────────────
 
-export function searchTopics(query: string, subject?: string, studentLevel?: string): TopicEntry[] {
+export function searchTopics(
+  query: string,
+  opts: { subject?: string; grade?: string; curriculum?: string } = {},
+): TopicEntry[] {
   if (!query || query.length < 1) return [];
   const q = query.trim().toLowerCase();
 
-  const allowedSubjects = subject
-    ? new Set(resolveSubjectAliases(subject).map(s => s.toLowerCase()))
+  const allowedSubjects = opts.subject
+    ? new Set(resolveSubjectAliases(opts.subject).map(s => s.toLowerCase()))
     : null;
 
-  const sfWords = subject
-    ? subject.toLowerCase().split(/[\s,&-]+/).filter(w => w.length > 2)
+  const sfWords = opts.subject
+    ? opts.subject.toLowerCase().split(/[\s,&-]+/).filter(w => w.length > 2)
     : [];
 
-  const studentMyp = inferMypLevel(studentLevel);
+  const target = targetLevelFor(opts.curriculum, opts.grade);
+  const levelOk = curriculumLevelFilter(opts.curriculum);
+
+  // Family prefix untuk bonus "satu kurikulum, beda kelas" (mis. SMA 10 vs SMA 11).
+  const familyOf = (level: string): string => {
+    const l = level.toLowerCase();
+    if (l.startsWith("myp")) return "myp";
+    if (l.startsWith("smp")) return "smp";
+    if (l.startsWith("sma")) return "sma";
+    if (l === "dp") return "dp";
+    if (l === "igcse") return "igcse";
+    if (l === "ap") return "ap";
+    if (l.startsWith("a level")) return "a level";
+    if (l.startsWith("o level")) return "o level";
+    return l;
+  };
 
   const scored = IB_TOPICS.map((t) => {
     const tLow = t.topic.toLowerCase();
@@ -1631,25 +2523,27 @@ export function searchTopics(query: string, subject?: string, studentLevel?: str
 
     // Grade-level relevance bonus — prioritize student's grade
     let gradeBonus = 0;
-    if (studentMyp) {
-      if (lLow === studentMyp.toLowerCase()) {
-        gradeBonus = 30;  // exact grade match
-      } else if (studentMyp === "MYP 3-4" && (lLow === "myp 3-4" || lLow === "myp 3" || lLow === "myp 4")) {
-        gradeBonus = 30;
-      } else if (lLow === "myp 3-4" && (studentMyp === "MYP 3" || studentMyp === "MYP 4")) {
-        gradeBonus = 30;
-      } else if (lLow.includes("igcse") || lLow.includes("dp")) {
-        gradeBonus = 5;   // still relevant but not grade-matched
+    if (target) {
+      const targetLow = target.toLowerCase();
+      if (lLow === targetLow) {
+        gradeBonus = 30; // exact grade match
+      } else if (familyOf(lLow) === familyOf(targetLow)) {
+        gradeBonus = 8;  // same curriculum family, different grade
       }
     }
 
     return { entry: t, score: contentScore + subjectBonus + gradeBonus };
   })
-  .filter(x => x.score > 0)
-  .sort((a, b) => b.score - a.score)
-  .slice(0, 12);
+  .filter(x => x.score > 0);
 
-  return scored.map(x => x.entry);
+  // Hard-filter kurikulum; kalau kosong, fallback ke semua hasil agar search tetap berguna.
+  const byCurriculum = levelOk ? scored.filter(x => levelOk(x.entry.level)) : scored;
+  const final = byCurriculum.length > 0 ? byCurriculum : scored;
+
+  return final
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 12)
+    .map(x => x.entry);
 }
 
 // ─── Topic browser (grade-filtered chip groups) ─────────────────────────────
@@ -1659,7 +2553,7 @@ export interface TopicGroup { unit: string; topics: TopicEntry[]; }
 export function browseTopicsForSubjects(
   subjects: string[],
   studentLevel?: string,
-  _curriculum?: string,
+  curriculum?: string,
   maxGroups = 8,
 ): TopicGroup[] {
   if (subjects.length === 0) return [];
@@ -1671,20 +2565,24 @@ export function browseTopicsForSubjects(
     }
   }
 
-  const studentMyp = inferMypLevel(studentLevel);
+  const target = targetLevelFor(curriculum, studentLevel);
+  const levelOk = curriculumLevelFilter(curriculum);
 
   const scored = IB_TOPICS
     .filter((t) => resolvedSubjects.has(t.subject.toLowerCase()))
+    .filter((t) => (levelOk ? levelOk(t.level) : true))
     .map((t) => {
       let score = 1;
       // If student has a known grade, prioritize grade-matched topics
-      if (studentMyp) {
+      if (target) {
         const lLow = t.level.toLowerCase();
-        if (lLow === studentMyp.toLowerCase()) {
+        if (lLow === target.toLowerCase()) {
           score = 20;
-        } else if (studentMyp === "MYP 3-4" && (lLow === "myp 3-4")) {
-          score = 20;
-        } else if (lLow.includes("igcse") || lLow.includes("dp") || lLow.includes("myp")) {
+        } else if (
+          lLow.includes("myp") || lLow.includes("dp") || lLow.includes("igcse") ||
+          lLow.includes("smp") || lLow.includes("sma") || lLow.includes("ap") ||
+          lLow.includes("a level") || lLow.includes("o level")
+        ) {
           score = 3;  // still show, but deprioritized
         }
       }
