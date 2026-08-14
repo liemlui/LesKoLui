@@ -11,6 +11,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.42.0",
+    date: "2026-08-14",
+    title: "Laporan Bulanan Seragam — semangat, keseriusan, topik, durasi & tanda tangan di semua layout",
+    items: [
+      "Blok meta seragam per sesi (SessionMeta) kini tampil di semua layout: badge semangat (mood) + label keseriusan (Sangat Baik/Baik/Cukup/Kurang Fokus/Perlu Perhatian) tanpa angka mentah",
+      "Topik spesifik, durasi & jam, prediksi nilai, area 'perlu perhatian', dan tanda tangan murid kini menjadi field terstruktur dan selalu tampil di setiap entri sesi",
+      "Tanda tangan murid dicetak langsung di tiap entri sesi (menggantikan halaman 'Rekap Tanda Tangan' terpisah)",
+      "Layout Rapor Style menghapus kolom angka 'Engage' dan menampilkan meta standar di kolom catatan",
+    ],
+  },
+  {
     version: "v1.41.0",
     date: "2026-08-11",
     title: "Penguatan Keuangan & Laporan — invoice aman, laporan susulan, dan UI mobile",

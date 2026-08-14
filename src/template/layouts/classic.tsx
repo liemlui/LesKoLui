@@ -1,7 +1,7 @@
 import type { Layout } from "../types";
 import { Deco } from "../deco";
 import {
-  HeaderEl, LabelEl, DetailsEl, PhotoEl, NarrEl, EngagementBar,
+  HeaderEl, LabelEl, PhotoEl, NarrEl, SessionMeta,
   SummaryEl, onColor,
 } from "./helpers";
 
@@ -20,9 +20,9 @@ export const cards: Layout = {
             <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
             <div style={{ display: "grid", gridTemplateColumns: right ? "1fr 108px" : "108px 1fr", gap: 11, marginTop: 9, alignItems: "start" }}>
               {right ? (
-                <><div><NarrEl t={t}>{e.narrative}</NarrEl><DetailsEl e={e} t={t} c={c} compact /><EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} /></div>{photoBox}</>
+                <><div><NarrEl t={t}>{e.narrative}</NarrEl><SessionMeta e={e} t={t} /></div>{photoBox}</>
               ) : (
-                <>{photoBox}<div><NarrEl t={t}>{e.narrative}</NarrEl><DetailsEl e={e} t={t} c={c} compact /><EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} /></div></>
+                <>{photoBox}<div><NarrEl t={t}>{e.narrative}</NarrEl><SessionMeta e={e} t={t} /></div></>
               )}
             </div>
           </div>
@@ -48,7 +48,7 @@ export const timeline: Layout = {
               <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
               <div style={{ display: "grid", gridTemplateColumns: "96px 1fr", gap: 11, marginTop: 9, alignItems: "start" }}>
                 <div style={{ height: 72 }}><PhotoEl t={t} url={e.photoUrl} color={c} /></div>
-                <div><NarrEl t={t}>{e.narrative}</NarrEl><DetailsEl e={e} t={t} c={c} compact /><EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} /></div>
+                <div><NarrEl t={t}>{e.narrative}</NarrEl><SessionMeta e={e} t={t} /></div>
               </div>
             </div>
           );
@@ -86,8 +86,7 @@ export const scrapbook: Layout = {
                 <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
                 <div style={{ marginTop: 6, background: t.ink + "08", padding: "8px 10px", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,.06)" }}>
                   <NarrEl t={t}>{e.narrative}</NarrEl>
-                  <DetailsEl e={e} t={t} c={c} compact />
-                  <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
+                  <SessionMeta e={e} t={t} />
                 </div>
               </div>
             </div>
@@ -120,8 +119,7 @@ export const grid: Layout = {
                 <p style={{ fontFamily: t.fontBody, fontSize: 11, lineHeight: 1.5, color: t.ink, margin: 0 }}>
                   {e.narrative}
                 </p>
-                <DetailsEl e={e} t={t} c={c} compact />
-                <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
+                <SessionMeta e={e} t={t} />
               </div>
             </div>
           );
@@ -154,8 +152,7 @@ export const compact: Layout = {
                 <p style={{ fontFamily: t.fontBody, fontSize: 11, lineHeight: 1.45, color: t.ink, margin: "2px 0 0" }}>
                   {e.narrative}
                 </p>
-                <DetailsEl e={e} t={t} c={c} compact />
-                <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
+                <SessionMeta e={e} t={t} />
               </div>
             </div>
           );

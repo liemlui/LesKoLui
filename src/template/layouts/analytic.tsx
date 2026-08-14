@@ -1,7 +1,7 @@
 import type { Layout } from "../types";
 import { Deco } from "../deco";
 import {
-  HeaderEl, LabelEl, PhotoEl, NarrEl, EngagementBar, DetailsEl,
+  HeaderEl, LabelEl, PhotoEl, NarrEl, SessionMeta,
   SummaryEl, onColor, entryDay,
 } from "./helpers";
 
@@ -35,6 +35,7 @@ export const summary: Layout = {
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: 10, fontWeight: 600, color: c, margin: 0 }}>{e.date} · {e.subject.split(",")[0]}</p>
               <p style={{ fontFamily: t.fontBody, fontSize: 10.5, lineHeight: 1.35, color: t.ink, margin: "1px 0 0" }}>{e.narrative}</p>
+              <SessionMeta e={e} t={t} />
             </div>
           </div>
         );
@@ -78,6 +79,7 @@ export const growth: Layout = {
               <div style={{ flex: 1 }}>
                 <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
                 <NarrEl t={t}>{e.narrative}</NarrEl>
+                <SessionMeta e={e} t={t} />
               </div>
             </div>
           );
@@ -110,8 +112,7 @@ export const dossier: Layout = {
                 </div>
                 <div style={{ flex: 1 }}>
                   <NarrEl t={t}>{e.narrative}</NarrEl>
-                  <DetailsEl e={e} t={t} c={c} compact />
-                  <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
+                  <SessionMeta e={e} t={t} />
                 </div>
               </div>
             </div>
@@ -166,6 +167,7 @@ export const analytics: Layout = {
               <div style={{ flex: 1 }}>
                 <span style={{ fontSize: 10, fontWeight: 700, color: c }}>{e.date} · {e.subject.split(",")[0]}</span>
                 <p style={{ fontFamily: t.fontBody, fontSize: 10.5, lineHeight: 1.35, color: t.ink, margin: "2px 0 0" }}>{e.narrative}</p>
+                <SessionMeta e={e} t={t} />
               </div>
             </div>
           );
@@ -195,7 +197,7 @@ export const narrative: Layout = {
                 <p style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 14, color: c, margin: "0 0 4px" }}>{e.date}</p>
                 <span style={{ fontSize: 10, fontWeight: 600, color: t.muted, display: "block", marginBottom: 6 }}>{e.subject}</span>
                 <p style={{ fontFamily: t.fontBody, fontSize: 13, lineHeight: 1.65, color: t.ink, margin: 0 }}>{e.narrative}</p>
-                <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
+                <SessionMeta e={e} t={t} />
               </div>
             </div>
           </div>

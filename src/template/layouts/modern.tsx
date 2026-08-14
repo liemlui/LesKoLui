@@ -2,10 +2,10 @@ import React from "react";
 import type { Layout } from "../types";
 import { Deco } from "../deco";
 import {
-  HeaderEl, LabelEl, DetailsEl, PhotoEl, NarrEl, EngagementBar,
+  HeaderEl, LabelEl, PhotoEl, NarrEl, SessionMeta,
   SummaryEl, Sparkline, EMPTY_SUBJECT,
   entryDateShort, entrySubject, entrySubjectShort,
-  entryNarrative, detailText, truncateText,
+  entryNarrative, truncateText,
 } from "./helpers";
 
 export const milestone: Layout = {
@@ -35,8 +35,7 @@ export const milestone: Layout = {
                   </div>
                   <div style={{ flex: 1 }}>
                     <NarrEl t={t}>{e.narrative}</NarrEl>
-                    <DetailsEl e={e} t={t} c={c} compact />
-                    <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
+                    <SessionMeta e={e} t={t} />
                   </div>
                 </div>
               </div>
@@ -65,18 +64,13 @@ export const split: Layout = {
               <div style={{ height: 100, borderRadius: 10, overflow: "hidden", marginBottom: 6 }}>
                 <PhotoEl t={t} url={e.photoUrl} color={c} />
               </div>
-              {e.engagementScore != null && (
-                <div style={{ textAlign: "center" }}>
-                  <span style={{ fontSize: 20, fontWeight: 800, color: c }}>{e.engagementScore}</span>
-                  <span style={{ fontSize: 10, color: t.muted }}>/10</span>
-                </div>
-              )}
             </div>
             {/* Right: Label + Narrative */}
             <div>
               <LabelEl t={t} c={c}>{e.date}</LabelEl>
               <p style={{ fontSize: 10, fontWeight: 600, color: t.muted, margin: "4px 0" }}>{e.subject}</p>
               <NarrEl t={t}>{e.narrative}</NarrEl>
+              <SessionMeta e={e} t={t} />
             </div>
           </div>
         );
@@ -113,8 +107,7 @@ export const journal: Layout = {
                 </div>
                 <div style={{ flex: 1 }}>
                   <p style={{ fontFamily: t.fontBody, fontSize: 14, lineHeight: 1.5, color: t.ink, margin: 0 }}>{e.narrative}</p>
-                  <DetailsEl e={e} t={t} c={c} compact />
-                  <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
+                  <SessionMeta e={e} t={t} />
                 </div>
               </div>
             </div>
@@ -146,8 +139,7 @@ export const overview: Layout = {
             </div>
             <div style={{ padding: "12px 14px", background: c + "08" }}>
               <NarrEl t={t}>{e.narrative}</NarrEl>
-              <DetailsEl e={e} t={t} c={c} compact />
-              <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
+              <SessionMeta e={e} t={t} />
             </div>
           </div>
         );
@@ -176,12 +168,9 @@ export const minimal: Layout = {
                   <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
                     <span style={{ fontSize: 11, fontWeight: 700, color: c }}>{e.date}</span>
                     <span style={{ fontSize: 10, color: t.muted }}>{e.subject}</span>
-                    {e.engagementScore != null && (
-                      <span style={{ fontSize: 10, fontWeight: 700, color: c, marginLeft: "auto" }}>{e.engagementScore}/10</span>
-                    )}
                   </div>
                   <p style={{ fontFamily: t.fontBody, fontSize: 11.5, lineHeight: 1.55, color: t.ink, margin: 0 }}>{e.narrative}</p>
-                  <DetailsEl e={e} t={t} c={c} compact />
+                  <SessionMeta e={e} t={t} />
                 </div>
               </div>
               {i < d.entries.length - 1 && <div style={{ height: 1, background: t.muted + "15", marginTop: 16 }} />}
@@ -214,12 +203,9 @@ export const bullets: Layout = {
               <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 3 }}>
                 <span style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 11, color: c }}>{e.date}</span>
                 <span style={{ fontSize: 10, background: t.muted + "18", color: t.muted, padding: "1px 6px", borderRadius: 999 }}>{e.subject}</span>
-                {e.engagementScore != null && (
-                  <span style={{ fontSize: 10, fontWeight: 700, color: c }}>⚡{e.engagementScore}</span>
-                )}
               </div>
               <p style={{ fontFamily: t.fontBody, fontSize: 13, lineHeight: 1.5, color: t.ink, margin: 0 }}>{e.narrative}</p>
-              <DetailsEl e={e} t={t} c={c} compact />
+              <SessionMeta e={e} t={t} />
             </div>
           </div>
         );
@@ -272,18 +258,18 @@ export const compare: Layout = {
         {/* All sessions compact */}
         {d.entries.map((e, i) => {
           const c = t.palette[i % t.palette.length];
-          const meta = detailText(e, 1);
           return (
             <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, position: "relative", zIndex: 2, padding: "7px 8px", borderRadius: 8, background: c + "08", alignItems: "flex-start" }}>
               <div style={{ width: 30, height: 30, borderRadius: 6, overflow: "hidden", flexShrink: 0 }}>
                 <PhotoEl t={t} url={e.photoUrl} color={c} />
               </div>
               <span style={{ fontSize: 10, fontWeight: 600, color: c, width: 55, flexShrink: 0 }}>{entryDateShort(e)}</span>
-              <span style={{ fontFamily: t.fontBody, fontSize: 10, color: t.ink, flex: 1, lineHeight: 1.3 }}>
-                <strong style={{ color: c }}>{entrySubjectShort(e)}:</strong> {truncateText(entryNarrative(e), 62)}
-                {meta && <span style={{ display: "block", color: t.muted, fontSize: 10.5, marginTop: 1 }}>{meta}</span>}
-              </span>
-              {e.engagementScore != null && <span style={{ fontSize: 10, fontWeight: 700, color: c }}>{e.engagementScore}</span>}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ fontFamily: t.fontBody, fontSize: 10, color: t.ink, lineHeight: 1.3 }}>
+                  <strong style={{ color: c }}>{entrySubjectShort(e)}:</strong> {truncateText(entryNarrative(e), 62)}
+                </span>
+                <SessionMeta e={e} t={t} />
+              </div>
             </div>
           );
         })}
@@ -304,7 +290,6 @@ export const snapshot: Layout = {
         {d.entries.map((e, i) => {
           const c = t.palette[i % t.palette.length];
           const rot = ((i % 4) - 1.5) * 1.2;
-          const meta = detailText(e, 1);
           return (
             <div key={i} style={{ transform: `rotate(${rot}deg)`, background: c + "08", padding: 7, paddingBottom: 9, boxShadow: "0 2px 8px rgba(0,0,0,.10)", borderRadius: 3 }}>
               <div style={{ aspectRatio: "4/3", overflow: "hidden", borderRadius: 2, marginBottom: 7 }}>
@@ -316,10 +301,7 @@ export const snapshot: Layout = {
               <p style={{ fontFamily: t.fontBody, fontSize: 10.5, lineHeight: 1.28, color: t.ink, margin: "4px 0 0", textAlign: "center" }}>
                 {truncateText(entryNarrative(e), 72)}
               </p>
-              {meta && <p style={{ fontSize: 10, lineHeight: 1.2, color: t.muted, textAlign: "center", margin: "3px 0 0" }}>{meta}</p>}
-              {e.engagementScore != null && (
-                <p style={{ fontSize: 10, fontWeight: 700, color: c, textAlign: "center", margin: "2px 0 0" }}>⚡{e.engagementScore}</p>
-              )}
+              <SessionMeta e={e} t={t} />
             </div>
           );
         })}
@@ -437,8 +419,6 @@ export const infographic: Layout = {
         <div style={{ position: "relative", zIndex: 2 }}>
           {d.entries.map((e, i) => {
             const c = t.palette[i % t.palette.length];
-            const score = e.engagementScore;
-            const dotColor = score == null ? t.muted : score >= 8 ? "#10B981" : score >= 6 ? "#3B82F6" : score >= 4 ? "#F59E0B" : "#EF4444";
             return (
               <div key={i} style={{ display: "flex", gap: 10, padding: "10px 0", borderBottom: i < d.entries.length - 1 ? `1px solid ${t.ink}14` : "none" }}>
                 {e.photoUrl && (
@@ -452,13 +432,8 @@ export const infographic: Layout = {
                     <span style={{ fontSize: 10.5, color: t.muted, flexShrink: 0 }}>{entryDateShort(e)}</span>
                   </div>
                   <p style={{ fontFamily: t.fontBody, fontSize: 11, lineHeight: 1.45, color: t.ink, margin: "3px 0 0" }}>{entryNarrative(e)}</p>
+                  <SessionMeta e={e} t={t} />
                 </div>
-                {score != null && (
-                  <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", width: 26 }}>
-                    <span style={{ fontSize: 13, fontWeight: 800, color: dotColor, lineHeight: 1 }}>{score}</span>
-                    <span style={{ fontSize: 7.5, color: t.muted, letterSpacing: 0.5 }}>/10</span>
-                  </div>
-                )}
               </div>
             );
           })}

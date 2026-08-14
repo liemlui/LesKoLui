@@ -108,17 +108,6 @@ function sessionTimeLabel(session: Session): string | undefined {
   return undefined;
 }
 
-function buildSessionDetails(session: Session): string[] {
-  return [
-    sessionTimeLabel(session),
-    formatHours(session.durationHours),
-    cleanText(session.topic) ? `Topik: ${cleanText(session.topic)}` : undefined,
-    cleanText(session.needsWork) ? `Perlu perhatian: ${cleanText(session.needsWork)}` : undefined,
-    cleanText(session.predictedGrade) ? `Prediksi: ${cleanText(session.predictedGrade)}` : undefined,
-    cleanText(session.mood) ? `Mood: ${cleanText(session.mood)}` : undefined,
-  ].filter((detail): detail is string => Boolean(detail));
-}
-
 function buildSessionNarrative(session: Session, subject: string): string {
   const baseNote = cleanText(session.narrative) || cleanText(session.shortNote);
   const extraNotes = [
@@ -582,21 +571,6 @@ export default function MonthlyReportPage() {
     return [...THEMES.filter((t) => !excluded.includes(t.id)), ...customThemes];
   }, [settings]);
 
-  // Per-session signature data URLs
-  const [sessionSigUrls, setSessionSigUrls] = useState<Map<string, string>>(new Map());
-  useEffect(() => {
-    const withSig = reportSessions.filter((s) => s.signature);
-    if (withSig.length === 0) { setSessionSigUrls(new Map()); return; }
-    let cancelled = false;
-    (async () => {
-      const entries = await Promise.all(
-        withSig.map(async (s) => [s.id, await blobToDataUrl(s.signature!)] as const)
-      );
-      if (!cancelled) setSessionSigUrls(new Map(entries));
-    })();
-    return () => { cancelled = true; };
-  }, [reportSessions]);
-
   // ── Undo stack for theme/layout changes ─────────────────────────────
   const [undoStack, setUndoStack] = useState<Array<{ themeId: string; layoutId: string }>>([]);
   const [showCompare, setShowCompare] = useState(false);
@@ -633,7 +607,6 @@ export default function MonthlyReportPage() {
     setOpenNarasi(false);
     setOpenTeks(false);
     setOpenPlan(false);
-    setSessionSigUrls(new Map());
     setUndoStack([]);
     setShowCompare(false);
     setCompareThemeId(null);
@@ -656,13 +629,18 @@ export default function MonthlyReportPage() {
           const engScore = s.engagement?.score ?? (s.engagement ? calcEngagementScore(s.engagement) : undefined);
           const engLabel = engScore != null ? scoreLabel(engScore).text : undefined;
           const subject = sessionSubjectLabel(s.subjects);
-          const details = buildSessionDetails(s);
           return {
             date: dayLabel(s.date).split(",")[1]?.trim() ?? s.date.slice(5),
             subject,
             photoUrl: s.photo ? await blobToNormalizedDataUrl(s.photo) : undefined,
             narrative: buildSessionNarrative(s, subject),
-            details,
+            topic: cleanText(s.topic) || undefined,
+            mood: cleanText(s.mood) || undefined,
+            timeLabel: sessionTimeLabel(s),
+            durationLabel: formatHours(s.durationHours),
+            needsWork: cleanText(s.needsWork) || undefined,
+            predictedGrade: cleanText(s.predictedGrade) || undefined,
+            signatureUrl: s.signature ? await blobToDataUrl(s.signature) : undefined,
             engagementScore: engScore,
             engagementLabel: engLabel,
           };
@@ -1493,26 +1471,6 @@ export default function MonthlyReportPage() {
                 <div className="max-w-sm lg:max-w-2xl mx-auto">
                   <ReportRenderer data={reportData} theme={theme} layoutId={report.templateKey.layoutId} options={reportOptions} />
                 </div>
-
-                {/* Rekap tanda tangan */}
-                {sessionSigUrls.size > 0 && (
-                  <div data-report-page className="bg-white rounded-xl border border-gray-100 p-4 max-w-sm lg:max-w-2xl mx-auto">
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">✍️ Rekap Tanda Tangan</p>
-                    <div className="space-y-2">
-                      {reportSessions.filter((s) => sessionSigUrls.has(s.id)).map((s) => (
-                        <div key={s.id} className="flex items-center gap-3 py-1.5 border-b border-gray-50 last:border-0">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-gray-700">{dayLabel(s.date).split(",")[1]?.trim() ?? s.date.slice(5)}</p>
-                            <p className="text-xs text-gray-500">{s.subjects.join(", ")}</p>
-                          </div>
-                          <img src={sessionSigUrls.get(s.id)} alt="TTD"
-                            className="h-10 max-w-[100px] object-contain border border-gray-100 rounded bg-gray-50 p-1" />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 </div>
 
                 {/* Export */}

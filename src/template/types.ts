@@ -32,6 +32,20 @@ export interface ReportEntry {
   details?: string[];
   engagementScore?: number;
   engagementLabel?: string;
+  /** Topik spesifik yang dibahas sesi ini (selain mapel). */
+  topic?: string;
+  /** Mood / semangat sesi (Semangat / Fokus / Biasa / Lelah / Kesulitan). */
+  mood?: string;
+  /** Jam masuk-keluar (mis. "14:00-16:00") atau "Jam 14:00". */
+  timeLabel?: string;
+  /** Durasi terformat (mis. "2 jam"). */
+  durationLabel?: string;
+  /** Area yang masih perlu diasah (needsWork). */
+  needsWork?: string;
+  /** Prediksi nilai sesi ini (opsional). */
+  predictedGrade?: string;
+  /** Tanda tangan murid (data URL). */
+  signatureUrl?: string;
 }
 
 export interface ReportData {

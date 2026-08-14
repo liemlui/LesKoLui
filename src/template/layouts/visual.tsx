@@ -1,7 +1,7 @@
 import type { Layout } from "../types";
 import { Deco } from "../deco";
 import {
-  HeaderEl, LabelEl, DetailsEl, PhotoEl, NarrEl, EngagementBar,
+  HeaderEl, LabelEl, PhotoEl, NarrEl, SessionMeta,
   SummaryEl, onColor, entryDateShort,
 } from "./helpers";
 
@@ -40,7 +40,7 @@ export const dashboard: Layout = {
                 <span style={{ fontSize: 10, background: c + "20", color: c, padding: "1px 6px", borderRadius: 999, fontWeight: 600 }}>{e.subject.split(",")[0]}</span>
               </div>
               <p style={{ fontFamily: t.fontBody, fontSize: 11, lineHeight: 1.4, color: t.ink, margin: "2px 0 0" }}>{e.narrative}</p>
-              <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
+              <SessionMeta e={e} t={t} />
             </div>
           </div>
         );
@@ -74,7 +74,7 @@ export const progress: Layout = {
             <div style={{ height: 6, borderRadius: 999, background: t.muted + "22", overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${barPct}%`, borderRadius: 999, background: c, transition: "width .4s" }} />
             </div>
-            <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
+            <SessionMeta e={e} t={t} />
           </div>
         );
       })}
@@ -115,7 +115,7 @@ export const weekly: Layout = {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontFamily: t.fontBody, fontWeight: 700, fontSize: 10.5, color: t.ink, margin: 0 }}>{e.date} · {e.subject.split(",")[0]}</p>
                     <p style={{ fontFamily: t.fontBody, fontSize: 10.5, lineHeight: 1.4, color: t.ink, margin: "2px 0 0" }}>{e.narrative}</p>
-                    <EngagementBar score={e.engagementScore} label={e.engagementLabel} t={t} />
+                    <SessionMeta e={e} t={t} />
                   </div>
                 </div>
               ))}
@@ -162,7 +162,7 @@ export const subjects: Layout = {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontSize: 10, fontWeight: 600, color: t.muted, margin: 0 }}>{e.date}</p>
                     <p style={{ fontFamily: t.fontBody, fontSize: 10.5, lineHeight: 1.35, color: t.ink, margin: "1px 0 0" }}>{e.narrative}</p>
-                    <DetailsEl e={e} t={t} c={c} compact />
+                    <SessionMeta e={e} t={t} />
                   </div>
                 </div>
               ))}
@@ -184,14 +184,14 @@ export const reportcard: Layout = {
       {isFirst && HeaderEl(d, t)}
       <div style={{ position: "relative", zIndex: 2 }}>
         {/* Table header */}
-        <div style={{ display: "grid", gridTemplateColumns: "44px 56px 1fr 60px", gap: 6, padding: "6px 8px", background: t.accent, borderRadius: "8px 8px 0 0", fontWeight: 700, fontSize: 10, color: onColor(t.accent) }}>
-          <span>Foto</span><span>Tanggal</span><span>Mapel & Catatan</span><span>Engage</span>
+        <div style={{ display: "grid", gridTemplateColumns: "44px 56px 1fr", gap: 6, padding: "6px 8px", background: t.accent, borderRadius: "8px 8px 0 0", fontWeight: 700, fontSize: 10, color: onColor(t.accent) }}>
+          <span>Foto</span><span>Tanggal</span><span>Mapel & Catatan</span>
         </div>
         {d.entries.map((e, i) => {
           const c = t.palette[i % t.palette.length];
           const bgRow = i % 2 === 0 ? t.bg : c + "0a";
           return (
-            <div key={i} style={{ display: "grid", gridTemplateColumns: "44px 56px 1fr 60px", gap: 6, padding: "6px 8px", background: bgRow, borderBottom: `1px solid ${t.muted}18`, alignItems: "start" }}>
+            <div key={i} style={{ display: "grid", gridTemplateColumns: "44px 56px 1fr", gap: 6, padding: "6px 8px", background: bgRow, borderBottom: `1px solid ${t.muted}18`, alignItems: "start" }}>
               <div style={{ width: 36, height: 36, borderRadius: 6, overflow: "hidden" }}>
                 <PhotoEl t={t} url={e.photoUrl} color={c} />
               </div>
@@ -199,11 +199,8 @@ export const reportcard: Layout = {
               <div>
                 <span style={{ fontSize: 10, fontWeight: 700, color: c, display: "block" }}>{e.subject}</span>
                 <span style={{ fontFamily: t.fontBody, fontSize: 10, lineHeight: 1.35, color: t.ink }}>{e.narrative}</span>
-                <DetailsEl e={e} t={t} c={c} compact />
+                <SessionMeta e={e} t={t} />
               </div>
-              <span style={{ fontSize: 12, fontWeight: 800, color: c, textAlign: "center" }}>
-                {e.engagementScore != null ? `${e.engagementScore}/10` : "—"}
-              </span>
             </div>
           );
         })}
@@ -230,12 +227,9 @@ export const portfolio: Layout = {
             <div style={{ padding: "10px 14px 14px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                 <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
-                {e.engagementScore != null && (
-                  <span style={{ fontSize: 11, fontWeight: 800, color: c }}>⚡ {e.engagementScore}/10</span>
-                )}
               </div>
               <NarrEl t={t}>{e.narrative}</NarrEl>
-              <DetailsEl e={e} t={t} c={c} compact />
+              <SessionMeta e={e} t={t} />
             </div>
           </div>
         );
@@ -255,7 +249,6 @@ export const checklist: Layout = {
       {d.entries.map((e, i) => {
         const c = t.palette[i % t.palette.length];
         const hasNarrative = Boolean(e.narrative?.trim());
-        const hasEngagement = e.engagementScore != null && e.engagementScore >= 6;
         return (
           <div key={i} style={{ display: "flex", gap: 10, marginBottom: 10, padding: "10px 12px", borderRadius: 12, background: c + "0a", position: "relative", zIndex: 2, alignItems: "flex-start" }}>
             <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1 }}>{hasNarrative ? "✅" : "⬜"}</span>
@@ -266,16 +259,11 @@ export const checklist: Layout = {
               <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 2 }}>
                 <span style={{ fontSize: 10, fontWeight: 700, color: c }}>{e.date}</span>
                 <span style={{ fontSize: 10, background: c + "22", color: c, padding: "1px 6px", borderRadius: 999 }}>{e.subject}</span>
-                {e.engagementScore != null && (
-                  <span style={{ fontSize: 10, fontWeight: 700, color: hasEngagement ? "#10B981" : "#EF4444", marginLeft: "auto" }}>
-                    {hasEngagement ? "🔥" : "⚡"} {e.engagementScore}
-                  </span>
-                )}
               </div>
               <p style={{ fontFamily: t.fontBody, fontSize: 10.5, lineHeight: 1.4, color: t.ink, margin: 0 }}>
                 {e.narrative || "— belum ada narasi —"}
               </p>
-              <DetailsEl e={e} t={t} c={c} compact />
+              <SessionMeta e={e} t={t} />
             </div>
           </div>
         );

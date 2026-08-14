@@ -5,7 +5,7 @@
 // Shared helpers (React components + utility functions)
 export {
   HeaderEl, LogoEl, LabelEl, DetailsEl, PhotoEl, NarrEl, EngagementBar,
-  SummaryEl, Sparkline,
+  SummaryEl, Sparkline, MoodBadge, FocusBadge, SessionMeta,
   clean, entryDate, entryDateShort, entryDay, entrySubject, entrySubjectShort,
   entryNarrative, entryDetails, detailText, truncateText, onColor,
   EMPTY_NARRATIVE, EMPTY_SUBJECT, EMPTY_DATE,

@@ -355,6 +355,92 @@ export function EngagementBar({ score, label, t }: { score?: number; label?: str
   );
 }
 
+// ── Standardized per-session meta ─────────────────────────────────────
+// Blok seragam yang selalu tampil di setiap entri sesi: semangat (mood),
+// keseriusan (label fokus), topik, durasi/jam, area perhatian, dan TTD murid.
+
+const MOOD_TONES: Record<string, { icon: string; color: string }> = {
+  "Semangat":   { icon: "🔥", color: "#EA580C" },
+  "Fokus":      { icon: "🎯", color: "#2563EB" },
+  "Biasa":      { icon: "😐", color: "#6B7280" },
+  "Lelah":      { icon: "😴", color: "#9CA3AF" },
+  "Kesulitan":  { icon: "😰", color: "#DC2626" },
+};
+
+const FOCUS_TONES: Record<string, string> = {
+  "Sangat Baik":     "#059669",
+  "Baik":            "#2563EB",
+  "Cukup":           "#D97706",
+  "Kurang Fokus":    "#EA580C",
+  "Perlu Perhatian": "#DC2626",
+};
+
+export function MoodBadge({ mood, t }: { mood?: string; t: Theme }) {
+  const value = clean(mood);
+  if (!value) return null;
+  const tone = MOOD_TONES[value] ?? { icon: "🙂", color: t.muted };
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, lineHeight: 1.25, color: tone.color, background: tone.color + "14", border: `1px solid ${tone.color}33`, borderRadius: 999, padding: "1px 8px" }}>
+      <span aria-hidden="true" style={{ fontSize: 11 }}>{tone.icon}</span>
+      {value}
+    </span>
+  );
+}
+
+export function FocusBadge({ label, t }: { label?: string; t: Theme }) {
+  const value = clean(label);
+  if (!value) return null;
+  const color = FOCUS_TONES[value] ?? t.muted;
+  return (
+    <span title="Keseriusan / fokus" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700, lineHeight: 1.25, color, background: color + "14", border: `1px solid ${color}33`, borderRadius: 999, padding: "1px 8px" }}>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: color, flexShrink: 0 }} />
+      {value}
+    </span>
+  );
+}
+
+function MetaChip({ t, tone = "muted", icon, children }: {
+  t: Theme;
+  tone?: "muted" | "accent" | "warn";
+  icon?: string;
+  children: React.ReactNode;
+}) {
+  const color = tone === "warn" ? "#B45309" : tone === "accent" ? t.accent : t.muted;
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 9.5, fontWeight: 600, lineHeight: 1.3, color, background: color + "12", border: `1px solid ${color}26`, borderRadius: 999, padding: "1px 7px", maxWidth: "100%" }}>
+      {icon && <span aria-hidden="true" style={{ fontSize: 10, flexShrink: 0 }}>{icon}</span>}
+      <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{children}</span>
+    </span>
+  );
+}
+
+/**
+ * Blok meta standar per sesi — dipanggil seragam di semua layout agar orang tua
+ * selalu melihat informasi inti yang sama, apa pun desainnya.
+ */
+export function SessionMeta({ e, t }: { e: ReportEntry; t: Theme }) {
+  const timeText = [clean(e.timeLabel), clean(e.durationLabel)].filter(Boolean).join(" · ");
+  const hasAny = clean(e.mood) || clean(e.engagementLabel) || clean(e.topic) || timeText ||
+    clean(e.predictedGrade) || clean(e.needsWork) || Boolean(e.signatureUrl);
+  if (!hasAny) return null;
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center", marginTop: 6 }}>
+      <MoodBadge mood={e.mood} t={t} />
+      <FocusBadge label={e.engagementLabel} t={t} />
+      {clean(e.topic) && <MetaChip t={t} tone="accent" icon="📌">Topik: {clean(e.topic)}</MetaChip>}
+      {timeText && <MetaChip t={t} icon="🕐">{timeText}</MetaChip>}
+      {clean(e.predictedGrade) && <MetaChip t={t} icon="📈">Prediksi: {clean(e.predictedGrade)}</MetaChip>}
+      {clean(e.needsWork) && <MetaChip t={t} tone="warn" icon="✏️">Perlu perhatian: {clean(e.needsWork)}</MetaChip>}
+      {e.signatureUrl && (
+        <span title="Tanda tangan murid" style={{ display: "inline-flex", alignItems: "center", gap: 4, marginLeft: 2 }}>
+          <img src={e.signatureUrl} alt="TTD murid" style={{ height: 22, maxWidth: 80, objectFit: "contain", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, padding: 2 }} />
+          <span style={{ fontSize: 9, fontWeight: 700, color: t.muted }}>TTD</span>
+        </span>
+      )}
+    </div>
+  );
+}
+
 export function SummaryEl(d: ReportData, t: Theme) {
   return (
     <div style={{ marginTop: 20, paddingTop: 14, borderTop: `2px solid ${t.accent}44`, position: "relative", zIndex: 2 }}>
