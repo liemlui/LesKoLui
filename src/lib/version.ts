@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.42.1",
+    date: "2026-08-14",
+    title: "Perbaikan PWA — hilangkan 'Failed to fetch dynamically imported module' setelah update",
+    items: [
+      "Service worker kini autoUpdate: SW baru langsung skipWaiting + clientsClaim lalu reload, sehingga index.html basi yang mereferensikan chunk lama tidak lagi memicu gagal muat modul",
+      "Banner 'Versi baru tersedia / Muat Ulang' dihapus — update kini diterapkan otomatis tanpa konfirmasi",
+    ],
+  },
+  {
     version: "v1.42.0",
     date: "2026-08-14",
     title: "Laporan Bulanan Seragam — semangat, keseriusan, topik, durasi & tanda tangan di semua layout",

@@ -9,18 +9,10 @@ interface BeforeInstallPromptEvent extends Event {
 const CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 menit
 
 export function PwaPrompts() {
-  // ── SW auto-update: cek berkala + onNeedRefresh ─────────────────────
-  const [showUpdate, setShowUpdate] = useState(false);
+  // ── SW auto-update: cek berkala (reload otomatis ditangani registerType autoUpdate) ──
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const {
-    needRefresh: [needRefresh, setNeedRefresh],
-    updateServiceWorker,
-  } = useRegisterSW({
-    onNeedRefresh() {
-      setNeedRefresh(true);
-      setShowUpdate(true);
-    },
+  useRegisterSW({
     onRegisteredSW(_swUrl, r) {
       if (!r) return;
 
@@ -56,10 +48,6 @@ export function PwaPrompts() {
     };
   }, []);
 
-  const handleReload = async () => {
-    await updateServiceWorker(true); // skipWaiting + reload
-  };
-
   // ── Install prompt ──────────────────────────────────────────────────
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(false);
@@ -85,36 +73,9 @@ export function PwaPrompts() {
   };
 
   const showInstall = !installed && !dismissed && !!deferred;
-  const shouldShowUpdate = showUpdate || needRefresh;
 
   return (
     <>
-      {/* Update toast */}
-      {shouldShowUpdate && (
-        <div className="fixed bottom-20 inset-x-0 z-50 px-4">
-          <div className="max-w-md mx-auto bg-green-600 text-white rounded-2xl p-4 shadow-xl flex items-center justify-between gap-3 animate-bounce">
-            <div>
-              <p className="text-sm font-semibold">🆕 Versi baru tersedia!</p>
-              <p className="text-xs text-green-200 mt-0.5">Muat ulang untuk dapat fitur terbaru</p>
-            </div>
-            <div className="flex gap-2 flex-shrink-0">
-              <button
-                onClick={() => { setShowUpdate(false); setNeedRefresh(false); }}
-                className="text-green-200 text-sm px-2 py-2"
-              >
-                Nanti
-              </button>
-              <button
-                onClick={handleReload}
-                className="bg-white text-green-700 font-semibold px-4 py-2 rounded-xl text-sm"
-              >
-                Muat Ulang
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Install prompt */}
       {showInstall && (
         <div className="fixed bottom-20 inset-x-0 z-50 px-4">

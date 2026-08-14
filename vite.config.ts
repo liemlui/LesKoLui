@@ -15,11 +15,13 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      // "prompt" (bukan autoUpdate): SW baru menunggu konfirmasi user.
-      // autoUpdate memaksa window.location.reload() saat SW aktif — bisa
-      // menghapus input form yang sedang diisi. Dengan prompt, banner
-      // "Muat Ulang" (PwaPrompts) yang memutuskan kapan reload.
-      registerType: "prompt",
+      // "autoUpdate": SW baru langsung skipWaiting + clientsClaim lalu reload.
+      // Dipakai karena generateSW menyajikan index.html hasil precache secara
+      // cache-first via navigateFallback — kalau SW lama tetap aktif ("prompt"),
+      // index.html basi bisa mereferensikan chunk lama yang sudah dihapus origin,
+      // memicu "Failed to fetch dynamically imported module" setelah deploy.
+      // Auto-reload saat update menghilangkan jendela stale itu.
+      registerType: "autoUpdate",
       includeAssets: ["favicon.svg", "icon-192.png", "icon-512.png"],
       manifest: {
         id: "/",
