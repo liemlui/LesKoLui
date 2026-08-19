@@ -1466,11 +1466,16 @@ export default function MonthlyReportPage() {
 
                 </details>
 
-                <div ref={reportExportRef}>
-                {/* Preview */}
+                {/* Preview (responsif untuk layar HP) */}
                 <div className="max-w-sm lg:max-w-2xl mx-auto">
                   <ReportRenderer data={reportData} theme={theme} layoutId={report.templateKey.layoutId} options={reportOptions} />
                 </div>
+
+                {/* Render khusus export: lebar halaman tetap (A4 @96dpi) agar PDF/JPG
+                    tidak ikut mengecil mengikuti lebar preview HP. */}
+                <div ref={reportExportRef} aria-hidden="true"
+                  style={{ position: "fixed", left: -10000, top: 0, width: 794, pointerEvents: "none" }}>
+                  <ReportRenderer data={reportData} theme={theme} layoutId={report.templateKey.layoutId} options={reportOptions} />
                 </div>
 
                 {/* Export */}

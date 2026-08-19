@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.43.0",
+    date: "2026-08-19",
+    title: "Foto laporan lebih besar & AI DeepSeek Flash hemat",
+    items: [
+      "Foto absensi di semua layout laporan diperbesar — thumbnail 30–48px naik ke 56–72px dan foto utama ikut diperbesar agar nyaman dilihat di PDF/JPG",
+      "Export PDF/JPG kini dirender pada lebar A4 tetap (794px) terpisah dari preview HP, sehingga hasil export tidak lagi mengecil mengikuti lebar layar",
+      "Isi textbox Catatan Singkat dikirim sebagai draftText dan menjadi bahan utama saat ✨ Draft AI dipanggil — AI memoles tulisan tutor, bukan menulis dari nol",
+      "Semua panggilan AI dikunci ke deepseek-v4-flash; pilihan model pro/custom dinonaktifkan di Pengaturan",
+      "Biaya AI dipangkas: thinking mode dimatikan, max_tokens dibatasi per jenis panggilan, dan estimasi memakai tarif flash off-peak ($0.22 input / $0.66 output per 1M token)",
+    ],
+  },
+  {
     version: "v1.42.1",
     date: "2026-08-14",
     title: "Perbaikan PWA — hilangkan 'Failed to fetch dynamically imported module' setelah update",

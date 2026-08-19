@@ -14,11 +14,11 @@ export const cards: Layout = {
       {d.entries.map((e, i) => {
         const c = t.palette[i % t.palette.length];
         const right = i % 2 === 1;
-        const photoBox = <div style={{ height: 81, width: "100%" }}><PhotoEl t={t} url={e.photoUrl} color={c}/></div>;
+        const photoBox = <div style={{ height: 92, width: "100%" }}><PhotoEl t={t} url={e.photoUrl} color={c}/></div>;
         return (
           <div key={i} style={{ position: "relative", zIndex: 2, marginBottom: 16 }}>
             <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
-            <div style={{ display: "grid", gridTemplateColumns: right ? "1fr 108px" : "108px 1fr", gap: 11, marginTop: 9, alignItems: "start" }}>
+            <div style={{ display: "grid", gridTemplateColumns: right ? "1fr 118px" : "118px 1fr", gap: 11, marginTop: 9, alignItems: "start" }}>
               {right ? (
                 <><div><NarrEl t={t}>{e.narrative}</NarrEl><SessionMeta e={e} t={t} /></div>{photoBox}</>
               ) : (
@@ -46,8 +46,8 @@ export const timeline: Layout = {
             <div key={i} style={{ marginBottom: 16, position: "relative" }}>
               <div style={{ position: "absolute", left: -31, top: 4, width: 14, height: 14, borderRadius: "50%", background: c, border: `2px solid ${t.bg.includes("gradient") ? "#fff" : t.bg}` }} />
               <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
-              <div style={{ display: "grid", gridTemplateColumns: "96px 1fr", gap: 11, marginTop: 9, alignItems: "start" }}>
-                <div style={{ height: 72 }}><PhotoEl t={t} url={e.photoUrl} color={c} /></div>
+              <div style={{ display: "grid", gridTemplateColumns: "112px 1fr", gap: 11, marginTop: 9, alignItems: "start" }}>
+                <div style={{ height: 88 }}><PhotoEl t={t} url={e.photoUrl} color={c} /></div>
                 <div><NarrEl t={t}>{e.narrative}</NarrEl><SessionMeta e={e} t={t} /></div>
               </div>
             </div>
@@ -71,7 +71,7 @@ export const scrapbook: Layout = {
         return (
           <div key={i} style={{ position: "relative", zIndex: 2, marginBottom: 18 }}>
             <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-              <div style={{ flexShrink: 0, transform: `rotate(${rot}deg)`, width: 100 }}>
+              <div style={{ flexShrink: 0, transform: `rotate(${rot}deg)`, width: 116 }}>
                 <div style={{
                   background: "#fff", padding: 4, paddingBottom: 14, boxShadow: "0 2px 8px rgba(0,0,0,.12)",
                   borderRadius: 1, position: "relative",
@@ -109,7 +109,7 @@ export const grid: Layout = {
           const c = t.palette[i % t.palette.length];
           return (
             <div key={i} style={{ background: c + "1a", borderRadius: 14, overflow: "hidden" }}>
-              <div style={{ height: 110 }}>
+              <div style={{ height: 130 }}>
                 <PhotoEl t={t} url={e.photoUrl} color={c} />
               </div>
               <div style={{ padding: "8px 10px 10px" }}>
@@ -142,7 +142,7 @@ export const compact: Layout = {
           return (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 11,
               borderLeft: `3px solid ${c}`, paddingLeft: 10 }}>
-              <div style={{ width: 48, height: 48, flexShrink: 0, borderRadius: t.photo === "circle" ? "50%" : 8, overflow: "hidden" }}>
+              <div style={{ width: 64, height: 64, flexShrink: 0, borderRadius: t.photo === "circle" ? "50%" : 8, overflow: "hidden" }}>
                 <PhotoEl t={t} url={e.photoUrl} color={c} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>

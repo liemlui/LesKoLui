@@ -31,7 +31,7 @@ export const dashboard: Layout = {
         const c = t.palette[i % t.palette.length];
         return (
           <div key={i} style={{ display: "flex", gap: 10, marginBottom: 12, position: "relative", zIndex: 2, alignItems: "center" }}>
-            <div style={{ width: 42, height: 42, borderRadius: 10, overflow: "hidden", flexShrink: 0 }}>
+            <div style={{ width: 64, height: 64, borderRadius: 10, overflow: "hidden", flexShrink: 0 }}>
               <PhotoEl t={t} url={e.photoUrl} color={c} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -63,7 +63,7 @@ export const progress: Layout = {
         return (
           <div key={i} style={{ position: "relative", zIndex: 2, marginBottom: 16 }}>
             <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 6 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
+              <div style={{ width: 64, height: 64, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
                 <PhotoEl t={t} url={e.photoUrl} color={c} />
               </div>
               <div style={{ flex: 1 }}>
@@ -109,7 +109,7 @@ export const weekly: Layout = {
               </div>
               {entries.map((e, i) => (
                 <div key={i} style={{ display: "flex", gap: 10, marginBottom: 8, padding: "8px 10px", background: wc + "0d", borderRadius: 10 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
+                  <div style={{ width: 60, height: 60, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
                     <PhotoEl t={t} url={e.photoUrl} color={wc} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -156,7 +156,7 @@ export const subjects: Layout = {
               </div>
               {entries.map((e, i) => (
                 <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, paddingLeft: 6, borderLeft: `2px solid ${c}44`, alignItems: "flex-start" }}>
-                  <div style={{ width: 34, height: 34, borderRadius: 6, overflow: "hidden", flexShrink: 0, marginTop: 1 }}>
+                  <div style={{ width: 60, height: 60, borderRadius: 6, overflow: "hidden", flexShrink: 0, marginTop: 1 }}>
                     <PhotoEl t={t} url={e.photoUrl} color={c} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -184,15 +184,15 @@ export const reportcard: Layout = {
       {isFirst && HeaderEl(d, t)}
       <div style={{ position: "relative", zIndex: 2 }}>
         {/* Table header */}
-        <div style={{ display: "grid", gridTemplateColumns: "44px 56px 1fr", gap: 6, padding: "6px 8px", background: t.accent, borderRadius: "8px 8px 0 0", fontWeight: 700, fontSize: 10, color: onColor(t.accent) }}>
+        <div style={{ display: "grid", gridTemplateColumns: "68px 56px 1fr", gap: 6, padding: "6px 8px", background: t.accent, borderRadius: "8px 8px 0 0", fontWeight: 700, fontSize: 10, color: onColor(t.accent) }}>
           <span>Foto</span><span>Tanggal</span><span>Mapel & Catatan</span>
         </div>
         {d.entries.map((e, i) => {
           const c = t.palette[i % t.palette.length];
           const bgRow = i % 2 === 0 ? t.bg : c + "0a";
           return (
-            <div key={i} style={{ display: "grid", gridTemplateColumns: "44px 56px 1fr", gap: 6, padding: "6px 8px", background: bgRow, borderBottom: `1px solid ${t.muted}18`, alignItems: "start" }}>
-              <div style={{ width: 36, height: 36, borderRadius: 6, overflow: "hidden" }}>
+            <div key={i} style={{ display: "grid", gridTemplateColumns: "68px 56px 1fr", gap: 6, padding: "6px 8px", background: bgRow, borderBottom: `1px solid ${t.muted}18`, alignItems: "start" }}>
+              <div style={{ width: 60, height: 60, borderRadius: 6, overflow: "hidden" }}>
                 <PhotoEl t={t} url={e.photoUrl} color={c} />
               </div>
               <span style={{ fontSize: 10, fontWeight: 600, color: t.muted }}>{entryDateShort(e)}</span>
@@ -221,7 +221,7 @@ export const portfolio: Layout = {
         const c = t.palette[i % t.palette.length];
         return (
           <div key={i} style={{ position: "relative", zIndex: 2, marginBottom: 20, borderRadius: 16, overflow: "hidden", background: c + "0d" }}>
-            <div style={{ height: 140 }}>
+            <div style={{ height: 160 }}>
               <PhotoEl t={t} url={e.photoUrl} color={c} />
             </div>
             <div style={{ padding: "10px 14px 14px" }}>
@@ -252,7 +252,7 @@ export const checklist: Layout = {
         return (
           <div key={i} style={{ display: "flex", gap: 10, marginBottom: 10, padding: "10px 12px", borderRadius: 12, background: c + "0a", position: "relative", zIndex: 2, alignItems: "flex-start" }}>
             <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1 }}>{hasNarrative ? "✅" : "⬜"}</span>
-            <div style={{ width: 36, height: 36, borderRadius: 7, overflow: "hidden", flexShrink: 0 }}>
+            <div style={{ width: 60, height: 60, borderRadius: 7, overflow: "hidden", flexShrink: 0 }}>
               <PhotoEl t={t} url={e.photoUrl} color={c} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>

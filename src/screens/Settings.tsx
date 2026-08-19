@@ -252,7 +252,13 @@ export default function SettingsPage() {
   };
 
   const updateAi = (field: string, value: string | boolean) => {
-    setForm((f) => f ? { ...f, ai: { ...f.ai, [field]: value } } : f);
+    setForm((f) => {
+      if (!f) return f;
+      const ai = { ...f.ai, [field]: value };
+      // Hanya satu model yang diizinkan — aktifkan AI selalu memakai flash termurah.
+      if (field === "enabled" && value === true) ai.model = "deepseek-v4-flash";
+      return { ...f, ai };
+    });
     setDirty(true);
   };
 
@@ -774,18 +780,14 @@ export default function SettingsPage() {
                 </p>
               </div>
               <div>
-                <label htmlFor="set-ai-model" className="label">Model</label>
-                <select id="set-ai-model" className="input" value={["deepseek-v4-flash","deepseek-v4-pro"].includes(form.ai.model) ? form.ai.model : "custom"}
-                  onChange={(e) => updateAi("model", e.target.value === "custom" ? "" : e.target.value)}>
-                  <option value="deepseek-v4-flash">deepseek-v4-flash (cepat, hemat)</option>
-                  <option value="deepseek-v4-pro">deepseek-v4-pro (lebih dalam)</option>
-                  <option value="custom">Custom...</option>
-                </select>
-                {(!["deepseek-v4-flash","deepseek-v4-pro"].includes(form.ai.model)) && (
-                  <input className="input mt-1 font-mono text-sm" placeholder="nama-model-custom"
-                    value={form.ai.model}
-                    onChange={(e) => updateAi("model", e.target.value)} />
-                )}
+                <label className="label">Model</label>
+                <div className="input bg-gray-50 text-gray-700 text-sm flex items-center gap-2 cursor-default">
+                  <span className="font-semibold">deepseek-v4-flash</span>
+                  <span className="text-xs text-gray-500">(cepat, hemat — satu-satunya model aktif)</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Model lain dinonaktifkan agar setiap panggilan AI selalu memakai tarif termurah.
+                </p>
               </div>
             </>
           )}

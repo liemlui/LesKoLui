@@ -1679,7 +1679,8 @@ export default function CaptureSession() {
       {/* AI Cost confirm modal */}
       {showAiCostModal && (() => {
         const activeSubjects = subjects.length ? subjects : studentSubjects;
-        const est = estimateDraftNoteCost(activeSubjects, topic || undefined);
+        const currentDraft = shortNote.trim() || undefined;
+        const est = estimateDraftNoteCost(activeSubjects, topic || undefined, currentDraft);
         return (
           <div role="dialog" aria-modal="true" aria-label="Draft Catatan dengan AI" className={`fixed inset-0 bg-black/50 ${Z.dialog} flex items-end justify-center`}
             onClick={() => setShowAiCostModal(false)}>
@@ -1689,14 +1690,17 @@ export default function CaptureSession() {
               <div className="bg-indigo-50 rounded-xl p-3 space-y-1">
                 <p className="text-sm font-semibold text-indigo-700">Estimasi biaya DeepSeek</p>
                 <p className="text-xs text-indigo-600">
-                  deepseek-chat · ~{est.inputTokens} input + {est.outputTokens} output token
+                  deepseek-v4-flash (off-peak) · ~{est.inputTokens} input + {est.outputTokens} output token
                 </p>
                 <p className="text-sm font-bold text-indigo-800">
                   ≈ ${est.usdCost.toFixed(6)} (Rp {est.idrCost.toFixed(4)})
                 </p>
               </div>
               <p className="text-xs text-gray-500">
-                Catatan 30–50 kata berdasarkan mapel{topic ? `, topik (${topic})` : ""}{engTouched ? `, engagement (${engScore}/10)` : ""}{needsWork ? `, area perhatian` : ""}{briefLastSession ? `, dan konteks sesi lalu` : ""}.
+                {currentDraft
+                  ? `Tulisan di textbox (${currentDraft.length} karakter) dikirim sebagai bahan utama, lalu dipoles AI.`
+                  : "Textbox kosong — AI akan membuat catatan baru."}{" "}
+                Berdasarkan mapel{topic ? `, topik (${topic})` : ""}{engTouched ? `, engagement (${engScore}/10)` : ""}{needsWork ? `, area perhatian` : ""}{briefLastSession ? `, dan konteks sesi lalu` : ""}.
               </p>
               <div className="flex gap-3">
                 <button onClick={() => setShowAiCostModal(false)}
@@ -1739,6 +1743,7 @@ export default function CaptureSession() {
                         behaviorLabels: bLabels,
                         responseLabel: rLabel,
                         previousNote: briefLastSession?.shortNote,
+                        draftText: currentDraft,
                         durationHours: duration,
                       });
                       if (res.note) setShortNote(res.note);

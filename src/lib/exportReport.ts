@@ -34,7 +34,9 @@ async function rasterizePages(
   const fontOpts = fontEmbedCSS ? { fontEmbedCSS } : { skipFonts: true };
 
   for (const node of nodes) {
-    node.scrollIntoView({ block: "nearest" });
+    // Root khusus export dirender di luar viewport (fixed, left -10000) — tidak
+    // perlu scrollIntoView karena bisa menggeser layar pengguna.
+    if (root === document) node.scrollIntoView({ block: "nearest" });
     await new Promise((r) => requestAnimationFrame(() => r(null)));
     const dataUrl = format === "png"
       ? await toPng(node, { pixelRatio: 2, cacheBust: false, ...fontOpts, style: { overflow: "visible" } })

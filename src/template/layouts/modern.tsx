@@ -30,7 +30,7 @@ export const milestone: Layout = {
               <div style={{ flex: 1, paddingBottom: i < d.entries.length - 1 ? 0 : 0 }}>
                 <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
                 <div style={{ marginTop: 6, background: c + "0a", borderRadius: 12, padding: "10px 12px", display: "flex", gap: 10, alignItems: "flex-start" }}>
-                  <div style={{ width: 42, height: 42, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
+                  <div style={{ width: 64, height: 64, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
                     <PhotoEl t={t} url={e.photoUrl} color={c} />
                   </div>
                   <div style={{ flex: 1 }}>
@@ -61,7 +61,7 @@ export const split: Layout = {
           <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16, position: "relative", zIndex: 2, background: c + "0a", borderRadius: 14, padding: 12, alignItems: "start" }}>
             {/* Left: Photo + Engagement */}
             <div>
-              <div style={{ height: 100, borderRadius: 10, overflow: "hidden", marginBottom: 6 }}>
+              <div style={{ height: 120, borderRadius: 10, overflow: "hidden", marginBottom: 6 }}>
                 <PhotoEl t={t} url={e.photoUrl} color={c} />
               </div>
             </div>
@@ -102,7 +102,7 @@ export const journal: Layout = {
                 {e.subject}
               </span>
               <div style={{ display: "flex", gap: 10, marginTop: 6, alignItems: "flex-start" }}>
-                <div style={{ width: 40, height: 40, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
+                <div style={{ width: 64, height: 64, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
                   <PhotoEl t={t} url={e.photoUrl} color={c} />
                 </div>
                 <div style={{ flex: 1 }}>
@@ -130,7 +130,7 @@ export const overview: Layout = {
         const c = t.palette[i % t.palette.length];
         return (
           <div key={i} style={{ position: "relative", zIndex: 2, marginBottom: 18, borderRadius: 16, overflow: "hidden", boxShadow: `0 3px 12px ${c}22` }}>
-            <div style={{ height: 120, position: "relative" }}>
+            <div style={{ height: 150, position: "relative" }}>
               <PhotoEl t={t} url={e.photoUrl} color={c} />
               <div style={{ position: "absolute", inset: 0, background: `linear-gradient(transparent 40%, ${c}99)` }} />
               <div style={{ position: "absolute", bottom: 8, left: 12, right: 12 }}>
@@ -161,7 +161,7 @@ export const minimal: Layout = {
           return (
             <div key={i} style={{ marginBottom: 20 }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 4 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 7, overflow: "hidden", flexShrink: 0 }}>
+                <div style={{ width: 60, height: 60, borderRadius: 7, overflow: "hidden", flexShrink: 0 }}>
                   <PhotoEl t={t} url={e.photoUrl} color={c} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -196,7 +196,7 @@ export const bullets: Layout = {
         return (
           <div key={i} style={{ display: "flex", gap: 10, marginBottom: 14, position: "relative", zIndex: 2 }}>
             <span style={{ fontSize: 16, color: c, flexShrink: 0, lineHeight: 1.2 }}>{bullet}</span>
-            <div style={{ width: 36, height: 36, borderRadius: 7, overflow: "hidden", flexShrink: 0 }}>
+            <div style={{ width: 60, height: 60, borderRadius: 7, overflow: "hidden", flexShrink: 0 }}>
               <PhotoEl t={t} url={e.photoUrl} color={c} />
             </div>
             <div style={{ flex: 1 }}>
@@ -260,7 +260,7 @@ export const compare: Layout = {
           const c = t.palette[i % t.palette.length];
           return (
             <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, position: "relative", zIndex: 2, padding: "7px 8px", borderRadius: 8, background: c + "08", alignItems: "flex-start" }}>
-              <div style={{ width: 30, height: 30, borderRadius: 6, overflow: "hidden", flexShrink: 0 }}>
+              <div style={{ width: 56, height: 56, borderRadius: 6, overflow: "hidden", flexShrink: 0 }}>
                 <PhotoEl t={t} url={e.photoUrl} color={c} />
               </div>
               <span style={{ fontSize: 10, fontWeight: 600, color: c, width: 55, flexShrink: 0 }}>{entryDateShort(e)}</span>
@@ -422,7 +422,7 @@ export const infographic: Layout = {
             return (
               <div key={i} style={{ display: "flex", gap: 10, padding: "10px 0", borderBottom: i < d.entries.length - 1 ? `1px solid ${t.ink}14` : "none" }}>
                 {e.photoUrl && (
-                  <div style={{ width: 34, height: 34, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
+                  <div style={{ width: 72, height: 72, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
                     <PhotoEl t={t} url={e.photoUrl} color={c} />
                   </div>
                 )}
@@ -467,7 +467,7 @@ export const cover: Layout = {
           <div style={{ marginTop: 18, display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap" }}>
             {d.photoUrls.slice(0, 8).map((url, i) => (
               <div key={i} style={{
-                width: 52, height: 52, borderRadius: 8, overflow: "hidden",
+                width: 76, height: 76, borderRadius: 8, overflow: "hidden",
                 boxShadow: "0 2px 8px rgba(0,0,0,.10)", transform: `rotate(${((i % 3) - 1) * 1.5}deg)`,
               }}>
                 <PhotoEl t={t} url={url} color={t.palette[i % t.palette.length]} />

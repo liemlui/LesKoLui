@@ -41,4 +41,11 @@ describe("AI cost estimators", () => {
     expect(e.outputTokens).toBeGreaterThan(0);
     expect(e.idrCost).toBeCloseTo(e.usdCost * 16000, 5);
   });
+
+  it("draft-note estimate grows when the current textbox draft is sent", () => {
+    const base = estimateDraftNoteCost(["Math"], "kinematika");
+    const withDraft = estimateDraftNoteCost(["Math"], "kinematika", "fungsi kuadrat masih bingung tanda negatif");
+    expect(withDraft.inputTokens).toBeGreaterThan(base.inputTokens);
+    expect(withDraft.idrCost).toBeGreaterThan(base.idrCost);
+  });
 });
