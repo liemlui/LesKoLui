@@ -123,15 +123,16 @@ export async function updateSession(id: string, patch: Partial<Session>): Promis
 
 export async function listSessionsByStudent(studentId: string): Promise<Session[]> {
   return db.sessions
-    .where({ studentId })
-    .filter((s) => s.status === "DONE")
+    .where("studentId").equals(studentId)
+    .and((s) => s.status === "DONE")
     .sortBy("date");
 }
 
 export async function listSessionsForMonth(month: string): Promise<Session[]> {
   const { start, end } = monthRange(month);
   return db.sessions
-    .filter((s) => s.status === "DONE" && s.date >= start && s.date <= end)
+    .where("date").between(start, end, true, true)
+    .and((s) => s.status === "DONE")
     .toArray();
 }
 
@@ -154,15 +155,16 @@ export function compareSessionsChronologically(
 export async function listBillableSessionsForMonth(month: string): Promise<Session[]> {
   const { start, end } = monthRange(month);
   return db.sessions
-    .filter((s) => isBillableSession(s) && s.date >= start && s.date <= end)
+    .where("date").between(start, end, true, true)
+    .and((s) => isBillableSession(s))
     .toArray();
 }
 
 export async function listBillableSessionsByStudentMonth(studentId: string, month: string): Promise<Session[]> {
   const { start, end } = monthRange(month);
   const sessions = await db.sessions
-    .where({ studentId })
-    .filter((s) => isBillableSession(s) && s.date >= start && s.date <= end)
+    .where("studentId").equals(studentId)
+    .and((s) => isBillableSession(s) && s.date >= start && s.date <= end)
     .toArray();
   return sessions.sort(compareSessionsChronologically);
 }
@@ -172,8 +174,8 @@ export async function listBillableSessionsByStudentRange(
   studentId: string, start: string, end: string
 ): Promise<Session[]> {
   const sessions = await db.sessions
-    .where({ studentId })
-    .filter((s) => isBillableSession(s) && s.date >= start && s.date <= end)
+    .where("studentId").equals(studentId)
+    .and((s) => isBillableSession(s) && s.date >= start && s.date <= end)
     .toArray();
   return sessions.sort(compareSessionsChronologically);
 }
@@ -215,8 +217,8 @@ export async function listSessionsByStudentMonth(
 ): Promise<Session[]> {
   const { start, end } = monthRange(month);
   return db.sessions
-    .where({ studentId })
-    .filter((s) => s.status === "DONE" && s.date >= start && s.date <= end)
+    .where("studentId").equals(studentId)
+    .and((s) => s.status === "DONE" && s.date >= start && s.date <= end)
     .sortBy("date");
 }
 
@@ -225,8 +227,8 @@ export async function listSessionsByStudentRange(
   studentId: string, start: string, end: string
 ): Promise<Session[]> {
   const sessions = await db.sessions
-    .where({ studentId })
-    .filter((s) => s.status === "DONE" && s.date >= start && s.date <= end)
+    .where("studentId").equals(studentId)
+    .and((s) => s.status === "DONE" && s.date >= start && s.date <= end)
     .toArray();
   return sessions.sort(compareSessionsChronologically);
 }
@@ -234,20 +236,23 @@ export async function listSessionsByStudentRange(
 export async function listScheduledForMonth(month: string): Promise<Session[]> {
   const { start, end } = monthRange(month);
   return db.sessions
-    .filter((s) => s.status === "SCHEDULED" && s.date >= start && s.date <= end)
+    .where("date").between(start, end, true, true)
+    .and((s) => s.status === "SCHEDULED")
     .toArray();
 }
 
 export async function listAllSessionsForMonth(month: string): Promise<Session[]> {
   const { start, end } = monthRange(month);
   return db.sessions
-    .filter((s) => s.status !== "CANCELLED" && s.status !== "RESCHEDULED" && s.date >= start && s.date <= end)
+    .where("date").between(start, end, true, true)
+    .and((s) => s.status !== "CANCELLED" && s.status !== "RESCHEDULED")
     .toArray();
 }
 
 export async function listAllSessionsForWeek(weekStart: string, weekEnd: string): Promise<Session[]> {
   return db.sessions
-    .filter((s) => s.status !== "CANCELLED" && s.status !== "RESCHEDULED" && s.date >= weekStart && s.date <= weekEnd)
+    .where("date").between(weekStart, weekEnd, true, true)
+    .and((s) => s.status !== "CANCELLED" && s.status !== "RESCHEDULED")
     .toArray();
 }
 
@@ -525,14 +530,15 @@ export async function cancelSeriesSessions(
 export async function listScheduledForStudent(studentId: string, fromDate?: string): Promise<Session[]> {
   const from = fromDate ?? "0000-00-00";
   return db.sessions
-    .where({ studentId })
-    .filter((s) => s.status === "SCHEDULED" && s.date >= from)
+    .where("studentId").equals(studentId)
+    .and((s) => s.status === "SCHEDULED" && s.date >= from)
     .sortBy("date");
 }
 
 export async function listAllUpcomingScheduled(fromDate: string): Promise<Session[]> {
   return db.sessions
-    .filter((s) => s.status === "SCHEDULED" && s.date >= fromDate)
+    .where("date").aboveOrEqual(fromDate)
+    .and((s) => s.status === "SCHEDULED")
     .sortBy("date");
 }
 
@@ -577,7 +583,8 @@ export async function findConflicts(
   const endMin   = startMin + durationHours * 60;
   const start = dates[0]; const end = dates[dates.length - 1];
   const candidates = await db.sessions
-    .filter((s) => s.status === "SCHEDULED" && s.time != null && s.date >= start && s.date <= end && dates.includes(s.date))
+    .where("date").between(start, end, true, true)
+    .and((s) => s.status === "SCHEDULED" && s.time != null && dates.includes(s.date))
     .toArray();
   const conflicts: { date: string; studentName: string; time: string }[] = [];
   for (const s of candidates) {
@@ -612,8 +619,8 @@ export async function recentShortNotes(limit = 50): Promise<string[]> {
 
 export async function getLastDoneSession(studentId: string): Promise<Session | undefined> {
   const all = await db.sessions
-    .where({ studentId })
-    .filter((s) => s.status === "DONE")
+    .where("studentId").equals(studentId)
+    .and((s) => s.status === "DONE")
     .sortBy("date");
   return all[all.length - 1];
 }
@@ -623,8 +630,8 @@ export async function getRecentDoneSessions(
   studentId: string, limit = 5
 ): Promise<Session[]> {
   const all = await db.sessions
-    .where({ studentId })
-    .filter((s) => s.status === "DONE")
+    .where("studentId").equals(studentId)
+    .and((s) => s.status === "DONE")
     .sortBy("date");
   return all.slice(-limit).reverse();
 }

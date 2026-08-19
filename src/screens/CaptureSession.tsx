@@ -116,7 +116,8 @@ export default function CaptureSession() {
   const [showSigPad,     setShowSigPad]      = useState(false);
   const [duration,       setDuration]        = useState(MIN_DURATION);
   const [mood,           setMood]            = useState<string | undefined>();
-  const [topic,          setTopic]           = useState("");
+  const [predictedGrade, setPredictedGrade]  = useState("");
+  const [topics,         setTopics]          = useState<string[]>([]);
   const [needsWork,      setNeedsWork]       = useState("");
   const [sessionDate,    setSessionDate]     = useState(today);
   const [saving,         setSaving]          = useState(false);
@@ -142,6 +143,14 @@ export default function CaptureSession() {
   // Topic search
   const [topicSearch,    setTopicSearch]    = useState("");
   const [topicResults,   setTopicResults]   = useState<ReturnType<typeof searchTopics>>([]);
+  // Topik bisa lebih dari satu: gabungan topik yang sudah dipilih (chips) +
+  // teks pencarian yang belum di-commit, dipisah dengan "; ".
+  const pendingTopicParts = topicSearch.split(";").map((p) => p.trim()).filter(Boolean);
+  const allTopics = [...topics];
+  for (const p of pendingTopicParts) if (!allTopics.includes(p)) allTopics.push(p);
+  const topic = allTopics.join("; ");
+  // Kalau mapel terpilih lebih dari satu, jangan bias pencarian ke satu mapel saja.
+  const topicSearchSubject = subjects.length >= 2 ? undefined : subjects[0] ?? studentSubjects[0];
 
   // Behavior & response taxonomy tags
   const [behaviorTags,   setBehaviorTags]   = useState<string[]>([]);
@@ -275,10 +284,33 @@ export default function CaptureSession() {
 
   const toggleSubject = (s: string) => setSubjects((prev) => toggleArrayItem(prev, s));
 
+  const addTopic = (raw: string) => {
+    const clean = raw.trim();
+    if (!clean) return;
+    setTopics((prev) => (prev.includes(clean) ? prev : [...prev, clean]));
+    setTopicSearch("");
+    setTopicResults([]);
+  };
+
+  /** Tambah semua bagian dari input (pisahkan dengan ";") sebagai topik. */
+  const addTopicsFromInput = () => {
+    const parts = topicSearch.split(";").map((p) => p.trim()).filter(Boolean);
+    if (parts.length === 0) return;
+    setTopics((prev) => {
+      const next = [...prev];
+      for (const p of parts) if (!next.includes(p)) next.push(p);
+      return next;
+    });
+    setTopicSearch("");
+    setTopicResults([]);
+  };
+
+  const removeTopic = (t: string) => setTopics((prev) => prev.filter((x) => x !== t));
+
   const resetForm = () => {
     setSubjects([]); setShowIBPicker(false); setIbCustom("");
     setShortNote(""); setPhoto(undefined);
-    setMood(undefined); setTopic(""); setTopicSearch(""); setTopicResults([]);
+    setMood(undefined); setPredictedGrade(""); setTopics([]); setTopicSearch(""); setTopicResults([]);
     setNeedsWork("");
     setEngPrepared(false); setEngFocused(false); setEngDrowsy(false); setEngPhone(false);
     setEngLate(false); setEngBathroom(false);
@@ -321,6 +353,7 @@ export default function CaptureSession() {
           photo, shortNote: shortNote.trim(), mood,
           topic: topic.trim() || undefined,
           needsWork: needsWork.trim() || undefined,
+          predictedGrade: predictedGrade.trim() || undefined,
           engagement: engData,
           behaviorTags: behaviorTags.length > 0 ? behaviorTags : undefined,
           responseTag: responseTag || undefined,
@@ -339,6 +372,7 @@ export default function CaptureSession() {
           mood,
           topic: topic.trim() || undefined,
           needsWork: needsWork.trim() || undefined,
+          predictedGrade: predictedGrade.trim() || undefined,
           engagement: engData,
           behaviorTags: behaviorTags.length > 0 ? behaviorTags : undefined,
           responseTag: responseTag || undefined,
@@ -792,49 +826,70 @@ export default function CaptureSession() {
             </div>
           </div>
 
-          {/* Topik — search + dropdown */}
+          {/* Topik — search + multi-select */}
           <div>
-            <label htmlFor="cs-topik" className="label">🎯 Topik <span className="text-gray-500 font-normal text-xs">(cari topik atau ketik bebas)</span></label>
+            <label htmlFor="cs-topik" className="label">🎯 Topik <span className="text-gray-500 font-normal text-xs">(cari topik, pilih beberapa, atau ketik bebas — pisahkan dengan ;)</span></label>
             <div className="relative">
               <input id="cs-topik" className="input pr-8" maxLength={150}
-                placeholder="Cari topik atau ketik custom — mis. Integral substitution, Essay structure..."
+                placeholder="Cari topik atau ketik custom — mis. Integral substitution; Essay structure..."
                 value={topicSearch}
                 onChange={(e) => {
                   const q = e.target.value;
                   setTopicSearch(q);
-                  setTopic(q);
                   setTopicResults(searchTopics(q, {
-                    subject: subjects[0] ?? studentSubjects[0],
+                    subject: topicSearchSubject,
                     grade: currentStudent?.grade,
                     curriculum: currentStudent?.curriculum,
                   }));
                 }}
                 onFocus={() => {
                   if (topicSearch.trim()) setTopicResults(searchTopics(topicSearch, {
-                    subject: subjects[0] ?? studentSubjects[0],
+                    subject: topicSearchSubject,
                     grade: currentStudent?.grade,
                     curriculum: currentStudent?.curriculum,
                   }));
                 }}
                 onBlur={() => setTimeout(() => setTopicResults([]), 150)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addTopicsFromInput();
+                  }
+                }}
               />
-              {topic && (
+              {topicSearch && (
                 <button type="button" tabIndex={-1}
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => { setTopic(""); setTopicSearch(""); setTopicResults([]); }}
+                  onClick={() => { setTopicSearch(""); setTopicResults([]); }}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 </button>
               )}
             </div>
+            {/* Chip topik terpilih */}
+            {topics.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {topics.map((t) => (
+                  <span key={t} className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-2.5 py-1 text-xs font-medium">
+                    {t}
+                    <button type="button" tabIndex={-1}
+                      onClick={() => removeTopic(t)}
+                      aria-label={`Hapus topik ${t}`}
+                      className="text-blue-400 hover:text-blue-700 transition-colors">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
             {/* Dropdown hasil pencarian */}
             {topicResults.length > 0 && (
               <div className="mt-1 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm max-h-52 overflow-y-auto">
                 {topicResults.map((t, i) => (
-                  <button key={i} type="button"
+                  <button key={`${t.topic}-${i}`} type="button"
                     onMouseDown={(e) => e.preventDefault()}
-                    className={`block w-full text-left px-3.5 py-2.5 border-b border-gray-50 last:border-0 hover:bg-blue-50 transition-colors ${topic === t.topic ? "bg-blue-50" : ""}`}
-                    onClick={() => { setTopic(t.topic); setTopicSearch(t.topic); setTopicResults([]); }}>
+                    className={`block w-full text-left px-3.5 py-2.5 border-b border-gray-50 last:border-0 hover:bg-blue-50 transition-colors ${topics.includes(t.topic) ? "bg-blue-50" : ""}`}
+                    onClick={() => addTopic(t.topic)}>
                     <span className="font-semibold text-gray-800 text-sm">{t.topic}</span>
                     <span className="text-[11px] text-gray-500 ml-2">{t.gradeLabel} · {t.unit}</span>
                   </button>
@@ -842,8 +897,13 @@ export default function CaptureSession() {
               </div>
             )}
             {/* Indikator topik custom */}
-            {topic && topicResults.length === 0 && topicSearch.length > 0 && (
-              <p className="text-xs text-gray-500 mt-1.5">✏️ Topik custom: "{topic}"</p>
+            {topicSearch.trim() && topicResults.length === 0 && (
+              <button type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={addTopicsFromInput}
+                className="text-xs text-gray-500 mt-1.5 hover:text-blue-600 transition-colors">
+                ✏️ Tambah topik custom: "{topicSearch.trim()}" ↵
+              </button>
             )}
           </div>
 
@@ -1235,6 +1295,11 @@ export default function CaptureSession() {
                 <span className="font-semibold">💡 Topik:</span> {topic}
               </p>
             )}
+            {predictedGrade.trim() && (
+              <p className="text-xs text-gray-600">
+                <span className="font-semibold">📈 Prediksi Nilai:</span> {predictedGrade.trim()}
+              </p>
+            )}
             {mood && (
               <p className="text-xs text-gray-600">
                 <span className="font-semibold">🔥 Mood:</span> {mood}
@@ -1275,6 +1340,14 @@ export default function CaptureSession() {
                 "{briefLastSession.shortNote.length > 70 ? briefLastSession.shortNote.slice(0, 70) + "…" : briefLastSession.shortNote}"
               </p>
             )}
+          </div>
+
+          {/* Prediksi nilai — jadi bahan follow-up saat nilai akhir keluar */}
+          <div>
+            <label htmlFor="cs-prediksi" className="label">📈 Prediksi Nilai <span className="text-gray-500 font-normal text-xs">(opsional — mis. 6, 7, A, B)</span></label>
+            <input id="cs-prediksi" className="input" maxLength={10} value={predictedGrade}
+              onChange={(e) => setPredictedGrade(e.target.value)}
+              placeholder="Prediksi nilai akhir murid untuk materi ini" />
           </div>
 
           {/* Catatan singkat */}
@@ -1834,6 +1907,7 @@ export default function CaptureSession() {
                         sessionType,
                         grade: currentStudent?.grade,
                         needsWork: needsWork || undefined,
+                        predictedGrade: predictedGrade.trim() || undefined,
                         engagementScore: engTouched ? engScore : undefined,
                         engagementLabels,
                         behaviorLabels: activeBehaviorLabels.length > 0 ? activeBehaviorLabels : undefined,

@@ -256,6 +256,7 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
           <div className="flex flex-wrap gap-2">
             {settings.subjects.map((s) => (
               <button type="button" key={s}
+                aria-pressed={subjects.includes(s)}
                 className={`px-3 py-2 rounded-full text-sm border transition-colors ${
                   subjects.includes(s) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300"
                 }`}
@@ -271,6 +272,7 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
                 <div className="flex flex-wrap gap-1.5">
                   {group.subjects.map((s) => (
                     <button type="button" key={s}
+                      aria-pressed={subjects.includes(s)}
                       className={`px-3 py-2 rounded-full text-xs border transition-colors ${
                         subjects.includes(s)
                           ? `${meta.color} ${meta.text} border-transparent font-semibold`
@@ -288,6 +290,7 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
                 <div className="flex flex-wrap gap-1.5">
                   {extraSubjects.map((s) => (
                     <button type="button" key={s}
+                      aria-pressed={subjects.includes(s)}
                       className={`px-3 py-2 rounded-full text-xs border transition-colors ${
                         subjects.includes(s)
                           ? "bg-orange-100 text-orange-700 border-transparent font-semibold"

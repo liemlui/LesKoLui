@@ -110,6 +110,10 @@ export interface Session {
   topic?: string;
   needsWork?: string;
   predictedGrade?: string;
+  /** Nilai akhir yang benar-benar didapat murid (follow-up dari prediksi). */
+  actualGrade?: string;
+  /** Refleksi bila nilai akhir lebih rendah dari prediksi. */
+  gradeReflection?: string;
   narrative?: string;
   engagement?: EngagementLog;
   behaviorTags?: string[];  // IDs from BEHAVIOR_TAGS in responseTaxonomy
@@ -252,9 +256,9 @@ export interface Expense {
   updatedAt: string;
 }
 
-// ── IA / EE Milestone Tracker ────────────────────────────────────────────────
+// ── IA / EE / PP Milestone Tracker ──────────────────────────────────────────
 
-export type IaEeType = "IA" | "EE";
+export type IaEeType = "IA" | "EE" | "PP";
 export type MilestoneStatus = "pending" | "in_progress" | "done";
 
 export interface IaEeMilestone {
@@ -324,7 +328,7 @@ export interface Settings {
   financialPin?: string;
   securityQuestion?: string;
   securityAnswer?: string;
-  ai: { enabled: boolean; apiKey?: string; model: string; workerUrl?: string; workerToken?: string };
+  ai: { enabled: boolean; apiKey?: string; model: string };
   templatePref: { excludedThemeIds?: string[]; customThemes?: import("../template/types").CustomTheme[] };
   bankAccounts?: { bca?: string; cimb?: string; bri?: string; mandiri?: string; bsi?: string; ewallet?: string; accountName?: string };
   driveBackup?: { fileId: string; backupAt: string };

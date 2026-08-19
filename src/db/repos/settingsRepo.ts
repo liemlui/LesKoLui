@@ -18,10 +18,10 @@ const DEFAULT_SETTINGS: Settings = {
   ai: { enabled: false, apiKey: "", model: "deepseek-v4-flash" },
   templatePref: {},
   bankAccounts: {
-    bca: "8630014884",
-    cimb: "4600101184169",
-    bri: "119801000960569",
-    accountName: "Aloysius Alfa Adji Putra",
+    bca: "",
+    cimb: "",
+    bri: "",
+    accountName: "",
   },
 };
 

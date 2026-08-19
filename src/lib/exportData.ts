@@ -15,13 +15,22 @@ function rowsToCsv(headers: string[], rows: Cell[][]): string {
 
 /** Bangun CSV gabungan semua data utama. BOM ditambahkan agar Excel membaca UTF-8. */
 export async function buildDataCsv(): Promise<string> {
-  const [students, sessions, payments, expenses] = await Promise.all([
+  const [students, payments, expenses] = await Promise.all([
     db.students.toArray(),
-    db.sessions.toArray(),
     db.payments.toArray(),
     db.expenses.toArray(),
   ]);
   const nameOf = new Map(students.map((s) => [s.id, s.name]));
+
+  // Sesi di-stream satu per satu (bukan toArray) agar referensi Blob foto/tanda
+  // tangan tidak semuanya ditahan di memori sekaligus saat ekspor.
+  const sessionRows: Cell[][] = [];
+  await db.sessions.orderBy("date").each((s) => {
+    sessionRows.push([
+      s.date, nameOf.get(s.studentId) ?? "(dihapus)", s.subjects.join("; "),
+      s.durationHours, s.status, s.cost, s.engagement?.score, s.shortNote,
+    ]);
+  });
 
   const parts: string[] = [];
   parts.push(`# Les Ko Lui — Ekspor Data`);
@@ -38,10 +47,7 @@ export async function buildDataCsv(): Promise<string> {
   parts.push("### SESI");
   parts.push(rowsToCsv(
     ["Tanggal", "Murid", "Mapel", "Durasi (jam)", "Status", "Biaya", "Skor", "Catatan"],
-    [...sessions].sort((a, b) => a.date.localeCompare(b.date)).map((s) => [
-      s.date, nameOf.get(s.studentId) ?? "(dihapus)", s.subjects.join("; "),
-      s.durationHours, s.status, s.cost, s.engagement?.score, s.shortNote,
-    ]),
+    sessionRows,
   ));
   parts.push("");
 

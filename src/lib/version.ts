@@ -11,6 +11,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.47.0",
+    date: "2026-08-20",
+    title: "Follow-up Nilai Prediksi → Aktual, Topik Multi, dan IA/EE/PP Lebih Jelas",
+    items: [
+      "Prediksi Nilai kembali hadir di wizard Catat Sesi (Step 5) dan diteruskan ke AI draft",
+      "Edit Catatan Sesi kini punya Nilai Akhir; refleksi wajib diisi bila nilai akhir lebih rendah dari prediksi",
+      "Detail sesi menampilkan chip Prediksi / Nilai Akhir / Refleksi",
+      "Pemilihan topik mendukung banyak topik (chip + pemisah ;) dan bisa search lagi setelah memilih",
+      "IA/EE/PP diperjelas: tipe PP tersedia, deskripsi tiap tipe, tracker terbuka untuk IB MYP",
+      "Query sesi memakai index date/studentId (bukan full-table filter) agar lebih ringan",
+      "Default rekening bank dikosongkan, a11y stateful ditambah, CSV export tanpa menahan seluruh Blob",
+    ],
+  },
+  {
     version: "v1.46.0",
     date: "2026-08-19",
     title: "Sederhanakan Catatan Belajar & Nilai — otomatis dari sesi, hapus fitur rancu",

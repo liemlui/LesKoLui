@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, createContext, useContext } from "react";
+import { useState, useEffect, useRef, useMemo, useId, createContext, useContext } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   getSettings, saveSettings, logAudit, listAuditLog,
@@ -157,6 +157,7 @@ function Section({
 }) {
   const ctx = useContext(AccordionContext);
   const [localOpen, setLocalOpen] = useState(defaultOpen);
+  const contentId = useId();
   const open = ctx ? ctx.openId === title : localOpen;
   const toggle = () => {
     if (ctx) ctx.setOpenId(open ? null : title);
@@ -167,6 +168,8 @@ function Section({
       <button
         type="button"
         onClick={toggle}
+        aria-expanded={open}
+        aria-controls={contentId}
         className="w-full flex items-center justify-between px-4 py-3.5 text-left"
       >
         <div className="flex items-center gap-2.5">
@@ -178,7 +181,7 @@ function Section({
         </div>
         <span className={`text-gray-500 text-sm transition-transform duration-200 ${open ? "rotate-180" : ""}`}>▼</span>
       </button>
-      {open && <div className="px-4 pb-4 pt-0 space-y-3 border-t border-gray-50">{children}</div>}
+      {open && <div id={contentId} className="px-4 pb-4 pt-0 space-y-3 border-t border-gray-50">{children}</div>}
     </div>
   );
 }

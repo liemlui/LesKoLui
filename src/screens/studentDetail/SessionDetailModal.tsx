@@ -85,6 +85,24 @@ export default function SessionDetailModal({
             </div>
           )}
 
+          {/* Nilai: prediksi → aktual + refleksi */}
+          {(s.predictedGrade || s.actualGrade) && (
+            <div className="bg-amber-50 rounded-xl p-3 space-y-1.5">
+              <p className="text-xs text-amber-500 font-medium">Nilai</p>
+              <div className="flex flex-wrap gap-2">
+                {s.predictedGrade && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-white text-amber-700 font-semibold">📈 Prediksi: {s.predictedGrade}</span>
+                )}
+                {s.actualGrade && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-white text-amber-800 font-semibold">✅ Akhir: {s.actualGrade}</span>
+                )}
+              </div>
+              {s.gradeReflection && (
+                <p className="text-xs text-amber-700 leading-relaxed">💭 Refleksi: {s.gradeReflection}</p>
+              )}
+            </div>
+          )}
+
           {/* Biaya */}
           {s.cost > 0 && (
             <div className="bg-green-50 rounded-xl p-3">

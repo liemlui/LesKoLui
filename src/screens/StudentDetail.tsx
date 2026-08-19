@@ -17,7 +17,8 @@ import { getPinLockoutDelay, recordPinFailure, resetPinLockout } from "../lib/pi
 import type { CancelMode, EditMode } from "../db/repos";
 import { dayLabel, monthLabel, todayWIB, formatRupiah } from "../lib/format";
 import { scoreLabel } from "../lib/engagement";
-import type { Session, IaEeProject } from "../db/types";
+import { isGradeLower } from "../lib/grades";
+import type { Session, IaEeProject, IaEeType } from "../db/types";
 import { billingPolicyOf } from "../db/types";
 import { CURRICULUM_META } from "../lib/ibSubjects";
 import PaginationControls from "../components/PaginationControls";
@@ -94,7 +95,7 @@ export default function StudentDetail() {
 
   // IA/EE milestone tracker
   const [showIaEeForm,    setShowIaEeForm]    = useState(false);
-  const [iaeeType,        setIaeeType]        = useState<"IA" | "EE">("IA");
+  const [iaeeType,        setIaeeType]        = useState<IaEeType>("IA");
   const [iaeeSubject,     setIaeeSubject]     = useState("");
   const [iaeeTitle,       setIaeeTitle]       = useState("");
   const [iaeeDeadline,    setIaeeDeadline]    = useState("");
@@ -156,6 +157,10 @@ export default function StudentDetail() {
   const [editShortNote,   setEditShortNote]   = useState("");
   const [editTopic,       setEditTopic]       = useState("");
   const [editNeedsWork,   setEditNeedsWork]   = useState("");
+  const [editPredictedGrade, setEditPredictedGrade] = useState("");
+  const [editActualGrade,   setEditActualGrade]     = useState("");
+  const [editGradeReflection, setEditGradeReflection] = useState("");
+  const [editGradeError,  setEditGradeError]  = useState("");
   const [editNoteSaving,  setEditNoteSaving]  = useState(false);
   const [editSignature,   setEditSignature]   = useState<Blob | undefined>();
   const [editSigUrl,      setEditSigUrl]      = useState<string | undefined>();
@@ -174,18 +179,30 @@ export default function StudentDetail() {
     setEditShortNote(s.shortNote ?? "");
     setEditTopic(s.topic ?? "");
     setEditNeedsWork(s.needsWork ?? "");
+    setEditPredictedGrade(s.predictedGrade ?? "");
+    setEditActualGrade(s.actualGrade ?? "");
+    setEditGradeReflection(s.gradeReflection ?? "");
+    setEditGradeError("");
     setEditSignature(s.signature);
     setShowEditSigPad(false);
   };
 
   const handleSaveNote = async () => {
     if (!editSession) return;
+    if (isGradeLower(editActualGrade, editPredictedGrade) && !editGradeReflection.trim()) {
+      setEditGradeError("Nilai akhir lebih rendah dari prediksi — tulis refleksi kenapa.");
+      return;
+    }
+    setEditGradeError("");
     setEditNoteSaving(true);
     try {
       await updateSession(editSession.id, {
         shortNote: editShortNote.trim(),
         topic: editTopic.trim() || undefined,
         needsWork: editNeedsWork.trim() || undefined,
+        predictedGrade: editPredictedGrade.trim() || undefined,
+        actualGrade: editActualGrade.trim() || undefined,
+        gradeReflection: editGradeReflection.trim() || undefined,
         signature: editSignature,
       });
       msg("Catatan diperbarui ✓");
@@ -388,7 +405,7 @@ export default function StudentDetail() {
           { key: "ringkasan", label: "Ringkasan" },
           { key: "sesi", label: "Sesi & Jadwal" },
           { key: "nilai", label: "Progres" },
-          { key: "iaee", label: "IA/EE" },
+          { key: "iaee", label: "IA/EE/PP" },
         ]}
         active={detailTab}
         onChange={setDetailTab}
@@ -739,10 +756,13 @@ export default function StudentDetail() {
       {detailTab === "iaee" && (<> 
 
       {/* ── IA / EE MILESTONE TRACKER ── */}
-      {(student.level === "IBDP" || student.curriculum === "IB DP") && (
+      {(student.level === "IBDP" || student.curriculum === "IB DP" || student.curriculum === "IB MYP") && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-700">IA / EE Tracker</h2>
+            <div>
+              <h2 className="font-semibold text-gray-700">IA / EE / PP Tracker</h2>
+              <p className="text-[11px] text-gray-400 mt-0.5">IA = Internal Assessment (DP) · EE = Extended Essay (DP) · PP = Personal Project (MYP)</p>
+            </div>
             <button
               onClick={() => { setShowIaEeForm((v) => !v); setIaeeSubject(""); setIaeeTitle(""); setIaeeDeadline(""); setIaeeNotes(""); }}
               className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-semibold">
@@ -753,15 +773,21 @@ export default function StudentDetail() {
           {/* Add project form */}
           {showIaEeForm && (
             <div className="px-4 py-3 border-b border-gray-100 space-y-2 bg-blue-50">
-              <div className="grid grid-cols-2 gap-2">
-                <select className="input" value={iaeeType} onChange={(e) => setIaeeType(e.target.value as "IA" | "EE")}>
-                  <option value="IA">Internal Assessment (IA)</option>
-                  <option value="EE">Extended Essay (EE)</option>
+              <div>
+                <select className="input" value={iaeeType} onChange={(e) => setIaeeType(e.target.value as IaEeType)}>
+                  <option value="IA">IA — Internal Assessment (per mapel DP)</option>
+                  <option value="EE">EE — Extended Essay (esai riset DP)</option>
+                  <option value="PP">PP — Personal Project (proyek pribadi MYP)</option>
                 </select>
-                <input className="input" placeholder="Mata pelajaran" value={iaeeSubject}
-                  onChange={(e) => setIaeeSubject(e.target.value)} />
+                <p className="text-[11px] text-blue-700 mt-1">
+                  {iaeeType === "IA" && "Internal Assessment: tugas resmi dari satu mapel DP, dinilai internal + moderasi IB."}
+                  {iaeeType === "EE" && "Extended Essay: esai riset mandiri ±4.000 kata dari salah satu mapel DP."}
+                  {iaeeType === "PP" && "Personal Project: proyek mandiri siswa MYP — tidak terikat satu mapel."}
+                </p>
               </div>
-              <input className="input" placeholder="Judul / topik penelitian" value={iaeeTitle}
+              <input className="input" placeholder={iaeeType === "PP" ? "Mapel (opsional untuk PP)" : "Mata pelajaran"} value={iaeeSubject}
+                onChange={(e) => setIaeeSubject(e.target.value)} />
+              <input className="input" placeholder={iaeeType === "PP" ? "Judul proyek / pertanyaan pemandu" : iaeeType === "EE" ? "Judul / research question" : "Judul / topik penelitian"} value={iaeeTitle}
                 onChange={(e) => setIaeeTitle(e.target.value)} />
               <div className="flex gap-2">
                 <input className="input flex-1" type="date" value={iaeeDeadline}
@@ -773,13 +799,14 @@ export default function StudentDetail() {
                 <button onClick={() => setShowIaEeForm(false)}
                   className="flex-1 py-2 rounded-xl bg-gray-100 text-gray-600 text-sm font-semibold">Batal</button>
                 <button
-                  disabled={iaeeSaving || !iaeeSubject || !iaeeTitle}
+                  disabled={iaeeSaving || !iaeeTitle || (iaeeType !== "PP" && !iaeeSubject)}
                   onClick={async () => {
                     if (!id) return;
                     setIaeeSaving(true);
                     try {
                       await createIaEeProject({
-                        studentId: id, type: iaeeType, subject: iaeeSubject,
+                        studentId: id, type: iaeeType,
+                        subject: iaeeType === "PP" ? (iaeeSubject.trim() || "Personal Project") : iaeeSubject,
                         title: iaeeTitle, deadline: iaeeDeadline || undefined,
                         milestones: [], notes: iaeeNotes || undefined,
                       });
@@ -797,7 +824,7 @@ export default function StudentDetail() {
 
           {/* Project list */}
           {(iaeeProjects ?? []).length === 0 && !showIaEeForm && (
-            <p className="text-gray-500 text-sm text-center py-6">Belum ada proyek IA/EE.</p>
+            <p className="text-gray-500 text-sm text-center py-6">Belum ada proyek IA/EE/PP.<br /><span className="text-xs text-gray-400">Tambahkan proyek untuk melacak milestone per tahap.</span></p>
           )}
           <div className="divide-y divide-gray-100">
             {(iaeeProjects ?? []).map((proj: IaEeProject) => {
@@ -814,7 +841,7 @@ export default function StudentDetail() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${proj.type === "IA" ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"}`}>
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${proj.type === "IA" ? "bg-blue-100 text-blue-700" : proj.type === "EE" ? "bg-purple-100 text-purple-700" : "bg-emerald-100 text-emerald-700"}`}>
                             {proj.type}
                           </span>
                           <span className="text-xs text-gray-500">{proj.subject}</span>
@@ -887,7 +914,7 @@ export default function StudentDetail() {
                       {/* Add milestone form */}
                       {showMsForm === proj.id ? (
                         <div className="space-y-2 bg-blue-50 rounded-xl px-3 py-2">
-                          <input className="input text-sm" placeholder="Nama milestone" value={msTitle}
+                          <input className="input text-sm" placeholder="mis. Draft proposal, Bab 1, Revisi, Submit final" value={msTitle}
                             onChange={(e) => setMsTitle(e.target.value)} autoFocus />
                           <input className="input text-sm" type="date" value={msDue}
                             onChange={(e) => setMsDue(e.target.value)} />
@@ -977,6 +1004,30 @@ export default function StudentDetail() {
                   onChange={(e) => setEditTopic(e.target.value)}
                   placeholder="Mis. Quadratic Functions, Essay Structure..." />
               </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label htmlFor="sd-prediksi" className="label">📈 Prediksi Nilai</label>
+                  <input id="sd-prediksi" className="input" maxLength={10} value={editPredictedGrade}
+                    onChange={(e) => setEditPredictedGrade(e.target.value)}
+                    placeholder="mis. 6, 7, A" />
+                </div>
+                <div>
+                  <label htmlFor="sd-aktual" className="label">✅ Nilai Akhir</label>
+                  <input id="sd-aktual" className="input" maxLength={10} value={editActualGrade}
+                    onChange={(e) => { setEditActualGrade(e.target.value); setEditGradeError(""); }}
+                    placeholder="mis. 5, B" />
+                </div>
+              </div>
+              {isGradeLower(editActualGrade, editPredictedGrade) && (
+                <div>
+                  <label htmlFor="sd-refleksi" className="label">💭 Refleksi Nilai <span className="text-red-400">*</span></label>
+                  <textarea id="sd-refleksi" className="input text-sm" rows={2} value={editGradeReflection}
+                    onChange={(e) => { setEditGradeReflection(e.target.value); setEditGradeError(""); }}
+                    placeholder="Kenapa nilai akhir lebih rendah dari prediksi? (mis. soal ujian lebih sulit, materi belum dikuasai, kondisi murid...)" />
+                  <p className="text-xs text-orange-500 mt-1">Prediksi ({editPredictedGrade}) lebih tinggi dari nilai akhir ({editActualGrade}) — refleksi wajib diisi.</p>
+                  {editGradeError && <p className="text-xs text-red-500 mt-1">{editGradeError}</p>}
+                </div>
+              )}
               <div>
                 <label htmlFor="sd-followup" className="label">Perlu Diulang / Follow-up</label>
                 <input id="sd-followup" className="input" value={editNeedsWork}

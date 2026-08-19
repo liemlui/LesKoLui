@@ -2,7 +2,7 @@
 
 > Tanggal audit: 2025-07-16
 > Tanggal perbaikan: 2026-06-21
-> Revisi: 2026-08-02 — Ronde 3 (v1.37.0): baseline hijau (lint 0/0, test 166/166), tutup H-4 PIN lockout recovery, konsistensi uang deleteSession/closeMonth, PWA prompt mode, a11y label+dialog, dead code, strict mode
+> Revisi: 2026-08-02 — Ronde 3 (v1.37.0): baseline hijau (lint 0/0, test 166/166), tutup H-4 PIN lockout recovery, konsistensi uang deleteSession/closeMonth, PWA prompt mode (direvisi ke `autoUpdate` di v1.42.1 — lihat P-1), a11y label+dialog, dead code, strict mode
 > Cakupan: full codebase (130 file di `src`, 1 API worker, seluruh config)
 > Status: **26/26 ditangani** — 25 selesai + H-2 di-waive sesuai threat model solo; backlog refactor aktif dicatat di `TODO.md`
 
@@ -24,7 +24,7 @@
 | **M-2** | `closeMonth` snapshot `totalPotensi/totalHours/studentCount` hanya tagihan yang **benar-benar dibuat** (siswa ber-tagihan manual tak digandakan) + pesan audit log akurat | `src/db/repos/paymentRepo.ts` |
 | **M-3** | `formatRelative` CatatanBelajar memakai `Date.now()+7h` untuk diff → "x menit lalu" jadi "x+7 jam lalu"; kini diff instan absolut | `src/screens/CatatanBelajar.tsx` |
 | **M-4** | `doResetAll` lupa `studyNotes` (+ `settings`, `auditLog`) — semua data domain lama kini dihapus; satu jejak `data.reset` sengaja dicatat kembali. Data operasional di `localStorage` tidak termasuk reset database | `src/screens/Settings.tsx` |
-| **P-1** | PWA `registerType: "autoUpdate"` **memaksa reload** saat SW baru aktif → bisa hilang input form. Ganti **`prompt`**: banner "Muat Ulang" (yang tadinya dead code) kini aktif, user yang memutuskan | `vite.config.ts` |
+| **P-1** | ~~Ganti ke `prompt`~~ — **direvisi di v1.42.1**: mode `prompt` membuat SW lama tetap aktif sehingga bisa serve `index.html` basi (error "Failed to fetch chunk"). Final = `registerType: "autoUpdate"` + `skipWaiting`/`clientsClaim` (lihat changelog `version.ts`) | `vite.config.ts` |
 | **A-1** | 12 overlay modal custom (tanpa role) diberi `role="dialog"` + `aria-modal` + `aria-label` | `CaptureSession`, `Payments`, `StudentDetail`, `SessionDetailModal`, `ChangelogModal`, `QuickExpenseModal` |
 | **A-2** | 72 label form native diberi pasangan `htmlFor` + `id` unik; 3 kontrol dinamis diberi `aria-label`; yang non-native (button group/picker) dibiarkan | 10 file screens/components |
 | **D-1** | Dead code dihapus: `lib/exportAbsensi.ts`, `components/Popover.tsx`, `charts/Gauge.tsx`, folder `screens/captureSession/` kosong, **10 export mati** di barrel repos (definisi + re-export) | `src/db/repos/*` |
