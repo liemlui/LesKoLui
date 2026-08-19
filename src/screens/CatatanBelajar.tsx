@@ -6,6 +6,7 @@ import {
   getRecentDoneSessions, getSettings,
 } from "../db/repos";
 import { draftStudyNote, estimateDraftStudyNoteCost } from "../lib/aiClient";
+import { buildAutoStudyNote } from "../lib/sessionTemplates";
 import type { Session } from "../db/types";
 import Breadcrumb from "../components/Breadcrumb";
 import Modal from "../components/Modal";
@@ -30,7 +31,7 @@ export default function CatatanBelajar() {
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [search, setSearch] = useState("");
   const [showHelp, setShowHelp] = useState(false);
-  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   // Isi catatan SEBELUM AI memperkuat — untuk tombol "↩ Undo AI".
   const [aiPrev, setAiPrev] = useState<Record<string, string>>({});
   const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
@@ -74,6 +75,19 @@ export default function CatatanBelajar() {
         })
       );
       setRecentSessions(sessionsMap);
+
+      // Isi otomatis catatan belajar dari sesi terakhir (tanpa input manual).
+      // Hanya mengisi murid yang catatannya masih kosong.
+      for (const [sid, sessions] of Object.entries(sessionsMap)) {
+        if (sessions.length === 0) continue;
+        const existing = noteMap.get(sid);
+        if (existing && existing.trim()) continue;
+        const auto = buildAutoStudyNote(sessions);
+        if (auto.trim()) {
+          setNotes((prev) => prev[sid]?.trim() ? prev : { ...prev, [sid]: auto });
+          void saveStudyNote(sid, auto);
+        }
+      }
     })();
   }, [students, savedNotes]);
 
@@ -204,6 +218,21 @@ export default function CatatanBelajar() {
     });
   };
 
+  const regenerateAuto = async (studentId: string) => {
+    const sessions = recentSessions[studentId] ?? [];
+    if (sessions.length === 0) return;
+    const auto = buildAutoStudyNote(sessions);
+    if (!auto.trim()) return;
+    setNotes((state) => ({ ...state, [studentId]: auto }));
+    await saveStudyNote(studentId, auto);
+    setEditingId(null);
+    setAiPrev((state) => {
+      const next = { ...state };
+      delete next[studentId];
+      return next;
+    });
+  };
+
   const aiEnabled = settings?.ai?.enabled && settings.ai.apiKey;
 
   if (!students || !savedNotes) {
@@ -283,7 +312,7 @@ export default function CatatanBelajar() {
           const sessions = recentSessions[s.id] ?? [];
           const showSessions = expandedSessions[s.id] ?? false;
           const hasSessions = sessions.length > 0;
-          const isPreview = previewId === s.id;
+          const isEditing = editingId === s.id;
           const canUndoAi = aiPrev[s.id] !== undefined;
 
           return (
@@ -342,13 +371,7 @@ export default function CatatanBelajar() {
 
               {/* Note textarea / preview */}
               <div className="px-4 pb-3 relative">
-                {isPreview ? (
-                  <div className="w-full min-h-[76px] text-sm rounded-xl border border-blue-200 bg-blue-50/50 p-3 overflow-auto">
-                    {content.trim()
-                      ? <SimpleMarkdown text={content} />
-                      : <span className="text-gray-400 text-xs">Belum ada catatan.</span>}
-                  </div>
-                ) : (
+                {isEditing ? (
                   <textarea
                     placeholder="Tulis catatan belajar... (contoh: topik sekolah, PR dari sekolah, progres, rencana sesi berikutnya)"
                     value={content}
@@ -356,6 +379,12 @@ export default function CatatanBelajar() {
                     rows={3}
                     className="w-full text-sm rounded-xl border border-gray-200 p-3 resize-y focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition-colors"
                   />
+                ) : (
+                  <div className="w-full min-h-[76px] text-sm rounded-xl border border-blue-200 bg-blue-50/50 p-3 overflow-auto">
+                    {content.trim()
+                      ? <SimpleMarkdown text={content} />
+                      : <span className="text-gray-400 text-xs">Belum ada catatan. Akan terisi otomatis dari sesi.</span>}
+                  </div>
                 )}
 
                 {/* Error */}
@@ -387,12 +416,20 @@ export default function CatatanBelajar() {
                   </div>
 
                   <div className="flex items-center gap-1.5">
+                    {hasSessions && (
+                      <button
+                        onClick={() => regenerateAuto(s.id)}
+                        className="text-[10px] font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 px-2 py-1 rounded-lg transition-colors whitespace-nowrap"
+                        title="Rakit ulang catatan dari sesi terakhir">
+                        🔄 Otomatis
+                      </button>
+                    )}
                     {content.trim() && (
                       <button
-                        onClick={() => setPreviewId(isPreview ? null : s.id)}
+                        onClick={() => setEditingId(isEditing ? null : s.id)}
                         className="text-[10px] font-semibold text-gray-500 bg-gray-50 hover:bg-gray-100 border border-gray-200 px-2 py-1 rounded-lg transition-colors whitespace-nowrap"
-                        title={isPreview ? "Kembali ke mode edit" : "Pratinjau markdown"}>
-                        {isPreview ? "✏️ Edit" : "👁 Pratinjau"}
+                        title={isEditing ? "Selesai edit" : "Edit manual"}>
+                        {isEditing ? "👁 Selesai" : "✏️ Edit"}
                       </button>
                     )}
 

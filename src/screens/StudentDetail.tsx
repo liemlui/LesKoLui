@@ -5,7 +5,6 @@ import { useLiveQuery } from "dexie-react-hooks";
 import {
   getStudent, listSessionsByStudent, listScheduledForStudent,
   cancelSeriesSessions, updateSeriesSessions,
-  listRaporGrades, upsertRaporGrade, deleteRaporGrade,
   getSettings, updateStudent,
   listIaEeProjects, createIaEeProject, deleteIaEeProject,
   addMilestone, updateMilestone, deleteMilestone,
@@ -17,10 +16,7 @@ import { verifyPin } from "../lib/crypto";
 import { getPinLockoutDelay, recordPinFailure, resetPinLockout } from "../lib/pinLockout";
 import type { CancelMode, EditMode } from "../db/repos";
 import { dayLabel, monthLabel, todayWIB, formatRupiah } from "../lib/format";
-import {
-  scoreLabel,
-  semesterOptions, semesterLabel, semesterDateRange, currentSemester,
-} from "../lib/engagement";
+import { scoreLabel } from "../lib/engagement";
 import type { Session, IaEeProject } from "../db/types";
 import { billingPolicyOf } from "../db/types";
 import { CURRICULUM_META } from "../lib/ibSubjects";
@@ -31,9 +27,6 @@ import Badge from "../components/Badge";
 import { clampPage, paginateItems } from "../lib/pagination";
 import ClockTimePicker from "../components/ClockTimePicker";
 import SignaturePad from "../components/SignaturePad";
-import { analyzeStudent, estimateAnalysisCost } from "../lib/aiClient";
-import type { AiStudentInsight } from "../lib/aiClient";
-import { AiCostModal } from "../components/AiCostModal";
 import Modal from "../components/Modal";
 import { Z } from "../lib/zIndex";
 import { getBehaviorTag, getResponseTag } from "../lib/responseTaxonomy";
@@ -65,7 +58,6 @@ export default function StudentDetail() {
   const student       = useLiveQuery(() => (id ? getStudent(id) : undefined), [id]);
   const allSessions   = useLiveQuery(() => (id ? listSessionsByStudent(id) : []), [id]);
   const upcomingSched = useLiveQuery(() => (id ? listScheduledForStudent(id, today) : []), [id, today]);
-  const raporList     = useLiveQuery(() => (id ? listRaporGrades(id) : []), [id]);
   const settings      = useLiveQuery(() => getSettings(), []);
   const studyNote      = useLiveQuery(() => (id ? getStudyNote(id) : undefined), [id]);
   const iaeeProjects  = useLiveQuery(() => (id ? listIaEeProjects(id) : []), [id]);
@@ -80,15 +72,8 @@ export default function StudentDetail() {
   const [showCancelSect, setShowCancelSect] = useState(false);
   const [cancelReason,   setCancelReason]   = useState("");
 
-  // Rapor modal
-  const [showRapor,      setShowRapor]      = useState(false);
   const [showBillingHelp, setShowBillingHelp] = useState(false);
-  const [raporSem,       setRaporSem]       = useState(currentSemester());
-  const [raporGrades,    setRaporGrades]    = useState<{ subject: string; grade: string }[]>([]);
-  const [raporNotes,     setRaporNotes]     = useState("");
-  const [raporSaving,    setRaporSaving]    = useState(false);
   const [subjectPage,    setSubjectPage]    = useState(1);
-  const [raporPage,      setRaporPage]      = useState(1);
   const [upcomingPage,   setUpcomingPage]   = useState(1);
   const [historyPage,    setHistoryPage]    = useState(1);
   const [detailTab,      setDetailTab]      = useState("ringkasan");
@@ -106,12 +91,6 @@ export default function StudentDetail() {
 
   const [flash, setFlash] = useState("");
   function msg(t: string) { setFlash(t); setTimeout(() => setFlash(""), 3000); }
-
-  // AI states
-  const [aiInsightLoading,  setAiInsightLoading]  = useState(false);
-  const [aiInsight,         setAiInsight]          = useState<AiStudentInsight | null>(null);
-  const [aiInsightError,    setAiInsightError]     = useState("");
-  const [showAiInsightModal, setShowAiInsightModal] = useState(false);
 
   // IA/EE milestone tracker
   const [showIaEeForm,    setShowIaEeForm]    = useState(false);
@@ -234,8 +213,6 @@ export default function StudentDetail() {
     };
   }, [allSessions]);
 
-  const SEMESTERS = semesterOptions(6);
-
   // ── Computed ────────────────────────────────────────────────────────
   const totalSessions = allSessions?.length ?? 0;
   const totalHours    = useMemo(() => (allSessions ?? []).reduce((s, x) => s + x.durationHours, 0), [allSessions]);
@@ -294,18 +271,6 @@ export default function StudentDetail() {
       .sort((a, b) => b.count - a.count);
   }, [engSessions]);
 
-  // Rapor ↔ engagement correlation per semester
-  const raporCorrelation = useMemo(() => {
-    return (raporList ?? []).map((r) => {
-      const { start, end } = semesterDateRange(r.semester);
-      const sessInSem = engSessions.filter((s) => s.date >= start && s.date <= end);
-      const avgEng    = sessInSem.length > 0
-        ? Math.round((sessInSem.reduce((s, x) => s + x.engagement!.score, 0) / sessInSem.length) * 10) / 10
-        : null;
-      return { ...r, avgEng, sessionCount: sessInSem.length };
-    }).sort((a, b) => b.semester.localeCompare(a.semester));
-  }, [raporList, engSessions]);
-
   // ── Handlers ────────────────────────────────────────────────────────
   const openEditSched = (s: Session) => {
     setEditTarget(s); setEditDate(s.date); setEditTime(s.time ?? "08:00");
@@ -330,29 +295,6 @@ export default function StudentDetail() {
     setEditTarget(null); msg("Jadwal dibatalkan.");
   };
 
-  const openRapor = (sem?: string) => {
-    const s = sem ?? currentSemester();
-    setRaporSem(s);
-    const existing = (raporList ?? []).find((r) => r.semester === s);
-    setRaporGrades(existing?.grades ?? (student?.subjects ?? []).map((sub) => ({ subject: sub, grade: "" })));
-    setRaporNotes(existing?.notes ?? "");
-    setShowRapor(true);
-  };
-
-  const handleSaveRapor = async () => {
-    if (!id) return;
-    setRaporSaving(true);
-    try {
-      await upsertRaporGrade({
-        studentId: id, semester: raporSem,
-        grades: raporGrades.filter((g) => g.grade.trim()),
-        notes: raporNotes.trim() || undefined,
-      });
-      msg("Nilai rapor disimpan ✓"); setShowRapor(false);
-    } catch (e) { msg("Gagal: " + (e as Error).message); }
-    finally { setRaporSaving(false); }
-  };
-
   // These useMemos MUST be before the early return to satisfy the Rules of Hooks
   const historyMonthOptions = useMemo(() => {
     const months = new Set<string>();
@@ -370,8 +312,6 @@ export default function StudentDetail() {
   if (!student) return <Skeleton variant="card" lines={4} className="p-4" />;
   const studentBillingPolicy = billingPolicyOf(student);
 
-  const safeRaporPage = clampPage(raporPage, raporCorrelation.length);
-  const paginatedRaporCorrelation = paginateItems(raporCorrelation, safeRaporPage);
   const safeHistoryPage = clampPage(historyPage, historySessions.length);
   const paginatedHistorySessions = paginateItems(historySessions, safeHistoryPage);
 
@@ -447,7 +387,7 @@ export default function StudentDetail() {
         tabs={[
           { key: "ringkasan", label: "Ringkasan" },
           { key: "sesi", label: "Sesi & Jadwal" },
-          { key: "nilai", label: "Nilai" },
+          { key: "nilai", label: "Progres" },
           { key: "iaee", label: "IA/EE" },
         ]}
         active={detailTab}
@@ -583,11 +523,10 @@ export default function StudentDetail() {
       {detailTab === "sesi" && (<>
 
       {/* ── BUKTI KEAKTIFAN ── */}
-      {(avgEngScore !== null || (raporList && raporList.length > 0)) && (
+      {avgEngScore !== null && (
         <EvidenceCard
           avgEngScore={avgEngScore}
           engSessions={engSessions}
-          raporList={raporList}
         />
       )}
 
@@ -605,14 +544,6 @@ export default function StudentDetail() {
         <div className="flex items-center justify-between mb-2 gap-2">
           <h2 className="text-lg font-semibold">Riwayat Sesi</h2>
           <div className="flex items-center gap-2">
-            {settings?.ai?.enabled && settings.ai.apiKey && (allSessions ?? []).filter(s => s.status === "DONE").length > 0 && (
-              <button
-                disabled={aiInsightLoading}
-                onClick={() => setShowAiInsightModal(true)}
-                className="flex items-center gap-1 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-50 whitespace-nowrap">
-                {aiInsightLoading ? "⏳..." : "✨ Analisis AI"}
-              </button>
-            )}
             <select
               className="input py-1 text-xs w-auto"
               value={historyMonth}
@@ -625,27 +556,6 @@ export default function StudentDetail() {
             </select>
           </div>
         </div>
-        {aiInsightError && (
-          <p className="text-xs text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-2">{aiInsightError}</p>
-        )}
-        {aiInsight && (
-          <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 mb-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-bold text-indigo-700 uppercase tracking-wide">✨ Analisis AI</p>
-              <button onClick={() => setAiInsight(null)} className="text-indigo-300 hover:text-indigo-600 text-xs"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-            </div>
-            <div className="space-y-1">
-              {aiInsight.patterns.map((p, i) => (
-                <p key={i} className="text-xs text-gray-700 flex gap-2"><span className="text-indigo-400 flex-shrink-0">•</span>{p}</p>
-              ))}
-            </div>
-            <div className="bg-white rounded-xl px-3 py-2 border border-indigo-100">
-              <p className="text-xs font-semibold text-indigo-600 mb-0.5">Fokus sesi berikutnya</p>
-              <p className="text-sm text-gray-800">{aiInsight.nextFocus}</p>
-            </div>
-            <p className="text-xs text-gray-500 italic">{aiInsight.encouragement}</p>
-          </div>
-        )}
         {/* ── Engagement Score Chart ── */}
         {(() => {
           const scored = (allSessions ?? []).filter(s => s.status === "DONE" && s.engagement?.score != null).slice(-15);
@@ -684,38 +594,22 @@ export default function StudentDetail() {
           );
         })()}
 
-        {/* ── Topik Tracker + Grade Trend ── */}
+        {/* ── Topik Tracker ── */}
         {(() => {
           const doneSessions = (allSessions ?? []).filter(s => s.status === "DONE");
           const topics = [...new Set(doneSessions.map(s => s.topic).filter(Boolean) as string[])];
-          const grades = doneSessions.filter(s => s.predictedGrade).map(s => ({ date: s.date, grade: s.predictedGrade!, subjects: s.subjects ?? [] })).slice(-10);
-          if (topics.length === 0 && grades.length === 0) return null;
+          if (topics.length === 0) return null;
           return (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3 space-y-4">
-              {topics.length > 0 && (
-                <div>
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Topik Pernah Dibahas ({topics.length})</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {topics.slice(0, 20).map((t) => (
-                      <span key={t} className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium border border-blue-100">{t}</span>
-                    ))}
-                    {topics.length > 20 && <span className="text-xs text-gray-500">+{topics.length - 20} lagi</span>}
-                  </div>
+              <div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Topik Pernah Dibahas ({topics.length})</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {topics.slice(0, 20).map((t) => (
+                    <span key={t} className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium border border-blue-100">{t}</span>
+                  ))}
+                  {topics.length > 20 && <span className="text-xs text-gray-500">+{topics.length - 20} lagi</span>}
                 </div>
-              )}
-              {grades.length > 0 && (
-                <div>
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Prediksi Nilai (terbaru)</p>
-                  <div className="space-y-1">
-                    {grades.reverse().slice(0, 5).map((g, i) => (
-                      <div key={i} className="flex items-center justify-between text-xs">
-                        <span className="text-gray-500">{g.date.slice(5)} · {g.subjects.join(", ") || "Umum"}</span>
-                        <span className="font-bold text-gray-800 bg-yellow-50 px-2 py-0.5 rounded-lg">{g.grade}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
           );
         })()}
@@ -842,88 +736,7 @@ export default function StudentDetail() {
         openEditSched={openEditSched}
       />
       </>)}
-      {detailTab === "nilai" && (<>
-
-      {/* ── NILAI RAPOR ── */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-semibold">Nilai Rapor</h2>
-          <button onClick={() => openRapor()}
-            className="text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors">
-            + Input Rapor
-          </button>
-        </div>
-
-        {raporCorrelation.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-dashed border-gray-200 py-5 text-center">
-            <p className="text-xl mb-1">📋</p>
-            <p className="text-sm text-gray-500">Belum ada nilai rapor.</p>
-            <p className="text-xs text-gray-500 mt-0.5">Tap "+ Input Rapor" untuk catat nilai dari sekolah</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {paginatedRaporCorrelation.map((r) => (
-              <div key={r.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-100">
-                  <p className="font-semibold text-sm">{semesterLabel(r.semester)}</p>
-                  <div className="flex items-center gap-2">
-                    {r.avgEng !== null && (
-                      <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-                        style={{ color: scoreLabel(r.avgEng).color, background: scoreLabel(r.avgEng).bg }}>
-                        Skor les: {r.avgEng}/10
-                      </span>
-                    )}
-                    <button onClick={() => openRapor(r.semester)} className="text-xs text-gray-500 hover:text-blue-500">✏️</button>
-                    <button onClick={async () => {
-                      if (!confirm(`Hapus rapor ${semesterLabel(r.semester)}?`)) return;
-                      await deleteRaporGrade(r.id); msg("Dihapus.");
-                    }}
-                      className="text-xs text-gray-500 hover:text-red-400"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-                  </div>
-                </div>
-                <div className="p-3 space-y-1.5">
-                  {r.grades.map((g) => {
-                    const { start, end } = semesterDateRange(r.semester);
-                    const sessForSub = engSessions.filter((s) =>
-                      s.date >= start && s.date <= end && s.subjects.includes(g.subject)
-                    );
-                    const subEng = sessForSub.length > 0
-                      ? Math.round(sessForSub.reduce((s, x) => s + x.engagement!.score, 0) / sessForSub.length * 10) / 10
-                      : null;
-                    return (
-                      <div key={g.subject} className="flex items-center justify-between">
-                        <span className="text-sm text-gray-700">{g.subject}</span>
-                        <div className="flex items-center gap-2">
-                          {subEng !== null && (
-                            <span className="text-xs text-gray-500">Les: {subEng}/10</span>
-                          )}
-                          <span className="text-sm font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg">
-                            {g.grade}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {r.notes && <p className="text-xs text-gray-500 italic mt-1 pt-1 border-t border-gray-100">"{r.notes}"</p>}
-                  {r.avgEng !== null && r.sessionCount > 0 && (
-                    <p className="text-xs text-gray-500 mt-1 pt-1 border-t border-gray-100">
-                      {r.sessionCount} sesi les tercatat · rata-rata skor {r.avgEng}/10 ({scoreLabel(r.avgEng).text})
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
-            <PaginationControls
-              page={safeRaporPage}
-              total={raporCorrelation.length}
-              onPageChange={setRaporPage}
-              label="rapor"
-            />
-          </div>
-        )}
-      </div>
-      </>)}
-      {detailTab === "iaee" && (<>
+      {detailTab === "iaee" && (<> 
 
       {/* ── IA / EE MILESTONE TRACKER ── */}
       {(student.level === "IBDP" || student.curriculum === "IB DP") && (
@@ -1212,67 +1025,6 @@ export default function StudentDetail() {
         </div>
       )}
 
-      {/* ── RAPOR INPUT MODAL ── */}
-      {showRapor && (
-        <div role="dialog" aria-modal="true" aria-label="Input Nilai Rapor" className={`fixed inset-0 bg-black/40 ${Z.modal} flex items-end justify-center`} onClick={() => setShowRapor(false)}>
-          <div className="bg-white w-full max-w-md rounded-t-2xl pb-8 max-h-[90vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h3 className="font-bold text-lg">Input Nilai Rapor</h3>
-              <button onClick={() => setShowRapor(false)} aria-label="Tutup" className="text-gray-500 text-xl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-            </div>
-            <div className="p-5 space-y-4">
-              <div>
-                <label htmlFor="sd-semester" className="label">Semester</label>
-                <select id="sd-semester" className="input" value={raporSem} onChange={(e) => setRaporSem(e.target.value)}>
-                  {SEMESTERS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-                </select>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="label mb-0">Nilai per Mapel</label>
-                  <button type="button"
-                    onClick={() => setRaporGrades((prev) => [...prev, { subject: "", grade: "" }])}
-                    className="text-xs text-blue-600 font-semibold">+ Tambah Mapel</button>
-                </div>
-                <div className="space-y-2">
-                  {raporGrades.map((g, i) => (
-                    <div key={i} className="flex gap-2 items-center">
-                      <input aria-label="Mata pelajaran" className="input flex-1 text-sm" placeholder="Mata pelajaran"
-                        value={g.subject}
-                        onChange={(e) => setRaporGrades((prev) => prev.map((x, j) => j === i ? { ...x, subject: e.target.value } : x))} />
-                      <input aria-label="Nilai" className="input w-24 text-sm text-center font-bold" placeholder="Nilai"
-                        value={g.grade}
-                        onChange={(e) => setRaporGrades((prev) => prev.map((x, j) => j === i ? { ...x, grade: e.target.value } : x))} />
-                      <button type="button" onClick={() => setRaporGrades((prev) => prev.filter((_, j) => j !== i))}
-                        className="text-gray-500 hover:text-red-400 text-lg leading-none flex-shrink-0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-                    </div>
-                  ))}
-                  {raporGrades.length === 0 && (
-                    <button type="button"
-                      onClick={() => setRaporGrades([{ subject: "", grade: "" }])}
-                      className="w-full py-2 border border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:border-blue-300 hover:text-blue-400 transition-colors">
-                      + Tambah nilai
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="sd-rapor-catatan" className="label">Catatan <span className="text-gray-500 font-normal">(opsional)</span></label>
-                <textarea id="sd-rapor-catatan" className="input" rows={2} placeholder="Catatan dari guru sekolah, komentar umum..."
-                  value={raporNotes} onChange={(e) => setRaporNotes(e.target.value)} />
-              </div>
-
-              <button onClick={handleSaveRapor} disabled={raporSaving}
-                className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors">
-                {raporSaving ? "Menyimpan..." : "Simpan Nilai Rapor"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── EDIT SCHEDULE MODAL ── */}
       {editTarget && (
         <div role="dialog" aria-modal="true" aria-label="Edit jadwal" className={`fixed inset-0 bg-black/40 ${Z.modal} flex items-end justify-center`} onClick={() => setEditTarget(null)}>
@@ -1367,38 +1119,6 @@ export default function StudentDetail() {
         setDeletePinError={setDeletePinError}
         handleDeleteSession={handleDeleteSession}
         openEditNote={openEditNote}
-      />
-
-      {/* Analisis AI cost modal */}
-      <AiCostModal
-        open={showAiInsightModal}
-        title="Analisis AI"
-        estimatedIDR={estimateAnalysisCost(Math.min((allSessions ?? []).filter(s => s.status === "DONE").length, 20))}
-        description={`Analisis pola & saran fokus untuk ${student?.name ?? "murid"}`}
-        onCancel={() => setShowAiInsightModal(false)}
-        onConfirm={async () => {
-          setShowAiInsightModal(false);
-          setAiInsightLoading(true); setAiInsightError(""); setAiInsight(null);
-          try {
-            const doneSessions = (allSessions ?? [])
-              .filter(s => s.status === "DONE")
-              .slice(-20)
-              .map(s => ({
-                date: s.date,
-                subjects: s.subjects ?? [],
-                shortNote: s.shortNote,
-                needsWork: s.needsWork,
-                mood: s.mood,
-                predictedGrade: s.predictedGrade,
-              }));
-            const res = await analyzeStudent({
-              student: { name: student?.name ?? "", level: student?.level ?? "" },
-              sessions: doneSessions,
-            });
-            setAiInsight(res);
-          } catch (e) { setAiInsightError((e as Error).message); }
-          finally { setAiInsightLoading(false); }
-        }}
       />
 
       {/* Bantuan siklus tagihan */}

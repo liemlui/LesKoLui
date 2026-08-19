@@ -54,7 +54,7 @@ type StepNum = 1 | 2 | 3 | 4 | 5 | 6;
 
 function buildWaMessage(
   student: Student,
-  session: { date: string; subjects: string[]; durationHours: number; shortNote: string; topic?: string; predictedGrade?: string },
+  session: { date: string; subjects: string[]; durationHours: number; shortNote: string; topic?: string },
   followUps: string[],
   tutorName: string
 ): string {
@@ -65,7 +65,6 @@ function buildWaMessage(
     `*Durasi:* ${session.durationHours} jam`,
     session.shortNote ? `*Catatan:* ${session.shortNote}` : "",
     session.topic ? `*Topik:* ${session.topic}` : "",
-    session.predictedGrade ? `*Prediksi nilai:* ${session.predictedGrade}` : "",
   ].filter((l) => l !== "");
 
   if (followUps.length > 0) {
@@ -119,7 +118,6 @@ export default function CaptureSession() {
   const [mood,           setMood]            = useState<string | undefined>();
   const [topic,          setTopic]           = useState("");
   const [needsWork,      setNeedsWork]       = useState("");
-  const [predictedGrade, setPredictedGrade]  = useState("");
   const [sessionDate,    setSessionDate]     = useState(today);
   const [saving,         setSaving]          = useState(false);
   const [message,        setMessage]         = useState("");
@@ -169,7 +167,7 @@ export default function CaptureSession() {
   const [showCloseOut,   setShowCloseOut]   = useState(false);
   const [coSessionData,  setCoSessionData]  = useState<{
     id: string; date: string; subjects: string[]; durationHours: number;
-    shortNote: string; topic?: string; predictedGrade?: string;
+    shortNote: string; topic?: string;
   } | null>(null);
   const [coFollowUps,    setCoFollowUps]    = useState<string[]>([]);
   const [coFollowUpText, setCoFollowUpText] = useState("");
@@ -281,7 +279,7 @@ export default function CaptureSession() {
     setSubjects([]); setShowIBPicker(false); setIbCustom("");
     setShortNote(""); setPhoto(undefined);
     setMood(undefined); setTopic(""); setTopicSearch(""); setTopicResults([]);
-    setNeedsWork(""); setPredictedGrade("");
+    setNeedsWork("");
     setEngPrepared(false); setEngFocused(false); setEngDrowsy(false); setEngPhone(false);
     setEngLate(false); setEngBathroom(false);
     setEngActiveAsking(false); setEngQuickLearner(false); setEngNeedsRepeat(false); setEngHwMissed(false);
@@ -323,7 +321,6 @@ export default function CaptureSession() {
           photo, shortNote: shortNote.trim(), mood,
           topic: topic.trim() || undefined,
           needsWork: needsWork.trim() || undefined,
-          predictedGrade: predictedGrade.trim() || undefined,
           engagement: engData,
           behaviorTags: behaviorTags.length > 0 ? behaviorTags : undefined,
           responseTag: responseTag || undefined,
@@ -342,7 +339,6 @@ export default function CaptureSession() {
           mood,
           topic: topic.trim() || undefined,
           needsWork: needsWork.trim() || undefined,
-          predictedGrade: predictedGrade.trim() || undefined,
           engagement: engData,
           behaviorTags: behaviorTags.length > 0 ? behaviorTags : undefined,
           responseTag: responseTag || undefined,
@@ -354,7 +350,7 @@ export default function CaptureSession() {
       setCoSessionData({
         id: newId, date: sessionDate, subjects: subjects.length > 0 ? subjects : [],
         durationHours: duration, shortNote: shortNote.trim(),
-        topic: topic.trim() || undefined, predictedGrade: predictedGrade.trim() || undefined,
+        topic: topic.trim() || undefined,
       });
       setCoFollowUps(needsWork.trim() ? [needsWork.trim()] : []);
       setCoFollowUpText("");
@@ -635,7 +631,6 @@ export default function CaptureSession() {
                   </p>
                   <p className="text-xs text-gray-600 leading-relaxed">"{briefLastSession.shortNote}"</p>
                   {briefLastSession.topic && <p className="text-xs text-gray-500">💡 Topik: {briefLastSession.topic}</p>}
-                  {briefLastSession.predictedGrade && <p className="text-xs text-gray-500">📊 Prediksi: {briefLastSession.predictedGrade}</p>}
                 </div>
               )}
               {briefFollowUps.length > 0 && (
@@ -1098,28 +1093,28 @@ export default function CaptureSession() {
             <div className="flex flex-wrap gap-2">
               <button type="button"
                 onClick={() => {
-                  setResponseTag("correct-independent"); setNeedsWork(""); setPredictedGrade("");
+                  setResponseTag("correct-independent"); setNeedsWork("");
                 }}
                 className="px-3 py-2 rounded-full text-sm font-semibold bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors">
                 ⭐ Lancar
               </button>
               <button type="button"
                 onClick={() => {
-                  setResponseTag("partial-correct"); setNeedsWork(""); setPredictedGrade("");
+                  setResponseTag("partial-correct"); setNeedsWork("");
                 }}
                 className="px-3 py-2 rounded-full text-sm font-semibold bg-yellow-50 text-yellow-700 border border-yellow-200 hover:bg-yellow-100 transition-colors">
                 🟡 Butuh Latihan
               </button>
               <button type="button"
                 onClick={() => {
-                  setResponseTag("misconception"); setNeedsWork(""); setPredictedGrade("");
+                  setResponseTag("misconception"); setNeedsWork("");
                 }}
                 className="px-3 py-2 rounded-full text-sm font-semibold bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 transition-colors">
                 🔴 Miskonsepsi
               </button>
               <button type="button"
                 onClick={() => {
-                  setResponseTag(undefined); setNeedsWork(""); setPredictedGrade("");
+                  setResponseTag(undefined); setNeedsWork("");
                 }}
                 className="px-3 py-2 rounded-full text-sm font-semibold bg-white text-gray-500 border border-gray-200 hover:bg-gray-50 transition-colors">
                 🔄 Reset
@@ -1216,13 +1211,6 @@ export default function CaptureSession() {
             <label htmlFor="cs-perhatian" className="label">⚠️ Perlu Perhatian Lebih</label>
             <input id="cs-perhatian" className="input" maxLength={150} placeholder="mis. ketelitian angka, time management" value={needsWork}
               onChange={(e) => setNeedsWork(e.target.value)} />
-          </div>
-
-          {/* Prediksi nilai */}
-          <div>
-            <label htmlFor="cs-prediksi" className="label">📊 Prediksi Nilai</label>
-            <input id="cs-prediksi" className="input" placeholder="mis. 5–6/7, B+" value={predictedGrade}
-              onChange={(e) => setPredictedGrade(e.target.value)} />
           </div>
 
         </div>
@@ -1647,12 +1635,6 @@ export default function CaptureSession() {
                   <div className="flex items-center gap-1.5 mt-2">
                     <span className="text-blue-400 text-xs">💡</span>
                     <p className="text-xs text-blue-600 font-semibold">Topik: {coSessionData.topic}</p>
-                  </div>
-                )}
-                {coSessionData.predictedGrade && (
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className="text-purple-400 text-xs">📊</span>
-                    <p className="text-xs text-purple-600 font-semibold">Prediksi: {coSessionData.predictedGrade}</p>
                   </div>
                 )}
               </div>

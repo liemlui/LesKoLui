@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.46.0",
+    date: "2026-08-19",
+    title: "Sederhanakan Catatan Belajar & Nilai — otomatis dari sesi, hapus fitur rancu",
+    items: [
+      "Catatan Belajar kini terisi otomatis dari 5 sesi terakhir (topik, catatan terakhir, perhatian, rencana) — input manual jadi opsional",
+      "Tombol Otomatis untuk merakit ulang catatan dari sesi terakhir; AI Perkuat tetap tersedia",
+      "Input Nilai Rapor manual dihapus; tab Nilai diganti Progres yang fokus ke perkembangan les",
+      "Analisis AI di Riwayat Sesi dihapus karena tumpang tindih dengan Progres",
+      "Prediksi Nilai per sesi dihapus dari input, tampilan sesi, dan laporan",
+    ],
+  },
+  {
     version: "v1.45.0",
     date: "2026-08-19",
     title: "Laporan Bulanan Lebih Jelas — 4 sesi/halaman, teks gratis, dan alur AI setelah laporan dibuat",

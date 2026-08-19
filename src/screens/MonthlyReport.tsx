@@ -113,7 +113,6 @@ function buildSessionNarrative(session: Session, subject: string): string {
   const extraNotes = [
     cleanText(session.topic) ? `Topik yang dibahas: ${cleanText(session.topic)}.` : undefined,
     cleanText(session.needsWork) ? `Area perhatian: ${cleanText(session.needsWork)}.` : undefined,
-    cleanText(session.predictedGrade) ? `Prediksi nilai: ${cleanText(session.predictedGrade)}.` : undefined,
   ].filter((note): note is string => Boolean(note));
 
   if (baseNote && extraNotes.length > 0) return `${baseNote} ${extraNotes.join(" ")}`;
@@ -639,7 +638,6 @@ export default function MonthlyReportPage() {
             timeLabel: sessionTimeLabel(s),
             durationLabel: formatHours(s.durationHours),
             needsWork: cleanText(s.needsWork) || undefined,
-            predictedGrade: cleanText(s.predictedGrade) || undefined,
             signatureUrl: s.signature ? await blobToDataUrl(s.signature) : undefined,
             engagementScore: engScore,
             engagementLabel: engLabel,

@@ -151,3 +151,34 @@ export function generateRichNote(input: RichNoteInput): string {
   const note = parts.join(" ").replace(/\s{2,}/g, " ").trim();
   return note.length > 300 ? note.slice(0, 297).trimEnd() + "…" : note;
 }
+
+export interface AutoStudyNoteSession {
+  date: string;
+  subjects: string[];
+  topic?: string;
+  needsWork?: string;
+  shortNote?: string;
+  mood?: string;
+}
+
+/**
+ * Rakit catatan belajar berkelanjutan dari sesi terakhir secara otomatis (gratis).
+ * Output memakai markdown ringan yang dirender SimpleMarkdown.
+ */
+export function buildAutoStudyNote(sessions: AutoStudyNoteSession[]): string {
+  const recent = [...sessions].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
+  if (recent.length === 0) return "";
+
+  const subjects = [...new Set(recent.flatMap((s) => s.subjects.map((x) => x.trim()).filter(Boolean)))];
+  const topics = [...new Set(recent.map((s) => s.topic?.trim()).filter(Boolean) as string[])];
+  const needs = [...new Set(recent.map((s) => s.needsWork?.trim()).filter(Boolean) as string[])];
+  const latest = recent[0];
+
+  const lines: string[] = [];
+  lines.push(`📚 **Topik:** ${topics.length > 0 ? topics.slice(0, 4).join(", ") : subjects.join(", ") || "materi terakhir"}.`);
+  if (latest.shortNote?.trim()) lines.push(`📝 **Catatan terakhir:** ${latest.shortNote.trim()}.`);
+  if (needs.length > 0) lines.push(`⚠️ **Perlu Perhatian:** ${needs.slice(0, 3).join("; ")}.`);
+  lines.push(`🎯 **Rencana:** lanjutkan pembahasan ${topics[0] ?? subjects[0] ?? "materi terakhir"} dan perkuat area yang masih perlu perhatian.`);
+
+  return lines.join("\n");
+}
