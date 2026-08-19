@@ -81,4 +81,6 @@ export interface ReportOptions {
   coverPage?: boolean;
   showEngagement?: boolean;
   showGallery?: boolean;
+  /** Override jumlah sesi per halaman (default mengikuti layout). */
+  entriesPerPage?: number;
 }

@@ -11,7 +11,8 @@ interface Props {
 
 export function ReportRenderer({ data, theme, layoutId, options }: Props) {
   const layout = getLayout(layoutId);
-  const pages = paginate(data, layout.maxEntriesPerPage);
+  const entriesPerPage = options?.entriesPerPage ?? layout.maxEntriesPerPage;
+  const pages = paginate(data, entriesPerPage);
   const showCover = options?.coverPage;
 
   return (

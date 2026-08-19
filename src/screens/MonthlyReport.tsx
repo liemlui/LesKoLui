@@ -578,7 +578,7 @@ export default function MonthlyReportPage() {
   const [coverPage, setCoverPage] = useState(false);
   const [showCustomBuilder, setShowCustomBuilder] = useState(false);
 
-  const reportOptions: ReportOptions = { coverPage, showEngagement: true };
+  const reportOptions: ReportOptions = { coverPage, showEngagement: true, entriesPerPage: 4 };
 
   // ReportData — async photo normalization + engagement
   const [reportData, setReportData] = useState<import("../template/types").ReportData | null>(null);
@@ -955,6 +955,57 @@ export default function MonthlyReportPage() {
     }
   };
 
+  /** Generate narasi sesi GRATIS dari data yang sudah ada (tanpa AI). */
+  const handleGenerateLocalNarratives = async () => {
+    if (!report || reportSessions.length === 0) return;
+    let applied = 0;
+    for (const s of reportSessions) {
+      if (s.narrative?.trim()) continue;
+      const narrative = buildSessionNarrative(s, sessionSubjectLabel(s.subjects)).trim();
+      if (narrative) {
+        await updateSession(s.id, { narrative });
+        applied++;
+      }
+    }
+    setMessage(`⚡ ${applied} narasi sesi dibuat otomatis (gratis) ✓`);
+    setOpenNarasi(true);
+  };
+
+  /** Generate ringkasan/catatan guru/kutipan GRATIS dari data sesi (tanpa AI). */
+  const handleGenerateLocalTexts = async () => {
+    if (!student || !report || reportSessions.length === 0) return;
+    const draft = await ensureReport();
+    if (!draft) return;
+
+    const subjects = [...new Set(reportSessions.flatMap((s) => s.subjects.map((x) => x.trim()).filter(Boolean)))];
+    const topics = reportSessions.map((s) => cleanText(s.topic)).filter(Boolean).slice(0, 3);
+    const needs = reportSessions.map((s) => cleanText(s.needsWork)).filter(Boolean).slice(0, 3);
+    const period = periodLabel(periodStart, periodEnd) || monthLabel(month);
+
+    const summary = [
+      `Periode ${period} berisi ${reportSessions.length} sesi (${totalHours} jam) untuk ${subjects.join(", ") || "materi yang dipelajari"}.`,
+      topics.length > 0 ? `Topik yang dibahas antara lain ${topics.join(", ")}.` : undefined,
+      avgEngagement != null ? `Rata-rata fokus ${avgEngagement}/10.` : undefined,
+      needs.length > 0 ? `Area yang masih perlu perhatian: ${needs.join("; ")}.` : undefined,
+    ].filter((line): line is string => Boolean(line)).join(" ");
+
+    const teacherNote = [
+      `Kemajuan terbesar terlihat dari konsistensi ${reportSessions.length} sesi pada periode ini.`,
+      needs.length > 0 ? `Fokus berikutnya: ${needs[0]}.` : "Lanjutkan latihan topik yang sudah dibahas.",
+    ].join(" ");
+
+    const quote = `Terus semangat, ${student.name}! Setiap sesi membawa kamu selangkah lebih dekat ke targetmu.`;
+
+    await upsertReport({
+      ...draft,
+      summaryText: draft.summaryText?.trim() || summary,
+      teacherNote: draft.teacherNote?.trim() || teacherNote,
+      quote: draft.quote?.trim() || quote,
+    });
+    setMessage("⚡ Teks laporan dibuat otomatis (gratis) ✓");
+    setOpenTeks(true);
+  };
+
   const doExport = async (type: "jpg" | "png" | "pdf") => {
     if (!student || !report || !reportData || exporting) return;
     setExporting(type);
@@ -1302,27 +1353,32 @@ export default function MonthlyReportPage() {
                     {report && reportStatus(report) === "draft" && (
                       <button className="btn flex-1 text-sm bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40" disabled={!availability.ok}
                         onClick={handleConfirm}>
-                        ✅ Sahkan
+                        ✅ Sahkan & Terbitkan Tagihan
                       </button>
                     )}
                   </div>
+                  {report && reportStatus(report) === "draft" && (
+                    <p className="text-[11px] text-gray-500">
+                      Sahkan = kunci periode & terbitkan tagihan di Keuangan. <strong>Belum</strong> mengirim ke orang tua dan <strong>belum</strong> menandai dibayar.
+                    </p>
+                  )}
                   {report && reportStatus(report) === "draft" && (
                     <button className="w-full py-2 text-xs text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                       onClick={handleDiscard}>
                       🗑 Batalkan Draft
                     </button>
                   )}
-                  {settings?.ai?.enabled && settings.ai.apiKey && (
+                  {report && settings?.ai?.enabled && settings.ai.apiKey && (
                     <div className="flex gap-2">
                       <button className="flex-1 btn text-sm bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
                         onClick={() => setShowNarrativesModal(true)} disabled={aiLoading || !availability.ok}
-                        title="Tulis narasi 40–60 kata per sesi dari shortNote + ringkasan + kutipan">
-                        {aiLoading ? "⏳ AI..." : "📖 Narasi AI"}
+                        title="Perkuat narasi 40–60 kata per sesi dengan AI (setelah laporan dibuat)">
+                        {aiLoading ? "⏳ AI..." : "📖 Perkuat Narasi AI"}
                       </button>
                       <button className="flex-1 btn text-sm bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 disabled:opacity-50"
                         onClick={() => setShowPolishModal(true)} disabled={aiLoading || !availability.ok}
-                        title="Hanya ringkasan periode + kutipan (lebih murah)">
-                        {aiLoading ? "⏳ AI..." : "✨ Ringkasan AI"}
+                        title="Perkuat ringkasan periode + kutipan dengan AI (lebih murah)">
+                        {aiLoading ? "⏳ AI..." : "✨ Perkuat Teks AI"}
                       </button>
                     </div>
                   )}
@@ -1509,6 +1565,15 @@ export default function MonthlyReportPage() {
                   </button>
                   {openNarasi && (
                     <div className="px-4 pb-4 space-y-2 border-t border-gray-100">
+                      <div className="pt-3 flex gap-2">
+                        <button className="btn btn-secondary text-xs"
+                          onClick={handleGenerateLocalNarratives}>
+                          ⚡ Generate Narasi Gratis
+                        </button>
+                        <span className="text-[11px] text-gray-500 self-center">
+                          Isi narasi kosong dari catatan singkat/topik/perhatian tanpa AI.
+                        </span>
+                      </div>
                       {paginatedNarrativeSessions.map((s) => (
                         <div key={s.id} className="bg-gray-50 rounded-xl p-3 mt-2">
                           <p className="text-xs text-gray-500 mb-1">{dayLabel(s.date)} — {s.subjects.join(", ")}</p>
@@ -1557,6 +1622,15 @@ export default function MonthlyReportPage() {
                   </button>
                   {openTeks && (
                     <div className="px-4 pb-4 space-y-3 border-t border-gray-100">
+                      <div className="pt-3 flex gap-2">
+                        <button className="btn btn-secondary text-xs"
+                          onClick={handleGenerateLocalTexts}>
+                          ⚡ Generate Teks Gratis
+                        </button>
+                        <span className="text-[11px] text-gray-500 self-center">
+                          Isi ringkasan, catatan guru & kutipan dari data sesi tanpa AI.
+                        </span>
+                      </div>
                       <div className="pt-3">
                         <label htmlFor="mr-ringkasan" className="label">Ringkasan</label>
                         {editingSummary ? (

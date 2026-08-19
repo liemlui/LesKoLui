@@ -426,15 +426,20 @@ export default function StudentDetail() {
           className="flex items-center justify-center gap-2 py-3 rounded-xl bg-indigo-50 text-indigo-700 text-sm font-semibold border border-indigo-200 hover:bg-indigo-100 transition-colors">
           <span>📊</span> Lihat Laporan
         </button>
-        <button onClick={() => navigate(`/payments?tab=tagihan&studentId=${encodeURIComponent(id ?? "")}`)}
-          className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-green-50 text-green-700 text-sm font-semibold border border-green-200 hover:bg-green-100 transition-colors">
-          <span>{studentBillingPolicy === "session_count" ? "🧾" : studentBillingPolicy === "manual" ? "💸" : "📅"}</span>
-          {studentBillingPolicy === "session_count"
-            ? "Kelola Tagihan"
-            : studentBillingPolicy === "manual"
-              ? "Buat Tagihan Manual"
-              : "Tagihan Bulanan"}
-        </button>
+        {studentBillingPolicy !== "monthly" && (
+          <button onClick={() => navigate(`/payments?tab=tagihan&studentId=${encodeURIComponent(id ?? "")}`)}
+            className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-green-50 text-green-700 text-sm font-semibold border border-green-200 hover:bg-green-100 transition-colors">
+            <span>{studentBillingPolicy === "session_count" ? "🧾" : "💸"}</span>
+            {studentBillingPolicy === "session_count"
+              ? "Kelola Tagihan"
+              : "Buat Tagihan Manual"}
+          </button>
+        )}
+        {studentBillingPolicy === "monthly" && (
+          <p className="col-span-2 text-[11px] text-gray-500 -mt-1">
+            💡 Tagihan bulanan dibuat lewat <strong>Lihat Laporan → Sahkan</strong>; pembayaran bisa dicek di Keuangan.
+          </p>
+        )}
       </div>
 
       {/* Tabs navigasi */}

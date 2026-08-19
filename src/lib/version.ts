@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.45.0",
+    date: "2026-08-19",
+    title: "Laporan Bulanan Lebih Jelas — 4 sesi/halaman, teks gratis, dan alur AI setelah laporan dibuat",
+    items: [
+      "Detail murid: tombol Tagihan Bulanan ganda dihapus untuk siklus Bulanan — laporan bulanan diakses lewat Lihat Laporan, pembayaran dicek di Keuangan",
+      "Tombol AI di laporan hanya muncul setelah laporan dibuat; namanya kini Perkuat Narasi AI dan Perkuat Teks AI",
+      "Sahkan diperjelas menjadi Sahkan & Terbitkan Tagihan dengan keterangan: belum mengirim ke orang tua dan belum menandai dibayar",
+      "PDF/JPG laporan kini 4 sesi per halaman (preview dan export konsisten)",
+      "Narasi sesi dan teks laporan bisa di-generate otomatis gratis dari data sesi; AI menjadi opsi perkuat",
+    ],
+  },
+  {
     version: "v1.44.0",
     date: "2026-08-19",
     title: "Wizard Catatan Lebih Kuat — rangkum lokal, pratinjau AI, dan Catatan Belajar markdown",
