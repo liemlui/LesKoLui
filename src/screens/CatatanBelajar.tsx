@@ -10,6 +10,7 @@ import type { Session } from "../db/types";
 import Breadcrumb from "../components/Breadcrumb";
 import Modal from "../components/Modal";
 import Skeleton from "../components/Skeleton";
+import { SimpleMarkdown } from "../components/SimpleMarkdown";
 
 /**
  * CatatanBelajar — catatan belajar per murid.
@@ -29,6 +30,9 @@ export default function CatatanBelajar() {
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [search, setSearch] = useState("");
   const [showHelp, setShowHelp] = useState(false);
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  // Isi catatan SEBELUM AI memperkuat — untuk tombol "↩ Undo AI".
+  const [aiPrev, setAiPrev] = useState<Record<string, string>>({});
   const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   // Konten terbaru yang belum tersimpan — dipakai untuk flush saat unmount.
   const pendingRef = useRef<Map<string, string>>(new Map());
@@ -107,6 +111,13 @@ export default function CatatanBelajar() {
 
     setNotes((prev) => ({ ...prev, [studentId]: content }));
     pendingRef.current.set(studentId, content);
+    // Ketikan manual membatalkan riwayat "sebelum AI" — undo AI tidak relevan lagi.
+    setAiPrev((prev) => {
+      if (!(studentId in prev)) return prev;
+      const next = { ...prev };
+      delete next[studentId];
+      return next;
+    });
 
     const timer = setTimeout(async () => {
       setSaving((prev) => ({ ...prev, [studentId]: true }));
@@ -145,6 +156,8 @@ export default function CatatanBelajar() {
 
     setAiLoading((prev) => ({ ...prev, [studentId]: true }));
     setAiError((prev) => { const next = { ...prev }; delete next[studentId]; return next; });
+    // Simpan versi sebelum AI agar bisa di-undo.
+    setAiPrev((prev) => ({ ...prev, [studentId]: (notes[studentId] ?? "").trim() }));
 
     // Batalkan autosave tertunda untuk murid ini: hasil AI tidak boleh
     // ditimpa oleh ketikan lama yang masih menunggu debounce.
@@ -177,6 +190,18 @@ export default function CatatanBelajar() {
 
   const toggleSessions = (studentId: string) => {
     setExpandedSessions((prev) => ({ ...prev, [studentId]: !prev[studentId] }));
+  };
+
+  const undoAi = async (studentId: string) => {
+    const prev = aiPrev[studentId];
+    if (prev === undefined) return;
+    setNotes((state) => ({ ...state, [studentId]: prev }));
+    await saveStudyNote(studentId, prev);
+    setAiPrev((state) => {
+      const next = { ...state };
+      delete next[studentId];
+      return next;
+    });
   };
 
   const aiEnabled = settings?.ai?.enabled && settings.ai.apiKey;
@@ -258,6 +283,8 @@ export default function CatatanBelajar() {
           const sessions = recentSessions[s.id] ?? [];
           const showSessions = expandedSessions[s.id] ?? false;
           const hasSessions = sessions.length > 0;
+          const isPreview = previewId === s.id;
+          const canUndoAi = aiPrev[s.id] !== undefined;
 
           return (
             <div
@@ -313,15 +340,23 @@ export default function CatatanBelajar() {
                 </div>
               )}
 
-              {/* Note textarea */}
+              {/* Note textarea / preview */}
               <div className="px-4 pb-3 relative">
-                <textarea
-                  placeholder="Tulis catatan belajar... (contoh: topik sekolah, PR dari sekolah, progres, rencana sesi berikutnya)"
-                  value={content}
-                  onChange={(e) => debouncedSave(s.id, e.target.value)}
-                  rows={3}
-                  className="w-full text-sm rounded-xl border border-gray-200 p-3 resize-y focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition-colors"
-                />
+                {isPreview ? (
+                  <div className="w-full min-h-[76px] text-sm rounded-xl border border-blue-200 bg-blue-50/50 p-3 overflow-auto">
+                    {content.trim()
+                      ? <SimpleMarkdown text={content} />
+                      : <span className="text-gray-400 text-xs">Belum ada catatan.</span>}
+                  </div>
+                ) : (
+                  <textarea
+                    placeholder="Tulis catatan belajar... (contoh: topik sekolah, PR dari sekolah, progres, rencana sesi berikutnya)"
+                    value={content}
+                    onChange={(e) => debouncedSave(s.id, e.target.value)}
+                    rows={3}
+                    className="w-full text-sm rounded-xl border border-gray-200 p-3 resize-y focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition-colors"
+                  />
+                )}
 
                 {/* Error */}
                 {error && (
@@ -342,28 +377,46 @@ export default function CatatanBelajar() {
                         Disimpan {formatRelative(savedNote.updatedAt)}
                       </span>
                     )}
+                    {canUndoAi && (
+                      <button
+                        onClick={() => undoAi(s.id)}
+                        className="text-[10px] font-semibold text-amber-600 hover:text-amber-700">
+                        ↩ Undo AI
+                      </button>
+                    )}
                   </div>
 
-                  {/* AI Perkuat button — draft tutor jadi bahan utama, sesi jadi pelengkap */}
-                  {aiEnabled && (hasSessions || Boolean(content.trim())) && (
-                    <button
-                      onClick={() => handleAiDraft(s.id, s.name, s.subjects)}
-                      disabled={isLoading}
-                      className="flex items-center gap-1 text-[10px] font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2 py-1 rounded-lg transition-colors disabled:opacity-50 whitespace-nowrap"
-                      title={`~Rp${Math.round(estimateDraftStudyNoteCost(sessions.length)).toLocaleString("id-ID")}`}
-                    >
-                      {isLoading ? (
-                        <span className="inline-block w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        "✨ Perkuat"
-                      )}
-                      {hasSessions && (
-                        <span className="text-indigo-400">
-                          ({sessions.length})
-                        </span>
-                      )}
-                    </button>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    {content.trim() && (
+                      <button
+                        onClick={() => setPreviewId(isPreview ? null : s.id)}
+                        className="text-[10px] font-semibold text-gray-500 bg-gray-50 hover:bg-gray-100 border border-gray-200 px-2 py-1 rounded-lg transition-colors whitespace-nowrap"
+                        title={isPreview ? "Kembali ke mode edit" : "Pratinjau markdown"}>
+                        {isPreview ? "✏️ Edit" : "👁 Pratinjau"}
+                      </button>
+                    )}
+
+                    {/* AI Perkuat button — draft tutor jadi bahan utama, sesi jadi pelengkap */}
+                    {aiEnabled && (hasSessions || Boolean(content.trim())) && (
+                      <button
+                        onClick={() => handleAiDraft(s.id, s.name, s.subjects)}
+                        disabled={isLoading}
+                        className="flex items-center gap-1 text-[10px] font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2 py-1 rounded-lg transition-colors disabled:opacity-50 whitespace-nowrap"
+                        title={`~Rp${Math.round(estimateDraftStudyNoteCost(sessions.length)).toLocaleString("id-ID")}`}
+                      >
+                        {isLoading ? (
+                          <span className="inline-block w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          "✨ Perkuat"
+                        )}
+                        {hasSessions && (
+                          <span className="text-indigo-400">
+                            ({sessions.length})
+                          </span>
+                        )}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

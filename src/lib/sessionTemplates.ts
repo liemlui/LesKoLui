@@ -97,3 +97,57 @@ export function generateNote(
       return "";
   }
 }
+
+export interface RichNoteInput {
+  studentName?: string;
+  sessionType?: SessionType;
+  subjects?: string[];
+  topic?: string;
+  mood?: string;
+  needsWork?: string;
+  behaviorLabels?: string[];
+  responseLabel?: string;
+  previousNote?: string;
+  followUps?: string[];
+  engagement?: EngagementNarrativeInput;
+}
+
+/**
+ * Rangkai semua data wizard menjadi catatan singkat 2–4 kalimat TANPA memanggil AI.
+ * Dipakai tombol "⚡ Rangkum Cepat" di Step Catatan — gratis dan tetap spesifik.
+ */
+export function generateRichNote(input: RichNoteInput): string {
+  const subjects = (input.subjects ?? []).map((s) => s.trim()).filter(Boolean);
+  const subjectLabel = subjects.join(" & ") || "materi";
+  const parts: string[] = [];
+
+  if (input.sessionType) {
+    parts.push(generateNote(input.sessionType, subjects[0], input.topic || undefined));
+  } else {
+    parts.push(`Bahas ${subjectLabel}${input.topic ? ` — ${input.topic}` : ""}.`);
+  }
+
+  const eng = input.engagement;
+  const hasEngagement = eng && (
+    eng.prepared || eng.focused || eng.activeAsking || eng.quickLearner ||
+    eng.drowsy || eng.playingPhone || eng.needsRepetition || eng.hwMissed ||
+    eng.late || eng.bathroomBreaks
+  );
+  if (hasEngagement) {
+    parts.push(generateEngagementNarrative(eng, input.studentName));
+  }
+
+  if (input.mood?.trim()) parts.push(`Suasana sesi: ${input.mood.trim()}.`);
+  if (input.responseLabel?.trim()) parts.push(`Respons akademik: ${input.responseLabel.trim()}.`);
+  if (input.behaviorLabels && input.behaviorLabels.length > 0) {
+    parts.push(`Kondisi belajar: ${input.behaviorLabels.join(", ")}.`);
+  }
+  if (input.needsWork?.trim()) parts.push(`Perlu perhatian: ${input.needsWork.trim()}.`);
+  if (input.previousNote?.trim()) parts.push(`Melanjutkan sesi lalu: ${input.previousNote.trim()}.`);
+  if (input.followUps && input.followUps.length > 0) {
+    parts.push(`Fokus berikutnya: ${input.followUps.join("; ")}.`);
+  }
+
+  const note = parts.join(" ").replace(/\s{2,}/g, " ").trim();
+  return note.length > 300 ? note.slice(0, 297).trimEnd() + "…" : note;
+}

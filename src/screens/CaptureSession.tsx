@@ -16,13 +16,14 @@ import { toggleArrayItem } from "../lib/arrays";
 import { calcEngagementScore, scoreLabel } from "../lib/engagement";
 import { IB_MYP_SUBJECTS, IB_DP_GROUPS, getSubjectGroups, CURRICULUM_META } from "../lib/ibSubjects";
 import { searchTopics } from "../lib/ibTopics";
-import { SESSION_TYPE_OPTIONS, generateNote, generateEngagementNarrative } from "../lib/sessionTemplates";
+import { SESSION_TYPE_OPTIONS, generateNote, generateEngagementNarrative, generateRichNote } from "../lib/sessionTemplates";
 import { BEHAVIOR_TAGS, RESPONSE_TAGS } from "../lib/responseTaxonomy";
 import type { BehaviorTag, ResponseTag } from "../lib/responseTaxonomy";
 import type { SessionType } from "../lib/sessionTemplates";
 import { MIN_DURATION } from "../db/types";
 import { draftShortNote, polishWhatsApp, estimateDraftNoteCost, estimatePolishWACost } from "../lib/aiClient";
 import { AiCostModal } from "../components/AiCostModal";
+import { SimpleMarkdown } from "../components/SimpleMarkdown";
 import Breadcrumb from "../components/Breadcrumb";
 import type { Student, Session, FollowUpItem } from "../db/types";
 import PaginationControls from "../components/PaginationControls";
@@ -185,6 +186,10 @@ export default function CaptureSession() {
   const [aiError,          setAiError]          = useState("");
   const [showAiCostModal,  setShowAiCostModal]  = useState(false);
   const [showAiWaModal,    setShowAiWaModal]    = useState(false);
+  // Draft AI tidak langsung menimpa catatan — tampil sebagai usulan dulu.
+  const [aiNoteDraft,      setAiNoteDraft]      = useState<string | null>(null);
+  const [aiNoteOriginal,   setAiNoteOriginal]   = useState("");
+  const [aiNoteStyle,      setAiNoteStyle]      = useState<"rapikan" | "perluas" | "ringkas">("rapikan");
 
   useEffect(() => {
     if (!photo) { setPhotoUrl(undefined); return; }
@@ -431,6 +436,50 @@ export default function CaptureSession() {
     mood,
   }) : 0;
   const engScoreInfo = engScore > 0 ? scoreLabel(engScore) : null;
+
+  const activeSubjects      = subjects.length ? subjects : studentSubjects;
+  const activeBehaviorLabels = behaviorTags.length > 0
+    ? behaviorTags.map((id) => BEHAVIOR_TAGS.find((t) => t.id === id)?.label).filter(Boolean) as string[]
+    : [];
+  const activeResponseLabel = responseTag
+    ? RESPONSE_TAGS.find((t) => t.id === responseTag)?.label
+    : undefined;
+
+  /** Rangkum Cepat: rangkai semua data wizard jadi catatan gratis (tanpa AI). */
+  const handleLocalGenerate = () => {
+    setShortNote(generateRichNote({
+      studentName: currentStudent?.name,
+      sessionType,
+      subjects: activeSubjects,
+      topic: topic || undefined,
+      mood,
+      needsWork: needsWork || undefined,
+      behaviorLabels: activeBehaviorLabels.length > 0 ? activeBehaviorLabels : undefined,
+      responseLabel: activeResponseLabel,
+      previousNote: briefLastSession?.shortNote,
+      followUps: briefFollowUps.map((f) => f.text),
+      engagement: {
+        prepared: engPrepared, focused: engFocused, activeAsking: engActiveAsking,
+        quickLearner: engQuickLearner, drowsy: engDrowsy, playingPhone: engPhone,
+        needsRepetition: engNeedsRepeat, hwMissed: engHwMissed, late: engLate,
+        bathroomBreaks: engBathroom, score: engScore,
+      },
+    }));
+    setAiNoteDraft(null);
+    setAiNoteOriginal("");
+  };
+
+  /** Tambahkan chip saran ke textbox (tidak menimpa ketikan yang sudah ada). */
+  const appendNoteChip = (text: string) => {
+    setShortNote((prev) => {
+      const clean = text.trim();
+      if (!clean) return prev;
+      const next = prev.trim();
+      return next ? `${next} ${clean}` : clean;
+    });
+    setAiNoteDraft(null);
+    setAiNoteOriginal("");
+  };
 
   return (
     <div className="pb-36">
@@ -1244,20 +1293,44 @@ export default function CaptureSession() {
           <div>
             <div className="flex items-center justify-between mb-1">
               <label htmlFor="cs-catatan" className="label">✏️ Catatan Singkat <span className="text-red-400">*</span></label>
-              {sessionType && (
+              {(activeSubjects.length > 0 || Boolean(topic) || Boolean(sessionType)) && (
                 <button type="button"
                   className="text-xs text-blue-600 hover:text-blue-800 font-semibold"
-                  onClick={() => {
-                    const allSubj = (subjects.length ? subjects : studentSubjects).join(" & ");
-                    setShortNote(generateNote(sessionType, allSubj, topic));
-                  }}>
-                  ⚡ Generate
+                  onClick={handleLocalGenerate}>
+                  ⚡ Rangkum Cepat
                 </button>
               )}
             </div>
             <textarea id="cs-catatan" className="input" rows={4} value={shortNote} maxLength={300}
-              onChange={(e) => setShortNote(e.target.value)}
-              placeholder="Apa yang dibahas hari ini? Atau tekan ✨ Draft AI untuk generate otomatis..." />
+              onChange={(e) => { setShortNote(e.target.value); setAiNoteDraft(null); setAiNoteOriginal(""); }}
+              placeholder="Apa yang dibahas hari ini? Ketik manual, klik saran di bawah, atau pakai ⚡ Rangkum Cepat / ✨ Draft AI..." />
+
+            {/* Chips saran — tampil sebelum ketik agar catatan bisa diisi 1 klik */}
+            {!shortNote.trim() && (
+              (briefLastSession?.shortNote || briefFollowUps.length > 0 || Boolean(needsWork)) && (
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                  {briefLastSession?.shortNote && (
+                    <button type="button" onClick={() => appendNoteChip(`Melanjutkan sesi lalu: ${briefLastSession.shortNote}.`)}
+                      className="text-[11px] text-gray-600 bg-gray-50 border border-gray-200 rounded-full px-2.5 py-1 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                      🔁 Sesi lalu
+                    </button>
+                  )}
+                  {briefFollowUps.slice(0, 3).map((f) => (
+                    <button key={f.id} type="button" onClick={() => appendNoteChip(`Fokus berikutnya: ${f.text}.`)}
+                      className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1 hover:bg-amber-100 transition-colors">
+                      🔁 {f.text.length > 28 ? f.text.slice(0, 28) + "…" : f.text}
+                    </button>
+                  ))}
+                  {needsWork && (
+                    <button type="button" onClick={() => appendNoteChip(`Perlu perhatian: ${needsWork}.`)}
+                      className="text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-full px-2.5 py-1 hover:bg-red-100 transition-colors">
+                      ⚠️ Perlu perhatian
+                    </button>
+                  )}
+                </div>
+              )
+            )}
+
             <div className="flex items-center justify-between mt-1">
               <span className="text-xs text-gray-500">{shortNote.length}/300</span>
               {settings?.ai?.enabled && settings.ai.apiKey && (subjects.length > 0 || studentSubjects.length > 0) && (
@@ -1268,13 +1341,48 @@ export default function CaptureSession() {
                 </button>
               )}
             </div>
+
+            {/* Usulan AI — tampil dulu, jangan langsung menimpa */}
+            {aiNoteDraft && (
+              <div className="mt-2 bg-indigo-50 border border-indigo-200 rounded-xl p-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-xs font-bold text-indigo-700">✨ Usulan AI ({aiNoteStyle})</p>
+                  <button type="button" onClick={() => setAiNoteDraft(null)}
+                    className="text-xs text-indigo-400 hover:text-indigo-600">Tutup</button>
+                </div>
+                <div className="max-h-32 overflow-y-auto text-sm text-gray-800">
+                  <SimpleMarkdown text={aiNoteDraft} />
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <button type="button"
+                    onClick={() => { setShortNote(aiNoteDraft); setAiNoteDraft(null); }}
+                    className="flex-1 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition-colors">
+                    ✓ Terima
+                  </button>
+                  <button type="button"
+                    onClick={() => setAiNoteDraft(null)}
+                    className="flex-1 py-2 rounded-xl border border-indigo-200 text-indigo-600 text-xs font-bold hover:bg-indigo-100 transition-colors">
+                    ✕ Tolak
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {aiNoteOriginal && shortNote !== aiNoteOriginal && (
+              <button type="button"
+                onClick={() => { setShortNote(aiNoteOriginal); setAiNoteOriginal(""); setAiNoteDraft(null); }}
+                className="mt-1.5 text-[11px] text-gray-500 hover:text-indigo-600 font-semibold">
+                ↩ Kembalikan ke teks awal
+              </button>
+            )}
+
             {aiError && <p className="text-xs text-red-500 mt-1">{aiError}</p>}
             {suggestions.length > 0 && (
               <div className="mt-1 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
                 {suggestions.map((s) => (
                   <button key={s} type="button"
                     className="block w-full text-left text-sm text-blue-600 hover:bg-blue-50 px-3 py-2 border-b border-gray-100 last:border-0"
-                    onClick={() => setShortNote(s)}>{s}</button>
+                    onClick={() => { setShortNote(s); setAiNoteDraft(null); setAiNoteOriginal(""); }}>{s}</button>
                 ))}
               </div>
             )}
@@ -1678,7 +1786,6 @@ export default function CaptureSession() {
 
       {/* AI Cost confirm modal */}
       {showAiCostModal && (() => {
-        const activeSubjects = subjects.length ? subjects : studentSubjects;
         const currentDraft = shortNote.trim() || undefined;
         const est = estimateDraftNoteCost(activeSubjects, topic || undefined, currentDraft);
         return (
@@ -1702,6 +1809,18 @@ export default function CaptureSession() {
                   : "Textbox kosong — AI akan membuat catatan baru."}{" "}
                 Berdasarkan mapel{topic ? `, topik (${topic})` : ""}{engTouched ? `, engagement (${engScore}/10)` : ""}{needsWork ? `, area perhatian` : ""}{briefLastSession ? `, dan konteks sesi lalu` : ""}.
               </p>
+              <div>
+                <label className="label">Gaya penulisan</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["rapikan", "perluas", "ringkas"] as const).map((style) => (
+                    <button key={style} type="button"
+                      onClick={() => setAiNoteStyle(style)}
+                      className={`py-2 rounded-xl text-xs font-bold border transition-colors ${aiNoteStyle === style ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-600 border-gray-200 hover:border-indigo-300"}`}>
+                      {style === "rapikan" ? "✍️ Rapikan" : style === "perluas" ? "📖 Perluas" : "✂️ Ringkas"}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="flex gap-3">
                 <button onClick={() => setShowAiCostModal(false)}
                   className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-500 font-semibold text-sm">
@@ -1711,6 +1830,7 @@ export default function CaptureSession() {
                   onClick={async () => {
                     setShowAiCostModal(false);
                     setAiNoteLoading(true); setAiError("");
+                    setAiNoteDraft(null); setAiNoteOriginal(shortNote);
                     try {
                       const engagementLabels = engTouched ? [
                         ...(engPrepared      ? ["sudah siap bahan"]     : []),
@@ -1724,12 +1844,6 @@ export default function CaptureSession() {
                         ...(engLate          ? ["telat"]                : []),
                         ...(engBathroom      ? ["sering ke toilet"]     : []),
                       ] : undefined;
-                      const bLabels = behaviorTags.length > 0
-                        ? behaviorTags.map(id => BEHAVIOR_TAGS.find(t => t.id === id)?.label).filter(Boolean) as string[]
-                        : undefined;
-                      const rLabel = responseTag
-                        ? RESPONSE_TAGS.find(t => t.id === responseTag)?.label
-                        : undefined;
                       const res = await draftShortNote({
                         student: { name: currentStudent?.name ?? "", level: currentStudent?.level ?? "" },
                         subjects: activeSubjects,
@@ -1740,13 +1854,15 @@ export default function CaptureSession() {
                         needsWork: needsWork || undefined,
                         engagementScore: engTouched ? engScore : undefined,
                         engagementLabels,
-                        behaviorLabels: bLabels,
-                        responseLabel: rLabel,
+                        behaviorLabels: activeBehaviorLabels.length > 0 ? activeBehaviorLabels : undefined,
+                        responseLabel: activeResponseLabel,
                         previousNote: briefLastSession?.shortNote,
                         draftText: currentDraft,
+                        style: aiNoteStyle,
+                        followUps: briefFollowUps.map((f) => f.text),
                         durationHours: duration,
                       });
-                      if (res.note) setShortNote(res.note);
+                      if (res.note) setAiNoteDraft(res.note);
                     } catch (e) { setAiError((e as Error).message); }
                     finally { setAiNoteLoading(false); }
                   }}

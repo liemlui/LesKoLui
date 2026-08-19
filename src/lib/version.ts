@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.44.0",
+    date: "2026-08-19",
+    title: "Wizard Catatan Lebih Kuat — rangkum lokal, pratinjau AI, dan Catatan Belajar markdown",
+    items: [
+      "Tombol Rangkum Cepat di Step Catatan merangkai mapel, topik, mood, engagement, perilaku, needsWork, sesi lalu, dan follow-up jadi draft 2–4 kalimat gratis tanpa AI",
+      "Hasil Draft AI tidak lagi langsung menimpa catatan — muncul sebagai Usulan AI dengan Terima/Tolak dan tombol Kembalikan ke teks awal",
+      "Modal Draft AI kini punya pilihan gaya Rapikan/Perluas/Ringkas, dan follow-up sesi lalu ikut dikirim ke DeepSeek",
+      "Chips saran 1-klik tampil sebelum mengetik: sesi lalu, follow-up, dan area perlu perhatian",
+      "Catatan Belajar (/catatan) dan kartu catatan di detail murid kini punya pratinjau markdown; hasil Perkuat AI bisa di-undo",
+    ],
+  },
+  {
     version: "v1.43.0",
     date: "2026-08-19",
     title: "Foto laporan lebih besar & AI DeepSeek Flash hemat",
