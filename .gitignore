@@ -25,6 +25,7 @@ dist-ssr
 
 .vercel
 .env*
+.reasonix/
 
 # Playwright
 /test-results/
