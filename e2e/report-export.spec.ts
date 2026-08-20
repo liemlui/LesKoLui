@@ -14,7 +14,7 @@ async function closeChangelog(page: Page) {
   } catch { /* tidak ada modal */ }
 }
 
-test("buat laporan lalu export JPG berhasil tanpa error", async ({ page }) => {
+test("buat laporan lalu export JPG dan PDF berhasil tanpa error", async ({ page }) => {
   test.slow(); // rasterisasi + embed font butuh waktu
 
   await page.goto("/");
@@ -57,11 +57,26 @@ test("buat laporan lalu export JPG berhasil tanpa error", async ({ page }) => {
   await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).click();
   await expect(page.locator("[data-report-page]").first()).toBeVisible({ timeout: 10_000 });
 
+  // Regression: export harus memakai preview yang terlihat. Render tersembunyi
+  // berlebar tetap pernah membuat rasio kotak foto berubah dan crop jadi parah.
+  const exportRoot = page.locator("[data-report-export-root]");
+  await expect(exportRoot).toBeVisible();
+  await expect(exportRoot.locator("[data-report-page]").first()).toBeVisible();
+  await expect(page.locator('[aria-hidden="true"] [data-report-page]')).toHaveCount(0);
+
   // Export JPG → harus menghasilkan download (share API tak ada di chromium headless)
   const downloadPromise = page.waitForEvent("download", { timeout: 45_000 });
   await page.getByRole("button", { name: /JPG/ }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/\.jpg$/);
+
+  // Tunggu seluruh halaman JPG selesai agar event download berikutnya pasti PDF.
+  const pdfButton = page.getByRole("button", { name: /PDF/ });
+  await expect(pdfButton).toBeEnabled({ timeout: 45_000 });
+  const pdfDownloadPromise = page.waitForEvent("download", { timeout: 45_000 });
+  await pdfButton.click();
+  const pdfDownload = await pdfDownloadPromise;
+  expect(pdfDownload.suggestedFilename()).toMatch(/\.pdf$/);
 
   // Tidak boleh muncul pesan gagal
   await expect(page.getByText(/Gagal ekspor/)).toHaveCount(0);

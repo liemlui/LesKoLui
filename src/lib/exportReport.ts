@@ -13,6 +13,33 @@ async function pageNodes(root: ParentNode = document): Promise<HTMLElement[]> {
   return Array.from(root.querySelectorAll<HTMLElement>("[data-report-page]"));
 }
 
+async function waitForImages(node: ParentNode): Promise<void> {
+  const images = Array.from(node.querySelectorAll<HTMLImageElement>("img"));
+  await Promise.all(images.map(async (img) => {
+    if (!img.complete) {
+      await new Promise<void>((resolve) => {
+        const done = () => {
+          img.removeEventListener("load", done);
+          img.removeEventListener("error", done);
+          resolve();
+        };
+        img.addEventListener("load", done, { once: true });
+        img.addEventListener("error", done, { once: true });
+        // Tutup race bila gambar selesai di antara pengecekan dan pemasangan listener.
+        if (img.complete) done();
+      });
+    }
+    try { await img.decode?.(); } catch { /* gambar rusak ditangani renderer */ }
+  }));
+}
+
+function exportPixelRatio(node: HTMLElement): number {
+  // Preview HP lebih sempit daripada desktop. Naikkan densitas raster tanpa
+  // mengubah geometri layout agar hasil tetap tajam sekaligus WYSIWYG.
+  const targetWidth = 1200;
+  return Math.min(3, Math.max(2, targetWidth / Math.max(1, node.offsetWidth)));
+}
+
 async function rasterizePages(
   format: "jpeg" | "png" = "jpeg",
   root: ParentNode = document,
@@ -21,6 +48,7 @@ async function rasterizePages(
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(null))));
   const nodes = await pageNodes(root);
   if (nodes.length === 0) throw new Error("Buat laporan terlebih dahulu, lalu scroll ke bagian Pratinjau.");
+  await Promise.all(nodes.map(waitForImages));
   const out: { dataUrl: string; w: number; h: number }[] = [];
   const { toJpeg, toPng, getFontEmbedCSS } = await loadHtmlToImage();
 
@@ -34,13 +62,12 @@ async function rasterizePages(
   const fontOpts = fontEmbedCSS ? { fontEmbedCSS } : { skipFonts: true };
 
   for (const node of nodes) {
-    // Root khusus export dirender di luar viewport (fixed, left -10000) — tidak
-    // perlu scrollIntoView karena bisa menggeser layar pengguna.
     if (root === document) node.scrollIntoView({ block: "nearest" });
     await new Promise((r) => requestAnimationFrame(() => r(null)));
+    const pixelRatio = exportPixelRatio(node);
     const dataUrl = format === "png"
-      ? await toPng(node, { pixelRatio: 2, cacheBust: false, ...fontOpts, style: { overflow: "visible" } })
-      : await toJpeg(node, { pixelRatio: 2, quality: 0.92, cacheBust: false, ...fontOpts, style: { overflow: "visible" } });
+      ? await toPng(node, { pixelRatio, cacheBust: false, ...fontOpts, style: { overflow: "visible" } })
+      : await toJpeg(node, { pixelRatio, quality: 0.94, cacheBust: false, ...fontOpts, style: { overflow: "visible" } });
     out.push({ dataUrl, w: node.offsetWidth, h: node.offsetHeight });
   }
   return out;

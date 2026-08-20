@@ -11,6 +11,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.48.1",
+    date: "2026-08-20",
+    title: "Ekspor Laporan WYSIWYG — foto lebih utuh dan tajam",
+    items: [
+      "JPG, PNG, dan PDF kini memakai komposisi pratinjau yang terlihat, sehingga rasio kotak foto tidak berubah saat diekspor",
+      "Foto laporan memakai resolusi tersimpan tanpa center-crop ulang ke 360 px",
+      "Ekspor menunggu semua gambar siap dan menyesuaikan densitas raster agar hasil tetap tajam di layar ponsel maupun desktop",
+    ],
+  },
+  {
     version: "v1.48.0",
     date: "2026-08-20",
     title: "Keuangan Lebih Ringan — tab dipecah, lazy-load, dan UX penagihan lebih jelas",

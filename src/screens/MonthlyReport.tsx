@@ -27,7 +27,7 @@ import { LAYOUTS } from "../template/layouts";
 import { ReportRenderer } from "../template/ReportRenderer";
 import { dayLabel, monthLabel, todayWIB, monthOf, periodLabel, formatRupiah } from "../lib/format";
 import { exportJpeg, exportPng, exportPdf, shareFiles } from "../lib/exportReport";
-import { blobToDataUrl, blobToNormalizedDataUrl } from "../lib/imageUtils";
+import { blobToDataUrl } from "../lib/imageUtils";
 import PaginationControls from "../components/PaginationControls";
 import Breadcrumb from "../components/Breadcrumb";
 import { clampPage, paginateItems } from "../lib/pagination";
@@ -631,7 +631,10 @@ export default function MonthlyReportPage() {
           return {
             date: dayLabel(s.date).split(",")[1]?.trim() ?? s.date.slice(5),
             subject,
-            photoUrl: s.photo ? await blobToNormalizedDataUrl(s.photo) : undefined,
+            // Pakai foto tersimpan langsung. Normalisasi lama melakukan center-crop
+            // permanen ke 360x270 lalu export memperbesarnya lagi, sehingga wajah
+            // mudah terpotong dan foto tampak buram di JPG/PDF.
+            photoUrl: s.photo ? await blobToDataUrl(s.photo) : undefined,
             narrative: buildSessionNarrative(s, subject),
             topic: cleanText(s.topic) || undefined,
             mood: cleanText(s.mood) || undefined,
@@ -1520,15 +1523,9 @@ export default function MonthlyReportPage() {
 
                 </details>
 
-                {/* Preview (responsif untuk layar HP) */}
-                <div className="max-w-sm lg:max-w-2xl mx-auto">
-                  <ReportRenderer data={reportData} theme={theme} layoutId={report.templateKey.layoutId} options={reportOptions} />
-                </div>
-
-                {/* Render khusus export: lebar halaman tetap (A4 @96dpi) agar PDF/JPG
-                    tidak ikut mengecil mengikuti lebar preview HP. */}
-                <div ref={reportExportRef} aria-hidden="true"
-                  style={{ position: "fixed", left: -10000, top: 0, width: 794, pointerEvents: "none" }}>
+                {/* Preview sekaligus sumber export supaya komposisi JPG/PDF persis
+                    sama dengan yang dilihat pengguna pada ukuran layar aktif. */}
+                <div ref={reportExportRef} data-report-export-root className="max-w-sm lg:max-w-2xl mx-auto">
                   <ReportRenderer data={reportData} theme={theme} layoutId={report.templateKey.layoutId} options={reportOptions} />
                 </div>
 
