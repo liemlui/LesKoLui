@@ -11,6 +11,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.48.0",
+    date: "2026-08-20",
+    title: "Keuangan Lebih Ringan — tab dipecah, lazy-load, dan UX penagihan lebih jelas",
+    items: [
+      "Layar Keuangan dipecah per tab (Ringkasan, Tagihan, Pengeluaran, Audit) + invoice modal terpisah",
+      "Data grafik/audit/paket dimuat lazy per tab sehingga halaman lebih ringan",
+      "Ringkasan: kartu hero laba, satu grafik Kas vs Pengeluaran 3/6/12 bulan, forecast tidak dobel, tab Murid digabung",
+      "Tab Tagihan punya badge 'perlu tindakan' dan tombol Daftar Tagihan (semua link WA tagihan belum lunas)",
+      "window.confirm diganti bottom-sheet ConfirmSheet; progress paket memakai ActivityRing",
+      "Helper keuangan sumExpensesByCategory + formatIdrNumber; preview tutup bulan satu sumber (computeMonthBills)",
+    ],
+  },
+  {
     version: "v1.47.0",
     date: "2026-08-20",
     title: "Follow-up Nilai Prediksi → Aktual, Topik Multi, dan IA/EE/PP Lebih Jelas",

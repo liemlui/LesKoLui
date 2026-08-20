@@ -10,6 +10,9 @@ export default defineConfig({
     setupFiles: ["./src/setupTests.ts"],
     // Batasi vitest ke unit/integration di src/ — jangan tangkap E2E Playwright di e2e/
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    // PBKDF2 600k iterasi butuh beberapa detik; saat suite berjalan paralel,
+    // default 5s bisa timeout di mesin sibuk.
+    testTimeout: 20_000,
   },
   plugins: [
     react(),
