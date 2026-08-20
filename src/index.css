@@ -70,3 +70,12 @@ body { margin: 0; }
     margin-bottom: 0.25rem;
   }
 }
+
+/* ── Export ratio 3:4 ────────────────────────────────────────────────
+   Halaman laporan diberi rasio tetap 3:4 (potret) agar gambar export
+   tidak terlalu tinggi dan terpotong saat dikirim ke WhatsApp.
+   PDF tidak memakai kelas ini (auto-height tetap dipertahankan). */
+.report-ratio-3-4 [data-report-page] {
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+}

@@ -576,8 +576,13 @@ export default function MonthlyReportPage() {
   const [compareThemeId, setCompareThemeId] = useState<string | null>(null);
   const [coverPage, setCoverPage] = useState(false);
   const [showCustomBuilder, setShowCustomBuilder] = useState(false);
+  // Kontrol export: jumlah sesi per halaman + rasio halaman.
+  // Default 3:4 potret agar gambar tidak terpotong di WhatsApp.
+  // Default 3 sesi/halaman agar konten muat dalam rasio 3:4 tanpa terpotong.
+  const [entriesPerPage, setEntriesPerPage] = useState(3);
+  const [pageRatio, setPageRatio] = useState<"3:4" | "auto">("3:4");
 
-  const reportOptions: ReportOptions = { coverPage, showEngagement: true, entriesPerPage: 4 };
+  const reportOptions: ReportOptions = { coverPage, showEngagement: true, entriesPerPage, pageRatio };
 
   // ReportData — async photo normalization + engagement
   const [reportData, setReportData] = useState<import("../template/types").ReportData | null>(null);
@@ -1013,7 +1018,15 @@ export default function MonthlyReportPage() {
     setMessage("");
     const base = `Laporan-${student.name}-${periodLabel(periodStart, periodEnd) || monthLabel(month)}`.replace(/\s+/g, "-");
     const exportRoot = reportExportRef.current ?? document;
+    // PDF memakai tinggi otomatis (auto) — sudah cukup oke. JPG/PNG memakai
+    // rasio yang dipilih (default 3:4) agar tidak terpotong di WhatsApp.
+    const prevRatio = pageRatio;
+    if (type === "pdf" && prevRatio !== "auto") setPageRatio("auto");
     try {
+      // Tunggu re-render bila rasio diubah untuk PDF.
+      if (type === "pdf" && prevRatio !== "auto") {
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(null))));
+      }
       if (type === "jpg") await shareFiles(await exportJpeg(base, exportRoot), base);
       else if (type === "png") await shareFiles(await exportPng(base, exportRoot), base);
       else await shareFiles([await exportPdf(base, exportRoot)], base);
@@ -1022,6 +1035,7 @@ export default function MonthlyReportPage() {
     } catch (e) {
       setMessage("Gagal ekspor: " + (e as Error).message);
     } finally {
+      if (type === "pdf" && prevRatio !== "auto") setPageRatio(prevRatio);
       setExporting(null);
     }
   };
@@ -1527,6 +1541,44 @@ export default function MonthlyReportPage() {
                     sama dengan yang dilihat pengguna pada ukuran layar aktif. */}
                 <div ref={reportExportRef} data-report-export-root className="max-w-sm lg:max-w-2xl mx-auto">
                   <ReportRenderer data={reportData} theme={theme} layoutId={report.templateKey.layoutId} options={reportOptions} />
+                </div>
+
+                {/* Kontrol export: jumlah sesi per halaman + rasio halaman */}
+                <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-xs font-semibold text-gray-600">Sesi per halaman</label>
+                    <div className="flex gap-1">
+                      {[2, 3, 4, 6].map((n) => (
+                        <button key={n}
+                          onClick={() => setEntriesPerPage(n)}
+                          className={`text-xs font-semibold rounded-lg px-2.5 py-1 transition-colors ${entriesPerPage === n ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-xs font-semibold text-gray-600">Rasio halaman</label>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => setPageRatio("3:4")}
+                        className={`text-xs font-semibold rounded-lg px-2.5 py-1 transition-colors ${pageRatio === "3:4" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+                        title="Rasio 3:4 potret — ramah WhatsApp, tidak terpotong">
+                        3:4
+                      </button>
+                      <button
+                        onClick={() => setPageRatio("auto")}
+                        className={`text-xs font-semibold rounded-lg px-2.5 py-1 transition-colors ${pageRatio === "auto" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+                        title="Tinggi otomatis — dipakai PDF">
+                        Auto
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-gray-500">
+                    {pageRatio === "3:4"
+                      ? "Rasio 3:4 membuat gambar tidak terlalu tinggi sehingga tidak terpotong saat dikirim ke WhatsApp."
+                      : "Tinggi otomatis mengikuti isi halaman (cocok untuk PDF)."}
+                  </p>
                 </div>
 
                 {/* Export */}

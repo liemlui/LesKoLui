@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { LAYOUTS, getLayout } from "../template/layouts";
+import { ReportRenderer } from "../template/ReportRenderer";
 import { THEMES } from "../template/themes";
 import type { ReportData } from "../template/types";
 
@@ -153,5 +154,37 @@ describe("report layouts", () => {
     };
     const html = renderToStaticMarkup(getLayout("dashboard").render(aggregated, THEMES[0], { isFirst: true, isLast: true }));
     expect(html).toContain(">10</p>"); // Sesi = totalSessions, bukan 3 entri halaman ini
+  });
+
+  it("ReportRenderer applies 3:4 ratio class by default (WhatsApp-friendly)", () => {
+    const html = renderToStaticMarkup(
+      <ReportRenderer data={data} theme={THEMES[0]} layoutId="cards" />
+    );
+    expect(html).toContain('class="report-ratio-3-4"');
+  });
+
+  it("ReportRenderer omits ratio class when pageRatio is auto (PDF)", () => {
+    const html = renderToStaticMarkup(
+      <ReportRenderer data={data} theme={THEMES[0]} layoutId="cards" options={{ pageRatio: "auto" }} />
+    );
+    expect(html).not.toContain("report-ratio-3-4");
+  });
+
+  it("ReportRenderer respects entriesPerPage override", () => {
+    const many: ReportData = {
+      ...data,
+      entries: [
+        { date: "1 Juni 2026", subject: "Matematika", narrative: "Sesi 1." },
+        { date: "2 Juni 2026", subject: "Fisika", narrative: "Sesi 2." },
+        { date: "3 Juni 2026", subject: "Kimia", narrative: "Sesi 3." },
+        { date: "4 Juni 2026", subject: "Biologi", narrative: "Sesi 4." },
+        { date: "5 Juni 2026", subject: "Matematika", narrative: "Sesi 5." },
+      ],
+    };
+    // 5 entri / 2 per halaman = 3 halaman
+    const html = renderToStaticMarkup(
+      <ReportRenderer data={many} theme={THEMES[0]} layoutId="cards" options={{ entriesPerPage: 2 }} />
+    );
+    expect(html.match(/data-report-page/g)?.length).toBe(3);
   });
 });

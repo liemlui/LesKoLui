@@ -11,6 +11,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.48.2",
+    date: "2026-08-20",
+    title: "Ekspor Laporan Lebih Ringkas untuk WhatsApp",
+    items: [
+      "Pilih 2, 3, 4, atau 6 sesi per halaman langsung dari laporan bulanan",
+      "Ekspor JPG/PNG memakai rasio potret 3:4 agar halaman lebih praktis dibagikan lewat WhatsApp",
+      "PDF otomatis memakai tinggi halaman penuh supaya seluruh isi laporan tetap terlihat",
+    ],
+  },
+  {
     version: "v1.48.1",
     date: "2026-08-20",
     title: "Ekspor Laporan WYSIWYG — foto lebih utuh dan tajam",

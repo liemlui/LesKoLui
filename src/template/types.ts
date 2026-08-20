@@ -83,4 +83,10 @@ export interface ReportOptions {
   showGallery?: boolean;
   /** Override jumlah sesi per halaman (default mengikuti layout). */
   entriesPerPage?: number;
+  /**
+   * Rasio aspek halaman export. "3:4" (default) memberi halaman rasio tetap
+   * potret agar gambar tidak terlalu tinggi dan terpotong di WhatsApp.
+   * "auto" mempertahankan tinggi alami (dipakai PDF).
+   */
+  pageRatio?: "3:4" | "auto";
 }

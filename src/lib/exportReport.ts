@@ -65,9 +65,13 @@ async function rasterizePages(
     if (root === document) node.scrollIntoView({ block: "nearest" });
     await new Promise((r) => requestAnimationFrame(() => r(null)));
     const pixelRatio = exportPixelRatio(node);
+    // JANGAN paksa overflow:visible — biarkan CSS mengontrol. Rasio 3:4
+    // memakai overflow:hidden agar konten terpotong sesuai rasio (tidak
+    // menghasilkan gambar terlalu tinggi yang terpotong di WhatsApp).
+    // PDF (rasio auto) tanpa overflow:hidden tetap menampilkan konten penuh.
     const dataUrl = format === "png"
-      ? await toPng(node, { pixelRatio, cacheBust: false, ...fontOpts, style: { overflow: "visible" } })
-      : await toJpeg(node, { pixelRatio, quality: 0.94, cacheBust: false, ...fontOpts, style: { overflow: "visible" } });
+      ? await toPng(node, { pixelRatio, cacheBust: false, ...fontOpts })
+      : await toJpeg(node, { pixelRatio, quality: 0.94, cacheBust: false, ...fontOpts });
     out.push({ dataUrl, w: node.offsetWidth, h: node.offsetHeight });
   }
   return out;
