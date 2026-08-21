@@ -16,6 +16,7 @@ interface SessionDetailModalProps {
   setDeletePinError: (v: string) => void;
   handleDeleteSession: () => void;
   openEditNote: (s: Session) => void;
+  openSettings: () => void;
 }
 
 /** Session Detail Modal — bottom sheet menampilkan detail satu sesi. */
@@ -26,7 +27,7 @@ export default function SessionDetailModal({
   showDeletePin, setShowDeletePin,
   deletePinInput, setDeletePinInput,
   deletePinError, setDeletePinError,
-  handleDeleteSession, openEditNote,
+  handleDeleteSession, openEditNote, openSettings,
 }: SessionDetailModalProps) {
   if (!detailSession) return null;
   const s = detailSession;
@@ -165,7 +166,7 @@ export default function SessionDetailModal({
           ) : (
             <div className="space-y-2 border border-red-200 rounded-xl p-3 bg-red-50">
               <p className="text-xs text-red-600 font-semibold">Hapus sesi ini? Tidak bisa dibatalkan.</p>
-              {settings?.financialPin && (
+              {settings?.financialPin ? (
                 <>
                   <input
                     type="password" inputMode="numeric" maxLength={6} placeholder="PIN"
@@ -177,16 +178,24 @@ export default function SessionDetailModal({
                   />
                   {deletePinError && <p className="text-xs text-red-500">{deletePinError}</p>}
                 </>
+              ) : (
+                <div className="rounded-lg bg-white/70 p-2.5 text-xs text-red-700">
+                  <p>Atur PIN Keuangan terlebih dahulu agar penghapusan sesi tetap aman.</p>
+                  <button type="button" onClick={openSettings}
+                    className="mt-2 font-semibold text-blue-600 hover:underline">Atur PIN Keuangan</button>
+                </div>
               )}
               <div className="flex gap-2">
                 <button onClick={() => { setShowDeletePin(false); setDeletePinInput(""); setDeletePinError(""); }}
                   className="flex-1 py-2 rounded-xl bg-gray-100 text-gray-600 text-sm font-semibold">
                   Batal
                 </button>
-                <button onClick={handleDeleteSession}
-                  className="flex-1 py-2 rounded-xl bg-red-500 text-white text-sm font-semibold">
-                  Hapus
-                </button>
+                {settings?.financialPin && (
+                  <button onClick={handleDeleteSession}
+                    className="flex-1 py-2 rounded-xl bg-red-500 text-white text-sm font-semibold">
+                    Hapus
+                  </button>
+                )}
               </div>
             </div>
           )}

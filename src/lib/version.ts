@@ -11,6 +11,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.48.3",
+    date: "2026-08-21",
+    title: "Bukti Sesi Bisa Dilengkapi & Penghapusan Lebih Jelas",
+    items: [
+      "Foto sesi kini dapat ditambahkan, diganti, atau dihapus dari Edit Catatan Sesi lewat Kamera atau Galeri",
+      "Penghapusan sesi dapat diakses dari editor; aplikasi menjelaskan kebutuhan PIN Keuangan dan mengarahkan ke Pengaturan bila PIN belum dibuat",
+      "Ikon edit di riwayat sesi tidak lagi ikut membuka detail sesi di belakang editor",
+    ],
+  },
+  {
     version: "v1.48.2",
     date: "2026-08-20",
     title: "Ekspor Laporan Lebih Ringkas untuk WhatsApp",

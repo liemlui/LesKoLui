@@ -1,5 +1,5 @@
 import Skeleton from "../components/Skeleton";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef, type ChangeEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
@@ -30,6 +30,7 @@ import ClockTimePicker from "../components/ClockTimePicker";
 import SignaturePad from "../components/SignaturePad";
 import Modal from "../components/Modal";
 import { Z } from "../lib/zIndex";
+import { compressPhoto, stampPhoto } from "../lib/foto";
 import { getBehaviorTag, getResponseTag } from "../lib/responseTaxonomy";
 import { MAX_HOURLY_RATE, clampCurrencyAmount, isValidCurrencyAmount } from "../lib/money";
 import EvidenceCard from "./studentDetail/EvidenceCard";
@@ -162,9 +163,22 @@ export default function StudentDetail() {
   const [editGradeReflection, setEditGradeReflection] = useState("");
   const [editGradeError,  setEditGradeError]  = useState("");
   const [editNoteSaving,  setEditNoteSaving]  = useState(false);
+  const [editPhoto,       setEditPhoto]       = useState<Blob | undefined>();
+  const [editPhotoUrl,    setEditPhotoUrl]    = useState<string | undefined>();
+  const [editPhotoError,  setEditPhotoError]  = useState("");
   const [editSignature,   setEditSignature]   = useState<Blob | undefined>();
   const [editSigUrl,      setEditSigUrl]      = useState<string | undefined>();
   const [showEditSigPad,  setShowEditSigPad]  = useState(false);
+  const editCameraRef = useRef<HTMLInputElement>(null);
+  const editGalleryRef = useRef<HTMLInputElement>(null);
+
+  // Keep photo URL in sync with the image selected while editing.
+  useEffect(() => {
+    if (!editPhoto) { setEditPhotoUrl(undefined); return; }
+    const url = URL.createObjectURL(editPhoto);
+    setEditPhotoUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [editPhoto]);
 
   // Keep sig URL in sync with blob
   useEffect(() => {
@@ -183,8 +197,34 @@ export default function StudentDetail() {
     setEditActualGrade(s.actualGrade ?? "");
     setEditGradeReflection(s.gradeReflection ?? "");
     setEditGradeError("");
+    setEditPhoto(s.photo);
+    setEditPhotoError("");
     setEditSignature(s.signature);
     setShowEditSigPad(false);
+  };
+
+  const handleEditPhoto = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const sessionDate = editSession?.date;
+    if (!file || !sessionDate) return;
+    if (!file.type.startsWith("image/")) {
+      setEditPhotoError("File harus berupa gambar (JPG/PNG/WebP).");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      setEditPhotoError("Foto terlalu besar (maks. 50 MB).");
+      e.target.value = "";
+      return;
+    }
+    try {
+      const compressed = await compressPhoto(file);
+      setEditPhoto(await stampPhoto(compressed, sessionDate));
+      setEditPhotoError("");
+    } catch {
+      setEditPhotoError("Foto tidak dapat diproses. Coba pilih file lain.");
+    }
+    e.target.value = "";
   };
 
   const handleSaveNote = async () => {
@@ -203,6 +243,7 @@ export default function StudentDetail() {
         predictedGrade: editPredictedGrade.trim() || undefined,
         actualGrade: editActualGrade.trim() || undefined,
         gradeReflection: editGradeReflection.trim() || undefined,
+        photo: editPhoto,
         signature: editSignature,
       });
       msg("Catatan diperbarui ✓");
@@ -709,7 +750,7 @@ export default function StudentDetail() {
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
                       <div className="flex items-center gap-1">
                         {s.status === "DONE" && (
-                          <button onClick={() => openEditNote(s)}
+                          <button onClick={(e) => { e.stopPropagation(); openEditNote(s); }}
                             className="text-gray-500 hover:text-blue-500 transition-colors text-xs px-1">✏️</button>
                         )}
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.status === "DONE" ? "bg-green-50 text-green-600" : s.status === "CANCELLED" ? "bg-red-50 text-red-500" : "bg-blue-50 text-blue-600"}`}>
@@ -1035,6 +1076,45 @@ export default function StudentDetail() {
                   placeholder="Hal yang perlu dikerjakan di sesi berikutnya..." />
               </div>
 
+              {/* Foto sesi */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="label !mb-0">📸 Foto Sesi</label>
+                  {editPhotoUrl && (
+                    <button type="button" onClick={() => { setEditPhoto(undefined); setEditPhotoError(""); }}
+                      className="text-xs text-red-400 hover:text-red-600">Hapus</button>
+                  )}
+                </div>
+                <input ref={editCameraRef} type="file" accept="image/*" capture="environment"
+                  onChange={handleEditPhoto} className="hidden" />
+                <input ref={editGalleryRef} type="file" accept="image/*"
+                  onChange={handleEditPhoto} className="hidden" />
+                {editPhotoUrl ? (
+                  <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+                    <img src={editPhotoUrl} alt="Foto sesi" className="h-44 w-full object-cover" />
+                    <div className="absolute bottom-2 right-2 flex gap-1.5">
+                      <button type="button" onClick={() => editCameraRef.current?.click()}
+                        className="rounded-full bg-black/65 px-2.5 py-1 text-xs text-white">📷 Kamera</button>
+                      <button type="button" onClick={() => editGalleryRef.current?.click()}
+                        className="rounded-full bg-black/65 px-2.5 py-1 text-xs text-white">🖼️ Galeri</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    <button type="button" onClick={() => editCameraRef.current?.click()}
+                      className="rounded-xl border-2 border-dashed border-gray-200 py-5 text-sm text-gray-500 transition-colors hover:border-blue-300 hover:text-blue-500">
+                      📷 Ambil Foto
+                    </button>
+                    <button type="button" onClick={() => editGalleryRef.current?.click()}
+                      className="rounded-xl border-2 border-dashed border-gray-200 py-5 text-sm text-gray-500 transition-colors hover:border-green-300 hover:text-green-500">
+                      🖼️ Pilih Galeri
+                    </button>
+                  </div>
+                )}
+                {editPhotoError && <p className="mt-1 text-xs text-red-500">{editPhotoError}</p>}
+                <p className="mt-1.5 text-xs text-gray-400">Foto akan dikompres dan diberi tanggal sesi.</p>
+              </div>
+
               {/* Tanda Tangan Murid */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
@@ -1071,6 +1151,11 @@ export default function StudentDetail() {
                 className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors">
                 {editNoteSaving ? "Menyimpan..." : "Simpan Catatan"}
               </button>
+              <button type="button" onClick={() => { setDetailSession(editSession); setEditSession(null); }}
+                className="w-full py-2.5 rounded-xl border border-red-200 text-red-500 text-sm font-medium hover:bg-red-50 transition-colors">
+                Kelola / Hapus Sesi
+              </button>
+              <p className="text-center text-xs text-gray-400">Penghapusan sesi memerlukan PIN Keuangan.</p>
             </div>
           </div>
         </div>
@@ -1170,6 +1255,7 @@ export default function StudentDetail() {
         setDeletePinError={setDeletePinError}
         handleDeleteSession={handleDeleteSession}
         openEditNote={openEditNote}
+        openSettings={() => { setDetailSession(null); navigate("/settings"); }}
       />
 
       {/* Bantuan siklus tagihan */}
