@@ -1,7 +1,7 @@
 import { reportStatus, type MonthlyReport } from "../db/types";
 import type { Session, Student } from "../db/types";
 import type { AiInput } from "./aiClient";
-import { dayLabel } from "./format";
+import { dayLabel, todayWIB } from "./format";
 import { BEHAVIOR_TAGS, RESPONSE_TAGS } from "./responseTaxonomy";
 
 /**
@@ -32,6 +32,17 @@ export function shouldUseStoredReportSnapshot(
   snapshotLocked: boolean,
 ): boolean {
   return Boolean(snapshotLocked && report && reportStatus(report) === "confirmed");
+}
+
+/**
+ * Resolve the package-billing range at query time, rather than when the
+ * report screen first mounts. A PWA can stay open across midnight; caching
+ * this value would otherwise hide sessions recorded on the following day.
+ */
+export function currentPackageSessionRange(
+  getToday: () => string = todayWIB,
+): { start: string; end: string } {
+  return { start: "0000-01-01", end: getToday() };
 }
 
 /** Select month/range rows while keeping an immutable paid/manual invoice's

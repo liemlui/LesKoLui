@@ -11,6 +11,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.48.5",
+    date: "2026-08-23",
+    title: "Laporan Paket Selalu Membaca Sesi Terbaru",
+    items: [
+      "Antrean laporan paket memperbarui batas tanggal setiap kali data sesi berubah, sehingga sesi di bulan berikutnya tetap masuk meski halaman Laporan sudah lama terbuka",
+      "Label draft paket kini menampilkan progres sesi langsung, misalnya 10/10 sesi, bukan angka snapshot lama",
+      "Laporan dan invoice yang sudah disahkan tetap memakai snapshot sesi yang terkunci",
+    ],
+  },
+  {
     version: "v1.48.4",
     date: "2026-08-23",
     title: "Laporan Paket Mengikuti Sesi Terbaru",

@@ -3,6 +3,7 @@ import type { Session } from "../db/types";
 import {
   buildReportAiInput,
   findBlockingReportOverlap,
+  currentPackageSessionRange,
   resolveReportMutationTarget,
   selectCountReportSessions,
   selectPeriodReportSessions,
@@ -79,6 +80,15 @@ describe("report session scope", () => {
     // Pre-draft legacy reports are confirmed by default and must remain fixed.
     expect(shouldUseStoredReportSnapshot({}, true)).toBe(true);
     expect(shouldUseStoredReportSnapshot({ status: "confirmed" }, false)).toBe(false);
+  });
+
+  it("resolves a fresh package cutoff after the calendar day changes", () => {
+    let today = "2026-04-30";
+    const getToday = () => today;
+    expect(currentPackageSessionRange(getToday)).toEqual({ start: "0000-01-01", end: "2026-04-30" });
+
+    today = "2026-05-01";
+    expect(currentPackageSessionRange(getToday)).toEqual({ start: "0000-01-01", end: "2026-05-01" });
   });
 
   it("keeps a paid/manual report snapshot from absorbing late sessions", () => {

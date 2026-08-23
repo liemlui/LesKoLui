@@ -20,6 +20,7 @@ import {
   selectCountReportSessions,
   selectPeriodReportSessions,
   shouldUseStoredReportSnapshot,
+  currentPackageSessionRange,
 } from "../lib/reportSessionScope";
 import { AiCostModal } from "../components/AiCostModal";
 import Modal from "../components/Modal";
@@ -291,7 +292,6 @@ export default function MonthlyReportPage() {
   // Batas periode per mode
   const monthStart = useMemo(() => (month ? `${month}-01` : ""), [month]);
   const monthEnd = useMemo(() => (month ? monthRange(month).end : ""), [month]);
-  const todayStr = useMemo(() => todayWIB(), []);
 
   // Mode jumlah is a billing scope, so explicitly billable no-shows count too.
   // Academic month/range reports continue to use completed lessons only.
@@ -299,8 +299,9 @@ export default function MonthlyReportPage() {
     if (!studentId) return [];
     if (mode === "bulan") return listSessionsByStudentRange(studentId, monthStart, monthEnd);
     if (mode === "range") return listSessionsByStudentRange(studentId, rangeStart, rangeEnd);
-    return listBillableSessionsByStudentRange(studentId, "0000-01-01", todayStr);
-  }, [studentId, mode, monthStart, monthEnd, rangeStart, rangeEnd, todayStr]);
+    const { start, end } = currentPackageSessionRange();
+    return listBillableSessionsByStudentRange(studentId, start, end);
+  }, [studentId, mode, monthStart, monthEnd, rangeStart, rangeEnd]);
 
   // Month/range modes know their identity before loading session rows. Resolve
   // that report early so its own confirmed sessions are not mistaken for a
@@ -1373,7 +1374,7 @@ export default function MonthlyReportPage() {
                   {report && reportStatus(report) === "draft" && (
                     <div className="rounded-lg px-3 py-2 text-sm bg-blue-50 text-blue-700 flex items-center justify-between">
                       <span className="font-semibold">
-                        📋 Draft{report.billingMode === "session_count" ? ` Paket ${report.billingSessionCount ?? report.sessionIds.length}` : ""} — belum disahkan
+                        📋 Draft{report.billingMode === "session_count" ? ` Paket ${reportSessions.length}/${reportTargetCount} sesi` : ""} — belum disahkan
                       </span>
                       <span className="font-bold">{formatRupiah(totalCost)}</span>
                     </div>
