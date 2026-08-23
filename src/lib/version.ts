@@ -11,6 +11,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.49.1",
+    date: "2026-08-23",
+    title: "Pesan WA & Poster Lebih Rapi",
+    items: [
+      "Pesan WA tagihan murid paket menampilkan Total Pertemuan (bukan jam), tanpa ikon kalender dan tanpa detail jam les",
+      "Pesan WA murid bulanan mengganti tanggal berulang dengan ikon penanda yang lebih rapi",
+      "Laporan/poster murid paket tidak lagi menampilkan durasi per sesi",
+    ],
+  },
+  {
     version: "v1.49.0",
     date: "2026-08-23",
     title: "Tarif per Pertemuan untuk Murid Paket",

@@ -689,8 +689,8 @@ export default function MonthlyReportPage() {
             narrative: buildSessionNarrative(s, subject),
             topic: cleanText(s.topic) || undefined,
             mood: cleanText(s.mood) || undefined,
-            timeLabel: sessionTimeLabel(s),
-            durationLabel: formatHours(s.durationHours),
+            timeLabel: reportBillingMode === "session_count" ? undefined : sessionTimeLabel(s),
+            durationLabel: reportBillingMode === "session_count" ? undefined : formatHours(s.durationHours),
             needsWork: cleanText(s.needsWork) || undefined,
             signatureUrl: s.signature ? await blobToDataUrl(s.signature) : undefined,
             engagementScore: engScore,
@@ -728,7 +728,7 @@ export default function MonthlyReportPage() {
       });
     })();
     return () => { cancelled = true; };
-  }, [student, reportSessions, month, periodStart, periodEnd, report, settings, totalHours]);
+  }, [student, reportSessions, month, periodStart, periodEnd, report, reportBillingMode, settings, totalHours]);
 
   const safeNarrativePage      = clampPage(narrativePage, filteredSessions.length);
   const paginatedNarrativeSessions = paginateItems(filteredSessions, safeNarrativePage);

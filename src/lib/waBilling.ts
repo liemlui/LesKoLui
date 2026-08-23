@@ -4,7 +4,8 @@
  * "Tutup Bulan" panel. Keeps a single source of truth for the message format.
  */
 import type { Session, Settings, Student } from "../db/types";
-import { dayLabel, monthLabel, formatRupiah } from "./format";
+import { billingPolicyOf } from "../db/types";
+import { monthLabel, formatRupiah } from "./format";
 
 export interface BillingResult {
   text: string;
@@ -14,7 +15,7 @@ export interface BillingResult {
 }
 
 export interface BuildBillingArgs {
-  student: Pick<Student, "name" | "hourlyRate">;
+  student: Pick<Student, "name" | "hourlyRate" | "billingPolicy">;
   /** A single student's sessions (any status/month) — filtered internally. */
   sessions: Session[];
   /** YYYY-MM billing period. */
@@ -30,6 +31,8 @@ export interface BuildBillingArgs {
 
 export function buildBillingMessage(args: BuildBillingArgs): BillingResult {
   const { student, sessions, month, settings, amountOverride, period, periodLabelText } = args;
+
+  const isSessionCount = billingPolicyOf(student) === "session_count";
 
   const billableSessions = sessions
     .filter((s) => (s.status === "DONE" || (s.status === "NO_SHOW" && s.noShowBillable))
@@ -48,17 +51,27 @@ export function buildBillingMessage(args: BuildBillingArgs): BillingResult {
     ``,
   ];
 
+  // Pemisah antara judul (nama + rentang sesi) dan detail sesi.
+  if (billableSessions.length > 0) {
+    lines.push(`──────────────────`, ``);
+  }
+
   billableSessions.forEach((s) => {
-    const dateShort = dayLabel(s.date).replace(/^\w+, /, "").replace(/ \d{4}$/, "");
     const subj = s.status === "NO_SHOW"
       ? "Tidak hadir (sesuai kebijakan)"
       : s.subjects.length > 0 ? s.subjects.join(", ") : "Sesi umum";
-    lines.push(`📅 ${dateShort} — ${subj} (${s.durationHours}j)`);
+    if (isSessionCount) {
+      lines.push(`• ${subj}`);
+    } else {
+      lines.push(`📌 ${subj} (${s.durationHours}j)`);
+    }
   });
 
   lines.push(
     ``,
-    `Total ${totalHours} jam — ${formatRupiah(totalCost)}`,
+    isSessionCount
+      ? `Total ${billableSessions.length} pertemuan — ${formatRupiah(totalCost)}`
+      : `Total ${totalHours} jam — ${formatRupiah(totalCost)}`,
   );
 
   if (bank && (bank.bca || bank.cimb || bank.bri)) {
