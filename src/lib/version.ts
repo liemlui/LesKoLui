@@ -11,6 +11,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.49.0",
+    date: "2026-08-23",
+    title: "Tarif per Pertemuan untuk Murid Paket",
+    items: [
+      "Murid dengan siklus 'Paket per N pertemuan' kini ditagih tarif flat per pertemuan, bukan per jam",
+      "Sesi lama yang belum ditagih otomatis dihitung ulang saat murid beralih (atau disimpan ulang) ke paket pertemuan",
+      "Label tarif di profil menyesuaikan menjadi 'per Pertemuan' untuk murid paket",
+    ],
+  },
+  {
     version: "v1.48.7",
     date: "2026-08-23",
     title: "Sesi Paket Historis Tidak Lagi Tersembunyi",

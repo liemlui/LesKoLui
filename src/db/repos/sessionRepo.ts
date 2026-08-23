@@ -3,7 +3,7 @@
 
 import { db } from "../db";
 import type { Payment, Session } from "../types";
-import { MIN_DURATION, DURATION_STEP, reportStatus } from "../types";
+import { MIN_DURATION, DURATION_STEP, reportStatus, billingPolicyOf } from "../types";
 import { timestamp, nowTimeWIB, subtractHoursFromTime, monthRange, timeToMin } from "./helpers";
 import { todayWIB } from "../../lib/format";
 import { logAudit } from "./auditRepo";
@@ -31,6 +31,18 @@ export async function pruneSessionPhotosBefore(beforeDate: string): Promise<numb
 
 // ── Session CRUD ───────────────────────────────────────────────────
 
+// ── Pricing ─────────────────────────────────────────────────────────
+// Per-meeting billing (session_count) charges a flat rate per meeting;
+// everyone else charges by duration (rate × hours).
+function sessionCost(rate: number, durationHours: number, perSession: boolean): number {
+  return perSession ? Math.round(rate) : Math.round(durationHours * rate);
+}
+
+async function isPerSessionStudent(studentId: string): Promise<boolean> {
+  const student = await db.students.get(studentId);
+  return student != null && billingPolicyOf(student) === "session_count";
+}
+
 export async function createSession(
   input: Omit<Session, "id" | "rateSnapshot" | "cost" | "createdAt" | "updatedAt">
 ): Promise<string> {
@@ -47,7 +59,7 @@ export async function createSession(
   const id = crypto.randomUUID();
   const now = timestamp();
   const rateSnapshot = student.hourlyRate;
-  const cost = Math.round(input.durationHours * rateSnapshot);
+  const cost = sessionCost(rateSnapshot, input.durationHours, billingPolicyOf(student) === "session_count");
 
   const tout = input.status === "DONE" ? nowTimeWIB() : undefined;
   const tin  = tout ? subtractHoursFromTime(tout, input.durationHours) : undefined;
@@ -86,12 +98,13 @@ export async function markSessionDone(
   const session = await db.sessions.get(id);
   if (!session) throw new Error("Session not found");
   const duration = data.durationHours ?? session.durationHours;
+  const perSession = await isPerSessionStudent(session.studentId);
   const tout = nowTimeWIB();
   const tin  = subtractHoursFromTime(tout, duration);
   await db.sessions.update(id, {
     ...data,
     durationHours: duration,
-    cost: Math.round(duration * session.rateSnapshot),
+    cost: sessionCost(session.rateSnapshot, duration, perSession),
     timeIn:  session.timeIn  ?? tin,
     timeOut: session.timeOut ?? tout,
     status: "DONE",
@@ -115,7 +128,8 @@ export async function updateSession(id: string, patch: Partial<Session>): Promis
   if (patch.durationHours !== undefined) {
     const session = await db.sessions.get(id);
     if (session) {
-      finalPatch.cost = Math.round(patch.durationHours * session.rateSnapshot);
+      const perSession = await isPerSessionStudent(session.studentId);
+      finalPatch.cost = sessionCost(session.rateSnapshot, patch.durationHours, perSession);
     }
   }
   await db.sessions.update(id, finalPatch);
@@ -307,6 +321,7 @@ export async function rescheduleSession(
   if (input.durationHours < MIN_DURATION) throw new Error(`Duration must be >= ${MIN_DURATION} hours`);
   if (input.durationHours % DURATION_STEP !== 0) throw new Error(`Duration must be multiple of ${DURATION_STEP}`);
 
+  const perSession = await isPerSessionStudent(session.studentId);
   const replacementId = crypto.randomUUID();
   const now = timestamp();
   const replacement: Session = {
@@ -319,7 +334,7 @@ export async function rescheduleSession(
     shortNote: "",
     status: "SCHEDULED",
     rateSnapshot: session.rateSnapshot,
-    cost: Math.round(input.durationHours * session.rateSnapshot),
+    cost: sessionCost(session.rateSnapshot, input.durationHours, perSession),
     rescheduledFromId: id,
     createdAt: now,
     updatedAt: now,
@@ -454,7 +469,7 @@ export async function scheduleSession(
     shortNote: "",
     status: "SCHEDULED",
     rateSnapshot,
-    cost: Math.round(input.durationHours * rateSnapshot),
+    cost: sessionCost(rateSnapshot, input.durationHours, billingPolicyOf(student) === "session_count"),
     createdAt: now,
     updatedAt: now,
   });
@@ -490,7 +505,7 @@ export async function scheduleBatch(
     status: "SCHEDULED" as const,
     seriesId: sid,
     rateSnapshot,
-    cost: Math.round(item.durationHours * rateSnapshot),
+    cost: sessionCost(rateSnapshot, item.durationHours, billingPolicyOf(student) === "session_count"),
     createdAt: now,
     updatedAt: now,
   }));
@@ -561,12 +576,13 @@ export async function updateSeriesSessions(
     .filter((s) => s.seriesId === session.seriesId && s.status === "SCHEDULED")
     .toArray();
   const toUpdate = mode === "all" ? all : all.filter((s) => s.date >= session.date);
+  const perSession = all.length > 0 ? await isPerSessionStudent(all[0].studentId) : false;
   const now = timestamp();
   await db.transaction("rw", db.sessions, async () => {
     for (const s of toUpdate) {
       const finalPatch: Partial<Session> = { ...patch, updatedAt: now };
       if (patch.durationHours !== undefined) {
-        finalPatch.cost = Math.round(patch.durationHours * s.rateSnapshot);
+        finalPatch.cost = sessionCost(s.rateSnapshot, patch.durationHours, perSession);
       }
       await db.sessions.update(s.id, finalPatch);
     }

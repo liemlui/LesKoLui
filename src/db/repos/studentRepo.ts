@@ -1,7 +1,7 @@
 // ── Students Repository ────────────────────────────────────────────
 
 import { db } from "../db";
-import type { Student } from "../types";
+import type { Student, Session } from "../types";
 import { billingPolicyOf } from "../types";
 import { isBillableSession } from "./sessionRepo";
 import { logAudit } from "./auditRepo";
@@ -30,14 +30,18 @@ export interface StudentBillingUpdateOptions {
   deferSessionCountPolicyChange?: boolean;
 }
 
-async function countUnbilledBillableSessions(studentId: string): Promise<number> {
+async function listUnbilledBillableSessions(studentId: string): Promise<Session[]> {
   const [sessions, reports, payments] = await Promise.all([
     db.sessions.where({ studentId }).toArray(),
     db.reports.where({ studentId }).toArray(),
     db.payments.where({ studentId }).toArray(),
   ]);
   const coveredIds = packageCoveredSessionIds(reports, payments);
-  return sessions.filter((session) => isBillableSession(session) && !coveredIds.has(session.id)).length;
+  return sessions.filter((session) => isBillableSession(session) && !coveredIds.has(session.id));
+}
+
+async function countUnbilledBillableSessions(studentId: string): Promise<number> {
+  return (await listUnbilledBillableSessions(studentId)).length;
 }
 
 export async function updateStudent(
@@ -67,6 +71,22 @@ export async function updateStudent(
       }
       if (unbilledCount > 0 && toPolicy === "session_count" && !options.includeExistingUnbilledInPackage) {
         throw new Error("Ada sesi lama yang belum ditagih; konfirmasi agar sesi tersebut masuk antrean paket");
+      }
+    }
+    // Per-meeting (session_count) billing: re-price any existing unbilled
+    // sessions to a flat per-meeting rate. Runs on policy switch and whenever a
+    // session_count student is re-saved, so existing sessions can be corrected
+    // in place (idempotent — cost always lands on the current per-meeting rate).
+    if (toPolicy === "session_count") {
+      const unbilled = await listUnbilledBillableSessions(id);
+      const newRate = patch.hourlyRate ?? existing.hourlyRate;
+      const now = timestamp();
+      for (const session of unbilled) {
+        await db.sessions.update(session.id, {
+          rateSnapshot: newRate,
+          cost: Math.round(newRate),
+          updatedAt: now,
+        });
       }
     }
     await db.students.update(id, {

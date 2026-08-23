@@ -313,7 +313,9 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
 
       {/* Tarif les per jam */}
       <div className="bg-orange-50 rounded-xl p-3 space-y-1">
-        <label htmlFor="rateInput" className="label !mb-0">Tarif Les per Jam</label>
+        <label htmlFor="rateInput" className="label !mb-0">
+          Tarif Les {billingPolicy === "session_count" ? "per Pertemuan" : "per Jam"}
+        </label>
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-500 font-medium">Rp</span>
           <input
@@ -331,7 +333,7 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
             onBlur={() => setRateInput(String(hourlyRate || 0))}
             placeholder="mis. 200000"
           />
-          <span className="text-sm text-gray-500">/ jam</span>
+          <span className="text-sm text-gray-500">/ {billingPolicy === "session_count" ? "pertemuan" : "jam"}</span>
         </div>
         {settings?.defaultRate && hourlyRate === settings.defaultRate && (
           <p className="text-xs text-orange-500">Menggunakan tarif default dari Pengaturan</p>

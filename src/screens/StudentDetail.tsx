@@ -505,7 +505,8 @@ export default function StudentDetail() {
             showRateEdit ? (
               <div className="flex items-center gap-2 flex-1">
                 <input type="number" className="input text-sm py-1.5 flex-1" value={newRate || ""}
-                  onChange={(e) => setNewRate(clampCurrencyAmount(Number(e.target.value), MAX_HOURLY_RATE))} placeholder="IDR/jam" />
+                  onChange={(e) => setNewRate(clampCurrencyAmount(Number(e.target.value), MAX_HOURLY_RATE))}
+                  placeholder={studentBillingPolicy === "session_count" ? "IDR/pertemuan" : "IDR/jam"} />
                 <button onClick={handleSaveRate} disabled={rateSaving}
                   className="text-xs bg-blue-600 text-white px-2 py-1.5 rounded-lg font-semibold">
                   {rateSaving ? "..." : "Simpan"}
@@ -515,7 +516,7 @@ export default function StudentDetail() {
               </div>
             ) : (
               <div className="flex items-center gap-2 flex-1">
-                <span className="text-gray-700 font-medium">Rp {student.hourlyRate.toLocaleString("id-ID")}/jam</span>
+                <span className="text-gray-700 font-medium">Rp {student.hourlyRate.toLocaleString("id-ID")}/{studentBillingPolicy === "session_count" ? "pertemuan" : "jam"}</span>
                 <button onClick={() => { setShowRateEdit(true); setNewRate(student.hourlyRate); }}
                   className="ml-auto text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded-lg">✏️ Edit</button>
                 <button onClick={() => { setRateUnlocked(false); setRatePinInput(""); }}
