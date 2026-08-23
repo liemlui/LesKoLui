@@ -19,6 +19,7 @@ import {
   resolveReportMutationTarget,
   selectCountReportSessions,
   selectPeriodReportSessions,
+  shouldUseStoredReportSnapshot,
 } from "../lib/reportSessionScope";
 import { AiCostModal } from "../components/AiCostModal";
 import Modal from "../components/Modal";
@@ -186,11 +187,13 @@ export default function MonthlyReportPage() {
   const student  = useLiveQuery(() => (studentId ? getStudent(studentId) : undefined), [studentId]);
 
   // Opening a student starts in the billing scope configured on their profile.
-  // The ref keeps later manual mode/count changes under the user's control.
+  // Keep manual choices intact, but reapply a package quota when it changes:
+  // the package count input itself is deliberately read-only.
   useEffect(() => {
     if (!student || student.id !== studentId || editingReportId) return;
-    if (appliedStudentBillingRef.current === student.id) return;
-    appliedStudentBillingRef.current = student.id;
+    const billingScopeKey = `${student.id}|${billingPolicyOf(student)}|${student.billingSessionCount ?? ""}`;
+    if (appliedStudentBillingRef.current === billingScopeKey) return;
+    appliedStudentBillingRef.current = billingScopeKey;
     if (billingPolicyOf(student) === "session_count") {
       setMode("jumlah");
       setCount(Math.max(1, Math.min(20, student.billingSessionCount ?? 8)));
@@ -221,9 +224,20 @@ export default function MonthlyReportPage() {
   const editingReportSessions = editingReportSessionsReady
     ? editingReportSessionsQuery?.sessions
     : undefined;
+  const useStoredEditingSnapshot = shouldUseStoredReportSnapshot(editingReport, snapshotLocked);
+  const configuredPackageCount = student && billingPolicyOf(student) === "session_count"
+    ? Math.max(1, Math.min(20, student.billingSessionCount ?? 8))
+    : undefined;
+  // A draft package follows the current student quota. A confirmed package
+  // keeps the quota recorded on its invoice, even if the profile changes later.
+  const reportTargetCount = mode === "jumlah"
+    && configuredPackageCount !== undefined
+    && !(useStoredEditingSnapshot && editingReport?.billingMode === "session_count")
+    ? configuredPackageCount
+    : count;
 
-  // A reportId deep-link opens the authoritative stored snapshot. Applying it
-  // once avoids resetting the user's controls after every report write.
+  // A reportId deep-link initializes its controls once. Only confirmed reports
+  // use their stored session snapshot; drafts continue to follow live sessions.
   useEffect(() => {
     if (!editingReport || appliedReportIdRef.current === editingReport.id) return;
     appliedReportIdRef.current = editingReport.id;
@@ -243,6 +257,17 @@ export default function MonthlyReportPage() {
       setCount(Math.max(1, Math.min(20, editingReport.billingSessionCount ?? (editingReport.sessionIds.length || 1))));
     }
     setSnapshotLocked(true);
+  }, [editingReport]);
+
+  // A draft opened from an old version can be confirmed later by the billing
+  // queue. Once that happens, show the confirmed invoice quota immediately.
+  useEffect(() => {
+    if (
+      !editingReport
+      || editingReport.billingMode !== "session_count"
+      || reportStatus(editingReport) !== "confirmed"
+    ) return;
+    setCount(Math.max(1, Math.min(20, editingReport.billingSessionCount ?? (editingReport.sessionIds.length || 1))));
   }, [editingReport]);
 
   useEffect(() => {
@@ -308,10 +333,14 @@ export default function MonthlyReportPage() {
     && (scopePayment.status === "PAID" || scopePayment.source === "manual")
   );
 
-  // Sesi milik laporan yang sedang diedit tetap boleh dipakai. Sesi laporan
-  // sah lain (termasuk parent/sibling supplemental) tidak boleh terserap.
+  // Only confirmed reports own a session snapshot. A draft never reserves its
+  // old ids, so it cannot hide newly added sessions or bypass a sibling invoice.
   const ownedSessionIds = useMemo(
-    () => new Set(scopeReport?.sessionIds ?? []),
+    () => new Set(
+      scopeReport && reportStatus(scopeReport) === "confirmed"
+        ? scopeReport.sessionIds
+        : [],
+    ),
     [scopeReport],
   );
   const blockedSessionIds = useMemo(
@@ -326,7 +355,7 @@ export default function MonthlyReportPage() {
   // Periode rekap efektif + sesi yang masuk laporan.
   const { periodStart, periodEnd, reportSessions } = useMemo(() => {
     if (!studentId) return { periodStart: "", periodEnd: "", reportSessions: [] as Session[] };
-    if (editingReport && snapshotLocked) {
+    if (editingReport && useStoredEditingSnapshot) {
       return {
         periodStart: editingReport.periodStart,
         periodEnd: editingReport.periodEnd,
@@ -337,7 +366,7 @@ export default function MonthlyReportPage() {
       const chosen = selectCountReportSessions(
         sessions ?? [],
         blockedSessionIds,
-        count,
+        reportTargetCount,
         ownedSessionIds,
       );
       return {
@@ -358,8 +387,8 @@ export default function MonthlyReportPage() {
       reportSessions: allowed,
     };
   }, [
-    studentId, editingReport, snapshotLocked, editingReportSessions,
-    mode, sessions, blockedSessionIds, ownedSessionIds, scopeHasProtectedInvoice, count,
+    studentId, editingReport, useStoredEditingSnapshot, editingReportSessions,
+    mode, sessions, blockedSessionIds, ownedSessionIds, scopeHasProtectedInvoice, reportTargetCount,
     monthStart, monthEnd, rangeStart, rangeEnd,
   ]);
 
@@ -403,7 +432,10 @@ export default function MonthlyReportPage() {
     && fixedPeriodLookupReady
     && periodReportLookupReady
     && scopePaymentLookupReady
-    && (!editingReportId || (editingReportLookupReady && (!editingReport || editingReportSessionsReady)));
+    && (!editingReportId || (
+      editingReportLookupReady
+      && (!useStoredEditingSnapshot || editingReportSessionsReady)
+    ));
 
   const availability = useMemo(() => {
     if (!studentId || !periodStart || !periodEnd) return { ok: false, reason: "" };
@@ -417,10 +449,10 @@ export default function MonthlyReportPage() {
     // "jumlah" untuk murid bulanan/manual tetap laporan periode biasa.
     const sessionCountCycle = mode === "jumlah"
       && ((student && billingPolicyOf(student) === "session_count") || report?.billingMode === "session_count");
-    if (sessionCountCycle && reportSessions.length !== count) {
+    if (sessionCountCycle && reportSessions.length !== reportTargetCount) {
       return {
         ok: false,
-        reason: `Paket harus berisi tepat ${count} pertemuan. Saat ini tersedia ${reportSessions.length}/${count}.`,
+        reason: `Paket harus berisi tepat ${reportTargetCount} pertemuan. Saat ini tersedia ${reportSessions.length}/${reportTargetCount}.`,
       };
     }
     if (
@@ -488,7 +520,7 @@ export default function MonthlyReportPage() {
       };
     }
     return { ok: true, reason: "" };
-  }, [studentId, periodStart, periodEnd, invalidReportLink, reportScopeDataReady, confirmedReports, closings, report, mode, rangeStart, rangeEnd, reportSessions.length, reportSessionIds, count, student]);
+  }, [studentId, periodStart, periodEnd, invalidReportLink, reportScopeDataReady, confirmedReports, closings, report, mode, rangeStart, rangeEnd, reportSessions.length, reportSessionIds, reportTargetCount, student]);
 
   const totalHours = useMemo(() => reportSessions.reduce((s, x) => s + x.durationHours, 0), [reportSessions]);
   const totalCost  = useMemo(() => reportSessions.reduce((s, x) => s + x.cost, 0), [reportSessions]);
@@ -503,7 +535,7 @@ export default function MonthlyReportPage() {
     : mode === "range" ? "range" : "monthly";
   const reportBillingFields = {
     billingMode: reportBillingMode,
-    billingSessionCount: reportBillingMode === "session_count" ? count : undefined,
+    billingSessionCount: reportBillingMode === "session_count" ? reportTargetCount : undefined,
   };
   const protectedNewSessionCount = useMemo(() => scopeHasProtectedInvoice
     ? (sessions ?? []).filter((session) =>
@@ -512,11 +544,11 @@ export default function MonthlyReportPage() {
     : 0,
   [scopeHasProtectedInvoice, sessions, ownedSessionIds, blockedSessionIds]);
   const reportScopeKey = useMemo(() => [
-    studentId, month, mode, count, rangeStart, rangeEnd,
+    studentId, month, mode, reportTargetCount, rangeStart, rangeEnd,
     editingReportId, snapshotLocked ? "snapshot" : "editable",
     periodStart, periodEnd, reportSessions.map((session) => session.id).join(","),
   ].join("|"), [
-    studentId, month, mode, count, rangeStart, rangeEnd,
+    studentId, month, mode, reportTargetCount, rangeStart, rangeEnd,
     editingReportId, snapshotLocked, periodStart, periodEnd, reportSessions,
   ]);
   const uniqueSubjects         = useMemo(() => {
@@ -1191,7 +1223,7 @@ export default function MonthlyReportPage() {
                   {mode === "jumlah" && (
                     <>
                       <label htmlFor="mr-jumlah" className="label">Jumlah Pertemuan</label>
-                      <input id="mr-jumlah" className="input" type="number" min={1} max={20} value={count}
+                      <input id="mr-jumlah" className="input" type="number" min={1} max={20} value={reportTargetCount}
                         disabled={Boolean(student && billingPolicyOf(student) === "session_count")}
                         onChange={(e) => {
                           beginControlScopeChange();
@@ -1243,7 +1275,7 @@ export default function MonthlyReportPage() {
               {studentId && periodStart && periodEnd && (
                 <p className="text-xs text-gray-500">
                   Periode: <strong>{periodLabel(periodStart, periodEnd)}</strong>
-                  {mode === "jumlah" && ` · ${reportSessions.length}/${count} pertemuan`}
+                  {mode === "jumlah" && ` · ${reportSessions.length}/${reportTargetCount} pertemuan`}
                 </p>
               )}
 

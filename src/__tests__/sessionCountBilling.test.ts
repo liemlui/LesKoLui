@@ -109,6 +109,31 @@ describe("session-count billing", () => {
     expect(await db.payments.count()).toBe(0);
   });
 
+  it("refreshes a package queue after two historical sessions complete its quota", async () => {
+    const { listSessionCountBillingProgress } = await import("../db/repos");
+    await db.students.add(student("late-history", "session_count", 10));
+    await db.sessions.bulkAdd(Array.from({ length: 8 }, (_, index) =>
+      session(`late-history-${index + 1}`, "late-history", `2026-06-${String(index + 1).padStart(2, "0")}`)));
+
+    await expect(listSessionCountBillingProgress()).resolves.toMatchObject([{
+      studentId: "late-history",
+      unbilledCount: 8,
+      readyBatchCount: 0,
+    }]);
+
+    await db.sessions.bulkAdd([
+      session("late-history-9", "late-history", "2026-06-09"),
+      session("late-history-10", "late-history", "2026-06-10"),
+    ]);
+
+    await expect(listSessionCountBillingProgress()).resolves.toMatchObject([{
+      studentId: "late-history",
+      unbilledCount: 10,
+      readyBatchCount: 1,
+      nextBatchSessions: Array.from({ length: 10 }, (_, index) => ({ id: `late-history-${index + 1}` })),
+    }]);
+  });
+
   it("rejects restored/direct quotas outside the supported integer range 1..20", async () => {
     const { createSessionCountInvoice } = await import("../db/repos");
     await db.students.add(student("invalid", "session_count", 21));
@@ -253,6 +278,35 @@ describe("session-count billing", () => {
       status: "confirmed",
       summaryText: "Ringkasan yang sudah disiapkan",
       sessionIds: ["draft-package-1", "draft-package-2"],
+    });
+    expect(await db.payments.count()).toBe(1);
+  });
+
+  it("extends a partial package draft when late sessions complete its FIFO batch", async () => {
+    const { createSessionCountInvoice } = await import("../db/repos");
+    await db.students.add(student("draft-grow", "session_count", 10));
+    await db.sessions.bulkAdd(Array.from({ length: 10 }, (_, index) =>
+      session(`draft-grow-${index + 1}`, "draft-grow", `2026-06-${String(index + 1).padStart(2, "0")}`)));
+    await db.reports.add(packageReport(
+      "draft-grow-report",
+      "draft-grow",
+      Array.from({ length: 8 }, (_, index) => `draft-grow-${index + 1}`),
+      {
+        status: "draft",
+        billingSessionCount: 10,
+        summaryText: "Catatan draft tetap dipertahankan",
+      },
+    ));
+
+    const result = await createSessionCountInvoice("draft-grow");
+
+    expect(result.reportId).toBe("draft-grow-report");
+    expect(await db.reports.count()).toBe(1);
+    await expect(db.reports.get(result.reportId)).resolves.toMatchObject({
+      status: "confirmed",
+      billingSessionCount: 10,
+      summaryText: "Catatan draft tetap dipertahankan",
+      sessionIds: Array.from({ length: 10 }, (_, index) => `draft-grow-${index + 1}`),
     });
     expect(await db.payments.count()).toBe(1);
   });

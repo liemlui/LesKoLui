@@ -342,11 +342,15 @@ async function createSessionCountInvoiceAtomic(
     const reusableDraft = reports
       .filter((report) => {
         if (reportStatus(report) !== "draft" || report.billingMode !== "session_count") return false;
-        if (report.sessionIds.length !== selectedIds.length) return false;
-        const ids = new Set(report.sessionIds);
-        return selectedIds.every((id) => ids.has(id));
+        // A draft does not claim sessions yet. If it contains the FIFO prefix
+        // of the now-complete batch, retain its writing/template work and
+        // extend it with the later recorded sessions instead of orphaning it.
+        return report.sessionIds.length <= selectedIds.length
+          && report.sessionIds.every((id, index) => selectedIds[index] === id);
       })
-      .sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id))[0];
+      .sort((a, b) => b.sessionIds.length - a.sessionIds.length
+        || a.createdAt.localeCompare(b.createdAt)
+        || a.id.localeCompare(b.id))[0];
     const reportId = reusableDraft?.id ?? crypto.randomUUID();
     const createdAt = timestamp();
     const remainingCount = pending.length - selected.length;

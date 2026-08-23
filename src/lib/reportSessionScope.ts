@@ -1,3 +1,4 @@
+import { reportStatus, type MonthlyReport } from "../db/types";
 import type { Session, Student } from "../db/types";
 import type { AiInput } from "./aiClient";
 import { dayLabel } from "./format";
@@ -19,6 +20,18 @@ export function selectCountReportSessions<T extends Pick<Session, "id">>(
     (session) => ownedIds.has(session.id) || !blockedIds.has(session.id),
   );
   return allowed.slice(0, safeCount);
+}
+
+/**
+ * A draft is only a working selection, so it must keep following the live
+ * session queue. Confirmed reports, including legacy reports without an
+ * explicit status, keep their stored scope as the accounting snapshot.
+ */
+export function shouldUseStoredReportSnapshot(
+  report: Pick<MonthlyReport, "status"> | undefined,
+  snapshotLocked: boolean,
+): boolean {
+  return Boolean(snapshotLocked && report && reportStatus(report) === "confirmed");
 }
 
 /** Select month/range rows while keeping an immutable paid/manual invoice's

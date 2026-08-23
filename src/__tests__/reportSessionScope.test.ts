@@ -6,6 +6,7 @@ import {
   resolveReportMutationTarget,
   selectCountReportSessions,
   selectPeriodReportSessions,
+  shouldUseStoredReportSnapshot,
 } from "../lib/reportSessionScope";
 
 const makeSession = (index: number): Session => ({
@@ -70,6 +71,14 @@ describe("report session scope", () => {
       "session-2",
       "session-4",
     ]);
+  });
+
+  it("refreshes a draft scope but preserves a confirmed report snapshot", () => {
+    expect(shouldUseStoredReportSnapshot({ status: "draft" }, true)).toBe(false);
+    expect(shouldUseStoredReportSnapshot({ status: "confirmed" }, true)).toBe(true);
+    // Pre-draft legacy reports are confirmed by default and must remain fixed.
+    expect(shouldUseStoredReportSnapshot({}, true)).toBe(true);
+    expect(shouldUseStoredReportSnapshot({ status: "confirmed" }, false)).toBe(false);
   });
 
   it("keeps a paid/manual report snapshot from absorbing late sessions", () => {

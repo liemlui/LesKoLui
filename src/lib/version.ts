@@ -11,6 +11,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.48.4",
+    date: "2026-08-23",
+    title: "Laporan Paket Mengikuti Sesi Terbaru",
+    items: [
+      "Draft laporan paket kini membaca sesi billable terbaru, sehingga progres 8/10 otomatis menjadi 10/10 setelah sesi historis dicatat",
+      "Perubahan kuota paket di profil murid langsung tersinkron di layar Laporan tanpa memuat ulang halaman",
+      "Saat paket lengkap diterbitkan, draft FIFO yang sudah ada diperpanjang dan dipakai ulang agar isi laporan tidak tertinggal",
+    ],
+  },
+  {
     version: "v1.48.3",
     date: "2026-08-21",
     title: "Bukti Sesi Bisa Dilengkapi & Penghapusan Lebih Jelas",
