@@ -225,20 +225,10 @@ export default function MonthlyReportPage() {
   const editingReportSessions = editingReportSessionsReady
     ? editingReportSessionsQuery?.sessions
     : undefined;
-  const useStoredEditingSnapshot = shouldUseStoredReportSnapshot(editingReport, snapshotLocked);
-  const configuredPackageCount = student && billingPolicyOf(student) === "session_count"
-    ? Math.max(1, Math.min(20, student.billingSessionCount ?? 8))
-    : undefined;
-  // A draft package follows the current student quota. A confirmed package
-  // keeps the quota recorded on its invoice, even if the profile changes later.
-  const reportTargetCount = mode === "jumlah"
-    && configuredPackageCount !== undefined
-    && !(useStoredEditingSnapshot && editingReport?.billingMode === "session_count")
-    ? configuredPackageCount
-    : count;
 
-  // A reportId deep-link initializes its controls once. Only confirmed reports
-  // use their stored session snapshot; drafts continue to follow live sessions.
+  // A reportId deep-link initializes its controls once. Paid/manual reports
+  // use their stored session snapshot; drafts and unpaid automatic invoices
+  // continue to follow live sessions.
   useEffect(() => {
     if (!editingReport || appliedReportIdRef.current === editingReport.id) return;
     appliedReportIdRef.current = editingReport.id;
@@ -333,6 +323,22 @@ export default function MonthlyReportPage() {
     && scopePayment
     && (scopePayment.status === "PAID" || scopePayment.source === "manual")
   );
+  const useStoredEditingSnapshot = shouldUseStoredReportSnapshot(
+    editingReport,
+    snapshotLocked,
+    scopeHasProtectedInvoice,
+  );
+  const configuredPackageCount = student && billingPolicyOf(student) === "session_count"
+    ? Math.max(1, Math.min(20, student.billingSessionCount ?? 8))
+    : undefined;
+  // The live profile quota governs drafts and automatic unpaid reports, so a
+  // historical session recorded later can complete the same package. A
+  // paid/manual invoice keeps its recorded quota and session snapshot.
+  const reportTargetCount = mode === "jumlah"
+    && configuredPackageCount !== undefined
+    && !(useStoredEditingSnapshot && editingReport?.billingMode === "session_count")
+    ? configuredPackageCount
+    : count;
 
   // Only confirmed reports own a session snapshot. A draft never reserves its
   // old ids, so it cannot hide newly added sessions or bypass a sibling invoice.

@@ -24,14 +24,21 @@ export function selectCountReportSessions<T extends Pick<Session, "id">>(
 
 /**
  * A draft is only a working selection, so it must keep following the live
- * session queue. Confirmed reports, including legacy reports without an
- * explicit status, keep their stored scope as the accounting snapshot.
+ * session queue. An automatically generated invoice that is still unpaid is
+ * likewise safe to refresh. Only a paid invoice or an invoice whose amount was
+ * edited manually freezes a confirmed report as an accounting snapshot.
  */
 export function shouldUseStoredReportSnapshot(
   report: Pick<MonthlyReport, "status"> | undefined,
   snapshotLocked: boolean,
+  hasProtectedInvoice: boolean,
 ): boolean {
-  return Boolean(snapshotLocked && report && reportStatus(report) === "confirmed");
+  return Boolean(
+    snapshotLocked
+    && report
+    && reportStatus(report) === "confirmed"
+    && hasProtectedInvoice,
+  );
 }
 
 /**

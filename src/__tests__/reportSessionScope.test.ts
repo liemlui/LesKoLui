@@ -74,12 +74,31 @@ describe("report session scope", () => {
     ]);
   });
 
-  it("refreshes a draft scope but preserves a confirmed report snapshot", () => {
-    expect(shouldUseStoredReportSnapshot({ status: "draft" }, true)).toBe(false);
-    expect(shouldUseStoredReportSnapshot({ status: "confirmed" }, true)).toBe(true);
-    // Pre-draft legacy reports are confirmed by default and must remain fixed.
-    expect(shouldUseStoredReportSnapshot({}, true)).toBe(true);
-    expect(shouldUseStoredReportSnapshot({ status: "confirmed" }, false)).toBe(false);
+  it("keeps an automatic-unpaid confirmed package live for late historical sessions", () => {
+    const history = Array.from({ length: 10 }, (_, index) => ({
+      ...makeSession(index + 1),
+      date: `2026-05-${String(index + 1).padStart(2, "0")}`,
+    }));
+    const owned = new Set(history.slice(0, 8).map((session) => session.id));
+
+    // A confirmed invoice that remains automatic and unpaid may be refreshed.
+    expect(shouldUseStoredReportSnapshot({ status: "confirmed" }, true, false)).toBe(false);
+    expect(selectCountReportSessions(history, new Set(), 10, owned)
+      .map((session) => session.id)).toEqual(history.map((session) => session.id));
+
+    // Paid or manually edited invoices remain immutable.
+    expect(shouldUseStoredReportSnapshot({ status: "confirmed" }, true, true)).toBe(true);
+  });
+
+  it("refreshes drafts and unpaid automatic reports, but preserves protected invoices", () => {
+    expect(shouldUseStoredReportSnapshot({ status: "draft" }, true, false)).toBe(false);
+    expect(shouldUseStoredReportSnapshot({ status: "confirmed" }, true, false)).toBe(false);
+    // Pre-draft legacy reports are confirmed by default, but stay editable until
+    // a paid or manual invoice exists for their scope.
+    expect(shouldUseStoredReportSnapshot({}, true, false)).toBe(false);
+    expect(shouldUseStoredReportSnapshot({ status: "confirmed" }, true, true)).toBe(true);
+    expect(shouldUseStoredReportSnapshot({}, true, true)).toBe(true);
+    expect(shouldUseStoredReportSnapshot({ status: "confirmed" }, false, true)).toBe(false);
   });
 
   it("resolves a fresh package cutoff after the calendar day changes", () => {

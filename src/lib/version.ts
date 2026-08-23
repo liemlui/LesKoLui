@@ -11,6 +11,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.48.6",
+    date: "2026-08-23",
+    title: "Laporan Paket Belum Lunas Mengikuti Sesi Terlambat",
+    items: [
+      "Laporan paket dengan tagihan otomatis yang masih belum dibayar kini membaca sesi selesai terbaru, termasuk sesi historis yang baru dicatat",
+      "Sesi Mei yang terlambat dicatat dapat melengkapi laporan dari 8/10 menjadi 10/10, lalu memperbarui tagihan otomatis yang sama",
+      "Invoice yang sudah lunas atau nominalnya diedit manual tetap terkunci agar catatan keuangan tidak berubah",
+    ],
+  },
+  {
     version: "v1.48.5",
     date: "2026-08-23",
     title: "Laporan Paket Selalu Membaca Sesi Terbaru",
