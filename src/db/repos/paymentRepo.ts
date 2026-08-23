@@ -3,7 +3,7 @@
 import { db } from "../db";
 import type { Payment, MonthClosing, Expense, ExpenseCategory, IaEeMilestone, MonthlyReport, ReportStatus, Session } from "../types";
 import { billingPolicyOf, reportStatus } from "../types";
-import { timestamp, monthRange } from "./helpers";
+import { timestamp, monthRange, packageCoveredSessionIds } from "./helpers";
 import { todayWIB } from "../../lib/format";
 import { logAudit } from "./auditRepo";
 import { compareSessionsChronologically, isBillableSession } from "./sessionRepo";
@@ -96,6 +96,11 @@ export async function listPayments(month?: string): Promise<Payment[]> {
       .toArray();
   }
   return db.payments.toArray();
+}
+
+/** Payments for one student, including invoice-linked rows from any period. */
+export async function listPaymentsByStudent(studentId: string): Promise<Payment[]> {
+  return db.payments.where({ studentId }).toArray();
 }
 
 /** Set a payment as transferred (cash received). */
@@ -253,12 +258,9 @@ function validSessionCount(value: number | undefined): value is number {
 function unbilledSessions(
   sessions: readonly Session[],
   reports: readonly MonthlyReport[],
+  payments: readonly Pick<Payment, "reportId">[],
 ): Session[] {
-  const coveredIds = new Set(
-    reports
-      .filter((report) => reportStatus(report) === "confirmed")
-      .flatMap((report) => report.sessionIds),
-  );
+  const coveredIds = packageCoveredSessionIds(reports, payments);
   return sessions
     .filter((session) => isBillableSession(session) && !coveredIds.has(session.id))
     .sort(compareSessionsChronologically);
@@ -271,11 +273,12 @@ export async function listSessionCountBillingProgress(): Promise<SessionCountBil
     .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
 
   const progress = await Promise.all(students.map(async (student) => {
-    const [sessions, reports] = await Promise.all([
+    const [sessions, reports, payments] = await Promise.all([
       db.sessions.where({ studentId: student.id }).toArray(),
       db.reports.where({ studentId: student.id }).toArray(),
+      db.payments.where({ studentId: student.id }).toArray(),
     ]);
-    const pending = unbilledSessions(sessions, reports);
+    const pending = unbilledSessions(sessions, reports, payments);
     const targetCount = validSessionCount(student.billingSessionCount)
       ? student.billingSessionCount
       : 0;
@@ -315,11 +318,12 @@ async function createSessionCountInvoiceAtomic(
       throw new Error("Jumlah sesi penagihan tidak valid");
     }
 
-    const [sessions, reports] = await Promise.all([
+    const [sessions, reports, payments] = await Promise.all([
       db.sessions.where({ studentId }).toArray(),
       db.reports.where({ studentId }).toArray(),
+      db.payments.where({ studentId }).toArray(),
     ]);
-    const pending = unbilledSessions(sessions, reports);
+    const pending = unbilledSessions(sessions, reports, payments);
     const targetCount = student.billingSessionCount;
     const finalBatch = options.finalBatch === true;
     if (finalBatch && !student.pendingBillingPolicy) {

@@ -1,6 +1,8 @@
 // ── Shared helpers for repos ───────────────────────────────────────
 // Semua helper yang dipakai lintas domain repo: WIB date, month range, timestamp.
 
+import { reportStatus, type MonthlyReport, type Payment } from "../types";
+
 export function monthRange(month: string): { start: string; end: string } {
   const [y, m] = month.split("-").map(Number);
   const start = `${month}-01`;
@@ -32,4 +34,31 @@ export function subtractHoursFromTime(hhmm: string, hours: number): string {
 export function timeToMin(t: string): number {
   const [h, m] = t.split(":").map(Number);
   return h * 60 + (m || 0);
+}
+
+/**
+ * Session-count billing has a narrower legacy rule than calendar reports.
+ *
+ * Reports from before the status field existed are displayed as confirmed for
+ * compatibility. They only reserve package sessions when an invoice is
+ * actually linked, though. Otherwise an old presentation-only report could
+ * silently remove historical sessions after a student switches to a package.
+ * Explicitly confirmed reports remain reserved even while their invoice is
+ * being repaired by month closing.
+ */
+export function packageCoveredSessionIds(
+  reports: readonly MonthlyReport[],
+  payments: readonly Pick<Payment, "reportId">[],
+): Set<string> {
+  const reportIdsWithInvoice = new Set(
+    payments.flatMap((payment) => payment.reportId ? [payment.reportId] : []),
+  );
+  return new Set(
+    reports
+      .filter((report) => (
+        reportStatus(report) === "confirmed"
+        && (report.status === "confirmed" || reportIdsWithInvoice.has(report.id))
+      ))
+      .flatMap((report) => report.sessionIds),
+  );
 }

@@ -48,7 +48,7 @@ export type { ReportWrite } from "./reportRepo";
 
 // Payments + Month Closing + Expenses
 export {
-  getPayment, createManualPayment, upsertPayment, listPayments,
+  getPayment, createManualPayment, upsertPayment, listPayments, listPaymentsByStudent,
   markPaymentTransferred, markPaymentUnpaid, updatePaymentAmount,
   getPaymentByReport, syncReportPayment,
   markPaymentTransferredById, markPaymentUnpaidById, updatePaymentAmountById,

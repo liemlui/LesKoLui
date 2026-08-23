@@ -2,9 +2,10 @@
 
 import { db } from "../db";
 import type { Student } from "../types";
-import { billingPolicyOf, reportStatus } from "../types";
+import { billingPolicyOf } from "../types";
 import { isBillableSession } from "./sessionRepo";
 import { logAudit } from "./auditRepo";
+import { packageCoveredSessionIds } from "./helpers";
 
 export async function listStudents(activeOnly?: boolean): Promise<Student[]> {
   const coll = db.students.orderBy("name");
@@ -30,15 +31,12 @@ export interface StudentBillingUpdateOptions {
 }
 
 async function countUnbilledBillableSessions(studentId: string): Promise<number> {
-  const [sessions, reports] = await Promise.all([
+  const [sessions, reports, payments] = await Promise.all([
     db.sessions.where({ studentId }).toArray(),
     db.reports.where({ studentId }).toArray(),
+    db.payments.where({ studentId }).toArray(),
   ]);
-  const coveredIds = new Set(
-    reports
-      .filter((report) => reportStatus(report) === "confirmed")
-      .flatMap((report) => report.sessionIds),
-  );
+  const coveredIds = packageCoveredSessionIds(reports, payments);
   return sessions.filter((session) => isBillableSession(session) && !coveredIds.has(session.id)).length;
 }
 
@@ -47,7 +45,7 @@ export async function updateStudent(
   patch: Partial<Student>,
   options: StudentBillingUpdateOptions = {},
 ): Promise<void> {
-  await db.transaction("rw", db.students, db.sessions, db.reports, async () => {
+  await db.transaction("rw", db.students, db.sessions, db.reports, db.payments, async () => {
     const existing = await db.students.get(id);
     if (!existing) return;
     const fromPolicy = billingPolicyOf(existing);

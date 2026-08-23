@@ -7,10 +7,10 @@ import {
   listSessionsByStudentRange, listBillableSessionsByStudentRange,
   getReportById, findReportByPeriod, listReportsByStudent, listConfirmedReportsByStudent,
   upsertReport, createReportForPeriod, discardReport, updateSession, saveSettings,
-  listMonthClosings, getPaymentByReport, syncReportPayment,
+  listMonthClosings, getPaymentByReport, syncReportPayment, listPaymentsByStudent,
 } from "../db/repos";
 import { billingPolicyOf, reportStatus, type ReportStatus } from "../db/types";
-import { monthRange } from "../db/repos/helpers";
+import { monthRange, packageCoveredSessionIds } from "../db/repos/helpers";
 import { pickTemplate } from "../lib/rotation";
 import { generateReportSummary, generateNarratives, estimateReportSummaryCost, estimateNarrativesCost } from "../lib/aiClient";
 import {
@@ -277,6 +277,10 @@ export default function MonthlyReportPage() {
   const drafts = useMemo(() => (allReports ?? []).filter((r) => reportStatus(r) === "draft"), [allReports]);
   // Hanya laporan yang sudah SAH yang mengunci tanggal (overlap guard).
   const confirmedReports = useLiveQuery(() => (studentId ? listConfirmedReportsByStudent(studentId) : []), [studentId]);
+  const studentPayments = useLiveQuery(
+    () => (studentId ? listPaymentsByStudent(studentId) : []),
+    [studentId],
+  );
   const closings = useLiveQuery(() => listMonthClosings(), []);
 
   // Batas periode per mode
@@ -350,14 +354,16 @@ export default function MonthlyReportPage() {
     ),
     [scopeReport],
   );
-  const blockedSessionIds = useMemo(
-    () => new Set(
-      (confirmedReports ?? [])
-        .filter((candidate) => candidate.id !== scopeReport?.id)
-        .flatMap((candidate) => candidate.sessionIds),
-    ),
-    [confirmedReports, scopeReport],
-  );
+  const sessionCountPackage = mode === "jumlah"
+    && Boolean(student && billingPolicyOf(student) === "session_count");
+  const blockedSessionIds = useMemo(() => {
+    const otherConfirmedReports = (confirmedReports ?? [])
+      .filter((candidate) => candidate.id !== scopeReport?.id);
+    if (sessionCountPackage) {
+      return packageCoveredSessionIds(otherConfirmedReports, studentPayments ?? []);
+    }
+    return new Set(otherConfirmedReports.flatMap((candidate) => candidate.sessionIds));
+  }, [sessionCountPackage, confirmedReports, studentPayments, scopeReport]);
 
   // Periode rekap efektif + sesi yang masuk laporan.
   const { periodStart, periodEnd, reportSessions } = useMemo(() => {
@@ -435,6 +441,7 @@ export default function MonthlyReportPage() {
   const invalidReportLink = Boolean(editingReportId && editingReportLookupReady && !editingReport);
   const reportScopeDataReady = sessions !== undefined
     && confirmedReports !== undefined
+    && (!sessionCountPackage || studentPayments !== undefined)
     && closings !== undefined
     && fixedPeriodLookupReady
     && periodReportLookupReady

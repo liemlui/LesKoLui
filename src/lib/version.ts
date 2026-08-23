@@ -11,6 +11,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.48.7",
+    date: "2026-08-23",
+    title: "Sesi Paket Historis Tidak Lagi Tersembunyi",
+    items: [
+      "Antrean paket dan halaman Laporan kini memakai aturan cakupan sesi yang sama",
+      "Rekam laporan lama tanpa status dan tanpa invoice tidak lagi mengurangi sesi paket saat murid berpindah dari bulanan ke pertemuan",
+      "Laporan yang dikonfirmasi secara eksplisit atau sudah memiliki invoice tetap mengunci sesi agar tidak dapat ditagih dua kali",
+    ],
+  },
+  {
     version: "v1.48.6",
     date: "2026-08-23",
     title: "Laporan Paket Belum Lunas Mengikuti Sesi Terlambat",

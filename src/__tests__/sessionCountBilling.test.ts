@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "../db/db";
 import type { MonthlyReport, Session, Student } from "../db/types";
+import { packageCoveredSessionIds } from "../db/repos/helpers";
 
 const RATE = 100_000;
 
@@ -132,6 +133,82 @@ describe("session-count billing", () => {
       readyBatchCount: 1,
       nextBatchSessions: Array.from({ length: 10 }, (_, index) => ({ id: `late-history-${index + 1}` })),
     }]);
+  });
+
+  it("keeps a statusless legacy report without an invoice out of a new package queue", async () => {
+    const { createSessionCountInvoice, listSessionCountBillingProgress } = await import("../db/repos");
+    await db.students.add(student("legacy-switch", "session_count", 10));
+    const sessions = Array.from({ length: 10 }, (_, index) => session(
+      `legacy-switch-${index + 1}`,
+      "legacy-switch",
+      `2026-05-${String(index + 20).padStart(2, "0")}`,
+    ));
+    await db.sessions.bulkAdd(sessions);
+    const legacyReport = packageReport(
+      "legacy-switch-report",
+      "legacy-switch",
+      ["legacy-switch-1", "legacy-switch-2"],
+      { billingMode: "monthly", billingSessionCount: undefined },
+    );
+    delete legacyReport.status;
+    await db.reports.add(legacyReport);
+
+    await expect(listSessionCountBillingProgress()).resolves.toMatchObject([{
+      studentId: "legacy-switch",
+      unbilledCount: 10,
+      readyBatchCount: 1,
+      nextBatchSessions: Array.from({ length: 10 }, (_, index) => ({ id: `legacy-switch-${index + 1}` })),
+    }]);
+
+    const issued = await createSessionCountInvoice("legacy-switch");
+    await expect(db.reports.get(issued.reportId)).resolves.toMatchObject({
+      sessionIds: Array.from({ length: 10 }, (_, index) => `legacy-switch-${index + 1}`),
+    });
+  });
+
+  it("reserves legacy rows only once they have an invoice, while explicit confirmation stays protected", () => {
+    const legacyReport = packageReport("coverage-legacy", "coverage", ["session-1"]);
+    delete legacyReport.status;
+    const invoice = {
+      id: "coverage-invoice",
+      studentId: "coverage",
+      month: "2026-05",
+      totalCost: RATE,
+      status: "UNPAID" as const,
+      reportId: legacyReport.id,
+    };
+    const explicitReport = packageReport("coverage-explicit", "coverage", ["session-2"]);
+
+    expect([...packageCoveredSessionIds([legacyReport], [])]).toEqual([]);
+    expect([...packageCoveredSessionIds([legacyReport], [invoice])]).toEqual(["session-1"]);
+    expect([...packageCoveredSessionIds([explicitReport], [])]).toEqual(["session-2"]);
+  });
+
+  it("counts unbilled legacy history when a monthly student switches to a package", async () => {
+    const { updateStudent } = await import("../db/repos");
+    await db.students.add(student("policy-switch", "monthly", 10));
+    await db.sessions.bulkAdd(Array.from({ length: 10 }, (_, index) => session(
+      `policy-switch-${index + 1}`,
+      "policy-switch",
+      `2026-05-${String(index + 1).padStart(2, "0")}`,
+    )));
+    const legacyReport = packageReport(
+      "policy-switch-report",
+      "policy-switch",
+      ["policy-switch-1", "policy-switch-2"],
+      { billingMode: "monthly", billingSessionCount: undefined },
+    );
+    delete legacyReport.status;
+    await db.reports.add(legacyReport);
+
+    await expect(updateStudent("policy-switch", {
+      billingPolicy: "session_count",
+      billingSessionCount: 10,
+    })).rejects.toThrow("Ada sesi lama yang belum ditagih");
+    await expect(updateStudent("policy-switch", {
+      billingPolicy: "session_count",
+      billingSessionCount: 10,
+    }, { includeExistingUnbilledInPackage: true })).resolves.toBeUndefined();
   });
 
   it("rejects restored/direct quotas outside the supported integer range 1..20", async () => {
