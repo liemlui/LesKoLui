@@ -23,14 +23,21 @@ test("finance data stays connected across summary, expenses, and audit", async (
   await page.getByPlaceholder("PIN (6 digit)").fill("123456");
   await page.getByRole("button", { name: "Buka", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Keuangan", exact: true })).toBeVisible();
+  await expect(page.getByText("Periode laporan", { exact: true })).toBeVisible();
 
-  const monthInput = page.locator('input[type="month"]');
+  const monthInput = page.getByLabel("Pilih bulan laporan", { exact: true });
   await expect(monthInput).toHaveCount(1);
   await monthInput.fill("2026-06");
+  await expect(page.getByText("Juni 2026", { exact: true })).toBeVisible();
 
-  const cashCard = page.getByText("Kas Masuk Bulan Ini", { exact: true }).locator("..");
+  const cashCard = page.getByText("Kas diterima", { exact: true }).locator("..");
   await expect(cashCard).toContainText("Rp 450.000");
   await expect(page.getByText(/Rekonsiliasi sesi/)).toBeVisible();
+
+  const threeMonthTrend = page.getByRole("button", { name: "3 bulan", exact: true });
+  await expect(threeMonthTrend).toBeVisible();
+  await threeMonthTrend.click();
+  await expect(threeMonthTrend).toHaveAttribute("aria-pressed", "true");
 
   await page.getByRole("tab", { name: "Pengeluaran", exact: true }).click();
   const expenseTotalCard = page.getByText("Total Pengeluaran", { exact: true }).locator("..");

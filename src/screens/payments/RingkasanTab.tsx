@@ -39,7 +39,6 @@ function getLast12Months(endMonth: string): string[] {
 
 interface RingkasanTabProps {
   month: string;
-  setMonth: (month: string) => void;
   payments: Payment[];
   students: Student[];
   settings: Settings;
@@ -50,7 +49,7 @@ interface RingkasanTabProps {
 }
 
 export default function RingkasanTab({
-  month, setMonth, payments, students, settings, reports, monthSessions, monthExpenses, setMessage,
+  month, payments, students, settings, reports, monthSessions, monthExpenses, setMessage,
 }: RingkasanTabProps) {
   // ── Lazy analytics queries (loaded only while this tab is mounted) ──
   const chartMonths = useMemo(() => getLast12Months(month), [month]);
@@ -85,6 +84,13 @@ export default function RingkasanTab({
   // ── Chart range toggle ──
   const [trendRange, setTrendRange] = useState<3 | 6 | 12>(6);
   const trendData = useMemo(() => (chartData ?? []).slice(-trendRange), [chartData, trendRange]);
+  const trendPeriodLabel = useMemo(() => {
+    if (trendData.length === 0) return "Belum ada periode";
+    const first = trendData[0]?.month;
+    const last = trendData[trendData.length - 1]?.month;
+    if (!first || !last) return "Belum ada periode";
+    return first === last ? monthLabel(first) : `${monthLabel(first)} – ${monthLabel(last)}`;
+  }, [trendData]);
 
   // ── AI insight state ──
   const [aiInsightLoadingMonth, setAiInsightLoadingMonth] = useState<string | null>(null);
@@ -133,6 +139,8 @@ export default function RingkasanTab({
 
   // ── Today & week revenue ──
   const todayStr = useMemo(() => todayWIB(), []);
+  const selectedMonthLabel = useMemo(() => monthLabel(month), [month]);
+  const isCurrentMonth = month === todayStr.slice(0, 7);
   const currentWeek = useMemo(() => weekDates(todayStr), [todayStr]);
   const todayRevenue = useMemo(
     () => payments.filter((p) => p.status === "PAID" && p.paidAt === todayStr).reduce((sum, p) => sum + p.totalCost, 0),
@@ -317,59 +325,69 @@ export default function RingkasanTab({
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-3 items-center">
-        <label htmlFor="pay-bulan-ringkasan" className="text-sm text-gray-500 flex-shrink-0">Bulan:</label>
-        <input id="pay-bulan-ringkasan" className="input flex-1" type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
-      </div>
-
-      {/* Cash summary cards: laba hero + 2-col grid */}
-      <div className="space-y-2">
-        <div className="col-span-2 bg-green-50 rounded-xl p-3 border border-green-200 flex items-center justify-between">
-          <p className="text-sm font-bold text-green-900">Laba (Realisasi − Pengeluaran)</p>
-          <p className={`text-xl font-bold ${cash.laba >= 0 ? "text-green-700" : "text-red-600"}`}>{formatRupiah(cash.laba)}</p>
+      <section aria-labelledby="invoice-status-title" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-3">
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">Status pendapatan</p>
+          <h2 id="invoice-status-title" className="text-base font-bold text-slate-800">Tagihan {selectedMonthLabel}</h2>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500">
+            Urutannya: nilai sesi menjadi tagihan, lalu tagihan dibayar atau tetap menjadi piutang.
+          </p>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
-            <p className="text-[11px] text-gray-500 uppercase tracking-wide">Potensi (sesi)</p>
-            <p className="text-lg font-bold text-gray-700">{formatRupiah(cash.potensi)}</p>
-            <p className="text-[11px] text-gray-500">{cash.hours} jam ditagihkan</p>
+          <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Potensi dari sesi</p>
+            <p className="mt-1 text-lg font-bold text-slate-800">{formatRupiah(cash.potensi)}</p>
+            <p className="mt-1 text-[11px] text-slate-500">{cash.hours} jam sesi selesai</p>
           </div>
-          <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
-            <p className="text-[11px] text-gray-500 uppercase tracking-wide">Tagihan Terbit</p>
-            <p className="text-lg font-bold text-blue-700">{formatRupiah(cash.tagihan)}</p>
+          <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-600">Tagihan diterbitkan</p>
+            <p className="mt-1 text-lg font-bold text-blue-700">{formatRupiah(cash.tagihan)}</p>
+            <p className="mt-1 text-[11px] text-blue-600">Invoice pada periode ini</p>
           </div>
-          <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
-            <p className="text-[11px] text-gray-500 uppercase tracking-wide">Tagihan Terbayar</p>
-            <p className="text-lg font-bold text-green-700">{formatRupiah(cash.lunas)}</p>
+          <div className="rounded-xl border border-green-100 bg-green-50/60 p-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-green-700">Invoice lunas</p>
+            <p className="mt-1 text-lg font-bold text-green-700">{formatRupiah(cash.lunas)}</p>
+            <p className="mt-1 text-[11px] text-green-700">Status pembayaran invoice</p>
           </div>
-          <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
-            <p className="text-[11px] text-gray-500 uppercase tracking-wide">Piutang Bulan Ini</p>
-            <p className="text-lg font-bold text-amber-600">{formatRupiah(cash.piutang)}</p>
-          </div>
-          <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
-            <p className="text-[11px] text-gray-500 uppercase tracking-wide">Kas Masuk Bulan Ini</p>
-            <p className="text-lg font-bold text-green-700">{formatRupiah(cash.realisasi)}</p>
-          </div>
-          <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
-            <p className="text-[11px] text-gray-500 uppercase tracking-wide">Pengeluaran</p>
-            <p className="text-lg font-bold text-red-600">{formatRupiah(cash.pengeluaran)}</p>
+          <div className="rounded-xl border border-amber-100 bg-amber-50/60 p-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Masih ditagih</p>
+            <p className="mt-1 text-lg font-bold text-amber-700">{formatRupiah(cash.piutang)}</p>
+            <p className="mt-1 text-[11px] text-amber-700">Piutang yang belum dibayar</p>
           </div>
         </div>
-      </div>
+      </section>
 
-      {reportSessions !== undefined && (monthClosing || monthPayments.length > 0) && (
-        <div className={`rounded-xl border px-3 py-2.5 text-xs ${billingGap === 0 ? "border-green-200 bg-green-50 text-green-800" : "border-amber-200 bg-amber-50 text-amber-800"}`}>
-          <div className="flex items-center justify-between gap-3 font-semibold">
-            <span>Rekonsiliasi sesi dan tagihan</span>
-            <span>{billingGap === 0 ? "Sinkron" : `Selisih ${formatRupiah(Math.abs(billingGap))}`}</span>
-          </div>
-          {billingGap !== 0 && (
-            <p className="mt-1 leading-relaxed">Total tagihan berbeda dari nilai sesi. Periksa penyesuaian nominal, tagihan manual, atau sesi yang berubah setelah tutup bulan.</p>
-          )}
+      <section aria-labelledby="cash-flow-title" className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 shadow-sm">
+        <div className="mb-3">
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-emerald-600">Arus kas</p>
+          <h2 id="cash-flow-title" className="text-base font-bold text-emerald-950">Uang yang benar-benar bergerak</h2>
+          <p className="mt-1 text-xs leading-relaxed text-emerald-800">
+            Kas diterima mengikuti tanggal pembayaran, sehingga dapat berbeda dengan nilai invoice pada periode yang sama.
+          </p>
         </div>
-      )}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-xl bg-white/90 p-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Kas diterima</p>
+            <p className="mt-1 text-lg font-bold text-emerald-700">{formatRupiah(cash.realisasi)}</p>
+            <p className="mt-1 text-[11px] text-emerald-700">Pembayaran masuk di {selectedMonthLabel}</p>
+          </div>
+          <div className="rounded-xl bg-white/90 p-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-red-600">Pengeluaran</p>
+            <p className="mt-1 text-lg font-bold text-red-600">{formatRupiah(cash.pengeluaran)}</p>
+            <p className="mt-1 text-[11px] text-slate-500">Transaksi keluar di {selectedMonthLabel}</p>
+          </div>
+        </div>
+        <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-white/80 px-3 py-2.5">
+          <div>
+            <p className="text-xs font-bold text-emerald-950">Laba kas</p>
+            <p className="text-[11px] text-emerald-700">Kas diterima dikurangi pengeluaran</p>
+          </div>
+          <p className={`text-xl font-bold ${cash.laba >= 0 ? "text-emerald-700" : "text-red-600"}`}>{formatRupiah(cash.laba)}</p>
+        </div>
+      </section>
 
       {/* Today & week revenue glance */}
+      {isCurrentMonth && (
       <div className="flex items-center gap-3 text-xs">
         <div className="flex-1 rounded-lg bg-blue-50 border border-blue-100 px-3 py-2">
           <p className="text-blue-500 font-semibold uppercase tracking-wide text-[10px]">Kas Masuk Hari Ini</p>
@@ -384,12 +402,25 @@ export default function RingkasanTab({
           </p>
         </div>
       </div>
+      )}
+
+      {reportSessions !== undefined && (monthClosing || monthPayments.length > 0) && (
+        <div className={`rounded-xl border px-3 py-2.5 text-xs ${billingGap === 0 ? "border-green-200 bg-green-50 text-green-800" : "border-amber-200 bg-amber-50 text-amber-800"}`}>
+          <div className="flex items-center justify-between gap-3 font-semibold">
+            <span>Rekonsiliasi sesi dan tagihan</span>
+            <span>{billingGap === 0 ? "Sinkron" : `Selisih ${formatRupiah(Math.abs(billingGap))}`}</span>
+          </div>
+          {billingGap !== 0 && (
+            <p className="mt-1 leading-relaxed">Total tagihan berbeda dari nilai sesi. Periksa penyesuaian nominal, tagihan manual, atau sesi yang berubah setelah tutup bulan.</p>
+          )}
+        </div>
+      )}
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" aria-labelledby="business-health-title">
         <div className="flex items-start justify-between gap-3 mb-3">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">Business health</p>
-            <h2 id="business-health-title" className="text-base font-bold text-slate-800">Kesehatan bisnis</h2>
+            <h2 id="business-health-title" className="text-base font-bold text-slate-800">Kesehatan keuangan</h2>
             <p className="text-xs text-slate-500 mt-0.5">Baca angka sebagai keputusan, bukan sekadar laporan.</p>
           </div>
           <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${collectionRate >= 80 ? "bg-green-100 text-green-700" : collectionRate > 0 ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}`}>
@@ -405,16 +436,16 @@ export default function RingkasanTab({
             />
           </div>
           <div className="grid gap-2 w-full min-[380px]:w-[148px]">
-            <MetricCard label="Tagihan tertagih" value={`${collectionRate}%`} description="Porsi nominal tagihan bulan ini yang sudah lunas." icon="↗" tone={collectionRate >= 80 ? "green" : "amber"} />
-            <MetricCard label="Laba kas" value={formatRupiah(cash.laba)} description="Kas masuk dikurangi pengeluaran bulan ini." icon="◎" tone={cash.laba >= 0 ? "blue" : "red"} />
+            <MetricCard label="Tagihan tertagih" value={`${collectionRate}%`} description={`Porsi tagihan ${selectedMonthLabel} yang sudah lunas.`} icon="↗" tone={collectionRate >= 80 ? "green" : "amber"} />
+            <MetricCard label="Laba kas" value={formatRupiah(cash.laba)} description={`Kas diterima dikurangi pengeluaran ${selectedMonthLabel}.`} icon="◎" tone={cash.laba >= 0 ? "blue" : "red"} />
           </div>
         </div>
         <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-600">
           {monthPayments.length === 0
-            ? "Belum ada tagihan bulan ini. Setelah sesi selesai, gunakan Tutup Bulan untuk mengubah potensi menjadi tagihan yang bisa ditagih."
+            ? `Belum ada tagihan pada ${selectedMonthLabel}. Setelah sesi selesai, gunakan Tutup Bulan untuk mengubah potensi menjadi tagihan yang bisa ditagih.`
             : collectionRate < 100
               ? "Fokus berikutnya: follow-up tagihan terbuka agar potensi pendapatan berubah menjadi kas masuk."
-              : "Penagihan bulan ini sudah lengkap. Pantau laba kas dan pengeluaran agar margin tetap sehat."}
+              : `Penagihan ${selectedMonthLabel} sudah lengkap. Pantau laba kas dan pengeluaran agar margin tetap sehat.`}
         </p>
       </section>
 
@@ -446,7 +477,7 @@ export default function RingkasanTab({
         </div>
         <p className={`text-[11px] mb-3 ${financialAiConfigured ? "text-indigo-500" : "text-slate-500"}`}>
           {financialAiConfigured
-            ? "AI membaca data keuangan bulan ini + 3 bulan sebelumnya untuk mendeteksi anomali & memberi rekomendasi."
+            ? `AI membaca ${selectedMonthLabel} dan 3 bulan sebelumnya untuk mendeteksi anomali serta memberi rekomendasi.`
             : "Aktifkan AI dan isi DeepSeek API Key di Pengaturan untuk menggunakan fitur ini."}
         </p>
         {financialAiConfigured && aiInsights && (
@@ -483,13 +514,13 @@ export default function RingkasanTab({
 
       {/* Forecast */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Prediksi Bulan Depan ({nextMonthStr})</p>
+        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Prediksi {monthLabel(nextMonthStr)}</p>
         <p className="text-2xl font-bold text-amber-600 mt-1">{formatRupiah(forecast.estimate)}</p>
         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-gray-500">
           <span>📅 Terjadwal (terkunci): <b className="text-gray-700">{formatRupiah(forecast.scheduled)}</b></span>
-          <span>📈 Tren 3 bln: <b className="text-gray-700">{formatRupiah(forecast.trend)}</b></span>
+          <span>📈 Tren 3 bulan: <b className="text-gray-700">{formatRupiah(forecast.trend)}</b></span>
         </div>
-        <p className="text-[11px] text-gray-500 mt-1.5">Estimasi = nilai tertinggi antara jadwal terkunci & tren (weighted moving average).</p>
+        <p className="text-[11px] text-gray-500 mt-1.5">Perkiraan memakai nilai yang lebih tinggi antara jadwal yang sudah ada dan rata-rata tren 3 bulan.</p>
       </div>
 
       {/* Potensi sesi per murid (progress bars) */}
@@ -526,7 +557,7 @@ export default function RingkasanTab({
             formatValue={formatIdrNumber}
           />
         ) : (
-          <p className="text-xs text-gray-500 text-center py-4">Belum ada sesi selesai bulan ini</p>
+          <p className="text-xs text-gray-500 text-center py-4">Belum ada sesi selesai pada {selectedMonthLabel}</p>
         )}
       </div>
 
@@ -554,20 +585,23 @@ export default function RingkasanTab({
       ))}
 
       {studentAnalytics.length === 0 && (
-        <p className="text-xs text-gray-500 text-center py-4">Belum ada data murid bulan ini</p>
+        <p className="text-xs text-gray-500 text-center py-4">Belum ada data murid pada {selectedMonthLabel}</p>
       )}
 
       {/* Kas masuk vs pengeluaran — satu line chart dua series dengan rentang */}
       <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">
-            Kas Masuk vs Pengeluaran ({trendRange} Bulan)
-          </p>
-          <div className="flex rounded-lg bg-gray-100 p-0.5" aria-label="Rentang grafik">
+          <div>
+            <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+              Tren kas masuk & pengeluaran
+            </p>
+            <p className="mt-0.5 text-[11px] text-gray-500">{trendPeriodLabel}</p>
+          </div>
+          <div className="flex rounded-lg bg-gray-100 p-0.5" role="group" aria-label="Rentang grafik">
             {([3, 6, 12] as const).map((range) => (
-              <button key={range} onClick={() => setTrendRange(range)}
-                className={`px-2 py-1 rounded-md text-[11px] font-semibold transition-colors ${trendRange === range ? "bg-white text-blue-700 shadow-sm" : "text-gray-500"}`}>
-                {range}B
+              <button key={range} type="button" aria-pressed={trendRange === range} onClick={() => setTrendRange(range)}
+                className={`px-2 py-1 rounded-md text-[10px] font-semibold transition-colors sm:text-[11px] ${trendRange === range ? "bg-white text-blue-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+                {range} bulan
               </button>
             ))}
           </div>

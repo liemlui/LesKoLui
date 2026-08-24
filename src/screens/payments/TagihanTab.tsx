@@ -507,7 +507,7 @@ export default function TagihanTab({
                   className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-gray-100 text-sm font-bold text-gray-600 transition-colors hover:bg-indigo-100 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 >?</button>
               </div>
-              <p className="text-[11px] text-gray-500 mt-0.5">Antrean global lintas bulan · sesi tertua ditagih lebih dahulu</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">Tidak mengikuti periode laporan · antrean lintas bulan, sesi tertua ditagih lebih dahulu</p>
             </div>
             <span className="flex-shrink-0 rounded-full bg-indigo-50 px-2 py-1 text-[10px] font-semibold text-indigo-700">
               {needsActionCount} perlu tindakan
@@ -637,13 +637,15 @@ export default function TagihanTab({
         )}
       </section>
 
-      <div className="flex gap-3 items-center">
-        <label htmlFor="pay-bulan-tagihan" className="text-sm text-gray-500 flex-shrink-0">Bulan:</label>
-        <input id="pay-bulan-tagihan" className="input flex-1" type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Penutupan periode</p>
+          <p className="mt-0.5 text-sm font-semibold text-slate-700">Tagihan bulanan {monthLabel(month)}</p>
+        </div>
         {monthClosing ? (
-          <span className="text-[11px] font-semibold text-green-700 bg-green-100 px-2 py-1 rounded-full flex-shrink-0">🔒 Ditutup</span>
+          <span className="shrink-0 rounded-full bg-green-100 px-2 py-1 text-[11px] font-semibold text-green-700">Ditutup</span>
         ) : (
-          <span className="text-[11px] font-semibold text-gray-500 bg-gray-100 px-2 py-1 rounded-full flex-shrink-0">Terbuka</span>
+          <span className="shrink-0 rounded-full bg-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-600">Terbuka</span>
         )}
       </div>
 
@@ -899,7 +901,11 @@ export default function TagihanTab({
 
       {/* Manual invoice (collapsible) */}
       <div className="bg-gray-50 rounded-xl p-4">
-        <button onClick={() => setShowManual((v) => !v)} className="w-full flex items-center justify-between text-sm font-semibold text-gray-600">
+        <button onClick={() => {
+          const opening = !showManual;
+          if (opening) setSelectedMonth(month);
+          setShowManual(opening);
+        }} className="w-full flex items-center justify-between text-sm font-semibold text-gray-600">
           <span>+ Tagihan Manual (di luar tutup bulan)</span>
           <span>{showManual ? "▾" : "▸"}</span>
         </button>
@@ -909,7 +915,10 @@ export default function TagihanTab({
               <option value="">Pilih murid...</option>
               {students.filter((s) => s.active).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
-            <input className="input" type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} />
+            <div>
+              <label htmlFor="manual-invoice-month" className="mb-1 block text-xs font-medium text-gray-600">Bulan tagihan</label>
+              <input id="manual-invoice-month" className="input" type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} />
+            </div>
             <input className="input" type="number" placeholder="Total biaya (IDR)" value={totalCost || ""} min={1} max={100000000}
               onChange={(e) => setTotalCost(clampCurrencyAmount(Number(e.target.value), MAX_PAYMENT_AMOUNT))} />
             <button onClick={handleCreatePayment} className="btn-primary w-full">Buat Tagihan</button>

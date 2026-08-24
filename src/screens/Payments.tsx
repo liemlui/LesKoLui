@@ -11,6 +11,7 @@ import { todayWIB } from "../lib/format";
 import { usePinGate } from "../hooks/usePinGate";
 import Breadcrumb from "../components/Breadcrumb";
 import Tabs from "../components/Tabs";
+import FinancePeriodPicker from "../components/FinancePeriodPicker";
 import RingkasanTab from "./payments/RingkasanTab";
 import TagihanTab from "./payments/TagihanTab";
 import PengeluaranTab from "./payments/PengeluaranTab";
@@ -110,6 +111,10 @@ export default function PaymentsPage() {
         <h1 className="text-2xl font-bold">Keuangan</h1>
       </div>
 
+      {activeTab !== "audit" && (
+        <FinancePeriodPicker month={month} onChange={setMonth} />
+      )}
+
       {/* Tabs */}
       <Tabs
         tabs={[
@@ -137,7 +142,6 @@ export default function PaymentsPage() {
       {activeTab === "ringkasan" && (
         <RingkasanTab
           month={month}
-          setMonth={setMonth}
           payments={payments}
           students={students}
           settings={settings}
@@ -165,7 +169,6 @@ export default function PaymentsPage() {
       {activeTab === "pengeluaran" && (
         <PengeluaranTab
           month={month}
-          setMonth={setMonth}
           monthExpenses={monthExpenses}
           setMessage={setMessage}
         />

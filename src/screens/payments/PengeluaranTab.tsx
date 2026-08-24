@@ -8,12 +8,11 @@ import ConfirmSheet from "../../components/ConfirmSheet";
 
 interface PengeluaranTabProps {
   month: string;
-  setMonth: (month: string) => void;
   monthExpenses: Expense[];
   setMessage: (message: string) => void;
 }
 
-export default function PengeluaranTab({ month, setMonth, monthExpenses, setMessage }: PengeluaranTabProps) {
+export default function PengeluaranTab({ month, monthExpenses, setMessage }: PengeluaranTabProps) {
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; description: string } | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
@@ -39,11 +38,14 @@ export default function PengeluaranTab({ month, setMonth, monthExpenses, setMess
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-3 items-center">
-        <label htmlFor="pay-bulan-pengeluaran" className="text-sm text-gray-500 flex-shrink-0">Bulan:</label>
-        <input id="pay-bulan-pengeluaran" className="input flex-1" type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Pengeluaran periode</p>
+          <h2 className="mt-0.5 text-base font-bold text-slate-800">{monthLabel(month)}</h2>
+          <p className="mt-1 text-xs text-slate-500">Catat semua uang yang keluar pada periode laporan ini.</p>
+        </div>
         <button onClick={() => setShowExpenseModal(true)}
-          className="px-3 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors">
+          className="shrink-0 px-3 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors">
           + Catat
         </button>
       </div>
@@ -76,7 +78,7 @@ export default function PengeluaranTab({ month, setMonth, monthExpenses, setMess
         </div>
         {monthExpenses.length === 0 ? (
           <div className="py-8 text-center">
-            <p className="text-sm text-gray-500">Belum ada pengeluaran bulan ini.</p>
+            <p className="text-sm text-gray-500">Belum ada pengeluaran pada {monthLabel(month)}.</p>
             <button onClick={() => setShowExpenseModal(true)} className="mt-2 text-sm font-semibold text-blue-600">Catat pengeluaran pertama</button>
           </div>
         ) : (

@@ -23,9 +23,21 @@ const DEFAULT_COLORS = [
   "#7c3aed", "#0891b2", "#be185d",
 ];
 
+const INDONESIAN_MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+  "Jul", "Agu", "Sep", "Okt", "Nov", "Des",
+];
+
 function shortDateLabel(d: string): string {
-  const parts = d.split("-");
-  if (parts.length === 3) return `${parts[2]}/${parts[1]}`;
+  const monthlyMatch = /^(\d{4})-(\d{2})$/.exec(d);
+  if (monthlyMatch) {
+    const month = INDONESIAN_MONTHS[Number(monthlyMatch[2]) - 1];
+    return month ? `${month} ${monthlyMatch[1].slice(-2)}` : d;
+  }
+
+  const dailyMatch = /^\d{4}-(\d{2})-(\d{2})$/.exec(d);
+  if (dailyMatch) return `${dailyMatch[2]}/${dailyMatch[1]}`;
+
   return d.length > 5 ? d.slice(5) : d;
 }
 
