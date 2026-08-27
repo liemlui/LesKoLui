@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.51.2",
+    date: "2026-08-27",
+    title: "Audit Laporan dan Katalog Lebih Stabil",
+    items: [
+      "Audit seluruh layout laporan kini menunggu pratinjau selesai diperbarui, sehingga perubahan desain dan rebalance halaman tidak lagi membuat pemeriksaan gagal sesaat",
+      "Katalog screenshot diperbarui, termasuk halaman Catatan Belajar, tanpa pengingat backup yang menutupi pratinjau fitur",
+    ],
+  },
+  {
     version: "v1.51.1",
     date: "2026-08-27",
     title: "Laporan 3:4 Tidak Lagi Memotong Catatan Sesi",
