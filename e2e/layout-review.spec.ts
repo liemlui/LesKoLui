@@ -27,6 +27,35 @@ async function closeChangelog(page: Page) {
   } catch { /* tidak ada modal */ }
 }
 
+/**
+ * Pergantian layout memicu penyimpanan IndexedDB lalu ReportRenderer melakukan
+ * rebalance halaman. Saat kedua render itu berurutan, node halaman lama dapat
+ * terlepas tepat ketika Playwright hendak mengambil screenshot. Ulangi hanya
+ * untuk kondisi DOM transien tersebut; error visual/layout yang nyata tetap
+ * diteruskan agar audit tidak menyamarkan masalah.
+ */
+async function captureFirstReportPage(page: Page, id: string) {
+  const pages = page.locator("[data-report-export-root] [data-report-page]");
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const first = pages.first();
+    try {
+      await first.waitFor({ state: "visible", timeout: 5_000 });
+      // Locator.screenshot() otomatis men-scroll dan menunggu elemen stabil.
+      // Hindari scroll terpisah: di situlah node lama sebelumnya terlepas.
+      await first.screenshot({ path: path.join(DIR, `${id}.png`) });
+      const box = await first.boundingBox();
+      if (!box) throw new Error("Halaman laporan sedang diperbarui.");
+      return { count: await pages.count(), height: box.height };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const transientRender = /not attached to the DOM|sedang diperbarui/.test(message);
+      if (!transientRender || attempt === 3) throw error;
+      await page.waitForTimeout(250);
+    }
+  }
+  throw new Error("Halaman laporan tidak stabil untuk diambil gambarnya.");
+}
+
 test("render semua layout laporan", async ({ page }) => {
   test.setTimeout(360_000);
 
@@ -73,21 +102,21 @@ test("render semua layout laporan", async ({ page }) => {
   await expect(layoutSelect.locator("option").first()).toBeAttached({ timeout: 10_000 });
   await page.locator("summary").filter({ hasText: "Ubah tema" }).click();
   await expect(layoutSelect).toBeVisible();
-  const ids = await layoutSelect.locator("option").evaluateAll(
-    (opts) => (opts as HTMLOptionElement[]).map((o) => o.value),
+  const layouts = await layoutSelect.locator("option").evaluateAll(
+    (opts) => (opts as HTMLOptionElement[]).map((o) => ({
+      id: o.value,
+      label: o.textContent?.trim() || o.value,
+    })),
   );
-  console.log(`[layout-review] ${ids.length} layout: ${ids.join(", ")}`);
+  console.log(`[layout-review] ${layouts.length} layout: ${layouts.map((layout) => layout.id).join(", ")}`);
 
-  for (const id of ids) {
+  for (const { id, label } of layouts) {
     await layoutSelect.selectOption(id);
-    await page.waitForTimeout(800);
-    const pages = page.locator("[data-report-page]");
-    const n = await pages.count(); // termasuk 1 panel rekap tanda tangan
-    const first = pages.first();
-    await first.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(200);
-    const box = await first.boundingBox();
-    console.log(`[layout-review] ${id}: ${n} node halaman, tinggi hal-1 = ${Math.round(box?.height ?? 0)}px`);
-    await first.screenshot({ path: path.join(DIR, `${id}.png`) });
+    await expect(layoutSelect).toHaveValue(id);
+    // Ini menandakan nilai baru sudah tersimpan dan kembali dari live query;
+    // lebih andal daripada menebak lama proses IndexedDB dengan timeout statis.
+    await expect(page.locator("summary").filter({ hasText: label })).toBeVisible({ timeout: 10_000 });
+    const { count, height } = await captureFirstReportPage(page, id);
+    console.log(`[layout-review] ${id}: ${count} node halaman, tinggi hal-1 = ${Math.round(height)}px`);
   }
 });

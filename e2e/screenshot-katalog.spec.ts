@@ -220,4 +220,15 @@ async function closeChangelog(page: Page) {
       await page.waitForTimeout(400);
     }
   } catch { /* no modal */ }
+
+  // Katalog dipakai sebagai materi promosi; tutup pengingat operasional agar
+  // pratinjau fitur tidak tertutup banner backup yang muncul secara async.
+  const dismissWarning = page.getByRole("button", { name: "Tutup peringatan" });
+  if (await dismissWarning.isVisible({ timeout: 1500 }).catch(() => false)) {
+    await dismissWarning.click();
+  }
+  const later = page.getByRole("button", { name: "Nanti", exact: true });
+  if (await later.isVisible({ timeout: 1500 }).catch(() => false)) {
+    await later.click();
+  }
 }

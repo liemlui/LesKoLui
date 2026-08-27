@@ -12,7 +12,9 @@ test("tombol keluar di header membuka konfirmasi tanpa memakai navigasi back", a
   const changelog = page.getByText(/Mengerti|Terima Kasih/);
   if (await changelog.isVisible({ timeout: 1500 }).catch(() => false)) await changelog.click();
   const dismissWarning = page.getByRole("button", { name: "Tutup peringatan" });
-  if (await dismissWarning.isVisible({ timeout: 1500 }).catch(() => false)) await dismissWarning.click();
+  // Pemeriksaan backup berjalan async setelah app dimuat. Tunggu sebentar bila
+  // banner risiko muncul, lalu tutup melalui UI agar tidak menutupi header.
+  await dismissWarning.click({ timeout: 5000 }).catch(() => undefined);
 
   await expect(page.getByRole("button", { name: "Keluar aplikasi" })).toBeVisible();
   await page.getByRole("button", { name: "Keluar aplikasi" }).click();
