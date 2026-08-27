@@ -27,7 +27,7 @@ export default function AuditTab({ payments, students }: AuditTabProps) {
   const studentMap = useMemo(() => new Map(students.map((s) => [s.id, s])), [students]);
 
   const piutangRows = payments
-    .filter((p) => p.status === "UNPAID")
+    .filter((p) => p.status === "UNPAID" && p.month.startsWith(`${auditYear}-`))
     .map((p) => ({ payment: p, student: studentMap.get(p.studentId) }))
     .sort((a, b) => a.payment.month.localeCompare(b.payment.month));
 
@@ -38,38 +38,92 @@ export default function AuditTab({ payments, students }: AuditTabProps) {
     pengeluaran: (auditData ?? []).reduce((s, r) => s + r.pengeluaran, 0),
     laba: (auditData ?? []).reduce((s, r) => s + r.laba, 0),
   };
+  const closedMonths = (auditData ?? []).filter((r) => r.closed).length;
+  const openMonths = (auditData ?? []).filter((r) => !r.closed && (r.potensi || r.realisasi || r.piutang || r.pengeluaran)).length;
+  const marginRate = auditTotals.realisasi > 0 ? Math.round((auditTotals.laba / auditTotals.realisasi) * 100) : 0;
 
   const exportAuditCsv = () => {
     const rows = auditData ?? [];
-    const header = "Bulan,Potensi Sesi,Kas Masuk,Piutang,Pengeluaran,Laba Kas,Status";
+    const header = "Bulan,Potensi Sesi,Kas Diterima,Invoice Belum Dibayar,Pengeluaran,Laba Kas,Status Bulan";
     const body = rows.map((r) => `${r.month},${r.potensi},${r.realisasi},${r.piutang},${r.pengeluaran},${r.laba},${r.closed ? "Ditutup" : "Terbuka"}`);
     const total = `Total ${auditYear},${auditTotals.potensi},${auditTotals.realisasi},${auditTotals.piutang},${auditTotals.pengeluaran},${auditTotals.laba},`;
     const csv = [header, ...body, total].join("\n");
-    downloadBlob(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }), `Audit-Keuangan-${auditYear}.csv`);
+    downloadBlob(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }), `Rekap-Keuangan-${auditYear}.csv`);
   };
 
   return (
     <div className="space-y-4">
       <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Audit Tahunan</p>
+          <div>
+            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Rekap Tahunan</p>
+            <p className="mt-0.5 text-xs text-gray-400">Ringkasan arus kas dan status setiap bulan keuangan.</p>
+          </div>
           <div className="flex items-center gap-3">
             <button aria-label="Tahun sebelumnya" onClick={() => setAuditYear((y) => y - 1)} className="text-gray-500 hover:text-gray-700 text-lg leading-none">‹</button>
             <span className="font-semibold text-gray-700">{auditYear}</span>
             <button aria-label="Tahun berikutnya" onClick={() => setAuditYear((y) => y + 1)} className="text-gray-500 hover:text-gray-700 text-lg leading-none">›</button>
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[620px] text-xs">
+
+        {/* Ringkasan tahunan — sekilas performa setahun */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Kas Diterima</p>
+            <p className="mt-0.5 text-base font-bold text-green-700">{formatRupiah(auditTotals.realisasi)}</p>
+          </div>
+          <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Laba Kas</p>
+            <p className={`mt-0.5 text-base font-bold ${auditTotals.laba >= 0 ? "text-green-700" : "text-red-600"}`}>{formatRupiah(auditTotals.laba)}</p>
+          </div>
+          <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Pengeluaran</p>
+            <p className="mt-0.5 text-base font-bold text-red-600">{formatRupiah(auditTotals.pengeluaran)}</p>
+          </div>
+          <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Margin</p>
+            <p className={`mt-0.5 text-base font-bold ${marginRate >= 0 ? "text-green-700" : "text-red-600"}`}>{marginRate}%</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-1.5 text-[10px]">
+          <span className="rounded-full bg-green-100 text-green-700 px-2 py-0.5 font-semibold">{closedMonths} bulan ditutup</span>
+          {openMonths > 0 && <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 font-semibold">{openMonths} bulan terbuka</span>}
+          <span className="rounded-full bg-slate-100 text-slate-600 px-2 py-0.5 font-semibold">Invoice belum dibayar {formatRupiah(auditTotals.piutang)}</span>
+        </div>
+        <div className="space-y-2 md:hidden" aria-label={`Rincian bulanan ${auditYear}`}>
+          {(auditData ?? []).map((r) => {
+            const has = r.potensi || r.realisasi || r.piutang || r.pengeluaran;
+            return (
+              <div key={r.month} className="rounded-xl border border-slate-100 bg-slate-50/60 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-bold text-slate-700">{monthLabel(r.month)}</p>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${r.closed ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+                    {r.closed ? "Ditutup" : "Terbuka"}
+                  </span>
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                  <div><p className="text-gray-400">Potensi sesi</p><p className="font-semibold text-gray-700">{r.potensi ? formatRupiah(r.potensi) : "–"}</p></div>
+                  <div><p className="text-gray-400">Kas diterima</p><p className="font-semibold text-green-700">{r.realisasi ? formatRupiah(r.realisasi) : "–"}</p></div>
+                  <div><p className="text-gray-400">Belum dibayar</p><p className="font-semibold text-amber-700">{r.piutang ? formatRupiah(r.piutang) : "–"}</p></div>
+                  <div><p className="text-gray-400">Pengeluaran</p><p className="font-semibold text-red-600">{r.pengeluaran ? formatRupiah(r.pengeluaran) : "–"}</p></div>
+                  <div className="col-span-2"><p className="text-gray-400">Laba kas</p><p className={`font-semibold ${r.laba >= 0 ? "text-green-700" : "text-red-600"}`}>{has ? formatRupiah(r.laba) : "–"}</p></div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="hidden overflow-x-auto md:block">
+          <table className="w-full min-w-[760px] text-xs">
             <thead>
               <tr className="text-gray-500 text-left">
-                <th className="font-medium pb-1">Bln</th>
+                <th className="font-medium pb-1">Bulan</th>
                 <th className="font-medium pb-1 text-right">Potensi</th>
-                <th className="font-medium pb-1 text-right">Kas Masuk</th>
-                <th className="font-medium pb-1 text-right">Piutang</th>
-                <th className="font-medium pb-1 text-right">Keluar</th>
+                <th className="font-medium pb-1 text-right">Kas Diterima</th>
+                <th className="font-medium pb-1 text-right">Belum Dibayar</th>
+                <th className="font-medium pb-1 text-right">Pengeluaran</th>
                 <th className="font-medium pb-1 text-right">Laba</th>
-                <th className="font-medium pb-1 text-center"></th>
+                <th className="font-medium pb-1 text-center">Status Bulan</th>
               </tr>
             </thead>
             <tbody>
@@ -77,13 +131,17 @@ export default function AuditTab({ payments, students }: AuditTabProps) {
                 const has = r.potensi || r.realisasi || r.piutang || r.pengeluaran;
                 return (
                   <tr key={r.month} className="border-t border-gray-50">
-                    <td className="py-1 text-gray-600">{r.month.slice(5)}</td>
+                    <td className="py-1 text-gray-600">{monthLabel(r.month)}</td>
                     <td className="py-1 text-right text-gray-600">{r.potensi ? formatRupiah(r.potensi) : "–"}</td>
                     <td className="py-1 text-right text-green-700">{r.realisasi ? formatRupiah(r.realisasi) : "–"}</td>
                     <td className="py-1 text-right text-amber-600">{r.piutang ? formatRupiah(r.piutang) : "–"}</td>
                     <td className="py-1 text-right text-red-600">{r.pengeluaran ? formatRupiah(r.pengeluaran) : "–"}</td>
                     <td className={`py-1 text-right font-semibold ${r.laba >= 0 ? "text-green-700" : "text-red-600"}`}>{has ? formatRupiah(r.laba) : "–"}</td>
-                    <td className="py-1 text-center">{r.closed ? "🔒" : ""}</td>
+                    <td className="py-1 text-center">
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${r.closed ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+                        {r.closed ? "Ditutup" : "Terbuka"}
+                      </span>
+                    </td>
                   </tr>
                 );
               })}
@@ -103,12 +161,14 @@ export default function AuditTab({ payments, students }: AuditTabProps) {
         </div>
         <button onClick={exportAuditCsv}
           className="w-full py-2 rounded-lg border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors">
-          ⬇ Export CSV {auditYear}
+          ⬇ Ekspor CSV {auditYear}
         </button>
 
-        {piutangRows.length > 0 && (
-          <div className="pt-2 border-t border-gray-100">
-            <p className="text-xs text-amber-600 font-semibold mb-2 uppercase tracking-wide">Piutang Belum Tertagih</p>
+        <div className="pt-2 border-t border-gray-100">
+          <p className="text-xs text-amber-600 font-semibold mb-2 uppercase tracking-wide">Invoice Belum Dibayar · {auditYear}</p>
+          {piutangRows.length === 0 ? (
+            <p className="rounded-lg bg-green-50 px-3 py-2 text-xs text-green-700">Tidak ada invoice belum dibayar pada {auditYear}.</p>
+          ) : (
             <div className="space-y-1">
               {piutangRows.map(({ payment, student }) => {
                 const age = monthsBetween(payment.month, todayWIB().slice(0, 7));
@@ -124,8 +184,8 @@ export default function AuditTab({ payments, students }: AuditTabProps) {
                 );
               })}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

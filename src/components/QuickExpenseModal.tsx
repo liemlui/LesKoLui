@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { createExpense } from "../db/repos";
-import type { ExpenseCategory } from "../db/repos";
+import { createExpense, updateExpense } from "../db/repos";
+import type { Expense, ExpenseCategory } from "../db/types";
 import { todayWIB } from "../lib/format";
 import { isValidCurrencyAmount } from "../lib/money";
 import { Z } from "../lib/zIndex";
 
 /**
  * QuickExpenseModal — catat pengeluaran cepat dari dashboard tanpa PIN.
+ * Bisa dipakai untuk menambah atau mengedit pengeluaran.
  *
  * Sengaja TIDAK dilindungi PIN keuangan karena hanya untuk mencatat (write-only),
  * tidak menampilkan data keuangan sensitif (ringkasan, tagihan, audit).
@@ -17,6 +18,8 @@ interface Props {
   onClose: () => void;
   onSaved: (msg: string) => void;
   initialDate?: string;
+  /** Bila diisi, modal bekerja sebagai editor pengeluaran. */
+  expense?: Expense;
 }
 
 const CATEGORY_LABEL: Record<ExpenseCategory, string> = {
@@ -29,23 +32,29 @@ const CATEGORY_LABEL: Record<ExpenseCategory, string> = {
 
 const CATEGORIES: ExpenseCategory[] = ["transport", "buku", "alat", "platform", "lainnya"];
 
-export default function QuickExpenseModal({ onClose, onSaved, initialDate }: Props) {
-  const [date, setDate] = useState(() => initialDate ?? todayWIB());
-  const [category, setCategory] = useState<ExpenseCategory>("transport");
-  const [description, setDescription] = useState("");
-  const [amount, setAmount] = useState(0);
+export default function QuickExpenseModal({ onClose, onSaved, initialDate, expense }: Props) {
+  const editing = Boolean(expense);
+  const [date, setDate] = useState(() => expense?.date ?? initialDate ?? todayWIB());
+  const [category, setCategory] = useState<ExpenseCategory>(() => expense?.category ?? "transport");
+  const [description, setDescription] = useState(() => expense?.description ?? "");
+  const [amount, setAmount] = useState(() => expense?.amount ?? 0);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
-    if (!date || !description || !isValidCurrencyAmount(amount)) {
+    if (!date || !description.trim() || !isValidCurrencyAmount(amount)) {
       setError("Lengkapi semua data dengan nominal valid!");
       return;
     }
     setSaving(true);
     try {
-      await createExpense({ date, category, description, amount });
-      onSaved("Pengeluaran dicatat ✓");
+      if (editing && expense) {
+        await updateExpense(expense.id, { date, category, description, amount });
+        onSaved("Pengeluaran diperbarui ✓");
+      } else {
+        await createExpense({ date, category, description, amount });
+        onSaved("Pengeluaran dicatat ✓");
+      }
       onClose();
     } catch (e) {
       setError("Gagal: " + (e as Error).message);
@@ -58,7 +67,7 @@ export default function QuickExpenseModal({ onClose, onSaved, initialDate }: Pro
     <div role="dialog" aria-modal="true" aria-label="Catat Pengeluaran" className={`fixed inset-0 bg-black/60 ${Z.invoice} flex items-end justify-center`}>
       <div className="w-full max-w-md bg-white rounded-t-2xl overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-          <h3 className="font-bold text-base">💰 Catat Pengeluaran</h3>
+          <h3 className="font-bold text-base">{editing ? "✏️ Edit Pengeluaran" : "💰 Catat Pengeluaran"}</h3>
           <button aria-label="Tutup" onClick={onClose} className="text-gray-500 hover:text-gray-600 text-lg w-10 h-10 flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
         </div>
         <div className="p-4 space-y-3">
@@ -91,7 +100,7 @@ export default function QuickExpenseModal({ onClose, onSaved, initialDate }: Pro
           {error && <p className="text-sm text-red-500">{error}</p>}
           <button onClick={handleSave} disabled={saving}
             className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-colors disabled:opacity-50">
-            {saving ? "Menyimpan..." : "Simpan Pengeluaran"}
+            {saving ? "Menyimpan..." : editing ? "Simpan Perubahan" : "Simpan Pengeluaran"}
           </button>
         </div>
       </div>

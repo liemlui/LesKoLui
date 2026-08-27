@@ -5,7 +5,7 @@
  */
 import type { Session, Settings, Student } from "../db/types";
 import { billingPolicyOf } from "../db/types";
-import { monthLabel, formatRupiah } from "./format";
+import { dayLabel, monthLabel, formatRupiah } from "./format";
 
 export interface BillingResult {
   text: string;
@@ -61,7 +61,8 @@ export function buildBillingMessage(args: BuildBillingArgs): BillingResult {
       ? "Tidak hadir (sesuai kebijakan)"
       : s.subjects.length > 0 ? s.subjects.join(", ") : "Sesi umum";
     if (isSessionCount) {
-      lines.push(`• ${subj}`);
+      const dateShort = dayLabel(s.date).replace(/^\w+, /, "").replace(/ \d{4}$/, "");
+      lines.push(`📌 ${dateShort} — ${subj}`);
     } else {
       lines.push(`📌 ${subj} (${s.durationHours}j)`);
     }

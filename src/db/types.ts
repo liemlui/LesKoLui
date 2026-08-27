@@ -17,6 +17,10 @@ export type ReportStatus = "draft" | "confirmed";
 export type BillingPolicy = "monthly" | "session_count" | "manual";
 export type ReportBillingMode = "monthly" | "session_count" | "range";
 
+/** Status laporan untuk ditampilkan ke pengguna. `confirmed` adalah status
+ *  internal final; `pdfGeneratedAt` menandai laporan sudah diekspor/dibagikan. */
+export type ReportDisplayStatus = "draft" | "final" | "shared";
+
 /** Existing students predate billing policies and remain monthly by default. */
 export function billingPolicyOf(
   student: Pick<Student, "billingPolicy">,
@@ -24,10 +28,20 @@ export function billingPolicyOf(
   return student.billingPolicy ?? "monthly";
 }
 
-/** Status tagihan laporan. Draft = belum sah, tidak mengunci tanggal & tidak terbit tagihan.
+/** Status finalisasi laporan. Draft belum mengunci periode; confirmed berarti
+ *  laporan sudah final. Status ini tidak menyatakan invoice sudah diterbitkan
+ *  dan tidak menyatakan laporan sudah dikirim/dibagikan.
  *  Laporan lama (sebelum v1.39) tidak punya status → dianggap "confirmed". */
 export function reportStatus(report: { status?: ReportStatus }): ReportStatus {
   return report.status ?? "confirmed";
+}
+
+/** Status yang dipakai UI: Draft → Final → Sudah dibagikan. */
+export function reportDisplayStatus(
+  report: { status?: ReportStatus; pdfGeneratedAt?: string },
+): ReportDisplayStatus {
+  if (reportStatus(report) === "draft") return "draft";
+  return report.pdfGeneratedAt ? "shared" : "final";
 }
 
 export const DEFAULT_RATE = 200_000;   // IDR per hour
@@ -171,13 +185,13 @@ export interface NextMonthPlan {
 export interface MonthlyReport {
   id: string;
   studentId: string;
-  /** Bulan anchor tagihan = bulan akhir periode rekap (YYYY-MM). */
+  /** Bulan acuan laporan = bulan akhir periode belajar (YYYY-MM). */
   month: string;
   /** Awal periode rekap (YYYY-MM-DD, inklusif) — laporan lama = awal bulan kalender. */
   periodStart: string;
   /** Akhir periode rekap (YYYY-MM-DD, inklusif) — laporan lama = akhir bulan kalender. */
   periodEnd: string;
-  /** Status laporan: draft (belum sah, bisa dibatalkan) atau confirmed (sudah dikirim ke ortu). */
+  /** Status laporan: draft (bisa dibatalkan) atau confirmed (final, kompatibilitas nama lama). */
   status?: ReportStatus;
   /** Billing identity; missing on legacy reports means an ordinary period report. */
   billingMode?: ReportBillingMode;
@@ -303,6 +317,7 @@ export type AuditAction =
   | "payment.unpaid"
   | "payment.amount"
   | "expense.create"
+  | "expense.update"
   | "expense.delete"
   | "month.close"
   | "data.reset"

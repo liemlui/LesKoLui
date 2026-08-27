@@ -875,6 +875,25 @@ export async function createExpense(
   return id;
 }
 
+export async function updateExpense(
+  id: string,
+  input: Omit<Expense, "id" | "createdAt" | "updatedAt">
+): Promise<void> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) throw new Error("Invalid expense date");
+  if (!input.description.trim()) throw new Error("Expense description is required");
+  if (!isValidCurrencyAmount(input.amount)) throw new Error("Invalid expense amount");
+  const existing = await db.expenses.get(id);
+  if (!existing) throw new Error("Expense not found");
+  await db.expenses.update(id, {
+    date: input.date,
+    category: input.category,
+    description: input.description.trim(),
+    amount: input.amount,
+    updatedAt: timestamp(),
+  });
+  await logAudit("expense.update", "expense", id, `${input.date}: ${input.amount}`);
+}
+
 export async function listExpenses(month?: string): Promise<Expense[]> {
   if (month) {
     const { start, end } = monthRange(month);

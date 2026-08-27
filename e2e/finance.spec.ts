@@ -23,17 +23,19 @@ test("finance data stays connected across summary, expenses, and audit", async (
   await page.getByPlaceholder("PIN (6 digit)").fill("123456");
   await page.getByRole("button", { name: "Buka", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Keuangan", exact: true })).toBeVisible();
-  await expect(page.getByText("Periode laporan", { exact: true })).toBeVisible();
+  await expect(page.getByText("Bulan keuangan", { exact: true })).toBeVisible();
 
-  const monthInput = page.getByLabel("Pilih bulan laporan", { exact: true });
+  const monthInput = page.getByLabel("Pilih bulan keuangan", { exact: true });
   await expect(monthInput).toHaveCount(1);
   await monthInput.fill("2026-06");
+  await expect(page).toHaveURL(/month=2026-06/);
   await expect(page.getByText("Juni 2026", { exact: true })).toBeVisible();
 
   const cashCard = page.getByText("Kas diterima", { exact: true }).locator("..");
   await expect(cashCard).toContainText("Rp 450.000");
   await expect(page.getByText(/Rekonsiliasi sesi/)).toBeVisible();
 
+  await page.getByText("Analitik lanjutan", { exact: true }).click();
   const threeMonthTrend = page.getByRole("button", { name: "3 bulan", exact: true });
   await expect(threeMonthTrend).toBeVisible();
   await threeMonthTrend.click();
@@ -54,8 +56,8 @@ test("finance data stays connected across summary, expenses, and audit", async (
   await expect(expenseTotalCard).toContainText("Rp 715.000");
   await page.screenshot({ path: "e2e/screenshots/finance-strengthened.png", fullPage: true });
 
-  await page.getByRole("tab", { name: "Audit", exact: true }).click();
+  await page.getByRole("tab", { name: "Rekap Tahunan", exact: true }).click();
   await expect(page.getByRole("columnheader", { name: "Potensi", exact: true })).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "Kas Masuk", exact: true })).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "Piutang", exact: true })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Kas Diterima", exact: true })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Belum Dibayar", exact: true })).toBeVisible();
 });

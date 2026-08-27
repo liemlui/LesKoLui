@@ -31,7 +31,16 @@ export default function ActivityRing({ value, total, label, detail, tone = "blue
 
   return (
     <div className="flex items-center gap-3 min-w-0" aria-label={`${label}: ${safeValue} dari ${safeTotal}`}>
-      <div className="relative flex-shrink-0" style={{ width: side, height: side }} aria-hidden="true">
+      <div
+        className="relative flex-shrink-0"
+        style={{ width: side, height: side }}
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={safeTotal}
+        aria-valuenow={safeValue}
+        aria-valuetext={`${percent}%`}
+        aria-label={`${label}: ${safeValue} dari ${safeTotal}`}
+      >
         <svg width={side} height={side} viewBox={`0 0 ${side} ${side}`} className="-rotate-90">
           <circle cx={side / 2} cy={side / 2} r={radius} fill="none" stroke={palette.track} strokeWidth={width} />
           <circle

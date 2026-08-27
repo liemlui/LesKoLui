@@ -7,7 +7,8 @@ import {
   listExpenses, listBillableSessionsForMonth,
   listAllReports, listSessionCountBillingProgress,
 } from "../db/repos";
-import { todayWIB } from "../lib/format";
+import { todayWIB, formatRupiah, monthLabel } from "../lib/format";
+import { reportStatus } from "../db/types";
 import { usePinGate } from "../hooks/usePinGate";
 import Breadcrumb from "../components/Breadcrumb";
 import Tabs from "../components/Tabs";
@@ -19,9 +20,12 @@ import AuditTab from "./payments/AuditTab";
 
 type Tab = "ringkasan" | "tagihan" | "pengeluaran" | "audit";
 
+const TAB_KEYS: Tab[] = ["ringkasan", "tagihan", "pengeluaran", "audit"];
+const MONTH_QUERY_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
+
 /**
  * PaymentsPage — halaman keuangan dengan 4 tab:
- * Ringkasan, Tagihan, Pengeluaran, Audit.
+ * Ringkasan, Penagihan, Pengeluaran, Rekap Tahunan.
  *
  * Fitur: tutup bulan otomatis, tagihan manual, tracking pengeluaran,
  * export PDF/CSV, forecasting, WhatsApp billing, dan audit trail.
@@ -31,7 +35,7 @@ type Tab = "ringkasan" | "tagihan" | "pengeluaran" | "audit";
  */
 export default function PaymentsPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const payments  = useLiveQuery(() => listPayments(), []);
   // Historical invoices must retain their student names even after a student
   // becomes inactive, so finance intentionally loads active + inactive rows.
@@ -40,13 +44,16 @@ export default function PaymentsPage() {
   const pin = usePinGate();
   const requestedStudentId = searchParams.get("studentId") ?? "";
 
-  const [activeTab, setActiveTab] = useState<Tab>(() =>
-    searchParams.get("tab") === "tagihan" ? "tagihan" : "ringkasan"
-  );
+  // Tab disinkronkan dengan URL agar bisa di-bookmark / di-share.
+  const urlTab = searchParams.get("tab");
+  const activeTab: Tab = TAB_KEYS.includes(urlTab as Tab) ? (urlTab as Tab) : "ringkasan";
   const [message, setMessage] = useState("");
 
-  // Shared month for Ringkasan + Tagihan/Tutup Bulan + Pengeluaran
-  const [month, setMonth] = useState(() => todayWIB().slice(0, 7));
+  // Shared month for Ringkasan + Penagihan/Tutup Bulan + Pengeluaran
+  const requestedMonth = searchParams.get("month");
+  const month = requestedMonth && MONTH_QUERY_PATTERN.test(requestedMonth)
+    ? requestedMonth
+    : todayWIB().slice(0, 7);
 
   // ── Shared queries (loaded once for the whole page) ──
   const monthSessions = useLiveQuery(() => listBillableSessionsForMonth(month), [month]);
@@ -54,13 +61,32 @@ export default function PaymentsPage() {
   const reports = useLiveQuery(() => listAllReports(), []);
   // A package may span calendar months, so this queue intentionally does not
   // depend on the month picker used by the rest of the finance dashboard.
-  // Kept here only to badge the Tagihan tab; the tab queries its own copy.
+  // Kept here only to badge the Penagihan tab; the tab queries its own copy.
   const sessionCountBillingProgress = useLiveQuery(() => listSessionCountBillingProgress(), []);
 
-  const tagihanBadge = (sessionCountBillingProgress ?? []).filter((row) => (
+  const packageActionCount = (sessionCountBillingProgress ?? []).filter((row) => (
     row.readyBatchCount > 0
     || Boolean(row.pendingBillingPolicy && row.unbilledCount > 0 && row.unbilledCount < row.targetCount)
   )).length;
+  const invoiceReportIds = new Set((payments ?? []).flatMap((payment) => payment.reportId ? [payment.reportId] : []));
+  const readyReportInvoiceCount = (reports ?? []).filter((report) => (
+    report.month === month
+    && reportStatus(report) === "confirmed"
+    && report.totalCost > 0
+    && report.billingMode !== "session_count"
+    && !invoiceReportIds.has(report.id)
+  )).length;
+  const tagihanBadge = packageActionCount + readyReportInvoiceCount;
+
+  // ── Ringkasan cepat untuk header ──
+  const monthPayments = (payments ?? []).filter((p) => p.month === month);
+  const cashInMonth = (payments ?? [])
+    .filter((p) => p.status === "PAID" && (p.paidAt?.slice(0, 7) ?? p.month) === month)
+    .reduce((sum, p) => sum + p.totalCost, 0);
+  const piutangMonth = monthPayments
+    .filter((p) => p.status === "UNPAID")
+    .reduce((sum, p) => sum + p.totalCost, 0);
+  const expenseMonth = (monthExpenses ?? []).reduce((sum, e) => sum + e.amount, 0);
 
   if (!payments || !students || !settings
     || monthSessions === undefined || monthExpenses === undefined
@@ -72,7 +98,7 @@ export default function PaymentsPage() {
       <div className="p-4 flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <p className="text-4xl">🔐</p>
         <p className="font-bold text-lg text-gray-800">PIN Keuangan Belum Aktif</p>
-        <p className="text-sm text-gray-500 text-center">Buat PIN dulu sebelum membuka data keuangan, tagihan, dan audit.</p>
+        <p className="text-sm text-gray-500 text-center">Buat PIN dulu sebelum membuka data keuangan, penagihan, dan rekap tahunan.</p>
         <button
           onClick={() => navigate("/settings")}
           className="px-8 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-colors">
@@ -103,6 +129,20 @@ export default function PaymentsPage() {
     );
   }
 
+  const handleTabChange = (key: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (key === "ringkasan") next.delete("tab");
+    else next.set("tab", key);
+    setSearchParams(next, { replace: true });
+  };
+
+  const handleMonthChange = (nextMonth: string) => {
+    if (!MONTH_QUERY_PATTERN.test(nextMonth)) return;
+    const next = new URLSearchParams(searchParams);
+    next.set("month", nextMonth);
+    setSearchParams(next, { replace: true });
+  };
+
   return (
     <div className="p-4 pb-24 space-y-4">
       <Breadcrumb />
@@ -111,20 +151,43 @@ export default function PaymentsPage() {
         <h1 className="text-2xl font-bold">Keuangan</h1>
       </div>
 
+      {/* Konteks cepat hanya untuk tab operasional pada bulan yang dipilih. */}
+      {(activeTab === "tagihan" || activeTab === "pengeluaran") && (
+        <div className="space-y-2" aria-label={`Ringkasan keuangan ${monthLabel(month)}`}>
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
+            Ringkasan {monthLabel(month)}
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-xl border border-green-100 bg-green-50/60 px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-green-600">Kas diterima</p>
+              <p className="mt-0.5 text-sm font-bold text-green-700">{formatRupiah(cashInMonth)}</p>
+            </div>
+            <div className="rounded-xl border border-amber-100 bg-amber-50/60 px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-600">Belum dibayar</p>
+              <p className="mt-0.5 text-sm font-bold text-amber-700">{formatRupiah(piutangMonth)}</p>
+            </div>
+            <div className="rounded-xl border border-red-100 bg-red-50/60 px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-red-600">Pengeluaran</p>
+              <p className="mt-0.5 text-sm font-bold text-red-700">{formatRupiah(expenseMonth)}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {activeTab !== "audit" && (
-        <FinancePeriodPicker month={month} onChange={setMonth} />
+        <FinancePeriodPicker month={month} onChange={handleMonthChange} />
       )}
 
       {/* Tabs */}
       <Tabs
         tabs={[
           { key: "ringkasan", label: "Ringkasan", compactLabel: "Ringkas" },
-          { key: "tagihan", label: "Tagihan", compactLabel: "Tagih", count: tagihanBadge },
+          { key: "tagihan", label: "Penagihan", compactLabel: "Tagih", count: tagihanBadge },
           { key: "pengeluaran", label: "Pengeluaran", compactLabel: "Keluar" },
-          { key: "audit", label: "Audit" },
+          { key: "audit", label: "Rekap Tahunan", compactLabel: "Rekap" },
         ]}
         active={activeTab}
-        onChange={(k) => setActiveTab(k as Tab)}
+        onChange={handleTabChange}
         fullWidth
       />
 
@@ -148,13 +211,14 @@ export default function PaymentsPage() {
           reports={reports}
           monthSessions={monthSessions}
           monthExpenses={monthExpenses}
+          sessionCountBillingProgress={sessionCountBillingProgress}
           setMessage={setMessage}
         />
       )}
       {activeTab === "tagihan" && (
         <TagihanTab
           month={month}
-          setMonth={setMonth}
+          setMonth={handleMonthChange}
           payments={payments}
           students={students}
           settings={settings}

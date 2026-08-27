@@ -35,3 +35,7 @@ dist-ssr
 
 .vercel
 .env*
+
+# Scratch & local data (jangan di-commit)
+typecheck-output.txt
+leskolui-data-*.csv

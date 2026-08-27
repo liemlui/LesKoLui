@@ -55,7 +55,7 @@ export {
   getMonthClosing, listMonthClosings, closeMonth, reopenMonth,
   computeMonthBills, listSessionCountBillingProgress, createSessionCountInvoice,
   cancelSessionCountInvoice, getCashSummary,
-  createExpense, listExpenses, deleteExpense,
+  createExpense, updateExpense, listExpenses, deleteExpense,
   getMonthlyIncomeVsExpense,
 } from "./paymentRepo";
 export type {

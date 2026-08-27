@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { Link } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   getMonthlyIncomeVsExpense,
@@ -7,6 +8,7 @@ import {
   getMonthClosing,
   listBillableSessionsForMonth,
 } from "../../db/repos";
+import type { SessionCountBillingProgress } from "../../db/repos";
 import type { Payment, Student, Settings, Session, MonthlyReport } from "../../db/types";
 import { reportStatus } from "../../db/types";
 import { formatRupiah, todayWIB, monthLabel } from "../../lib/format";
@@ -45,11 +47,12 @@ interface RingkasanTabProps {
   reports: MonthlyReport[];
   monthSessions: Session[];
   monthExpenses: import("../../db/types").Expense[];
+  sessionCountBillingProgress?: SessionCountBillingProgress[];
   setMessage: Dispatch<SetStateAction<string>>;
 }
 
 export default function RingkasanTab({
-  month, payments, students, settings, reports, monthSessions, monthExpenses, setMessage,
+  month, payments, students, settings, reports, monthSessions, monthExpenses, sessionCountBillingProgress, setMessage,
 }: RingkasanTabProps) {
   // ── Lazy analytics queries (loaded only while this tab is mounted) ──
   const chartMonths = useMemo(() => getLast12Months(month), [month]);
@@ -114,6 +117,22 @@ export default function RingkasanTab({
 
   // ── Derived ──
   const studentMap = useMemo(() => new Map(students.map((s) => [s.id, s])), [students]);
+  const invoiceReportIds = useMemo(
+    () => new Set(payments.flatMap((payment) => payment.reportId ? [payment.reportId] : [])),
+    [payments]
+  );
+  const readyReportCount = useMemo(() => reports.filter((report) => (
+    report.month === month
+    && reportStatus(report) === "confirmed"
+    && report.totalCost > 0
+    && report.billingMode !== "session_count"
+    && !invoiceReportIds.has(report.id)
+  )).length, [reports, month, invoiceReportIds]);
+  const packageActionCount = (sessionCountBillingProgress ?? []).filter((row) => (
+    row.readyBatchCount > 0
+    || Boolean(row.pendingBillingPolicy && row.unbilledCount > 0 && row.unbilledCount < row.targetCount)
+  )).length;
+  const needsActionCount = readyReportCount + packageActionCount;
   const monthPayments = useMemo(() => payments.filter((p) => p.month === month), [payments, month]);
   const sessionPotential = monthSessions.reduce((s, x) => s + x.cost, 0);
   const totalBilled = monthPayments.reduce((s, p) => s + p.totalCost, 0);
@@ -218,14 +237,6 @@ export default function RingkasanTab({
     return Array.from(map.values()).filter((e) => e.sessions > 0 || e.revenue > 0);
   }, [students, monthSessions, reports, payments]);
 
-  const revenueByStudent = useMemo(
-    () => monthSessions.reduce<Map<string, number>>((m, sess) => {
-      m.set(sess.studentId, (m.get(sess.studentId) ?? 0) + sess.cost);
-      return m;
-    }, new Map()),
-    [monthSessions],
-  );
-
   const studentBarSeries: BarSeries[] = studentAnalytics.map((s) => ({
     label: s.name.split(" ")[0],
     value: s.revenue,
@@ -325,6 +336,30 @@ export default function RingkasanTab({
 
   return (
     <div className="space-y-4">
+      {needsActionCount > 0 && (
+        <section aria-labelledby="needs-action-title" className="rounded-2xl border border-blue-200 bg-blue-50/60 p-4 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-blue-600">Perlu tindakan</p>
+              <h2 id="needs-action-title" className="text-base font-bold text-blue-900">
+                {needsActionCount} item siap ditagih
+              </h2>
+              <p className="mt-1 text-xs leading-relaxed text-blue-700">
+                {readyReportCount > 0 && `${readyReportCount} laporan final tanpa invoice. `}
+                {packageActionCount > 0 && `${packageActionCount} antrean paket siap diterbitkan. `}
+                Selesaikan dari Penagihan agar arus kas tidak tertunda.
+              </p>
+            </div>
+            <Link
+              to={`/payments?tab=tagihan&month=${encodeURIComponent(month)}`}
+              className="shrink-0 rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
+            >
+              Buka Penagihan →
+            </Link>
+          </div>
+        </section>
+      )}
+
       <section aria-labelledby="invoice-status-title" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-3">
           <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">Status pendapatan</p>
@@ -419,36 +454,55 @@ export default function RingkasanTab({
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" aria-labelledby="business-health-title">
         <div className="flex items-start justify-between gap-3 mb-3">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">Business health</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">Langkah berikutnya</p>
             <h2 id="business-health-title" className="text-base font-bold text-slate-800">Kesehatan keuangan</h2>
             <p className="text-xs text-slate-500 mt-0.5">Baca angka sebagai keputusan, bukan sekadar laporan.</p>
           </div>
           <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${collectionRate >= 80 ? "bg-green-100 text-green-700" : collectionRate > 0 ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}`}>
-            {monthPayments.length > 0 ? `${collectionRate}% tertagih` : "Belum ada tagihan"}
+            {monthPayments.length > 0 ? `${collectionRate}% lunas` : "Belum ada invoice"}
           </span>
         </div>
         <div className="grid grid-cols-1 gap-3 items-stretch min-[380px]:grid-cols-[1fr_auto]">
           <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 flex items-center">
             <ActivityRing
               value={paidCount} total={monthPayments.length} label="Tagihan dilunasi"
-              detail={monthPayments.length > 0 ? `${monthPayments.length - paidCount} tagihan masih terbuka` : "Tutup bulan untuk membuat tagihan"}
+              detail={monthPayments.length > 0 ? `${monthPayments.length - paidCount} invoice belum dibayar` : "Buka Penagihan untuk menerbitkan invoice"}
               tone={collectionRate >= 80 ? "green" : collectionRate > 0 ? "amber" : "slate"}
             />
           </div>
           <div className="grid gap-2 w-full min-[380px]:w-[148px]">
-            <MetricCard label="Tagihan tertagih" value={`${collectionRate}%`} description={`Porsi tagihan ${selectedMonthLabel} yang sudah lunas.`} icon="↗" tone={collectionRate >= 80 ? "green" : "amber"} />
+            <MetricCard label="Invoice lunas" value={`${collectionRate}%`} description={`Porsi invoice ${selectedMonthLabel} yang sudah dibayar.`} icon="↗" tone={collectionRate >= 80 ? "green" : "amber"} />
             <MetricCard label="Laba kas" value={formatRupiah(cash.laba)} description={`Kas diterima dikurangi pengeluaran ${selectedMonthLabel}.`} icon="◎" tone={cash.laba >= 0 ? "blue" : "red"} />
           </div>
         </div>
-        <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-600">
-          {monthPayments.length === 0
-            ? `Belum ada tagihan pada ${selectedMonthLabel}. Setelah sesi selesai, gunakan Tutup Bulan untuk mengubah potensi menjadi tagihan yang bisa ditagih.`
-            : collectionRate < 100
-              ? "Fokus berikutnya: follow-up tagihan terbuka agar potensi pendapatan berubah menjadi kas masuk."
-              : `Penagihan ${selectedMonthLabel} sudah lengkap. Pantau laba kas dan pengeluaran agar margin tetap sehat.`}
-        </p>
+        <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2.5 text-xs leading-relaxed text-slate-600">
+          <p>
+            {monthPayments.length === 0
+              ? `Belum ada invoice pada ${selectedMonthLabel}. Periksa sesi yang siap ditagih sebelum menutup buku.`
+              : collectionRate < 100
+                ? `${monthPayments.length - paidCount} invoice masih belum dibayar. Tindak lanjuti agar piutang berubah menjadi kas diterima.`
+                : `Semua invoice ${selectedMonthLabel} sudah dibayar. Pantau laba kas dan pengeluaran agar margin tetap sehat.`}
+          </p>
+          <Link
+            to={`/payments?tab=tagihan&month=${encodeURIComponent(month)}`}
+            className="mt-2 inline-flex rounded-lg bg-blue-600 px-3 py-1.5 font-semibold text-white transition-colors hover:bg-blue-700"
+          >
+            {monthPayments.length === 0 ? "Buka antrean penagihan" : collectionRate < 100 ? "Lihat invoice belum dibayar" : "Buka penagihan"}
+          </Link>
+        </div>
       </section>
 
+      <details className="group rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <summary className="cursor-pointer list-none px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-slate-800">Analitik lanjutan</p>
+              <p className="mt-0.5 text-[11px] text-slate-500">Prediksi, analisis AI, rincian murid, tren, dan kategori pengeluaran.</p>
+            </div>
+            <span aria-hidden="true" className="text-slate-400 transition-transform group-open:rotate-90">›</span>
+          </div>
+        </summary>
+        <div className="space-y-4 border-t border-slate-100 p-4">
       {/* ── AI: Anomali & Rekomendasi ───────────────────────── */}
       <section
         aria-disabled={!financialAiConfigured}
@@ -522,27 +576,6 @@ export default function RingkasanTab({
         </div>
         <p className="text-[11px] text-gray-500 mt-1.5">Perkiraan memakai nilai yang lebih tinggi antara jadwal yang sudah ada dan rata-rata tren 3 bulan.</p>
       </div>
-
-      {/* Potensi sesi per murid (progress bars) */}
-      {revenueByStudent.size > 0 && (
-        <div className="bg-white border border-gray-100 rounded-2xl p-4 space-y-3">
-          <p className="text-sm font-semibold text-gray-500">Potensi Sesi per Murid</p>
-          {Array.from(revenueByStudent.entries()).sort((a, b) => b[1] - a[1]).map(([sid, rev]) => {
-            const pct = cash.potensi > 0 ? Math.round((rev / cash.potensi) * 100) : 0;
-            return (
-              <div key={sid}>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="font-medium text-gray-700">{studentMap.get(sid)?.name ?? "—"}</span>
-                  <span className="text-gray-500">{formatRupiah(rev)} ({pct}%)</span>
-                </div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-500 rounded-full" style={{ width: `${pct}%` }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
 
       {/* Konten murid: bar chart potensi + kartu detail per murid */}
       <div className="bg-white rounded-2xl border border-gray-100 p-4">
@@ -656,6 +689,8 @@ export default function RingkasanTab({
           }}
         />
       )}
+        </div>
+      </details>
     </div>
   );
 }

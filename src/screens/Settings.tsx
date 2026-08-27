@@ -116,6 +116,7 @@ const AUDIT_LABEL: Record<AuditAction, string> = {
   "payment.unpaid": "Batal lunas",
   "payment.amount": "Ubah nominal tagihan",
   "expense.create": "Catat pengeluaran",
+  "expense.update": "Ubah pengeluaran",
   "expense.delete": "Hapus pengeluaran",
   "month.close": "Tutup bulan",
   "data.reset": "Reset semua data",

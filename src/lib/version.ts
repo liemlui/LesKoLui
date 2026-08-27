@@ -11,6 +11,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.51.0",
+    date: "2026-08-27",
+    title: "Laporan & Penagihan Makin Jelas",
+    items: [
+      "Subtab Penagihan: Siap Ditagih, Belum Dibayar, Lunas, Semua + filter asal terpisah (Bulanan, Paket, Laporan, Manual)",
+      "Antrean paket diberi banner 'Lintas bulan — tidak dipengaruhi pilihan Bulan Keuangan'",
+      "Laporan final punya CTA 'Buat Tagihan dari Sesi Ini' dan status 'Sudah dibagikan'",
+      "Invoice menampilkan Asal, Periode sesi, Bulan tagihan, status laporan, dan CTA buka/lengkapi laporan",
+      "Pengeluaran bisa diedit",
+      "Ringkasan Keuangan menampilkan antrean 'Perlu tindakan' paling atas",
+    ],
+  },
+  {
     version: "v1.49.1",
     date: "2026-08-23",
     title: "Pesan WA & Poster Lebih Rapi",

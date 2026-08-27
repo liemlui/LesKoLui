@@ -80,18 +80,18 @@ describe("buildBillingMessage", () => {
     expect(r.totalCost).toBe(0);
   });
 
-  it("uses per-meeting wording without date/time detail for session-count students", () => {
+  it("uses per-meeting wording with date (no duration) for session-count students", () => {
     const pkgStudent = { name: "Budi", hourlyRate: 150000, billingPolicy: "session_count" as const };
     const r = buildBillingMessage({ student: pkgStudent, sessions, month: "2026-06" });
     expect(r.text).toContain("Total 2 pertemuan");
-    expect(r.text).toContain("• Physics");
-    expect(r.text).toContain("• Sesi umum");
+    expect(r.text).toContain("📌 5 Juni — Physics");
+    expect(r.text).toContain("📌 12 Juni — Sesi umum");
     expect(r.text).toContain("──────"); // separator
     expect(r.text).not.toContain("📅");
     expect(r.text).not.toContain("jam");
   });
 
-  it("uses a bullet without the calendar date for monthly students", () => {
+  it("uses a pin icon with duration and no date for monthly students", () => {
     const r = buildBillingMessage({ student, sessions, month: "2026-06" });
     expect(r.text).toContain("📌 Physics (2j)");
     expect(r.text).toContain("📌 Sesi umum (1.5j)");

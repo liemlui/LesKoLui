@@ -14,9 +14,9 @@ test.beforeEach(async ({ page }) => {
 
 async function closeChangelog(page: Page) {
   const dialog = page.getByRole("dialog", { name: "Catatan perubahan" });
-  if (await dialog.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await page.evaluate(() => localStorage.setItem("leskolui-last-seen-version", "v1.41.0"));
-    await page.reload({ waitUntil: "domcontentloaded" });
+  const closeButton = dialog.getByRole("button", { name: /Mengerti/ });
+  if (await closeButton.isVisible({ timeout: 5000 }).catch(() => false)) {
+    await closeButton.click({ force: true });
   }
   await expect(dialog).toBeHidden({ timeout: 5000 });
 }
@@ -82,8 +82,8 @@ test("menerbitkan, melihat, dan membatalkan invoice tepat N", async ({ page }) =
   const queueCard = page.locator("article", { hasText: "Citra Dewanti" });
   await expect(queueCard).toContainText("Paket siap");
   await expect(queueCard.getByRole("progressbar")).toHaveAttribute("aria-valuemax", "2");
-  page.once("dialog", (confirmation) => confirmation.accept());
   await queueCard.getByRole("button", { name: /Terbitkan paket 2 pertemuan untuk Citra Dewanti/i }).click();
+  await page.getByRole("dialog", { name: "Terbitkan Tagihan Paket" }).getByRole("button", { name: "Terbitkan", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("berhasil diterbitkan");
   await expect(page.getByText("Paket 2 Pertemuan", { exact: true })).toBeVisible();
 
@@ -97,7 +97,10 @@ test("menerbitkan, melihat, dan membatalkan invoice tepat N", async ({ page }) =
   expect(metrics.body).toBeLessThanOrEqual(metrics.viewport);
   expect(metrics.root).toBeLessThanOrEqual(metrics.viewport);
 
-  await page.getByRole("button", { name: "📄 Invoice" }).click();
+  const invoiceRow = page.locator("div.rounded-lg", { hasText: "Citra Dewanti" })
+    .filter({ has: page.getByRole("button", { name: "📄 Invoice" }) })
+    .first();
+  await invoiceRow.getByRole("button", { name: "📄 Invoice" }).click();
   await expect(page.getByRole("dialog", { name: "Invoice Profesional" })).toBeVisible();
   const invoiceMetrics = await page.evaluate(() => ({
     viewport: document.documentElement.clientWidth,
@@ -108,8 +111,8 @@ test("menerbitkan, melihat, dan membatalkan invoice tepat N", async ({ page }) =
   expect(invoiceMetrics.root).toBeLessThanOrEqual(invoiceMetrics.viewport);
   await page.getByRole("button", { name: "Tutup", exact: true }).click();
 
-  page.once("dialog", (confirmation) => confirmation.accept());
-  await page.getByRole("button", { name: "Batalkan Tagihan Paket" }).click();
+  await invoiceRow.getByRole("button", { name: "Batalkan Tagihan Paket" }).click();
+  await page.getByRole("dialog", { name: "Batalkan tagihan paket?" }).getByRole("button", { name: "Batalkan", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("dikembalikan ke antrean");
   await expect(queueCard).toContainText("Paket siap");
   expect(errors).toEqual([]);

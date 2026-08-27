@@ -43,7 +43,7 @@ export default function FinancePeriodPicker({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p id={titleId} className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
-            Periode laporan
+            Bulan keuangan
           </p>
           <p aria-live="polite" className="mt-0.5 text-lg font-bold text-slate-800">
             {monthLabel(month)}
@@ -65,7 +65,7 @@ export default function FinancePeriodPicker({
 
         <div className="min-w-[11rem] flex-1">
           <label htmlFor={inputId} className="block text-xs font-medium text-slate-600">
-            Pilih bulan laporan
+            Pilih bulan keuangan
           </label>
           <input
             id={inputId}
@@ -100,7 +100,7 @@ export default function FinancePeriodPicker({
       </div>
 
       <p className="text-xs leading-relaxed text-slate-500">
-        Ringkasan, Tagihan, dan Pengeluaran menggunakan periode ini. Gunakan panah untuk berpindah satu bulan.
+        Ringkasan, daftar invoice, dan Pengeluaran mengikuti bulan ini. Antrean paket per sesi tetap lintas bulan.
       </p>
 
       {children && <div>{children}</div>}
