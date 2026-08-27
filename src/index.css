@@ -74,8 +74,20 @@ body { margin: 0; }
 /* ── Export ratio 3:4 ────────────────────────────────────────────────
    Halaman laporan diberi rasio tetap 3:4 (potret) agar gambar export
    tidak terlalu tinggi dan terpotong saat dikirim ke WhatsApp.
-   PDF tidak memakai kelas ini (auto-height tetap dipertahankan). */
+   PDF tidak memakai kelas ini (auto-height tetap dipertahankan).
+   ReportRenderer merebalance entri agar konten muat dalam kotak; halaman
+   yang tetap meluap (cover / satu entri terlalu tinggi) memakai
+   .report-page-grow dan dibiarkan mengikuti tinggi isinya. */
 .report-ratio-3-4 [data-report-page] {
   aspect-ratio: 3 / 4;
   overflow: hidden;
+}
+.report-ratio-3-4 [data-report-page].report-page-grow {
+  aspect-ratio: auto;
+  overflow: visible;
+}
+/* Kartu tema mengisi penuh kotak 3:4 agar tidak ada area kosong putih
+   di bawah kartu saat isi halaman lebih pendek dari kotak. */
+.report-ratio-3-4 [data-report-page] > :first-child {
+  min-height: 100%;
 }

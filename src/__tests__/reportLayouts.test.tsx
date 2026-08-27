@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { LAYOUTS, getLayout } from "../template/layouts";
 import { ReportRenderer } from "../template/ReportRenderer";
+import { initialSplits, pagesFromSplits, ratioHeight3x4 } from "../template/rebalance";
 import { THEMES } from "../template/themes";
 import type { ReportData } from "../template/types";
 
@@ -186,5 +187,51 @@ describe("report layouts", () => {
       <ReportRenderer data={many} theme={THEMES[0]} layoutId="cards" options={{ entriesPerPage: 2 }} />
     );
     expect(html.match(/data-report-page/g)?.length).toBe(3);
+  });
+});
+
+describe("report 3:4 rebalancing helpers", () => {
+  it("initialSplits membagi entri sesuai sesi per halaman", () => {
+    expect(initialSplits(3, 7)).toEqual([3, 3, 1]);
+    expect(initialSplits(3, 6)).toEqual([3, 3]);
+    expect(initialSplits(4, 0)).toEqual([]);
+    expect(initialSplits(2, 5)).toEqual([2, 2, 1]);
+  });
+
+  it("pagesFromSplits menghasilkan halaman sesuai pembagian", () => {
+    const many: ReportData = {
+      ...data,
+      entries: Array.from({ length: 5 }, (_, i) => ({
+        date: `${i + 1} Juni 2026`,
+        subject: "Matematika",
+        narrative: `Sesi ${i + 1}.`,
+      })),
+    };
+    const pages = pagesFromSplits(many, [2, 1, 2], 3);
+    expect(pages).toHaveLength(3);
+    expect(pages[0].entries.map((e) => e.narrative)).toEqual(["Sesi 1.", "Sesi 2."]);
+    expect(pages[1].entries.map((e) => e.narrative)).toEqual(["Sesi 3."]);
+    expect(pages[2].entries.map((e) => e.narrative)).toEqual(["Sesi 4.", "Sesi 5."]);
+    // Ringkasan tetap dibawa di tiap halaman (dirender hanya di halaman terakhir).
+    expect(pages[2].summary).toBe("Ringkasan bulan tersedia.");
+  });
+
+  it("pagesFromSplits fallback ke paginasi jumlah bila splits kosong", () => {
+    const many: ReportData = {
+      ...data,
+      entries: Array.from({ length: 5 }, (_, i) => ({
+        date: `${i + 1} Juni 2026`,
+        subject: "Matematika",
+        narrative: `Sesi ${i + 1}.`,
+      })),
+    };
+    expect(pagesFromSplits(many, null, 2)).toHaveLength(3);
+    expect(pagesFromSplits(many, [], 2)).toHaveLength(3);
+    expect(pagesFromSplits(data, [1], 2)).toHaveLength(1);
+  });
+
+  it("ratioHeight3x4 menghitung tinggi kotak potret", () => {
+    expect(ratioHeight3x4(416)).toBeCloseTo(554.67, 1);
+    expect(ratioHeight3x4(0)).toBe(0);
   });
 });

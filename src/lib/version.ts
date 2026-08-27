@@ -11,6 +11,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.51.1",
+    date: "2026-08-27",
+    title: "Laporan 3:4 Tidak Lagi Memotong Catatan Sesi",
+    items: [
+      "Sesi di laporan bulanan otomatis dipindah ke halaman berikutnya bila catatan panjang melebihi kotak 3:4 — narasi, topik, dan ringkasan tidak terpotong lagi",
+      "Halaman laporan rasio 3:4 kini diisi penuh oleh kartu tema (tanpa area putih kosong di bawah)",
+      "Halaman yang tetap terlalu tinggi (cover, atau halaman terakhir dengan ringkasan panjang) dibiarkan mengikuti tinggi isinya alih-alih memotong konten",
+      "Prinsip 'sesi per halaman' tetap berlaku: angka itu target awal, bukan batas kaku",
+    ],
+  },
+  {
     version: "v1.51.0",
     date: "2026-08-27",
     title: "Laporan & Penagihan Makin Jelas",

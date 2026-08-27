@@ -108,7 +108,7 @@ test("rencana bulan depan tersimpan dan ikut tampil di pratinjau", async ({ page
   await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).click();
   await expect(page.locator("[data-report-page]").first()).toBeVisible({ timeout: 10_000 });
 
-  await page.getByText("Fokus & Rencana Bulan Depan", { exact: false }).click();
+  await page.getByRole("button", { name: /Fokus & Rencana Berikutnya/ }).click();
   await page.getByRole("button", { name: /Susun Rencana/ }).click();
   await page.getByPlaceholder("Contoh: Matematika AA").fill("Matematika AA");
   await page.getByPlaceholder("Contoh: Menyelesaikan 8 dari 10 soal fungsi kuadrat dengan langkah lengkap.")

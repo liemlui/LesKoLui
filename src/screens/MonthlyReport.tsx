@@ -628,9 +628,13 @@ export default function MonthlyReportPage() {
   const [compareThemeId, setCompareThemeId] = useState<string | null>(null);
   const [coverPage, setCoverPage] = useState(false);
   const [showCustomBuilder, setShowCustomBuilder] = useState(false);
+  // Toolbar desain di-state (bukan open={false} statis) agar tetap terbuka
+  // saat pratinjau di-remount setelah ganti tema/layout.
+  const [designOpen, setDesignOpen] = useState(false);
   // Kontrol export: jumlah sesi per halaman + rasio halaman.
-  // Default 3:4 potret agar gambar tidak terpotong di WhatsApp.
-  // Default 3 sesi/halaman agar konten muat dalam rasio 3:4 tanpa terpotong.
+  // Default 3:4 potret agar gambar tidak terlalu tinggi di WhatsApp.
+  // Sesi per halaman = target awal; entri otomatis dipindah ke halaman
+  // berikutnya bila catatan panjang melebihi kotak 3:4 (tidak terpotong).
   const [entriesPerPage, setEntriesPerPage] = useState(3);
   const [pageRatio, setPageRatio] = useState<"3:4" | "auto">("3:4");
 
@@ -1581,7 +1585,9 @@ export default function MonthlyReportPage() {
               <section className="space-y-3">
 
                 {/* Design toolbar */}
-                <details className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-2.5 group" open={false}>
+                <details className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-2.5 group"
+                  open={designOpen}
+                  onToggle={(e) => setDesignOpen(e.currentTarget.open)}>
                   <summary className="flex flex-wrap items-center justify-between gap-1 cursor-pointer select-none">
                     <span className="min-w-0 text-sm font-semibold text-gray-700">
                       🎨 Tema: {allThemes.find((t) => t.id === report.templateKey.themeId)?.name ?? "—"}
@@ -1730,7 +1736,7 @@ export default function MonthlyReportPage() {
                   </div>
                   <p className="text-[11px] text-gray-500">
                     {pageRatio === "3:4"
-                      ? "Rasio 3:4 membuat gambar tidak terlalu tinggi sehingga tidak terpotong saat dikirim ke WhatsApp."
+                      ? "Rasio 3:4 membuat gambar tidak terlalu tinggi sehingga tidak terpotong saat dikirim ke WhatsApp. Sesi otomatis dipindah ke halaman berikutnya bila catatan panjang."
                       : "Tinggi otomatis mengikuti isi halaman (cocok untuk PDF)."}
                   </p>
                 </div>

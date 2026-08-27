@@ -5,7 +5,7 @@
  *
  * Jalankan: npx playwright test e2e/layout-review.spec.ts
  */
-import { test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -67,8 +67,12 @@ test("render semua layout laporan", async ({ page }) => {
   await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).click();
   await page.locator("[data-report-page]").first().waitFor({ timeout: 10_000 });
 
-  // Loop semua layout dari dropdown toolbar
+  // Tunggu toolbar tema selesai ter-render (report + reportData siap), lalu
+  // BUKA <details> — dropdown layout di dalamnya tersembunyi saat ditutup.
   const layoutSelect = page.locator("select").nth(1);
+  await expect(layoutSelect.locator("option").first()).toBeAttached({ timeout: 10_000 });
+  await page.locator("summary").filter({ hasText: "Ubah tema" }).click();
+  await expect(layoutSelect).toBeVisible();
   const ids = await layoutSelect.locator("option").evaluateAll(
     (opts) => (opts as HTMLOptionElement[]).map((o) => o.value),
   );
