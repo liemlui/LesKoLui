@@ -3,7 +3,12 @@
 import { db } from "../db";
 import type { MonthlyReport, ReportStatus } from "../types";
 import { billingPolicyOf, reportStatus } from "../types";
-import { timestamp } from "./helpers";
+import {
+  protectedInvoiceReportIds,
+  reportBlocksSiblingScope,
+  reportIdsWithInvoice,
+  timestamp,
+} from "./helpers";
 
 export type ReportWrite = Omit<MonthlyReport, "createdAt" | "periodStart" | "periodEnd">
   & Partial<Pick<MonthlyReport, "periodStart" | "periodEnd">>
@@ -80,9 +85,18 @@ export async function listOverlappingReports(
   excludeId?: string,
   sessionIds?: readonly string[],
 ): Promise<MonthlyReport[]> {
-  const reports = await listConfirmedReportsByStudent(studentId);
+  const [reports, payments] = await Promise.all([
+    listConfirmedReportsByStudent(studentId),
+    db.payments.where({ studentId }).toArray(),
+  ]);
+  const invoiceReportIds = reportIdsWithInvoice(payments);
+  const protectedReportIds = protectedInvoiceReportIds(reports, payments);
   return reports.filter((report) => {
     if (report.id === excludeId) return false;
+    const blocksScope = report.billingMode === "session_count"
+      ? report.status === "confirmed" || invoiceReportIds.has(report.id)
+      : reportBlocksSiblingScope(report, protectedReportIds.has(report.id));
+    if (!blocksScope) return false;
     if (report.billingMode === "session_count") {
       return sessionIds ? sessionScopesOverlap(report.sessionIds, sessionIds) : false;
     }
@@ -115,6 +129,8 @@ async function assertConfirmedScopeAvailable(
   existing?: MonthlyReport,
 ): Promise<void> {
   if (reportStatus(report) !== "confirmed") return;
+  const payments = await db.payments.where({ studentId: report.studentId }).toArray();
+  const invoiceReportIds = reportIdsWithInvoice(payments);
   const isSessionCount = report.billingMode === "session_count";
   if (isSessionCount) {
     const target = report.billingSessionCount;
@@ -192,6 +208,7 @@ async function assertConfirmedScopeAvailable(
         candidate.id !== report.id
         && candidate.billingMode === "session_count"
         && reportStatus(candidate) === "confirmed"
+        && (candidate.status === "confirmed" || invoiceReportIds.has(candidate.id))
         && sessionScopesOverlap(candidate.sessionIds, report.sessionIds)
       )
       .first();
@@ -203,11 +220,16 @@ async function assertConfirmedScopeAvailable(
     .where({ studentId: report.studentId })
     .filter((candidate) => reportStatus(candidate) === "confirmed")
     .toArray();
+  const protectedReportIds = protectedInvoiceReportIds(candidates, payments);
   const overlap = candidates.find((candidate) => {
     if (candidate.id === report.id) return false;
     // Parent ↔ child edits are one accounting family. Siblings remain blocked.
     if (candidate.supplementalForReportId === report.id) return false;
     if (report.supplementalForReportId === candidate.id) return false;
+    const blocksScope = candidate.billingMode === "session_count"
+      ? candidate.status === "confirmed" || invoiceReportIds.has(candidate.id)
+      : reportBlocksSiblingScope(candidate, protectedReportIds.has(candidate.id));
+    if (!blocksScope) return false;
     if (isSessionCount || candidate.billingMode === "session_count") {
       return sessionScopesOverlap(candidate.sessionIds, report.sessionIds);
     }
@@ -233,7 +255,7 @@ export async function upsertReport(report: ReportWrite): Promise<string> {
   const now = timestamp();
   const period = reportPeriodOf(report);
   const normalized = { ...report, ...period } as MonthlyReport;
-  return db.transaction("rw", db.students, db.reports, db.monthClosings, async () => {
+  return db.transaction("rw", db.students, db.reports, db.payments, db.monthClosings, async () => {
     if (normalized.id) {
       const existing = await db.reports.get(normalized.id);
       if (existing) {
@@ -263,7 +285,7 @@ export async function createReportForPeriod(
   const now = timestamp();
   const period = reportPeriodOf(report);
   const normalized = { ...report, ...period } as MonthlyReport;
-  return db.transaction("rw", db.students, db.reports, db.monthClosings, async () => {
+  return db.transaction("rw", db.students, db.reports, db.payments, db.monthClosings, async () => {
     const matches = await db.reports
       .where({ studentId: normalized.studentId })
       .filter((candidate) => {

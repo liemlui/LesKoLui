@@ -149,7 +149,6 @@ function migrateLegacyReportBilling(data: BackupData): void {
       const period = fullMonthPeriod(report.month);
       if (period) Object.assign(report, period);
     }
-    if (!hasOwn(report, "status") || report.status === undefined) report.status = "confirmed";
 
     reportsById.set(report.id as string, report);
     const key = backupRowKey(report.studentId, report.month);
@@ -202,6 +201,28 @@ function migrateLegacyReportBilling(data: BackupData): void {
       payment.periodEnd = report.periodEnd;
     }
     linkedReportIds.add(report.id as string);
+  }
+
+  // A missing status is a useful legacy signal: without a paid or manually
+  // priced invoice, its old session snapshot may safely be refreshed after a
+  // restore. Preserve explicit statuses, and only materialize confirmation
+  // when the restored payment is already an accounting snapshot.
+  const protectedReportIds = new Set(
+    data.payments
+      .filter((payment) =>
+        typeof payment.reportId === "string"
+        && Boolean(payment.reportId)
+        && (payment.status === "PAID" || payment.source === "manual")
+      )
+      .map((payment) => payment.reportId as string),
+  );
+  for (const report of data.reports) {
+    if (
+      (!hasOwn(report, "status") || report.status === undefined)
+      && protectedReportIds.has(report.id as string)
+    ) {
+      report.status = "confirmed";
+    }
   }
 }
 

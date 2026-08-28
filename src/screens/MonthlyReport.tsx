@@ -10,7 +10,13 @@ import {
   listMonthClosings, getPaymentByReport, syncReportPayment, listPaymentsByStudent,
 } from "../db/repos";
 import { billingPolicyOf, reportStatus, reportDisplayStatus, type ReportStatus } from "../db/types";
-import { monthRange, packageCoveredSessionIds } from "../db/repos/helpers";
+import {
+  monthRange,
+  packageCoveredSessionIds,
+  protectedInvoiceReportIds,
+  reportBlocksSiblingScope,
+  reportIdsWithInvoice,
+} from "../db/repos/helpers";
 import { pickTemplate } from "../lib/rotation";
 import { generateReportSummary, generateNarratives, estimateReportSummaryCost, estimateNarrativesCost } from "../lib/aiClient";
 import {
@@ -282,6 +288,14 @@ export default function MonthlyReportPage() {
     () => (studentId ? listPaymentsByStudent(studentId) : []),
     [studentId],
   );
+  const invoiceReportIds = useMemo(
+    () => reportIdsWithInvoice(studentPayments ?? []),
+    [studentPayments],
+  );
+  const protectedReportIds = useMemo(
+    () => protectedInvoiceReportIds(confirmedReports ?? [], studentPayments ?? []),
+    [confirmedReports, studentPayments],
+  );
   const closings = useLiveQuery(() => listMonthClosings(), []);
 
   // Batas periode per mode
@@ -316,17 +330,9 @@ export default function MonthlyReportPage() {
   const fixedPeriodLookupReady = fixedPeriodReportQuery?.key === fixedPeriodKey;
   const fixedPeriodReport = fixedPeriodLookupReady ? fixedPeriodReportQuery.report : undefined;
   const scopeReport = editingReport ?? fixedPeriodReport;
-  const scopePaymentQuery = useLiveQuery(async () => ({
-    reportId: scopeReport?.id ?? "",
-    payment: scopeReport ? await getPaymentByReport(scopeReport.id) : undefined,
-  }), [scopeReport?.id]);
-  const scopePaymentLookupReady = !scopeReport || scopePaymentQuery?.reportId === scopeReport.id;
-  const scopePayment = scopePaymentLookupReady ? scopePaymentQuery?.payment : undefined;
   const scopeHasProtectedInvoice = Boolean(
     scopeReport
-    && reportStatus(scopeReport) === "confirmed"
-    && scopePayment
-    && (scopePayment.status === "PAID" || scopePayment.source === "manual")
+    && protectedReportIds.has(scopeReport.id)
   );
   const useStoredEditingSnapshot = shouldUseStoredReportSnapshot(
     editingReport,
@@ -357,14 +363,28 @@ export default function MonthlyReportPage() {
   );
   const sessionCountPackage = mode === "jumlah"
     && Boolean(student && billingPolicyOf(student) === "session_count");
+  const blockingConfirmedReports = useMemo(
+    () => (confirmedReports ?? []).filter((candidate) =>
+      candidate.billingMode === "session_count"
+        ? candidate.status === "confirmed" || invoiceReportIds.has(candidate.id)
+        : reportBlocksSiblingScope(candidate, protectedReportIds.has(candidate.id))
+    ),
+    [confirmedReports, invoiceReportIds, protectedReportIds],
+  );
   const blockedSessionIds = useMemo(() => {
-    const otherConfirmedReports = (confirmedReports ?? [])
+    // Package coverage is governed by its existing payment-aware FIFO helper.
+    // Month/range reports additionally let an unprotected statusless legacy
+    // snapshot refresh rather than hiding sessions it happened to store.
+    const reportsOwningSiblingSessions = sessionCountPackage
+      ? (confirmedReports ?? [])
+      : blockingConfirmedReports;
+    const otherConfirmedReports = reportsOwningSiblingSessions
       .filter((candidate) => candidate.id !== scopeReport?.id);
     if (sessionCountPackage) {
       return packageCoveredSessionIds(otherConfirmedReports, studentPayments ?? []);
     }
     return new Set(otherConfirmedReports.flatMap((candidate) => candidate.sessionIds));
-  }, [sessionCountPackage, confirmedReports, studentPayments, scopeReport]);
+  }, [sessionCountPackage, confirmedReports, blockingConfirmedReports, studentPayments, scopeReport]);
 
   // Periode rekap efektif + sesi yang masuk laporan.
   const { periodStart, periodEnd, reportSessions } = useMemo(() => {
@@ -447,11 +467,10 @@ export default function MonthlyReportPage() {
   const invalidReportLink = Boolean(editingReportId && editingReportLookupReady && !editingReport);
   const reportScopeDataReady = sessions !== undefined
     && confirmedReports !== undefined
-    && (!sessionCountPackage || studentPayments !== undefined)
+    && studentPayments !== undefined
     && closings !== undefined
     && fixedPeriodLookupReady
     && periodReportLookupReady
-    && scopePaymentLookupReady
     && (!editingReportId || (
       editingReportLookupReady
       && (!useStoredEditingSnapshot || editingReportSessionsReady)
@@ -511,7 +530,7 @@ export default function MonthlyReportPage() {
       };
     }
     const overlap = sessionCountCycle ? undefined : findBlockingReportOverlap(
-      confirmedReports ?? [],
+      blockingConfirmedReports,
       periodStart,
       periodEnd,
       report ? {
@@ -540,7 +559,7 @@ export default function MonthlyReportPage() {
       };
     }
     return { ok: true, reason: "" };
-  }, [studentId, periodStart, periodEnd, invalidReportLink, reportScopeDataReady, confirmedReports, closings, report, mode, rangeStart, rangeEnd, reportSessions.length, reportSessionIds, reportTargetCount, student]);
+  }, [studentId, periodStart, periodEnd, invalidReportLink, reportScopeDataReady, blockingConfirmedReports, closings, report, mode, rangeStart, rangeEnd, reportSessions.length, reportSessionIds, reportTargetCount, student]);
 
   const totalHours = useMemo(() => reportSessions.reduce((s, x) => s + x.durationHours, 0), [reportSessions]);
   const totalCost  = useMemo(() => reportSessions.reduce((s, x) => s + x.cost, 0), [reportSessions]);

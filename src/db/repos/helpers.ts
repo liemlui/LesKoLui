@@ -36,6 +36,50 @@ export function timeToMin(t: string): number {
   return h * 60 + (m || 0);
 }
 
+/** Report-linked payments, regardless of whether their invoice is mutable. */
+export function reportIdsWithInvoice(
+  payments: readonly Pick<Payment, "reportId">[],
+): Set<string> {
+  return new Set(
+    payments.flatMap((payment) => payment.reportId ? [payment.reportId] : []),
+  );
+}
+
+/**
+ * Paid or manually-priced invoices freeze an ordinary report snapshot. Some
+ * old payments predate `reportId`; match those only to statusless reports in
+ * their own student/month, which is the sole unambiguous legacy case.
+ */
+export function protectedInvoiceReportIds(
+  reports: readonly Pick<MonthlyReport, "id" | "studentId" | "month" | "status">[],
+  payments: readonly Pick<Payment, "studentId" | "month" | "reportId" | "status" | "source">[],
+): Set<string> {
+  const reportIds = new Set<string>();
+  const legacyInvoiceScopes = new Set<string>();
+  for (const payment of payments) {
+    if (payment.status !== "PAID" && payment.source !== "manual") continue;
+    if (payment.reportId) reportIds.add(payment.reportId);
+    else legacyInvoiceScopes.add(`${payment.studentId}|${payment.month}`);
+  }
+  for (const report of reports) {
+    if (
+      report.status === undefined
+      && legacyInvoiceScopes.has(`${report.studentId}|${report.month}`)
+    ) {
+      reportIds.add(report.id);
+    }
+  }
+  return reportIds;
+}
+
+/** A legacy statusless snapshot only blocks siblings once its invoice is protected. */
+export function reportBlocksSiblingScope(
+  report: Pick<MonthlyReport, "status">,
+  hasProtectedInvoice: boolean,
+): boolean {
+  return report.status === "confirmed" || hasProtectedInvoice;
+}
+
 /**
  * Session-count billing has a narrower legacy rule than calendar reports.
  *
@@ -50,14 +94,12 @@ export function packageCoveredSessionIds(
   reports: readonly MonthlyReport[],
   payments: readonly Pick<Payment, "reportId">[],
 ): Set<string> {
-  const reportIdsWithInvoice = new Set(
-    payments.flatMap((payment) => payment.reportId ? [payment.reportId] : []),
-  );
+  const invoiceReportIds = reportIdsWithInvoice(payments);
   return new Set(
     reports
       .filter((report) => (
         reportStatus(report) === "confirmed"
-        && (report.status === "confirmed" || reportIdsWithInvoice.has(report.id))
+        && (report.status === "confirmed" || invoiceReportIds.has(report.id))
       ))
       .flatMap((report) => report.sessionIds),
   );

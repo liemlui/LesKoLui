@@ -726,6 +726,71 @@ describe("Report identity", () => {
     })).rejects.toThrow("bertumpuk");
   });
 
+  it("does not let an unprotected statusless legacy snapshot block confirmation", async () => {
+    const { upsertReport } = await import("../db/repos");
+    const base = {
+      studentId: "legacy-scope-repair",
+      month: "2026-08",
+      sessionIds: [] as string[],
+      templateKey: { themeId: "blue", layoutId: "cards" },
+      summaryText: "",
+      totalHours: 0,
+      totalCost: 0,
+    };
+    await db.reports.add({
+      ...base,
+      id: "legacy-statusless-snapshot",
+      periodStart: "2026-08-01",
+      periodEnd: "2026-08-20",
+      createdAt: "2026-08-20T00:00:00.000Z",
+    });
+
+    await expect(upsertReport({
+      ...base,
+      id: "refreshed-calendar-report",
+      periodStart: "2026-08-15",
+      periodEnd: "2026-08-31",
+      status: "confirmed",
+    })).resolves.toBe("refreshed-calendar-report");
+  });
+
+  it("keeps a protected statusless legacy snapshot as a confirmation blocker", async () => {
+    const { upsertReport } = await import("../db/repos");
+    const base = {
+      studentId: "legacy-protected-scope",
+      month: "2026-08",
+      sessionIds: [] as string[],
+      templateKey: { themeId: "blue", layoutId: "cards" },
+      summaryText: "",
+      totalHours: 0,
+      totalCost: 0,
+    };
+    await db.reports.add({
+      ...base,
+      id: "legacy-protected-snapshot",
+      periodStart: "2026-08-01",
+      periodEnd: "2026-08-20",
+      createdAt: "2026-08-20T00:00:00.000Z",
+    });
+    await db.payments.add({
+      id: "legacy-protected-payment",
+      studentId: base.studentId,
+      month: base.month,
+      reportId: "legacy-protected-snapshot",
+      totalCost: 0,
+      status: "PAID",
+      source: "manual",
+    });
+
+    await expect(upsertReport({
+      ...base,
+      id: "blocked-calendar-report",
+      periodStart: "2026-08-15",
+      periodEnd: "2026-08-31",
+      status: "confirmed",
+    })).rejects.toThrow("bertumpuk");
+  });
+
   it("serializes concurrent confirmations and keeps legacy confirmed collisions editable", async () => {
     const { upsertReport, getReportById } = await import("../db/repos");
     const base = {

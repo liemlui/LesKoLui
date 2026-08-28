@@ -227,10 +227,11 @@ describe("backup / restore", () => {
     await importBackup(legacy, PASS, { onPreRestoreBackup: () => undefined });
 
     const { findReportByPeriod, getPaymentByReport, listOverlappingReports } = await import("../db/repos");
-    await expect(findReportByPeriod("student-v2", "2024-02-01", "2024-02-29"))
-      .resolves.toMatchObject({ id: "report-v2-legacy", status: "confirmed" });
+    const restoredReport = await findReportByPeriod("student-v2", "2024-02-01", "2024-02-29");
+    expect(restoredReport).toMatchObject({ id: "report-v2-legacy" });
+    expect(restoredReport?.status).toBeUndefined();
     await expect(listOverlappingReports("student-v2", "2024-02-29", "2024-02-29"))
-      .resolves.toEqual([expect.objectContaining({ id: "report-v2-legacy" })]);
+      .resolves.toEqual([]);
     await expect(getPaymentByReport("report-v2-legacy")).resolves.toMatchObject({
       id: "payment-v2-legacy",
       reportId: "report-v2-legacy",

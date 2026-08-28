@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Session } from "../db/types";
+import { reportBlocksSiblingScope } from "../db/repos/helpers";
 import {
   buildReportAiInput,
   findBlockingReportOverlap,
@@ -99,6 +100,27 @@ describe("report session scope", () => {
     expect(shouldUseStoredReportSnapshot({ status: "confirmed" }, true, true)).toBe(true);
     expect(shouldUseStoredReportSnapshot({}, true, true)).toBe(true);
     expect(shouldUseStoredReportSnapshot({ status: "confirmed" }, false, true)).toBe(false);
+  });
+
+  it("does not let an unprotected legacy snapshot hide a July session", () => {
+    const sessions = [
+      { ...makeSession(1), id: "caithlyn-2026-07-28", date: "2026-07-28" },
+      { ...makeSession(2), id: "caithlyn-2026-07-30", date: "2026-07-30" },
+    ];
+    const legacySessionIds = new Set(["caithlyn-2026-07-28"]);
+
+    expect(reportBlocksSiblingScope({}, false)).toBe(false);
+    expect(reportBlocksSiblingScope({ status: "confirmed" }, false)).toBe(true);
+    expect(reportBlocksSiblingScope({}, true)).toBe(true);
+
+    const blockedIds = reportBlocksSiblingScope({}, false)
+      ? legacySessionIds
+      : new Set<string>();
+    expect(selectPeriodReportSessions(sessions, blockedIds, new Set(), false)
+      .map((session) => session.id)).toEqual([
+      "caithlyn-2026-07-28",
+      "caithlyn-2026-07-30",
+    ]);
   });
 
   it("resolves a fresh package cutoff after the calendar day changes", () => {
