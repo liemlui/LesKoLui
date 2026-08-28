@@ -10,6 +10,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+{
+    version: "v1.52.0",
+    date: "2026-08-28",
+    title: "Laporan Lama Tanpa Status Tidak Lagi Menyembunyikan Sesi",
+    items: [
+      "Snapshot laporan yang dibuat sebelum kolom status ada kini tidak lagi otomatis 'mengunci' sesi laporan tetangganya setelah restore — selama laporan itu tidak punya invoice yang dibayar atau ditagih manual, snapshotnya boleh dimuat ulang tanpa menyembunyikan sesi berikutnya",
+      "Laporan lama tanpa status yang justru sudah punya invoice (dibayar atau manual) tetap mengunci sesinya agar tidak tertagih dua kali",
+      "Restore backup legacy mengembalikan laporan tanpa status sesuai aslinya alih-alih memaksakan 'confirmed', sehingga cakupan sesi terhitung ulang secara akurat",
+    ],
+  },
   {
     version: "v1.51.2",
     date: "2026-08-27",
