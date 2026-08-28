@@ -5,6 +5,8 @@
 > Revisi: 2026-08-02 — Ronde 3 (v1.37.0): baseline hijau (lint 0/0, test 166/166), tutup H-4 PIN lockout recovery, konsistensi uang deleteSession/closeMonth, PWA prompt mode (direvisi ke `autoUpdate` di v1.42.1 — lihat P-1), a11y label+dialog, dead code, strict mode
 > Cakupan: full codebase (130 file di `src`, 1 API worker, seluruh config)
 > Status: **26/26 ditangani** — 25 selesai + H-2 di-waive sesuai threat model solo; backlog refactor aktif dicatat di `TODO.md`
+>
+> **Ronde 4 — v1.53.0 (2026-08-28):** Penguatan Daftar Murid (Fase 1+2+3). Avatar warna konsisten, badge follow-up/tagihan, peringatan jadwal saat nonaktifkan, ringkasan data saat hapus + opsi nonaktifkan, toast untuk semua aksi (hapus `alert()`), PIN Enter, empty state & pencarian kontekstual, panduan jadwal pertama. Fix Home: nama murid nonaktif tetap tampil. **Tanpa migrasi schema (tetap v11), tanpa field/tabel baru**; semua query tambahan read-only. Verifikasi: lint 0/0, test 300/300, build OK.
 
 ---
 

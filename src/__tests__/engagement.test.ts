@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { calcEngagementScore, scoreLabel, scoreBarColor, semesterDateRange, semesterOptions } from "../lib/engagement";
+import { calcEngagementScore, scoreLabel, scoreBarColor, semesterDateRange, semesterOptions, sessionEngagementScore, averageEngagement } from "../lib/engagement";
+import type { EngagementLog } from "../db/types";
 
 describe("calcEngagementScore", () => {
   it("starts at 5 (neutral)", () => {
@@ -172,5 +173,37 @@ describe("semesterOptions", () => {
     expect(opts.length).toBeGreaterThanOrEqual(2);
     expect(opts[0].value).toMatch(/^\d{4}\/\d{4}-S[12]$/);
     expect(opts[0].label).toMatch(/^Semester [12]/);
+  });
+});
+
+describe("sessionEngagementScore", () => {
+  const eng = (score?: number): { engagement?: EngagementLog } => ({
+    engagement: score != null ? { score } as EngagementLog : undefined,
+  });
+
+  it("memakai snapshot score bila tersedia", () => {
+    expect(sessionEngagementScore(eng(8))).toBe(8);
+  });
+
+  it("menghitung ulang dari flag bila snapshot belum ada", () => {
+    expect(sessionEngagementScore({ engagement: { prepared: true } as EngagementLog })).toBe(7);
+  });
+
+  it("undefined bila tidak ada data engagement", () => {
+    expect(sessionEngagementScore({})).toBeUndefined();
+  });
+});
+
+describe("averageEngagement", () => {
+  it("merata-ratakan dan membulatkan skor", () => {
+    const sessions = [
+      { engagement: { score: 6 } as EngagementLog },
+      { engagement: { score: 8 } as EngagementLog },
+    ];
+    expect(averageEngagement(sessions)).toBe(7);
+  });
+
+  it("undefined bila tidak ada skor", () => {
+    expect(averageEngagement([{}, {}])).toBeUndefined();
   });
 });

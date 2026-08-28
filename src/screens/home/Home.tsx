@@ -50,6 +50,7 @@ export default function Home() {
 
   // ── Data ──────────────────────────────────────────────────────────────────
   const students = useLiveQuery(() => listStudents(true), []);
+  const allStudents = useLiveQuery(() => listStudents(), []);
   const week = useMemo(() => weekDates(anchor), [anchor]);
   const currentWeek = useMemo(() => weekDates(today), [today]);
 
@@ -66,8 +67,8 @@ export default function Home() {
   const missedSchedules = useLiveQuery(() => listPastScheduledSessions(today), [today]);
 
   const studentMap: StudentMap = useMemo(
-    () => new Map((students ?? []).map((s) => [s.id, { name: s.name, color: colorForStudent(s.id) }])),
-    [students]
+    () => new Map((allStudents ?? []).map((s) => [s.id, { name: s.name, color: colorForStudent(s.id) }])),
+    [allStudents]
   );
 
   // ── Student filter (applied consistently everywhere) ────────────────────────
@@ -95,7 +96,7 @@ export default function Home() {
   }), [navigate]);
 
   // ── Empty state / onboarding ────────────────────────────────────────────────
-  if (students && students.length === 0) {
+  if (allStudents && allStudents.length === 0) {
     return (
       <div className="pb-20">
         <div className="px-4 pt-5 pb-3">

@@ -2,7 +2,7 @@ import type { Layout } from "../types";
 import { Deco } from "../deco";
 import {
   HeaderEl, LabelEl, PhotoEl, NarrEl, SessionMeta,
-  SummaryEl, onColor, entryDay,
+  SummaryEl, EngagementTrend, onColor, entryDay,
 } from "./helpers";
 
 export const summary: Layout = {
@@ -24,6 +24,11 @@ export const summary: Layout = {
           </span>
         ))}
       </div>
+      {(d.avgEngagement != null && d.prevAvgEngagement != null) && (
+        <div style={{ position: "relative", zIndex: 2, marginBottom: 12 }}>
+          <EngagementTrend current={d.avgEngagement} previous={d.prevAvgEngagement} t={t} />
+        </div>
+      )}
       {/* Compact session list */}
       {d.entries.map((e, i) => {
         const c = t.palette[i % t.palette.length];

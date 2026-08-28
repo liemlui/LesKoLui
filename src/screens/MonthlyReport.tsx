@@ -18,10 +18,10 @@ import {
   reportIdsWithInvoice,
 } from "../db/repos/helpers";
 import { pickTemplate } from "../lib/rotation";
-import { generateReportSummary, generateNarratives, estimateReportSummaryCost, estimateNarrativesCost } from "../lib/aiClient";
+import { estimateReportSummaryCost, estimateNarrativesCost } from "../lib/aiClient";
 import {
-  buildReportAiInput,
   findBlockingReportOverlap,
+  findPreviousPeriodReport,
   resolveReportMutationTarget,
   selectCountReportSessions,
   selectPeriodReportSessions,
@@ -31,104 +31,28 @@ import {
 import { AiCostModal } from "../components/AiCostModal";
 import Modal from "../components/Modal";
 import { getTheme, THEMES } from "../template/themes";
-import { LAYOUTS } from "../template/layouts";
+import { LAYOUTS, gradeDelta } from "../template/layouts";
 import { ReportRenderer } from "../template/ReportRenderer";
 import { dayLabel, monthLabel, todayWIB, monthOf, periodLabel, formatRupiah } from "../lib/format";
-import { exportJpeg, exportPng, exportPdf, shareFiles } from "../lib/exportReport";
+import { useReportExport } from "./monthlyReport/useReportExport";
+import { useReportGeneration } from "./monthlyReport/useReportGeneration";
 import { blobToDataUrl } from "../lib/imageUtils";
 import PaginationControls from "../components/PaginationControls";
 import Breadcrumb from "../components/Breadcrumb";
 import { clampPage, paginateItems } from "../lib/pagination";
-import { calcEngagementScore, scoreLabel } from "../lib/engagement";
+import { calcEngagementScore, scoreLabel, averageEngagement } from "../lib/engagement";
+import { pickDirtyNarrativeSessions } from "../lib/aiIncremental";
 import type {
   ReportOptions, CustomTheme, Theme,
-  HeaderStyle, LabelStyle, PhotoStyle, DecoKind,
 } from "../template/types";
-import type { MonthlyReport, NextMonthPlan, MonthlyPlanItem, PlanOwner, PlanStatus, Session } from "../db/types";
+import type { MonthlyReport, NextMonthPlan, Session } from "../db/types";
 import { db } from "../db/db";
-
-const EMPTY_SUBJECT_LABEL = "Mapel belum diisi";
-const PLAN_OWNERS: Array<{ value: PlanOwner; label: string }> = [
-  { value: "shared", label: "Bersama" },
-  { value: "tutor", label: "Tutor" },
-  { value: "student", label: "Murid" },
-  { value: "parent", label: "Orang tua" },
-];
-const PLAN_STATUSES: Array<{ value: PlanStatus; label: string }> = [
-  { value: "planned", label: "Belum dimulai" },
-  { value: "in_progress", label: "Berjalan" },
-  { value: "achieved", label: "Tercapai" },
-];
-
-function newPlanItem(): MonthlyPlanItem {
-  return {
-    id: crypto.randomUUID(),
-    subject: "",
-    target: "",
-    owner: "shared",
-    status: "planned",
-  };
-}
-
-function createEmptyPlan(): NextMonthPlan {
-  return { priorities: [newPlanItem()], parentSupport: "" };
-}
-
-function normaliseAiPlan(plan?: {
-  priorities?: Array<Partial<Omit<MonthlyPlanItem, "id">>>;
-  parentSupport?: string;
-}): NextMonthPlan | undefined {
-  const priorities = (plan?.priorities ?? [])
-    .filter((item) => item.target?.trim())
-    .slice(0, 3)
-    .map((item) => ({
-      id: crypto.randomUUID(),
-      subject: item.subject?.trim() || EMPTY_SUBJECT_LABEL,
-      evidence: item.evidence?.trim(),
-      target: item.target!.trim(),
-      tutorAction: item.tutorAction?.trim(),
-      successMetric: item.successMetric?.trim(),
-      cadence: item.cadence?.trim(),
-      owner: PLAN_OWNERS.some((owner) => owner.value === item.owner) ? item.owner : "shared",
-      status: "planned" as const,
-    }));
-  if (priorities.length === 0) return undefined;
-  return { priorities, parentSupport: plan?.parentSupport?.trim(), updatedAt: new Date().toISOString() };
-}
-
-function cleanText(value?: string): string {
-  return value?.trim() ?? "";
-}
-
-function formatHours(hours: number): string {
-  const normalized = Number.isInteger(hours) ? String(hours) : String(hours).replace(".", ",");
-  return `${normalized} jam`;
-}
-
-function sessionSubjectLabel(subjects: string[]): string {
-  const cleanSubjects = subjects.map((subject) => subject.trim()).filter(Boolean);
-  return cleanSubjects.length > 0 ? cleanSubjects.join(", ") : EMPTY_SUBJECT_LABEL;
-}
-
-function sessionTimeLabel(session: Session): string | undefined {
-  if (session.timeIn && session.timeOut) return `${session.timeIn}-${session.timeOut}`;
-  if (session.time) return `Jam ${session.time}`;
-  return undefined;
-}
-
-function buildSessionNarrative(session: Session, subject: string): string {
-  const baseNote = cleanText(session.narrative) || cleanText(session.shortNote);
-  const extraNotes = [
-    cleanText(session.topic) ? `Topik yang dibahas: ${cleanText(session.topic)}.` : undefined,
-    cleanText(session.needsWork) ? `Area perhatian: ${cleanText(session.needsWork)}.` : undefined,
-  ].filter((note): note is string => Boolean(note));
-
-  if (baseNote && extraNotes.length > 0) return `${baseNote} ${extraNotes.join(" ")}`;
-  if (baseNote) return baseNote;
-  if (extraNotes.length > 0) return extraNotes.join(" ");
-  // Fallback netral — teks ini ikut tercetak di laporan orang tua, jangan berisi instruksi untuk tutor
-  return `Sesi ${subject} berlangsung selama ${formatHours(session.durationHours)}.`;
-}
+import {
+  cleanText, formatHours, sessionSubjectLabel,
+  sessionTimeLabel, buildSessionNarrative, PLAN_STATUSES,
+} from "./monthlyReport/helpers";
+import { NextMonthPlanEditor } from "./monthlyReport/NextMonthPlanEditor";
+import { CustomThemeBuilder } from "./monthlyReport/CustomThemeBuilder";
 
 /**
  * MonthlyReportPage — halaman pembuatan laporan perkembangan per periode.
@@ -167,30 +91,21 @@ export default function MonthlyReportPage() {
   const [editingQuote,     setEditingQuote]     = useState(false);
   const [showPolishModal,  setShowPolishModal]  = useState(false);
   const [showNarrativesModal, setShowNarrativesModal] = useState(false);
+  const [forceSummary,   setForceSummary]   = useState(false);
+  const [forceNarratives, setForceNarratives] = useState(false);
   const [showBillingHelp,   setShowBillingHelp]   = useState(false);
-  const [prevTexts,        setPrevTexts]        = useState<{
-    summaryText: string;
-    teacherNote?: string;
-    quote?: string;
-    nextMonthPlan?: NextMonthPlan;
-    /** Narasi per sesi sebelum ditimpa AI — untuk Undo penuh. */
-    narratives?: Array<{ id: string; narrative?: string }>;
-  } | null>(null);
   const [quoteText,        setQuoteText]        = useState("");
-  const [aiLoading,        setAiLoading]        = useState(false);
-  const aiRequestRef = useRef(0);
   const [reportMutationBusy, setReportMutationBusy] = useState(false);
   const reportMutationBusyRef = useRef(false);
   const [invoiceBusy, setInvoiceBusy] = useState(false);
   const [message,          setMessage]          = useState("");
-  const [exporting,        setExporting]        = useState<"jpg" | "png" | "pdf" | null>(null);
-  const reportExportRef = useRef<HTMLDivElement>(null);
   const [openNarasi,       setOpenNarasi]       = useState(false);
   const [openTeks,         setOpenTeks]         = useState(false);
   const [openPlan,         setOpenPlan]         = useState(false);
   const [editingPlan,      setEditingPlan]      = useState(false);
   const [narrativePage,    setNarrativePage]    = useState(1);
   const [subjectFilter,    setSubjectFilter]    = useState<string>("");
+  const [prevAvgEngagement, setPrevAvgEngagement] = useState<number | undefined>(undefined);
 
   const student  = useLiveQuery(() => (studentId ? getStudent(studentId) : undefined), [studentId]);
 
@@ -599,6 +514,7 @@ export default function MonthlyReportPage() {
     subjectFilter ? reportSessions.filter((s) => s.subjects.some((subj) => subj.trim() === subjectFilter)) : reportSessions,
   [reportSessions, subjectFilter]);
   const sessionsWithNarrative  = filteredSessions.filter((s) => Boolean(s.narrative?.trim() || s.shortNote?.trim())).length;
+  const narrativeDirtyCount = useMemo(() => pickDirtyNarrativeSessions(reportSessions).dirty.length, [reportSessions]);
   const engagementScores = useMemo(() => reportSessions
     .map((s) => s.engagement?.score ?? (s.engagement ? calcEngagementScore(s.engagement) : undefined))
     .filter((score): score is number => score != null), [reportSessions]);
@@ -662,106 +578,18 @@ export default function MonthlyReportPage() {
   // ReportData — async photo normalization + engagement
   const [reportData, setReportData] = useState<import("../template/types").ReportData | null>(null);
 
-  // Every report scope owns its own preview, edit buffers, undo data, and AI
-  // request. Changing student/month/mode/count cannot leak results from the
-  // previous selection into the newly-visible report.
-  useEffect(() => {
-    aiRequestRef.current += 1;
-    setAiLoading(false);
-    setMessage("");
-    setPrevTexts(null);
-    setShowPolishModal(false);
-    setShowNarrativesModal(false);
-    setEditingNarrative(null);
-    setEditText("");
-    setEditingSummary(false);
-    setSummaryText("");
-    setEditingTeacherNote(false);
-    setTeacherNoteText("");
-    setEditingQuote(false);
-    setQuoteText("");
-    setEditingPlan(false);
-    setSubjectFilter("");
-    setNarrativePage(1);
-    setOpenNarasi(false);
-    setOpenTeks(false);
-    setOpenPlan(false);
-    setUndoStack([]);
-    setShowCompare(false);
-    setCompareThemeId(null);
-    setCoverPage(false);
-    setShowCustomBuilder(false);
-    setReportData(null);
-  }, [reportScopeKey]);
+  // Export (JPG/PNG/PDF) + tandai sudah dibagikan — di-extract ke hook tersendiri.
+  const { exporting, reportExportRef, doExport, handleMarkReportShared } = useReportExport({
+    student,
+    report,
+    reportData,
+    periodLabel: periodLabel(periodStart, periodEnd) || monthLabel(month),
+    setMessage,
+    pageRatio,
+    setPageRatio,
+  });
 
-  useEffect(() => {
-    if (!student || reportSessions.length === 0) { setReportData(null); return; }
-    setReportData(null);
-    let cancelled = false;
-    (async () => {
-      const logoUrl = settings?.logo ? await blobToDataUrl(settings.logo) : undefined;
-      // KRONOLOGIS (awal→akhir periode): orang tua membaca laporan sebagai cerita perkembangan.
-      // Semua visual tren (sparkline, growth, compare) mengandalkan urutan ini.
-      const sorted = [...reportSessions].sort((a, b) => a.date.localeCompare(b.date));
-      const entries = await Promise.all(
-        sorted.map(async (s) => {
-          const engScore = s.engagement?.score ?? (s.engagement ? calcEngagementScore(s.engagement) : undefined);
-          const engLabel = engScore != null ? scoreLabel(engScore).text : undefined;
-          const subject = sessionSubjectLabel(s.subjects);
-          return {
-            date: dayLabel(s.date).split(",")[1]?.trim() ?? s.date.slice(5),
-            subject,
-            // Pakai foto tersimpan langsung. Normalisasi lama melakukan center-crop
-            // permanen ke 360x270 lalu export memperbesarnya lagi, sehingga wajah
-            // mudah terpotong dan foto tampak buram di JPG/PDF.
-            photoUrl: s.photo ? await blobToDataUrl(s.photo) : undefined,
-            narrative: buildSessionNarrative(s, subject),
-            topic: cleanText(s.topic) || undefined,
-            mood: cleanText(s.mood) || undefined,
-            timeLabel: reportBillingMode === "session_count" ? undefined : sessionTimeLabel(s),
-            durationLabel: reportBillingMode === "session_count" ? undefined : formatHours(s.durationHours),
-            needsWork: cleanText(s.needsWork) || undefined,
-            signatureUrl: s.signature ? await blobToDataUrl(s.signature) : undefined,
-            engagementScore: engScore,
-            engagementLabel: engLabel,
-          };
-        })
-      );
-      const scores = entries.filter((e) => e.engagementScore != null).map((e) => e.engagementScore!);
-      const avgEngagement = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : undefined;
-      const photoUrls = entries.filter((e) => e.photoUrl).map((e) => e.photoUrl!);
-      // Agregat periode penuh untuk layout infografis (akurat lintas halaman).
-      const distMap = new Map<string, number>();
-      reportSessions.forEach((s) => s.subjects.map((x) => x.trim()).filter(Boolean)
-        .forEach((sub) => distMap.set(sub, (distMap.get(sub) ?? 0) + 1)));
-      const subjectDist = [...distMap.entries()]
-        .map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
-      if (cancelled) return;
-      setReportData({
-        studentName: student.name,
-        period: periodLabel(periodStart, periodEnd) || monthLabel(month),
-        tutorName: settings?.tutorProfile?.name ?? "",
-        logoUrl,
-        entries,
-        summary: report?.summaryText ?? "",
-        teacherNote: report?.teacherNote,
-        quote: report?.quote,
-        nextMonthPlan: report?.nextMonthPlan,
-        avgEngagement,
-        photoUrls,
-        totalHours,
-        totalSessions: entries.length,
-        subjectDist,
-        // entries sudah kronologis → seri fokus langsung searah waktu
-        engagementSeries: scores,
-      });
-    })();
-    return () => { cancelled = true; };
-  }, [student, reportSessions, month, periodStart, periodEnd, report, reportBillingMode, settings, totalHours]);
-
-  const safeNarrativePage      = clampPage(narrativePage, filteredSessions.length);
-  const paginatedNarrativeSessions = paginateItems(filteredSessions, safeNarrativePage);
-
+  // Pastikan laporan untuk scope saat ini sudah ada sebelum AI menulis.
   const ensureReport = async () => {
     if (!studentId) return undefined;
     if (!availability.ok) { setMessage("Gagal: " + availability.reason); return undefined; }
@@ -803,6 +631,159 @@ export default function MonthlyReportPage() {
     current = await getReportById(result.reportId);
     return current;
   };
+
+  // Generasi AI (narasi/ringkasan + fallback gratis) — di-extract ke hook tersendiri.
+  const {
+    aiLoading, prevTexts, setPrevTexts, invalidateAiRequests,
+    handlePolish, handleGenerateNarratives,
+    handleGenerateLocalNarratives, handleGenerateLocalTexts,
+  } = useReportGeneration({
+    student,
+    report,
+    reportSessions,
+    periodStart,
+    periodEnd,
+    month,
+    prevAvgEngagement,
+    totalHours,
+    avgEngagement,
+    ensureReport,
+    setMessage,
+    setOpenNarasi,
+    setOpenTeks,
+    setOpenPlan,
+  });
+
+  // Every report scope owns its own preview, edit buffers, undo data, and AI
+  // request. Changing student/month/mode/count cannot leak results from the
+  // previous selection into the newly-visible report.
+  useEffect(() => {
+    invalidateAiRequests();
+    setMessage("");
+    setPrevTexts(null);
+    setShowPolishModal(false);
+    setShowNarrativesModal(false);
+    setEditingNarrative(null);
+    setEditText("");
+    setEditingSummary(false);
+    setSummaryText("");
+    setEditingTeacherNote(false);
+    setTeacherNoteText("");
+    setEditingQuote(false);
+    setQuoteText("");
+    setEditingPlan(false);
+    setSubjectFilter("");
+    setNarrativePage(1);
+    setOpenNarasi(false);
+    setOpenTeks(false);
+    setOpenPlan(false);
+    setUndoStack([]);
+    setShowCompare(false);
+    setCompareThemeId(null);
+    setCoverPage(false);
+    setShowCustomBuilder(false);
+    setReportData(null);
+  }, [reportScopeKey, invalidateAiRequests, setPrevTexts]);
+
+  useEffect(() => {
+    if (!student || reportSessions.length === 0) { setReportData(null); setPrevAvgEngagement(undefined); return; }
+    setReportData(null);
+    let cancelled = false;
+    (async () => {
+      const logoUrl = settings?.logo ? await blobToDataUrl(settings.logo) : undefined;
+      // Rata-rata engagement periode SEBELUMNYA (tren bulan-ke-bulan). Best-effort:
+      // gagal membaca laporan lama tidak boleh menggagalkan pratinjau.
+      const prevAvg = await (async () => {
+        try {
+          const confirmed = await listConfirmedReportsByStudent(student.id);
+          const prev = findPreviousPeriodReport(confirmed, periodStart);
+          if (!prev) return undefined;
+          const rows = await db.sessions.bulkGet(prev.sessionIds);
+          return averageEngagement(rows.filter((s): s is Session => Boolean(s)));
+        } catch {
+          return undefined;
+        }
+      })();
+      if (cancelled) return;
+      setPrevAvgEngagement(prevAvg);
+      // KRONOLOGIS (awal→akhir periode): orang tua membaca laporan sebagai cerita perkembangan.
+      // Semua visual tren (sparkline, growth, compare) mengandalkan urutan ini.
+      const sorted = [...reportSessions].sort((a, b) => a.date.localeCompare(b.date));
+      const entries = await Promise.all(
+        sorted.map(async (s) => {
+          const engScore = s.engagement?.score ?? (s.engagement ? calcEngagementScore(s.engagement) : undefined);
+          const engLabel = engScore != null ? scoreLabel(engScore).text : undefined;
+          const subject = sessionSubjectLabel(s.subjects);
+          return {
+            date: dayLabel(s.date).split(",")[1]?.trim() ?? s.date.slice(5),
+            subject,
+            // Pakai foto tersimpan langsung. Normalisasi lama melakukan center-crop
+            // permanen ke 360x270 lalu export memperbesarnya lagi, sehingga wajah
+            // mudah terpotong dan foto tampak buram di JPG/PDF.
+            photoUrl: s.photo ? await blobToDataUrl(s.photo) : undefined,
+            narrative: buildSessionNarrative(s, subject),
+            topic: cleanText(s.topic) || undefined,
+            mood: cleanText(s.mood) || undefined,
+            timeLabel: reportBillingMode === "session_count" ? undefined : sessionTimeLabel(s),
+            durationLabel: reportBillingMode === "session_count" ? undefined : formatHours(s.durationHours),
+            needsWork: cleanText(s.needsWork) || undefined,
+            predictedGrade: cleanText(s.predictedGrade) || undefined,
+            actualGrade: cleanText(s.actualGrade) || undefined,
+            signatureUrl: s.signature ? await blobToDataUrl(s.signature) : undefined,
+            engagementScore: engScore,
+            engagementLabel: engLabel,
+          };
+        })
+      );
+      const scores = entries.filter((e) => e.engagementScore != null).map((e) => e.engagementScore!);
+      const avgEngagement = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : undefined;
+      const photoUrls = entries.filter((e) => e.photoUrl).map((e) => e.photoUrl!);
+      // Tabel prediksi vs nilai aktual — konteks ujian jelas (topik/mapel).
+      const gradeComparison = sorted
+        .filter((s) => cleanText(s.predictedGrade) || cleanText(s.actualGrade))
+        .map((s) => {
+          const fullDate = dayLabel(s.date).split(",")[1]?.trim() ?? s.date.slice(5);
+          return {
+            date: fullDate.split(" ").slice(0, 2).join(" "),
+            exam: cleanText(s.topic) || sessionSubjectLabel(s.subjects) || "Ujian",
+            predicted: cleanText(s.predictedGrade) || undefined,
+            actual: cleanText(s.actualGrade) || undefined,
+            delta: gradeDelta(s.predictedGrade, s.actualGrade),
+          };
+        });
+      // Agregat periode penuh untuk layout infografis (akurat lintas halaman).
+      const distMap = new Map<string, number>();
+      reportSessions.forEach((s) => s.subjects.map((x) => x.trim()).filter(Boolean)
+        .forEach((sub) => distMap.set(sub, (distMap.get(sub) ?? 0) + 1)));
+      const subjectDist = [...distMap.entries()]
+        .map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+      if (cancelled) return;
+      setReportData({
+        studentName: student.name,
+        period: periodLabel(periodStart, periodEnd) || monthLabel(month),
+        tutorName: settings?.tutorProfile?.name ?? "",
+        logoUrl,
+        entries,
+        summary: report?.summaryText ?? "",
+        teacherNote: report?.teacherNote,
+        quote: report?.quote,
+        nextMonthPlan: report?.nextMonthPlan,
+        avgEngagement,
+        prevAvgEngagement: prevAvg,
+        photoUrls,
+        totalHours,
+        totalSessions: entries.length,
+        subjectDist,
+        // entries sudah kronologis → seri fokus langsung searah waktu
+        engagementSeries: scores,
+        gradeComparison,
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [student, reportSessions, month, periodStart, periodEnd, report, reportBillingMode, settings, totalHours]);
+
+  const safeNarrativePage      = clampPage(narrativePage, filteredSessions.length);
+  const paginatedNarrativeSessions = paginateItems(filteredSessions, safeNarrativePage);
 
   const handleCreateOrSwitch = async (newLayoutId?: string) => {
     if (!studentId || reportSessions.length === 0 || reportMutationBusyRef.current) return;
@@ -903,8 +884,7 @@ export default function MonthlyReportPage() {
   };
 
   const beginControlScopeChange = () => {
-    aiRequestRef.current += 1;
-    setAiLoading(false);
+    invalidateAiRequests();
     leaveEditingReport();
   };
 
@@ -954,11 +934,7 @@ export default function MonthlyReportPage() {
     }
   };
 
-  const handleMarkReportShared = async () => {
-    if (!report) return;
-    await upsertReport({ ...report, pdfGeneratedAt: new Date().toISOString() });
-    setMessage("Laporan ditandai sudah dibagikan ✓");
-  };
+  
 
   const handleDiscard = async () => {
     if (!report) return;
@@ -983,175 +959,6 @@ export default function MonthlyReportPage() {
     setUndoStack((s) => [...s, { themeId: report.templateKey.themeId, layoutId: report.templateKey.layoutId }]);
     await upsertReport({ ...report, templateKey: await pickTemplate(studentId) });
     setMessage("Desain diganti!");
-  };
-
-  const handlePolish = async () => {
-    if (!student || reportSessions.length === 0) return;
-    if (!navigator.onLine) { setMessage("Offline."); return; }
-    const requestId = ++aiRequestRef.current;
-    const selectedSessions = reportSessions;
-    setAiLoading(true);
-    try {
-      const draft = await ensureReport();
-      if (!draft || requestId !== aiRequestRef.current) return;
-      const out = await generateReportSummary(buildReportAiInput(
-        student,
-        periodLabel(periodStart, periodEnd) || monthLabel(month),
-        selectedSessions,
-      ));
-      if (requestId !== aiRequestRef.current) return;
-      const prev = { summaryText: draft.summaryText, quote: draft.quote, nextMonthPlan: draft.nextMonthPlan };
-      const aiPlan = normaliseAiPlan(out.nextMonthPlan);
-      await upsertReport({
-        ...draft,
-        summaryText: out.summary ?? "",
-        quote: out.quote,
-        nextMonthPlan: aiPlan ?? draft.nextMonthPlan,
-      });
-      if (requestId !== aiRequestRef.current) return;
-      setPrevTexts(prev);
-      setMessage("Poles AI selesai ✓ Ringkasan, kutipan & rencana depan terisi");
-      setOpenTeks(true);
-      setOpenPlan(true);
-    } catch (e) {
-      if (requestId === aiRequestRef.current) setMessage("Gagal: " + (e as Error).message);
-    } finally {
-      if (requestId === aiRequestRef.current) setAiLoading(false);
-    }
-  };
-
-  /** Narasi AI penuh: perluas shortNote tiap sesi jadi narasi 40–60 kata,
-   *  plus ringkasan, catatan guru, dan kutipan. Semua bisa di-Undo. */
-  const handleGenerateNarratives = async () => {
-    if (!student || reportSessions.length === 0) return;
-    if (!navigator.onLine) { setMessage("Offline."); return; }
-    const requestId = ++aiRequestRef.current;
-    const selectedSessions = reportSessions;
-    setAiLoading(true);
-    try {
-      const draft = await ensureReport();
-      if (!draft || requestId !== aiRequestRef.current) return;
-      const out = await generateNarratives(buildReportAiInput(
-        student,
-        periodLabel(periodStart, periodEnd) || monthLabel(month),
-        selectedSessions,
-      ));
-      if (requestId !== aiRequestRef.current) return;
-
-      // Simpan versi lama SEBELUM menimpa — untuk Undo penuh
-      const prevNarratives = selectedSessions.map((s) => ({ id: s.id, narrative: s.narrative }));
-
-      const validIds = new Set(selectedSessions.map((s) => s.id));
-      let applied = 0;
-      for (const entry of out.entries ?? []) {
-        if (requestId !== aiRequestRef.current) return;
-        if (validIds.has(entry.id) && entry.narrative?.trim()) {
-          await updateSession(entry.id, { narrative: entry.narrative.trim() });
-          if (requestId !== aiRequestRef.current) return;
-          applied++;
-        }
-      }
-      if (requestId !== aiRequestRef.current) return;
-      const aiPlan = normaliseAiPlan(out.nextMonthPlan);
-      await upsertReport({
-        ...draft,
-        summaryText: out.summary?.trim() || draft.summaryText,
-        teacherNote: out.teacherNote?.trim() || draft.teacherNote,
-        quote: out.quote?.trim() || draft.quote,
-        nextMonthPlan: aiPlan ?? draft.nextMonthPlan,
-      });
-      if (requestId !== aiRequestRef.current) return;
-      setPrevTexts({
-        summaryText: draft.summaryText, teacherNote: draft.teacherNote,
-        quote: draft.quote, nextMonthPlan: draft.nextMonthPlan, narratives: prevNarratives,
-      });
-      setMessage(`Narasi AI selesai ✓ ${applied} narasi sesi + ringkasan & kutipan terisi`);
-      setOpenNarasi(true);
-      setOpenPlan(true);
-    } catch (e) {
-      if (requestId === aiRequestRef.current) setMessage("Gagal: " + (e as Error).message);
-    } finally {
-      if (requestId === aiRequestRef.current) setAiLoading(false);
-    }
-  };
-
-  /** Generate narasi sesi GRATIS dari data yang sudah ada (tanpa AI). */
-  const handleGenerateLocalNarratives = async () => {
-    if (!report || reportSessions.length === 0) return;
-    let applied = 0;
-    for (const s of reportSessions) {
-      if (s.narrative?.trim()) continue;
-      const narrative = buildSessionNarrative(s, sessionSubjectLabel(s.subjects)).trim();
-      if (narrative) {
-        await updateSession(s.id, { narrative });
-        applied++;
-      }
-    }
-    setMessage(`⚡ ${applied} narasi sesi dibuat otomatis (gratis) ✓`);
-    setOpenNarasi(true);
-  };
-
-  /** Generate ringkasan/catatan guru/kutipan GRATIS dari data sesi (tanpa AI). */
-  const handleGenerateLocalTexts = async () => {
-    if (!student || !report || reportSessions.length === 0) return;
-    const draft = await ensureReport();
-    if (!draft) return;
-
-    const subjects = [...new Set(reportSessions.flatMap((s) => s.subjects.map((x) => x.trim()).filter(Boolean)))];
-    const topics = reportSessions.map((s) => cleanText(s.topic)).filter(Boolean).slice(0, 3);
-    const needs = reportSessions.map((s) => cleanText(s.needsWork)).filter(Boolean).slice(0, 3);
-    const period = periodLabel(periodStart, periodEnd) || monthLabel(month);
-
-    const summary = [
-      `Periode ${period} berisi ${reportSessions.length} sesi (${totalHours} jam) untuk ${subjects.join(", ") || "materi yang dipelajari"}.`,
-      topics.length > 0 ? `Topik yang dibahas antara lain ${topics.join(", ")}.` : undefined,
-      avgEngagement != null ? `Rata-rata fokus ${avgEngagement}/10.` : undefined,
-      needs.length > 0 ? `Area yang masih perlu perhatian: ${needs.join("; ")}.` : undefined,
-    ].filter((line): line is string => Boolean(line)).join(" ");
-
-    const teacherNote = [
-      `Kemajuan terbesar terlihat dari konsistensi ${reportSessions.length} sesi pada periode ini.`,
-      needs.length > 0 ? `Fokus berikutnya: ${needs[0]}.` : "Lanjutkan latihan topik yang sudah dibahas.",
-    ].join(" ");
-
-    const quote = `Terus semangat, ${student.name}! Setiap sesi membawa kamu selangkah lebih dekat ke targetmu.`;
-
-    await upsertReport({
-      ...draft,
-      summaryText: draft.summaryText?.trim() || summary,
-      teacherNote: draft.teacherNote?.trim() || teacherNote,
-      quote: draft.quote?.trim() || quote,
-    });
-    setMessage("⚡ Teks laporan dibuat otomatis (gratis) ✓");
-    setOpenTeks(true);
-  };
-
-  const doExport = async (type: "jpg" | "png" | "pdf") => {
-    if (!student || !report || !reportData || exporting) return;
-    setExporting(type);
-    setMessage("");
-    const base = `Laporan-${student.name}-${periodLabel(periodStart, periodEnd) || monthLabel(month)}`.replace(/\s+/g, "-");
-    const exportRoot = reportExportRef.current ?? document;
-    // PDF memakai tinggi otomatis (auto) — sudah cukup oke. JPG/PNG memakai
-    // rasio yang dipilih (default 3:4) agar tidak terpotong di WhatsApp.
-    const prevRatio = pageRatio;
-    if (type === "pdf" && prevRatio !== "auto") setPageRatio("auto");
-    try {
-      // Tunggu re-render bila rasio diubah untuk PDF.
-      if (type === "pdf" && prevRatio !== "auto") {
-        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(null))));
-      }
-      if (type === "jpg") await shareFiles(await exportJpeg(base, exportRoot), base);
-      else if (type === "png") await shareFiles(await exportPng(base, exportRoot), base);
-      else await shareFiles([await exportPdf(base, exportRoot)], base);
-      await upsertReport({ ...report, pdfGeneratedAt: new Date().toISOString() });
-      setMessage(`✓ File ${type.toUpperCase()} diunduh`);
-    } catch (e) {
-      setMessage("Gagal ekspor: " + (e as Error).message);
-    } finally {
-      if (type === "pdf" && prevRatio !== "auto") setPageRatio(prevRatio);
-      setExporting(null);
-    }
   };
 
   const saveNarrative   = async (sid: string) => { await updateSession(sid, { narrative: editText }); setEditingNarrative(null); };
@@ -1564,8 +1371,8 @@ export default function MonthlyReportPage() {
                     <div className="flex gap-2">
                       <button className="flex-1 btn text-sm bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
                         onClick={() => setShowNarrativesModal(true)} disabled={aiLoading || !availability.ok}
-                        title="Perkuat narasi 40–60 kata per sesi dengan AI (setelah laporan dibuat)">
-                        {aiLoading ? "⏳ AI..." : "📖 Perkuat Narasi AI"}
+                        title="Perkuat narasi 40–60 kata per sesi dengan AI (hanya sesi yang berubah)">
+                        {aiLoading ? "⏳ AI..." : narrativeDirtyCount === 0 ? "📖 Perkuat Narasi AI" : `📖 Perkuat Narasi AI (${narrativeDirtyCount})`}
                       </button>
                       <button className="flex-1 btn text-sm bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 disabled:opacity-50"
                         onClick={() => setShowPolishModal(true)} disabled={aiLoading || !availability.ok}
@@ -2051,327 +1858,41 @@ export default function MonthlyReportPage() {
         open={showPolishModal}
         title="✨ Ringkasan AI — Ringkasan, Kutipan & Rencana Depan"
         estimatedIDR={estimateReportSummaryCost(reportSessions.length)}
-        description={`${reportSessions.length} sesi · ringkasan periode + kutipan + rencana depan untuk ${student?.name ?? "murid"}`}
-        onCancel={() => setShowPolishModal(false)}
-        onConfirm={() => { setShowPolishModal(false); handlePolish(); }}
+        description={`${reportSessions.length} sesi · ringkasan periode + kutipan + rencana depan untuk ${student?.name ?? "murid"}. Bila tidak ada perubahan sesi, akan dilewati otomatis.`}
+        extraContent={
+          <label className="flex items-start gap-2 mt-3 text-xs text-gray-600 cursor-pointer select-none">
+            <input type="checkbox" checked={forceSummary} onChange={(e) => setForceSummary(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-indigo-600" />
+            <span>Tulis ulang paksa ringkasan (abaikan hemat token)</span>
+          </label>
+        }
+        onCancel={() => { setShowPolishModal(false); setForceSummary(false); }}
+        onConfirm={() => { setShowPolishModal(false); const f = forceSummary; setForceSummary(false); handlePolish(f); }}
       />
 
       {/* Narasi AI cost modal */}
       <AiCostModal
         open={showNarrativesModal}
-        title="Narasi AI — Semua Sesi"
-        estimatedIDR={estimateNarrativesCost(reportSessions.length)}
-        description={`Perluas shortNote jadi narasi 40–60 kata untuk ${reportSessions.length} sesi + ringkasan, catatan guru, kutipan & rencana depan. Narasi lama ditimpa (bisa di-Undo).`}
-        onCancel={() => setShowNarrativesModal(false)}
-        onConfirm={() => { setShowNarrativesModal(false); handleGenerateNarratives(); }}
+        title={forceNarratives
+          ? "Narasi AI — Tulis Ulang Semua Sesi"
+          : narrativeDirtyCount === 0
+            ? "Narasi AI — Semua Sudah Terbaru"
+            : `Narasi AI — ${narrativeDirtyCount} Sesi Berubah`}
+        estimatedIDR={estimateNarrativesCost(forceNarratives ? reportSessions.length : narrativeDirtyCount)}
+        description={forceNarratives
+          ? `Perluas shortNote jadi narasi 40–60 kata untuk SEMUA ${reportSessions.length} sesi + ringkasan, catatan guru, kutipan & rencana depan.`
+          : `${narrativeDirtyCount} dari ${reportSessions.length} sesi akan dikirim ulang · ${reportSessions.length - narrativeDirtyCount} narasi lain (termasuk edit manual tutor) dipertahankan. Ringkasan tidak diubah.`}
+        extraContent={
+          <label className="flex items-start gap-2 mt-3 text-xs text-gray-600 cursor-pointer select-none">
+            <input type="checkbox" checked={forceNarratives} onChange={(e) => setForceNarratives(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-indigo-600" />
+            <span>Tulis ulang paksa semua narasi (lewati hemat token)</span>
+          </label>
+        }
+        onCancel={() => { setShowNarrativesModal(false); setForceNarratives(false); }}
+        onConfirm={() => { setShowNarrativesModal(false); const f = forceNarratives; setForceNarratives(false); handleGenerateNarratives(f); }}
       />
     </div>
   );
 }
 
-// ── Custom Theme Builder ─────────────────────────────────────────────
-
-function NextMonthPlanEditor({ initialPlan, onSave, onCancel }: {
-  initialPlan?: NextMonthPlan;
-  onSave: (plan: NextMonthPlan) => Promise<void>;
-  onCancel: () => void;
-}) {
-  const [draft, setDraft] = useState<NextMonthPlan>(() => initialPlan
-    ? {
-      priorities: initialPlan.priorities.length > 0 ? initialPlan.priorities.map((item) => ({ ...item })) : [newPlanItem()],
-      parentSupport: initialPlan.parentSupport ?? "",
-      updatedAt: initialPlan.updatedAt,
-    }
-    : createEmptyPlan());
-  const [error, setError] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  const updateItem = (id: string, patch: Partial<MonthlyPlanItem>) => {
-    setDraft((plan) => ({
-      ...plan,
-      priorities: plan.priorities.map((item) => item.id === id ? { ...item, ...patch } : item),
-    }));
-  };
-
-  const removeItem = (id: string) => {
-    setDraft((plan) => ({
-      ...plan,
-      priorities: plan.priorities.length === 1 ? plan.priorities : plan.priorities.filter((item) => item.id !== id),
-    }));
-  };
-
-  const save = async () => {
-    const priorities = draft.priorities
-      .map((item) => ({
-        ...item,
-        subject: item.subject.trim(),
-        evidence: item.evidence?.trim(),
-        target: item.target.trim(),
-        tutorAction: item.tutorAction?.trim(),
-        successMetric: item.successMetric?.trim(),
-        cadence: item.cadence?.trim(),
-      }))
-      .filter((item) => item.target);
-    if (priorities.length === 0) {
-      setError("Isi minimal satu target belajar yang spesifik.");
-      return;
-    }
-    setSaving(true);
-    try {
-      await onSave({ priorities, parentSupport: draft.parentSupport?.trim() });
-    } catch (e) {
-      setError("Gagal menyimpan: " + (e as Error).message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="space-y-3 pt-3">
-      <div className="rounded-xl bg-indigo-50 px-3 py-2 text-xs text-indigo-700">
-        Pilih maksimal tiga prioritas. Buat target yang dapat dilihat hasilnya, bukan hanya “lebih memahami materi”.
-      </div>
-      {draft.priorities.map((item, index) => (
-        <div key={item.id} className="rounded-xl border border-gray-200 p-3 space-y-2.5">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-gray-700">Prioritas {index + 1}</p>
-            {draft.priorities.length > 1 && (
-              <button type="button" className="text-xs font-semibold text-red-500" onClick={() => removeItem(item.id)}>Hapus</button>
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label htmlFor={`mr-mapel-${item.id}`} className="label">Mapel / area</label>
-              <input id={`mr-mapel-${item.id}`} className="input text-sm" value={item.subject}
-                placeholder="Contoh: Matematika AA"
-                onChange={(event) => updateItem(item.id, { subject: event.target.value })} />
-            </div>
-            <div>
-              <label htmlFor={`mr-penanggung-jawab-${item.id}`} className="label">Penanggung jawab</label>
-              <select id={`mr-penanggung-jawab-${item.id}`} className="input text-sm" value={item.owner ?? "shared"}
-                onChange={(event) => updateItem(item.id, { owner: event.target.value as PlanOwner })}>
-                {PLAN_OWNERS.map((owner) => <option key={owner.value} value={owner.value}>{owner.label}</option>)}
-              </select>
-            </div>
-          </div>
-          <div>
-            <label htmlFor={`mr-target-${item.id}`} className="label">Target terukur *</label>
-            <textarea id={`mr-target-${item.id}`} className="input text-sm" rows={2} value={item.target}
-              placeholder="Contoh: Menyelesaikan 8 dari 10 soal fungsi kuadrat dengan langkah lengkap."
-              onChange={(event) => updateItem(item.id, { target: event.target.value })} />
-          </div>
-          <div>
-            <label htmlFor={`mr-dasar-${item.id}`} className="label">Dasar dari periode ini</label>
-            <textarea id={`mr-dasar-${item.id}`} className="input text-sm" rows={2} value={item.evidence ?? ""}
-              placeholder="Contoh: Masih keliru pada operasi tanda negatif di soal cerita."
-              onChange={(event) => updateItem(item.id, { evidence: event.target.value })} />
-          </div>
-          <div>
-            <label htmlFor={`mr-langkah-tutor-${item.id}`} className="label">Langkah tutor</label>
-            <textarea id={`mr-langkah-tutor-${item.id}`} className="input text-sm" rows={2} value={item.tutorAction ?? ""}
-              placeholder="Contoh: Latihan bertahap, cek langkah, lalu soal aplikasi."
-              onChange={(event) => updateItem(item.id, { tutorAction: event.target.value })} />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label htmlFor={`mr-indikator-${item.id}`} className="label">Indikator berhasil</label>
-              <input id={`mr-indikator-${item.id}`} className="input text-sm" value={item.successMetric ?? ""}
-                placeholder="8/10 soal tepat"
-                onChange={(event) => updateItem(item.id, { successMetric: event.target.value })} />
-            </div>
-            <div>
-              <label htmlFor={`mr-frekuensi-${item.id}`} className="label">Frekuensi / waktu</label>
-              <input id={`mr-frekuensi-${item.id}`} className="input text-sm" value={item.cadence ?? ""}
-                placeholder="2 sesi per minggu"
-                onChange={(event) => updateItem(item.id, { cadence: event.target.value })} />
-            </div>
-          </div>
-          <div>
-            <label htmlFor={`mr-status-${item.id}`} className="label">Status</label>
-            <select id={`mr-status-${item.id}`} className="input text-sm" value={item.status ?? "planned"}
-              onChange={(event) => updateItem(item.id, { status: event.target.value as PlanStatus })}>
-              {PLAN_STATUSES.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
-            </select>
-          </div>
-        </div>
-      ))}
-      {draft.priorities.length < 3 && (
-        <button type="button" className="w-full rounded-xl border border-dashed border-indigo-300 py-2 text-sm font-semibold text-indigo-600 hover:bg-indigo-50"
-          onClick={() => setDraft((plan) => ({ ...plan, priorities: [...plan.priorities, newPlanItem()] }))}>
-          ＋ Tambah Prioritas
-        </button>
-      )}
-      <div>
-        <label htmlFor="mr-dukungan" className="label">Dukungan di rumah (opsional)</label>
-        <textarea id="mr-dukungan" className="input text-sm" rows={2} value={draft.parentSupport ?? ""}
-          placeholder="Contoh: Sediakan 10 menit latihan mandiri dua kali seminggu."
-          onChange={(event) => setDraft((plan) => ({ ...plan, parentSupport: event.target.value }))} />
-      </div>
-      {error && <p className="text-xs text-red-600">{error}</p>}
-      <div className="flex gap-2">
-        <button className="btn btn-secondary flex-1 text-sm" onClick={onCancel} disabled={saving}>Batal</button>
-        <button className="btn btn-primary flex-1 text-sm" onClick={save} disabled={saving}>
-          {saving ? "Menyimpan..." : "Simpan Rencana"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-const FONTS = [
-  { id: "'Fredoka', sans-serif", name: "Fredoka" },
-  { id: "'Baloo 2', sans-serif", name: "Baloo 2" },
-  { id: "'Pacifico', cursive", name: "Pacifico" },
-  { id: "'Poppins', sans-serif", name: "Poppins" },
-  { id: "'Nunito', sans-serif", name: "Nunito" },
-  { id: "'Quicksand', sans-serif", name: "Quicksand" },
-  { id: "'Comfortaa', sans-serif", name: "Comfortaa" },
-  { id: "'Caveat', cursive", name: "Caveat" },
-];
-
-const HEADER_STYLES: Array<{ id: import("../template/types").HeaderStyle; name: string }> = [
-  { id: "bubble", name: "Bubble" }, { id: "script", name: "Script" }, { id: "plain", name: "Plain" },
-  { id: "frame", name: "Frame" }, { id: "minimal", name: "Minimal" }, { id: "badge", name: "Badge" }, { id: "watercolor", name: "Watercolor" },
-];
-const LABEL_STYLES: Array<{ id: import("../template/types").LabelStyle; name: string }> = [
-  { id: "pill", name: "Pill" }, { id: "rounded", name: "Rounded" }, { id: "flag", name: "Flag" },
-  { id: "tag", name: "Tag" }, { id: "underline", name: "Underline" }, { id: "ribbon-label", name: "Ribbon" },
-];
-const PHOTO_STYLES: Array<{ id: import("../template/types").PhotoStyle; name: string }> = [
-  { id: "round", name: "Round" }, { id: "circle", name: "Circle" }, { id: "polaroid", name: "Polaroid" },
-  { id: "shadow", name: "Shadow" }, { id: "frame", name: "Frame" }, { id: "vintage", name: "Vintage" }, { id: "duotone", name: "Duotone" },
-];
-const DECO_KINDS: Array<{ id: import("../template/types").DecoKind; name: string }> = [
-  { id: "none", name: "None" }, { id: "snow", name: "Snow" }, { id: "leaf", name: "Leaf" }, { id: "petal", name: "Petal" },
-  { id: "sparkle", name: "Sparkle" }, { id: "star", name: "Star" }, { id: "wave", name: "Wave" }, { id: "sun", name: "Sun" },
-  { id: "geometric", name: "Geometric" }, { id: "dots", name: "Dots" },
-  { id: "confetti", name: "Confetti" },
-  { id: "ribbon", name: "Ribbon" }, { id: "zigzag", name: "Zigzag" },
-];
-
-function CustomThemeBuilder({ onSave }: {
-  onSave: (ct: import("../template/types").CustomTheme) => void;
-}) {
-  const [name, setName] = useState("TemaKu");
-  const [bg, setBg] = useState("#f0f4ff");
-  const [ink, setInk] = useState("#1a2a4a");
-  const [muted, setMuted] = useState("#6b7a99");
-  const [accent, setAccent] = useState("#4d7fd0");
-  const [palette, setPalette] = useState(["#4d7fd0", "#e0892f", "#54b08a", "#d9605f"]);
-  const [fontDisplay, setFontDisplay] = useState("'Fredoka', sans-serif");
-  const [fontBody, setFontBody] = useState("'Nunito', sans-serif");
-  const [header, setHeader] = useState<import("../template/types").HeaderStyle>("bubble");
-  const [label, setLabel] = useState<import("../template/types").LabelStyle>("pill");
-  const [photo, setPhoto] = useState<import("../template/types").PhotoStyle>("round");
-  const [deco, setDeco] = useState<import("../template/types").DecoKind>("none");
-  const [headerText, setHeaderText] = useState("ABSENSI");
-
-  const save = () => {
-    onSave({
-      id: `custom-${Date.now()}`, name: name || "TemaKu", bg, ink, muted, accent, palette,
-      fontDisplay, fontBody, header, label, photo, deco, headerText,
-    });
-  };
-
-  return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
-      <p className="font-bold text-gray-800 text-sm">🎨 Custom Theme Builder</p>
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label htmlFor="mr-nama-tema" className="label">Nama Tema</label>
-          <input id="mr-nama-tema" className="input text-sm" value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
-        <div>
-          <label htmlFor="mr-header-text" className="label">Header Text</label>
-          <input id="mr-header-text" className="input text-sm" value={headerText} onChange={(e) => setHeaderText(e.target.value)} />
-        </div>
-        <div>
-          <label htmlFor="mr-bg" className="label">Background</label>
-          <input id="mr-bg" type="color" className="w-full h-8 rounded cursor-pointer" value={bg} onChange={(e) => setBg(e.target.value)} />
-        </div>
-        <div>
-          <label htmlFor="mr-accent" className="label">Accent</label>
-          <input id="mr-accent" type="color" className="w-full h-8 rounded cursor-pointer" value={accent} onChange={(e) => setAccent(e.target.value)} />
-        </div>
-        <div>
-          <label htmlFor="mr-ink" className="label">Ink (teks)</label>
-          <input id="mr-ink" type="color" className="w-full h-8 rounded cursor-pointer" value={ink} onChange={(e) => setInk(e.target.value)} />
-        </div>
-        <div>
-          <label htmlFor="mr-muted" className="label">Muted (sekunder)</label>
-          <input id="mr-muted" type="color" className="w-full h-8 rounded cursor-pointer" value={muted} onChange={(e) => setMuted(e.target.value)} />
-        </div>
-      </div>
-
-      {/* Style selectors */}
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label htmlFor="mr-header-style" className="label">Header Style</label>
-          <select id="mr-header-style" className="input text-sm" value={header} onChange={(e) => setHeader(e.target.value as HeaderStyle)}>
-            {HEADER_STYLES.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
-          </select>
-        </div>
-        <div>
-          <label htmlFor="mr-label-style" className="label">Label Style</label>
-          <select id="mr-label-style" className="input text-sm" value={label} onChange={(e) => setLabel(e.target.value as LabelStyle)}>
-            {LABEL_STYLES.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-          </select>
-        </div>
-        <div>
-          <label htmlFor="mr-photo-style" className="label">Photo Style</label>
-          <select id="mr-photo-style" className="input text-sm" value={photo} onChange={(e) => setPhoto(e.target.value as PhotoStyle)}>
-            {PHOTO_STYLES.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-        </div>
-        <div>
-          <label htmlFor="mr-deco" className="label">Decoration</label>
-          <select id="mr-deco" className="input text-sm" value={deco} onChange={(e) => setDeco(e.target.value as DecoKind)}>
-            {DECO_KINDS.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </select>
-        </div>
-        <div>
-          <label htmlFor="mr-font-display" className="label">Display Font</label>
-          <select id="mr-font-display" className="input text-sm" value={fontDisplay} onChange={(e) => setFontDisplay(e.target.value)}>
-            {FONTS.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
-          </select>
-        </div>
-        <div>
-          <label htmlFor="mr-font-body" className="label">Body Font</label>
-          <select id="mr-font-body" className="input text-sm" value={fontBody} onChange={(e) => setFontBody(e.target.value)}>
-            {FONTS.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
-          </select>
-        </div>
-      </div>
-
-      {/* Palette */}
-      <div>
-        <label className="label">Palette (4 warna)</label>
-        <div className="flex gap-2">
-          {palette.map((c, i) => (
-            <input key={i} type="color" aria-label={`Warna palet ${i + 1}`} className="w-full h-8 rounded cursor-pointer" value={c}
-              onChange={(e) => { const p = [...palette]; p[i] = e.target.value; setPalette(p); }} />
-          ))}
-        </div>
-      </div>
-
-      {/* Preview mini */}
-      <div className="rounded-xl overflow-hidden border border-gray-200">
-        <div style={{ background: bg, padding: "12px 10px", fontFamily: fontBody, color: ink }}>
-          <div style={{ fontFamily: fontDisplay, fontWeight: 700, fontSize: 18, color: accent, textAlign: "center" }}>
-            {headerText}
-          </div>
-          <div style={{ textAlign: "center", fontSize: 11, marginTop: 2, color: muted }}>
-            Preview · {name}
-          </div>
-          <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
-            {palette.map((c, i) => (
-              <div key={i} style={{ flex: 1, height: 20, borderRadius: 6, background: c }} />
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <button className="btn btn-primary w-full text-sm" onClick={save}>💾 Simpan Tema Kustom</button>
-    </div>
-  );
-}

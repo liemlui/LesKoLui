@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { Session } from "../db/types";
+import type { Session, MonthlyReport } from "../db/types";
 import { reportBlocksSiblingScope } from "../db/repos/helpers";
 import {
   buildReportAiInput,
   findBlockingReportOverlap,
+  findPreviousPeriodReport,
   currentPackageSessionRange,
   resolveReportMutationTarget,
   selectCountReportSessions,
@@ -240,5 +241,51 @@ describe("report session scope", () => {
 
     expect(target?.id).toBe("supplemental");
     expect(periodLookupCalled).toBe(false);
+  });
+});
+
+describe("findPreviousPeriodReport", () => {
+  const makeReport = (overrides: Partial<MonthlyReport> = {}): MonthlyReport => ({
+    id: "r1",
+    studentId: "student-a",
+    month: "2026-06",
+    periodStart: "2026-06-01",
+    periodEnd: "2026-06-30",
+    sessionIds: ["session-1"],
+    templateKey: { themeId: "winter", layoutId: "cards" },
+    summaryText: "",
+    totalHours: 1,
+    totalCost: 200_000,
+    createdAt: "2026-06-30T00:00:00.000Z",
+    ...overrides,
+  });
+
+  it("memilih laporan periode reguler terakhir yang berakhir sebelum periode berjalan", () => {
+    const current = makeReport({ id: "cur", periodStart: "2026-08-01", periodEnd: "2026-08-31" });
+    const prev = [
+      makeReport({ id: "jun", periodStart: "2026-06-01", periodEnd: "2026-06-30", createdAt: "2026-06-30T00:00:00.000Z" }),
+      makeReport({ id: "jul", periodStart: "2026-07-01", periodEnd: "2026-07-31", createdAt: "2026-07-31T00:00:00.000Z" }),
+    ];
+    expect(findPreviousPeriodReport(prev, current.periodStart)?.id).toBe("jul");
+  });
+
+  it("mengabaikan laporan paket (session_count) dan susulan", () => {
+    const reports = [
+      makeReport({ id: "pkg", billingMode: "session_count", periodEnd: "2026-07-31" }),
+      makeReport({ id: "supp", supplementalForReportId: "x", periodEnd: "2026-07-31" }),
+      makeReport({ id: "reg", periodStart: "2026-07-01", periodEnd: "2026-07-31" }),
+    ];
+    expect(findPreviousPeriodReport(reports, "2026-08-01")?.id).toBe("reg");
+  });
+
+  it("mengabaikan laporan yang periodenya tidak berakhir sebelum periode berjalan", () => {
+    const reports = [
+      makeReport({ id: "late", periodStart: "2026-08-15", periodEnd: "2026-08-31" }),
+    ];
+    expect(findPreviousPeriodReport(reports, "2026-08-01")).toBeUndefined();
+  });
+
+  it("undefined bila tidak ada laporan", () => {
+    expect(findPreviousPeriodReport([], "2026-08-01")).toBeUndefined();
   });
 });

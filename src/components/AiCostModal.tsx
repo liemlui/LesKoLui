@@ -3,13 +3,15 @@ interface AiCostModalProps {
   title: string;
   estimatedIDR: number;
   description?: string;
+  /** Konten opsional (mis. checkbox "regenerasi paksa") di atas tombol aksi. */
+  extraContent?: React.ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
 import Modal from "./Modal";
 
-export function AiCostModal({ open, title, estimatedIDR, description, onConfirm, onCancel }: AiCostModalProps) {
+export function AiCostModal({ open, title, estimatedIDR, description, extraContent, onConfirm, onCancel }: AiCostModalProps) {
   if (!open) return null;
   return (
     <Modal onClose={onCancel} ariaLabel={title}>
@@ -20,6 +22,7 @@ export function AiCostModal({ open, title, estimatedIDR, description, onConfirm,
         {description && <p className="text-xs text-indigo-500">{description}</p>}
         <p className="text-xs text-gray-500">Biaya aktual mungkin sedikit berbeda</p>
       </div>
+      {extraContent}
       <div className="flex gap-3">
         <button onClick={onCancel}
           className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-500 font-semibold text-sm">

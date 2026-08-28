@@ -11,6 +11,59 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
 {
+    version: "v1.57.0",
+    date: "2026-08-28",
+    title: "Laporan Bulanan Dipecah Jadi Modul Kecil (Refactor)",
+    items: [
+      "Halaman Laporan Bulanan dipecah dari 2.466 menjadi ~1.900 baris: helpers murni, editor rencana depan, builder tema kustom, hook export, dan hook generasi AI dipindah ke folder `screens/monthlyReport/`",
+      "Seluruh logika AI (narasi, ringkasan, fallback gratis) kini terkumpul di satu modul `useReportGeneration.ts` — mudah dibaca dan murah token",
+      "Perilaku tidak berubah — hanya restrukturisasi file; seluruh 326 unit test tetap hijau dan build produksi lolos tanpa migrasi schema",
+    ],
+  },
+{
+    version: "v1.56.0",
+    date: "2026-08-28",
+    title: "Prediksi vs Nilai Aktual di Laporan — Konteks Ujian Jelas",
+    items: [
+      "Setiap sesi yang punya nilai akurat kini menampilkan chip 'Ujian: prediksi → aktual' — ujian merujuk topik spesifik (mis. Paper 2), bukan mapel generik",
+      "Layout Rapor Style & Progress Bar menampilkan tabel 'Prediksi vs Nilai Aktual' (Tanggal · Ujian · Prediksi · Aktual · Δ) untuk melihat akurasi prediksi sekilas",
+      "AI kini menerima nilai akhir & refleksi per sesi, sehingga narasi bisa menyebut perbandingan prediksi vs aktual secara natural",
+    ],
+  },
+{
+    version: "v1.55.0",
+    date: "2026-08-28",
+    title: "Tren Fokus Bulan-ke-Bulan di Laporan",
+    items: [
+      "Laporan kini membandingkan rata-rata fokus periode ini terhadap laporan periode sebelumnya (MoM), tampil sebagai badge '▲ 6 → 7 vs periode lalu' di layout Dashboard, Ringkasan Eksekutif, dan Infografis",
+      "Ringkasan AI memakai rata-rata fokus periode sebelumnya sebagai konteks, sehingga narasi bisa menyebut perkembangan antar periode secara natural",
+      "Perhitungan rata-rata engagement diekstrak jadi helper bersama (sessionEngagementScore, averageEngagement) — konsisten lintas layar",
+    ],
+  },
+{
+    version: "v1.54.0",
+    date: "2026-08-28",
+    title: "AI Laporan Hemat Token — Tidak Membaca Ulang Sesi yang Sama",
+    items: [
+      "Perkuat Narasi AI kini hanya mengirim sesi yang berubah (shortNote/mood/topik/nilai berubah atau narasi masih kosong) — narasi lain, termasuk edit manual tutor, dipertahankan",
+      "Perkuat Teks AI (ringkasan) otomatis dilewati bila tidak ada perubahan sesi sejak ringkasan terakhir dibuat",
+      "Biaya ditampilkan sesuai jumlah sesi yang benar-benar dikirim, plus opsi 'Tulis ulang paksa' bila ingin regenerasi penuh",
+      "Fingerprint konten (FNV-1a non-kriptografis) disimpan sebagai field non-indexed — tanpa migrasi schema dan tetap kompatibel dengan backup lama",
+    ],
+  },
+{
+    version: "v1.53.0",
+    date: "2026-08-28",
+    title: "Daftar Murid Lebih Kuat dan Aman",
+    items: [
+      "Kartu murid kini menampilkan avatar berwarna konsisten dengan kalender Home, plus badge peringatan untuk follow-up tertunda dan tagihan belum dibayar",
+      "Nonaktifkan murid kini memperingatkan bila masih ada jadwal mendatang; nama murid nonaktif tetap tampil di kalender Home",
+      "Hapus murid kini menampilkan ringkasan data yang ikut terhapus (sesi, laporan, tagihan, follow-up, nilai rapor, IA/EE, catatan) plus opsi nonaktifkan saja",
+      "Semua aksi murid (tambah/edit/nonaktifkan/aktifkan/hapus) kini memberi notifikasi toast; PIN bisa dikonfirmasi dengan tombol Enter",
+      "Empty state dan pencarian yang lebih jelas, plus panduan membuat jadwal pertama setelah menambah murid",
+    ],
+  },
+  {
     version: "v1.52.0",
     date: "2026-08-28",
     title: "Laporan Lama Tanpa Status Tidak Lagi Menyembunyikan Sesi",

@@ -30,10 +30,13 @@ Setiap screen component besar perlu dipecah menjadi sub-components dan custom ho
 - [ ] Extract `useStorageQuota()` — storage monitoring hook
 - [ ] Extract `useBackup()` — backup/restore logic hook
 
-### MonthlyReport.tsx (~72KB, ~1.331 baris)
-- [ ] Extract `useReportGeneration()` — AI narrative + report creation
-- [ ] Extract `useReportExport()` — JPG/PNG/PDF export logic
-- [ ] Split layout selector into `LayoutPicker` component
+### MonthlyReport.tsx (refactor v1.57.0: 2466 → ~1900 baris, +5 file di `screens/monthlyReport/`)
+- [x] Extract `helpers.ts` — konstanta + fungsi murni (cleanText, buildSessionNarrative, normaliseAiPlan, dll.)
+- [x] Extract `NextMonthPlanEditor.tsx` — editor rencana bulan depan (max 3 prioritas)
+- [x] Extract `CustomThemeBuilder.tsx` — builder tema kustom + konstanta style
+- [x] Extract `useReportExport.ts` — logika export JPG/PNG/PDF + tandai sudah dibagikan
+- [x] Extract `useReportGeneration.ts` — seluruh logika AI (handlePolish, handleGenerateNarratives, fallback lokal) + state aiLoading/aiRequestRef/prevTexts
+- [ ] Split `LayoutPicker` component — **sengaja ditunda**: toolbar desain butuh ~20 props (designOpen, undoStack, coverPage, showCompare, compareThemeId, showCustomBuilder, handleRegenerate, handleCreateOrSwitch, dll.) yang juga dipakai di luar toolbar (reportOptions, handleRegenerate), sehingga ekstraksinya hanya memindahkan JSX tanpa mengurangi coupling. Dipertimbangkan ulang bila state desain diangkat ke hook `useDesignPicker`.
 
 ## 🟢 Lower Priority
 

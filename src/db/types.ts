@@ -129,6 +129,10 @@ export interface Session {
   /** Refleksi bila nilai akhir lebih rendah dari prediksi. */
   gradeReflection?: string;
   narrative?: string;
+  /** Fingerprint konten AI (non-indexed, dedup) — lihat lib/aiIncremental.ts.
+   *  Tersimpan saat narasi dibuat AI; dipakai agar AI tidak membaca ulang
+   *  sesi yang tidak berubah. Bukan field keamanan. */
+  aiNarrativeHash?: number;
   engagement?: EngagementLog;
   behaviorTags?: string[];  // IDs from BEHAVIOR_TAGS in responseTaxonomy
   responseTag?: string;     // single ID from RESPONSE_TAGS in responseTaxonomy
@@ -227,6 +231,10 @@ export interface MonthlyReport {
   totalCost: number;
   createdAt: string;
   pdfGeneratedAt?: string;
+  /** Fingerprint sesi saat ringkasan terakhir dibuat AI (dedup) — lihat
+   *  lib/aiIncremental.ts. Dipakai agar "Poles Ringkasan" bisa dilewati
+   *  bila tidak ada perubahan sesi. Bukan field keamanan. */
+  summaryHash?: number;
 }
 
 export interface Payment {

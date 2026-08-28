@@ -3,7 +3,7 @@ import type { Layout } from "../types";
 import { Deco } from "../deco";
 import {
   HeaderEl, LabelEl, PhotoEl, NarrEl, SessionMeta,
-  SummaryEl, Sparkline, EMPTY_SUBJECT,
+  SummaryEl, Sparkline, EngagementTrend, EMPTY_SUBJECT,
   entryDateShort, entrySubject, entrySubjectShort,
   entryNarrative, truncateText,
 } from "./helpers";
@@ -381,13 +381,20 @@ export const infographic: Layout = {
             </div>
 
             {/* Tren fokus */}
-            {series.length >= 2 && (
+            {(series.length >= 2 || d.prevAvgEngagement != null) && (
               <div style={{ ...panel, marginBottom: 12 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: series.length >= 2 ? 8 : 0 }}>
                   <p style={overline}>Tren Fokus</p>
-                  <span style={{ fontSize: 10, color: t.muted }}>skala 1–10 · rata-rata {d.avgEngagement ?? "—"}</span>
+                  {series.length >= 2 && (
+                    <span style={{ fontSize: 10, color: t.muted }}>skala 1–10 · rata-rata {d.avgEngagement ?? "—"}</span>
+                  )}
                 </div>
-                {Sparkline(series, t)}
+                {series.length >= 2 && Sparkline(series, t)}
+                {d.prevAvgEngagement != null && d.avgEngagement != null && (
+                  <div style={{ marginTop: series.length >= 2 ? 8 : 0, textAlign: "center" }}>
+                    <EngagementTrend current={d.avgEngagement} previous={d.prevAvgEngagement} t={t} />
+                  </div>
+                )}
               </div>
             )}
 

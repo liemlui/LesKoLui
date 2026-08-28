@@ -122,15 +122,36 @@ export async function resolveReportMutationTarget<T>(
     : loadByPeriod();
 }
 
+/** Laporan periode reguler (bukan paket/susulan) terakhir yang berakhir SEBELUM
+ *  awal periode saat ini — dasar tren engagement bulan-ke-bulan. */
+export function findPreviousPeriodReport(
+  reports: readonly MonthlyReport[],
+  currentPeriodStart: string,
+): MonthlyReport | undefined {
+  return reports
+    .filter((report) =>
+      report.billingMode !== "session_count"
+      && !report.supplementalForReportId
+      && report.sessionIds.length > 0
+      && report.periodEnd < currentPeriodStart
+    )
+    .sort((a, b) =>
+      b.periodEnd.localeCompare(a.periodEnd)
+      || b.createdAt.localeCompare(a.createdAt)
+    )[0];
+}
+
 /** Build AI input from the already-selected report scope, never from history. */
 export function buildReportAiInput(
   student: Pick<Student, "name" | "level">,
   period: string,
   reportSessions: readonly Session[],
+  prevAvgEngagement?: number,
 ): AiInput {
   return {
     student: { name: student.name, level: student.level },
     month: period,
+    prevAvgEngagement,
     sessions: reportSessions.map((session) => ({
       id: session.id,
       date: dayLabel(session.date),
@@ -140,6 +161,8 @@ export function buildReportAiInput(
       topic: session.topic,
       needsWork: session.needsWork,
       predictedGrade: session.predictedGrade,
+      actualGrade: session.actualGrade,
+      gradeReflection: session.gradeReflection,
       engagementScore: session.engagement?.score,
       behaviorLabels: session.behaviorTags
         ?.map((id) => BEHAVIOR_TAGS.find((tag) => tag.id === id)?.label)

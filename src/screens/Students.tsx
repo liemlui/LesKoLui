@@ -1,18 +1,24 @@
 import Skeleton from "../components/Skeleton";
 import { useState, useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   listStudents, createStudent, updateStudent, deleteStudent,
   listSessionsForMonth, getSettings, listAllUpcomingScheduled,
+  listPendingFollowUps, listPayments,
+  listSessionsByStudent, listReportsByStudent, listPaymentsByStudent,
+  listRaporGrades, listIaEeProjects, getStudyNote,
 } from "../db/repos";
 import type { StudentBillingUpdateOptions } from "../db/repos";
 import { todayWIB, monthOf, monthLabel, dayLabel } from "../lib/format";
 import { usePinGate } from "../hooks/usePinGate";
+import { colorForStudent } from "../lib/studentColor";
 import type { Student } from "../db/types";
+import { useToastCtx } from "../components/ToastProvider";
 import StudentForm from "../components/StudentForm";
 import Modal from "../components/Modal";
 import PaginationControls from "../components/PaginationControls";
+import Badge from "../components/Badge";
 import { clampPage, paginateItems } from "../lib/pagination";
 
 type Tab = "aktif" | "historis";
@@ -20,10 +26,14 @@ type Tab = "aktif" | "historis";
 export default function Students() {
   const today        = todayWIB();
   const currentMonth = monthOf(today);
+  const navigate     = useNavigate();
+  const toast        = useToastCtx();
   const allStudents   = useLiveQuery(() => listStudents(), []);
   const monthSessions = useLiveQuery(() => listSessionsForMonth(currentMonth), [currentMonth]);
   const settings      = useLiveQuery(() => getSettings(), []);
   const upcomingSched = useLiveQuery(() => listAllUpcomingScheduled(today), [today]);
+  const followUps     = useLiveQuery(() => listPendingFollowUps(), []);
+  const payments      = useLiveQuery(() => listPayments(), []);
 
   const [tab, setTab] = useState<Tab>("aktif");
   const [search, setSearch] = useState("");
@@ -31,6 +41,7 @@ export default function Students() {
   const [editing, setEditing] = useState<Student | null>(null);
   const [activePage, setActivePage] = useState(1);
   const [histPage, setHistPage] = useState(1);
+  const [justAddedId, setJustAddedId] = useState<string | null>(null);
 
   // PIN gate — shared hook for PIN verification with lockout protection
   const pin = usePinGate();
@@ -60,6 +71,72 @@ export default function Students() {
     });
     return m;
   }, [upcomingSched]);
+
+  // Map: studentId → count of upcoming scheduled sessions (for deactivate warning)
+  const upcomingCountMap = useMemo(() => {
+    const m = new Map<string, number>();
+    (upcomingSched ?? []).forEach((s) => m.set(s.studentId, (m.get(s.studentId) ?? 0) + 1));
+    return m;
+  }, [upcomingSched]);
+
+  // Map: studentId → pending follow-up count (attention badges)
+  const followUpCountMap = useMemo(() => {
+    const m = new Map<string, number>();
+    (followUps ?? []).forEach((f) => m.set(f.studentId, (m.get(f.studentId) ?? 0) + 1));
+    return m;
+  }, [followUps]);
+
+  // Map: studentId → unpaid invoice count (attention badges)
+  const unpaidCountMap = useMemo(() => {
+    const m = new Map<string, number>();
+    (payments ?? []).forEach((p) => {
+      if (p.status === "UNPAID") m.set(p.studentId, (m.get(p.studentId) ?? 0) + 1);
+    });
+    return m;
+  }, [payments]);
+
+  // How many active students need attention (for the summary line)
+  const needsAttentionCount = useMemo(() => {
+    let n = 0;
+    (allStudents ?? []).forEach((s) => {
+      if (!s.active) return;
+      if ((followUpCountMap.get(s.id) ?? 0) > 0 || (unpaidCountMap.get(s.id) ?? 0) > 0) n++;
+    });
+    return n;
+  }, [allStudents, followUpCountMap, unpaidCountMap]);
+
+  // Read-only summary of what would be deleted for the pending student.
+  const deleteTargetId = pendingAction?.action === "delete" ? pendingAction.student.id : null;
+  const deleteSummary = useLiveQuery(async () => {
+    if (!deleteTargetId) return null;
+    const [sessions, reports, pays, rapor, iaee, fups, note] = await Promise.all([
+      listSessionsByStudent(deleteTargetId),
+      listReportsByStudent(deleteTargetId),
+      listPaymentsByStudent(deleteTargetId),
+      listRaporGrades(deleteTargetId),
+      listIaEeProjects(deleteTargetId),
+      listPendingFollowUps(deleteTargetId),
+      getStudyNote(deleteTargetId),
+    ]);
+    return {
+      sessions: sessions.length,
+      reports: reports.length,
+      payments: pays.length,
+      raporGrades: rapor.length,
+      iaee: iaee.length,
+      followUps: fups.length,
+      studyNote: note ? 1 : 0,
+    };
+  }, [deleteTargetId]);
+
+  // Post-add guidance: show until the just-added student gets a schedule or session.
+  const justAddedStudent = useMemo(
+    () => (justAddedId ? (allStudents ?? []).find((s) => s.id === justAddedId) : undefined),
+    [justAddedId, allStudents]
+  );
+  const showFirstScheduleGuide = Boolean(
+    justAddedStudent && !nextSessionMap.has(justAddedStudent.id) && !statsMap.has(justAddedStudent.id)
+  );
 
   const q = search.toLowerCase().trim();
 
@@ -95,8 +172,11 @@ export default function Students() {
   ) => {
     if (editing) {
       await updateStudent(editing.id, data, options);
+      toast.success(`Profil "${data.name}" diperbarui ✓`);
     } else {
-      await createStudent(data);
+      const id = await createStudent(data);
+      toast.success(`Murid "${data.name}" ditambahkan ✓`);
+      if ((allStudents ?? []).length === 0) setJustAddedId(id);
     }
     setShowForm(false);
     setEditing(null);
@@ -110,7 +190,7 @@ export default function Students() {
         setShowForm(true);
         return;
       }
-      alert("Set PIN Keuangan di Pengaturan sebelum melakukan aksi ini.");
+      toast.error("Set PIN Keuangan di Pengaturan sebelum melakukan aksi ini.");
       return;
     }
     setPendingAction({ action, student });
@@ -122,10 +202,13 @@ export default function Students() {
     const { action, student } = pendingAction;
     if (action === "delete") {
       await deleteStudent(student.id);
+      toast.success(`Murid "${student.name}" dihapus ✓`);
     } else if (action === "deactivate") {
       await updateStudent(student.id, { active: false });
+      toast.info(`"${student.name}" dipindah ke historis`);
     } else if (action === "activate") {
       await updateStudent(student.id, { active: true });
+      toast.success(`"${student.name}" diaktifkan kembali ✓`);
     } else if (action === "edit") {
       setEditing(student);
       setShowForm(true);
@@ -144,9 +227,12 @@ export default function Students() {
     const stats = statsMap.get(s.id);
     const next  = nextSessionMap.get(s.id);
     const daysEnrolled = Math.floor(
-      (new Date().getTime() - new Date(s.enrolledAt).getTime()) / (1000 * 60 * 60 * 24)
+      (new Date(today + "T00:00:00").getTime() - new Date(s.enrolledAt + "T00:00:00").getTime())
+      / (1000 * 60 * 60 * 24)
     );
     const monthsSince = Math.floor(daysEnrolled / 30);
+    const pendingFollowUps = followUpCountMap.get(s.id) ?? 0;
+    const unpaidInvoices = unpaidCountMap.get(s.id) ?? 0;
 
     const nextChip = (() => {
       if (!next) return null;
@@ -173,7 +259,8 @@ export default function Students() {
         <Link to={`/students/${s.id}`} className="block p-4">
           <div className="flex items-start gap-3">
             {/* Avatar */}
-            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+            <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
+              style={{ background: colorForStudent(s.id) }}>
               {s.name.charAt(0).toUpperCase()}
             </div>
 
@@ -197,6 +284,18 @@ export default function Students() {
                   ))}
                   {s.subjects.length > 4 && (
                     <span className="text-xs text-gray-500">+{s.subjects.length - 4}</span>
+                  )}
+                </div>
+              )}
+
+              {/* Attention badges */}
+              {(pendingFollowUps > 0 || unpaidInvoices > 0) && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {pendingFollowUps > 0 && (
+                    <Badge tone="amber" size="sm">🔔 {pendingFollowUps} follow-up</Badge>
+                  )}
+                  {unpaidInvoices > 0 && (
+                    <Badge tone="red" size="sm">💳 {unpaidInvoices} tagihan belum dibayar</Badge>
                   )}
                 </div>
               )}
@@ -269,6 +368,41 @@ export default function Students() {
         </button>
       </div>
 
+      {/* Post-add guidance */}
+      {showFirstScheduleGuide && justAddedStudent && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-start gap-2">
+          <span className="text-xl">🎯</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-blue-900">
+              Murid "{justAddedStudent.name}" sudah terdaftar!
+            </p>
+            <p className="text-xs text-blue-700 mt-0.5">
+              Langkah berikutnya: buat jadwal sesi pertama mereka.
+            </p>
+            <div className="flex gap-2 mt-2">
+              <button onClick={() => navigate("/")}
+                className="text-xs font-semibold bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition-colors">
+                Buka Kalender
+              </button>
+              <button onClick={() => setJustAddedId(null)}
+                className="text-xs font-semibold text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors">
+                Nanti saja
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Needs-attention summary */}
+      {needsAttentionCount > 0 && (
+        <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+          <span>🔔</span>
+          <p className="text-xs font-semibold text-amber-800">
+            {needsAttentionCount} murid butuh perhatian (follow-up atau tagihan)
+          </p>
+        </div>
+      )}
+
       {/* Summary banner */}
       {totalMonthSessions > 0 && (
         <div className="bg-blue-50 rounded-xl p-3 flex items-center justify-between">
@@ -301,6 +435,8 @@ export default function Students() {
         <input
           className="input pl-9 w-full"
           inputMode="search"
+          type="search"
+          aria-label="Cari murid"
           placeholder="Cari nama murid..."
           value={search}
           onChange={(e) => { setSearch(e.target.value); setActivePage(1); setHistPage(1); }}
@@ -325,8 +461,20 @@ export default function Students() {
       {/* Active students */}
       {tab === "aktif" && (
         <>
-          {active.length === 0 && !showForm ? (
-            <p className="text-gray-500 text-center py-8">Belum ada murid aktif.</p>
+          {active.length === 0 ? (
+            q ? (
+              <p className="text-gray-500 text-center py-8">Tidak ada hasil untuk "{search}".</p>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500">Belum ada murid aktif.</p>
+                <button
+                  onClick={() => { setEditing(null); setShowForm(true); }}
+                  className="mt-3 text-sm font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-xl transition-colors"
+                >
+                  + Tambah murid pertama
+                </button>
+              </div>
+            )
           ) : (
             <div className="space-y-2">
               {paginatedActive.map(renderStudentCard)}
@@ -340,7 +488,11 @@ export default function Students() {
       {tab === "historis" && (
         <>
           {inactive.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">Tidak ada murid nonaktif.</p>
+            q ? (
+              <p className="text-gray-500 text-center py-8">Tidak ada hasil untuk "{search}".</p>
+            ) : (
+              <p className="text-gray-500 text-center py-8">Tidak ada murid nonaktif.</p>
+            )
           ) : (
             <div className="space-y-2">
               {paginatedInactive.map(renderStudentCard)}
@@ -373,12 +525,39 @@ export default function Students() {
                 ? `"${pendingAction.student.name}" diaktifkan kembali.`
                 : `Edit profil "${pendingAction.student.name}"?`}
             </p>
+
+            {pendingAction.action === "deactivate" && (upcomingCountMap.get(pendingAction.student.id) ?? 0) > 0 && (
+              <p className="mt-2 rounded-lg bg-amber-50 border border-amber-200 p-2 text-xs text-amber-900">
+                ⚠️ Masih ada {upcomingCountMap.get(pendingAction.student.id)} jadwal mendatang yang belum selesai.
+                Pertimbangkan untuk membatalkan atau mengatur ulang jadwal tersebut.
+              </p>
+            )}
+
+            {pendingAction.action === "delete" && deleteSummary && (
+              <div className="mt-2 rounded-lg bg-red-50 border border-red-100 p-2 text-xs text-red-800">
+                <p className="font-semibold mb-1">Yang akan ikut terhapus:</p>
+                <ul className="space-y-0.5">
+                  {deleteSummary.sessions > 0 && <li>• {deleteSummary.sessions} sesi</li>}
+                  {deleteSummary.reports > 0 && <li>• {deleteSummary.reports} laporan</li>}
+                  {deleteSummary.payments > 0 && <li>• {deleteSummary.payments} tagihan</li>}
+                  {deleteSummary.followUps > 0 && <li>• {deleteSummary.followUps} follow-up aktif</li>}
+                  {deleteSummary.raporGrades > 0 && <li>• {deleteSummary.raporGrades} nilai rapor</li>}
+                  {deleteSummary.iaee > 0 && <li>• {deleteSummary.iaee} proyek IA/EE</li>}
+                  {deleteSummary.studyNote > 0 && <li>• catatan belajar</li>}
+                  {deleteSummary.sessions === 0 && deleteSummary.reports === 0 && deleteSummary.payments === 0 && deleteSummary.followUps === 0 && deleteSummary.raporGrades === 0 && deleteSummary.iaee === 0 && deleteSummary.studyNote === 0 && (
+                    <li>• Tidak ada riwayat — hanya profil</li>
+                  )}
+                </ul>
+              </div>
+            )}
           </div>
           {settings?.financialPin && (
             <div>
               <p className="text-xs text-gray-500 mb-1">Masukkan PIN untuk konfirmasi</p>
               <input type="password" inputMode="numeric" maxLength={6} placeholder="PIN"
-                value={pin.pinInput} onChange={(e) => pin.setPinInput(e.target.value)}
+                value={pin.pinInput}
+                onChange={(e) => { pin.setPinInput(e.target.value.replace(/\D/g, "").slice(0, 6)); pin.setPinError(""); }}
+                onKeyDown={(e) => { if (e.key === "Enter") handlePinConfirm(); }}
                 className="input text-center tracking-widest text-lg w-full" autoFocus />
               {pin.pinError && <p className="text-xs text-red-500 mt-1">{pin.pinError}</p>}
             </div>
@@ -394,6 +573,14 @@ export default function Students() {
               {pendingAction.action === "delete" ? "Hapus" : pendingAction.action === "deactivate" ? "Nonaktifkan" : pendingAction.action === "activate" ? "Aktifkan" : "Edit"}
             </button>
           </div>
+
+          {pendingAction.action === "delete" && (
+            <button
+              onClick={() => { setPendingAction({ action: "deactivate", student: pendingAction.student }); pin.resetPin(); }}
+              className="w-full text-center text-xs font-semibold text-gray-500 hover:text-gray-700 py-1">
+              Alih-alih hapus, nonaktifkan saja →
+            </button>
+          )}
         </Modal>
       )}
     </div>

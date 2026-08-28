@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import type { Theme, ReportData, ReportEntry } from "../types";
+import type { Theme, ReportData, ReportEntry, GradeComparisonRow } from "../types";
 
 // Ikut tercetak di laporan orang tua — jaga netral, tanpa instruksi untuk tutor
 export const EMPTY_NARRATIVE = "Sesi berjalan sesuai jadwal.";
@@ -50,6 +50,23 @@ export function truncateText(value: string, max: number): string {
   const text = clean(value);
   if (text.length <= max) return text;
   return `${text.slice(0, Math.max(0, max - 1))}…`;
+}
+
+/**
+ * Selisih prediksi → aktual bila keduanya bisa dibandingkan numerik
+ * (mis. nilai IB 1–7). Non-numerik → undefined. Hasil: "+1", "−1", atau "sama".
+ */
+export function gradeDelta(predicted?: string, actual?: string): string | undefined {
+  const p = clean(predicted);
+  const a = clean(actual);
+  if (!p || !a) return undefined;
+  const pn = Number(p);
+  const an = Number(a);
+  if (Number.isNaN(pn) || Number.isNaN(an)) return undefined;
+  const diff = an - pn;
+  if (diff > 0) return `+${diff}`;
+  if (diff < 0) return `${diff}`;
+  return "sama";
 }
 
 /**
@@ -414,6 +431,62 @@ function MetaChip({ t, tone = "muted", icon, children }: {
   );
 }
 
+/** Konteks ujian: topik spesifik (mis. "Paper 2"), fallback ke mapel. */
+function gradeExam(e: ReportEntry): string {
+  return clean(e.topic) || entrySubject(e) || "Ujian";
+}
+
+/** Chip prediksi → aktual dengan konteks ujian yang jelas (exam mana). */
+function GradeChip({ e, t }: { e: ReportEntry; t: Theme }) {
+  const predicted = clean(e.predictedGrade);
+  const actual = clean(e.actualGrade);
+  if (!predicted && !actual) return null;
+  const exam = gradeExam(e);
+  const delta = predicted && actual ? gradeDelta(predicted, actual) : undefined;
+  if (predicted && actual) {
+    return (
+      <MetaChip t={t} tone="accent" icon="🎯">
+        {exam}: {predicted} → {actual}{delta ? ` (${delta})` : ""}
+      </MetaChip>
+    );
+  }
+  return (
+    <MetaChip t={t} icon="📈">
+      {exam}: {predicted ? `Prediksi ${predicted}` : `Aktual ${actual}`}
+    </MetaChip>
+  );
+}
+
+/**
+ * Tabel perbandingan prediksi vs nilai aktual — dipakai layout rapor/progress
+ * agar orang tua langsung melihat akurasi prediksi per ujian (exam mana).
+ */
+export function GradeComparisonTable({ rows, t }: { rows?: GradeComparisonRow[]; t: Theme }) {
+  if (!rows || rows.length === 0) return null;
+  const grid = "1.2fr 2fr 0.9fr 0.9fr 0.7fr";
+  return (
+    <div style={{ position: "relative", zIndex: 2, marginBottom: 16 }}>
+      <div style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 12, color: t.accent, marginBottom: 8, letterSpacing: 1, textTransform: "uppercase" as const }}>
+        Prediksi vs Nilai Aktual
+      </div>
+      <div style={{ borderRadius: 12, overflow: "hidden", border: `1px solid ${t.accent}33` }}>
+        <div style={{ display: "grid", gridTemplateColumns: grid, gap: 6, padding: "6px 10px", background: t.accent, fontWeight: 700, fontSize: 9.5, color: onColor(t.accent) }}>
+          <span>Tanggal</span><span>Ujian</span><span>Prediksi</span><span>Aktual</span><span>Δ</span>
+        </div>
+        {rows.map((row, i) => (
+          <div key={i} style={{ display: "grid", gridTemplateColumns: grid, gap: 6, padding: "5px 10px", background: i % 2 === 0 ? "rgba(255,255,255,.55)" : t.accent + "08", borderTop: `1px solid ${t.muted}18`, fontSize: 9.5, alignItems: "center" }}>
+            <span style={{ color: t.muted }}>{row.date}</span>
+            <span style={{ fontWeight: 600, color: t.ink }}>{row.exam}</span>
+            <span style={{ color: t.ink }}>{row.predicted ?? "—"}</span>
+            <span style={{ color: t.ink, fontWeight: 700 }}>{row.actual ?? "—"}</span>
+            <span style={{ fontWeight: 800, color: row.delta === "sama" ? t.muted : row.delta?.startsWith("+") ? "#059669" : "#DC2626" }}>{row.delta ?? ""}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /**
  * Blok meta standar per sesi — dipanggil seragam di semua layout agar orang tua
  * selalu melihat informasi inti yang sama, apa pun desainnya.
@@ -421,7 +494,7 @@ function MetaChip({ t, tone = "muted", icon, children }: {
 export function SessionMeta({ e, t }: { e: ReportEntry; t: Theme }) {
   const timeText = [clean(e.timeLabel), clean(e.durationLabel)].filter(Boolean).join(" · ");
   const hasAny = clean(e.mood) || clean(e.engagementLabel) || clean(e.topic) || timeText ||
-    clean(e.predictedGrade) || clean(e.needsWork) || Boolean(e.signatureUrl);
+    clean(e.predictedGrade) || clean(e.actualGrade) || clean(e.needsWork) || Boolean(e.signatureUrl);
   if (!hasAny) return null;
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center", marginTop: 6 }}>
@@ -429,7 +502,7 @@ export function SessionMeta({ e, t }: { e: ReportEntry; t: Theme }) {
       <FocusBadge label={e.engagementLabel} t={t} />
       {clean(e.topic) && <MetaChip t={t} tone="accent" icon="📌">Topik: {clean(e.topic)}</MetaChip>}
       {timeText && <MetaChip t={t} icon="🕐">{timeText}</MetaChip>}
-      {clean(e.predictedGrade) && <MetaChip t={t} icon="📈">Prediksi: {clean(e.predictedGrade)}</MetaChip>}
+      <GradeChip e={e} t={t} />
       {clean(e.needsWork) && <MetaChip t={t} tone="warn" icon="✏️">Perlu perhatian: {clean(e.needsWork)}</MetaChip>}
       {e.signatureUrl && (
         <span title="Tanda tangan murid" style={{ display: "inline-flex", alignItems: "center", gap: 4, marginLeft: 2 }}>
@@ -523,5 +596,24 @@ export function Sparkline(series: number[], t: Theme) {
       <polyline points={pts} fill="none" stroke={t.accent} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
       {series.map((v, i) => <circle key={i} cx={xOf(i)} cy={yOf(v)} r={2.6} fill={t.accent} />)}
     </svg>
+  );
+}
+
+/** Badge tren engagement bulan-ke-bulan (periode ini vs sebelumnya). */
+export function EngagementTrend({ current, previous, t }: {
+  current?: number;
+  previous?: number;
+  t: Theme;
+}) {
+  if (current == null || previous == null) return null;
+  const delta = current - previous;
+  const arrow = delta > 0 ? "▲" : delta < 0 ? "▼" : "•";
+  const color = delta > 0 ? "#059669" : delta < 0 ? "#DC2626" : t.muted;
+  const label = delta > 0 ? "naik" : delta < 0 ? "turun" : "stabil";
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700, color }}>
+      <span aria-hidden>{arrow}</span>
+      <span>{previous} → {current} vs periode lalu ({label})</span>
+    </span>
   );
 }

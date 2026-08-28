@@ -2,7 +2,7 @@ import type { Layout } from "../types";
 import { Deco } from "../deco";
 import {
   HeaderEl, LabelEl, PhotoEl, NarrEl, SessionMeta,
-  SummaryEl, onColor, entryDateShort,
+  SummaryEl, EngagementTrend, GradeComparisonTable, onColor, entryDateShort,
 } from "./helpers";
 
 export const dashboard: Layout = {
@@ -26,6 +26,11 @@ export const dashboard: Layout = {
           </div>
         ))}
       </div>
+      {(d.avgEngagement != null && d.prevAvgEngagement != null) && (
+        <div style={{ position: "relative", zIndex: 2, marginBottom: 12, textAlign: "center" }}>
+          <EngagementTrend current={d.avgEngagement} previous={d.prevAvgEngagement} t={t} />
+        </div>
+      )}
       {/* Session rows */}
       {d.entries.map((e, i) => {
         const c = t.palette[i % t.palette.length];
@@ -57,6 +62,7 @@ export const progress: Layout = {
     <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
       {isFirst && HeaderEl(d, t)}
+      {isFirst && <GradeComparisonTable rows={d.gradeComparison} t={t} />}
       {d.entries.map((e, i) => {
         const c = t.palette[i % t.palette.length];
         const barPct = e.engagementScore != null ? e.engagementScore * 10 : 50;
@@ -182,6 +188,7 @@ export const reportcard: Layout = {
     <div style={{ background: t.bg, color: t.ink, fontFamily: t.fontBody, borderRadius: 22, padding: "22px 17px 26px", position: "relative", overflow: "hidden", pageBreakInside: "avoid" }}>
       <Deco kind={t.deco} />
       {isFirst && HeaderEl(d, t)}
+      {isFirst && <GradeComparisonTable rows={d.gradeComparison} t={t} />}
       <div style={{ position: "relative", zIndex: 2 }}>
         {/* Table header */}
         <div style={{ display: "grid", gridTemplateColumns: "68px 56px 1fr", gap: 6, padding: "6px 8px", background: t.accent, borderRadius: "8px 8px 0 0", fontWeight: 700, fontSize: 10, color: onColor(t.accent) }}>

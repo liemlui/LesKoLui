@@ -5,9 +5,10 @@
 // Shared helpers (React components + utility functions)
 export {
   HeaderEl, LogoEl, LabelEl, DetailsEl, PhotoEl, NarrEl, EngagementBar,
-  SummaryEl, Sparkline, MoodBadge, FocusBadge, SessionMeta,
-  clean, entryDate, entryDateShort, entryDay, entrySubject, entrySubjectShort,
-  entryNarrative, entryDetails, detailText, truncateText, onColor,
+  SummaryEl, Sparkline, EngagementTrend, MoodBadge, FocusBadge, SessionMeta,
+  GradeComparisonTable, clean, entryDate, entryDateShort, entryDay,
+  entrySubject, entrySubjectShort, entryNarrative, entryDetails, detailText,
+  truncateText, onColor, gradeDelta,
   EMPTY_NARRATIVE, EMPTY_SUBJECT, EMPTY_DATE,
 } from "./helpers";
 

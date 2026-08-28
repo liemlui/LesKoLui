@@ -4,9 +4,15 @@ export interface AiInput {
   student: { name: string; level: string };
   /** Label periode laporan; nama field dipertahankan untuk kompatibilitas. */
   month: string;
+  /** Rata-rata engagement periode sebelumnya (bila ada) — untuk tren MoM. */
+  prevAvgEngagement?: number;
   sessions: Array<{
     id: string; date: string; subject: string; shortNote: string;
     mood?: string; topic?: string; needsWork?: string; predictedGrade?: string;
+    /** Nilai akhir yang benar-benar didapat (follow-up dari prediksi). */
+    actualGrade?: string;
+    /** Refleksi bila nilai akhir berbeda dari prediksi. */
+    gradeReflection?: string;
     engagementScore?: number;
     behaviorLabels?: string[];
     responseLabel?: string;
@@ -140,7 +146,9 @@ TUGAS: Untuk SETIAP sesi, BACA "shortNote" yang ditulis tutor DENGAN TELITI. PER
 Gunakan data pendukung untuk memperkaya (jika ada):
 - engagementScore (1–10), behaviorLabels, responseLabel → bantu jelaskan KONDISI BELAJAR
 - topic, needsWork, predictedGrade → beri KONTEKS topik yang dibahas
+- actualGrade & gradeReflection → bandingkan nilai akhir dengan prediksi secara natural, sebut ujian/topik yang dinilai (mis. "prediksi Paper 2: 6, ternyata dapat 7")
 - mood → bantu deskripsikan SUASANA sesi
+- prevAvgEngagement (rata-rata engagement periode sebelumnya, bila tersedia) → bandingkan perkembangan antar periode secara natural
 
 PANDUAN PER SESI:
 - Bahasa Indonesia yang hangat, spesifik, dan jujur
@@ -183,6 +191,7 @@ export async function generateNarratives(input: AiInput): Promise<AiOutput> {
   const safeInput = {
     period: sanitize(input.month),
     student: { name: sanitize(input.student.name), level: sanitize(input.student.level) },
+    prevAvgEngagement: input.prevAvgEngagement,
     sessions: input.sessions.map((sess) => ({
       ...sess,
       shortNote: sanitize(sess.shortNote),
@@ -203,6 +212,7 @@ TUGAS: Baca data semua sesi dalam periode laporan yang diberikan. Tulis ringkasa
 
 "summary": satu paragraf 3–5 kalimat yang mencakup:
 - Tren engagement murid sepanjang periode laporan (naik/turun/stabil? sebutkan skor rata-rata jika ada)
+- Bila "prevAvgEngagement" tersedia, bandingkan rata-rata engagement periode ini terhadap periode sebelumnya secara natural
 - Mapel-mapel yang dibahas
 - Kekuatan / kemajuan yang muncul konsisten
 - Area yang masih perlu perhatian atau ditingkatkan
@@ -229,6 +239,7 @@ export async function generateReportSummary(input: AiInput): Promise<AiReportSum
   const safeInput = {
     period: sanitize(input.month),
     student: { name: sanitize(input.student.name), level: sanitize(input.student.level) },
+    prevAvgEngagement: input.prevAvgEngagement,
     sessions: input.sessions.map((sess) => ({
       ...sess,
       shortNote: sanitize(sess.shortNote),

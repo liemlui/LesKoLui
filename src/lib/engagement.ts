@@ -1,4 +1,4 @@
-import type { EngagementLog } from "../db/types";
+import type { EngagementLog, Session } from "../db/types";
 
 export interface ExtendedEngagementInput {
   // Core engagement flags
@@ -72,6 +72,27 @@ export function calcEngagementScore(e: Omit<EngagementLog, "score"> & Partial<Ex
   if (e.mood === "Kesulitan")  s -= 1;
 
   return Math.max(1, Math.min(10, s));
+}
+
+/** Skor engagement satu sesi (1–10) — dari snapshot, atau dihitung ulang bila
+ *  snapshot belum ada. Dipakai untuk rata-rata periode dan tren MoM. */
+export function sessionEngagementScore(
+  session: Pick<Session, "engagement">,
+): number | undefined {
+  return session.engagement?.score
+    ?? (session.engagement ? calcEngagementScore(session.engagement) : undefined);
+}
+
+/** Rata-rata engagement (dibulatkan) dari sekumpulan sesi. Undefined bila
+ *  tidak ada satu pun sesi yang punya data engagement. */
+export function averageEngagement(
+  sessions: readonly Pick<Session, "engagement">[],
+): number | undefined {
+  const scores = sessions
+    .map(sessionEngagementScore)
+    .filter((score): score is number => score != null);
+  if (scores.length === 0) return undefined;
+  return Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length);
 }
 
 export function scoreLabel(score: number): { text: string; color: string; bg: string } {

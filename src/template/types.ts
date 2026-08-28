@@ -44,6 +44,8 @@ export interface ReportEntry {
   needsWork?: string;
   /** Prediksi nilai sesi ini (opsional). */
   predictedGrade?: string;
+  /** Nilai akhir yang benar-benar didapat (follow-up dari prediksi). */
+  actualGrade?: string;
   /** Tanda tangan murid (data URL). */
   signatureUrl?: string;
 }
@@ -59,12 +61,27 @@ export interface ReportData {
   quote?: string;
   nextMonthPlan?: NextMonthPlan;
   avgEngagement?: number;
+  /** Rata-rata engagement periode sebelumnya — untuk tren bulan-ke-bulan. */
+  prevAvgEngagement?: number;
   photoUrls?: string[];
   // Agregat seluruh periode (dipakai layout infografis; aman bila tak diisi).
   totalHours?: number;
   totalSessions?: number;
   subjectDist?: { name: string; count: number }[];
   engagementSeries?: number[];
+  /** Agregat prediksi vs nilai aktual (full periode) untuk tabel perbandingan. */
+  gradeComparison?: GradeComparisonRow[];
+}
+
+export interface GradeComparisonRow {
+  /** Tanggal tampilan singkat, mis. "5 Juni". */
+  date: string;
+  /** Konteks ujian: topik spesifik, fallback ke mapel. */
+  exam: string;
+  predicted?: string;
+  actual?: string;
+  /** Selisih terformat, mis. "+1", "−1", atau "sama". */
+  delta?: string;
 }
 
 export interface Layout {
