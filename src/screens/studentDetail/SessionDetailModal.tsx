@@ -78,6 +78,14 @@ export default function SessionDetailModal({
             </div>
           )}
 
+          {/* Situasi hari ini — konteks humanis */}
+          {s.situasiNote && (
+            <div className="bg-teal-50 rounded-xl p-3">
+              <p className="text-xs text-teal-500 font-medium mb-1">🫶 Situasi hari ini</p>
+              <p className="text-sm text-teal-800">{s.situasiNote}</p>
+            </div>
+          )}
+
           {/* Topik */}
           {s.topic && (
             <div>

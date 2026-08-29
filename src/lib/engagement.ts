@@ -41,6 +41,8 @@ export function calcEngagementScore(e: Omit<EngagementLog, "score"> & Partial<Ex
   if (e.playingPhone)     s -= 1;
   if (e.late)             s -= 1;
   if (e.bathroomBreaks)   s -= 1;
+  if (e.restless)         s -= 1;
+  if (e.offTask)          s -= 1;
 
   // ── Behavior tags (cap at ±3) ──
   if (e.behaviorValences && e.behaviorValences.length > 0) {

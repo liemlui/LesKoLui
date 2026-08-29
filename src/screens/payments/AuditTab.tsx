@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { getCashSummary } from "../../db/repos";
-import type { Payment, Student } from "../../db/types";
+import { getCashSummary, listMonthClosings } from "../../db/repos";
+import type { MonthClosing, Payment, Student } from "../../db/types";
 import { formatRupiah, todayWIB, monthLabel, periodLabel } from "../../lib/format";
 import { downloadBlob } from "../../lib/download";
+import { escapeCsvCell } from "../../lib/csv";
 
 const monthsBetween = (a: string, b: string): number => {
   const [ay, am] = a.split("-").map(Number);
@@ -23,6 +24,12 @@ export default function AuditTab({ payments, students }: AuditTabProps) {
     [auditYear]
   );
   const auditData = useLiveQuery(() => getCashSummary(auditMonths), [auditMonths]);
+  const monthClosings = useLiveQuery(() => listMonthClosings(), []);
+  const closingMap = useMemo(() => {
+    const map = new Map<string, MonthClosing>();
+    for (const c of monthClosings ?? []) map.set(c.month, c);
+    return map;
+  }, [monthClosings]);
 
   const studentMap = useMemo(() => new Map(students.map((s) => [s.id, s])), [students]);
 
@@ -49,6 +56,37 @@ export default function AuditTab({ payments, students }: AuditTabProps) {
     const total = `Total ${auditYear},${auditTotals.potensi},${auditTotals.realisasi},${auditTotals.piutang},${auditTotals.pengeluaran},${auditTotals.laba},`;
     const csv = [header, ...body, total].join("\n");
     downloadBlob(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }), `Rekap-Keuangan-${auditYear}.csv`);
+  };
+
+  const exportMonthlyCsv = (month: string) => {
+    const found = (auditData ?? []).find((r) => r.month === month);
+    if (!found) return;
+    const monthPayments = payments.filter((p) => p.month === month);
+    const studentMap = new Map(students.map((s) => [s.id, s]));
+
+    const invoiceRows = monthPayments.map((p) => [
+      escapeCsvCell(studentMap.get(p.studentId)?.name ?? "(dihapus)"),
+      p.totalCost,
+      p.status,
+      p.paidAt ?? "",
+      p.reportId ?? "",
+    ]);
+
+    const csv = `\uFEFF### LAPORAN BULANAN - ${monthLabel(month)}
+Bulan,${month}
+Potensi,${found.potensi}
+Kas Diterima,${found.realisasi}
+Belum Dibayar,${found.piutang}
+Pengeluaran,${found.pengeluaran}
+Laba,${found.laba}
+Collection Rate,${found.realisasi > 0 ? Math.round((found.realisasi / (found.realisasi + found.piutang)) * 100) + "%" : "-"}
+Status,${found.closed ? "Ditutup" : "Terbuka"}
+
+### TAGIHAN
+Murid,Nominal,Status,Dibayar,ID Laporan
+${invoiceRows.join("\n")}
+`;
+    downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8" }), `Laporan-Bulanan-${month}.csv`);
   };
 
   return (
@@ -124,6 +162,7 @@ export default function AuditTab({ payments, students }: AuditTabProps) {
                 <th className="font-medium pb-1 text-right">Pengeluaran</th>
                 <th className="font-medium pb-1 text-right">Laba</th>
                 <th className="font-medium pb-1 text-center">Status Bulan</th>
+                <th className="font-medium pb-1 text-center">CSV</th>
               </tr>
             </thead>
             <tbody>
@@ -137,10 +176,31 @@ export default function AuditTab({ payments, students }: AuditTabProps) {
                     <td className="py-1 text-right text-amber-600">{r.piutang ? formatRupiah(r.piutang) : "–"}</td>
                     <td className="py-1 text-right text-red-600">{r.pengeluaran ? formatRupiah(r.pengeluaran) : "–"}</td>
                     <td className={`py-1 text-right font-semibold ${r.laba >= 0 ? "text-green-700" : "text-red-600"}`}>{has ? formatRupiah(r.laba) : "–"}</td>
+                    <td className="py-1 text-center space-y-1">
+                      <div>
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${r.closed ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+                          {r.closed ? "Ditutup" : "Terbuka"}
+                        </span>
+                      </div>
+                      {(() => {
+                        const snap = closingMap.get(r.month);
+                        if (!snap || snap.realisasi == null) return null;
+                        const drift = r.potensi !== snap.totalPotensi
+                          || r.realisasi !== snap.realisasi
+                          || r.piutang !== (snap.piutang ?? 0)
+                          || r.pengeluaran !== (snap.pengeluaran ?? 0);
+                        if (!drift) return null;
+                        return (
+                          <span className="inline-flex rounded-full bg-orange-100 px-1.5 py-0.5 text-[9px] font-semibold text-orange-700" title="Berubah sejak ditutup">
+                            ⚡ drift
+                          </span>
+                        );
+                      })()}
+                    </td>
                     <td className="py-1 text-center">
-                      <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${r.closed ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
-                        {r.closed ? "Ditutup" : "Terbuka"}
-                      </span>
+                      <button onClick={() => exportMonthlyCsv(r.month)}
+                        className="text-[10px] font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+                      >CSV</button>
                     </td>
                   </tr>
                 );
@@ -154,6 +214,7 @@ export default function AuditTab({ payments, students }: AuditTabProps) {
                 <td className="py-1 text-right text-amber-600">{formatRupiah(auditTotals.piutang)}</td>
                 <td className="py-1 text-right text-red-600">{formatRupiah(auditTotals.pengeluaran)}</td>
                 <td className={`py-1 text-right ${auditTotals.laba >= 0 ? "text-green-700" : "text-red-600"}`}>{formatRupiah(auditTotals.laba)}</td>
+                <td></td>
                 <td></td>
               </tr>
             </tfoot>

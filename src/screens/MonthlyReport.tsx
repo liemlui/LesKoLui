@@ -34,8 +34,9 @@ import { getTheme, THEMES } from "../template/themes";
 import { LAYOUTS, gradeDelta } from "../template/layouts";
 import { ReportRenderer } from "../template/ReportRenderer";
 import { dayLabel, monthLabel, todayWIB, monthOf, periodLabel, formatRupiah } from "../lib/format";
-import { useReportExport } from "./monthlyReport/useReportExport";
+import { useReportExport, shareReportWithInvoice } from "./monthlyReport/useReportExport";
 import { useReportGeneration } from "./monthlyReport/useReportGeneration";
+import { buildBillingMessage } from "../lib/waBilling";
 import { blobToDataUrl } from "../lib/imageUtils";
 import PaginationControls from "../components/PaginationControls";
 import Breadcrumb from "../components/Breadcrumb";
@@ -374,6 +375,15 @@ export default function MonthlyReportPage() {
     : periodReportLookupReady ? periodReportQuery?.report : undefined;
   const report = editingReportId ? editingReport : periodReport;
   const payment = useLiveQuery(() => (report ? getPaymentByReport(report.id) : undefined), [report]);
+  // Tunggakan dari bulan-bulan sebelumnya — sinyal risiko yang terlihat langsung
+  // dari halaman Laporan tanpa harus membuka Menu Keuangan (integrasi dua arah
+  // laporan ⇄ keuangan).
+  const olderUnpaidPayments = useMemo(
+    () => (studentPayments ?? [])
+      .filter((p) => p.status === "UNPAID" && report && p.month < report.month),
+    [studentPayments, report],
+  );
+  const olderUnpaidTotal = olderUnpaidPayments.reduce((sum, p) => sum + p.totalCost, 0);
   const billingParams = new URLSearchParams({ tab: "tagihan" });
   if (studentId) billingParams.set("studentId", studentId);
   if (report?.id) billingParams.set("reportId", report.id);
@@ -934,6 +944,36 @@ export default function MonthlyReportPage() {
     }
   };
 
+const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
+
+  const handleShareReportWithInvoice = async () => {
+    if (!student || !report || !payment || !settings || shareWithInvoiceBusy) return;
+    setShareWithInvoiceBusy(true);
+    const periodLbl = periodLabel(periodStart, periodEnd) || monthLabel(month);
+    const buildWaText = (_tone: "normal" | "gentle" | "firm") => {
+      const sessionsForMsg: Session[] = reportSessions;
+      return buildBillingMessage({
+        student,
+        sessions: sessionsForMsg,
+        month: report.month,
+        settings,
+        amountOverride: payment.totalCost,
+        period: { start: periodStart, end: periodEnd },
+        periodLabelText: periodLbl,
+        tone: _tone,
+      }).text;
+    };
+    await shareReportWithInvoice({
+      student,
+      report,
+      payment,
+      periodLabel: periodLbl,
+      buildWaText,
+      exportRoot: reportExportRef.current ?? document,
+      setMessage,
+    });
+    setShareWithInvoiceBusy(false);
+  };
   
 
   const handleDiscard = async () => {
@@ -1338,7 +1378,21 @@ export default function MonthlyReportPage() {
                           >
                             Buka Penagihan →
                           </Link>
+                          {payment && (
+                            <button
+                              onClick={handleShareReportWithInvoice}
+                              disabled={shareWithInvoiceBusy}
+                              className="inline-flex rounded-lg bg-green-600 px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+                            >
+                              {shareWithInvoiceBusy ? "Mengirim..." : "📤 Kirim Laporan + Tagihan"}
+                            </button>
+                          )}
                         </div>
+                        {olderUnpaidPayments.length > 0 && (
+                          <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[11px] font-medium leading-relaxed text-amber-800">
+                            ⚠ {olderUnpaidPayments.length} tagihan bulan sebelumnya belum lunas · {formatRupiah(olderUnpaidTotal)}. Buka Keuangan agar piutang tidak menumpuk.
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}

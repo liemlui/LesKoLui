@@ -15,6 +15,7 @@ interface InvoiceModalProps {
   exporting: boolean;
   onExport: () => void;
   onOpenReport?: () => void;
+  onSendWithReport?: () => void;
   onClose: () => void;
 }
 
@@ -35,7 +36,7 @@ const REPORT_STATUS_LABEL: Record<ReturnType<typeof reportDisplayStatus>, string
 };
 
 export default function InvoiceModal({
-  payment, student, settings, report, invoiceRef, exporting, onExport, onOpenReport, onClose,
+  payment, student, settings, report, invoiceRef, exporting, onExport, onOpenReport, onSendWithReport, onClose,
 }: InvoiceModalProps) {
   const standaloneManual = payment.source === "manual" && !payment.reportId;
   const sessions = useLiveQuery(
@@ -79,7 +80,7 @@ export default function InvoiceModal({
               <InvoiceContent
                 payment={payment} student={student} sessions={sessions}
                 tutor={tutor} bank={bank} monthStr={monthStr} report={report}
-                onOpenReport={onOpenReport} showReportActions responsive />
+                onOpenReport={onOpenReport} onSendWithReport={onSendWithReport} showReportActions responsive />
             </>
           )}
         </div>
@@ -89,7 +90,7 @@ export default function InvoiceModal({
 }
 
 function InvoiceContent({
-  payment, student, sessions, tutor, bank, monthStr, report, refProp, onOpenReport, showReportActions = false, responsive = false,
+  payment, student, sessions, tutor, bank, monthStr, report, refProp, onOpenReport, onSendWithReport, showReportActions = false, responsive = false,
 }: {
   payment: Payment;
   student: Student;
@@ -100,6 +101,7 @@ function InvoiceContent({
   report?: MonthlyReport;
   refProp?: RefObject<HTMLDivElement | null>;
   onOpenReport?: () => void;
+  onSendWithReport?: () => void;
   showReportActions?: boolean;
   responsive?: boolean;
 }) {
@@ -141,12 +143,28 @@ function InvoiceContent({
             </tr>
           </tbody>
         </table>
-        {showReportActions && (
+        {showReportActions && report && (
+          <div className="mt-2 flex flex-col gap-2">
+            <button
+              onClick={onOpenReport}
+              className="w-full py-2 rounded-lg border border-blue-200 text-blue-700 text-xs font-semibold hover:bg-blue-50 transition-colors"
+            >
+              📋 Buka Laporan Perkembangan
+            </button>
+            <button
+              onClick={onSendWithReport}
+              className="w-full py-2 rounded-lg border border-green-200 text-green-700 text-xs font-semibold hover:bg-green-50 transition-colors"
+            >
+              📤 Kirim Laporan + Tagihan
+            </button>
+          </div>
+        )}
+        {showReportActions && !report && (
           <button
             onClick={onOpenReport}
             className="mt-2 w-full py-2 rounded-lg border border-blue-200 text-blue-700 text-xs font-semibold hover:bg-blue-50 transition-colors"
           >
-            {report ? "📋 Buka Laporan Perkembangan" : "📋 Lengkapi Laporan Perkembangan"}
+            📋 Lengkapi Laporan Perkembangan
           </button>
         )}
       </div>

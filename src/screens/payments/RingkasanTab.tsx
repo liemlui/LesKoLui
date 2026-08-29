@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   getMonthlyIncomeVsExpense,
@@ -26,8 +26,11 @@ import type { BarSeries, DonutSegment } from "../../components/charts";
 import RatingIndicator from "../../components/charts/RatingIndicator";
 import { forecastNextMonth } from "../../lib/forecast";
 import { calculateFinancialHistoryAverage } from "../../lib/financialInsights";
+import { buildInsightContext } from "../../lib/financialInsights";
 import { formatIdrNumber, sumExpensesByCategory, EXPENSE_LABELS } from "../../lib/finance";
+import { buildStudentPipeline } from "../../lib/financePipeline";
 import { db } from "../../db/db";
+import FinancePipelineBoard from "./FinancePipelineBoard";
 
 function getLast12Months(endMonth: string): string[] {
   const months: string[] = [];
@@ -54,6 +57,7 @@ interface RingkasanTabProps {
 export default function RingkasanTab({
   month, payments, students, settings, reports, monthSessions, monthExpenses, sessionCountBillingProgress, setMessage,
 }: RingkasanTabProps) {
+  const navigate = useNavigate();
   // ── Lazy analytics queries (loaded only while this tab is mounted) ──
   const chartMonths = useMemo(() => getLast12Months(month), [month]);
   const chartData = useLiveQuery(() => getMonthlyIncomeVsExpense(chartMonths), [chartMonths]);
@@ -133,6 +137,23 @@ export default function RingkasanTab({
     || Boolean(row.pendingBillingPolicy && row.unbilledCount > 0 && row.unbilledCount < row.targetCount)
   )).length;
   const needsActionCount = readyReportCount + packageActionCount;
+
+  // ── Papan pipeline per murid: Sesi → Laporan → Tagihan → Lunas → Dibagikan ──
+  const pipelineRows = useMemo(
+    () => buildStudentPipeline({
+      students: students ?? [],
+      sessions: monthSessions ?? [],
+      reports: reports ?? [],
+      payments: payments ?? [],
+      month,
+    }),
+    [students, monthSessions, reports, payments, month],
+  );
+  const pipelineSummary = [
+    readyReportCount > 0 && `${readyReportCount} laporan final tanpa invoice`,
+    packageActionCount > 0 && `${packageActionCount} antrean paket siap terbit`,
+    needsActionCount === 0 && "Semua alur penagihan sinkron.",
+  ].filter(Boolean).join(" · ") || "Selesaikan langkah yang tersisa agar arus kas tidak tertunda.";
   const monthPayments = useMemo(() => payments.filter((p) => p.month === month), [payments, month]);
   const sessionPotential = monthSessions.reduce((s, x) => s + x.cost, 0);
   const totalBilled = monthPayments.reduce((s, p) => s + p.totalCost, 0);
@@ -319,6 +340,13 @@ export default function RingkasanTab({
           : [],
         previousAvg: avg,
         proyeksiBulanDepan: forecast.estimate,
+        // Konteks turunan untuk AI: kolektibilitas, laporan belum dibagikan, piutang menua
+        ...buildInsightContext({
+          payments: payments ?? [],
+          reports: reports ?? [],
+          students: students ?? [],
+          month: targetMonth,
+        }),
       });
       if (aiInsightRequestRef.current !== requestId) return;
       setAiInsightResult({ month: targetMonth, data: result });
@@ -336,29 +364,13 @@ export default function RingkasanTab({
 
   return (
     <div className="space-y-4">
-      {needsActionCount > 0 && (
-        <section aria-labelledby="needs-action-title" className="rounded-2xl border border-blue-200 bg-blue-50/60 p-4 shadow-sm">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-blue-600">Perlu tindakan</p>
-              <h2 id="needs-action-title" className="text-base font-bold text-blue-900">
-                {needsActionCount} item siap ditagih
-              </h2>
-              <p className="mt-1 text-xs leading-relaxed text-blue-700">
-                {readyReportCount > 0 && `${readyReportCount} laporan final tanpa invoice. `}
-                {packageActionCount > 0 && `${packageActionCount} antrean paket siap diterbitkan. `}
-                Selesaikan dari Penagihan agar arus kas tidak tertunda.
-              </p>
-            </div>
-            <Link
-              to={`/payments?tab=tagihan&month=${encodeURIComponent(month)}`}
-              className="shrink-0 rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
-            >
-              Buka Penagihan →
-            </Link>
-          </div>
-        </section>
-      )}
+      <FinancePipelineBoard
+        rows={pipelineRows}
+        month={month}
+        setMessage={setMessage}
+        navigate={navigate}
+        summary={pipelineSummary}
+      />
 
       <section aria-labelledby="invoice-status-title" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-3">

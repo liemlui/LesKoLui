@@ -14,6 +14,9 @@ export interface BillingResult {
   count: number;
 }
 
+/** Nada pesan tagihan — dipilih otomatis dari umur piutang bila tidak di-set. */
+export type BillingTone = "normal" | "gentle" | "firm";
+
 export interface BuildBillingArgs {
   student: Pick<Student, "name" | "hourlyRate" | "billingPolicy">;
   /** A single student's sessions (any status/month) — filtered internally. */
@@ -27,10 +30,24 @@ export interface BuildBillingArgs {
   period?: { start: string; end: string };
   /** Label periode untuk baris judul pesan (mis. "20 Januari – 3 Februari 2026"). */
   periodLabelText?: string;
+  /** Nada pesan. Default "normal" tidak menambah baris apa pun. */
+  tone?: BillingTone;
 }
 
+const TONE_PREAMBLE: Record<BillingTone, string> = {
+  normal: "",
+  gentle: "Semoga sehat selalu 🙏 Mohon maaf mengganggu — berikut pengingat ramah untuk tagihan di bawah.",
+  firm: "Salam, mohon segera ditindaklanjuti — berikut rincian tagihan yang belum lunas:",
+};
+
+const TONE_CLOSING: Record<BillingTone, string> = {
+  normal: "Thank you 😇",
+  gentle: "Terima kasih banyak, mohon dimaklumi ya 🙏",
+  firm: "Mohon konfirmasi pembayaran agar tercatat lunas. Terima kasih.",
+};
+
 export function buildBillingMessage(args: BuildBillingArgs): BillingResult {
-  const { student, sessions, month, settings, amountOverride, period, periodLabelText } = args;
+  const { student, sessions, month, settings, amountOverride, period, periodLabelText, tone = "normal" } = args;
 
   const isSessionCount = billingPolicyOf(student) === "session_count";
 
@@ -50,6 +67,10 @@ export function buildBillingMessage(args: BuildBillingArgs): BillingResult {
     periodLabelText ?? monthLabel(month),
     ``,
   ];
+
+  // Preamble nada (baris pembuka opsional) disisipkan setelah judul.
+  const preamble = TONE_PREAMBLE[tone];
+  if (preamble) lines.splice(3, 0, preamble, "");
 
   // Pemisah antara judul (nama + rentang sesi) dan detail sesi.
   if (billableSessions.length > 0) {
@@ -83,7 +104,7 @@ export function buildBillingMessage(args: BuildBillingArgs): BillingResult {
     if (bank.accountName) lines.push(`a.n. ${bank.accountName}`);
   }
 
-  lines.push(``, `Thank you 😇`, settings?.tutorProfile?.name || "Ko Lui");
+  lines.push(``, TONE_CLOSING[tone], settings?.tutorProfile?.name || "Ko Lui");
   return { text: lines.join("\n"), totalHours, totalCost, count: billableSessions.length };
 }
 

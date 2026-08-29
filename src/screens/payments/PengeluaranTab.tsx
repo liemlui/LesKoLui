@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { deleteExpense } from "../../db/repos";
-import type { Expense } from "../../db/types";
+import type { Expense, Student } from "../../db/types";
 import { dayLabel, formatRupiah, todayWIB, monthLabel } from "../../lib/format";
 import { EXPENSE_LABELS, sumExpensesByCategory } from "../../lib/finance";
 import QuickExpenseModal from "../../components/QuickExpenseModal";
@@ -10,9 +10,10 @@ interface PengeluaranTabProps {
   month: string;
   monthExpenses: Expense[];
   setMessage: (message: string) => void;
+  students: Student[];
 }
 
-export default function PengeluaranTab({ month, monthExpenses, setMessage }: PengeluaranTabProps) {
+export default function PengeluaranTab({ month, monthExpenses, setMessage, students }: PengeluaranTabProps) {
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [editTarget, setEditTarget] = useState<Expense | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; description: string } | null>(null);
@@ -23,6 +24,7 @@ export default function PengeluaranTab({ month, monthExpenses, setMessage }: Pen
   const expenseTotal = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
   const categories = Array.from(sumExpensesByCategory(monthExpenses).entries())
     .sort((a, b) => b[1] - a[1]);
+  const studentMap = useMemo(() => new Map(students.map((s) => [s.id, s.name])), [students]);
 
   const handleDeleteExpense = async () => {
     if (!deleteTarget) return;
@@ -119,6 +121,11 @@ export default function PengeluaranTab({ month, monthExpenses, setMessage }: Pen
                     <span className="text-[11px] text-gray-400">{dayLabel(expense.date)}</span>
                   </div>
                   <p className="mt-1 text-sm font-medium text-gray-700 break-words">{expense.description}</p>
+                  {expense.studentId && (
+                    <span className="mt-0.5 inline-flex rounded-full bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-600">
+                      {studentMap.get(expense.studentId) ?? "—"}
+                    </span>
+                  )}
                 </div>
                 <div className="flex-shrink-0 text-right">
                   <p className="text-sm font-bold text-red-600">{formatRupiah(expense.amount)}</p>
@@ -140,6 +147,7 @@ export default function PengeluaranTab({ month, monthExpenses, setMessage }: Pen
           onClose={() => setShowExpenseModal(false)}
           onSaved={(msg) => setMessage(msg)}
           initialDate={month === todayStr.slice(0, 7) ? todayStr : `${month}-01`}
+          students={students}
         />
       )}
 
@@ -148,6 +156,7 @@ export default function PengeluaranTab({ month, monthExpenses, setMessage }: Pen
           expense={editTarget}
           onClose={() => setEditTarget(null)}
           onSaved={(msg) => setMessage(msg)}
+          students={students}
         />
       )}
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createExpense, updateExpense } from "../db/repos";
-import type { Expense, ExpenseCategory } from "../db/types";
+import type { Expense, ExpenseCategory, Student } from "../db/types";
 import { todayWIB } from "../lib/format";
 import { isValidCurrencyAmount } from "../lib/money";
 import { Z } from "../lib/zIndex";
@@ -20,6 +20,8 @@ interface Props {
   initialDate?: string;
   /** Bila diisi, modal bekerja sebagai editor pengeluaran. */
   expense?: Expense;
+  /** Daftar murid untuk dropdown tautan (opsional — laba bersih per murid). */
+  students?: Student[];
 }
 
 const CATEGORY_LABEL: Record<ExpenseCategory, string> = {
@@ -32,12 +34,13 @@ const CATEGORY_LABEL: Record<ExpenseCategory, string> = {
 
 const CATEGORIES: ExpenseCategory[] = ["transport", "buku", "alat", "platform", "lainnya"];
 
-export default function QuickExpenseModal({ onClose, onSaved, initialDate, expense }: Props) {
+export default function QuickExpenseModal({ onClose, onSaved, initialDate, expense, students }: Props) {
   const editing = Boolean(expense);
   const [date, setDate] = useState(() => expense?.date ?? initialDate ?? todayWIB());
   const [category, setCategory] = useState<ExpenseCategory>(() => expense?.category ?? "transport");
   const [description, setDescription] = useState(() => expense?.description ?? "");
   const [amount, setAmount] = useState(() => expense?.amount ?? 0);
+  const [studentId, setStudentId] = useState(() => expense?.studentId ?? "");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -49,10 +52,10 @@ export default function QuickExpenseModal({ onClose, onSaved, initialDate, expen
     setSaving(true);
     try {
       if (editing && expense) {
-        await updateExpense(expense.id, { date, category, description, amount });
+        await updateExpense(expense.id, { date, category, description, amount, studentId: studentId || undefined });
         onSaved("Pengeluaran diperbarui ✓");
       } else {
-        await createExpense({ date, category, description, amount });
+        await createExpense({ date, category, description, amount, studentId: studentId || undefined });
         onSaved("Pengeluaran dicatat ✓");
       }
       onClose();
@@ -97,6 +100,18 @@ export default function QuickExpenseModal({ onClose, onSaved, initialDate, expen
               placeholder="0" min={1}
               className="input w-full mt-1" />
           </div>
+          {students && students.length > 0 && (
+          <div>
+            <label htmlFor="expense-student" className="text-xs text-gray-500 font-medium">Terkait murid (opsional — hitung laba bersih)</label>
+            <select id="expense-student" value={studentId} onChange={(e) => setStudentId(e.target.value)}
+              className="input w-full mt-1">
+              <option value="">— Umum (tidak terkait murid) —</option>
+              {students.filter((s) => s.active).map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+          )}
           {error && <p className="text-sm text-red-500">{error}</p>}
           <button onClick={handleSave} disabled={saving}
             className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-colors disabled:opacity-50">

@@ -64,6 +64,8 @@ export interface EngagementLog {
   hwMissed?: boolean;       // PR tidak dikerjakan (-1)
   late?: boolean;           // telat (-1)
   bathroomBreaks?: boolean; // sering ke toilet (-1)
+  restless?: boolean;       // gelisah, loncat-loncat, tak bisa diam duduk (-1)
+  offTask?: boolean;        // sibuk sendiri / melamun, susah diajak fokus (-1)
   score: number;            // 1-10, computed
 }
 
@@ -121,6 +123,11 @@ export interface Session {
   photo?: Blob;
   shortNote: string;
   mood?: string;
+  /** Konteks humanis hari ini (opsional): situasi pribadi murid (habis sakit,
+   *  kurang tidur, ada acara keluarga, dsb.). Murni konteks manusiawi — tidak
+   *  memengaruhi skor engagement, dan sengaja tidak dikirim ke pesan WA ortu
+   *  karena itu informasi pribadi/kekeluargaan. */
+  situasiNote?: string;
   topic?: string;
   needsWork?: string;
   predictedGrade?: string;
@@ -251,6 +258,9 @@ export interface Payment {
   reportId?: string;
   periodStart?: string;
   periodEnd?: string;
+  /** Waktu invoice terbit (ISO). Optional: entri lama tidak memilikinya —
+   *  fallback ke paidAt/periodEnd saat baca. */
+  createdAt?: string;
 }
 
 // ── Month Closing (Tutup Bulan) ──────────────────────────────────────────────
@@ -262,6 +272,12 @@ export interface MonthClosing {
   totalPotensi: number;  // snapshot: sum of DONE session costs at close time
   totalHours: number;    // snapshot: sum of DONE session hours
   studentCount: number;  // snapshot: number of students billed
+  // Snapshot penuh (optional — hanya terisi untuk penutupan baru):
+  realisasi?: number;    // kas diterima saat tutup
+  piutang?: number;      // tagihan belum lunas saat tutup
+  pengeluaran?: number;  // total pengeluaran bulan itu
+  laba?: number;         // realisasi - pengeluaran
+  invoiceCount?: number; // jumlah invoice bulan itu
 }
 
 // ── Expenses ────────────────────────────────────────────────────────────────
@@ -276,6 +292,8 @@ export interface Expense {
   amount: number;        // IDR
   createdAt: string;
   updatedAt: string;
+  /** Tautan opsional ke murid — untuk laba bersih per murid. */
+  studentId?: string;
 }
 
 // ── IA / EE / PP Milestone Tracker ──────────────────────────────────────────

@@ -99,4 +99,24 @@ describe("buildBillingMessage", () => {
     expect(r.text).not.toContain("5 Juni"); // date text removed from session lines
     expect(r.text).toContain("Total 3.5 jam");
   });
+
+  it("supports a firm tone with a preamble and firmer closing", () => {
+    const r = buildBillingMessage({ student, sessions, month: "2026-06", tone: "firm" });
+    expect(r.text).toContain("mohon segera ditindaklanjuti");
+    expect(r.text).toContain("Mohon konfirmasi pembayaran");
+    expect(r.text).not.toContain("Thank you 😇");
+  });
+
+  it("supports a gentle tone", () => {
+    const r = buildBillingMessage({ student, sessions, month: "2026-06", tone: "gentle" });
+    expect(r.text).toContain("pengingat ramah");
+    expect(r.text).toContain("mohon dimaklumi");
+  });
+
+  it("keeps the default message unchanged when tone is omitted", () => {
+    const normal = buildBillingMessage({ student, sessions, month: "2026-06" });
+    const explicit = buildBillingMessage({ student, sessions, month: "2026-06", tone: "normal" });
+    expect(explicit.text).toBe(normal.text);
+    expect(normal.text).toContain("Thank you 😇");
+  });
 });

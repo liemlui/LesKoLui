@@ -83,6 +83,11 @@ export class JurnalDB extends Dexie {
         }
       }
     });
+    // v12: laba bersih per murid — pengeluaran boleh ditautkan ke murid (opsional).
+    // Tidak ada upgrade callback: hanya rebuild index atomik, tanpa transformasi data.
+    this.version(12).stores({
+      expenses: "id, date, category, studentId",
+    });
   }
 }
 

@@ -11,6 +11,67 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
 {
+    version: "v1.63.0",
+    date: "2026-08-29",
+    title: "Schema v12 — Akuntansi Dalam + Laba Bersih per Murid (Aman, Optional Fields)",
+    items: [
+      "Migrasi schema v12: HANYA tambah index studentId di tabel pengeluaran — tanpa transformasi data, tanpa upgrade callback, risiko ~nol; semua field baru optional, data lama tetap valid",
+      "Tutup Bulan kini menyimpan snapshot penuh: realisasi, piutang, pengeluaran, laba, dan jumlah invoice pada saat penutupan — Rekap Tahunan menampilkan badge 'drift' bila ada perubahan setelah tutup",
+      "Pengeluaran bisa ditautkan ke murid (opsional) untuk menghitung laba bersih per murid — dropdown murid di QuickExpenseModal dan badge nama murid di Rincian Pengeluaran",
+      "Payment.createdAt tercatat untuk semua invoice baru — memungkinkan days-to-pay presisi dan analitik umur piutang yang lebih akurat di rilis selanjutnya",
+    ],
+  },
+{
+    version: "v1.62.0",
+    date: "2026-08-29",
+    title: "AI Insight Lebih Tajam + Ekspor Bulanan + Analitik Kolektibilitas",
+    items: [
+      "Analisis AI Keuangan kini membaca kolektibilitas (collection rate), jumlah laporan final belum dibagikan, piutang menua (>60 hari), rata-rata hari pembayaran, dan debitur terbesar — sehingga insight bisa menyebut nama murid dan tindakan konkret seperti 'bagikan laporan untuk mempercepat pembayaran'",
+      "Rekap Tahunan (Audit) menampilkan tombol CSV per bulan — satu file per bulan berisi P&L singkat plus daftar invoice detail, bisa dibuka langsung di Excel",
+      "Helper days-to-pay proxy siap digunakan untuk koreksi forecast pribadi dan analitik perilaku bayar per murid di fase berikutnya",
+    ],
+  },
+{
+    version: "v1.61.0",
+    date: "2026-08-29",
+    title: "Kirim Laporan + Tagihan Sekaligus — Satu Aksi ke WhatsApp Orang Tua",
+    items: [
+      "Tombol baru '📤 Kirim Laporan + Tagihan' di kartu penagihan Laporan Bulanan dan Invoice Profesional — mengekspor laporan ke JPG, membangun pesan tagihan otomatis, lalu membagikan (files + teks) via Web Share API (HP) atau mengunduh + menyalin teks ke clipboard + membuka WA (desktop)",
+      "Kalau tagihan belum lunas, nada pesan WA otomatis menyesuaikan umur piutang (ramah/tegas) tanpa mengubah format default",
+      "Invoice Profesional kini punya CTA 'Kirim Laporan + Tagihan' langsung dari modal invoice — integrasi dua arah laporan ⇄ keuangan semakin erat",
+    ],
+  },
+{
+    version: "v1.60.0",
+    date: "2026-08-29",
+    title: "Tutup Bulan Lebih Aman + Piutang Menua Terlihat",
+    items: [
+      "Sebelum Tutup Bulan, sistem menampilkan checklist pre-flight: draft laporan yang belum disahkan (dengan tombol langsung ke draft), tagihan bulan sebelumnya yang belum lunas, dan murid non-bulanan yang sesinya tidak masuk tutup — pengaman atas pitfall 'bulan tertutup tidak bisa masuk laporan rentang'",
+      "Tagihan belum dibayar kini menampilkan umur piutang (≤30 / 31–60 / >60 hari) per tagihan plus ringkasan per kelompok umur",
+      "Pesan WhatsApp tagihan menyesuaikan nada otomatis dari umur piutang: normal → ramah (>30 hari) → tegas (>60 hari), tanpa mengubah format pesan default",
+    ],
+  },
+{
+    version: "v1.59.0",
+    date: "2026-08-29",
+    title: "Papan Komando Keuangan — Alur Sesi → Laporan → Tagihan → Lunas",
+    items: [
+      "Ringkasan Keuangan kini punya papan komando per murid: satu baris per murid menampilkan tahap Sesi, Laporan (Draft/Final/Dibagikan), Tagihan, Lunas, dan status dibagikan — lengkap aksi cepat Buat Laporan, Sahkan Laporan, Buat Tagihan, Bagikan Laporan, dan Tandai Lunas tanpa harus pindah tab",
+      "Laporan Bulanan menampilkan peringatan tunggakan bulan sebelumnya yang belum lunas di kartu penagihan, sehingga risiko piutang terlihat langsung dari halaman laporan",
+      "Antrean 'Perlu tindakan' diubah menjadi papan pipeline yang selalu tampil; murid nonaktif dengan piutang tetap ikut tampil agar tidak terlewat",
+    ],
+  },
+{
+    version: "v1.58.0",
+    date: "2026-08-29",
+    title: "Catat Sesi Lebih Manusiawi — Situasi Hari Ini + Perilaku Baru",
+    items: [
+      "Kolom bebas baru 'Situasi Hari Ini' di langkah Kondisi — catat konteks humanis murid (habis sakit, kurang tidur, ada acara keluarga) + 7 chip cepat. Murni konteks, tidak mengurangi skor engagement, dan tidak dikirim ke pesan WA ortu (privasi)",
+      "Dua perilaku negatif baru di grid 'Perlu Perhatian': Gelisah loncat-loncat (−1) dan Sibuk sendiri (−1), tersimpan otomatis di log engagement",
+      "Usulan catatan AI kini membaca situasi dan menenunnya secara empatik; narasi laporan di-generate ulang bila situasi diedit; kolom 'Situasi' ditambahkan di ekspor CSV",
+    ],
+  },
+{
     version: "v1.57.0",
     date: "2026-08-28",
     title: "Laporan Bulanan Dipecah Jadi Modul Kecil (Refactor)",

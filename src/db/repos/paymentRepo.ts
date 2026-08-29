@@ -64,7 +64,7 @@ export async function createManualPayment(payment: ManualPaymentInput): Promise<
       throw new Error("Manual payment already exists for this student and month");
     }
     const id = crypto.randomUUID();
-    await db.payments.add({ ...normalizeManualPayment(payment), id });
+    await db.payments.add({ ...normalizeManualPayment(payment), id, createdAt: timestamp() });
     return id;
   });
 }
@@ -84,7 +84,7 @@ export async function upsertPayment(payment: Omit<Payment, "id">): Promise<void>
     if (existing) {
       await db.payments.update(existing.id, normalized);
     } else {
-      await db.payments.add({ ...normalized, id: crypto.randomUUID() });
+      await db.payments.add({ ...normalized, id: crypto.randomUUID(), createdAt: timestamp() });
     }
   });
 }
@@ -204,6 +204,7 @@ async function syncReportPaymentRecord(report: ReportPaymentInput): Promise<stri
     reportId: report.id,
     periodStart: report.periodStart,
     periodEnd: report.periodEnd,
+    createdAt: timestamp(),
   });
   return id;
 }
@@ -561,7 +562,7 @@ export async function computeMonthBills(
 export async function closeMonth(month: string): Promise<void> {
   const { start, end } = monthRange(month);
   let reconciledReportCount = 0;
-  await db.transaction("rw", db.students, db.sessions, db.reports, db.payments, db.monthClosings, async () => {
+  await db.transaction("rw", [db.students, db.sessions, db.reports, db.payments, db.monthClosings, db.expenses] as const, async () => {
     // Plan and mutate under one lock so concurrent close calls cannot both
     // create a report/payment from the same stale list of sessions.
     const students = new Map((await db.students.toArray()).map((student) => [student.id, student]));
@@ -784,6 +785,15 @@ export async function closeMonth(month: string): Promise<void> {
     const existingClosing = await db.monthClosings.where("month").equals(month).first();
     // Snapshot the whole month, never a delta. This stays idempotent and also
     // accounts for sessions covered by manually-created confirmed reports.
+    const monthPayments = await db.payments
+      .filter((p) => p.month === month).toArray();
+    const monthExpenses = await db.expenses
+      .where("date").between(start, end, true, true).toArray();
+    const realisasi = monthPayments
+      .filter((p) => p.status === "PAID").reduce((s, p) => s + p.totalCost, 0);
+    const piutang = monthPayments
+      .filter((p) => p.status === "UNPAID").reduce((s, p) => s + p.totalCost, 0);
+    const pengeluaran = monthExpenses.reduce((s, e) => s + e.amount, 0);
     await db.monthClosings.put({
       id: existingClosing?.id ?? crypto.randomUUID(),
       month,
@@ -791,6 +801,13 @@ export async function closeMonth(month: string): Promise<void> {
       totalPotensi: monthSessions.reduce((sum, session) => sum + session.cost, 0),
       totalHours: monthSessions.reduce((sum, session) => sum + session.durationHours, 0),
       studentCount: new Set(monthSessions.map((session) => session.studentId)).size,
+      // Snapshot penuh (v12+) — bulan lama yang ditutup sebelum upgrade tidak
+      // memiliki field ini; UI menampilkan "—" dan menghitung live.
+      realisasi,
+      piutang,
+      pengeluaran,
+      laba: realisasi - pengeluaran,
+      invoiceCount: monthPayments.length,
     });
   });
   await logAudit("month.close", "data", month, `${reconciledReportCount} laporan/tagihan diselaraskan`);

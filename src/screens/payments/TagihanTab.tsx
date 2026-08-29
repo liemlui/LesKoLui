@@ -20,6 +20,9 @@ import { escapeCsvCell } from "../../lib/csv";
 import { downloadBlob } from "../../lib/download";
 import { MAX_PAYMENT_AMOUNT, clampCurrencyAmount, isValidCurrencyAmount, parseCurrencyDigits } from "../../lib/money";
 import { buildMonthClosingProjection } from "../../lib/billingPreview";
+import { buildClosingChecklist } from "../../lib/closingChecklist";
+import { invoiceAgeDays, ageBucket, AGE_BUCKET_LABEL, AGE_BUCKET_CLASS } from "../../lib/finance";
+import type { BillingTone } from "../../lib/waBilling";
 import { db } from "../../db/db";
 import ActivityRing from "../../components/dashboard/ActivityRing";
 import ConfirmSheet from "../../components/ConfirmSheet";
@@ -210,6 +213,23 @@ export default function TagihanTab({
   ).size;
 
   const closingProjection = buildMonthClosingProjection(previewBills ?? [], monthPayments);
+  // Pre-flight checklist tutup bulan: draft laporan, piutang carry-over,
+  // murid non-bulanan dengan sesi yang tidak masuk tutup.
+  const closingChecklist = useMemo(
+    () => buildClosingChecklist({
+      month,
+      reports: reports ?? [],
+      sessions: monthSessions ?? [],
+      payments: payments ?? [],
+      students: students ?? [],
+    }),
+    [month, reports, monthSessions, payments, students],
+  );
+  // Nada pesan WA mengikuti umur piutang: normal → gentle (>30) → firm (>60).
+  const toneForPayment = (payment: Payment): BillingTone => {
+    const bucket = ageBucket(invoiceAgeDays(payment));
+    return bucket === ">60" ? "firm" : bucket === "31-60" ? "gentle" : "normal";
+  };
   const previewSessionsByStudent = closingSessions.reduce<Map<string, Session[]>>((m, s) => {
     const arr = m.get(s.studentId) ?? [];
     arr.push(s);
@@ -587,6 +607,7 @@ export default function TagihanTab({
               amountOverride: p.totalCost,
               period: p.periodStart && p.periodEnd ? { start: p.periodStart, end: p.periodEnd } : undefined,
               periodLabelText: periodLbl || undefined,
+              tone: toneForPayment(p),
             }).text;
         return {
           payment: p,
@@ -646,6 +667,7 @@ export default function TagihanTab({
 
       {/* Ringkasan status tagihan — sekilas kondisi penagihan bulan ini */}
       {showIssuedList && monthPayments.length > 0 && (
+        <>
         <div className="grid grid-cols-3 gap-2">
           <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Diterbitkan</p>
@@ -663,6 +685,22 @@ export default function TagihanTab({
             <p className="text-[10px] text-amber-600">{unpaidCount} tagihan · {collectionRate}% sudah dibayar</p>
           </div>
         </div>
+        {showIssuedList && unpaidCount > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+            <span className="font-semibold text-slate-500">Umur piutang:</span>
+            {(["0-30", "31-60", ">60"] as const).map((bucket) => {
+              const sum = billRows
+                .filter((row) => row.payment.status === "UNPAID" && ageBucket(invoiceAgeDays(row.payment)) === bucket)
+                .reduce((acc, row) => acc + row.payment.totalCost, 0);
+              return sum > 0 ? (
+                <span key={bucket} className={`rounded-full px-2 py-0.5 font-bold ${AGE_BUCKET_CLASS[bucket]}`}>
+                  {AGE_BUCKET_LABEL[bucket]} · {formatRupiah(sum)}
+                </span>
+              ) : null;
+            })}
+          </div>
+        )}
+        </>
       )}
 
       {showReadySections && readyReportRows.length > 0 && (
@@ -939,6 +977,27 @@ export default function TagihanTab({
               <span className="font-bold text-indigo-700">{formatRupiah(totalBilled + closingProjection.additionalTotal)}</span>
             </div>
           )}
+          {closingChecklist.warnings.length > 0 ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-2.5 space-y-1.5 text-xs">
+              <p className="font-semibold text-amber-800">⚠ Periksa sebelum menutup:</p>
+              {closingChecklist.warnings.map((warning, i) => (
+                <p key={i} className="text-amber-800 leading-relaxed">{warning}</p>
+              ))}
+              {closingChecklist.draftReports.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/report?studentId=${encodeURIComponent(closingChecklist.draftReports[0].studentId)}&reportId=${encodeURIComponent(closingChecklist.draftReports[0].id)}`)}
+                  className="rounded-lg bg-indigo-600 px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-indigo-700"
+                >
+                  Buka Draft Laporan →
+                </button>
+              )}
+            </div>
+          ) : (
+            <p className="rounded-lg border border-green-200 bg-green-50 px-2.5 py-2 text-xs font-medium text-green-700">
+              ✓ Siap ditutup — tidak ada draft menggantung, semua murid bulanan ter-rekap.
+            </p>
+          )}
           <button onClick={handleCloseMonth} disabled={closingBusy || !canClose}
             className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold disabled:opacity-40 hover:bg-blue-700 transition-colors">
             {closingBusy ? "Memproses..." : (previewBills ?? []).length === 0 ? "🔒 Tutup Bulan (kosong)" : `🔒 Tutup Bulan ${monthLabel(month)}`}
@@ -1018,6 +1077,7 @@ export default function TagihanTab({
                     student, sessions, month: payment.month, settings, amountOverride: payment.totalCost,
                     period: payment.periodStart && payment.periodEnd ? { start: payment.periodStart, end: payment.periodEnd } : undefined,
                     periodLabelText: periodLbl || undefined,
+                    tone: toneForPayment(payment),
                   }).text
               : "";
             return (
@@ -1042,6 +1102,11 @@ export default function TagihanTab({
                     )}
                   </div>
                   <span className={pill(paid)}>{paid ? "Lunas" : "Belum dibayar"}</span>
+                  {!paid && (
+                    <span className={`inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold ${AGE_BUCKET_CLASS[ageBucket(invoiceAgeDays(payment))]}`}>
+                      {AGE_BUCKET_LABEL[ageBucket(invoiceAgeDays(payment))]}
+                    </span>
+                  )}
                 </div>
                 <div className="rounded-lg bg-slate-50 px-2.5 py-1.5 text-[10px] leading-relaxed text-slate-600">
                   <p>🗓 Periode sesi: <strong>{periodLbl || "Tanpa sesi"}</strong></p>
@@ -1242,6 +1307,11 @@ export default function TagihanTab({
             setInvoiceTarget(null);
             if (payment.reportId) navigate(`/report?reportId=${encodeURIComponent(payment.reportId)}`);
             else navigate(`/report?studentId=${encodeURIComponent(payment.studentId)}`);
+          }}
+          onSendWithReport={() => {
+            const s = invoiceTarget.student;
+            setInvoiceTarget(null);
+            navigate(`/report?studentId=${encodeURIComponent(s.id)}`);
           }}
           onClose={() => setInvoiceTarget(null)}
         />

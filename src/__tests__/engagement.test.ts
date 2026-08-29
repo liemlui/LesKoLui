@@ -19,6 +19,8 @@ describe("calcEngagementScore", () => {
     expect(calcEngagementScore({ drowsy: true })).toBe(4);          // 5-1
     expect(calcEngagementScore({ needsRepetition: true })).toBe(4); // 5-1
     expect(calcEngagementScore({ hwMissed: true })).toBe(4);        // 5-1
+    expect(calcEngagementScore({ restless: true })).toBe(4);        // 5-1 — gelisah loncat-loncat
+    expect(calcEngagementScore({ offTask: true })).toBe(4);         // 5-1 — sibuk sendiri
   });
 
   it("clamps to [1, 10]", () => {

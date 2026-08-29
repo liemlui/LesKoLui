@@ -29,6 +29,7 @@ export async function buildDataCsv(): Promise<string> {
     sessionRows.push([
       s.date, nameOf.get(s.studentId) ?? "(dihapus)", s.subjects.join("; "),
       s.durationHours, s.status, s.cost, s.engagement?.score, s.shortNote,
+      s.situasiNote ?? "",
     ]);
   });
 
@@ -46,7 +47,7 @@ export async function buildDataCsv(): Promise<string> {
 
   parts.push("### SESI");
   parts.push(rowsToCsv(
-    ["Tanggal", "Murid", "Mapel", "Durasi (jam)", "Status", "Biaya", "Skor", "Catatan"],
+    ["Tanggal", "Murid", "Mapel", "Durasi (jam)", "Status", "Biaya", "Skor", "Catatan", "Situasi"],
     sessionRows,
   ));
   parts.push("");

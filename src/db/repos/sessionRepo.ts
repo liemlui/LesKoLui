@@ -88,6 +88,7 @@ export async function markSessionDone(
     topic?: string;
     needsWork?: string;
     predictedGrade?: string;
+    situasiNote?: string;
     engagement?: Session["engagement"];
     behaviorTags?: string[];
     responseTag?: string;

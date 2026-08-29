@@ -235,6 +235,7 @@ export default function PaymentsPage() {
           month={month}
           monthExpenses={monthExpenses}
           setMessage={setMessage}
+          students={students ?? []}
         />
       )}
       {activeTab === "audit" && (

@@ -39,6 +39,18 @@ const MOODS = [
   { v: "Kesulitan",icon: "😰" },
 ];
 
+/** Chips cepat "Situasi hari ini" — tap menambah frasa ke kolom bebas situasi.
+ *  Murni konteks manusiawi, tidak memengaruhi skor engagement. */
+const SITUASI_CHIPS = [
+  { icon: "😷", label: "Habis sakit" },
+  { icon: "😴", label: "Kurang tidur" },
+  { icon: "🏃", label: "Habis ekskul" },
+  { icon: "🍚", label: "Belum makan" },
+  { icon: "📝", label: "Besok ulangan" },
+  { icon: "🎉", label: "Ada acara keluarga" },
+  { icon: "💭", label: "Ada masalah pribadi" },
+];
+
 const STEPS = [
   { id: 1, label: "Jadwal",  icon: "🎯", desc: "Murid & waktu",       optional: false },
   { id: 2, label: "Materi",  icon: "📚", desc: "Mapel & topik",       optional: false },
@@ -137,8 +149,13 @@ export default function CaptureSession() {
   const [engHwMissed,       setEngHwMissed]       = useState(false);
   const [engLate,           setEngLate]           = useState(false);
   const [engBathroom,       setEngBathroom]       = useState(false);
+  const [engRestless,       setEngRestless]       = useState(false);
+  const [engOffTask,        setEngOffTask]        = useState(false);
+  // Situasi humanis hari ini (opsional) — konteks, bukan perilaku.
+  const [situasiNote,       setSituasiNote]       = useState("");
   const engTouched = engPrepared || engFocused || engDrowsy || engPhone ||
-    engActiveAsking || engQuickLearner || engNeedsRepeat || engHwMissed || engLate || engBathroom;
+    engActiveAsking || engQuickLearner || engNeedsRepeat || engHwMissed || engLate || engBathroom ||
+    engRestless || engOffTask;
 
   // Topic search
   const [topicSearch,    setTopicSearch]    = useState("");
@@ -315,6 +332,8 @@ export default function CaptureSession() {
     setEngPrepared(false); setEngFocused(false); setEngDrowsy(false); setEngPhone(false);
     setEngLate(false); setEngBathroom(false);
     setEngActiveAsking(false); setEngQuickLearner(false); setEngNeedsRepeat(false); setEngHwMissed(false);
+    setEngRestless(false); setEngOffTask(false);
+    setSituasiNote("");
     setBehaviorTags([]); setResponseTag(undefined); setShowBehavior(false); setActiveTooltip(null);
     setSignature(undefined); setShowSigPad(false);
     setDuration(MIN_DURATION); setSessionDate(today);
@@ -334,12 +353,12 @@ export default function CaptureSession() {
       drowsy: engDrowsy, playingPhone: engPhone,
       activeAsking: engActiveAsking, quickLearner: engQuickLearner,
       needsRepetition: engNeedsRepeat, hwMissed: engHwMissed,
-      late: engLate, bathroomBreaks: engBathroom,
+      late: engLate, bathroomBreaks: engBathroom, restless: engRestless, offTask: engOffTask,
       score: calcEngagementScore({
         prepared: engPrepared, focused: engFocused, drowsy: engDrowsy, playingPhone: engPhone,
         activeAsking: engActiveAsking, quickLearner: engQuickLearner,
         needsRepetition: engNeedsRepeat, hwMissed: engHwMissed,
-        late: engLate, bathroomBreaks: engBathroom,
+        late: engLate, bathroomBreaks: engBathroom, restless: engRestless, offTask: engOffTask,
         behaviorValences: behaviorTags.length > 0 ? behaviorTags.map(id => BEHAVIOR_TAGS.find(t => t.id === id)?.valence).filter(Boolean) as ("positive" | "neutral" | "negative")[] : undefined,
         responseTagId: responseTag,
         mood,
@@ -354,6 +373,7 @@ export default function CaptureSession() {
           topic: topic.trim() || undefined,
           needsWork: needsWork.trim() || undefined,
           predictedGrade: predictedGrade.trim() || undefined,
+          situasiNote: situasiNote.trim() || undefined,
           engagement: engData,
           behaviorTags: behaviorTags.length > 0 ? behaviorTags : undefined,
           responseTag: responseTag || undefined,
@@ -373,6 +393,7 @@ export default function CaptureSession() {
           topic: topic.trim() || undefined,
           needsWork: needsWork.trim() || undefined,
           predictedGrade: predictedGrade.trim() || undefined,
+          situasiNote: situasiNote.trim() || undefined,
           engagement: engData,
           behaviorTags: behaviorTags.length > 0 ? behaviorTags : undefined,
           responseTag: responseTag || undefined,
@@ -460,7 +481,7 @@ export default function CaptureSession() {
     prepared: engPrepared, focused: engFocused, drowsy: engDrowsy, playingPhone: engPhone,
     activeAsking: engActiveAsking, quickLearner: engQuickLearner,
     needsRepetition: engNeedsRepeat, hwMissed: engHwMissed,
-    late: engLate, bathroomBreaks: engBathroom,
+    late: engLate, bathroomBreaks: engBathroom, restless: engRestless, offTask: engOffTask,
     behaviorValences: behaviorTags.length > 0 ? behaviorTags.map(id => BEHAVIOR_TAGS.find(t => t.id === id)?.valence).filter(Boolean) as ("positive" | "neutral" | "negative")[] : undefined,
     responseTagId: responseTag,
     mood,
@@ -492,7 +513,7 @@ export default function CaptureSession() {
         prepared: engPrepared, focused: engFocused, activeAsking: engActiveAsking,
         quickLearner: engQuickLearner, drowsy: engDrowsy, playingPhone: engPhone,
         needsRepetition: engNeedsRepeat, hwMissed: engHwMissed, late: engLate,
-        bathroomBreaks: engBathroom, score: engScore,
+        bathroomBreaks: engBathroom, restless: engRestless, offTask: engOffTask, score: engScore,
       },
     }));
     setAiNoteDraft(null);
@@ -509,6 +530,17 @@ export default function CaptureSession() {
     });
     setAiNoteDraft(null);
     setAiNoteOriginal("");
+  };
+
+  /** Tambahkan chip situasi ke kolom bebas (pisah koma, tanpa duplikat). */
+  const appendSituasiChip = (text: string) => {
+    setSituasiNote((prev) => {
+      const clean = text.trim();
+      if (!clean) return prev;
+      const parts = prev.split(",").map((p) => p.trim()).filter(Boolean);
+      if (parts.includes(clean)) return prev;
+      return parts.length > 0 ? `${parts.join(", ")}, ${clean}` : clean;
+    });
   };
 
   return (
@@ -925,6 +957,7 @@ export default function CaptureSession() {
                   setMood("Fokus"); setEngPrepared(true); setEngFocused(true); setEngActiveAsking(true); setEngQuickLearner(false);
                   setEngDrowsy(false); setEngPhone(false); setEngNeedsRepeat(false); setEngHwMissed(false);
                   setEngLate(false); setEngBathroom(false);
+                  setEngRestless(false); setEngOffTask(false);
                 }}
                 className="px-3 py-2 rounded-full text-sm font-semibold bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors">
                 ✨ Lancar
@@ -934,6 +967,7 @@ export default function CaptureSession() {
                   setMood("Biasa"); setEngPrepared(false); setEngFocused(false); setEngActiveAsking(false);
                   setEngQuickLearner(false); setEngDrowsy(false); setEngPhone(false); setEngNeedsRepeat(false); setEngHwMissed(false);
                   setEngLate(false); setEngBathroom(false);
+                  setEngRestless(false); setEngOffTask(false);
                 }}
                 className="px-3 py-2 rounded-full text-sm font-semibold bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 transition-colors">
                 😐 Biasa
@@ -943,6 +977,7 @@ export default function CaptureSession() {
                   setMood("Lelah"); setEngPrepared(false); setEngFocused(false); setEngActiveAsking(false);
                   setEngQuickLearner(false); setEngDrowsy(true); setEngPhone(false); setEngNeedsRepeat(false); setEngHwMissed(false);
                   setEngLate(false); setEngBathroom(false);
+                  setEngRestless(false); setEngOffTask(false);
                 }}
                 className="px-3 py-2 rounded-full text-sm font-semibold bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 transition-colors">
                 😴 Kurang Fit
@@ -952,6 +987,8 @@ export default function CaptureSession() {
                   setMood(undefined); setEngPrepared(false); setEngFocused(false); setEngActiveAsking(false);
                   setEngQuickLearner(false); setEngDrowsy(false); setEngPhone(false); setEngNeedsRepeat(false); setEngHwMissed(false);
                   setEngLate(false); setEngBathroom(false);
+                  setEngRestless(false); setEngOffTask(false);
+                  setSituasiNote("");
                   setBehaviorTags([]);
                 }}
                 className="px-3 py-2 rounded-full text-sm font-semibold bg-white text-gray-500 border border-gray-200 hover:bg-gray-50 transition-colors">
@@ -972,6 +1009,28 @@ export default function CaptureSession() {
                   {m.icon} {m.v}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Situasi hari ini — konteks humanis, bukan perilaku */}
+          <div>
+            <label htmlFor="cs-situasi" className="label">🫶 Situasi Hari Ini <span className="text-gray-500 font-normal text-xs">(opsional — konteks saja, tidak mengurangi skor)</span></label>
+            <p className="text-xs text-gray-500 mt-1 mb-2">Cerita di balik sesi hari ini — mis. habis sakit, kurang tidur, ada acara keluarga. Konteks manusiawi untuk tutor &amp; AI saja (tidak dikirim ke WA ortu).</p>
+            <textarea id="cs-situasi" className="input" rows={2} maxLength={200} value={situasiNote}
+              onChange={(e) => setSituasiNote(e.target.value)}
+              placeholder="Contoh: habis sakit, kurang tidur tadi malam, besok ulangan…" />
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {SITUASI_CHIPS.map((c) => {
+                const active = situasiNote.split(",").map((s) => s.trim()).includes(c.label);
+                return (
+                  <button key={c.label} type="button"
+                    onClick={() => appendSituasiChip(c.label)}
+                    className={`px-2.5 py-1.5 rounded-full text-[11px] font-medium border transition-all ${
+                      active ? "bg-teal-500 text-white border-teal-500" : "bg-white text-gray-600 border-gray-200 hover:border-teal-300 hover:bg-teal-50"}`}>
+                    {c.icon} {c.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -1035,6 +1094,16 @@ export default function CaptureSession() {
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
                   engBathroom ? "bg-pink-500 text-white border-pink-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-pink-300"}`}>
                 <span>🚻</span> Sering ke toilet (−1)
+              </button>
+              <button type="button" onClick={() => setEngRestless(!engRestless)}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
+                  engRestless ? "bg-orange-500 text-white border-orange-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-orange-300"}`}>
+                <span>🦘</span> Gelisah loncat-loncat (−1)
+              </button>
+              <button type="button" onClick={() => setEngOffTask(!engOffTask)}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
+                  engOffTask ? "bg-amber-500 text-white border-amber-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-amber-300"}`}>
+                <span>🙈</span> Sibuk sendiri (−1)
               </button>
             </div>
           </div>
@@ -1305,6 +1374,11 @@ export default function CaptureSession() {
                 <span className="font-semibold">🔥 Mood:</span> {mood}
               </p>
             )}
+            {situasiNote.trim() && (
+              <p className="text-xs text-gray-600">
+                <span className="font-semibold">🫶 Situasi:</span> {situasiNote.trim()}
+              </p>
+            )}
             {engTouched && (
               <p className="text-xs text-gray-600">
                 <span className="font-semibold">🎯 Engagement {engScore}/10:</span>{" "}
@@ -1314,6 +1388,7 @@ export default function CaptureSession() {
                   engDrowsy && "mengantuk", engPhone && "main HP",
                   engNeedsRepeat && "perlu diulang", engHwMissed && "PR tidak buat",
                   engLate && "telat", engBathroom && "sering ke toilet",
+                  engRestless && "gelisah loncat-loncat", engOffTask && "sibuk sendiri",
                 ].filter(Boolean).join(", ")}
               </p>
             )}
@@ -1898,6 +1973,8 @@ export default function CaptureSession() {
                         ...(engHwMissed      ? ["PR tidak dikerjakan"]  : []),
                         ...(engLate          ? ["telat"]                : []),
                         ...(engBathroom      ? ["sering ke toilet"]     : []),
+                        ...(engRestless      ? ["gelisah loncat-loncat"]: []),
+                        ...(engOffTask       ? ["sibuk sendiri"]        : []),
                       ] : undefined;
                       const res = await draftShortNote({
                         student: { name: currentStudent?.name ?? "", level: currentStudent?.level ?? "" },
@@ -1908,6 +1985,7 @@ export default function CaptureSession() {
                         grade: currentStudent?.grade,
                         needsWork: needsWork || undefined,
                         predictedGrade: predictedGrade.trim() || undefined,
+                        situasiNote: situasiNote.trim() || undefined,
                         engagementScore: engTouched ? engScore : undefined,
                         engagementLabels,
                         behaviorLabels: activeBehaviorLabels.length > 0 ? activeBehaviorLabels : undefined,

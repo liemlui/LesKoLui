@@ -45,6 +45,7 @@ export function sessionAiFingerprint(session: Session): number {
     n(session.topic),
     n(session.needsWork),
     n(session.predictedGrade),
+    n(session.situasiNote),
     n(session.actualGrade),
     n(session.gradeReflection),
     n(session.engagement?.score ?? ""),

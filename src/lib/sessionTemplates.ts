@@ -26,6 +26,8 @@ export interface EngagementNarrativeInput {
   hwMissed?: boolean;
   late?: boolean;
   bathroomBreaks?: boolean;
+  restless?: boolean;
+  offTask?: boolean;
   score?: number;
 }
 
@@ -45,6 +47,8 @@ export function generateEngagementNarrative(e: EngagementNarrativeInput, name?: 
   if (e.playingPhone) negatives.push("sempat main HP");
   if (e.late) negatives.push("datang terlambat");
   if (e.bathroomBreaks) negatives.push("sering ke toilet");
+  if (e.restless) negatives.push("gelisah dan susah diam duduk");
+  if (e.offTask) negatives.push("sibuk sendiri / melamun");
 
   const score = e.score ?? 5;
 
