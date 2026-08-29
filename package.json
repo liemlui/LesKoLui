@@ -1,7 +1,7 @@
 {
   "name": "les-ko-lui",
   "private": true,
-  "version": "1.63.0",
+  "version": "1.64.1",
   "type": "module",
   "scripts": {
     "dev": "vite",

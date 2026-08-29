@@ -4,16 +4,15 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db/db";
 import {
-  listStudents, getStudent, createSession, recentShortNotes,
-  createFollowUp, listPendingFollowUps,
-  getLastDoneSession, getSettings, listDoneSessionsForDate,
+  listStudents, createSession, recentShortNotes,
+  createFollowUp, getSettings, listDoneSessionsForDate,
   markSessionDone,
 } from "../db/repos";
 import { compressPhoto, stampPhoto } from "../lib/foto";
 import SignaturePad from "../components/SignaturePad";
 import { todayWIB, dayLabel } from "../lib/format";
 import { toggleArrayItem } from "../lib/arrays";
-import { calcEngagementScore, scoreLabel } from "../lib/engagement";
+import { calcEngagementScore } from "../lib/engagement";
 import { IB_MYP_SUBJECTS, IB_DP_GROUPS, getSubjectGroups, CURRICULUM_META } from "../lib/ibSubjects";
 import { searchTopics } from "../lib/ibTopics";
 import { SESSION_TYPE_OPTIONS, generateNote, generateEngagementNarrative, generateRichNote } from "../lib/sessionTemplates";
@@ -25,10 +24,12 @@ import { draftShortNote, polishWhatsApp, estimateDraftNoteCost, estimatePolishWA
 import { AiCostModal } from "../components/AiCostModal";
 import { SimpleMarkdown } from "../components/SimpleMarkdown";
 import Breadcrumb from "../components/Breadcrumb";
-import type { Student, Session, FollowUpItem } from "../db/types";
+import type { Student } from "../db/types";
 import PaginationControls from "../components/PaginationControls";
 import { PAGE_SIZE, clampPage, paginateItems } from "../lib/pagination";
 import { Z } from "../lib/zIndex";
+import useEngagement from "./captureSession/useEngagement";
+import useStudentBrief from "./captureSession/useStudentBrief";
 
 const DURATIONS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
 const MOODS = [
@@ -114,9 +115,8 @@ export default function CaptureSession() {
 
   // Main form
   const [studentId,      setStudentId]      = useState("");
-  const [currentStudent, setCurrentStudent] = useState<Student | undefined>();
-  const [studentSubjects,setStudentSubjects] = useState<string[]>([]);
   const [subjects,       setSubjects]        = useState<string[]>([]);
+  const { currentStudent, studentSubjects, briefLastSession, briefFollowUps } = useStudentBrief(studentId);
   const [showIBPicker,   setShowIBPicker]    = useState(false);
   const [ibTab,          setIbTab]           = useState<"MYP" | "DP">("MYP");
   const [ibCustom,       setIbCustom]        = useState("");
@@ -127,35 +127,33 @@ export default function CaptureSession() {
   const [signatureUrl,   setSignatureUrl]    = useState<string | undefined>();
   const [showSigPad,     setShowSigPad]      = useState(false);
   const [duration,       setDuration]        = useState(MIN_DURATION);
-  const [mood,           setMood]            = useState<string | undefined>();
   const [predictedGrade, setPredictedGrade]  = useState("");
   const [topics,         setTopics]          = useState<string[]>([]);
   const [needsWork,      setNeedsWork]       = useState("");
   const [sessionDate,    setSessionDate]     = useState(today);
   const [saving,         setSaving]          = useState(false);
-  const [message,        setMessage]         = useState("");
+  const [message, setMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
 
   // Session type
   const [sessionType, setSessionType] = useState<SessionType | undefined>();
 
   // Engagement indicators
-  const [engPrepared,       setEngPrepared]       = useState(false);
-  const [engFocused,        setEngFocused]        = useState(false);
-  const [engDrowsy,         setEngDrowsy]         = useState(false);
-  const [engPhone,          setEngPhone]          = useState(false);
-  const [engActiveAsking,   setEngActiveAsking]   = useState(false);
-  const [engQuickLearner,   setEngQuickLearner]   = useState(false);
-  const [engNeedsRepeat,    setEngNeedsRepeat]    = useState(false);
-  const [engHwMissed,       setEngHwMissed]       = useState(false);
-  const [engLate,           setEngLate]           = useState(false);
-  const [engBathroom,       setEngBathroom]       = useState(false);
-  const [engRestless,       setEngRestless]       = useState(false);
-  const [engOffTask,        setEngOffTask]        = useState(false);
+  const {
+    flags: { prepared: engPrepared, focused: engFocused, drowsy: engDrowsy,
+      playingPhone: engPhone, activeAsking: engActiveAsking, quickLearner: engQuickLearner,
+      needsRepetition: engNeedsRepeat, hwMissed: engHwMissed, late: engLate,
+      bathroomBreaks: engBathroom, restless: engRestless, offTask: engOffTask },
+    mood, setMood,
+    behaviorTags, setBehaviorTags,
+    responseTag, setResponseTag,
+    showBehavior, setShowBehavior,
+    activeTooltip, setActiveTooltip,
+    situasiNote, setSituasiNote,
+    touched: engTouched, hasEngagementInput,
+    score: engScore, scoreInfo: engScoreInfo,
+    toggleFlag, applyPreset, resetEngagementFlags, resetAll,
+  } = useEngagement();
   // Situasi humanis hari ini (opsional) — konteks, bukan perilaku.
-  const [situasiNote,       setSituasiNote]       = useState("");
-  const engTouched = engPrepared || engFocused || engDrowsy || engPhone ||
-    engActiveAsking || engQuickLearner || engNeedsRepeat || engHwMissed || engLate || engBathroom ||
-    engRestless || engOffTask;
 
   // Topic search
   const [topicSearch,    setTopicSearch]    = useState("");
@@ -170,23 +168,15 @@ export default function CaptureSession() {
   const topicSearchSubject = subjects.length >= 2 ? undefined : subjects[0] ?? studentSubjects[0];
 
   // Behavior & response taxonomy tags
-  const [behaviorTags,   setBehaviorTags]   = useState<string[]>([]);
-  const [responseTag,    setResponseTag]    = useState<string | undefined>();
-  const [showBehavior,   setShowBehavior]   = useState(false);
-  const [activeTooltip,  setActiveTooltip]  = useState<{ tag: BehaviorTag | ResponseTag; type: "behavior" | "response" } | null>(null);
 
   // Skor keterlibatan dihitung + disimpan bila ada sinyal APAPUN: flag inti,
   // tag perilaku, respons akademik, atau mood. Jangan hanya engTouched — kalau
   // tutor hanya mencatat mood/tag, engagement (dan skornya) tetap harus tersimpan.
-  const hasEngagementInput =
-    engTouched || behaviorTags.length > 0 || Boolean(responseTag) || Boolean(mood);
 
   // Conflict warning
   const [conflictWarn, setConflictWarn] = useState<string[]>([]);
 
   // Brief (loaded on student change)
-  const [briefLastSession, setBriefLastSession] = useState<Session | undefined>();
-  const [briefFollowUps,   setBriefFollowUps]   = useState<FollowUpItem[]>([]);
   const [briefFollowPage,  setBriefFollowPage]  = useState(1);
 
   // Close-out state
@@ -252,24 +242,7 @@ export default function CaptureSession() {
     return () => { cancelled = true; };
   }, [studentId, sessionDate]);
 
-  useEffect(() => {
-    if (!studentId) {
-      setCurrentStudent(undefined); setStudentSubjects([]); setSubjects([]);
-      setBriefLastSession(undefined); setBriefFollowUps([]);
-      return;
-    }
-    Promise.all([
-      getStudent(studentId),
-      getLastDoneSession(studentId),
-      listPendingFollowUps(studentId),
-    ]).then(([stud, lastSess, fu]) => {
-      setCurrentStudent(stud);
-      setStudentSubjects(stud?.subjects ?? []);
-      setSubjects([]);
-      setBriefLastSession(lastSess);
-      setBriefFollowUps(fu);
-    });
-  }, [studentId]);
+  useEffect(() => { setSubjects([]); }, [studentId]);
 
   const suggestions = shortNote.length > 1
     ? (allNotes ?? []).filter((n) => n.toLowerCase().includes(shortNote.toLowerCase()) && n !== shortNote).slice(0, 4)
@@ -284,18 +257,18 @@ export default function CaptureSession() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setMessage("File harus berupa gambar (JPG/PNG/WebP).");
+      setMessage({ kind: "error", text: "File harus berupa gambar (JPG/PNG/WebP)." });
       e.target.value = ""; return;
     }
     if (file.size > 50 * 1024 * 1024) {
-      setMessage("Foto terlalu besar (maks 50 MB)");
+      setMessage({ kind: "error", text: "Foto terlalu besar (maks 50 MB)" });
       e.target.value = ""; return;
     }
     try {
       const compressed = await compressPhoto(file);
       const stamped    = await stampPhoto(compressed, sessionDate);
       setPhoto(stamped);
-    } catch { setMessage("Gagal kompres foto"); }
+    } catch { setMessage({ kind: "error", text: "Gagal kompres foto" }); }
     e.target.value = "";
   };
 
@@ -327,26 +300,20 @@ export default function CaptureSession() {
   const resetForm = () => {
     setSubjects([]); setShowIBPicker(false); setIbCustom("");
     setShortNote(""); setPhoto(undefined);
-    setMood(undefined); setPredictedGrade(""); setTopics([]); setTopicSearch(""); setTopicResults([]);
+    resetAll(); setPredictedGrade(""); setTopics([]); setTopicSearch(""); setTopicResults([]);
     setNeedsWork("");
-    setEngPrepared(false); setEngFocused(false); setEngDrowsy(false); setEngPhone(false);
-    setEngLate(false); setEngBathroom(false);
-    setEngActiveAsking(false); setEngQuickLearner(false); setEngNeedsRepeat(false); setEngHwMissed(false);
-    setEngRestless(false); setEngOffTask(false);
-    setSituasiNote("");
-    setBehaviorTags([]); setResponseTag(undefined); setShowBehavior(false); setActiveTooltip(null);
     setSignature(undefined); setShowSigPad(false);
     setDuration(MIN_DURATION); setSessionDate(today);
     setSessionType(undefined); setConflictWarn([]);
-    setCurrentStep(1); setMessage("");
+    setCurrentStep(1); setMessage(null);
   };
 
   const handleSave = async () => {
-    if (!studentId) { setMessage("Pilih murid dulu."); return; }
+    if (!studentId) { setMessage({ kind: "error", text: "Pilih murid dulu." }); return; }
     if (studentSubjects.length > 0 && subjects.length === 0) {
-      setMessage("Pilih minimal 1 mata pelajaran."); return;
+      setMessage({ kind: "error", text: "Pilih minimal 1 mata pelajaran." }); return;
     }
-    if (!shortNote.trim()) { setMessage("Tulis catatan singkat."); return; }
+    if (!shortNote.trim()) { setMessage({ kind: "error", text: "Tulis catatan singkat." }); return; }
     setSaving(true);
     const engData = hasEngagementInput ? {
       prepared: engPrepared, focused: engFocused,
@@ -411,7 +378,7 @@ export default function CaptureSession() {
       setCoFollowUpText("");
       setShowCloseOut(true);
     } catch (e) {
-      setMessage("Gagal: " + (e as Error).message);
+      setMessage({ kind: "error", text: "Gagal: " + (e as Error).message });
     } finally {
       setSaving(false);
     }
@@ -455,19 +422,19 @@ export default function CaptureSession() {
 
   const goNext = () => {
     const err = validateCurrentStep();
-    if (err) { setMessage(err); return; }
-    setMessage("");
+    if (err) { setMessage({ kind: "error", text: err }); return; }
+    setMessage(null);
     if (currentStep < 6) setCurrentStep((s) => (s + 1) as StepNum);
     else handleSave();
   };
 
   const goBack = () => {
-    setMessage("");
+    setMessage(null);
     if (currentStep > 1) setCurrentStep((s) => (s - 1) as StepNum);
   };
 
   const skipStep = () => {
-    setMessage("");
+    setMessage(null);
     if (currentStep < 6) setCurrentStep((s) => (s + 1) as StepNum);
     else handleSave();
   };
@@ -477,16 +444,6 @@ export default function CaptureSession() {
   const tutorName    = settings?.tutorProfile?.name || "Ko Lui";
   const waNumber     = currentStudent?.parentContact.phone.replace(/^0/, "62").replace(/[^0-9]/g, "") ?? "";
   const stepMeta     = STEPS[currentStep - 1];
-  const engScore     = hasEngagementInput ? calcEngagementScore({
-    prepared: engPrepared, focused: engFocused, drowsy: engDrowsy, playingPhone: engPhone,
-    activeAsking: engActiveAsking, quickLearner: engQuickLearner,
-    needsRepetition: engNeedsRepeat, hwMissed: engHwMissed,
-    late: engLate, bathroomBreaks: engBathroom, restless: engRestless, offTask: engOffTask,
-    behaviorValences: behaviorTags.length > 0 ? behaviorTags.map(id => BEHAVIOR_TAGS.find(t => t.id === id)?.valence).filter(Boolean) as ("positive" | "neutral" | "negative")[] : undefined,
-    responseTagId: responseTag,
-    mood,
-  }) : 0;
-  const engScoreInfo = engScore > 0 ? scoreLabel(engScore) : null;
 
   const activeSubjects      = subjects.length ? subjects : studentSubjects;
   const activeBehaviorLabels = behaviorTags.length > 0
@@ -562,18 +519,18 @@ export default function CaptureSession() {
             const done   = currentStep > step.id;
             const active = currentStep === step.id;
             return (
-              <div key={step.id} className="flex flex-col items-center gap-1.5 z-10 relative flex-1">
+              <button type="button" onClick={() => currentStep > step.id ? setCurrentStep(step.id as StepNum) : undefined} key={step.id} className="flex flex-col items-center gap-1.5 z-10 relative flex-1">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all shadow-sm
                   ${done   ? "bg-green-500 text-white scale-95"
                   : active ? "bg-blue-600 text-white ring-4 ring-blue-100 scale-110"
                   :          "bg-white text-gray-500 border-2 border-gray-200"}`}>
                   {done ? "✓" : step.icon}
                 </div>
-                <span className={`text-[10px] font-bold tracking-wide transition-colors
+                <span className={`text-xs font-bold tracking-wide transition-colors
                   ${active ? "text-blue-600" : done ? "text-green-600" : "text-gray-500"}`}>
                   {step.label}
                 </span>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -598,7 +555,7 @@ export default function CaptureSession() {
           <p className="text-xs text-gray-500">{stepMeta.desc}</p>
         </div>
         {stepMeta.optional && (
-          <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded-full font-semibold uppercase tracking-wide flex-shrink-0">
+          <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full font-semibold uppercase tracking-wide flex-shrink-0">
             opsional
           </span>
         )}
@@ -606,11 +563,11 @@ export default function CaptureSession() {
 
       {/* ── MESSAGE ── */}
       {message && (
-        <div className="mx-4 mb-3" onClick={() => setMessage("")}>
+        <div className="mx-4 mb-3" onClick={() => setMessage(null)}>
           <div className={`p-3 rounded-xl text-sm cursor-pointer font-medium ${
-            message.includes("✓") ? "bg-green-50 text-green-700 border border-green-200"
+            message.kind === "success" ? "bg-green-50 text-green-700 border border-green-200"
             : "bg-red-50 text-red-600 border border-red-200"}`}>
-            {message}
+            {message.text}
           </div>
         </div>
       )}
@@ -644,10 +601,10 @@ export default function CaptureSession() {
           {/* Durasi */}
           <div>
             <label className="label">⏱️ Durasi</label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex gap-2 overflow-x-auto pb-1">
               {DURATIONS.map((d) => (
                 <button key={d} type="button"
-                  className={`px-3 py-2 rounded-xl text-sm font-semibold border transition-colors ${
+                  className={`flex-shrink-0 px-3 py-2 rounded-xl text-sm font-semibold border transition-colors ${
                     duration === d ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200"}`}
                   onClick={() => setDuration(d)}>{d}j</button>
               ))}
@@ -706,117 +663,6 @@ export default function CaptureSession() {
                   <PaginationControls page={safeBriefFollowPage} total={briefFollowUps.length} onPageChange={setBriefFollowPage} label="follow-up" />
                 </div>
               )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════════
-          STEP 6: BUKTI — Foto & Tanda Tangan
-          ══════════════════════════════════════════ */}
-      {currentStep === 6 && (
-        <div className="px-4 space-y-3">
-          {/* Info: bisa diisi nanti */}
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-2.5">
-            <span className="text-amber-500 text-xl">⏭️</span>
-            <div className="flex-1">
-              <p className="text-xs font-bold text-amber-700">Foto & tanda tangan bisa diisi nanti</p>
-              <p className="text-xs text-amber-600 mt-0.5">Lengkapi dari profil murid setelah sesi. Simpan dulu detailnya sekarang.</p>
-            </div>
-          </div>
-          <button type="button" onClick={handleSave}
-            className="w-full py-3 rounded-xl bg-amber-500 text-white font-bold text-sm hover:bg-amber-600 transition-colors shadow-sm">
-            ⏭️ Nanti Saja — Simpan Tanpa Foto
-          </button>
-
-          <div className="flex items-center gap-3 my-1">
-            <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-xs text-gray-500 font-medium">atau isi sekarang</span>
-            <div className="flex-1 h-px bg-gray-200" />
-          </div>
-
-          {/* Kamera — capture langsung */}
-          <input ref={cameraRef} type="file" accept="image/*" capture="environment"
-            onChange={handlePhoto} className="hidden" />
-          {/* Galeri — browse dari gallery / file picker */}
-          <input ref={galleryRef} type="file" accept="image/*"
-            onChange={handlePhoto} className="hidden" />
-          <p className="text-xs text-gray-500 text-center -mt-2">💡 Di HP, tap ⋮ atau menu Browse untuk pilih folder</p>
-
-          {/* Foto */}
-          {photoUrl ? (
-            <div className="relative">
-              <img src={photoUrl} alt="preview" className="w-full h-52 object-cover rounded-2xl shadow-md" />
-              <button aria-label="Hapus foto" onClick={() => setPhoto(undefined)}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-7 h-7 text-sm flex items-center justify-center shadow-md"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-              <div className="absolute bottom-2 right-2 flex gap-1.5">
-                <button onClick={() => cameraRef.current?.click()}
-                  className="bg-black/60 text-white text-xs px-2.5 py-1 rounded-full">📷 Kamera</button>
-                <button onClick={() => galleryRef.current?.click()}
-                  className="bg-black/60 text-white text-xs px-2.5 py-1 rounded-full">🖼️ Galeri</button>
-              </div>
-              <span className="absolute top-2 left-2 bg-black/50 text-white text-[10px] px-2 py-0.5 rounded-full">📅 timestamp ✓</span>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              <button onClick={() => cameraRef.current?.click()}
-                className="flex flex-col items-center justify-center gap-2 py-12 rounded-2xl border-2 border-dashed border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-colors bg-gray-50">
-                <span className="text-4xl">📷</span>
-                <div className="text-center">
-                  <p className="font-semibold text-sm">Ambil Foto</p>
-                  <p className="text-xs mt-0.5 text-gray-500">Buka kamera</p>
-                </div>
-              </button>
-              <button onClick={() => galleryRef.current?.click()}
-                className="flex flex-col items-center justify-center gap-2 py-12 rounded-2xl border-2 border-dashed border-gray-300 text-gray-500 hover:border-green-400 hover:text-green-500 transition-colors bg-gray-50">
-                <span className="text-4xl">🖼️</span>
-                <div className="text-center">
-                  <p className="font-semibold text-sm">Pilih dari Galeri</p>
-                  <p className="text-xs mt-0.5 text-gray-500">Cari di gallery</p>
-                </div>
-              </button>
-            </div>
-          )}
-
-          {/* Tanda tangan */}
-          {signatureUrl ? (
-            <div>
-              <p className="text-xs text-gray-500 font-medium mb-1.5">✍️ Tanda Tangan Murid</p>
-              <div className="relative bg-white rounded-xl border border-gray-200 p-2">
-                <img src={signatureUrl} alt="TTD" className="max-h-24 w-full object-contain" />
-                <button aria-label="Hapus tanda tangan" onClick={() => { setSignature(undefined); setShowSigPad(false); }}
-                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-              </div>
-            </div>
-          ) : showSigPad ? (
-            <div>
-              <p className="text-xs text-gray-500 font-medium mb-1.5">✍️ Tanda Tangan Murid</p>
-              <SignaturePad
-                key={studentId}
-                onSave={(blob) => { setSignature(blob); setShowSigPad(false); }}
-                onClear={() => setSignature(undefined)}
-              />
-            </div>
-          ) : (
-            <button type="button" onClick={() => setShowSigPad(true)}
-              className="flex flex-col items-center justify-center gap-3 w-full py-10 rounded-2xl border-2 border-dashed border-gray-300 text-gray-500 hover:border-indigo-400 hover:text-indigo-500 transition-colors bg-gray-50">
-              <span className="text-4xl">✍️</span>
-              <div className="text-center">
-                <p className="font-semibold text-sm">Tanda Tangan Murid</p>
-                <p className="text-xs mt-0.5 text-gray-500">Tap untuk buka signature pad</p>
-              </div>
-            </button>
-          )}
-
-          {(photo || signature) && (
-            <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-2.5">
-              <span className="text-green-500 text-xl">✅</span>
-              <div>
-                <p className="text-xs font-bold text-green-700">Bukti kehadiran siap!</p>
-                <p className="text-xs text-green-600 mt-0.5">
-                  {[photo ? "📷 Foto tersimpan" : null, signature ? "✍️ TTD tersimpan" : null].filter(Boolean).join(" · ")}
-                </p>
-              </div>
             </div>
           )}
         </div>
@@ -923,7 +769,7 @@ export default function CaptureSession() {
                     className={`block w-full text-left px-3.5 py-2.5 border-b border-gray-50 last:border-0 hover:bg-blue-50 transition-colors ${topics.includes(t.topic) ? "bg-blue-50" : ""}`}
                     onClick={() => addTopic(t.topic)}>
                     <span className="font-semibold text-gray-800 text-sm">{t.topic}</span>
-                    <span className="text-[11px] text-gray-500 ml-2">{t.gradeLabel} · {t.unit}</span>
+                    <span className="text-xs text-gray-500 ml-2">{t.gradeLabel} · {t.unit}</span>
                   </button>
                 ))}
               </div>
@@ -953,44 +799,22 @@ export default function CaptureSession() {
             <label className="label">⚡ Cepat <span className="text-gray-500 font-normal text-xs">(isi 1 detik)</span></label>
             <div className="flex flex-wrap gap-2">
               <button type="button"
-                onClick={() => {
-                  setMood("Fokus"); setEngPrepared(true); setEngFocused(true); setEngActiveAsking(true); setEngQuickLearner(false);
-                  setEngDrowsy(false); setEngPhone(false); setEngNeedsRepeat(false); setEngHwMissed(false);
-                  setEngLate(false); setEngBathroom(false);
-                  setEngRestless(false); setEngOffTask(false);
-                }}
+                onClick={() => applyPreset({ prepared: true, focused: true, activeAsking: true }, "Fokus")}
                 className="px-3 py-2 rounded-full text-sm font-semibold bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors">
                 ✨ Lancar
               </button>
               <button type="button"
-                onClick={() => {
-                  setMood("Biasa"); setEngPrepared(false); setEngFocused(false); setEngActiveAsking(false);
-                  setEngQuickLearner(false); setEngDrowsy(false); setEngPhone(false); setEngNeedsRepeat(false); setEngHwMissed(false);
-                  setEngLate(false); setEngBathroom(false);
-                  setEngRestless(false); setEngOffTask(false);
-                }}
+                onClick={() => applyPreset({}, "Biasa")}
                 className="px-3 py-2 rounded-full text-sm font-semibold bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 transition-colors">
                 😐 Biasa
               </button>
               <button type="button"
-                onClick={() => {
-                  setMood("Lelah"); setEngPrepared(false); setEngFocused(false); setEngActiveAsking(false);
-                  setEngQuickLearner(false); setEngDrowsy(true); setEngPhone(false); setEngNeedsRepeat(false); setEngHwMissed(false);
-                  setEngLate(false); setEngBathroom(false);
-                  setEngRestless(false); setEngOffTask(false);
-                }}
+                onClick={() => applyPreset({ drowsy: true }, "Lelah")}
                 className="px-3 py-2 rounded-full text-sm font-semibold bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 transition-colors">
                 😴 Kurang Fit
               </button>
               <button type="button"
-                onClick={() => {
-                  setMood(undefined); setEngPrepared(false); setEngFocused(false); setEngActiveAsking(false);
-                  setEngQuickLearner(false); setEngDrowsy(false); setEngPhone(false); setEngNeedsRepeat(false); setEngHwMissed(false);
-                  setEngLate(false); setEngBathroom(false);
-                  setEngRestless(false); setEngOffTask(false);
-                  setSituasiNote("");
-                  setBehaviorTags([]);
-                }}
+                onClick={resetEngagementFlags}
                 className="px-3 py-2 rounded-full text-sm font-semibold bg-white text-gray-500 border border-gray-200 hover:bg-gray-50 transition-colors">
                 🔄 Reset
               </button>
@@ -1025,7 +849,7 @@ export default function CaptureSession() {
                 return (
                   <button key={c.label} type="button"
                     onClick={() => appendSituasiChip(c.label)}
-                    className={`px-2.5 py-1.5 rounded-full text-[11px] font-medium border transition-all ${
+                    className={`px-2.5 py-1.5 rounded-full text-xs font-medium border transition-all ${
                       active ? "bg-teal-500 text-white border-teal-500" : "bg-white text-gray-600 border-gray-200 hover:border-teal-300 hover:bg-teal-50"}`}>
                     {c.icon} {c.label}
                   </button>
@@ -1038,24 +862,24 @@ export default function CaptureSession() {
           <div>
             <p className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-2">✨ Positif</p>
             <div className="grid grid-cols-2 gap-2">
-              <button type="button" onClick={() => setEngPrepared(!engPrepared)}
+              <button type="button" onClick={() => toggleFlag("prepared")}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                  engPrepared ? "bg-green-500 text-white border-green-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-green-300"}`}>
+                  engPrepared ? "bg-green-600 text-white border-green-600 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-green-300"}`}>
                 <span>📚</span> Sudah siap (+2)
               </button>
-              <button type="button" onClick={() => setEngFocused(!engFocused)}
+              <button type="button" onClick={() => toggleFlag("focused")}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                  engFocused ? "bg-blue-500 text-white border-blue-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"}`}>
+                  engFocused ? "bg-green-600 text-white border-green-600 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-green-300"}`}>
                 <span>🎯</span> Sangat fokus (+1)
               </button>
-              <button type="button" onClick={() => setEngActiveAsking(!engActiveAsking)}
+              <button type="button" onClick={() => toggleFlag("activeAsking")}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                  engActiveAsking ? "bg-teal-500 text-white border-teal-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-teal-300"}`}>
+                  engActiveAsking ? "bg-green-600 text-white border-green-600 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-green-300"}`}>
                 <span>🙋</span> Aktif bertanya (+1)
               </button>
-              <button type="button" onClick={() => setEngQuickLearner(!engQuickLearner)}
+              <button type="button" onClick={() => toggleFlag("quickLearner")}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                  engQuickLearner ? "bg-purple-500 text-white border-purple-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-purple-300"}`}>
+                  engQuickLearner ? "bg-green-600 text-white border-green-600 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-green-300"}`}>
                 <span>⚡</span> Cepat paham (+1)
               </button>
             </div>
@@ -1065,44 +889,44 @@ export default function CaptureSession() {
           <div>
             <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide mb-2">⚠️ Perlu Perhatian</p>
             <div className="grid grid-cols-2 gap-2">
-              <button type="button" onClick={() => setEngPhone(!engPhone)}
+              <button type="button" onClick={() => toggleFlag("playingPhone")}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                  engPhone ? "bg-red-500 text-white border-red-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-red-300"}`}>
+                  engPhone ? "bg-rose-600 text-white border-rose-600 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-rose-300"}`}>
                 <span>📱</span> Main HP (−1)
               </button>
-              <button type="button" onClick={() => setEngDrowsy(!engDrowsy)}
+              <button type="button" onClick={() => toggleFlag("drowsy")}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                  engDrowsy ? "bg-orange-500 text-white border-orange-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-orange-300"}`}>
+                  engDrowsy ? "bg-rose-600 text-white border-rose-600 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-rose-300"}`}>
                 <span>😴</span> Mengantuk (−1)
               </button>
-              <button type="button" onClick={() => setEngNeedsRepeat(!engNeedsRepeat)}
+              <button type="button" onClick={() => toggleFlag("needsRepetition")}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                  engNeedsRepeat ? "bg-yellow-500 text-white border-yellow-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-yellow-300"}`}>
+                  engNeedsRepeat ? "bg-rose-600 text-white border-rose-600 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-rose-300"}`}>
                 <span>🔄</span> Perlu diulang (−1)
               </button>
-              <button type="button" onClick={() => setEngHwMissed(!engHwMissed)}
+              <button type="button" onClick={() => toggleFlag("hwMissed")}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                  engHwMissed ? "bg-rose-500 text-white border-rose-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-rose-300"}`}>
+                  engHwMissed ? "bg-rose-600 text-white border-rose-600 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-rose-300"}`}>
                 <span>❌</span> PR tidak buat (−1)
               </button>
-              <button type="button" onClick={() => setEngLate(!engLate)}
+              <button type="button" onClick={() => toggleFlag("late")}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                  engLate ? "bg-red-500 text-white border-red-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-red-300"}`}>
+                  engLate ? "bg-rose-600 text-white border-rose-600 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-rose-300"}`}>
                 <span>⏰</span> Telat (−1)
               </button>
-              <button type="button" onClick={() => setEngBathroom(!engBathroom)}
+              <button type="button" onClick={() => toggleFlag("bathroomBreaks")}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                  engBathroom ? "bg-pink-500 text-white border-pink-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-pink-300"}`}>
+                  engBathroom ? "bg-rose-600 text-white border-rose-600 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-rose-300"}`}>
                 <span>🚻</span> Sering ke toilet (−1)
               </button>
-              <button type="button" onClick={() => setEngRestless(!engRestless)}
+              <button type="button" onClick={() => toggleFlag("restless")}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                  engRestless ? "bg-orange-500 text-white border-orange-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-orange-300"}`}>
+                  engRestless ? "bg-rose-600 text-white border-rose-600 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-rose-300"}`}>
                 <span>🦘</span> Gelisah loncat-loncat (−1)
               </button>
-              <button type="button" onClick={() => setEngOffTask(!engOffTask)}
+              <button type="button" onClick={() => toggleFlag("offTask")}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                  engOffTask ? "bg-amber-500 text-white border-amber-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-amber-300"}`}>
+                  engOffTask ? "bg-rose-600 text-white border-rose-600 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-rose-300"}`}>
                 <span>🙈</span> Sibuk sendiri (−1)
               </button>
             </div>
@@ -1257,14 +1081,14 @@ export default function CaptureSession() {
             <div className="space-y-3 mt-2">
               {/* ── Pemahaman Baik ── */}
               <div>
-                <p className="text-[11px] font-semibold text-green-600 uppercase tracking-wide mb-1.5">✨ Pemahaman Baik</p>
+                <p className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1.5">✨ Pemahaman Baik</p>
                 <div className="flex flex-wrap gap-1.5">
                   {RESPONSE_TAGS.filter(t => ["correct-independent","correct-with-prompt","can-explain-orally","transfer-attempt","metacognitive"].includes(t.id)).map((tag) => {
                     const score = tag.id === "correct-independent" ? "+2" : "+1";
                     return (
                       <button key={tag.id} type="button"
                         onClick={() => setResponseTag(responseTag === tag.id ? undefined : tag.id)}
-                        className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition-all ${
+                        className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                           responseTag === tag.id
                             ? "bg-green-500 text-white border-green-500 shadow-sm"
                             : "bg-white text-gray-700 border-gray-200 hover:border-green-300 hover:bg-green-50"}`}>
@@ -1278,14 +1102,14 @@ export default function CaptureSession() {
 
               {/* ── Perlu Pendalaman ── */}
               <div>
-                <p className="text-[11px] font-semibold text-yellow-600 uppercase tracking-wide mb-1.5">📊 Perlu Pendalaman</p>
+                <p className="text-xs font-semibold text-yellow-600 uppercase tracking-wide mb-1.5">📊 Perlu Pendalaman</p>
                 <div className="flex flex-wrap gap-1.5">
                   {RESPONSE_TAGS.filter(t => ["partial-correct","can-do-procedurally","guessing"].includes(t.id)).map((tag) => {
                     const score = tag.id === "guessing" ? "−1" : "0";
                     return (
                       <button key={tag.id} type="button"
                         onClick={() => setResponseTag(responseTag === tag.id ? undefined : tag.id)}
-                        className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition-all ${
+                        className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                           responseTag === tag.id
                             ? "bg-yellow-500 text-white border-yellow-500 shadow-sm"
                             : "bg-white text-gray-700 border-gray-200 hover:border-yellow-300 hover:bg-yellow-50"}`}>
@@ -1299,13 +1123,13 @@ export default function CaptureSession() {
 
               {/* ── Perlu Perhatian ── */}
               <div>
-                <p className="text-[11px] font-semibold text-red-600 uppercase tracking-wide mb-1.5">⚠️ Perlu Perhatian</p>
+                <p className="text-xs font-semibold text-red-600 uppercase tracking-wide mb-1.5">⚠️ Perlu Perhatian</p>
                 <div className="flex flex-wrap gap-1.5">
                   {RESPONSE_TAGS.filter(t => ["misconception","prerequisite-gap"].includes(t.id)).map((tag) => {
                     return (
                       <button key={tag.id} type="button"
                         onClick={() => setResponseTag(responseTag === tag.id ? undefined : tag.id)}
-                        className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition-all ${
+                        className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                           responseTag === tag.id
                             ? "bg-red-500 text-white border-red-500 shadow-sm"
                             : "bg-white text-gray-700 border-gray-200 hover:border-red-300 hover:bg-red-50"}`}>
@@ -1353,7 +1177,7 @@ export default function CaptureSession() {
 
           {/* Context summary — what AI will use */}
           <div className="bg-blue-50 border border-blue-100 rounded-xl p-3.5 space-y-1.5">
-            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wide mb-1.5">📊 Konteks yang dipakai AI</p>
+            <p className="text-xs font-bold text-blue-500 uppercase tracking-wide mb-1.5">📊 Konteks yang dipakai AI</p>
             {(subjects.length > 0 || studentSubjects.length > 0) && (
               <p className="text-xs text-gray-600">
                 <span className="font-semibold">📚 Mapel:</span> {(subjects.length ? subjects : studentSubjects).join(", ")}
@@ -1447,19 +1271,19 @@ export default function CaptureSession() {
                 <div className="flex flex-wrap gap-1.5 mt-1.5">
                   {briefLastSession?.shortNote && (
                     <button type="button" onClick={() => appendNoteChip(`Melanjutkan sesi lalu: ${briefLastSession.shortNote}.`)}
-                      className="text-[11px] text-gray-600 bg-gray-50 border border-gray-200 rounded-full px-2.5 py-1 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                      className="text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-full px-2.5 py-1 hover:bg-blue-50 hover:text-blue-600 transition-colors">
                       🔁 Sesi lalu
                     </button>
                   )}
                   {briefFollowUps.slice(0, 3).map((f) => (
                     <button key={f.id} type="button" onClick={() => appendNoteChip(`Fokus berikutnya: ${f.text}.`)}
-                      className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1 hover:bg-amber-100 transition-colors">
+                      className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1 hover:bg-amber-100 transition-colors">
                       🔁 {f.text.length > 28 ? f.text.slice(0, 28) + "…" : f.text}
                     </button>
                   ))}
                   {needsWork && (
                     <button type="button" onClick={() => appendNoteChip(`Perlu perhatian: ${needsWork}.`)}
-                      className="text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-full px-2.5 py-1 hover:bg-red-100 transition-colors">
+                      className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-full px-2.5 py-1 hover:bg-red-100 transition-colors">
                       ⚠️ Perlu perhatian
                     </button>
                   )}
@@ -1507,7 +1331,7 @@ export default function CaptureSession() {
             {aiNoteOriginal && shortNote !== aiNoteOriginal && (
               <button type="button"
                 onClick={() => { setShortNote(aiNoteOriginal); setAiNoteOriginal(""); setAiNoteDraft(null); }}
-                className="mt-1.5 text-[11px] text-gray-500 hover:text-indigo-600 font-semibold">
+                className="mt-1.5 text-xs text-gray-500 hover:text-indigo-600 font-semibold">
                 ↩ Kembalikan ke teks awal
               </button>
             )}
@@ -1523,6 +1347,117 @@ export default function CaptureSession() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════
+          STEP 6: BUKTI — Foto & Tanda Tangan
+          ══════════════════════════════════════════ */}
+      {currentStep === 6 && (
+        <div className="px-4 space-y-3">
+          {/* Info: bisa diisi nanti */}
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-2.5">
+            <span className="text-amber-500 text-xl">⏭️</span>
+            <div className="flex-1">
+              <p className="text-xs font-bold text-amber-700">Foto & tanda tangan bisa diisi nanti</p>
+              <p className="text-xs text-amber-600 mt-0.5">Lengkapi dari profil murid setelah sesi. Simpan dulu detailnya sekarang.</p>
+            </div>
+          </div>
+          <button type="button" onClick={handleSave}
+            className="w-full py-2.5 rounded-xl border border-gray-300 bg-white text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-colors">
+            ⏭️ Nanti Saja — Simpan Tanpa Foto
+          </button>
+
+          <div className="flex items-center gap-3 my-1">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-xs text-gray-500 font-medium">atau isi sekarang</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+
+          {/* Kamera — capture langsung */}
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment"
+            onChange={handlePhoto} className="hidden" />
+          {/* Galeri — browse dari gallery / file picker */}
+          <input ref={galleryRef} type="file" accept="image/*"
+            onChange={handlePhoto} className="hidden" />
+          <p className="text-xs text-gray-500 text-center -mt-2">💡 Di HP, tap ⋮ atau menu Browse untuk pilih folder</p>
+
+          {/* Foto */}
+          {photoUrl ? (
+            <div className="relative">
+              <img src={photoUrl} alt="preview" className="w-full h-52 object-cover rounded-2xl shadow-md" />
+              <button aria-label="Hapus foto" onClick={() => setPhoto(undefined)}
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-10 h-10 text-sm flex items-center justify-center shadow-md"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+              <div className="absolute bottom-2 right-2 flex gap-1.5">
+                <button onClick={() => cameraRef.current?.click()}
+                  className="bg-black/60 text-white text-xs px-2.5 py-1 rounded-full">📷 Kamera</button>
+                <button onClick={() => galleryRef.current?.click()}
+                  className="bg-black/60 text-white text-xs px-2.5 py-1 rounded-full">🖼️ Galeri</button>
+              </div>
+              <span className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full">📅 timestamp ✓</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={() => cameraRef.current?.click()}
+                className="flex flex-col items-center justify-center gap-2 py-12 rounded-2xl border-2 border-dashed border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-colors bg-gray-50">
+                <span className="text-4xl">📷</span>
+                <div className="text-center">
+                  <p className="font-semibold text-sm">Ambil Foto</p>
+                  <p className="text-xs mt-0.5 text-gray-500">Buka kamera</p>
+                </div>
+              </button>
+              <button onClick={() => galleryRef.current?.click()}
+                className="flex flex-col items-center justify-center gap-2 py-12 rounded-2xl border-2 border-dashed border-gray-300 text-gray-500 hover:border-green-400 hover:text-green-500 transition-colors bg-gray-50">
+                <span className="text-4xl">🖼️</span>
+                <div className="text-center">
+                  <p className="font-semibold text-sm">Pilih dari Galeri</p>
+                  <p className="text-xs mt-0.5 text-gray-500">Cari di gallery</p>
+                </div>
+              </button>
+            </div>
+          )}
+
+          {/* Tanda tangan */}
+          {signatureUrl ? (
+            <div>
+              <p className="text-xs text-gray-500 font-medium mb-1.5">✍️ Tanda Tangan Murid</p>
+              <div className="relative bg-white rounded-xl border border-gray-200 p-2">
+                <img src={signatureUrl} alt="TTD" className="max-h-24 w-full object-contain" />
+                <button aria-label="Hapus tanda tangan" onClick={() => { setSignature(undefined); setShowSigPad(false); }}
+                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-8 h-8 text-xs flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+              </div>
+            </div>
+          ) : showSigPad ? (
+            <div>
+              <p className="text-xs text-gray-500 font-medium mb-1.5">✍️ Tanda Tangan Murid</p>
+              <SignaturePad
+                key={studentId}
+                onSave={(blob) => { setSignature(blob); setShowSigPad(false); }}
+                onClear={() => setSignature(undefined)}
+              />
+            </div>
+          ) : (
+            <button type="button" onClick={() => setShowSigPad(true)}
+              className="flex flex-col items-center justify-center gap-3 w-full py-10 rounded-2xl border-2 border-dashed border-gray-300 text-gray-500 hover:border-indigo-400 hover:text-indigo-500 transition-colors bg-gray-50">
+              <span className="text-4xl">✍️</span>
+              <div className="text-center">
+                <p className="font-semibold text-sm">Tanda Tangan Murid</p>
+                <p className="text-xs mt-0.5 text-gray-500">Tap untuk buka signature pad</p>
+              </div>
+            </button>
+          )}
+
+          {(photo || signature) && (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-2.5">
+              <span className="text-green-500 text-xl">✅</span>
+              <div>
+                <p className="text-xs font-bold text-green-700">Bukti kehadiran siap!</p>
+                <p className="text-xs text-green-600 mt-0.5">
+                  {[photo ? "📷 Foto tersimpan" : null, signature ? "✍️ TTD tersimpan" : null].filter(Boolean).join(" · ")}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1743,7 +1678,7 @@ export default function CaptureSession() {
                     <span className="text-2xl font-black text-white">{currentStudent.name.charAt(0).toUpperCase()}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="inline-flex items-center gap-1.5 bg-white/20 text-white/90 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full mb-1">
+                    <div className="inline-flex items-center gap-1.5 bg-white/20 text-white/90 text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full mb-1">
                       ✅ Sesi Selesai!
                     </div>
                     <h2 className="text-white text-xl font-black truncate">{currentStudent.name}</h2>
@@ -1757,15 +1692,15 @@ export default function CaptureSession() {
                 {/* Stats row */}
                 <div className="grid grid-cols-3 gap-2">
                   <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
-                    <p className="text-white/70 text-[10px] font-bold uppercase tracking-wider">📅 Tanggal</p>
+                    <p className="text-white/70 text-xs font-bold uppercase tracking-wider">📅 Tanggal</p>
                     <p className="text-white text-sm font-black mt-0.5">{coSessionData.date.slice(5).replace("-", "/")}</p>
                   </div>
                   <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
-                    <p className="text-white/70 text-[10px] font-bold uppercase tracking-wider">⏱️ Durasi</p>
+                    <p className="text-white/70 text-xs font-bold uppercase tracking-wider">⏱️ Durasi</p>
                     <p className="text-white text-sm font-black mt-0.5">{coSessionData.durationHours} jam</p>
                   </div>
                   <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
-                    <p className="text-white/70 text-[10px] font-bold uppercase tracking-wider">🎯 Skor</p>
+                    <p className="text-white/70 text-xs font-bold uppercase tracking-wider">🎯 Skor</p>
                     <p className="text-white text-sm font-black mt-0.5">{engTouched ? `${engScore}/10` : "—"}</p>
                   </div>
                 </div>
@@ -1777,7 +1712,7 @@ export default function CaptureSession() {
 
               {/* Catatan sesi */}
               <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100">
-                <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2">📝 Catatan Sesi</p>
+                <p className="text-xs font-black text-blue-400 uppercase tracking-widest mb-2">📝 Catatan Sesi</p>
                 <p className="text-sm text-gray-700 leading-relaxed font-semibold">{coSessionData.shortNote}</p>
                 {coSessionData.topic && (
                   <div className="flex items-center gap-1.5 mt-2">
@@ -1790,7 +1725,7 @@ export default function CaptureSession() {
               {/* Engagement */}
               {engTouched && engScoreInfo && (
                 <div className="rounded-2xl p-4 border" style={{ borderColor: engScoreInfo.color + "30", background: engScoreInfo.bg }}>
-                  <p className="text-[10px] font-black uppercase tracking-widest mb-3" style={{ color: engScoreInfo.color }}>
+                  <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: engScoreInfo.color }}>
                     😊 Kondisi Belajar
                   </p>
                   <div className="flex items-center gap-3">
@@ -1820,7 +1755,7 @@ export default function CaptureSession() {
 
               {/* Follow-up */}
               <div>
-                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">
+                <p className="text-xs font-black text-gray-500 uppercase tracking-widest mb-2">
                   🔁 Fokus Sesi Berikutnya <span className="font-normal normal-case text-gray-500">(opsional)</span>
                 </p>
                 <div className="flex gap-2">
@@ -1851,7 +1786,7 @@ export default function CaptureSession() {
               {/* WhatsApp */}
               {waNumber && (
                 <div>
-                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">💬 Update Orang Tua</p>
+                  <p className="text-xs font-black text-gray-500 uppercase tracking-widest mb-2">💬 Update Orang Tua</p>
                   {aiError && (
                     <p className="text-xs text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-2">{aiError}</p>
                   )}

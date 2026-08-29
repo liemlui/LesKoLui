@@ -76,9 +76,9 @@ Setiap screen component besar perlu dipecah menjadi sub-components dan custom ho
 - [ ] Extract `NilaiRapor` — rapor grades section
 - [ ] Extract `IaEeTracker` — IA/EE projects section
 
-### CaptureSession.tsx 🟡 1 hook extracted
+### CaptureSession.tsx 🟢 3 hooks extracted
 - [x] Extract `usePhotoCapture` — camera + signature blob lifecycle
-- [ ] Extract `useStudentBrief` — load last session, HW, follow-ups on student change
-- [ ] Extract `useEngagement` — 13 state vars + score derivation + reset
+- [x] Extract `useStudentBrief` — load last session, HW, follow-ups on student change
+- [x] Extract `useEngagement` — 13 state vars + score derivation + reset
 - [ ] Extract `useAiFill` — AI note/homework/WA generation + AiCostModal
 - [ ] Extract `useCloseOut` — post-save homework/follow-up modal

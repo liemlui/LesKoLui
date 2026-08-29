@@ -11,6 +11,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
 {
+    version: "v1.64.0",
+    date: "2026-08-29",
+    title: "Rapikan Flow Catat Sesi — Progress Stepper 1-6, Banner Typed, Tap Target",
+    items: [
+      "Stepper 6 langkah kini berurutan (1-6) di kode — memudahkan maintenance dan konsisten dengan icon opsional tiap langkah",
+      "Banner error/sukses kini memakai objek typed { kind, text } ? eksplisit dan aman, bukan tebakan isi string",
+      "Tombol Reset engagement tidak menghapus situasiNote & behaviorTags diam-diam — observasi lanjutan tetap utuh",
+      "Progress stepper jadi clickable untuk kembali ke step selesai dalam 1 tap",
+      "Tap target tombol hapus foto dinaikkan ke 40x40px dan tanda tangan ke 32x32px — standar aksesibilitas layar sentuh",
+      "Refactor: 22 useState inline dipindahkan ke hooks useEngagement & useStudentBrief",
+    ],
+  },
+  {
     version: "v1.63.0",
     date: "2026-08-29",
     title: "Schema v12 — Akuntansi Dalam + Laba Bersih per Murid (Aman, Optional Fields)",
