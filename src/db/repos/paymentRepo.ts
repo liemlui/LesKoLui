@@ -822,8 +822,10 @@ export async function closeMonth(month: string): Promise<void> {
       pendapatan,
       piutang,
       pengeluaran,
-      laba: realisasi - pengeluaran,
-      labaAkrual: pendapatan - pengeluaran,
+      // v1.66+: laba = pendapatan - pengeluaran (akrual). Snapshot lama (v1.64-
+      // v1.65) menulis laba kas di field ini — drift check tidak membandingkan
+      // laba langsung, jadi perbedaan basis tidak memicu badge palsu.
+      laba: pendapatan - pengeluaran,
       invoiceCount: monthPayments.length,
     });
   });
@@ -858,13 +860,13 @@ export async function reopenMonth(month: string): Promise<void> {
 
 export interface MonthCashSummary {
   month: string;
-  potensi: number;       // sesi billable bulan itu — by tanggal sesi
+  sesi: number;          // jumlah sesi selesai bulan itu — by tanggal sesi
+  jam: number;           // total jam sesi bulan itu
   pendapatan: number;    // pendapatan diakui (akrual) — by tanggal sesi
-  realisasi: number;     // kas diterima — by paidAt (basis kas)
+  realisasi: number;     // uang masuk — by paidAt (basis kas)
   piutang: number;       // tagihan belum lunas — dialokasikan by tanggal sesi (akrual)
   pengeluaran: number;
-  laba: number;          // Laba Kas = realisasi - pengeluaran
-  labaAkrual: number;    // Laba Akrual = pendapatan - pengeluaran
+  laba: number;          // Laba = pendapatan - pengeluaran (akrual, matching principle)
   closed: boolean;
 }
 
@@ -967,7 +969,9 @@ export async function getCashSummary(months: string[]): Promise<MonthCashSummary
 
   return months.map((month) => {
     const { start, end } = monthRange(month);
-    const potensi = sessions.filter((s) => s.date >= start && s.date <= end).reduce((sum, s) => sum + s.cost, 0);
+    const monthSessions = sessions.filter((s) => s.date >= start && s.date <= end);
+    const sesi = monthSessions.length;
+    const jam = monthSessions.reduce((sum, s) => sum + s.durationHours, 0);
     // Cash follows the actual payment date. Legacy PAID rows without paidAt fall
     // back to their invoice month so old data does not disappear from reports.
     const realisasi = payments
@@ -978,13 +982,13 @@ export async function getCashSummary(months: string[]): Promise<MonthCashSummary
     const pengeluaran = expenses.filter((e) => e.date >= start && e.date <= end).reduce((sum, e) => sum + e.amount, 0);
     return {
       month,
-      potensi,
+      sesi,
+      jam,
       pendapatan,
       realisasi,
       piutang,
       pengeluaran,
-      laba: realisasi - pengeluaran,
-      labaAkrual: pendapatan - pengeluaran,
+      laba: pendapatan - pengeluaran,
       closed: closedSet.has(month),
     };
   });

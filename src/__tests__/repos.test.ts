@@ -460,7 +460,7 @@ describe("Financial summaries", () => {
     expect(summary[0].realisasi).toBe(0);
     // Invoice manual tanpa data sesi → pendapatan mengikuti bulan anchor invoice (April).
     expect(summary[0].pendapatan).toBe(300_000);
-    expect(summary[2]).toMatchObject({ realisasi: 500_000, piutang: 150_000, pengeluaran: 50_000, laba: 450_000, pendapatan: 350_000, labaAkrual: 300_000 });
+    expect(summary[2]).toMatchObject({ realisasi: 500_000, piutang: 150_000, pengeluaran: 50_000, laba: 300_000, pendapatan: 350_000 });
 
     const trend = await getMonthlyIncomeVsExpense(["2026-04", "2026-05", "2026-06"]);
     expect(trend.map((row) => row.income)).toEqual([0, 0, 500_000]);
@@ -498,8 +498,8 @@ describe("Financial summaries", () => {
 
     const before = await getCashSummary(["2026-07", "2026-08"]);
     // Belum bayar → piutang mengikuti bulan sesi, bukan bulan anchor invoice (Agustus).
-    expect(before[0]).toMatchObject({ potensi: DEFAULT_RATE, pendapatan: DEFAULT_RATE, piutang: DEFAULT_RATE, realisasi: 0 });
-    expect(before[1]).toMatchObject({ potensi: DEFAULT_RATE, pendapatan: DEFAULT_RATE, piutang: DEFAULT_RATE, realisasi: 0 });
+    expect(before[0]).toMatchObject({ sesi: 1, jam: 1, pendapatan: DEFAULT_RATE, piutang: DEFAULT_RATE, realisasi: 0, laba: DEFAULT_RATE });
+    expect(before[1]).toMatchObject({ sesi: 1, jam: 1, pendapatan: DEFAULT_RATE, piutang: DEFAULT_RATE, realisasi: 0, laba: DEFAULT_RATE });
 
     const payment = await getPaymentByReport(reportId);
     expect(payment?.month).toBe("2026-08"); // anchor invoice tetap bulan akhir periode
@@ -910,16 +910,16 @@ describe("Month Closing", () => {
       pendapatan: DEFAULT_RATE,
       piutang: DEFAULT_RATE,
       pengeluaran: 0,
-      laba: 0,
-      labaAkrual: DEFAULT_RATE,
+      laba: DEFAULT_RATE,
     });
     const live = await getCashSummary(["2026-06"]);
     expect(live[0]).toMatchObject({
-      potensi: snap?.totalPotensi,
+      sesi: 1,
+      jam: 1,
       realisasi: snap?.realisasi,
       pendapatan: snap?.pendapatan,
       piutang: snap?.piutang,
-      labaAkrual: snap?.labaAkrual,
+      laba: snap?.laba,
     });
   });
 

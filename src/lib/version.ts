@@ -11,6 +11,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
 {
+    version: "v1.66.0",
+    date: "2026-08-31",
+    title: "Rekap Tahunan Lebih Manusiaawi — Satu Laba, Sesi & Jam Terlihat",
+    items: [
+      "Kolom Laba kini TUNGGAL (Pendapatan − Pengeluaran, basis akrual) — Laba Kas dihapus agar tidak membingungkan; bulan yang pendapatannya sudah terakui tapi uangnya belum masuk tidak lagi tampil negatif palsu",
+      "Kolom Potensi diganti 'Selesai': tampilkan jumlah sesi & jam nyata per bulan (mis. '8 sesi · 12j') — lebih manusiawi daripada dua angka rupiah yang bersaing (Potensi vs Pendapatan)",
+      "'Kas Diterima' di-rename 'Uang Masuk' dan 'Piutang' jadi 'Belum Dibayar' — bahasa sehari-hari, konsep akuntansinya tetap utuh",
+      "Kartu Laba kini menonjol (badge gelap) dengan margin di badge kecil; kartu mobile dirapikan: sesi·jam di atas, 3 metrik inti, laba dipisah garis, peringatan piutang hanya muncul bila ada",
+      "Tabel desktop dirampingkan 11 → 9 kolom (min-width 960px → 800px); CSV tahunan & bulanan menyertakan Sesi, Jam, dan kolom baru",
+    ],
+  },
+
+{
     version: "v1.65.0",
     date: "2026-08-31",
     title: "Rekap Tahunan Basis Akrual — Pendapatan Diakui per Bulan Sesi",

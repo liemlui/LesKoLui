@@ -267,7 +267,9 @@ export default function RingkasanTab({
   // ── Forecast ──
   const forecast = forecastNextMonth({
     scheduledNext: (nextSessions ?? []).filter((s) => s.date.startsWith(nextMonthStr)).reduce((s, x) => s + x.cost, 0),
-    history: (histData ?? []).map((d) => d.potensi),
+    // Riwayat memakai pendapatan akrual (per bulan sesi) — dasar forecast yang
+    // lebih akurat daripada potensi mentah, terutama untuk laporan rentang.
+    history: (histData ?? []).map((d) => d.pendapatan),
   });
 
   const piutangRows = payments
@@ -309,7 +311,8 @@ export default function RingkasanTab({
         Promise.all(prevMonths.map((previousMonth) => listBillableSessionsForMonth(previousMonth))),
       ]);
       const avg = calculateFinancialHistoryAverage(prev.map((row, index) => ({
-        potensi: row.potensi,
+        // potensi di sini = volume bisnis bulan tsb; pendapatan akrual mewakilinya.
+        potensi: row.pendapatan,
         realisasi: row.realisasi,
         laba: row.laba,
         sessions: previousSessionGroups[index] ?? [],
