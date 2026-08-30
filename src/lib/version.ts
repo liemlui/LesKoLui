@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
 {
+    version: "v1.65.0",
+    date: "2026-08-31",
+    title: "Rekap Tahunan Basis Akrual — Pendapatan Diakui per Bulan Sesi",
+    items: [
+      "Rekap Tahunan (Keuangan → Rekap) kini menampilkan Pendapatan dengan basis akrual: pendapatan diakui di bulan sesi berlangsung, bukan bulan invoice diterbitkan — laporan rentang lintas bulan (mis. Juli ↔ Agustus) kini tercermin wajar di kedua bulannya",
+      "Piutang dialokasikan per bulan sesi: invoice belum lunas yang mencakup beberapa bulan muncul sebagai piutang di setiap bulan sesinya (daftar invoice per tahun tetap tersedia di bawah tabel)",
+      "Tabel & kartu Rekap memisahkan Laba Akrual (pendapatan − pengeluaran, matching principle) dan Laba Kas (uang diterima − pengeluaran); kolom Kas Diterima tetap mengikuti tanggal pembayaran aktual",
+      "Snapshot Tutup Bulan kini merekam pendapatan/piutang/laba akrual sehingga deteksi 'drift' konsisten dengan angka yang dihitung live",
+      "Ekspor CSV (tahunan & bulanan) diperluas menyertakan Pendapatan Akrual, Laba Akrual, dan Laba Kas",
+    ],
+  },
+{
     version: "v1.64.0",
     date: "2026-08-29",
     title: "Rapikan Flow Catat Sesi — Progress Stepper 1-6, Banner Typed, Tap Target",

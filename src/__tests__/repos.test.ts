@@ -458,7 +458,9 @@ describe("Financial summaries", () => {
 
     const summary = await getCashSummary(["2026-04", "2026-05", "2026-06"]);
     expect(summary[0].realisasi).toBe(0);
-    expect(summary[2]).toMatchObject({ realisasi: 500_000, piutang: 150_000, pengeluaran: 50_000, laba: 450_000 });
+    // Invoice manual tanpa data sesi → pendapatan mengikuti bulan anchor invoice (April).
+    expect(summary[0].pendapatan).toBe(300_000);
+    expect(summary[2]).toMatchObject({ realisasi: 500_000, piutang: 150_000, pengeluaran: 50_000, laba: 450_000, pendapatan: 350_000, labaAkrual: 300_000 });
 
     const trend = await getMonthlyIncomeVsExpense(["2026-04", "2026-05", "2026-06"]);
     expect(trend.map((row) => row.income)).toEqual([0, 0, 500_000]);
@@ -469,6 +471,44 @@ describe("Financial summaries", () => {
     const { getCashSummary, getMonthlyIncomeVsExpense } = await import("../db/repos");
     expect(await getCashSummary([])).toEqual([]);
     expect(await getMonthlyIncomeVsExpense([])).toEqual([]);
+  });
+
+  it("allocates range-report income to the session months (accrual basis)", async () => {
+    const {
+      createStudent, createSession, upsertReport, syncReportPayment,
+      getCashSummary, markPaymentTransferredById, getPaymentByReport,
+    } = await import("../db/repos");
+    const sid = await createStudent({
+      name: "Rentang Juli-Ags", level: "IBDP", subjects: [],
+      parentContact: { phone: "088" }, hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-60),
+    });
+    const julySid = await createSession({ studentId: sid, date: "2026-07-28", durationHours: 1, subjects: ["Math"], shortNote: "", status: "DONE" });
+    const augustSid = await createSession({ studentId: sid, date: "2026-08-05", durationHours: 1, subjects: ["Math"], shortNote: "", status: "DONE" });
+    const reportId = crypto.randomUUID();
+    await upsertReport({
+      id: reportId, studentId: sid, month: "2026-08", periodStart: "2026-07-28", periodEnd: "2026-08-05",
+      sessionIds: [julySid, augustSid], templateKey: { themeId: "blue", layoutId: "cards" },
+      summaryText: "", totalHours: 2, totalCost: 2 * DEFAULT_RATE,
+      status: "confirmed", billingMode: "range",
+    });
+    await syncReportPayment({
+      id: reportId, studentId: sid, month: "2026-08", periodStart: "2026-07-28", periodEnd: "2026-08-05",
+      totalCost: 2 * DEFAULT_RATE, billingMode: "range",
+    });
+
+    const before = await getCashSummary(["2026-07", "2026-08"]);
+    // Belum bayar → piutang mengikuti bulan sesi, bukan bulan anchor invoice (Agustus).
+    expect(before[0]).toMatchObject({ potensi: DEFAULT_RATE, pendapatan: DEFAULT_RATE, piutang: DEFAULT_RATE, realisasi: 0 });
+    expect(before[1]).toMatchObject({ potensi: DEFAULT_RATE, pendapatan: DEFAULT_RATE, piutang: DEFAULT_RATE, realisasi: 0 });
+
+    const payment = await getPaymentByReport(reportId);
+    expect(payment?.month).toBe("2026-08"); // anchor invoice tetap bulan akhir periode
+    await markPaymentTransferredById(payment!.id);
+
+    const after = await getCashSummary(["2026-07", "2026-08"]);
+    // Lunas di Agustus → kas penuh tercatat Agustus; pendapatan akrual tetap per-bulan sesi.
+    expect(after[0]).toMatchObject({ pendapatan: DEFAULT_RATE, piutang: 0, realisasi: 0 });
+    expect(after[1]).toMatchObject({ pendapatan: DEFAULT_RATE, piutang: 0, realisasi: 2 * DEFAULT_RATE });
   });
 });
 
@@ -856,6 +896,31 @@ describe("Month Closing", () => {
     expect(payments[0].totalCost).toBe(2 * DEFAULT_RATE);
     // Snapshot tutup buku
     expect((await getMonthClosing("2026-06"))).toBeDefined();
+  });
+
+  it("closeMonth snapshots accrual pendapatan & piutang aligned with getCashSummary", async () => {
+    const { createStudent, createSession, closeMonth, getMonthClosing, getCashSummary } = await import("../db/repos");
+    const sid = await createStudent({ name: "Snap Akrual", level: "IBDP", subjects: [], parentContact: { phone: "088" }, hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30) });
+    await createSession({ studentId: sid, date: "2026-06-03", durationHours: 1, subjects: ["Math"], shortNote: "", status: "DONE" });
+    await closeMonth("2026-06");
+
+    const snap = await getMonthClosing("2026-06");
+    expect(snap).toMatchObject({
+      realisasi: 0,
+      pendapatan: DEFAULT_RATE,
+      piutang: DEFAULT_RATE,
+      pengeluaran: 0,
+      laba: 0,
+      labaAkrual: DEFAULT_RATE,
+    });
+    const live = await getCashSummary(["2026-06"]);
+    expect(live[0]).toMatchObject({
+      potensi: snap?.totalPotensi,
+      realisasi: snap?.realisasi,
+      pendapatan: snap?.pendapatan,
+      piutang: snap?.piutang,
+      labaAkrual: snap?.labaAkrual,
+    });
   });
 
   it("closeMonth adopts an existing manual month payment without changing it", async () => {

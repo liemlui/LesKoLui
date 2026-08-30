@@ -58,6 +58,7 @@ test("finance data stays connected across summary, expenses, and audit", async (
 
   await page.getByRole("tab", { name: "Rekap Tahunan", exact: true }).click();
   await expect(page.getByRole("columnheader", { name: "Potensi", exact: true })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Pendapatan", exact: true })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "Kas Diterima", exact: true })).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "Belum Dibayar", exact: true })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Piutang", exact: true })).toBeVisible();
 });

@@ -273,11 +273,13 @@ export interface MonthClosing {
   totalHours: number;    // snapshot: sum of DONE session hours
   studentCount: number;  // snapshot: number of students billed
   // Snapshot penuh (optional — hanya terisi untuk penutupan baru):
-  realisasi?: number;    // kas diterima saat tutup
-  piutang?: number;      // tagihan belum lunas saat tutup
-  pengeluaran?: number;  // total pengeluaran bulan itu
-  laba?: number;         // realisasi - pengeluaran
-  invoiceCount?: number; // jumlah invoice bulan itu
+  realisasi?: number;     // kas diterima saat tutup (basis kas/paidAt)
+  pendapatan?: number;    // pendapatan diakui saat tutup (basis akrual)
+  piutang?: number;       // tagihan belum lunas saat tutup (basis akrual → per bulan sesi)
+  pengeluaran?: number;   // total pengeluaran bulan itu
+  laba?: number;          // laba kas = realisasi - pengeluaran
+  labaAkrual?: number;    // laba akrual = pendapatan - pengeluaran
+  invoiceCount?: number;  // jumlah invoice bulan itu
 }
 
 // ── Expenses ────────────────────────────────────────────────────────────────

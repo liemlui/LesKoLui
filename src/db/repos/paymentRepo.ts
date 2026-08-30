@@ -789,10 +789,25 @@ export async function closeMonth(month: string): Promise<void> {
       .filter((p) => p.month === month).toArray();
     const monthExpenses = await db.expenses
       .where("date").between(start, end, true, true).toArray();
-    const realisasi = monthPayments
-      .filter((p) => p.status === "PAID").reduce((s, p) => s + p.totalCost, 0);
-    const piutang = monthPayments
-      .filter((p) => p.status === "UNPAID").reduce((s, p) => s + p.totalCost, 0);
+    // Kas basis: realisasi mengikuti tanggal uang benar-benar diterima (paidAt),
+    // konsisten dengan getCashSummary() yang dihitung live.
+    const allPayments = await db.payments.toArray();
+    const realisasi = allPayments
+      .filter((p) => p.status === "PAID" && (p.paidAt?.slice(0, 7) ?? p.month) === month)
+      .reduce((s, p) => s + p.totalCost, 0);
+    // Akrual: pendapatan & piutang dialokasikan ke bulan tanggal sesi, sehingga
+    // snapshot tutup buku identik dengan apa yang dihitung live oleh UI Rekap.
+    const reportById = new Map((await db.reports.toArray()).map((r) => [r.id, r]));
+    const sessionsById = new Map((await db.sessions.toArray()).map((s) => [s.id, s]));
+    let pendapatan = 0;
+    let piutang = 0;
+    for (const p of allPayments) {
+      const share = allocatePaymentToMonths(p, p.reportId ? reportById.get(p.reportId) : undefined, sessionsById)
+        .get(month) ?? 0;
+      if (share === 0) continue;
+      pendapatan += share;
+      if (p.status === "UNPAID") piutang += share;
+    }
     const pengeluaran = monthExpenses.reduce((s, e) => s + e.amount, 0);
     await db.monthClosings.put({
       id: existingClosing?.id ?? crypto.randomUUID(),
@@ -804,9 +819,11 @@ export async function closeMonth(month: string): Promise<void> {
       // Snapshot penuh (v12+) — bulan lama yang ditutup sebelum upgrade tidak
       // memiliki field ini; UI menampilkan "—" dan menghitung live.
       realisasi,
+      pendapatan,
       piutang,
       pengeluaran,
       laba: realisasi - pengeluaran,
+      labaAkrual: pendapatan - pengeluaran,
       invoiceCount: monthPayments.length,
     });
   });
@@ -841,27 +858,112 @@ export async function reopenMonth(month: string): Promise<void> {
 
 export interface MonthCashSummary {
   month: string;
-  potensi: number;
-  realisasi: number;
-  piutang: number;
+  potensi: number;       // sesi billable bulan itu — by tanggal sesi
+  pendapatan: number;    // pendapatan diakui (akrual) — by tanggal sesi
+  realisasi: number;     // kas diterima — by paidAt (basis kas)
+  piutang: number;       // tagihan belum lunas — dialokasikan by tanggal sesi (akrual)
   pengeluaran: number;
-  laba: number;
+  laba: number;          // Laba Kas = realisasi - pengeluaran
+  labaAkrual: number;    // Laba Akrual = pendapatan - pengeluaran
   closed: boolean;
+}
+
+/**
+ * Alokasikan nilai sebuah invoice ke bulan-bulan tempat sesinya berlangsung.
+ * Basis akrual: pendapatan diakui saat jasa diberikan, bukan saat uang masuk.
+ *
+ * - Invoice ber-relasi laporan → proporsional terhadap cost sesi per bulan
+ *   (metode sisa terbesar agar jumlah alokasi selalu pas dengan totalCost).
+ * - Invoice tanpa data sesi (manual / lama) → fallback 100% ke bulan anchor
+ *   invoice (p.month), karena tanggal layanan memang tidak dapat ditarik.
+ */
+export function allocatePaymentToMonths(
+  payment: Payment,
+  report: MonthlyReport | undefined,
+  sessionsById: ReadonlyMap<string, Session>,
+): Map<string, number> {
+  if (report && report.sessionIds && report.sessionIds.length > 0) {
+    const weights = new Map<string, number>();
+    for (const id of report.sessionIds) {
+      const session = sessionsById.get(id);
+      if (!session) continue;
+      const month = session.date.slice(0, 7);
+      weights.set(month, (weights.get(month) ?? 0) + session.cost);
+    }
+    if (weights.size > 0) {
+      return proportionalAllocation(payment.totalCost, weights);
+    }
+  }
+  const fallback = new Map<string, number>();
+  fallback.set(payment.month, payment.totalCost);
+  return fallback;
+}
+
+/** Pecah `total` ke bulan-bulan menurut bobot; jumlah akhir selalu == total. */
+function proportionalAllocation(
+  total: number,
+  weights: ReadonlyMap<string, number>,
+): Map<string, number> {
+  const out = new Map<string, number>();
+  if (total <= 0 || weights.size === 0) return out;
+  let weightSum = 0;
+  for (const w of weights.values()) weightSum += w;
+  if (weightSum <= 0) return out;
+
+  const entries = [...weights.entries()];
+  const remainderParts: Array<{ month: string; frac: number }> = [];
+  let allocated = 0;
+  for (const [month, weight] of entries) {
+    const exact = (total * weight) / weightSum;
+    const floor = Math.floor(exact);
+    out.set(month, floor);
+    allocated += floor;
+    remainderParts.push({ month, frac: exact - floor });
+  }
+  // Metode sisa terbesar: sisa rupiah menempel ke bulan dengan pecahan terbesar.
+  remainderParts.sort((a, b) => b.frac - a.frac);
+  let remainder = total - allocated;
+  for (const { month } of remainderParts) {
+    if (remainder <= 0) break;
+    out.set(month, (out.get(month) ?? 0) + 1);
+    remainder -= 1;
+  }
+  return out;
 }
 
 export async function getCashSummary(months: string[]): Promise<MonthCashSummary[]> {
   if (months.length === 0) return [];
   const { start: s1 } = monthRange(months[0]);
   const { end: eN } = monthRange(months[months.length - 1]);
-  const sessions = await db.sessions
-    .filter((s) => isBillableSession(s) && s.date >= s1 && s.date <= eN)
-    .toArray();
+  // Semua sesi dimuat untuk acuan alokasi; hanya sesi billable dalam rentang
+  // yang menyumbang ke potensi.
+  const allSessions = await db.sessions.toArray();
+  const sessions = allSessions.filter((s) => isBillableSession(s) && s.date >= s1 && s.date <= eN);
   const payments = await listPayments();
+  const reports = await db.reports.toArray();
   const expenses = await db.expenses
     .where("date").between(s1, eN, true, true)
     .toArray();
   const closings = await db.monthClosings.toArray();
   const closedSet = new Set(closings.map((c) => c.month));
+
+  const reportById = new Map(reports.map((r) => [r.id, r]));
+  const sessionsById = new Map(allSessions.map((s) => [s.id, s]));
+
+  // Pendapatan & piutang akrual: nilai tiap invoice dialokasikan ke bulan sesi
+  // (bukan bulan anchor invoice). Lunas/tidaknya invoice tidak mengubah kapan
+  // pendapatan diakui — hanya mengubah piutang.
+  const pendapatanByMonth = new Map<string, number>();
+  const piutangByMonth = new Map<string, number>();
+  for (const p of payments) {
+    const alloc = allocatePaymentToMonths(p, p.reportId ? reportById.get(p.reportId) : undefined, sessionsById);
+    for (const [month, amount] of alloc) {
+      pendapatanByMonth.set(month, (pendapatanByMonth.get(month) ?? 0) + amount);
+      if (p.status === "UNPAID") {
+        piutangByMonth.set(month, (piutangByMonth.get(month) ?? 0) + amount);
+      }
+    }
+  }
 
   return months.map((month) => {
     const { start, end } = monthRange(month);
@@ -871,9 +973,20 @@ export async function getCashSummary(months: string[]): Promise<MonthCashSummary
     const realisasi = payments
       .filter((p) => p.status === "PAID" && (p.paidAt?.slice(0, 7) ?? p.month) === month)
       .reduce((sum, p) => sum + p.totalCost, 0);
-    const piutang = payments.filter((p) => p.status === "UNPAID" && p.month === month).reduce((sum, p) => sum + p.totalCost, 0);
+    const pendapatan = pendapatanByMonth.get(month) ?? 0;
+    const piutang = piutangByMonth.get(month) ?? 0;
     const pengeluaran = expenses.filter((e) => e.date >= start && e.date <= end).reduce((sum, e) => sum + e.amount, 0);
-    return { month, potensi, realisasi, piutang, pengeluaran, laba: realisasi - pengeluaran, closed: closedSet.has(month) };
+    return {
+      month,
+      potensi,
+      pendapatan,
+      realisasi,
+      piutang,
+      pengeluaran,
+      laba: realisasi - pengeluaran,
+      labaAkrual: pendapatan - pengeluaran,
+      closed: closedSet.has(month),
+    };
   });
 }
 
