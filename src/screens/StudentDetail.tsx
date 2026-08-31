@@ -169,6 +169,10 @@ export default function StudentDetail() {
   const [editSignature,   setEditSignature]   = useState<Blob | undefined>();
   const [editSigUrl,      setEditSigUrl]      = useState<string | undefined>();
   const [showEditSigPad,  setShowEditSigPad]  = useState(false);
+  const [editCost,         setEditCost]         = useState(0);
+  const [editCostOverride, setEditCostOverride] = useState<number | null>(null);
+  const [editNoteDuration, setEditNoteDuration] = useState(1.5);
+  const [isEditingCost,    setIsEditingCost]    = useState(false);
   const editCameraRef = useRef<HTMLInputElement>(null);
   const editGalleryRef = useRef<HTMLInputElement>(null);
 
@@ -201,6 +205,10 @@ export default function StudentDetail() {
     setEditPhotoError("");
     setEditSignature(s.signature);
     setShowEditSigPad(false);
+    setEditCost(s.cost);
+    setEditCostOverride(s.costOverride ?? null);
+    setEditNoteDuration(s.durationHours);
+    setIsEditingCost(false);
   };
 
   const handleEditPhoto = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -236,7 +244,7 @@ export default function StudentDetail() {
     setEditGradeError("");
     setEditNoteSaving(true);
     try {
-      await updateSession(editSession.id, {
+      const patch: Partial<Session> = {
         shortNote: editShortNote.trim(),
         topic: editTopic.trim() || undefined,
         needsWork: editNeedsWork.trim() || undefined,
@@ -245,7 +253,20 @@ export default function StudentDetail() {
         gradeReflection: editGradeReflection.trim() || undefined,
         photo: editPhoto,
         signature: editSignature,
-      });
+      };
+      // Include cost override if tutor manually changed it
+      if (editCostOverride !== null && editCostOverride !== editSession.costOverride) {
+        patch.costOverride = editCostOverride;
+        patch.cost = editCostOverride;
+      } else if (editCostOverride === null && editSession.costOverride != null) {
+        // Tutor reset: clear override → auto-recalculate via null
+        patch.costOverride = null;
+      }
+      // Include duration if changed
+      if (editNoteDuration !== editSession.durationHours) {
+        patch.durationHours = editNoteDuration;
+      }
+      await updateSession(editSession.id, patch);
       msg("Catatan diperbarui ✓");
       setEditSession(null);
     } catch (e) { msg("Gagal: " + (e as Error).message); }
@@ -1034,6 +1055,94 @@ export default function StudentDetail() {
               <button onClick={() => setEditSession(null)} aria-label="Tutup" className="text-gray-500 text-xl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
             <div className="p-5 space-y-4">
+              {/* ── Durasi & Biaya ── */}
+              <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                <div>
+                  <label className="label">⏱️ Durasi</label>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {DURATIONS.filter((d) => d <= 3).map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => { setEditNoteDuration(d); if (editCostOverride === null) setEditCost(d * editSession.rateSnapshot); }}
+                        className={`py-1.5 px-3 rounded-lg text-xs font-semibold border transition-colors ${
+                          editNoteDuration === d
+                            ? "bg-blue-600 text-white border-blue-600"
+                            : "bg-white text-gray-600 border-gray-300"
+                        }`}
+                      >
+                        {d}j
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="label">💰 Biaya</label>
+                  {isEditingCost ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-gray-500 text-sm font-medium">Rp</span>
+                      <input
+                        type="number"
+                        className="input flex-1"
+                        value={editCostOverride ?? editCost}
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value, 10);
+                          if (!isNaN(v) && v >= 0) setEditCostOverride(v);
+                          else if (e.target.value === "") setEditCostOverride(0);
+                        }}
+                        placeholder="300000"
+                        min={0}
+                        step={500}
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingCost(false)}
+                        className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-base font-bold text-gray-800">
+                        {formatRupiah(editCostOverride ?? editCost)}
+                      </span>
+                      {editCostOverride !== null && (
+                        <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">
+                          Manual
+                        </span>
+                      )}
+                      {editCostOverride !== null && (
+                        <button
+                          type="button"
+                          onClick={() => setEditCostOverride(null)}
+                          className="text-xs text-red-400 hover:text-red-600 ml-1"
+                          title="Kembalikan ke hitungan otomatis"
+                        >
+                          ↺ Reset
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditingCost(true);
+                          if (editCostOverride === null) setEditCostOverride(editCost);
+                        }}
+                        className="text-xs text-blue-500 hover:text-blue-700 ml-auto"
+                        title="Edit biaya manual"
+                      >
+                        ✏️ Edit
+                      </button>
+                    </div>
+                  )}
+                  {editCostOverride === null && (
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {editSession.rateSnapshot.toLocaleString("id-ID")}/jam × {editNoteDuration}j
+                    </p>
+                  )}
+                </div>
+              </div>
               <div>
                 <label htmlFor="sd-catatan-singkat" className="label">Catatan Singkat</label>
                 <textarea id="sd-catatan-singkat" className="input" rows={3} value={editShortNote}

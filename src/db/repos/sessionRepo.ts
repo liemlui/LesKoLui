@@ -125,14 +125,35 @@ export async function updateSession(id: string, patch: Partial<Session>): Promis
     if (patch.durationHours < MIN_DURATION) throw new Error(`Duration must be >= ${MIN_DURATION} hours`);
     if (patch.durationHours % DURATION_STEP !== 0) throw new Error(`Duration must be multiple of ${DURATION_STEP}`);
   }
+
   const finalPatch: Partial<Session> = { ...patch, updatedAt: timestamp() };
-  if (patch.durationHours !== undefined) {
+
+  // Manual cost override takes precedence over auto-calculation.
+  if (patch.costOverride !== undefined) {
+    if (patch.costOverride === null || patch.costOverride <= 0) {
+      // Tutor cleared the override → recalculate auto cost
+      const session = await db.sessions.get(id);
+      if (session) {
+        const effDur = patch.durationHours ?? session.durationHours;
+        const perSession = await isPerSessionStudent(session.studentId);
+        finalPatch.cost = sessionCost(session.rateSnapshot, effDur, perSession);
+        finalPatch.costOverride = undefined;
+      }
+    } else {
+      // Store manual override as-is
+      finalPatch.cost = patch.costOverride;
+      finalPatch.costOverride = patch.costOverride;
+    }
+  } else if (patch.durationHours !== undefined) {
+    // Duration changed without manual override → auto recalculate, clear prior override
     const session = await db.sessions.get(id);
     if (session) {
       const perSession = await isPerSessionStudent(session.studentId);
       finalPatch.cost = sessionCost(session.rateSnapshot, patch.durationHours, perSession);
+      finalPatch.costOverride = undefined;
     }
   }
+
   await db.sessions.update(id, finalPatch);
 }
 

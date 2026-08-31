@@ -158,6 +158,9 @@ export interface Session {
   status: SessionStatus;
   rateSnapshot: number;
   cost: number;
+  /** Manual override — diset ketika tutor mengedit biaya secara manual.
+   *  Kalau undefined/null, biaya dihitung otomatis dari rateSnapshot × durationHours. */
+  costOverride?: number | null;
   createdAt: string;
   updatedAt: string;
 }
