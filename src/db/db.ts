@@ -1,10 +1,17 @@
 import Dexie from "dexie";
 import type { Table } from "dexie";
 import type { Student, Session, MonthlyReport, Payment, Settings, RaporGrade, FollowUpItem, Expense, IaEeProject, MonthClosing, AuditEntry, StudyNote } from "./types";
+import { invoiceDueAt } from "../lib/finance";
 
 type LegacySessionRow = {
   subject?: unknown;
   subjects?: unknown;
+};
+
+type LegacyPaymentRow = {
+  dueAt?: unknown;
+  periodEnd?: unknown;
+  month?: unknown;
 };
 
 export class JurnalDB extends Dexie {
@@ -88,6 +95,17 @@ export class JurnalDB extends Dexie {
     this.version(12).stores({
       expenses: "id, date, category, studentId",
     });
+    // v13: invoice baru punya jatuh tempo eksplisit. Backfill data lama dengan
+    // fallback historis (akhir periode sesi, lalu akhir bulan anchor), sehingga
+    // aging lama tidak berubah hanya karena aplikasi diperbarui.
+    this.version(13).stores({
+      payments: "id, studentId, [studentId+month], status, reportId, dueAt",
+    }).upgrade((tx) =>
+      tx.table("payments").toCollection().modify((payment: LegacyPaymentRow) => {
+        const dueAt = invoiceDueAt(payment);
+        if (dueAt && payment.dueAt !== dueAt) payment.dueAt = dueAt;
+      })
+    );
   }
 }
 

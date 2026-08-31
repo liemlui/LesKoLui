@@ -255,6 +255,9 @@ export interface Payment {
   totalCost: number;
   status: PaymentStatus;
   source?: PaymentSource;
+  /** Jatuh tempo invoice (YYYY-MM-DD). Invoice baru selalu mengisinya;
+   *  data lama boleh kosong dan memakai fallback periode saat dibaca. */
+  dueAt?: string;
   paidAt?: string;
   method?: string;
   /** Terbit dari laporan periode (rekap N pertemuan / rentang tanggal). */

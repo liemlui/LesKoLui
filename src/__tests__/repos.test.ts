@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { DEFAULT_RATE, MIN_DURATION } from "../db/types";
 import { db } from "../db/db";
+import { defaultInvoiceDueAt } from "../lib/finance";
+import { dateInWIB } from "../lib/format";
 
 /**
  * Integration tests for repo functions.
@@ -413,6 +415,49 @@ describe("Session CRUD", () => {
 // ── Payment Tests ──────────────────────────────────────────────────
 
 describe("Payment CRUD", () => {
+  it("menyimpan jatuh tempo eksplisit dan tidak mengubahnya saat invoice diperbarui", async () => {
+    const { upsertPayment, getPayment } = await import("../db/repos");
+    await upsertPayment({
+      studentId: "deadline-terjaga", month: "2026-06", totalCost: 600_000,
+      status: "UNPAID", dueAt: "2026-07-07", createdAt: "2026-06-30T08:00:00.000Z",
+    });
+    await upsertPayment({
+      studentId: "deadline-terjaga", month: "2026-06", totalCost: 650_000,
+      status: "UNPAID",
+    });
+
+    const payment = await getPayment("deadline-terjaga", "2026-06");
+    expect(payment).toMatchObject({ totalCost: 650_000, dueAt: "2026-07-07" });
+  });
+
+  it("memberi invoice laporan baru jatuh tempo tujuh hari setelah diterbitkan", async () => {
+    const { syncReportPayment, getPaymentByReport } = await import("../db/repos");
+    const reportId = crypto.randomUUID();
+    await syncReportPayment({
+      id: reportId,
+      studentId: "deadline-laporan",
+      month: "2026-06",
+      periodStart: "2026-06-01",
+      periodEnd: "2026-06-30",
+      totalCost: 600_000,
+    });
+
+    const payment = await getPaymentByReport(reportId);
+    expect(payment?.createdAt).toBeTruthy();
+    expect(payment?.dueAt).toBe(defaultInvoiceDueAt(dateInWIB(payment!.createdAt!)!));
+  });
+
+  it("menghitung jatuh tempo invoice historis menurut tanggal bisnis WIB", async () => {
+    const { upsertPayment, getPayment } = await import("../db/repos");
+    await upsertPayment({
+      studentId: "deadline-wib", month: "2026-09", totalCost: 600_000,
+      status: "UNPAID", createdAt: "2026-08-31T21:30:00.000Z",
+    });
+
+    await expect(getPayment("deadline-wib", "2026-09"))
+      .resolves.toMatchObject({ dueAt: "2026-09-08" });
+  });
+
   it("upserts payment (create then update)", async () => {
     const { upsertPayment, getPayment } = await import("../db/repos");
     await upsertPayment({ studentId: "p1", month: "2026-06", totalCost: 600_000, status: "UNPAID" });
@@ -503,7 +548,7 @@ describe("Financial summaries", () => {
 
     const payment = await getPaymentByReport(reportId);
     expect(payment?.month).toBe("2026-08"); // anchor invoice tetap bulan akhir periode
-    await markPaymentTransferredById(payment!.id);
+    await markPaymentTransferredById(payment!.id, "transfer", "2026-08-20");
 
     const after = await getCashSummary(["2026-07", "2026-08"]);
     // Lunas di Agustus → kas penuh tercatat Agustus; pendapatan akrual tetap per-bulan sesi.

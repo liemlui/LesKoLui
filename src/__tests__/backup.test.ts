@@ -242,4 +242,35 @@ describe("backup / restore", () => {
       source: "auto",
     });
   }, 30_000);
+
+  it("materializes legacy payment due dates during restore without overwriting an explicit deadline", async () => {
+    const data = Object.fromEntries(BACKUP_TABLES.map((table) => [table, []])) as Record<string, Record<string, unknown>[]>;
+    data.payments = [
+      {
+        id: "payment-period-end", studentId: "student-period-end", month: "2026-06",
+        totalCost: 300_000, status: "UNPAID", periodEnd: "2026-06-18",
+      },
+      {
+        id: "payment-month-end", studentId: "student-month-end", month: "2024-02",
+        totalCost: 400_000, status: "UNPAID",
+      },
+      {
+        id: "payment-explicit-due", studentId: "student-explicit-due", month: "2026-06",
+        totalCost: 500_000, status: "UNPAID", periodEnd: "2026-06-30", dueAt: "2026-07-07",
+      },
+    ];
+    const tableCounts = Object.fromEntries(BACKUP_TABLES.map((table) => [table, data[table].length]));
+    const legacy = await encryptJson({
+      version: 2,
+      exportedAt: "2026-07-20T08:00:00.000Z",
+      schema: { databaseVersion: 12, tableCounts },
+      data,
+    }, PASS);
+
+    await importBackup(legacy, PASS, { onPreRestoreBackup: () => undefined });
+
+    await expect(db.payments.get("payment-period-end")).resolves.toMatchObject({ dueAt: "2026-06-18" });
+    await expect(db.payments.get("payment-month-end")).resolves.toMatchObject({ dueAt: "2024-02-29" });
+    await expect(db.payments.get("payment-explicit-due")).resolves.toMatchObject({ dueAt: "2026-07-07" });
+  }, 30_000);
 });

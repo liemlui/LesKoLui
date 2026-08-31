@@ -1,15 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
+  DEFAULT_INVOICE_PAYMENT_TERMS_DAYS,
   ageBucket,
+  defaultInvoiceDueAt,
   invoiceAgeDays,
+  invoiceDueAt,
   lastDayOfMonth,
   AGE_BUCKET_LABEL,
   invoiceIssuedAt,
   computeStudentProfit,
 } from "../lib/finance";
 
-function pay(month: string, periodEnd?: string) {
-  return { month, periodEnd };
+function pay(month: string, periodEnd?: string, dueAt?: string) {
+  return { month, periodEnd, dueAt };
 }
 
 describe("lastDayOfMonth", () => {
@@ -32,6 +35,31 @@ describe("invoiceAgeDays", () => {
 
   it("tidak pernah negatif untuk tagihan yang belum jatuh tempo", () => {
     expect(invoiceAgeDays(pay("2026-06", "2026-06-30"), "2026-06-15")).toBe(0);
+  });
+
+  it("mengutamakan jatuh tempo eksplisit dibanding akhir periode lama", () => {
+    const invoice = pay("2026-06", "2026-06-30", "2026-07-07");
+    expect(invoiceAgeDays(invoice, "2026-07-07")).toBe(0);
+    expect(invoiceAgeDays(invoice, "2026-08-06")).toBe(30);
+    expect(invoiceAgeDays(invoice, "2026-08-07")).toBe(31);
+  });
+});
+
+describe("tanggal jatuh tempo invoice", () => {
+  it("menetapkan tempo standar tujuh hari kalender dari tanggal terbit", () => {
+    expect(DEFAULT_INVOICE_PAYMENT_TERMS_DAYS).toBe(7);
+    expect(defaultInvoiceDueAt("2026-01-28T23:30:00.000Z")).toBe("2026-02-04");
+    expect(defaultInvoiceDueAt("2024-02-27")).toBe("2024-03-05");
+  });
+
+  it("membaca dueAt terlebih dahulu lalu menjaga fallback invoice lama", () => {
+    expect(invoiceDueAt({ dueAt: "2026-07-07", periodEnd: "2026-06-30", month: "2026-06" })).toBe("2026-07-07");
+    expect(invoiceDueAt({ periodEnd: "2026-06-30", month: "2026-06" })).toBe("2026-06-30");
+    expect(invoiceDueAt({ month: "2026-02" })).toBe("2026-02-28");
+  });
+
+  it("mengabaikan dueAt tidak valid, sehingga aging tidak memakai tanggal rusak", () => {
+    expect(invoiceDueAt({ dueAt: "2026-02-30", periodEnd: "2026-02-28", month: "2026-02" })).toBe("2026-02-28");
   });
 });
 

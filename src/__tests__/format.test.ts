@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { todayWIB, monthOf, dayLabel, monthLabel, formatRupiah, parseDate } from "../lib/format";
+import { dateInWIB, todayWIB, monthOf, dayLabel, monthLabel, formatRupiah, parseDate } from "../lib/format";
 
 describe("monthOf", () => {
   it("extracts YYYY-MM from YYYY-MM-DD", () => {
@@ -52,6 +52,10 @@ describe("formatRupiah", () => {
 });
 
 describe("todayWIB", () => {
+  it("converts a UTC instant using the WIB business date", () => {
+    expect(dateInWIB("2026-08-31T21:30:00.000Z")).toBe("2026-09-01");
+  });
+
   it("returns YYYY-MM-DD format", () => {
     expect(todayWIB()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });

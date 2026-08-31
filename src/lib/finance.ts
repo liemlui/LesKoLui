@@ -1,5 +1,44 @@
 import type { Expense, ExpenseCategory, Payment } from "../db/types";
 
+/** Default tempo pembayaran untuk invoice baru (hari kalender). */
+export const DEFAULT_INVOICE_PAYMENT_TERMS_DAYS = 7;
+
+const YMD_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+/** Validasi tanggal kalender YYYY-MM-DD tanpa bergantung pada timezone perangkat. */
+export function isValidYmd(value: unknown): value is string {
+  if (typeof value !== "string" || !YMD_PATTERN.test(value)) return false;
+  const year = Number(value.slice(0, 4));
+  const month = Number(value.slice(5, 7));
+  const day = Number(value.slice(8, 10));
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year
+    && date.getUTCMonth() === month - 1
+    && date.getUTCDate() === day;
+}
+
+/** Tambah hari kalender pada tanggal YYYY-MM-DD secara timezone-safe. */
+export function addDaysYmd(date: string, days: number): string {
+  if (!isValidYmd(date)) throw new Error("Invalid invoice issue date");
+  const utc = new Date(`${date}T00:00:00.000Z`);
+  utc.setUTCDate(utc.getUTCDate() + days);
+  return utc.toISOString().slice(0, 10);
+}
+
+/**
+ * Default jatuh tempo invoice baru: tujuh hari kalender setelah tanggal terbit.
+ * `issuedAt` boleh berupa YYYY-MM-DD atau ISO timestamp; hanya bagian tanggalnya
+ * yang dipakai agar hasilnya stabil lintas timezone.
+ */
+export function defaultInvoiceDueAt(
+  issuedAt: string,
+  termsDays = DEFAULT_INVOICE_PAYMENT_TERMS_DAYS,
+): string {
+  const issueDate = issuedAt.slice(0, 10);
+  return addDaysYmd(issueDate, termsDays);
+}
+
 /** Display label for each expense category (single source of truth). */
 export const EXPENSE_LABELS: Record<ExpenseCategory, string> = {
   transport: "Transport",
@@ -10,9 +49,8 @@ export const EXPENSE_LABELS: Record<ExpenseCategory, string> = {
 };
 
 // ── Piutang aging ──────────────────────────────────────────────────────
-// Tanpa migrasi schema: umur piutang dihitung dari akhir periode tagihan
-// (periodEnd, atau akhir bulan kalender untuk yang lama). Cukup adil untuk
-// siklus bulanan & paket; presisi penuh memakai Payment.createdAt (Fase 3).
+// Umur piutang mengikuti dueAt. Data lama tetap kompatibel melalui fallback
+// periodEnd, lalu akhir bulan kalender anchor.
 
 export type AgeBucket = "0-30" | "31-60" | ">60";
 
@@ -23,14 +61,32 @@ export function lastDayOfMonth(month: string): string {
 }
 
 /**
- * Umur piutang (hari) yang sudah lewat sejak akhir periode tagihan.
+ * Jatuh tempo yang dibaca sistem. `dueAt` menang untuk invoice baru; invoice
+ * lama tetap mempertahankan perilaku historisnya: akhir periode sesi, lalu akhir
+ * bulan anchor. Parameter longgar agar juga aman dipakai saat migrasi backup.
+ */
+export function invoiceDueAt(input: {
+  dueAt?: unknown;
+  periodEnd?: unknown;
+  month?: unknown;
+}): string | undefined {
+  if (isValidYmd(input.dueAt)) return input.dueAt;
+  if (isValidYmd(input.periodEnd)) return input.periodEnd;
+  if (typeof input.month === "string" && MONTH_PATTERN.test(input.month)) {
+    return lastDayOfMonth(input.month);
+  }
+  return undefined;
+}
+
+/**
+ * Umur piutang (hari) yang sudah lewat sejak jatuh tempo invoice.
  * groundedAt harus YYYY-MM-DD (default: hari ini). Tidak pernah negatif.
  */
 export function invoiceAgeDays(
-  payment: Pick<Payment, "periodEnd" | "month">,
+  payment: Pick<Payment, "dueAt" | "periodEnd" | "month">,
   groundedAt = todayYmd(),
 ): number {
-  const ref = payment.periodEnd ?? lastDayOfMonth(payment.month);
+  const ref = invoiceDueAt(payment) ?? lastDayOfMonth(payment.month);
   const delta = Date.parse(groundedAt) - Date.parse(ref);
   return delta > 0 ? Math.floor(delta / 86400000) : 0;
 }
@@ -61,14 +117,14 @@ function todayYmd(): string {
 }
 
 /**
- * Lama hari dari akhir periode tagihan hingga pembayaran (proxy tanpa created_at).
+ * Lama hari dari jatuh tempo invoice hingga pembayaran.
  * Gunakan untuk analitik kolektibilitas dan koreksi forecast.
  */
 export function daysToPayProxy(
-  payment: Pick<Payment, "status" | "month" | "periodEnd" | "paidAt">,
+  payment: Pick<Payment, "status" | "dueAt" | "month" | "periodEnd" | "paidAt">,
 ): number | undefined {
   if (payment.status !== "PAID" || !payment.paidAt) return undefined;
-  const ref = payment.periodEnd ?? lastDayOfMonth(payment.month);
+  const ref = invoiceDueAt(payment) ?? lastDayOfMonth(payment.month);
   const delta = Date.parse(payment.paidAt) - Date.parse(ref);
   return delta > 0 ? Math.floor(delta / 86400000) : 0;
 }

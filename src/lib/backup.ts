@@ -1,6 +1,7 @@
 import { db } from "../db/db";
 import { encryptJson, decryptJson } from "./crypto";
 import { downloadBlob } from "./download";
+import { invoiceDueAt } from "./finance";
 import type { Table } from "dexie";
 
 /**
@@ -226,6 +227,18 @@ function migrateLegacyReportBilling(data: BackupData): void {
   }
 }
 
+/**
+ * Restore melakukan bulkAdd langsung ke schema terbaru, sehingga callback
+ * upgrade Dexie tidak dijalankan. Isi dueAt untuk backup lama dengan fallback
+ * historis yang sama seperti migration DB: periodEnd lalu akhir bulan anchor.
+ */
+function migrateLegacyPaymentDueDates(data: BackupData): void {
+  for (const payment of data.payments) {
+    const dueAt = invoiceDueAt(payment);
+    if (dueAt && payment.dueAt !== dueAt) payment.dueAt = dueAt;
+  }
+}
+
 /** Parse dan validasi struktur payload sebelum satu tabel pun diubah. */
 function parseBackupDump(value: unknown): ParsedBackup {
   if (!isRecord(value)) throw new Error("File backup tidak valid: format utama salah.");
@@ -389,6 +402,7 @@ async function prepareBackupImport(file: Blob, passphrase: string): Promise<{ pa
   if (parsed.version === 1 || (parsed.databaseVersion ?? 0) < 11) {
     migrateLegacyReportBilling(decoded);
   }
+  migrateLegacyPaymentDueDates(decoded);
 
   // Metadata operasional tidak boleh kembali menjadi lebih baru/lebih lama secara
   // tidak konsisten: setelah restore, waktu backup menunjukkan file sumbernya.

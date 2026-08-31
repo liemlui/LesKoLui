@@ -33,7 +33,7 @@ Kalau murid baru mulai, mis. **minggu ke-4 September**, dan mau ditagih sekaligu
 
 1. Murid tetap **Bulanan**; **jangan** Tutup Buku September (biarkan terbuka).
 2. **Laporan → Mode "Rentang"** → tanggal awal = sesi pertama (mis. 22 Sep), akhir = 31 Okt.
-3. **Sahkan** → satu invoice = sesi Sep (minggu ke-4) + seluruh Okt.
+3. **Sahkan** → laporan rentang menjadi **Siap Ditagih**. Di **Keuangan → Tagihan**, periksa nominalnya lalu pilih **Terbitkan Invoice**; satu invoice akan mencakup sesi Sep (minggu ke-4) + seluruh Okt.
 
 ⚠️ Buat laporan rentang **sebelum** menutup Oktober. Bulan yang sudah **Tutup Buku** tidak bisa dimasukkan ke laporan/rentang baru.
 
@@ -44,6 +44,7 @@ Kalau murid baru mulai, mis. **minggu ke-4 September**, dan mau ditagih sekaligu
 
 ## 5. Istilah penting
 
-- **Draft** = laporan belum sah, bisa dihapus. **Sahkan** = invoice langsung terbit di Keuangan.
+- **Draft** = laporan belum sah, bisa dihapus. **Sahkan** = laporan final masuk antrean **Siap Ditagih**; invoice diterbitkan setelah nominal diperiksa.
+- **Jatuh tempo** = invoice baru diberi tenggat tujuh hari kalender sejak diterbitkan. Umur piutang dibaca dari tenggat ini; data lama tetap memakai akhir periode tagihan.
 - **FIFO** = antrean paket menagih sesi tertua lebih dulu (sesi lama tidak boleh terdampar).
 - **Tutup Buku** = mengunci bulan; sesi di bulan itu tidak bisa direkap/ditagih lagi lewat jalur lain.

@@ -3,15 +3,23 @@
  * Never compute month from a UTC timestamp.
  */
 
-/** Today's date in WIB (UTC+7) as "YYYY-MM-DD".
- *  Uses Intl.DateTimeFormat with timeZone for DST-safe WIB date. */
-export function todayWIB(): string {
+/** Convert an instant to its business date in WIB (UTC+7), YYYY-MM-DD. */
+export function dateInWIB(value: Date | string): string | undefined {
+  const instant = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(instant.getTime())) return undefined;
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Jakarta",
     year: "numeric", month: "2-digit", day: "2-digit",
-  }).formatToParts();
+  }).formatToParts(instant);
   const m = Object.fromEntries(parts.filter((p) => p.type !== "literal").map((p) => [p.type, p.value]));
   return `${m.year}-${m.month}-${m.day}`;
+}
+
+/** Today's date in WIB (UTC+7) as "YYYY-MM-DD". */
+export function todayWIB(): string {
+  // A valid Date can never produce undefined here; fallback keeps the return
+  // contract total if an Intl implementation behaves unexpectedly.
+  return dateInWIB(new Date()) ?? new Date().toISOString().slice(0, 10);
 }
 
 /** Extract "YYYY-MM" from a "YYYY-MM-DD" string */

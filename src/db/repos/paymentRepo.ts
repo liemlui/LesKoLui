@@ -4,10 +4,11 @@ import { db } from "../db";
 import type { Payment, MonthClosing, Expense, ExpenseCategory, IaEeMilestone, MonthlyReport, ReportStatus, Session } from "../types";
 import { billingPolicyOf, reportStatus } from "../types";
 import { timestamp, monthRange, packageCoveredSessionIds } from "./helpers";
-import { todayWIB } from "../../lib/format";
+import { dateInWIB, todayWIB } from "../../lib/format";
 import { logAudit } from "./auditRepo";
 import { compareSessionsChronologically, isBillableSession } from "./sessionRepo";
 import { isValidCurrencyAmount } from "../../lib/money";
+import { defaultInvoiceDueAt, invoiceDueAt } from "../../lib/finance";
 
 // Re-export types for convenience
 export type { ExpenseCategory, IaEeMilestone };
@@ -53,6 +54,20 @@ function normalizeManualPayment(payment: ManualPaymentInput): Omit<Payment, "id"
 }
 
 /**
+ * Invoice baru selalu mendapat jatuh tempo eksplisit. Jika API menerima
+ * createdAt historis, tanggal itu tetap menjadi dasar tempo; bila tidak, pakai
+ * tanggal WIB saat dibuat. Tanggal dueAt eksplisit yang valid selalu dihormati.
+ */
+function dueAtForNewPayment(payment: Pick<Payment, "dueAt" | "createdAt">): string {
+  const explicitDueAt = invoiceDueAt({ dueAt: payment.dueAt });
+  if (explicitDueAt) return explicitDueAt;
+  // `createdAt` is UTC ISO, but jatuh tempo adalah tanggal bisnis di WIB.
+  // Contoh: 21:30 UTC masih sudah tanggal berikutnya di Jakarta.
+  const issuedDate = payment.createdAt ? dateInWIB(payment.createdAt) : undefined;
+  return defaultInvoiceDueAt(issuedDate ?? todayWIB());
+}
+
+/**
  * Create exactly one unlinked manual invoice for a student/month. Report-tied
  * invoices are deliberately ignored, so a manual invoice may coexist beside
  * them without ever overwriting their immutable accounting state.
@@ -64,7 +79,13 @@ export async function createManualPayment(payment: ManualPaymentInput): Promise<
       throw new Error("Manual payment already exists for this student and month");
     }
     const id = crypto.randomUUID();
-    await db.payments.add({ ...normalizeManualPayment(payment), id, createdAt: timestamp() });
+    const createdAt = timestamp();
+    await db.payments.add({
+      ...normalizeManualPayment(payment),
+      id,
+      createdAt,
+      dueAt: dueAtForNewPayment({ dueAt: payment.dueAt, createdAt }),
+    });
     return id;
   });
 }
@@ -82,9 +103,23 @@ export async function upsertPayment(payment: Omit<Payment, "id">): Promise<void>
       ? await getPaymentByReport(payment.reportId)
       : await getUnlinkedMonthPayment(payment.studentId, payment.month);
     if (existing) {
-      await db.payments.update(existing.id, normalized);
+      const explicitDueAt = invoiceDueAt({ dueAt: payment.dueAt });
+      await db.payments.update(existing.id, {
+        ...normalized,
+        // Jangan menghapus deadline yang ada hanya karena legacy caller tidak
+        // mengirimkan dueAt. Sentuhan berikutnya juga melakukan backfill aman
+        // untuk baris lama sesuai semantics sebelumnya.
+        dueAt: explicitDueAt ?? invoiceDueAt(existing),
+        createdAt: payment.createdAt ?? existing.createdAt,
+      });
     } else {
-      await db.payments.add({ ...normalized, id: crypto.randomUUID(), createdAt: timestamp() });
+      const createdAt = payment.createdAt ?? timestamp();
+      await db.payments.add({
+        ...normalized,
+        id: crypto.randomUUID(),
+        createdAt,
+        dueAt: dueAtForNewPayment({ dueAt: payment.dueAt, createdAt }),
+      });
     }
   });
 }
@@ -167,6 +202,10 @@ async function syncReportPaymentRecord(report: ReportPaymentInput): Promise<stri
       periodStart: report.periodStart,
       periodEnd: report.periodEnd,
     };
+    // Existing invoices keep their explicit deadline. A legacy row gets its
+    // old period-end/month behavior materialized, never a newly-imposed term.
+    const legacyDueAt = invoiceDueAt(byReport);
+    if (legacyDueAt && byReport.dueAt !== legacyDueAt) patch.dueAt = legacyDueAt;
     if (byReport.status === "UNPAID" && byReport.source !== "manual") {
       patch.totalCost = report.totalCost;
     }
@@ -185,15 +224,18 @@ async function syncReportPaymentRecord(report: ReportPaymentInput): Promise<stri
   if (unlinkedMonthPayment && fullMonth) {
     // Adoption is metadata-only: keep manual amount, status, source, paidAt,
     // and method exactly as the user recorded them.
+    const adoptedDueAt = invoiceDueAt(unlinkedMonthPayment);
     await db.payments.update(unlinkedMonthPayment.id, {
       reportId: report.id,
       periodStart: report.periodStart,
       periodEnd: report.periodEnd,
+      ...(adoptedDueAt && unlinkedMonthPayment.dueAt !== adoptedDueAt ? { dueAt: adoptedDueAt } : {}),
     });
     return unlinkedMonthPayment.id;
   }
 
   const id = crypto.randomUUID();
+  const createdAt = timestamp();
   await db.payments.add({
     id,
     studentId: report.studentId,
@@ -204,7 +246,8 @@ async function syncReportPaymentRecord(report: ReportPaymentInput): Promise<stri
     reportId: report.id,
     periodStart: report.periodStart,
     periodEnd: report.periodEnd,
-    createdAt: timestamp(),
+    createdAt,
+    dueAt: dueAtForNewPayment({ createdAt }),
   });
   return id;
 }
