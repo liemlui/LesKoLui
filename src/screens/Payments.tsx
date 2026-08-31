@@ -78,7 +78,8 @@ export default function PaymentsPage() {
   )).length;
   const tagihanBadge = packageActionCount + readyReportInvoiceCount;
 
-  // ── Ringkasan cepat untuk header ──
+  // Konteks cepat khusus Pengeluaran. Tagihan memiliki pusat koleksinya sendiri
+  // agar metrik kas dan status invoice tidak bercampur atau berulang.
   const monthPayments = (payments ?? []).filter((p) => p.month === month);
   const cashInMonth = (payments ?? [])
     .filter((p) => p.status === "PAID" && (p.paidAt?.slice(0, 7) ?? p.month) === month)
@@ -88,6 +89,7 @@ export default function PaymentsPage() {
     .reduce((sum, p) => sum + p.totalCost, 0);
   const expenseMonth = (monthExpenses ?? []).reduce((sum, e) => sum + e.amount, 0);
 
+  // ── Ringkasan cepat untuk header ──
   if (!payments || !students || !settings
     || monthSessions === undefined || monthExpenses === undefined
     || reports === undefined || sessionCountBillingProgress === undefined
@@ -151,8 +153,8 @@ export default function PaymentsPage() {
         <h1 className="text-2xl font-bold">Keuangan</h1>
       </div>
 
-      {/* Konteks cepat hanya untuk tab operasional pada bulan yang dipilih. */}
-      {(activeTab === "tagihan" || activeTab === "pengeluaran") && (
+      {/* Pengeluaran tetap mendapat konteks kas periode; Tagihan punya pusat koleksi sendiri. */}
+      {activeTab === "pengeluaran" && (
         <div className="space-y-2" aria-label={`Ringkasan keuangan ${monthLabel(month)}`}>
           <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
             Ringkasan {monthLabel(month)}
@@ -224,7 +226,6 @@ export default function PaymentsPage() {
           settings={settings}
           reports={reports}
           monthSessions={monthSessions}
-          monthExpenses={monthExpenses}
           setMessage={setMessage}
           navigate={navigate}
           requestedStudentId={requestedStudentId}

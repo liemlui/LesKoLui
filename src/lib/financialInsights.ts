@@ -1,3 +1,6 @@
+import { daysToPayProxy, invoiceAgeDays } from "./finance";
+import type { PaymentStatus } from "../db/types";
+
 export interface FinancialHistoryMonth {
   potensi: number;
   realisasi: number;
@@ -56,7 +59,7 @@ export interface InsightContext {
 }
 
 export function buildInsightContext(args: {
-  payments: readonly { studentId: string; totalCost: number; status: string; month: string; periodEnd?: string; paidAt?: string }[];
+  payments: readonly { studentId: string; totalCost: number; status: PaymentStatus; month: string; dueAt?: string; periodEnd?: string; paidAt?: string }[];
   reports: readonly { studentId: string; status?: string; pdfGeneratedAt?: string }[];
   students: readonly { id: string; name: string }[];
   month: string;
@@ -75,9 +78,7 @@ export function buildInsightContext(args: {
   const agedPiutang = payments
     .filter((p) => p.status === "UNPAID")
     .reduce((sum, p) => {
-      const ref = p.periodEnd ?? `${p.month}-${new Date(+p.month.slice(0, 4), +p.month.slice(5, 7), 0).getDate()}`;
-      const days = Math.floor((Date.now() - Date.parse(ref)) / 86400000);
-      return days > 60 ? sum + p.totalCost : sum;
+      return invoiceAgeDays(p) > 60 ? sum + p.totalCost : sum;
     }, 0);
 
   // Days-to-pay proxy: lama dari periodEnd (atau bulan tagihan) ke paidAt
@@ -86,9 +87,7 @@ export function buildInsightContext(args: {
   if (paidPayments.length > 0) {
     avgDaysToPayProxy = Math.round(
       paidPayments.reduce((sum, p) => {
-        const ref = p.periodEnd ?? `${p.month}-${new Date(+p.month.slice(0, 4), +p.month.slice(5, 7), 0).getDate()}`;
-        const delta = Date.parse(p.paidAt!) - Date.parse(ref);
-        return sum + (delta > 0 ? Math.floor(delta / 86400000) : 0);
+        return sum + (daysToPayProxy(p) ?? 0);
       }, 0) / paidPayments.length
     );
   }

@@ -1,5 +1,5 @@
 import Skeleton from "../components/Skeleton";
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
@@ -44,7 +44,7 @@ import { clampPage, paginateItems } from "../lib/pagination";
 import { calcEngagementScore, scoreLabel, averageEngagement } from "../lib/engagement";
 import { pickDirtyNarrativeSessions } from "../lib/aiIncremental";
 import type {
-  ReportOptions, CustomTheme, Theme,
+  ReportOptions, CustomTheme, Theme, LayoutCategory,
 } from "../template/types";
 import type { MonthlyReport, NextMonthPlan, Session } from "../db/types";
 import { db } from "../db/db";
@@ -54,6 +54,39 @@ import {
 } from "./monthlyReport/helpers";
 import { NextMonthPlanEditor } from "./monthlyReport/NextMonthPlanEditor";
 import { CustomThemeBuilder } from "./monthlyReport/CustomThemeBuilder";
+import { SAMPLE_REPORT_DATA } from "../template/sampleData";
+
+/**
+ * Pratinjau ter-scale (C-2): merender konten pada lebar penuh (416px, sama
+ * dengan root export) lalu mengecilkan tampilannya via CSS transform, tanpa
+ * mengubah layout internal renderer. `pointer-events: none` memastikan
+ * preview tidak mengganggu interaksi. Tinggi wrapper mengikuti tinggi konten
+ * × scale (diukur via ResizeObserver — jumlah halaman bisa berubah).
+ */
+function ScaledPreview({ children, scale = 0.5 }: { children: ReactNode; scale?: number }) {
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [innerHeight, setInnerHeight] = useState(0);
+
+  useEffect(() => {
+    const el = innerRef.current;
+    if (!el) return;
+    const update = () => setInnerHeight(el.offsetHeight);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  return (
+    <div style={{ height: innerHeight * scale, overflow: "hidden" }}>
+      <div
+        ref={innerRef}
+        style={{ width: 416, transform: `scale(${scale})`, transformOrigin: "top left", pointerEvents: "none" }}>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 /**
  * MonthlyReportPage — halaman pembuatan laporan perkembangan per periode.
@@ -576,6 +609,16 @@ export default function MonthlyReportPage() {
   // Toolbar desain di-state (bukan open={false} statis) agar tetap terbuka
   // saat pratinjau di-remount setelah ganti tema/layout.
   const [designOpen, setDesignOpen] = useState(false);
+  // Filter galeri layout (kategori dari metadata tools layout) — semua layout
+  // tetap tersedia; filter hanya menyembunyikan. Menerapkan Hick's Law.
+  const [layoutCategory, setLayoutCategory] = useState<LayoutCategory | "">("");
+  const filteredLayouts = useMemo(() => {
+    if (!layoutCategory) return LAYOUTS;
+    return LAYOUTS.filter((l) => l.categories?.includes(layoutCategory));
+  }, [layoutCategory]);
+  // C-2: preview on-demand per kombinasi layout yang diklik (bukan render
+  // seluruh galeri sekaligus). Preview memakai SAMPLE_REPORT_DATA — tanpa AI.
+  const [previewLayoutId, setPreviewLayoutId] = useState<string | null>(null);
   // Kontrol export: jumlah sesi per halaman + rasio halaman.
   // Default 3:4 potret agar gambar tidak terlalu tinggi di WhatsApp.
   // Sesi per halaman = target awal; entri otomatis dipindah ke halaman
@@ -692,6 +735,7 @@ export default function MonthlyReportPage() {
     setCompareThemeId(null);
     setCoverPage(false);
     setShowCustomBuilder(false);
+    setLayoutCategory("");
     setReportData(null);
   }, [reportScopeKey, invalidateAiRequests, setPrevTexts]);
 
@@ -1488,10 +1532,57 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                           await upsertReport({ ...report, templateKey: { themeId: prev.themeId, layoutId: prev.layoutId } });
                         }}>↩ Undo</button>
                     )}
-                    <select className="input min-w-0 basis-[140px] flex-1 text-sm" value={report.templateKey.layoutId}
-                      onChange={(e) => { setUndoStack((s) => [...s, { themeId: report.templateKey.themeId, layoutId: report.templateKey.layoutId }]); handleCreateOrSwitch(e.target.value); }}>
-                      {LAYOUTS.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                    </select>
+                    <div className="min-w-0 basis-[140px] flex-1 space-y-2">
+                      {/* Filter kategori (semua layout tetap tersedia; filter hanya menyembunyikan) */}
+                      <div className="flex flex-wrap gap-1">
+                        {(["" as const, "classic", "visual", "analytic", "modern", "formal", "playful"] as const).map((cat) => (
+                          <button
+                            key={cat === "" ? "all" : cat}
+                            type="button"
+                            onClick={() => setLayoutCategory(cat)}
+                            aria-pressed={layoutCategory === cat}
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors ${
+                              layoutCategory === cat ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                            }`}>
+                            {cat === "" ? "Semua" : cat.charAt(0).toUpperCase() + cat.slice(1)}
+                          </button>
+                        ))}
+                      </div>
+                      {/* Grid layout — ganti dropdown panjang. Tombol 👁 = preview
+                          on-demand dengan data contoh (C-2). */}
+                      <div className="flex flex-wrap gap-1">
+                        {filteredLayouts.map((l) => (
+                          <span key={l.id} className="relative inline-flex">
+                            <button
+                              type="button"
+                              aria-pressed={report.templateKey.layoutId === l.id}
+                              title={l.supportsLongNarrative ? "Cocok untuk narasi panjang" : "Ringkas"}
+                              onClick={() => {
+                                setUndoStack((s) => [...s, { themeId: report.templateKey.themeId, layoutId: report.templateKey.layoutId }]);
+                                void handleCreateOrSwitch(l.id);
+                              }}
+                              className={`rounded-lg border px-2 py-1 text-xs font-medium transition-colors ${
+                                report.templateKey.layoutId === l.id
+                                  ? "border-blue-600 bg-blue-600 text-white"
+                                  : "border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100"
+                              }`}>
+                              {l.name}
+                            </button>
+                            <button
+                              type="button"
+                              title={`Preview ${l.name}`}
+                              aria-label={`Preview layout ${l.name}`}
+                              onClick={() => setPreviewLayoutId(l.id)}
+                              className="absolute -right-1.5 -top-1.5 z-10 flex h-4 w-4 items-center justify-center rounded-full border border-gray-200 bg-white text-[8px] leading-none text-gray-500 shadow-sm transition-colors hover:border-blue-300 hover:text-blue-600">
+                              👁
+                            </button>
+                          </span>
+                        ))}
+                        {filteredLayouts.length === 0 && (
+                          <p className="text-[11px] text-gray-400">Tidak ada layout pada kategori ini.</p>
+                        )}
+                      </div>
+                    </div>
                     <button onClick={() => setCoverPage((v) => !v)}
                       className={`text-sm py-1.5 px-2 rounded-lg border transition-colors whitespace-nowrap ${coverPage ? "bg-blue-600 text-white border-blue-600" : "bg-gray-50 text-gray-600 border-gray-200"}`}>
                       {coverPage ? "📄 Cover ✓" : "📄 Cover"}
@@ -1576,6 +1667,50 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                 )}
 
                 </details>
+
+                {/* C-2: modal preview layout on-demand — memakai data contoh
+                    (SAMPLE_REPORT_DATA), bukan data murid, dan tanpa panggilan AI.
+                    Hanya dirender saat ada kombinasi yang diklik (setPreviewLayoutId). */}
+                {previewLayoutId && (
+                  <div
+                    className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Preview layout">
+                    <button
+                      type="button"
+                      aria-label="Tutup preview"
+                      className="absolute inset-0 cursor-default bg-black/60"
+                      onClick={() => setPreviewLayoutId(null)} />
+                    <div className="relative w-full max-w-[248px] rounded-2xl bg-white p-3 shadow-xl">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <p className="truncate text-xs font-semibold text-gray-700">
+                          👁 {LAYOUTS.find((l) => l.id === previewLayoutId)?.name ?? "Preview"}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewLayoutId(null)}
+                          aria-label="Tutup"
+                          className="text-sm leading-none text-gray-400 hover:text-gray-700">
+                          ✕
+                        </button>
+                      </div>
+                      <div className="flex justify-center overflow-y-auto" style={{ maxHeight: "60vh" }}>
+                        <ScaledPreview scale={0.5}>
+                          <ReportRenderer
+                            data={SAMPLE_REPORT_DATA}
+                            theme={theme}
+                            layoutId={previewLayoutId}
+                            options={{ pageRatio: "3:4" }}
+                          />
+                        </ScaledPreview>
+                      </div>
+                      <p className="mt-2 text-center text-[10px] text-gray-400">
+                        Preview memakai data contoh — bukan data murid.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Preview sekaligus sumber export supaya komposisi JPG/PDF persis
                     sama dengan yang dilihat pengguna pada ukuran layar aktif. */}

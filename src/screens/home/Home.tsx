@@ -60,6 +60,26 @@ export default function Home() {
     () => listAllSessionsForWeek(currentWeek[0], currentWeek[6]),
     [currentWeek[0], currentWeek[6]],
   );
+  // Tren "Minggu Ini": jumlah sesi selesai per minggu untuk 4 minggu terakhir
+  // (termasuk minggu berjalan). Menghidupkan konteks historis di card mingguan
+  // tanpa menambah perpustakaan chart baru (sparkline pakai LineChart existing).
+  const weeklyTrend = useLiveQuery(async () => {
+    const out: number[] = [];
+    const iso = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    for (let back = 3; back >= 0; back--) {
+      const anchorDate = new Date();
+      anchorDate.setDate(anchorDate.getDate() - back * 7);
+      const dow = (anchorDate.getDay() + 6) % 7; // 0 = Senin
+      const monday = new Date(anchorDate);
+      monday.setDate(anchorDate.getDate() - dow);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      const sessions = await listAllSessionsForWeek(iso(monday), iso(sunday));
+      out.push(sessions.filter((s) => s.status === "DONE").length);
+    }
+    return out;
+  }, []);
   const daySessions   = useLiveQuery(() => listAllSessionsForWeek(anchor, anchor), [anchor]);
   const todaySessions = useLiveQuery(() => listAllSessionsForWeek(today, today), [today]);
 
@@ -150,6 +170,7 @@ export default function Home() {
         weekPlanned={(currentWeekSessions ?? []).filter((s) => s.status === "DONE" || s.status === "SCHEDULED").length}
         missedCount={missed.length}
         attentionCount={missed.length + follows.length}
+        weeklyTrend={weeklyTrend ?? []}
         onAttentionClick={scrollToAttention}
         onMissedClick={scrollToAttention}
         onActiveStudentsClick={() => navigate("/students")}

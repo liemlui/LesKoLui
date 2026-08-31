@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   createManualPayment, syncReportPayment,
@@ -11,14 +11,15 @@ import { AiCostModal } from "../../components/AiCostModal";
 import Modal from "../../components/Modal";
 import { buildBillingMessage, toWaNumber } from "../../lib/waBilling";
 import { MAX_PAYMENT_AMOUNT, clampCurrencyAmount, isValidCurrencyAmount, parseCurrencyDigits } from "../../lib/money";
-import { invoiceAgeDays, ageBucket, AGE_BUCKET_LABEL, AGE_BUCKET_CLASS } from "../../lib/finance";
+import { invoiceAgeDays, ageBucket, AGE_BUCKET_LABEL, AGE_BUCKET_CLASS, type AgeBucket } from "../../lib/finance";
 import { db } from "../../db/db";
 import ActivityRing from "../../components/dashboard/ActivityRing";
+import { ProgressBar } from "../../components/charts";
 import ConfirmSheet from "../../components/ConfirmSheet";
 import InvoiceModal from "./InvoiceModal";
 import {
   INVOICE_ORIGIN_CLASS, INVOICE_ORIGIN_LABEL, ITEMS_PER_PDF_PAGE,
-  buildManualBillingText, invoiceOriginOf, statusPillClass, toneForPayment,
+  buildManualBillingText, groupPdfPages, invoiceOriginOf, statusPillClass, toneForPayment,
 } from "../../lib/invoicePresentation";
 import { useSessionCountBilling } from "./useSessionCountBilling";
 import type { ConfirmState } from "./useSessionCountBilling";
@@ -35,7 +36,6 @@ interface TagihanTabProps {
   settings: Settings;
   reports: MonthlyReport[];
   monthSessions: Session[];
-  monthExpenses: import("../../db/types").Expense[];
   setMessage: (message: string) => void;
   navigate: (path: string) => void;
   requestedStudentId: string;
@@ -66,6 +66,7 @@ export default function TagihanTab({
   const [reportInvoiceBusy, setReportInvoiceBusy] = useState<Record<string, boolean>>({});
   const [showWaAll, setShowWaAll] = useState(false);
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
+  const [agingFilter, setAgingFilter] = useState<AgeBucket | "all">("all");
   const appliedFocusRef = useRef(false);
 
   // Sesi yang dirujuk laporan — dipakai baris invoice & pesan WA.
@@ -89,14 +90,6 @@ export default function TagihanTab({
   const invoice = useInvoiceFilters({
     month, payments, students, reports, monthSessions, settings,
     closings: closing.closings, allReportSessions, itemsPerPdfPage: ITEMS_PER_PDF_PAGE,
-  });
-  // Ekspor CSV / PDF rekap / PDF invoice tunggal.
-  const exports = useInvoiceExports({
-    month, studentMap: invoice.studentMap,
-    filteredBillRows: invoice.filteredBillRows,
-    invoiceStatusFilter: invoice.invoiceStatusFilter,
-    invoiceOriginFilter: invoice.invoiceOriginFilter,
-    setMessage,
   });
   // Pengingat pembayaran AI (Reminder WA AI).
   const aiReminder = useAiReminder({
@@ -126,7 +119,7 @@ export default function TagihanTab({
   const {
     invoiceStatusFilter, setInvoiceStatusFilter, invoiceOriginFilter, setInvoiceOriginFilter,
     filteredBillRows, readyReportRows, showReadySections, showIssuedList,
-    monthsOverview, waAllRows, pdfPageGroups,
+    monthsOverview, waAllRows,
   } = invoice;
   const {
     monthClosing, previewBills, closingBusy,
@@ -143,15 +136,63 @@ export default function TagihanTab({
     handleCreateSessionCountInvoice, handleCancelSessionCountInvoice,
   } = sessionCount;
   const {
-    pdfExporting, invoiceTarget, setInvoiceTarget, invoiceExporting, invoiceRef,
-    handleExportInvoicePdf, handleExportCsv, handleExportPdf,
-  } = exports;
-  const {
     reminderLoading, reminderModal, setReminderModal,
     openReminderModal, confirmGenerateReminder, estimateCost: estimateReminderCost,
   } = aiReminder;
 
   const readyActionCount = readyReportRows.length + needsActionCount + closingProjection.rows.length;
+  const agingRows = useMemo(() => {
+    const buckets: Record<AgeBucket, { amount: number; count: number }> = {
+      "0-30": { amount: 0, count: 0 },
+      "31-60": { amount: 0, count: 0 },
+      ">60": { amount: 0, count: 0 },
+    };
+    for (const { payment } of billRows) {
+      if (payment.status !== "UNPAID") continue;
+      const bucket = ageBucket(invoiceAgeDays(payment));
+      buckets[bucket].amount += payment.totalCost;
+      buckets[bucket].count += 1;
+    }
+    return (["0-30", "31-60", ">60"] as const).map((bucket) => ({
+      bucket,
+      ...buckets[bucket],
+    }));
+  }, [billRows]);
+  const agingTotal = agingRows.reduce((sum, row) => sum + row.amount, 0);
+  const visibleBillRows = useMemo(() => {
+    const rows = filteredBillRows.filter((row) => (
+      agingFilter === "all"
+      || (row.payment.status === "UNPAID" && ageBucket(invoiceAgeDays(row.payment)) === agingFilter)
+    ));
+    if (invoiceStatusFilter === "unpaid") {
+      rows.sort((a, b) => {
+        const ageDifference = invoiceAgeDays(b.payment) - invoiceAgeDays(a.payment);
+        return ageDifference || b.payment.totalCost - a.payment.totalCost;
+      });
+    }
+    return rows;
+  }, [agingFilter, filteredBillRows, invoiceStatusFilter]);
+  const pdfPageGroups = useMemo(
+    () => groupPdfPages(visibleBillRows.map((row) => row.payment), ITEMS_PER_PDF_PAGE),
+    [visibleBillRows],
+  );
+  const exports = useInvoiceExports({
+    month,
+    studentMap,
+    filteredBillRows: visibleBillRows,
+    invoiceStatusFilter,
+    invoiceOriginFilter,
+    setMessage,
+  });
+  const {
+    pdfExporting, invoiceTarget, setInvoiceTarget, invoiceExporting, invoiceRef,
+    handleExportInvoicePdf, handleExportCsv, handleExportPdf,
+  } = exports;
+
+  const selectCollectionStage = (filter: typeof invoiceStatusFilter) => {
+    setInvoiceStatusFilter(filter);
+    if (filter !== "unpaid") setAgingFilter("all");
+  };
 
   // ── Handlers ──
   const handleCreatePayment = async () => {
@@ -218,70 +259,146 @@ export default function TagihanTab({
         </div>
       )}
 
-      <section aria-labelledby="billing-flow-title" className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-        <div className="mb-2">
-          <h2 id="billing-flow-title" className="text-xs font-bold uppercase tracking-wide text-slate-600">Tahap Penagihan</h2>
-          <p className="mt-0.5 text-[11px] text-slate-500">Urutan kerja: Siap Ditagih → Terbitkan Tagihan → Belum Dibayar → Lunas.</p>
+      <section aria-labelledby="collection-center-title" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-indigo-500">Penagihan {monthLabel(month)}</p>
+            <h2 id="collection-center-title" className="mt-0.5 text-base font-bold text-slate-800">Pusat Koleksi</h2>
+            <p className="mt-1 max-w-sm text-[11px] leading-relaxed text-slate-500">
+              Terbitkan invoice, tindak lanjuti piutang, lalu catat pelunasan dalam satu alur.
+            </p>
+          </div>
+          <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${collectionRate >= 80 ? "bg-green-100 text-green-700" : collectionRate > 0 ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}`}>
+            {monthPayments.length > 0 ? `${collectionRate}% tertagih` : "Belum ada invoice"}
+          </span>
         </div>
-        <div className="grid grid-cols-4 gap-1 rounded-lg bg-gray-100 p-0.5" role="group" aria-label="Filter tahap penagihan">
-          {([
-            ["ready", "Siap Ditagih", readyActionCount],
-            ["unpaid", "Belum Dibayar", unpaidCount],
-            ["paid", "Lunas", paidCount],
-            ["semua", "Semua", monthPayments.length],
-          ] as const).map(([filter, label, count]) => (
-            <button key={filter} type="button" onClick={() => setInvoiceStatusFilter(filter)}
-              className={`rounded-md px-1 py-2 text-center transition-colors ${
-                invoiceStatusFilter === filter ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700"
-              }`}>
-              <span className="block text-[11px] font-semibold leading-tight">{label}</span>
-              <span className="block text-base font-bold leading-tight">{count}</span>
-            </button>
-          ))}
-        </div>
-        <div className="mt-2 flex items-center justify-between gap-2 text-[10px] text-slate-500">
-          <span>Siap Ditagih = laporan final tanpa invoice, paket penuh, dan preview tutup bulan.</span>
-          <span>{monthLabel(month)}</span>
-        </div>
-      </section>
 
-      {/* Ringkasan status tagihan — sekilas kondisi penagihan bulan ini */}
-      {showIssuedList && monthPayments.length > 0 && (
-        <>
-        <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Diterbitkan</p>
-            <p className="mt-0.5 text-sm font-bold text-slate-800">{formatRupiah(totalBilled)}</p>
-            <p className="text-[10px] text-slate-400">{monthPayments.length} tagihan</p>
+        <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-2" role="group" aria-label="Filter tahap penagihan">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-1">
+            <button
+              type="button"
+              aria-pressed={invoiceStatusFilter === "ready"}
+              onClick={() => selectCollectionStage("ready")}
+              className={`rounded-lg border px-2.5 py-2 text-left transition-colors ${invoiceStatusFilter === "ready" ? "border-indigo-300 bg-indigo-600 text-white shadow-sm" : "border-indigo-100 bg-white text-indigo-800 hover:bg-indigo-50"}`}
+            >
+              <span className="block text-[10px] font-bold uppercase tracking-wide opacity-80">01 · Siap</span>
+              <span className="mt-0.5 block text-sm font-bold leading-tight">{readyActionCount} tindakan</span>
+              <span className="mt-0.5 block text-[10px] leading-snug opacity-80">Laporan, paket, atau tutup bulan</span>
+            </button>
+            <span aria-hidden="true" className="flex items-center justify-center px-0.5 text-base font-bold text-slate-400">→</span>
+            <button
+              type="button"
+              aria-pressed={invoiceStatusFilter === "semua"}
+              onClick={() => selectCollectionStage("semua")}
+              className={`rounded-lg border px-2.5 py-2 text-left transition-colors ${invoiceStatusFilter === "semua" ? "border-blue-300 bg-blue-600 text-white shadow-sm" : "border-blue-100 bg-white text-blue-800 hover:bg-blue-50"}`}
+            >
+              <span className="block text-[10px] font-bold uppercase tracking-wide opacity-80">02 · Terbit</span>
+              <span className="mt-0.5 block text-sm font-bold leading-tight">{formatRupiah(totalBilled)}</span>
+              <span className="mt-0.5 block text-[10px] leading-snug opacity-80">{monthPayments.length} invoice periode ini</span>
+            </button>
           </div>
-          <div className="rounded-xl border border-green-100 bg-green-50/60 px-3 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-green-600">Lunas</p>
-            <p className="mt-0.5 text-sm font-bold text-green-700">{formatRupiah(totalPaid)}</p>
-            <p className="text-[10px] text-green-600">{paidCount} tagihan</p>
+
+          <div className="my-2 flex items-center gap-2 px-1 text-[10px] font-medium text-slate-500">
+            <span className="h-px flex-1 bg-slate-200" />
+            <span>Invoice terbit terbagi menurut pembayaran</span>
+            <span className="h-px flex-1 bg-slate-200" />
           </div>
-          <div className="rounded-xl border border-amber-100 bg-amber-50/60 px-3 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-600">Belum Dibayar</p>
-            <p className="mt-0.5 text-sm font-bold text-amber-700">{formatRupiah(totalUnpaid)}</p>
-            <p className="text-[10px] text-amber-600">{unpaidCount} tagihan · {collectionRate}% sudah dibayar</p>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              aria-pressed={invoiceStatusFilter === "unpaid"}
+              onClick={() => selectCollectionStage("unpaid")}
+              className={`rounded-lg border px-2.5 py-2 text-left transition-colors ${invoiceStatusFilter === "unpaid" ? "border-amber-300 bg-amber-500 text-white shadow-sm" : "border-amber-100 bg-white text-amber-800 hover:bg-amber-50"}`}
+            >
+              <span className="block text-[10px] font-bold uppercase tracking-wide opacity-80">Belum dibayar</span>
+              <span className="mt-0.5 block text-sm font-bold leading-tight">{formatRupiah(totalUnpaid)}</span>
+              <span className="mt-0.5 block text-[10px] leading-snug opacity-80">{unpaidCount} invoice perlu tindak lanjut</span>
+            </button>
+            <button
+              type="button"
+              aria-pressed={invoiceStatusFilter === "paid"}
+              onClick={() => selectCollectionStage("paid")}
+              className={`rounded-lg border px-2.5 py-2 text-left transition-colors ${invoiceStatusFilter === "paid" ? "border-green-300 bg-green-600 text-white shadow-sm" : "border-green-100 bg-white text-green-800 hover:bg-green-50"}`}
+            >
+              <span className="block text-[10px] font-bold uppercase tracking-wide opacity-80">Lunas</span>
+              <span className="mt-0.5 block text-sm font-bold leading-tight">{formatRupiah(totalPaid)}</span>
+              <span className="mt-0.5 block text-[10px] leading-snug opacity-80">{paidCount} invoice sudah selesai</span>
+            </button>
           </div>
         </div>
-        {showIssuedList && unpaidCount > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
-            <span className="font-semibold text-slate-500">Umur piutang:</span>
-            {(["0-30", "31-60", ">60"] as const).map((bucket) => {
-              const sum = billRows
-                .filter((row) => row.payment.status === "UNPAID" && ageBucket(invoiceAgeDays(row.payment)) === bucket)
-                .reduce((acc, row) => acc + row.payment.totalCost, 0);
-              return sum > 0 ? (
-                <span key={bucket} className={`rounded-full px-2 py-0.5 font-bold ${AGE_BUCKET_CLASS[bucket]}`}>
-                  {AGE_BUCKET_LABEL[bucket]} · {formatRupiah(sum)}
-                </span>
-              ) : null;
+
+        <div className="mt-3 flex items-center gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2.5">
+          <ActivityRing
+            value={paidCount}
+            total={monthPayments.length}
+            label="Kolektibilitas invoice"
+            detail={monthPayments.length > 0 ? `${unpaidCount} invoice masih menjadi piutang` : "Terbitkan invoice dari antrean yang siap"}
+            size="sm"
+            tone={collectionRate >= 80 ? "green" : collectionRate > 0 ? "amber" : "slate"}
+          />
+          <p className="min-w-0 text-[11px] leading-relaxed text-slate-500">
+            <span className="font-semibold text-slate-700">Status invoice ≠ kas masuk.</span>{" "}
+            Pelunasan menutup piutang; kas dicatat menurut tanggal pembayaran di Ringkasan.
+          </p>
+        </div>
+
+        {/* Kolektibilitas bulan ini — warna threshold: <70 merah, 70–89 kuning, ≥90 hijau */}
+        <div className="mt-3 rounded-xl border border-slate-100 bg-white p-3" aria-label="Kolektibilitas">
+          <ProgressBar
+            value={collectionRate}
+            max={100}
+            label="Kolektibilitas"
+            detail={monthPayments.length > 0
+              ? `${paidCount} dari ${monthPayments.length} invoice lunas`
+              : "Belum ada invoice pada periode ini"}
+            showPercent
+            tone="red"
+            thresholds={[{ pct: 90, tone: "green" }, { pct: 70, tone: "amber" }]}
+          />
+        </div>
+
+        <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-3" aria-label="Umur piutang">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wide text-slate-600">Umur piutang</p>
+              <p className="mt-0.5 text-[10px] text-slate-500">Tap bar untuk menyaring daftar invoice belum dibayar pada periode ini.</p>
+            </div>
+            <span className="rounded-full bg-white px-2 py-1 text-[10px] font-semibold text-amber-700 shadow-sm">
+              {agingTotal > 0 ? formatRupiah(agingTotal) : "Tidak ada piutang"}
+            </span>
+          </div>
+          <div className="mt-3 space-y-2">
+            {agingRows.map((row) => {
+              const tone = row.bucket === ">60" ? "red" : row.bucket === "31-60" ? "amber" : "slate";
+              const selected = agingFilter === row.bucket && invoiceStatusFilter === "unpaid";
+              return (
+                <button
+                  key={row.bucket}
+                  type="button"
+                  disabled={row.count === 0}
+                  aria-pressed={selected}
+                  aria-label={`Filter umur piutang ${AGE_BUCKET_LABEL[row.bucket]}: ${row.count} invoice, ${formatRupiah(row.amount)}`}
+                  onClick={() => {
+                    selectCollectionStage("unpaid");
+                    setAgingFilter((current) => current === row.bucket ? "all" : row.bucket);
+                  }}
+                  className={`w-full rounded-lg px-2 py-1.5 text-left transition-colors disabled:cursor-default disabled:opacity-45 ${selected ? "bg-white shadow-sm ring-1 ring-slate-300" : "hover:bg-white"}`}
+                >
+                  <ProgressBar
+                    value={row.amount}
+                    max={Math.max(agingTotal, 1)}
+                    label={AGE_BUCKET_LABEL[row.bucket]}
+                    detail={`${row.count} invoice · ${formatRupiah(row.amount)}`}
+                    tone={tone}
+                    size="sm"
+                  />
+                </button>
+              );
             })}
           </div>
-        )}
-        </>
-      )}
+        </div>
+      </section>
 
       {showReadySections && readyReportRows.length > 0 && (
         <section aria-labelledby="ready-report-invoices-title" className="space-y-3 rounded-xl border border-blue-200 bg-blue-50/40 p-4 shadow-sm">

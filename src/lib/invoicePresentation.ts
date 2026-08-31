@@ -39,7 +39,7 @@ export const INVOICE_ORIGIN_CLASS: Record<InvoiceOrigin, string> = {
 // ── Nada pesan WA mengikuti umur piutang ──────────────────────────────
 // normal → gentle (>30 hari) → firm (>60 hari).
 
-export function toneForPayment(payment: Pick<Payment, "periodEnd" | "month">): BillingTone {
+export function toneForPayment(payment: Pick<Payment, "dueAt" | "periodEnd" | "month">): BillingTone {
   const bucket = ageBucket(invoiceAgeDays(payment));
   return bucket === ">60" ? "firm" : bucket === "31-60" ? "gentle" : "normal";
 }

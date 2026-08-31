@@ -84,10 +84,20 @@ export interface GradeComparisonRow {
   delta?: string;
 }
 
+export type LayoutCategory = "classic" | "visual" | "analytic" | "modern" | "formal" | "playful";
+
 export interface Layout {
   id: string;
   name: string;
   maxEntriesPerPage: number;
+  /** Rasio halaman export yang dijamin aman untuk layout ini. Kosong = semua rasio diizinkan. */
+  supportedRatios?: ("3:4" | "auto")[];
+  /** Jumlah foto per sesi yang disarankan agar layout tidak tampak kosong/penuh. */
+  recommendedPhotoCount?: { min?: number; max?: number };
+  /** Apakah layout tahan narasi panjang tanpa mengorbankan rasio tetap 3:4. */
+  supportsLongNarrative?: boolean;
+  /** Kategori untuk filter galeri template (mengurangi beban pilihan — Hick's Law). */
+  categories?: LayoutCategory[];
   render: (page: ReportData, theme: Theme, opts: { isFirst: boolean; isLast: boolean }) => React.JSX.Element;
 }
 

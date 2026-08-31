@@ -37,8 +37,9 @@ import * as visualMod from "./visual";
 import * as analyticMod from "./analytic";
 import * as modernMod from "./modern";
 import type { Layout } from "../types";
+import { mergeLayoutMeta } from "./meta";
 
-export const LAYOUTS: Layout[] = [
+const RAW_LAYOUTS: Layout[] = [
   modernMod.infographic,
   classicMod.cards, classicMod.timeline, classicMod.scrapbook, classicMod.grid, classicMod.compact,
   visualMod.dashboard, visualMod.progress, visualMod.weekly, visualMod.subjects, visualMod.reportcard,
@@ -48,7 +49,11 @@ export const LAYOUTS: Layout[] = [
   modernMod.milestone, modernMod.split, modernMod.journal,
   modernMod.overview, modernMod.minimal, modernMod.bullets, modernMod.compare, modernMod.snapshot,
 ];
+
+// Metadata kompatibilitas (rasio aman, kategori galeri, dukungan narasi) digabung
+// ke setiap layout — konsumen melalui index selalu mendapat metadata lengkap.
+export const LAYOUTS: Layout[] = RAW_LAYOUTS.map(mergeLayoutMeta);
 export const LAYOUT_IDS = LAYOUTS.map((l) => l.id);
 export function getLayout(id: string): Layout {
-  return LAYOUTS.find((l) => l.id === id) ?? classicMod.cards;
+  return LAYOUTS.find((l) => l.id === id) ?? mergeLayoutMeta(classicMod.cards);
 }

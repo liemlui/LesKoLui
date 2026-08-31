@@ -429,7 +429,7 @@ export default function RingkasanTab({
         </div>
         <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-white/80 px-3 py-2.5">
           <div>
-            <p className="text-xs font-bold text-emerald-950">Laba kas</p>
+            <p className="text-xs font-bold text-emerald-950">Arus kas bersih</p>
             <p className="text-[11px] text-emerald-700">Kas diterima dikurangi pengeluaran</p>
           </div>
           <p className={`text-xl font-bold ${cash.laba >= 0 ? "text-emerald-700" : "text-red-600"}`}>{formatRupiah(cash.laba)}</p>
@@ -487,7 +487,7 @@ export default function RingkasanTab({
           </div>
           <div className="grid gap-2 w-full min-[380px]:w-[148px]">
             <MetricCard label="Invoice lunas" value={`${collectionRate}%`} description={`Porsi invoice ${selectedMonthLabel} yang sudah dibayar.`} icon="↗" tone={collectionRate >= 80 ? "green" : "amber"} />
-            <MetricCard label="Laba kas" value={formatRupiah(cash.laba)} description={`Kas diterima dikurangi pengeluaran ${selectedMonthLabel}.`} icon="◎" tone={cash.laba >= 0 ? "blue" : "red"} />
+            <MetricCard label="Arus kas bersih" value={formatRupiah(cash.laba)} description={`Kas diterima dikurangi pengeluaran ${selectedMonthLabel}.`} icon="◎" tone={cash.laba >= 0 ? "blue" : "red"} />
           </div>
         </div>
         <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2.5 text-xs leading-relaxed text-slate-600">

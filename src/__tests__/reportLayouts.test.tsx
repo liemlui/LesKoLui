@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { LAYOUTS, getLayout } from "../template/layouts";
 import { ReportRenderer } from "../template/ReportRenderer";
+import { SAMPLE_REPORT_DATA } from "../template/sampleData";
 import { initialSplits, pagesFromSplits, ratioHeight3x4 } from "../template/rebalance";
 import { THEMES } from "../template/themes";
 import type { ReportData } from "../template/types";
@@ -187,6 +188,51 @@ describe("report layouts", () => {
       <ReportRenderer data={many} theme={THEMES[0]} layoutId="cards" options={{ entriesPerPage: 2 }} />
     );
     expect(html.match(/data-report-page/g)?.length).toBe(3);
+  });
+
+  it("setiap layout punya metadata kompatibilitas (rasio & kategori)", () => {
+    for (const layout of LAYOUTS) {
+      expect(layout.supportedRatios && layout.supportedRatios.length > 0, `${layout.id} supportedRatios`).toBeTruthy();
+      expect(layout.categories && layout.categories.length > 0, `${layout.id} categories`).toBeTruthy();
+      expect(typeof layout.supportsLongNarrative, `${layout.id} supportsLongNarrative`).toBe("boolean");
+    }
+    // cover bukan layout normal (tidak ikut rotasi/galeri).
+    expect(LAYOUTS.map((l) => l.id)).not.toContain("cover");
+  });
+
+  it("merender semua layout via ReportRenderer untuk rasio 3:4 dan auto tanpa crash", () => {
+    for (const layout of LAYOUTS) {
+      for (const pageRatio of ["3:4", "auto"] as const) {
+        const html = renderToStaticMarkup(
+          <ReportRenderer data={multiData} theme={THEMES[0]} layoutId={layout.id} options={{ pageRatio }} />
+        );
+        expect(typeof html, `${layout.id}@${pageRatio}`).toBe("string");
+        expect(html.match(/data-report-page/g)?.length ?? 0, `${layout.id}@${pageRatio} harus punya ≥1 halaman`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("SAMPLE_REPORT_DATA valid sebagai bahan thumbnail preview (C-2)", () => {
+    expect(SAMPLE_REPORT_DATA.entries.length).toBeGreaterThanOrEqual(3);
+    expect(SAMPLE_REPORT_DATA.entries.length).toBeLessThanOrEqual(5);
+    for (const entry of SAMPLE_REPORT_DATA.entries) {
+      // Thumbnail harus ringan: tanpa foto (Blob/dataURL).
+      expect(entry.photoUrl, `${entry.date} tidak boleh bawa foto`).toBeUndefined();
+      expect(entry.narrative.length, `${entry.date} harus punya narasi`).toBeGreaterThan(0);
+    }
+    expect(SAMPLE_REPORT_DATA.engagementSeries?.length).toBe(SAMPLE_REPORT_DATA.entries.length);
+    expect(SAMPLE_REPORT_DATA.subjectDist?.length).toBeGreaterThan(0);
+    expect(SAMPLE_REPORT_DATA.gradeComparison?.length).toBeGreaterThan(0);
+  });
+
+  it("semua layout merender SAMPLE_REPORT_DATA tanpa crash / NaN (bahan thumbnail galeri)", () => {
+    for (const layout of LAYOUTS) {
+      const html = renderToStaticMarkup(
+        <ReportRenderer data={SAMPLE_REPORT_DATA} theme={THEMES[0]} layoutId={layout.id} options={{ pageRatio: "3:4" }} />
+      );
+      expect(html.match(/data-report-page/g)?.length ?? 0, `${layout.id} harus punya ≥1 halaman`).toBeGreaterThan(0);
+      expect(html, `${layout.id} tidak boleh merender NaN`).not.toContain("NaN");
+    }
   });
 });
 

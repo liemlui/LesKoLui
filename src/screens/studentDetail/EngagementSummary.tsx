@@ -2,7 +2,7 @@ import type { Session, Student } from "../../db/types";
 import { scoreLabel } from "../../lib/engagement";
 import { clampPage, paginateItems } from "../../lib/pagination";
 import PaginationControls from "../../components/PaginationControls";
-import RatingIndicator from "../../components/charts/RatingIndicator";
+import { LineChart, RatingIndicator } from "../../components/charts";
 
 interface EngagementSummaryProps {
   engSessions: Session[];
@@ -77,6 +77,24 @@ export default function EngagementSummary({
             {engTrend === "stable" && <span className="text-gray-500 ml-1">→ stabil</span>}
             {" "}— lihat grafik di atas
           </p>
+        </div>
+      )}
+
+      {/* Trend chart: skor 15 sesi terakhir (konteks visual pergerakan fokus) */}
+      {recentEng.length >= 3 && (
+        <div className="px-4 pb-3 border-t border-gray-100 pt-3">
+          <LineChart
+            series={[{
+              label: "Engagement",
+              data: recentEng.map((s, i) => ({ x: String(i + 1), y: s.engagement?.score ?? 0 })),
+              areaFill: true,
+              color: "#2563eb",
+            }]}
+            height={120}
+            dateXAxis={false}
+            formatY={(v) => `${Math.round(v)}`}
+          />
+          <p className="mt-1 text-center text-[10px] text-gray-400">Skor fokus per sesi — 15 sesi terakhir</p>
         </div>
       )}
 

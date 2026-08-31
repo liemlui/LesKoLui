@@ -1,4 +1,5 @@
 import { loadHtmlToImage, loadJsPdf } from "./exportDeps";
+import { COVER_PAGE_ID } from "../template/rebalance";
 
 function dataUrlToBlob(dataUrl: string): Blob {
   const [header, b64] = dataUrl.split(",");
@@ -11,6 +12,27 @@ function dataUrlToBlob(dataUrl: string): Blob {
 
 async function pageNodes(root: ParentNode = document): Promise<HTMLElement[]> {
   return Array.from(root.querySelectorAll<HTMLElement>("[data-report-page]"));
+}
+
+export interface OverflowIssue {
+  pageId: string;
+  overflowPx: number;
+}
+
+/**
+ * Deteksi halaman laporan yang isinya melebihi tinggi kotak rasio tetap (3:4).
+ * Halaman yang sengaja dibiarkan tumbuh (`.report-page-grow`) dan cover tidak
+ * dianggap error. Toleransi >4px menyerap selisih rounding/antialiasing pada export.
+ */
+export function detectOverflow(root: ParentNode = document): OverflowIssue[] {
+  const issues: OverflowIssue[] = [];
+  const nodes = root.querySelectorAll<HTMLElement>("[data-report-page]");
+  nodes.forEach((el) => {
+    if (el.classList.contains("report-page-grow") || el.id === COVER_PAGE_ID) return;
+    const overflowPx = el.scrollHeight - el.clientHeight;
+    if (overflowPx > 4) issues.push({ pageId: el.id || "(halaman tanpa id)", overflowPx });
+  });
+  return issues;
 }
 
 async function waitForImages(node: ParentNode): Promise<void> {
@@ -49,6 +71,17 @@ async function rasterizePages(
   const nodes = await pageNodes(root);
   if (nodes.length === 0) throw new Error("Buat laporan terlebih dahulu, lalu scroll ke bagian Pratinjau.");
   await Promise.all(nodes.map(waitForImages));
+
+  // Jaring pengaman pre-flight: halaman yang benar-benar meluap (bukan
+  // `.report-page-grow`, bukan cover) ketahuan sebelum raster agar hasil export
+  // tidak terpotong diam-diam. Halaman auto untuk PDF tidak memicu ini karena
+  // tanpa kotak tetap tinggi klien selalu menyamai tinggi isi.
+  const overflow = detectOverflow(root);
+  if (overflow.length > 0) {
+    const detail = overflow.map((o) => `${o.pageId} (+${o.overflowPx}px)`).join(", ");
+    throw new Error(`Konten melebihi halaman export (${detail}). Kurangi sesi per halaman, pilih layout lain, atau pakai rasio Auto.`);
+  }
+
   const out: { dataUrl: string; w: number; h: number }[] = [];
   const { toJpeg, toPng, getFontEmbedCSS } = await loadHtmlToImage();
 
@@ -57,8 +90,14 @@ async function rasterizePages(
   // tidak terbawa tanpa embed dan export jatuh ke font default sistem.
   // Font self-hosted (@fontsource) → fetch same-origin, aman dari CORS.
   // Dihitung SEKALI lalu dipakai semua halaman agar tidak lambat.
+  // Timeout 5 dtk: jika embed gagal/terlalu lama, export tetap jalan tanpa embed.
   let fontEmbedCSS: string | undefined;
-  try { fontEmbedCSS = await getFontEmbedCSS(nodes[0]); } catch { /* fallback: tanpa embed */ }
+  try {
+    const embedTimeout = new Promise<string>((_, reject) =>
+      setTimeout(() => reject(new Error("Font embed timeout")), 5000),
+    );
+    fontEmbedCSS = await Promise.race([getFontEmbedCSS(nodes[0]), embedTimeout]);
+  } catch { /* fallback: tanpa embed — export tetap sukses */ }
   const fontOpts = fontEmbedCSS ? { fontEmbedCSS } : { skipFonts: true };
 
   for (const node of nodes) {

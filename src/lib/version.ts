@@ -11,6 +11,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
 {
+    version: "v1.67.0",
+    date: "2026-09-01",
+    title: "Pratinjau Desain Laporan + Analitik Dashboard + Ekspor Lebih Tahan Banting",
+    items: [
+      "Tombol pratinjau (👁) di tiap chip layout: lihat contoh laporan ter-scale dengan data contoh tanpa mengubah laporan asli — coba semua 27 layout tanpa risiko",
+      "Pemilih layout diganti grid chips dengan filter kategori (Semua/Classic/Visual/Analytic/Modern/Formal/Playful) — lebih cepat dipindai daripada dropdown panjang",
+      "Ekspor JPG/PNG/PDF lebih andal: kegagalan embed font (timeout 5 dtk) tidak lagi menggagalkan export, dan halaman yang overflow terdeteksi sebelum render dengan pesan yang jelas",
+      "Layout yang tidak mendukung rasio 3:4 otomatis beralih ke tinggi auto dengan peringatan — hasil export tidak lagi terpotong diam-diam",
+      "Dashboard makin visual: sparkline tren 4 minggu di ringkasan operasional, progress kolektibilitas berwarna (merah/kuning/hijau) di Tagihan, dan grafik tren engagement 15 sesi terakhir di detail murid",
+      "Smoke test otomatis ekspor 3 layout × 3 format (Playwright) + unit test render semua layout — mencegah regresi export ke depannya",
+    ],
+  },
+
+{
     version: "v1.66.0",
     date: "2026-08-31",
     title: "Rekap Tahunan Lebih Manusiaawi — Satu Laba, Sesi & Jam Terlihat",

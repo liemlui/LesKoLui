@@ -18,7 +18,14 @@ export function ReportRenderer({ data, theme, layoutId, options }: Props) {
   // agar gambar tidak terlalu tinggi dan terpotong di WhatsApp. "auto"
   // mempertahankan tinggi alami (dipakai PDF).
   const pageRatio = options?.pageRatio ?? "3:4";
-  const ratioClass = pageRatio === "3:4" ? "report-ratio-3-4" : "";
+  // Jaring pengaman kompatibilitas (meta.ts): bila layout menyatakan tidak
+  // mendukung rasio yang diminta, turun ke "auto" agar konten tidak terpotong.
+  const ratioSupported = !layout.supportedRatios || layout.supportedRatios.includes(pageRatio);
+  const effectiveRatio: "3:4" | "auto" = ratioSupported ? pageRatio : "auto";
+  if (!ratioSupported) {
+    console.warn(`[ReportRenderer] Layout "${layout.id}" tidak mendukung rasio ${pageRatio}; fallback ke "auto".`);
+  }
+  const ratioClass = effectiveRatio === "3:4" ? "report-ratio-3-4" : "";
 
   // ── Rebalancing konten untuk rasio tetap (3:4) ─────────────────────
   // Paginasi berbasis jumlah buta: narasi panjang bisa melebihi tinggi kotak
@@ -57,7 +64,7 @@ export function ReportRenderer({ data, theme, layoutId, options }: Props) {
   }, []);
 
   useLayoutEffect(() => {
-    if (pageRatio !== "3:4" || splits == null || totalEntries === 0 || !rootRef.current) return;
+    if (effectiveRatio !== "3:4" || splits == null || totalEntries === 0 || !rootRef.current) return;
     const nodes = Array.from(rootRef.current.querySelectorAll<HTMLElement>("[data-report-page]"));
     if (nodes.length === 0) return;
 
@@ -96,7 +103,7 @@ export function ReportRenderer({ data, theme, layoutId, options }: Props) {
     // Tidak ada pergeseran: sinkronkan set halaman yang dibiarkan tumbuh.
     const same = nextGrow.size === growPages.size && [...nextGrow].every((id) => growPages.has(id));
     if (!same) setGrowPages(nextGrow);
-  }, [pageRatio, splits, growPages, data, theme, layoutId, entriesPerPage, totalEntries, recheckTick]);
+  }, [effectiveRatio, splits, growPages, data, theme, layoutId, entriesPerPage, totalEntries, recheckTick]);
 
   const pages = useMemo(
     () => pagesFromSplits(data, splits, entriesPerPage),

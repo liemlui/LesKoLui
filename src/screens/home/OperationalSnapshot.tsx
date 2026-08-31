@@ -1,4 +1,4 @@
-import { ProgressBar } from "../../components/charts";
+import { LineChart, ProgressBar } from "../../components/charts";
 import MetricCard from "../../components/dashboard/MetricCard";
 
 interface Props {
@@ -9,6 +9,8 @@ interface Props {
   weekPlanned: number;
   missedCount: number;
   attentionCount: number;
+  /** Tren jumlah sesi selesai per minggu (4 minggu terakhir) untuk sparkline "Minggu Ini". */
+  weeklyTrend?: number[];
   /** Fired when the alert strip is tapped — should scroll to AttentionInbox. */
   onAttentionClick?: () => void;
   /** Fired when "Sesi terlewat" card CTA is tapped. */
@@ -20,7 +22,7 @@ interface Props {
 /** Top-of-home command center: alert strip, priority KPI grid, actionable metric cards, progress. */
 export default function OperationalSnapshot({
   activeStudents, todayDone, todayScheduled, weekDone, weekPlanned,
-  missedCount, attentionCount,
+  missedCount, attentionCount, weeklyTrend,
   onAttentionClick, onMissedClick, onActiveStudentsClick,
 }: Props) {
   const todayTotal = todayDone + todayScheduled;
@@ -155,6 +157,23 @@ export default function OperationalSnapshot({
                     style={{ width: `${Math.max(weekPct, 3)}%`, minWidth: weekPct > 0 ? "8px" : 0 }}
                   />
                 </div>
+              </div>
+            )}
+            {/* Sparkline tren 4 minggu terakhir — konteks historis di card Minggu Ini */}
+            {Array.isArray(weeklyTrend) && weeklyTrend.length >= 2 && (
+              <div className="mt-2" aria-label="Tren sesi selesai 4 minggu terakhir">
+                <LineChart
+                  series={[{
+                    label: "Sesi selesai",
+                    data: weeklyTrend.map((y, i) => ({ x: String(i + 1), y })),
+                    areaFill: true,
+                    color: "#2563eb",
+                  }]}
+                  height={36}
+                  showAxes={false}
+                  dateXAxis={false}
+                  formatY={(v) => `${v}`}
+                />
               </div>
             )}
           </div>
