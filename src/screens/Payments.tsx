@@ -216,13 +216,10 @@ export default function PaymentsPage() {
       )}
       {activeTab === "tagihan" && (
         <TagihanTab
-          month={month}
-          setMonth={handleMonthChange}
           payments={payments}
           students={students}
           settings={settings}
           reports={reports}
-          monthSessions={monthSessions}
           setMessage={setMessage}
           navigate={navigate}
           requestedStudentId={requestedStudentId}

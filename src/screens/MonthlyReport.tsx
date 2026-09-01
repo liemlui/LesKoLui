@@ -245,7 +245,6 @@ export default function MonthlyReportPage() {
     () => protectedInvoiceReportIds(confirmedReports ?? [], studentPayments ?? []),
     [confirmedReports, studentPayments],
   );
-  const closings = useLiveQuery(() => listMonthClosings(), []);
 
   // Batas periode per mode
   const monthStart = useMemo(() => (month ? `${month}-01` : ""), [month]);
@@ -426,7 +425,6 @@ export default function MonthlyReportPage() {
   const reportScopeDataReady = sessions !== undefined
     && confirmedReports !== undefined
     && studentPayments !== undefined
-    && closings !== undefined
     && fixedPeriodLookupReady
     && periodReportLookupReady
     && (!editingReportId || (
@@ -503,21 +501,8 @@ export default function MonthlyReportPage() {
         reason: `Tanggal ${dayLabel(overlap.periodStart)} s/d ${dayLabel(overlap.periodEnd)} sudah pernah direkap (laporan ${periodLabel(overlap.periodStart, overlap.periodEnd)}). Pilih periode lain.`,
       };
     }
-    const closed = sessionCountCycle ? undefined : (closings ?? []).find((c) => {
-      // Laporan untuk periode ini sendiri dikecualikan: memperbarui laporan yang
-      // sudah ada bukan "generate lagi" — sesi di dalamnya sudah ter-rekap.
-      if (report?.id && report.periodStart === periodStart && report.periodEnd === periodEnd) return false;
-      const { start, end } = monthRange(c.month);
-      return periodStart <= end && periodEnd >= start;
-    });
-    if (closed) {
-      return {
-        ok: false,
-        reason: `Bulan ${monthLabel(closed.month)} sudah ditutup (tutup buku keuangan) — tanggal dalam periode ini tidak bisa direkap lagi.`,
-      };
-    }
     return { ok: true, reason: "" };
-  }, [studentId, periodStart, periodEnd, invalidReportLink, reportScopeDataReady, blockingConfirmedReports, closings, report, mode, rangeStart, rangeEnd, reportSessions.length, reportSessionIds, reportTargetCount, student]);
+  }, [studentId, periodStart, periodEnd, invalidReportLink, reportScopeDataReady, blockingConfirmedReports, report, mode, rangeStart, rangeEnd, reportSessions.length, reportSessionIds, reportTargetCount, student]);
 
   const totalHours = useMemo(() => reportSessions.reduce((s, x) => s + x.durationHours, 0), [reportSessions]);
   const totalCost  = useMemo(() => reportSessions.reduce((s, x) => s + x.cost, 0), [reportSessions]);

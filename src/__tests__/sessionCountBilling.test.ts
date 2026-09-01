@@ -83,7 +83,6 @@ beforeEach(async () => {
   await db.sessions.clear();
   await db.reports.clear();
   await db.payments.clear();
-  await // db.monthClosings.clear();
   await db.auditLog.clear();
 });
 
@@ -221,9 +220,8 @@ describe("session-count billing", () => {
     expect(await db.payments.count()).toBe(0);
   });
 
-  it("claims the oldest exact batch across closed months and includes only chargeable no-shows", async () => {
+  it("claims the oldest exact batch across months and includes only chargeable no-shows", async () => {
     const {
-      closeMonth,
       createSessionCountInvoice,
       getPaymentByReport,
       getReportById,
@@ -236,8 +234,6 @@ describe("session-count billing", () => {
       session("ignored-no-show", "cross-month", "2026-01-15", { status: "NO_SHOW", noShowBillable: false }),
       session("billable-no-show", "cross-month", "2026-01-20", { status: "NO_SHOW", noShowBillable: true }),
     ]);
-    await closeMonth("2026-01");
-    await closeMonth("2026-02");
 
     const result = await createSessionCountInvoice("cross-month");
     expect(result).toMatchObject({ month: "2026-02", sessionCount: 4, totalCost: 4 * RATE });
@@ -388,36 +384,6 @@ describe("session-count billing", () => {
     expect(await db.payments.count()).toBe(1);
   });
 
-  it("keeps monthly close and preview limited to monthly students", async () => {
-    const { closeMonth, computeMonthBills } = await import("../db/repos");
-    const legacyMonthly = student("legacy-monthly");
-    delete legacyMonthly.billingPolicy;
-    delete legacyMonthly.billingSessionCount;
-    await db.students.bulkAdd([
-      legacyMonthly,
-      student("package", "session_count", 2),
-      student("manual", "manual", 3),
-    ]);
-    await db.sessions.bulkAdd([
-      session("monthly-session", "legacy-monthly", "2026-06-01"),
-      session("package-session", "package", "2026-06-02"),
-      session("manual-session", "manual", "2026-06-03"),
-    ]);
-
-    await expect(computeMonthBills("2026-06")).resolves.toMatchObject([
-      { studentId: "legacy-monthly", count: 1, cost: RATE },
-    ]);
-    await closeMonth("2026-06");
-
-    expect((await db.reports.toArray()).map((report) => report.studentId)).toEqual(["legacy-monthly"]);
-    expect((await db.payments.toArray()).map((payment) => payment.studentId)).toEqual(["legacy-monthly"]);
-    await expect(db.monthClosings.where("month").equals("2026-06").first()).resolves.toMatchObject({
-      totalPotensi: RATE,
-      totalHours: 1,
-      studentCount: 1,
-    });
-  });
-
   it("keeps an inactive package student visible while unbilled sessions remain", async () => {
     const { listSessionCountBillingProgress } = await import("../db/repos");
     const inactive = student("inactive-package", "session_count", 2);
@@ -433,7 +399,7 @@ describe("session-count billing", () => {
   });
 
   it("repairs a missing invoice for an existing confirmed package without creating a monthly twin", async () => {
-    const { closeMonth, getPaymentByReport } = await import("../db/repos");
+    const { syncReportPayment, getPaymentByReport } = await import("../db/repos");
     await db.students.add(student("repair", "session_count", 2));
     await db.sessions.bulkAdd([
       session("repair-1", "repair", "2026-06-01"),
@@ -447,7 +413,7 @@ describe("session-count billing", () => {
       totalCost: 2 * RATE,
     }));
 
-    await closeMonth("2026-06");
+    await syncReportPayment((await db.reports.get("repair-report"))!);
 
     await expect(getPaymentByReport("repair-report")).resolves.toMatchObject({
       totalCost: 2 * RATE,
@@ -457,26 +423,6 @@ describe("session-count billing", () => {
     expect(await db.payments.count()).toBe(1);
   });
 
-  it("does not repair unrelated confirmed reports for manual students during monthly close", async () => {
-    const { closeMonth } = await import("../db/repos");
-    await db.students.add(student("manual-repair", "manual", 2));
-    await db.sessions.add(session("manual-repair-1", "manual-repair", "2026-06-01"));
-    await db.reports.add(packageReport("manual-report", "manual-repair", ["manual-repair-1"], {
-      billingMode: "range",
-      billingSessionCount: undefined,
-      month: "2026-06",
-      periodStart: "2026-06-01",
-      periodEnd: "2026-06-01",
-      totalHours: 1,
-      totalCost: RATE,
-    }));
-
-    await closeMonth("2026-06");
-
-    expect(await db.payments.count()).toBe(0);
-    expect(await db.reports.count()).toBe(1);
-  });
-
   it("uses session ids for package identity/overlap and ignores package reports in period lookup", async () => {
     const { createReportForPeriod, findReportByPeriod, upsertReport } = await import("../db/repos");
     await db.students.add(student("identity", "session_count", 1));
@@ -484,14 +430,6 @@ describe("session-count billing", () => {
       session("identity-a", "identity", "2026-01-10"),
       session("identity-b", "identity", "2026-01-10"),
     ]);
-    await db.monthClosings.add({
-      id: "closed-jan",
-      month: "2026-01",
-      closedAt: "2026-02-01T00:00:00.000Z",
-      totalPotensi: 0,
-      totalHours: 0,
-      studentCount: 0,
-    });
     const first = packageReport("identity-report-a", "identity", ["identity-a"]);
     await upsertReport(first);
     await expect(upsertReport(packageReport("identity-report-b", "identity", ["identity-b"]))).resolves.toBe("identity-report-b");

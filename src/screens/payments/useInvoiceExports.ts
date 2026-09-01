@@ -65,7 +65,7 @@ export function useInvoiceExports({
     ];
     const csv = rows.map((r) => r.map(escapeCsvCell).join(",")).join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
-    downloadBlob(blob, `tagihan-${month}-${invoiceStatusFilter}-${invoiceOriginFilter}.csv`);
+    downloadBlob(blob, `tagihan-semua-periode-${invoiceStatusFilter}-${invoiceOriginFilter}.csv`);
   };
 
   const handleExportPdf = async () => {
@@ -88,7 +88,7 @@ export function useInvoiceExports({
       }
       if (!pdf) return;
       const blob = pdf.output("blob");
-      downloadBlob(blob, `tagihan-${month}-${invoiceStatusFilter}-${invoiceOriginFilter}.pdf`);
+      downloadBlob(blob, `tagihan-semua-periode-${invoiceStatusFilter}-${invoiceOriginFilter}.pdf`);
     } catch (e) { setMessage("Gagal ekspor PDF: " + (e as Error).message); }
     finally { setPdfExporting(false); }
   };
