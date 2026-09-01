@@ -372,11 +372,14 @@ export default function RingkasanTab({
             <p className="mt-1 text-[11px] text-green-700">Status pembayaran invoice</p>
           </div>
           <div className="rounded-xl border border-amber-100 bg-amber-50/60 p-3">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Masih ditagih</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Piutang (belum dibayar)</p>
             <p className="mt-1 text-lg font-bold text-amber-700">{formatRupiah(cash.piutang)}</p>
             <p className="mt-1 text-[11px] text-amber-700">Piutang yang belum dibayar</p>
           </div>
         </div>
+        <p className="mt-2 text-[10px] leading-relaxed text-slate-400 border-t border-slate-100 pt-2">
+          Ringkasan hanya untuk bulan terpilih. Daftar lengkap invoice lintas bulan tersedia di tab <strong>Penagihan</strong>. Semua aksi penagihan (terbitkan invoice, kirim WA, tandai lunas) hanya dilakukan di tab tersebut.
+        </p>
       </section>
 
       <section aria-labelledby="cash-flow-title" className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 shadow-sm">

@@ -1,17 +1,13 @@
-/**
- * Papan komando pipeline murid untuk Ringkasan Keuangan.
+﻿/**
+ * Papan pantau pipeline murid untuk Ringkasan Keuangan — READ-ONLY.
  *
- * Menampilkan status per murid: Sesi → Laporan → Tagihan → Lunas → Dibagikan,
- * lengkap dengan aksi cepat kontekstual tanpa harus pindah ke tab Penagihan.
- * Aksi hanya memanggil repo existing (syncReportPayment / markPaymentTransferredById)
- * atau mengarahkan ke halaman Laporan / Penagihan — tidak menduplikasi logika billing.
+ * Menampilkan status per murid: Sesi → Laporan → Tagihan → Lunas → Dibagikan.
+ * Tombol aksi penagihan sudah dihapus agar peran Ringkasan (pantau) dan
+ * Penagihan (eksekusi) tidak tumpang tindih. Baris yang perlu tindakan
+ * menampilkan link "Tindak lanjuti …" yang mengarahkan ke tab Penagihan atau
+ * halaman Laporan.
  */
 import type { Dispatch, SetStateAction } from "react";
-import { Link } from "react-router-dom";
-import {
-  syncReportPayment,
-  markPaymentTransferredById,
-} from "../../db/repos";
 import { billingPolicyOf } from "../../db/types";
 import { formatRupiah, monthLabel } from "../../lib/format";
 import type { PipelineNextAction, StudentPipelineRow } from "../../lib/financePipeline";
@@ -31,16 +27,17 @@ const POLICY_LABEL: Record<string, string> = {
   manual: "Manual",
 };
 
-const ACTION_META: Record<Exclude<PipelineNextAction, null>, {
+/** Label + rute untuk setiap aksi pipeline, tanpa eksekusi — hanya navigasi. */
+const ACTION_LINK: Record<Exclude<PipelineNextAction, null>, {
   label: string;
-  className: string;
+  route: string;
 }> = {
-  "create-report": { label: "Buat Laporan", className: "bg-blue-600 text-white hover:bg-blue-700" },
-  "confirm-report": { label: "Sahkan Laporan", className: "bg-indigo-600 text-white hover:bg-indigo-700" },
-  "create-invoice": { label: "Buat Tagihan", className: "bg-blue-600 text-white hover:bg-blue-700" },
-  "send-wa": { label: "Kirim WA Tagihan", className: "bg-green-600 text-white hover:bg-green-700" },
-  "share-report": { label: "Bagikan Laporan", className: "bg-violet-600 text-white hover:bg-violet-700" },
-  "mark-paid": { label: "Tandai Lunas", className: "bg-emerald-600 text-white hover:bg-emerald-700" },
+  "create-report":   { label: "Lengkapi Laporan", route: "/report?studentId=" },
+  "confirm-report":  { label: "Sahkan Laporan",   route: "/report?studentId=" },
+  "share-report":    { label: "Bagikan Laporan",  route: "/report?studentId=" },
+  "create-invoice":  { label: "Tindak lanjuti di Penagihan", route: "/payments?tab=tagihan&studentId=" },
+  "send-wa":         { label: "Tindak lanjuti di Penagihan", route: "/payments?tab=tagihan&studentId=" },
+  "mark-paid":       { label: "Tindak lanjuti di Penagihan", route: "/payments?tab=tagihan&studentId=" },
 };
 
 function Chip({ tone, children }: { tone: "green" | "amber" | "violet" | "gray"; children: React.ReactNode }) {
@@ -66,105 +63,32 @@ export default function FinancePipelineBoard({
 }: Props) {
   const needsAction = rows.filter((row) => row.nextAction !== null).length;
 
-  const handleCreateInvoice = async (row: StudentPipelineRow) => {
-    const report = row.report;
-    if (!report) return;
-    try {
-      await syncReportPayment({
-        id: report.id,
-        studentId: report.studentId,
-        month: report.month,
-        periodStart: report.periodStart,
-        periodEnd: report.periodEnd,
-        totalCost: report.totalCost,
-        billingMode: report.billingMode,
-      });
-      setMessage(`✓ Tagihan ${row.student.name} diterbitkan`);
-    } catch (error) {
-      setMessage("Gagal: " + (error instanceof Error ? error.message : String(error)));
-    }
-  };
-
-  const handleMarkPaid = async (row: StudentPipelineRow) => {
-    const invoice = row.invoice;
-    if (!invoice) return;
-    try {
-      await markPaymentTransferredById(invoice.id);
-      setMessage(`✓ ${row.student.name}: ${formatRupiah(invoice.totalCost)} ditandai lunas`);
-    } catch (error) {
-      setMessage("Gagal: " + (error instanceof Error ? error.message : String(error)));
-    }
-  };
-
-  const reportHref = (row: StudentPipelineRow): string => {
-    const base = `/report?studentId=${encodeURIComponent(row.student.id)}`;
-    if ((row.nextAction === "confirm-report" || row.nextAction === "share-report") && row.report) {
-      return `${base}&reportId=${encodeURIComponent(row.report.id)}`;
-    }
-    return base;
-  };
-
-  const runPrimaryAction = (row: StudentPipelineRow) => {
-    switch (row.nextAction) {
-      case "create-invoice":
-        void handleCreateInvoice(row);
-        return;
-      case "mark-paid":
-        void handleMarkPaid(row);
-        return;
-      case "send-wa":
-        navigate(`/payments?tab=tagihan&month=${encodeURIComponent(month)}`);
-        return;
-      case "create-report":
-      case "confirm-report":
-      case "share-report":
-        navigate(reportHref(row));
-        return;
-      default:
-        return;
-    }
-  };
-
   return (
     <section aria-labelledby="pipeline-title" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">Papan komando</p>
-          <h2 id="pipeline-title" className="text-base font-bold text-slate-800">
-            Alur penagihan {monthLabel(month)}
-          </h2>
-          <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
-            {summary ?? `Sesi → Laporan → Tagihan → Lunas → Dibagikan.`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {needsAction > 0 && (
-            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-700">
-              {needsAction} butuh tindakan
-            </span>
-          )}
-          <Link
-            to={`/payments?tab=tagihan&month=${encodeURIComponent(month)}`}
-            className="shrink-0 rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
-          >
-            Buka Penagihan →
-          </Link>
-        </div>
+      <div className="mb-3">
+        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">Papan pantau per murid</p>
+        <h2 id="pipeline-title" className="text-base font-bold text-slate-800">
+          Sesi → Laporan → Tagihan → Lunas → Dibagikan
+        </h2>
+        <p className="mt-1 text-xs leading-relaxed text-slate-500">
+          {summary ?? (needsAction === 0
+            ? "Semua alur penagihan sinkron — tidak ada yang perlu ditindaklanjuti."
+            : `${needsAction} murid perlu tindakan — buka tab Penagihan untuk mengeksekusi.`)}
+        </p>
       </div>
-
-      <ul className="mt-3 space-y-2">
+      <ul className="space-y-2">
         {rows.map((row) => {
           const reportLabel =
-            row.reportDisplayStatus === "draft" ? "Draft"
-            : row.reportDisplayStatus === "shared" ? "Dibagikan"
-            : row.reportDisplayStatus === "final" ? "Final"
-            : "Belum ada";
-          const reportTone: "green" | "amber" | "violet" | "gray" =
+            row.reportDisplayStatus === "draft" ? "Draft laporan"
+            : row.reportDisplayStatus === "shared" ? "Laporan dibagikan"
+            : row.reportDisplayStatus === "final" ? "Laporan final"
+            : "Belum ada laporan";
+          const reportTone =
             row.reportDisplayStatus === "draft" ? "amber"
             : row.reportDisplayStatus === "shared" ? "violet"
             : row.reportDisplayStatus === "final" ? "green"
             : "gray";
-          const invoiceTone: "green" | "amber" | "violet" | "gray" =
+          const invoiceTone =
             row.invoiceStatus === "paid" ? "green"
             : row.invoiceStatus === "unpaid" ? "amber"
             : "gray";
@@ -172,7 +96,7 @@ export default function FinancePipelineBoard({
             row.invoiceStatus === "paid" ? "Lunas"
             : row.invoiceStatus === "unpaid" ? "Belum bayar"
             : "Belum terbit";
-          const sharedTone: "green" | "amber" | "violet" | "gray" =
+          const sharedTone =
             row.reportDisplayStatus === "shared" ? "violet" : "gray";
           return (
             <li key={row.student.id}>
@@ -183,40 +107,33 @@ export default function FinancePipelineBoard({
                     <p className="text-[11px] text-gray-500">
                       {POLICY_LABEL[billingPolicyOf(row.student)] ?? "—"}
                       {row.potential > 0 && ` · ${formatRupiah(row.potential)} potensi`}
-                      {row.unpaidAmount > 0 && ` · ${formatRupiah(row.unpaidAmount)} belum dibayar`}
+                      {row.unpaidAmount > 0 && ` · ${formatRupiah(row.unpaidAmount)} piutang`}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     {row.nextAction ? (
                       <button
                         type="button"
-                        onClick={() => runPrimaryAction(row)}
-                        className={`rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${ACTION_META[row.nextAction].className}`}
+                        onClick={() => navigate(ACTION_LINK[row.nextAction].route + row.student.id)}
+                        className="rounded-lg border border-blue-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-blue-600 transition-colors hover:bg-blue-50"
                       >
-                        {ACTION_META[row.nextAction].label}
+                        {ACTION_LINK[row.nextAction].label} ↗
                       </button>
                     ) : (
-                      <span className="rounded-lg bg-green-100 px-2.5 py-1.5 text-[11px] font-semibold text-green-700">✓ Sinkron</span>
-                    )}
-                    {row.nextAction === "send-wa" && row.invoice && (
-                      <button
-                        type="button"
-                        onClick={() => handleMarkPaid(row)}
-                        className="rounded-lg border border-emerald-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 transition-colors hover:bg-emerald-50"
-                      >
-                        Tandai Lunas
-                      </button>
+                      <span className="rounded-lg bg-green-100 px-2.5 py-1.5 text-[11px] font-semibold text-green-700">
+                        ✓ Sinkron
+                      </span>
                     )}
                   </div>
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
                   <Chip tone={row.sessionCount > 0 ? "green" : "gray"}>
-                    {row.sessionCount > 0 ? `✓ ${row.sessionCount} sesi` : "0 sesi"}
+                    {row.sessionCount > 0 ? `${row.sessionCount} sesi` : "0 sesi"}
                   </Chip>
                   <Chip tone={reportTone}>{reportLabel}</Chip>
                   <Chip tone={invoiceTone}>{invoiceLabel}</Chip>
                   <Chip tone={sharedTone}>
-                    {row.reportDisplayStatus === "shared" ? "✓ dibagikan" : "belum dibagikan"}
+                    {row.reportDisplayStatus === "shared" ? "Sudah dibagikan" : "Belum dibagikan"}
                   </Chip>
                 </div>
               </div>

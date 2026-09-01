@@ -10,7 +10,20 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
-{
+  {
+    version: "v1.70.0",
+    date: "2026-09-01",
+    title: "Keuangan Bebas Redundansi — Ringkasan Pantau, Penagihan Eksekusi",
+    items: [
+      "Ringkasan jadi read-only (pantau) — semua tombol aksi penagihan dihapus dari papan pipeline; kini hanya tampil status + chip + link navigasi ke Penagihan atau Laporan",
+      "Tab Penagihan jadi satu-satunya pusat eksekusi — terbitkan invoice, kirim WA, tandai lunas, edit nominal, dan reminder AI hanya di sini",
+      "Subtitle deskriptif muncul di bawah setiap tab: Ringkasan → 'hanya dipantau', Penagihan → 'Pusat aksi', Pengeluaran → 'biaya periode', Rekap → 'arsip tahunan'",
+      "Label piutang diseragamkan di seluruh halaman: 'Masih ditagih' → 'Piutang (belum dibayar)' agar tidak rancu dengan tab Penagihan",
+      "Catatan scope eksplisit di kartu Status Pendapatan: 'Ringkasan hanya untuk bulan terpilih — invoice lintas bulan di tab Penagihan'",
+    ],
+  },
+
+  {
     version: "v1.69.0",
     date: "2026-09-01",
     title: "Ringkasan Keuangan Lebih Bersih — Piutang Lintas Bulan + Lepas dari Tutup Bulan",

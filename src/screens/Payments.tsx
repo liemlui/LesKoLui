@@ -23,6 +23,13 @@ type Tab = "ringkasan" | "tagihan" | "pengeluaran" | "audit";
 const TAB_KEYS: Tab[] = ["ringkasan", "tagihan", "pengeluaran", "audit"];
 const MONTH_QUERY_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
+const TAB_DESCRIPTIONS: Record<Tab, string> = {
+  ringkasan: "Angka & tren bulan terpilih — hanya untuk dipantau; semua aksi ada di tab Penagihan.",
+  tagihan: "Pusat aksi penagihan lintas bulan — terbitkan invoice, kirim WA, tandai lunas.",
+  pengeluaran: "Catat dan tinjau biaya keluar pada periode terpilih.",
+  audit: "Rekap 12 bulan untuk arsip & laporan tahunan.",
+};
+
 /**
  * PaymentsPage — halaman keuangan dengan 4 tab:
  * Ringkasan, pengeluaran, tagihan lintas bulan, dan rekap tahunan.
@@ -188,7 +195,11 @@ export default function PaymentsPage() {
         active={activeTab}
         onChange={handleTabChange}
         fullWidth
-      />
+      >
+        <p className="mt-1 text-[10px] leading-relaxed text-slate-400 sm:text-[11px]">
+          {TAB_DESCRIPTIONS[activeTab]}
+        </p>
+      </Tabs>
 
       {message && (
         <div
