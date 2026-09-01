@@ -28,7 +28,6 @@ import { calculateFinancialHistoryAverage } from "../../lib/financialInsights";
 import { buildInsightContext } from "../../lib/financialInsights";
 import { formatIdrNumber, sumExpensesByCategory, EXPENSE_LABELS } from "../../lib/finance";
 import { buildStudentPipeline } from "../../lib/financePipeline";
-import { db } from "../../db/db";
 import FinancePipelineBoard from "./FinancePipelineBoard";
 
 function getLast12Months(endMonth: string): string[] {
@@ -77,14 +76,6 @@ export default function RingkasanTab({
   }, [month]);
   const nextSessions = useLiveQuery(() => listAllUpcomingScheduled(nextMonthStr + "-01"), [nextMonthStr]);
 
-  // Sesi laporan (basis rekap) — diperlukan untuk banner rekonsiliasi ringkasan.
-  const reportSessions = useLiveQuery(async () => {
-    const ids = [...new Set((reports ?? []).flatMap((r) => r.sessionIds))];
-    if (ids.length === 0) return new Map<string, Session>();
-    const rows = await db.sessions.bulkGet(ids);
-    return new Map(rows.filter((s): s is Session => Boolean(s)).map((s) => [s.id, s]));
-  }, [reports]);
-
   // ── Chart range toggle ──
   const [trendRange, setTrendRange] = useState<3 | 6 | 12>(6);
   const trendData = useMemo(() => (chartData ?? []).slice(-trendRange), [chartData, trendRange]);
@@ -123,12 +114,11 @@ export default function RingkasanTab({
     [payments]
   );
   const readyReportCount = useMemo(() => reports.filter((report) => (
-    report.month === month
-    && reportStatus(report) === "confirmed"
+    reportStatus(report) === "confirmed"
     && report.totalCost > 0
     && report.billingMode !== "session_count"
     && !invoiceReportIds.has(report.id)
-  )).length, [reports, month, invoiceReportIds]);
+  )).length, [reports, invoiceReportIds]);
   const packageActionCount = (sessionCountBillingProgress ?? []).filter((row) => (
     row.readyBatchCount > 0
     || Boolean(row.pendingBillingPolicy && row.unbilledCount > 0 && row.unbilledCount < row.targetCount)
@@ -188,27 +178,12 @@ export default function RingkasanTab({
     [payments, currentWeek],
   );
 
-  // ── Rekonsiliasi sesi vs tagihan ──
-  const billRows = useMemo(
-    () => monthPayments.map((p) => {
-      const linkedReport = p.reportId ? reports.find((report) => report.id === p.reportId) : undefined;
-      return {
-        payment: p,
-        report: linkedReport,
-        sessions: linkedReport
-          ? linkedReport.sessionIds
-              .map((id) => reportSessions?.get(id))
-              .filter((s): s is Session => Boolean(s))
-          : monthSessions.filter((s) => s.studentId === p.studentId),
-      };
-    }),
-    [monthPayments, reports, reportSessions, monthSessions],
+  // ── Piutang lintas bulan (total semua invoice yang belum lunas) ──
+  const allUnpaidTotal = useMemo(
+    () => payments.filter((p) => p.status === "UNPAID").reduce((sum, p) => sum + p.totalCost, 0),
+    [payments],
   );
-  const reconciliationPotential = billRows.reduce((sum, row) => {
-    if (row.payment.source === "manual") return sum + row.payment.totalCost;
-    return sum + row.sessions.reduce((sessionSum, session) => sessionSum + session.cost, 0);
-  }, 0);
-  const billingGap = totalBilled - reconciliationPotential;
+  const allUnpaidCount = useMemo(() => payments.filter((p) => p.status === "UNPAID").length, [payments]);
 
   // ── Expense categories ──
   const expenseSegments: DonutSegment[] = useMemo(() => {
@@ -451,15 +426,15 @@ export default function RingkasanTab({
       </div>
       )}
 
-      {reportSessions !== undefined && monthPayments.length > 0 && (
-        <div className={`rounded-xl border px-3 py-2.5 text-xs ${billingGap === 0 ? "border-green-200 bg-green-50 text-green-800" : "border-amber-200 bg-amber-50 text-amber-800"}`}>
+      {allUnpaidCount > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs">
           <div className="flex items-center justify-between gap-3 font-semibold">
-            <span>Rekonsiliasi sesi dan tagihan</span>
-            <span>{billingGap === 0 ? "Sinkron" : `Selisih ${formatRupiah(Math.abs(billingGap))}`}</span>
+            <span>Piutang lintas bulan</span>
+            <span className="text-amber-700">{allUnpaidCount} invoice · {formatRupiah(allUnpaidTotal)}</span>
           </div>
-          {billingGap !== 0 && (
-            <p className="mt-1 leading-relaxed">Total tagihan berbeda dari nilai sesi. Periksa penyesuaian nominal, tagihan manual, atau sesi yang berubah setelah invoice diterbitkan.</p>
-          )}
+          <p className="mt-1 leading-relaxed text-amber-800">
+            Total piutang dari semua bulan — bukan hanya {selectedMonthLabel}. Termasuk invoice yang tanggalnya sudah lewat.
+          </p>
         </div>
       )}
 
@@ -490,13 +465,13 @@ export default function RingkasanTab({
         <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2.5 text-xs leading-relaxed text-slate-600">
           <p>
             {monthPayments.length === 0
-              ? `Belum ada invoice pada ${selectedMonthLabel}. Periksa sesi yang siap ditagih sebelum menutup buku.`
+              ? `Belum ada invoice pada ${selectedMonthLabel}. Buat laporan & terbitkan invoice dari tab Tagihan.`
               : collectionRate < 100
                 ? `${monthPayments.length - paidCount} invoice masih belum dibayar. Tindak lanjuti agar piutang berubah menjadi kas diterima.`
                 : `Semua invoice ${selectedMonthLabel} sudah dibayar. Pantau laba kas dan pengeluaran agar margin tetap sehat.`}
           </p>
           <Link
-            to={`/payments?tab=tagihan&month=${encodeURIComponent(month)}`}
+            to={`/payments?tab=tagihan`}
             className="mt-2 inline-flex rounded-lg bg-blue-600 px-3 py-1.5 font-semibold text-white transition-colors hover:bg-blue-700"
           >
             {monthPayments.length === 0 ? "Buka antrean penagihan" : collectionRate < 100 ? "Lihat invoice belum dibayar" : "Buka penagihan"}

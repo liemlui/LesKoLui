@@ -11,6 +11,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
 {
+    version: "v1.69.0",
+    date: "2026-09-01",
+    title: "Ringkasan Keuangan Lebih Bersih — Piutang Lintas Bulan + Lepas dari Tutup Bulan",
+    items: [
+      "Piutang lintas bulan di Ringkasan: banner menampilkan total semua invoice belum lunas dari seluruh bulan, bukan hanya bulan terpilih",
+      "Laporan final siap ditagih kini dihitung lintas bulan di Ringkasan (sama seperti badge tab Penagihan)",
+      "Banner Rekonsiliasi sesi vs tagihan dihapus — diganti banner piutang lintas bulan yang lebih informatif",
+      "Teks bantuan di Ringkasan diperbarui: tidak lagi menyebut 'menutup buku' — diganti 'buat laporan & terbitkan invoice'",
+      "Link dari Ringkasan ke Penagihan tidak lagi menyertakan parameter bulan (tab Tagihan sudah lintas bulan)",
+      "Hapus kode tak terpakai: reportSessions, billRows, reconciliationPotential, billingGap, impor db — mengurangi ~40 baris kode mati",
+    ],
+  },
+
+{
     version: "v1.68.0",
     date: "2026-09-01",
     title: "Tagihan Simpel — Satu Daftar Lintas Bulan + Tutup Bulan Dihapus",
