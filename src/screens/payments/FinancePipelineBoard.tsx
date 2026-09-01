@@ -7,7 +7,7 @@
  * menampilkan link "Tindak lanjuti …" yang mengarahkan ke tab Penagihan atau
  * halaman Laporan.
  */
-import type { Dispatch, ReactNode, SetStateAction } from "react";
+import type { ReactNode } from "react";
 import { billingPolicyOf } from "../../db/types";
 import { formatRupiah, monthLabel } from "../../lib/format";
 import type { PipelineNextAction, StudentPipelineRow } from "../../lib/financePipeline";
@@ -15,7 +15,6 @@ import type { PipelineNextAction, StudentPipelineRow } from "../../lib/financePi
 interface Props {
   rows: StudentPipelineRow[];
   month: string;
-  setMessage: Dispatch<SetStateAction<string>>;
   navigate: (to: string) => void;
   /** Ringkasan teks keadaan bulan ini (opsional). */
   summary?: string;
@@ -57,7 +56,6 @@ function Chip({ tone, children }: { tone: "green" | "amber" | "violet" | "gray";
 export default function FinancePipelineBoard({
   rows,
   month,
-  setMessage,
   navigate,
   summary,
 }: Props) {

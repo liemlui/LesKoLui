@@ -342,7 +342,6 @@ export default function RingkasanTab({
       <FinancePipelineBoard
         rows={pipelineRows}
         month={month}
-        setMessage={setMessage}
         navigate={navigate}
         summary={pipelineSummary}
       />
