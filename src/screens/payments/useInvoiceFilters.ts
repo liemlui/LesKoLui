@@ -7,7 +7,7 @@
 import { useMemo, useState } from "react";
 import type { MonthlyReport, Payment, Session, Settings, Student } from "../../db/types";
 import { reportStatus } from "../../db/types";
-import { compareSessionsChronologically } from "../../db/repos";
+import { compareSessionsChronologically, reportPeriodOf } from "../../db/repos";
 import { periodLabel, monthLabel } from "../../lib/format";
 import { ageBucket, invoiceAgeDays } from "../../lib/finance";
 import type { AgeBucket } from "../../lib/finance";
@@ -139,7 +139,7 @@ export function useInvoiceFilters({
       && !payments.some((payment) => payment.reportId === report.id)
     ))
     .map((report) => ({ report, student: studentMap.get(report.studentId) }))
-    .sort((a, b) => a.report.periodStart.localeCompare(b.report.periodStart)),
+    .sort((a, b) => reportPeriodOf(a.report).periodStart.localeCompare(reportPeriodOf(b.report).periodStart)),
   [reports, payments, studentMap]);
 
   const showReadySections = invoiceStatusFilter === "semua" || invoiceStatusFilter === "ready";

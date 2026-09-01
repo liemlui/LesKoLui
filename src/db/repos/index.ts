@@ -42,7 +42,7 @@ export type { CancelMode, EditMode } from "./sessionRepo";
 export {
   getReport, getReportById, upsertReport, createReportForPeriod, listReportsByStudent, listAllReports,
   findReportByPeriod, listOverlappingReports, listConfirmedReportsByStudent,
-  confirmReport, discardReport,
+  confirmReport, discardReport, reportPeriodOf,
 } from "./reportRepo";
 export type { ReportWrite } from "./reportRepo";
 
