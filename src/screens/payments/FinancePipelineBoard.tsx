@@ -76,6 +76,7 @@ export default function FinancePipelineBoard({
       </div>
       <ul className="space-y-2">
         {rows.map((row) => {
+          const nextAction = row.nextAction;
           const reportLabel =
             row.reportDisplayStatus === "draft" ? "Draft laporan"
             : row.reportDisplayStatus === "shared" ? "Laporan dibagikan"
@@ -98,7 +99,7 @@ export default function FinancePipelineBoard({
             row.reportDisplayStatus === "shared" ? "violet" : "gray";
           return (
             <li key={row.student.id}>
-              <div className={`rounded-xl border p-3 ${row.nextAction ? "border-amber-200 bg-amber-50/40" : "border-gray-100 bg-white"}`}>
+              <div className={`rounded-xl border p-3 ${nextAction ? "border-amber-200 bg-amber-50/40" : "border-gray-100 bg-white"}`}>
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-gray-800 truncate">{row.student.name}</p>
@@ -109,13 +110,13 @@ export default function FinancePipelineBoard({
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    {row.nextAction ? (
+                    {nextAction ? (
                       <button
                         type="button"
-                        onClick={() => navigate(ACTION_LINK[row.nextAction].route + row.student.id)}
+                        onClick={() => navigate(ACTION_LINK[nextAction].route + row.student.id)}
                         className="rounded-lg border border-blue-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-blue-600 transition-colors hover:bg-blue-50"
                       >
-                        {ACTION_LINK[row.nextAction].label} ↗
+                        {ACTION_LINK[nextAction].label} ↗
                       </button>
                     ) : (
                       <span className="rounded-lg bg-green-100 px-2.5 py-1.5 text-[11px] font-semibold text-green-700">
