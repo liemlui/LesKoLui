@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Papan pantau pipeline murid untuk Ringkasan Keuangan — READ-ONLY.
  *
  * Menampilkan status per murid: Sesi → Laporan → Tagihan → Lunas → Dibagikan.
@@ -7,7 +7,7 @@
  * menampilkan link "Tindak lanjuti …" yang mengarahkan ke tab Penagihan atau
  * halaman Laporan.
  */
-import type { Dispatch, SetStateAction } from "react";
+import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { billingPolicyOf } from "../../db/types";
 import { formatRupiah, monthLabel } from "../../lib/format";
 import type { PipelineNextAction, StudentPipelineRow } from "../../lib/financePipeline";
@@ -40,7 +40,7 @@ const ACTION_LINK: Record<Exclude<PipelineNextAction, null>, {
   "mark-paid":       { label: "Tindak lanjuti di Penagihan", route: "/payments?tab=tagihan&studentId=" },
 };
 
-function Chip({ tone, children }: { tone: "green" | "amber" | "violet" | "gray"; children: React.ReactNode }) {
+function Chip({ tone, children }: { tone: "green" | "amber" | "violet" | "gray"; children: ReactNode }) {
   const tones: Record<typeof tone, string> = {
     green: "bg-green-100 text-green-700",
     amber: "bg-amber-100 text-amber-700",
