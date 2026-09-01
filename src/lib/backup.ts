@@ -11,7 +11,7 @@ import type { Table } from "dexie";
 export const BACKUP_TABLES = [
   "students", "sessions", "reports", "payments", "settings",
   "raporGrades", "followUps", "expenses", "iaeeProjects",
-  "monthClosings", "studyNotes",
+  "studyNotes",
 ] as const;
 
 /** Format payload JSON di dalam file terenkripsi. Versi 1 tetap didukung saat restore. */
@@ -93,7 +93,7 @@ function assertValidExportedAt(value: unknown): string {
 const TABLE_ID_FIELD: Record<BackupTable, string> = {
   students: "id", sessions: "id", reports: "id", payments: "id", settings: "id",
   raporGrades: "id", followUps: "id", expenses: "id", iaeeProjects: "id",
-  monthClosings: "id", studyNotes: "studentId",
+  studyNotes: "studentId",
 };
 
 function assertRows(table: BackupTable, value: unknown): BackupRow[] {
@@ -253,6 +253,9 @@ function parseBackupDump(value: unknown): ParsedBackup {
 
   const rawData = value.data;
   for (const key of Object.keys(rawData)) {
+    // Legacy: file backup lama menyertakan snapshot Tutup Bulan yang sudah
+    // dihapus dari skema — datanya diabaikan, jangan tolak file-nya.
+    if (key === "monthClosings") continue;
     if (!isBackupTable(key)) {
       throw new Error(`Backup berisi tabel tidak dikenal (${key}). Perbarui aplikasi sebelum restore.`);
     }

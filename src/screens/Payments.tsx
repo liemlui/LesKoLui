@@ -25,9 +25,7 @@ const MONTH_QUERY_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 /**
  * PaymentsPage — halaman keuangan dengan 4 tab:
- * Ringkasan, Penagihan, Pengeluaran, Rekap Tahunan.
- *
- * Fitur: tutup bulan otomatis, tagihan manual, tracking pengeluaran,
+ * Ringkasan, pengeluaran, tagihan lintas bulan, dan rekap tahunan.
  * export PDF/CSV, forecasting, WhatsApp billing, dan audit trail.
  *
  * @component
@@ -70,8 +68,7 @@ export default function PaymentsPage() {
   )).length;
   const invoiceReportIds = new Set((payments ?? []).flatMap((payment) => payment.reportId ? [payment.reportId] : []));
   const readyReportInvoiceCount = (reports ?? []).filter((report) => (
-    report.month === month
-    && reportStatus(report) === "confirmed"
+    reportStatus(report) === "confirmed"
     && report.totalCost > 0
     && report.billingMode !== "session_count"
     && !invoiceReportIds.has(report.id)
@@ -176,7 +173,7 @@ export default function PaymentsPage() {
         </div>
       )}
 
-      {activeTab !== "audit" && (
+      {activeTab !== "audit" && activeTab !== "tagihan" && (
         <FinancePeriodPicker month={month} onChange={handleMonthChange} />
       )}
 

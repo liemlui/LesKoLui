@@ -3,6 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import {
   createManualPayment, syncReportPayment,
   markPaymentTransferredById, markPaymentUnpaidById, updatePaymentAmountById,
+  listAllBillableSessions,
 } from "../../db/repos";
 import type { Payment, Student, Settings, Session, MonthlyReport } from "../../db/types";
 import { reportDisplayStatus } from "../../db/types";
@@ -23,19 +24,15 @@ import {
 } from "../../lib/invoicePresentation";
 import { useSessionCountBilling } from "./useSessionCountBilling";
 import type { ConfirmState } from "./useSessionCountBilling";
-import { useMonthClosing } from "./useMonthClosing";
 import { useInvoiceFilters } from "./useInvoiceFilters";
 import { useInvoiceExports } from "./useInvoiceExports";
 import { useAiReminder } from "./useAiReminder";
 
 interface TagihanTabProps {
-  month: string;
-  setMonth: (month: string) => void;
   payments: Payment[];
   students: Student[];
   settings: Settings;
   reports: MonthlyReport[];
-  monthSessions: Session[];
   setMessage: (message: string) => void;
   navigate: (path: string) => void;
   requestedStudentId: string;
@@ -54,7 +51,7 @@ const REPORT_DISPLAY_STATUS_CLASS: Record<ReturnType<typeof reportDisplayStatus>
 };
 
 export default function TagihanTab({
-  month, setMonth, payments, students, settings, reports, monthSessions, setMessage, navigate, requestedStudentId,
+  payments, students, settings, reports, setMessage, navigate, requestedStudentId,
 }: TagihanTabProps) {
   // ── Local UI state (form manual, edits, panel bantu) ──
   const [billEdits, setBillEdits] = useState<Record<string, string>>({});
@@ -77,19 +74,18 @@ export default function TagihanTab({
     return new Map(rows.filter((s): s is Session => Boolean(s)).map((s) => [s.id, s]));
   }, [reports]);
 
+  // ── Semua sesi billable lintas bulan (resolusi invoice legacy) ──
+  const allBillableSessions = useLiveQuery(() => listAllBillableSessions(), []);
+
   // ── Hooks (logika diekstraksi) ──
   // Tagihan paket (per pertemuan) — antrean, terbitkan, batalkan.
   const sessionCount = useSessionCountBilling({
-    requestedStudentId, students, setMonth, setMessage, setConfirmState,
-  });
-  // Tutup buku bulan — preview, checklist, close/reopen.
-  const closing = useMonthClosing({
-    month, payments, students, reports, monthSessions, setMessage, setConfirmState,
+    requestedStudentId, students, setMessage, setConfirmState,
   });
   // Filter + derived rows daftar tagihan (memoized).
   const invoice = useInvoiceFilters({
-    month, payments, students, reports, monthSessions, settings,
-    closings: closing.closings, allReportSessions, itemsPerPdfPage: ITEMS_PER_PDF_PAGE,
+    payments, students, reports, allBillableSessions, settings,
+    allReportSessions, itemsPerPdfPage: ITEMS_PER_PDF_PAGE,
   });
   // Pengingat pembayaran AI (Reminder WA AI).
   const aiReminder = useAiReminder({
@@ -108,26 +104,17 @@ export default function TagihanTab({
     if (requestedStudent.billingPolicy === "manual") {
       setSelectedStudentId(requestedStudentId);
       setShowManual(true);
-    } else if (requestedStudent.billingPolicy !== "session_count") {
-      closing.setExpandedPreview(requestedStudentId);
     }
-  }, [requestedStudentId, sessionCount.sessionCountBillingProgress, students, closing.setExpandedPreview]);
+  }, [requestedStudentId, sessionCount.sessionCountBillingProgress, students]);
 
   // ── Derived (dari hooks) ──
-  const { studentMap, monthPayments, totals, billRows } = invoice;
+  const { studentMap, allPayments, totals, billRows } = invoice;
   const { totalBilled, totalPaid, totalUnpaid, paidCount, unpaidCount, collectionRate } = totals;
   const {
     invoiceStatusFilter, setInvoiceStatusFilter, invoiceOriginFilter, setInvoiceOriginFilter,
     filteredBillRows, readyReportRows, showReadySections, showIssuedList,
-    monthsOverview, waAllRows,
+    waAllRows,
   } = invoice;
-  const {
-    monthClosing, previewBills, closingBusy,
-    expandedPreview, setExpandedPreview,
-    coveredSessionIds, skippedClosingStudents,
-    closingProjection, closingChecklist, previewSessionsByStudent, canClose, closeHint,
-    handleCloseMonth, handleReopenMonth,
-  } = closing;
   const {
     sessionCountBillingProgress, needsActionCount,
     expandedSessionCountStudent, setExpandedSessionCountStudent,
@@ -140,7 +127,7 @@ export default function TagihanTab({
     openReminderModal, confirmGenerateReminder, estimateCost: estimateReminderCost,
   } = aiReminder;
 
-  const readyActionCount = readyReportRows.length + needsActionCount + closingProjection.rows.length;
+  const readyActionCount = readyReportRows.length + needsActionCount;
   const agingRows = useMemo(() => {
     const buckets: Record<AgeBucket, { amount: number; count: number }> = {
       "0-30": { amount: 0, count: 0 },
@@ -177,7 +164,6 @@ export default function TagihanTab({
     [visibleBillRows],
   );
   const exports = useInvoiceExports({
-    month,
     studentMap,
     filteredBillRows: visibleBillRows,
     invoiceStatusFilter,
@@ -199,7 +185,7 @@ export default function TagihanTab({
     if (!selectedStudentId || !selectedMonth || !isValidCurrencyAmount(totalCost)) { setMessage("Lengkapi semua data dengan nominal valid!"); return; }
     try {
       await createManualPayment({ studentId: selectedStudentId, month: selectedMonth, totalCost, status: "UNPAID" });
-      setMonth(selectedMonth);
+      ;
       setInvoiceStatusFilter("unpaid");
       setInvoiceOriginFilter("manual");
       setMessage("Tagihan manual baru dibuat ✓");
@@ -217,8 +203,7 @@ export default function TagihanTab({
     setReportInvoiceBusy((current) => ({ ...current, [report.id]: true }));
     try {
       await syncReportPayment(report);
-      setMonth(report.month);
-      setInvoiceStatusFilter("unpaid");
+            setInvoiceStatusFilter("unpaid");
       setInvoiceOriginFilter(report.autoGenerated ? "monthly" : "report");
       setMessage(`Invoice dari Laporan Perkembangan ${studentName} berhasil diterbitkan ✓`);
     } catch (error) {
@@ -262,14 +247,14 @@ export default function TagihanTab({
       <section aria-labelledby="collection-center-title" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-indigo-500">Penagihan {monthLabel(month)}</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-indigo-500">Penagihan {'Semua Tagihan'}</p>
             <h2 id="collection-center-title" className="mt-0.5 text-base font-bold text-slate-800">Pusat Koleksi</h2>
             <p className="mt-1 max-w-sm text-[11px] leading-relaxed text-slate-500">
               Terbitkan invoice, tindak lanjuti piutang, lalu catat pelunasan dalam satu alur.
             </p>
           </div>
           <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${collectionRate >= 80 ? "bg-green-100 text-green-700" : collectionRate > 0 ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}`}>
-            {monthPayments.length > 0 ? `${collectionRate}% tertagih` : "Belum ada invoice"}
+            {allPayments.length > 0 ? `${collectionRate}% tertagih` : "Belum ada invoice"}
           </span>
         </div>
 
@@ -283,7 +268,7 @@ export default function TagihanTab({
             >
               <span className="block text-[10px] font-bold uppercase tracking-wide opacity-80">01 · Siap</span>
               <span className="mt-0.5 block text-sm font-bold leading-tight">{readyActionCount} tindakan</span>
-              <span className="mt-0.5 block text-[10px] leading-snug opacity-80">Laporan, paket, atau tutup bulan</span>
+              <span className="mt-0.5 block text-[10px] leading-snug opacity-80">Laporan final, paket, atau siap ditagih</span>
             </button>
             <span aria-hidden="true" className="flex items-center justify-center px-0.5 text-base font-bold text-slate-400">→</span>
             <button
@@ -294,7 +279,7 @@ export default function TagihanTab({
             >
               <span className="block text-[10px] font-bold uppercase tracking-wide opacity-80">02 · Terbit</span>
               <span className="mt-0.5 block text-sm font-bold leading-tight">{formatRupiah(totalBilled)}</span>
-              <span className="mt-0.5 block text-[10px] leading-snug opacity-80">{monthPayments.length} invoice periode ini</span>
+              <span className="mt-0.5 block text-[10px] leading-snug opacity-80">{allPayments.length} invoice periode ini</span>
             </button>
           </div>
 
@@ -331,9 +316,9 @@ export default function TagihanTab({
         <div className="mt-3 flex items-center gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2.5">
           <ActivityRing
             value={paidCount}
-            total={monthPayments.length}
+            total={allPayments.length}
             label="Kolektibilitas invoice"
-            detail={monthPayments.length > 0 ? `${unpaidCount} invoice masih menjadi piutang` : "Terbitkan invoice dari antrean yang siap"}
+            detail={allPayments.length > 0 ? `${unpaidCount} invoice masih menjadi piutang` : "Terbitkan invoice dari antrean yang siap"}
             size="sm"
             tone={collectionRate >= 80 ? "green" : collectionRate > 0 ? "amber" : "slate"}
           />
@@ -349,8 +334,8 @@ export default function TagihanTab({
             value={collectionRate}
             max={100}
             label="Kolektibilitas"
-            detail={monthPayments.length > 0
-              ? `${paidCount} dari ${monthPayments.length} invoice lunas`
+            detail={allPayments.length > 0
+              ? `${paidCount} dari ${allPayments.length} invoice lunas`
               : "Belum ada invoice pada periode ini"}
             showPercent
             tone="red"
@@ -592,130 +577,6 @@ export default function TagihanTab({
       </section>
       )}
 
-      {showReadySections && (<>
-      <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Penutupan periode</p>
-          <p className="mt-0.5 text-sm font-semibold text-slate-700">Tagihan bulanan {monthLabel(month)}</p>
-        </div>
-        {monthClosing ? (
-          <span className="shrink-0 rounded-full bg-green-100 px-2 py-1 text-[11px] font-semibold text-green-700">Ditutup</span>
-        ) : (
-          <span className="shrink-0 rounded-full bg-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-600">Terbuka</span>
-        )}
-      </div>
-
-      {/* Tutup Bulan panel */}
-      {!monthClosing ? (
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 space-y-3">
-          <div>
-            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">⏳ Akan Direkap saat Tutup Bulan</p>
-            <p className="text-[11px] text-gray-500 mt-0.5">Tap nama murid untuk lihat detail sesi</p>
-            <p className="text-[11px] text-blue-700 mt-1 rounded-lg bg-blue-50 px-2.5 py-2">
-              Hanya murid dengan aturan Bulanan. Paket N pertemuan ditagih melalui antrean di atas; aturan Manual dilewati.
-              {skippedClosingStudents > 0 ? ` ${skippedClosingStudents} murid bulan ini tidak masuk preview.` : ""}
-            </p>
-          </div>
-          {(previewBills ?? []).length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-2">
-              {monthPayments.length > 0 ? "Tidak ada sesi billable yang belum direkap untuk tutup bulan." : "Belum ada sesi yang dapat ditagihkan bulan ini."}
-            </p>
-          ) : (
-            <div className="space-y-1">
-              {closingProjection.rows.map(({ bill: b, adoptedPayment }) => {
-                const isExpanded = expandedPreview === b.studentId;
-                const sessions = previewSessionsByStudent.get(b.studentId) ?? [];
-                return (
-                  <div key={b.studentId} className={`border-b border-gray-50 last:border-0 ${focusStudentId === b.studentId ? "rounded-lg ring-2 ring-blue-400 ring-offset-1" : ""}`}>
-                    <button
-                      onClick={() => { setFocusStudentId(null); setExpandedPreview(isExpanded ? null : b.studentId); }}
-                      className="w-full flex items-center justify-between text-sm py-2 hover:bg-gray-50 rounded-lg px-1 transition-colors">
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <span className="text-gray-500 text-xs transition-transform" style={{ transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)" }}>▸</span>
-                        <span className="font-medium text-gray-700 truncate">{b.name}</span>
-                      </div>
-                      <div className="flex items-center gap-3 flex-shrink-0">
-                        <span className="text-xs text-gray-500">{b.count} sesi · {b.hours}j</span>
-                        <span className="font-semibold text-gray-700">{formatRupiah(adoptedPayment?.totalCost ?? b.cost)}</span>
-                      </div>
-                    </button>
-                    {adoptedPayment && (
-                      <p className="ml-6 mb-1 text-[10px] text-indigo-600">
-                        Tagihan manual yang sudah ada akan ditautkan, bukan dibuat ulang.
-                      </p>
-                    )}
-                    {isExpanded && sessions.length > 0 && (
-                      <div className="ml-5 mb-2 space-y-1 bg-gray-50 rounded-lg p-2">
-                        {sessions.sort((a, s) => a.date.localeCompare(s.date)).map((s) => (
-                          <div key={s.id} className="flex items-center justify-between text-xs px-2 py-1">
-                            <span className="text-gray-500 font-mono">{s.date.slice(5).replace("-", "/")}</span>
-                            <span className="text-gray-600 flex-1 ml-2 truncate">{s.status === "NO_SHOW" ? "Tidak hadir (ditagihkan)" : s.subjects.slice(0, 2).join(", ") || "—"}</span>
-                            <span className="text-gray-500 mx-2">{s.durationHours}j</span>
-                            <span className="font-medium text-gray-700">{formatRupiah(s.cost)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-              <div className="flex items-center justify-between pt-2 font-bold text-sm">
-                <span className="text-gray-700">Tambahan tagihan saat ditutup</span>
-                <span className="text-green-700">{formatRupiah(closingProjection.additionalTotal)}</span>
-              </div>
-              {coveredSessionIds.size > 0 && (
-                <p className="text-[11px] text-amber-600">Sesi yang sudah masuk laporan sah tidak ditagih ulang.</p>
-              )}
-            </div>
-          )}
-          {(monthPayments.length > 0 || (previewBills ?? []).length > 0) && (
-            <div className="border-t border-gray-100 pt-2 flex items-center justify-between text-xs">
-              <span className="font-semibold text-gray-600">Total Tagihan Bulan Ini</span>
-              <span className="font-bold text-indigo-700">{formatRupiah(totalBilled + closingProjection.additionalTotal)}</span>
-            </div>
-          )}
-          {closingChecklist.warnings.length > 0 ? (
-            <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-2.5 space-y-1.5 text-xs">
-              <p className="font-semibold text-amber-800">⚠ Periksa sebelum menutup:</p>
-              {closingChecklist.warnings.map((warning, i) => (
-                <p key={i} className="text-amber-800 leading-relaxed">{warning}</p>
-              ))}
-              {closingChecklist.draftReports.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => navigate(`/report?studentId=${encodeURIComponent(closingChecklist.draftReports[0].studentId)}&reportId=${encodeURIComponent(closingChecklist.draftReports[0].id)}`)}
-                  className="rounded-lg bg-indigo-600 px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-indigo-700"
-                >
-                  Buka Draft Laporan →
-                </button>
-              )}
-            </div>
-          ) : (
-            <p className="rounded-lg border border-green-200 bg-green-50 px-2.5 py-2 text-xs font-medium text-green-700">
-              ✓ Siap ditutup — tidak ada draft menggantung, semua murid bulanan ter-rekap.
-            </p>
-          )}
-          <button onClick={() => handleCloseMonth((sid) => studentMap.get(sid)?.name)} disabled={closingBusy || !canClose}
-            className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold disabled:opacity-40 hover:bg-blue-700 transition-colors">
-            {closingBusy ? "Memproses..." : (previewBills ?? []).length === 0 ? "🔒 Tutup Bulan (kosong)" : `🔒 Tutup Bulan ${monthLabel(month)}`}
-          </button>
-          {!canClose && <p className="text-xs text-amber-600 text-center">{closeHint}</p>}
-        </div>
-      ) : (
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-green-700 font-semibold uppercase tracking-wide">Bulan sudah ditutup</p>
-              <p className="text-[11px] text-gray-500 mt-0.5">Tagihan bulanan sudah diselaraskan.</p>
-            </div>
-            <button onClick={handleReopenMonth}
-              className="text-xs font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg transition-colors">
-              ↩ Buka kembali
-            </button>
-          </div>
-        </div>
-      )}
-      </>)}
 
       {/* Aksi tagihan selalu tersedia, termasuk ketika bulan masih terbuka. */}
       {showIssuedList && (
@@ -732,7 +593,7 @@ export default function TagihanTab({
             >
               📋 Daftar Tagihan
             </button>
-            <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 rounded-full px-2 py-1">{monthPayments.length} tagihan</span>
+            <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 rounded-full px-2 py-1">{allPayments.length} tagihan</span>
           </div>
         </div>
         <div className="space-y-2 rounded-xl bg-gray-50 p-2.5">
@@ -897,30 +758,12 @@ export default function TagihanTab({
       </div>
       )}
 
-      {/* Riwayat Tutup Bulan */}
-      {monthsOverview.length > 0 && (
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-          <p className="text-xs text-gray-500 font-medium mb-2 uppercase tracking-wide">Riwayat Tutup Bulan</p>
-          <div className="space-y-1">
-            {monthsOverview.map((m) => (
-              <button key={m.month} onClick={() => setMonth(m.month)}
-                className={`w-full flex items-center justify-between text-sm py-1.5 px-2 rounded-lg transition-colors ${m.month === month ? "bg-green-50" : "hover:bg-gray-50"}`}>
-                <span className="font-medium text-gray-700">{monthLabel(m.month)}</span>
-                <span className="text-xs flex items-center gap-2">
-                  <span className="text-green-600 font-semibold">{m.paid}/{m.total} lunas</span>
-                  {m.piutang > 0 && <span className="text-amber-600">piutang {formatRupiah(m.piutang)}</span>}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Manual invoice (collapsible) */}
       <div className="bg-gray-50 rounded-xl p-4">
         <button onClick={() => {
           const opening = !showManual;
-          if (opening) setSelectedMonth(month);
+          if (opening) setSelectedMonth(todayWIB().slice(0, 7));
           setShowManual(opening);
         }} className="w-full flex items-center justify-between text-sm font-semibold text-gray-600">
           <span>+ Tagihan Manual (di luar tutup bulan)</span>
@@ -951,7 +794,7 @@ export default function TagihanTab({
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, borderBottom: "2px solid #e5e7eb", paddingBottom: 10 }}>
               <div>
                 <p style={{ fontWeight: 700, fontSize: 18, margin: 0, color: "#1e40af" }}>Rekap Tagihan</p>
-                <p style={{ fontSize: 12, color: "#6b7280", margin: 0 }}>{monthLabel(month)}</p>
+                <p style={{ fontSize: 12, color: "#6b7280", margin: 0 }}>{'Semua Tagihan'}</p>
               </div>
               <p style={{ fontSize: 11, color: "#9ca3af", margin: 0 }}>Hal {pageIdx + 1}/{pdfPageGroups.length}</p>
             </div>
@@ -1049,10 +892,10 @@ export default function TagihanTab({
             </section>
 
             <section>
-              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">Bulanan & Tutup Bulan</h3>
+              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">Bulanan</h3>
               <ul className="mt-2 space-y-2 text-xs leading-relaxed">
-                <li>Murid <strong>Bulanan</strong> ditagih lewat <strong>Tutup Bulan</strong> — gabungkan sesi yang dapat ditagih pada bulan terpilih.</li>
-                <li>Bulan yang sudah ditutup tidak bisa digabung ke laporan/rentang baru.</li>
+                <li>Murid <strong>Bulanan</strong> — sahkan Laporan Perkembangan, lalu terbitkan invoice dari tahap <strong>Siap Ditagih</strong>.</li>
+                <li>Daftar tagihan lintas bulan — semua invoice tampil tanpa perlu memilih bulan.</li>
               </ul>
             </section>
 

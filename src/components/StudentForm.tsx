@@ -373,8 +373,8 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
           {([
             {
               value: "monthly",
-              label: "Bulanan (Tutup Bulan)",
-              description: "Gabungkan sesi yang dapat ditagih melalui proses Tutup Bulan.",
+              label: "Bulanan",
+              description: "Sahkan Laporan Perkembangan bulanan, lalu terbitkan invoice dari tab Tagihan.",
             },
             {
               value: "session_count",

@@ -196,6 +196,12 @@ export async function listBillableSessionsForMonth(month: string): Promise<Sessi
     .toArray();
 }
 
+/** Semua sesi billable lintas bulan — sumber resolusi invoice legacy untuk
+ *  daftar tagihan flat (tanpa folder bulan) di Keuangan. */
+export async function listAllBillableSessions(): Promise<Session[]> {
+  return db.sessions.filter((s) => isBillableSession(s)).toArray();
+}
+
 export async function listBillableSessionsByStudentMonth(studentId: string, month: string): Promise<Session[]> {
   const { start, end } = monthRange(month);
   const sessions = await db.sessions

@@ -269,25 +269,6 @@ export interface Payment {
   createdAt?: string;
 }
 
-// ── Month Closing (Tutup Bulan) ──────────────────────────────────────────────
-
-export interface MonthClosing {
-  id: string;            // uuid
-  month: string;         // YYYY-MM (unique)
-  closedAt: string;      // ISO timestamp
-  totalPotensi: number;  // snapshot: sum of DONE session costs at close time
-  totalHours: number;    // snapshot: sum of DONE session hours
-  studentCount: number;  // snapshot: number of students billed
-  // Snapshot penuh (optional — hanya terisi untuk penutupan baru):
-  realisasi?: number;     // uang masuk saat tutup (basis kas/paidAt)
-  pendapatan?: number;    // pendapatan diakui saat tutup (basis akrual)
-  piutang?: number;       // tagihan belum lunas saat tutup (basis akrual → per bulan sesi)
-  pengeluaran?: number;   // total pengeluaran bulan itu
-  laba?: number;          // v1.66+: laba = pendapatan - pengeluaran (akrual). Snapshot v1.64-v1.65 menulis laba kas di field ini
-  labaAkrual?: number;    // legacy v1.65 — tidak ditulis lagi; tetap dibaca untuk kompatibilitas
-  invoiceCount?: number;  // jumlah invoice bulan itu
-}
-
 // ── Expenses ────────────────────────────────────────────────────────────────
 
 export type ExpenseCategory = "transport" | "buku" | "alat" | "platform" | "lainnya";

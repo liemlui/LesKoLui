@@ -83,7 +83,7 @@ beforeEach(async () => {
   await db.sessions.clear();
   await db.reports.clear();
   await db.payments.clear();
-  await db.monthClosings.clear();
+  await // db.monthClosings.clear();
   await db.auditLog.clear();
 });
 

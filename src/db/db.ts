@@ -1,6 +1,6 @@
 import Dexie from "dexie";
 import type { Table } from "dexie";
-import type { Student, Session, MonthlyReport, Payment, Settings, RaporGrade, FollowUpItem, Expense, IaEeProject, MonthClosing, AuditEntry, StudyNote } from "./types";
+import type { Student, Session, MonthlyReport, Payment, Settings, RaporGrade, FollowUpItem, Expense, IaEeProject, AuditEntry, StudyNote } from "./types";
 import { invoiceDueAt } from "../lib/finance";
 
 type LegacySessionRow = {
@@ -24,7 +24,6 @@ export class JurnalDB extends Dexie {
   followUps!:   Table<FollowUpItem,  string>;
   expenses!:    Table<Expense,       string>;
   iaeeProjects!:Table<IaEeProject,   string>;
-  monthClosings!:Table<MonthClosing, string>;
   auditLog!:    Table<AuditEntry,    string>;
   studyNotes!:  Table<StudyNote,     string>;
 
@@ -106,6 +105,10 @@ export class JurnalDB extends Dexie {
         if (dueAt && payment.dueAt !== dueAt) payment.dueAt = dueAt;
       })
     );
+    // v14: fitur Tutup Bulan dihapus — drop tabel snapshot monthClosings.
+    // Snapshot lama hanya salinan angka; semua metrik dihitung live dari
+    // sessions/payments/expenses, jadi tidak ada data asli yang hilang.
+    this.version(14).stores({ monthClosings: null });
   }
 }
 

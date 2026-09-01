@@ -475,7 +475,7 @@ export default function SettingsPage() {
     const tables = [
       db.students, db.sessions, db.reports,
       db.payments, db.followUps,
-      db.raporGrades, db.expenses, db.monthClosings, db.iaeeProjects,
+      db.raporGrades, db.expenses, db.iaeeProjects,
       db.studyNotes, db.settings, db.auditLog,
     ];
     await db.transaction("rw", tables, async () => {

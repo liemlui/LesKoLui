@@ -11,6 +11,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
 {
+    version: "v1.68.0",
+    date: "2026-09-01",
+    title: "Tagihan Simpel — Satu Daftar Lintas Bulan + Tutup Bulan Dihapus",
+    items: [
+      "Daftar tagihan flat (tanpa folder bulan): semua invoice tampil tanpa perlu memilih bulan — tagihan Juli, Agustus, September dalam satu daftar",
+      "Belum Dibayar diurutkan duluan (tertelat paling atas), Sudah Lunas di bawah — grup bisa dilipat",
+      "Pencarian nama murid untuk menyaring daftar tagihan",
+      "Form Tagihan Manual tanpa pilih bulan — bulan diisi otomatis (internal)",
+      "Tutup Bulan dihapus: tabulasi monthClosings di-drop via migrasi v14; backup lama tetap kompatibel (data monthClosings diabaikan saat restore)",
+      "Siap Ditagih lintas bulan — semua laporan final tanpa invoice dari semua bulan tampil bersama, terlama dulu",
+      "Pemilih bulan (FinancePeriodPicker) disembunyikan di tab Tagihan — hanya tampil di Ringkasan & Pengeluaran",
+    ],
+  },
+
+{
     version: "v1.67.0",
     date: "2026-09-01",
     title: "Pratinjau Desain Laporan + Analitik Dashboard + Ekspor Lebih Tahan Banting",

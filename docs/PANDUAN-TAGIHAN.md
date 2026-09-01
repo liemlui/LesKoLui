@@ -6,7 +6,7 @@ Satu murid punya **satu siklus tagihan** (bisa diubah kapan saja). Laporan & tag
 
 | Siklus | Cara kerja | Kapan dipakai |
 |---|---|---|
-| **Bulanan (Tutup Bulan)** | Semua sesi yang dapat ditagih dalam satu bulan digabung jadi satu invoice | Murid reguler yang ditagih per bulan kalender |
+| **Bulanan** | Laporan Perkembangan disahkan → invoice diterbitkan dari tahap **Siap Ditagih** di tab Tagihan | Murid reguler yang ditagih per bulan kalender |
 | **Paket per N pertemuan** | Tagihan dibuat setiap N pertemuan (8, 10, 12, dst). Sesi **tertua** ditagih lebih dulu | Murid yang bayar per paket/batch |
 | **Manual** | Invoice nominal bebas, tidak mengambil sesi otomatis | Pembayaran khusus / di luar siklus |
 

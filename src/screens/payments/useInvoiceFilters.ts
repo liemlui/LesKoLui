@@ -5,8 +5,9 @@
  * setiap render). Fungsi murni presentasi diimpor dari lib/invoicePresentation.
  */
 import { useMemo, useState } from "react";
-import type { MonthClosing, MonthlyReport, Payment, Session, Settings, Student } from "../../db/types";
+import type { MonthlyReport, Payment, Session, Settings, Student } from "../../db/types";
 import { reportStatus } from "../../db/types";
+import { compareSessionsChronologically } from "../../db/repos";
 import { periodLabel, monthLabel } from "../../lib/format";
 import { ageBucket, invoiceAgeDays } from "../../lib/finance";
 import type { AgeBucket } from "../../lib/finance";
@@ -35,32 +36,33 @@ export interface WaAllRow {
 }
 
 interface UseInvoiceFiltersArgs {
-  month: string;
   payments: Payment[];
   students: Student[];
   reports: MonthlyReport[];
-  monthSessions: Session[];
+  /** Semua sesi billable lintas bulan — resolusi invoice legacy non-laporan. */
+  allBillableSessions: Session[] | undefined;
   settings: Settings;
-  closings: MonthClosing[] | undefined;
   allReportSessions: Map<string, Session> | undefined;
   itemsPerPdfPage?: number;
 }
 
 export function useInvoiceFilters({
-  month, payments, students, reports, monthSessions, settings, closings, allReportSessions,
+  payments, students, reports, allBillableSessions, settings, allReportSessions,
   itemsPerPdfPage = 5,
 }: UseInvoiceFiltersArgs) {
   const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<InvoiceStatusFilter>("semua");
   const [invoiceOriginFilter, setInvoiceOriginFilter] = useState<InvoiceOriginFilter>("semua");
+  const [searchText, setSearchText] = useState("");
 
 
   const studentMap = useMemo(() => new Map(students.map((s) => [s.id, s])), [students]);
-  const monthPayments = useMemo(() => payments.filter((p) => p.month === month), [payments, month]);
+  // Daftar flat lintas bulan: semua invoice ikut dihitung, bukan hanya bulan terpilih.
+  const allPayments = payments;
 
   const totals = useMemo(() => {
-    const paidPayments = monthPayments.filter((p) => p.status === "PAID");
-    const unpaidPayments = monthPayments.filter((p) => p.status === "UNPAID");
-    const totalBilled = monthPayments.reduce((s, p) => s + p.totalCost, 0);
+    const paidPayments = allPayments.filter((p) => p.status === "PAID");
+    const unpaidPayments = allPayments.filter((p) => p.status === "UNPAID");
+    const totalBilled = allPayments.reduce((s, p) => s + p.totalCost, 0);
     const totalPaid = paidPayments.reduce((s, p) => s + p.totalCost, 0);
     return {
       totalBilled,
@@ -70,19 +72,19 @@ export function useInvoiceFilters({
       unpaidCount: unpaidPayments.length,
       collectionRate: totalBilled > 0 ? Math.round((totalPaid / totalBilled) * 100) : 0,
     };
-  }, [monthPayments]);
+  }, [allPayments]);
 
-  // Distribusi umur piutang bulan terpilih (0-30 / 31-60 / >60 hari).
+  // Distribusi umur piutang lintas bulan (0-30 / 31-60 / >60 hari).
   const agingBuckets = useMemo(() => {
     const buckets: Record<AgeBucket, number> = { "0-30": 0, "31-60": 0, ">60": 0 };
-    for (const p of monthPayments) {
+    for (const p of allPayments) {
       if (p.status !== "UNPAID") continue;
       buckets[ageBucket(invoiceAgeDays(p))]++;
     }
     return buckets;
-  }, [monthPayments]);
+  }, [allPayments]);
 
-  const billRows = useMemo<BillRow[]>(() => monthPayments
+  const billRows = useMemo<BillRow[]>(() => allPayments
     .map((p) => {
       const linkedReport = p.reportId ? reports.find((report) => report.id === p.reportId) : undefined;
       return {
@@ -95,11 +97,13 @@ export function useInvoiceFilters({
               .filter((s): s is Session => Boolean(s))
           : p.source === "manual"
             ? []
-            : monthSessions.filter((s) => s.studentId === p.studentId),
+            : (allBillableSessions ?? [])
+                .filter((s) => s.studentId === p.studentId && s.date.slice(0, 7) === p.month)
+                .sort(compareSessionsChronologically),
       };
     })
     .sort((a, b) => b.payment.totalCost - a.payment.totalCost),
-  [monthPayments, reports, studentMap, allReportSessions, monthSessions]);
+  [allPayments, reports, studentMap, allReportSessions, allBillableSessions]);
 
   const filteredBillRows = useMemo(() => billRows.filter((row) => {
     const statusMatches = invoiceStatusFilter === "semua"
@@ -111,8 +115,11 @@ export function useInvoiceFilters({
           : row.payment.status === "UNPAID";
     const originMatches = invoiceOriginFilter === "semua"
       || invoiceOriginOf(row.payment, row.report) === invoiceOriginFilter;
-    return statusMatches && originMatches;
-  }), [billRows, invoiceStatusFilter, invoiceOriginFilter]);
+    const query = searchText.trim().toLowerCase();
+    const searchMatches = query === ""
+      || (row.student?.name ?? "").toLowerCase().includes(query);
+    return statusMatches && originMatches && searchMatches;
+  }), [billRows, invoiceStatusFilter, invoiceOriginFilter, searchText]);
 
   const filteredPayments = useMemo(
     () => filteredBillRows.map((row) => row.payment),
@@ -123,31 +130,20 @@ export function useInvoiceFilters({
     [filteredPayments, itemsPerPdfPage],
   );
 
-  // Laporan final siap ditagih (belum punya invoice) bulan terpilih.
+  // Laporan final siap ditagih (belum punya invoice) — lintas bulan, terlama dulu.
   const readyReportRows = useMemo(() => reports
     .filter((report) => (
-      report.month === month
-      && reportStatus(report) === "confirmed"
+      reportStatus(report) === "confirmed"
       && report.totalCost > 0
       && report.billingMode !== "session_count"
       && !payments.some((payment) => payment.reportId === report.id)
     ))
     .map((report) => ({ report, student: studentMap.get(report.studentId) }))
     .sort((a, b) => a.report.periodStart.localeCompare(b.report.periodStart)),
-  [reports, month, payments, studentMap]);
+  [reports, payments, studentMap]);
 
   const showReadySections = invoiceStatusFilter === "semua" || invoiceStatusFilter === "ready";
   const showIssuedList = invoiceStatusFilter !== "ready";
-
-  const monthsOverview = useMemo(() => (closings ?? []).map((c) => {
-    const ps = payments.filter((p) => p.month === c.month);
-    return {
-      month: c.month,
-      total: ps.length,
-      paid: ps.filter((p) => p.status === "PAID").length,
-      piutang: ps.filter((p) => p.status === "UNPAID").reduce((s, p) => s + p.totalCost, 0),
-    };
-  }), [closings, payments]);
 
   // ── Daftar Tagihan WA (semua unpaid dengan nomor HP tercatat) ──
   const waAllRows = useMemo<WaAllRow[]>(() => payments
@@ -162,9 +158,9 @@ export function useInvoiceFilters({
         ? report.sessionIds.map((id) => allReportSessions?.get(id)).filter((s): s is Session => Boolean(s))
         : p.source === "manual"
           ? []
-          : p.month === month
-            ? monthSessions.filter((s) => s.studentId === p.studentId)
-            : [];
+          : (allBillableSessions ?? [])
+              .filter((s) => s.studentId === p.studentId && s.date.slice(0, 7) === p.month)
+              .sort(compareSessionsChronologically);
       const periodLbl = p.periodStart && p.periodEnd ? periodLabel(p.periodStart, p.periodEnd) : "";
       const text = p.source === "manual" && !p.reportId
         ? buildManualBillingText(student, p, settings)
@@ -187,7 +183,7 @@ export function useInvoiceFilters({
       };
     })
     .filter((row): row is NonNullable<typeof row> => row !== null),
-  [payments, studentMap, reports, allReportSessions, monthSessions, month, settings]);
+  [payments, studentMap, reports, allReportSessions, allBillableSessions, settings]);
 
   return {
     // filter state
@@ -195,9 +191,11 @@ export function useInvoiceFilters({
     setInvoiceStatusFilter,
     invoiceOriginFilter,
     setInvoiceOriginFilter,
+    searchText,
+    setSearchText,
     // derived
     studentMap,
-    monthPayments,
+    allPayments,
     totals,
     agingBuckets,
     billRows,
@@ -207,7 +205,6 @@ export function useInvoiceFilters({
     readyReportRows,
     showReadySections,
     showIssuedList,
-    monthsOverview,
     waAllRows,
   };
 }

@@ -7,7 +7,7 @@ import {
   listSessionsByStudentRange, listBillableSessionsByStudentRange,
   getReportById, findReportByPeriod, listReportsByStudent, listConfirmedReportsByStudent,
   upsertReport, createReportForPeriod, discardReport, updateSession, saveSettings,
-  listMonthClosings, getPaymentByReport, syncReportPayment, listPaymentsByStudent,
+  getPaymentByReport, syncReportPayment, listPaymentsByStudent,
 } from "../db/repos";
 import { billingPolicyOf, reportStatus, reportDisplayStatus, type ReportStatus } from "../db/types";
 import {

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { getCashSummary, listMonthClosings } from "../../db/repos";
-import type { MonthClosing, Payment, Student } from "../../db/types";
+import { getCashSummary } from "../../db/repos";
+import type { Payment, Student } from "../../db/types";
 import { formatRupiah, todayWIB, monthLabel, periodLabel } from "../../lib/format";
 import { downloadBlob } from "../../lib/download";
 import { escapeCsvCell } from "../../lib/csv";
@@ -24,12 +24,6 @@ export default function AuditTab({ payments, students }: AuditTabProps) {
     [auditYear]
   );
   const auditData = useLiveQuery(() => getCashSummary(auditMonths), [auditMonths]);
-  const monthClosings = useLiveQuery(() => listMonthClosings(), []);
-  const closingMap = useMemo(() => {
-    const map = new Map<string, MonthClosing>();
-    for (const c of monthClosings ?? []) map.set(c.month, c);
-    return map;
-  }, [monthClosings]);
 
   const studentMap = useMemo(() => new Map(students.map((s) => [s.id, s])), [students]);
 
@@ -47,16 +41,14 @@ export default function AuditTab({ payments, students }: AuditTabProps) {
     pengeluaran: (auditData ?? []).reduce((s, r) => s + r.pengeluaran, 0),
     laba: (auditData ?? []).reduce((s, r) => s + r.laba, 0),
   };
-  const closedMonths = (auditData ?? []).filter((r) => r.closed).length;
-  const openMonths = (auditData ?? []).filter((r) => !r.closed && (r.sesi || r.pendapatan || r.realisasi || r.piutang || r.pengeluaran)).length;
   const marginRate = auditTotals.pendapatan > 0
     ? Math.round((auditTotals.laba / auditTotals.pendapatan) * 100)
     : 0;
 
   const exportAuditCsv = () => {
     const rows = auditData ?? [];
-    const header = "Bulan,Sesi,Jam,Pendapatan,Uang Masuk,Belum Dibayar,Pengeluaran,Laba,Status Bulan";
-    const body = rows.map((r) => `${r.month},${r.sesi},${r.jam},${r.pendapatan},${r.realisasi},${r.piutang},${r.pengeluaran},${r.laba},${r.closed ? "Ditutup" : "Terbuka"}`);
+    const header = "Bulan,Sesi,Jam,Pendapatan,Uang Masuk,Belum Dibayar,Pengeluaran,Laba";
+    const body = rows.map((r) => `${r.month},${r.sesi},${r.jam},${r.pendapatan},${r.realisasi},${r.piutang},${r.pengeluaran},${r.laba}`);
     const total = `Total ${auditYear},${auditTotals.sesi},${auditTotals.jam},${auditTotals.pendapatan},${auditTotals.realisasi},${auditTotals.piutang},${auditTotals.pengeluaran},${auditTotals.laba},`;
     const csv = [header, ...body, total].join("\n");
     downloadBlob(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }), `Rekap-Keuangan-${auditYear}.csv`);
@@ -86,7 +78,6 @@ Belum Dibayar,${found.piutang}
 Pengeluaran,${found.pengeluaran}
 Laba,${found.laba}
 Collection Rate,${found.realisasi > 0 ? Math.round((found.realisasi / (found.realisasi + found.piutang)) * 100) + "%" : "-"}
-Status,${found.closed ? "Ditutup" : "Terbuka"}
 
 ### TAGIHAN
 Murid,Nominal,Status,Dibayar,ID Laporan
@@ -132,8 +123,6 @@ ${invoiceRows.join("\n")}
         <div className="flex flex-wrap gap-1.5 text-[10px]">
           {auditTotals.sesi > 0 && <span className="rounded-full bg-slate-100 text-slate-600 px-2 py-0.5 font-semibold">📚 {auditTotals.sesi} sesi · {auditTotals.jam} jam</span>}
           {auditTotals.piutang > 0 && <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 font-semibold">Belum dibayar {formatRupiah(auditTotals.piutang)}</span>}
-          <span className="rounded-full bg-green-100 text-green-700 px-2 py-0.5 font-semibold">{closedMonths} bulan ditutup</span>
-          {openMonths > 0 && <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 font-semibold">{openMonths} bulan terbuka</span>}
           {marginRate > 0 && <span className="rounded-full bg-indigo-100 text-indigo-700 px-2 py-0.5 font-semibold">Margin {marginRate}%</span>}
         </div>
         <div className="space-y-2 md:hidden" aria-label={`Rincian bulanan ${auditYear}`}>
@@ -141,12 +130,7 @@ ${invoiceRows.join("\n")}
             const has = r.sesi || r.pendapatan || r.realisasi || r.piutang || r.pengeluaran;
             return (
               <div key={r.month} className="rounded-xl border border-slate-100 bg-slate-50/60 p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-bold text-slate-700">{monthLabel(r.month)}</p>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${r.closed ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
-                    {r.closed ? "Ditutup" : "Terbuka"}
-                  </span>
-                </div>
+                <p className="text-sm font-bold text-slate-700">{monthLabel(r.month)}</p>
                 <p className="mt-1 text-[11px] text-gray-400">{r.sesi ? `${r.sesi} sesi · ${r.jam} jam` : "Tidak ada sesi"}</p>
                 <div className="mt-2 grid grid-cols-3 gap-x-3 gap-y-1.5 text-xs">
                   <div><p className="text-gray-400">Pendapatan</p><p className="font-semibold text-indigo-700">{r.pendapatan ? formatRupiah(r.pendapatan) : "–"}</p></div>
@@ -176,7 +160,6 @@ ${invoiceRows.join("\n")}
                 <th className="font-medium pb-1 text-right">Pengeluaran</th>
                 <th className="font-medium pb-1 text-right">Laba</th>
                 <th className="font-medium pb-1 text-right">Belum Dibayar</th>
-                <th className="font-medium pb-1 text-center">Status</th>
                 <th className="font-medium pb-1 text-center">CSV</th>
               </tr>
             </thead>
@@ -192,27 +175,6 @@ ${invoiceRows.join("\n")}
                     <td className="py-1 text-right text-red-600">{r.pengeluaran ? formatRupiah(r.pengeluaran) : "–"}</td>
                     <td className={`py-1 text-right font-semibold ${r.laba >= 0 ? "text-green-700" : "text-red-600"}`}>{has ? formatRupiah(r.laba) : "–"}</td>
                     <td className="py-1 text-right text-amber-600">{r.piutang ? formatRupiah(r.piutang) : "–"}</td>
-                    <td className="py-1 text-center space-y-1">
-                      <div>
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${r.closed ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
-                          {r.closed ? "Ditutup" : "Terbuka"}
-                        </span>
-                      </div>
-                      {(() => {
-                        const snap = closingMap.get(r.month);
-                        if (!snap || snap.realisasi == null) return null;
-                        const drift = r.realisasi !== snap.realisasi
-                          || r.pendapatan !== (snap.pendapatan ?? r.pendapatan)
-                          || r.piutang !== (snap.piutang ?? 0)
-                          || r.pengeluaran !== (snap.pengeluaran ?? 0);
-                        if (!drift) return null;
-                        return (
-                          <span className="inline-flex rounded-full bg-orange-100 px-1.5 py-0.5 text-[9px] font-semibold text-orange-700" title="Berubah sejak ditutup">
-                            ⚡ drift
-                          </span>
-                        );
-                      })()}
-                    </td>
                     <td className="py-1 text-center">
                       <button onClick={() => exportMonthlyCsv(r.month)}
                         className="text-[10px] font-semibold text-blue-600 hover:text-blue-800 transition-colors"
@@ -231,7 +193,6 @@ ${invoiceRows.join("\n")}
                 <td className="py-1 text-right text-red-600">{formatRupiah(auditTotals.pengeluaran)}</td>
                 <td className={`py-1 text-right ${auditTotals.laba >= 0 ? "text-green-700" : "text-red-600"}`}>{formatRupiah(auditTotals.laba)}</td>
                 <td className="py-1 text-right text-amber-600">{formatRupiah(auditTotals.piutang)}</td>
-                <td></td>
                 <td></td>
               </tr>
             </tfoot>

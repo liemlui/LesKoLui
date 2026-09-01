@@ -23,7 +23,7 @@ export {
   listSessionsByStudent, listSessionsForMonth, listSessionsByStudentMonth,
   listSessionsByStudentRange,
   isBillableSession, compareSessionsChronologically,
-  listBillableSessionsForMonth, listBillableSessionsByStudentMonth,
+  listBillableSessionsForMonth, listBillableSessionsByStudentMonth, listAllBillableSessions,
   listBillableSessionsByStudentRange, listInvoiceSessions,
   listScheduledForMonth, listAllSessionsForMonth,
   listAllSessionsForWeek, listDoneSessionsForDate,
@@ -46,20 +46,18 @@ export {
 } from "./reportRepo";
 export type { ReportWrite } from "./reportRepo";
 
-// Payments + Month Closing + Expenses
+// Payments + Expenses
 export {
   getPayment, createManualPayment, upsertPayment, listPayments, listPaymentsByStudent,
   markPaymentTransferred, markPaymentUnpaid, updatePaymentAmount,
   getPaymentByReport, syncReportPayment,
   markPaymentTransferredById, markPaymentUnpaidById, updatePaymentAmountById,
-  getMonthClosing, listMonthClosings, closeMonth, reopenMonth,
-  computeMonthBills, listSessionCountBillingProgress, createSessionCountInvoice,
+  listSessionCountBillingProgress, createSessionCountInvoice,
   cancelSessionCountInvoice, getCashSummary,
   createExpense, updateExpense, listExpenses, deleteExpense,
   getMonthlyIncomeVsExpense,
 } from "./paymentRepo";
 export type {
-  StudentBill,
   MonthCashSummary,
   ManualPaymentInput,
   SessionCountBillingProgress,

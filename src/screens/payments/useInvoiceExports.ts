@@ -12,7 +12,6 @@ import type { MessageSetter } from "./useSessionCountBilling";
 import type { BillRow } from "./useInvoiceFilters";
 
 interface UseInvoiceExportsArgs {
-  month: string;
   studentMap: Map<string, Student>;
   filteredBillRows: BillRow[];
   invoiceStatusFilter: string;
@@ -21,7 +20,7 @@ interface UseInvoiceExportsArgs {
 }
 
 export function useInvoiceExports({
-  month, studentMap, filteredBillRows, invoiceStatusFilter, invoiceOriginFilter, setMessage,
+  studentMap, filteredBillRows, invoiceStatusFilter, invoiceOriginFilter, setMessage,
 }: UseInvoiceExportsArgs) {
   const [pdfExporting, setPdfExporting] = useState(false);
   const [invoiceTarget, setInvoiceTarget] = useState<{ payment: Payment; student: Student } | null>(null);

@@ -575,7 +575,7 @@ export default function StudentDetail() {
                 }`
               : studentBillingPolicy === "manual"
                 ? "Manual"
-                : "Bulanan (Tutup Bulan)"}
+                : "Bulanan (Laporan → Tagihan)"}
           </span>
           <button
             type="button"

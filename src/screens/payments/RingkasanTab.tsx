@@ -5,7 +5,6 @@ import {
   getMonthlyIncomeVsExpense,
   getCashSummary,
   listAllUpcomingScheduled,
-  getMonthClosing,
   listBillableSessionsForMonth,
 } from "../../db/repos";
 import type { SessionCountBillingProgress } from "../../db/repos";
@@ -78,9 +77,7 @@ export default function RingkasanTab({
   }, [month]);
   const nextSessions = useLiveQuery(() => listAllUpcomingScheduled(nextMonthStr + "-01"), [nextMonthStr]);
 
-  // Tutup-bulan status + sesi laporan (basis rekap) — diperlukan untuk
-  // banner rekonsiliasi pada ringkasan.
-  const monthClosing = useLiveQuery(() => getMonthClosing(month), [month]);
+  // Sesi laporan (basis rekap) — diperlukan untuk banner rekonsiliasi ringkasan.
   const reportSessions = useLiveQuery(async () => {
     const ids = [...new Set((reports ?? []).flatMap((r) => r.sessionIds))];
     if (ids.length === 0) return new Map<string, Session>();
@@ -454,14 +451,14 @@ export default function RingkasanTab({
       </div>
       )}
 
-      {reportSessions !== undefined && (monthClosing || monthPayments.length > 0) && (
+      {reportSessions !== undefined && monthPayments.length > 0 && (
         <div className={`rounded-xl border px-3 py-2.5 text-xs ${billingGap === 0 ? "border-green-200 bg-green-50 text-green-800" : "border-amber-200 bg-amber-50 text-amber-800"}`}>
           <div className="flex items-center justify-between gap-3 font-semibold">
             <span>Rekonsiliasi sesi dan tagihan</span>
             <span>{billingGap === 0 ? "Sinkron" : `Selisih ${formatRupiah(Math.abs(billingGap))}`}</span>
           </div>
           {billingGap !== 0 && (
-            <p className="mt-1 leading-relaxed">Total tagihan berbeda dari nilai sesi. Periksa penyesuaian nominal, tagihan manual, atau sesi yang berubah setelah tutup bulan.</p>
+            <p className="mt-1 leading-relaxed">Total tagihan berbeda dari nilai sesi. Periksa penyesuaian nominal, tagihan manual, atau sesi yang berubah setelah invoice diterbitkan.</p>
           )}
         </div>
       )}

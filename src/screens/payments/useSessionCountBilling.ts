@@ -28,13 +28,12 @@ export type ConfirmSetter = (state: ConfirmState | null) => void;
 interface UseSessionCountBillingArgs {
   requestedStudentId: string;
   students: Student[] | undefined;
-  setMonth: (month: string) => void;
   setMessage: MessageSetter;
   setConfirmState: ConfirmSetter;
 }
 
 export function useSessionCountBilling({
-  requestedStudentId, students, setMonth, setMessage, setConfirmState,
+  requestedStudentId, students, setMessage, setConfirmState,
 }: UseSessionCountBillingArgs) {
   const sessionCountBillingProgress = useLiveQuery(() => listSessionCountBillingProgress(), []);
 
@@ -68,7 +67,7 @@ export function useSessionCountBilling({
     setSessionCountInvoiceBusy((current) => ({ ...current, [progress.studentId]: true }));
     try {
       const result = await createSessionCountInvoice(progress.studentId, { finalBatch });
-      setMonth(result.month);
+      
       setFocusStudentId(null);
       setExpandedSessionCountStudent(null);
       setMessage(

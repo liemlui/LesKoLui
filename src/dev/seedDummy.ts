@@ -5,8 +5,7 @@
  * Safe to delete this file (and its import in main.tsx) when no longer needed.
  */
 import {
-  createStudent, createSession, scheduleSession, scheduleBatch, closeMonth,
-  markPaymentTransferred, updatePaymentAmount, createExpense, saveSettings, getSettings, listStudents,
+  createStudent, createSession, scheduleSession, scheduleBatch, markPaymentTransferred, updatePaymentAmount, createExpense, saveSettings, getSettings, listStudents,
   createFollowUp, upsertRaporGrade, createIaEeProject,
   upsertPayment, cancelSession, listSessionsByStudentMonth, upsertReport,
 } from "../db/repos";
@@ -124,13 +123,12 @@ async function seedInner(force: boolean): Promise<void> {
     // duplikat (2× Andi dst.) alih-alih mengganti — data uji jadi tak deterministik.
     await db.transaction("rw",
       [db.students, db.sessions, db.reports, db.payments, db.raporGrades,
-       db.followUps, db.expenses, db.iaeeProjects, db.monthClosings],
+       db.followUps, db.expenses, db.iaeeProjects],
       async () => {
         await Promise.all([
           db.students.clear(), db.sessions.clear(), db.reports.clear(),
           db.payments.clear(), db.raporGrades.clear(),
           db.followUps.clear(), db.expenses.clear(), db.iaeeProjects.clear(),
-          db.monthClosings.clear(),
         ]);
       });
     console.info("[seedDummy] force=true → data lama dibersihkan, seed ulang…");
@@ -283,15 +281,13 @@ async function seedInner(force: boolean): Promise<void> {
   await scheduleSession({ studentId: bella, date: "2026-07-09", time: "15:00", durationHours: 1.5 });
   await scheduleSession({ studentId: dewi,  date: "2026-07-14", time: "13:00", durationHours: 2 });
 
-  // ── Tutup bulan + status transfer (untuk Realisasi & Piutang) ──
-  await closeMonth("2026-03");                       // semua lunas
+  // ── Status transfer (untuk Realisasi & Piutang) ──
   await markPaymentTransferred(andi,  "2026-03", "transfer", "2026-03-29");
   await markPaymentTransferred(bella, "2026-03", "transfer", "2026-03-30");
 
-  await closeMonth("2026-04");                       // sebagian lunas → ada piutang
+  // ── Piutang ──
   await markPaymentTransferred(andi,  "2026-04", "transfer", "2026-04-29");
 
-  await closeMonth("2026-05");                       // baru 1 lunas → piutang lebih besar
   // Citra memakai paket per 2 pertemuan, sehingga tidak memiliki baris tagihan
   // Tutup Bulan. Tujuh sesinya sengaja dibiarkan di antrean paket untuk demo.
   // Juni sengaja dibiarkan terbuka agar bisa dites manual.

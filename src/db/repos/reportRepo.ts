@@ -241,13 +241,6 @@ async function assertConfirmedScopeAvailable(
   }
 
   if (isSessionCount) return;
-
-  const closings = await db.monthClosings.toArray();
-  const closed = closings.find((closing) => {
-    const period = reportPeriodOf({ month: closing.month });
-    return period.periodStart <= report.periodEnd && period.periodEnd >= report.periodStart;
-  });
-  if (closed) throw new Error("Periode laporan berada pada bulan yang sudah ditutup");
 }
 
 /** Save one report identity and enforce confirmed-scope invariants atomically. */
@@ -255,7 +248,7 @@ export async function upsertReport(report: ReportWrite): Promise<string> {
   const now = timestamp();
   const period = reportPeriodOf(report);
   const normalized = { ...report, ...period } as MonthlyReport;
-  return db.transaction("rw", db.students, db.reports, db.payments, db.monthClosings, async () => {
+  return db.transaction("rw", db.students, db.reports, db.payments, async () => {
     if (normalized.id) {
       const existing = await db.reports.get(normalized.id);
       if (existing) {
@@ -285,7 +278,7 @@ export async function createReportForPeriod(
   const now = timestamp();
   const period = reportPeriodOf(report);
   const normalized = { ...report, ...period } as MonthlyReport;
-  return db.transaction("rw", db.students, db.reports, db.payments, db.monthClosings, async () => {
+  return db.transaction("rw", db.students, db.reports, db.payments, async () => {
     const matches = await db.reports
       .where({ studentId: normalized.studentId })
       .filter((candidate) => {
