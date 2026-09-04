@@ -19,7 +19,6 @@ import {
 } from "../../lib/aiClient";
 import { AiCostModal } from "../../components/AiCostModal";
 import ActivityRing from "../../components/dashboard/ActivityRing";
-import MetricCard from "../../components/dashboard/MetricCard";
 import { LineChart, DonutChart, BarChart } from "../../components/charts";
 import type { BarSeries, DonutSegment } from "../../components/charts";
 import RatingIndicator from "../../components/charts/RatingIndicator";
@@ -459,10 +458,6 @@ export default function RingkasanTab({
               detail={monthPayments.length > 0 ? `${monthPayments.length - paidCount} invoice belum dibayar` : "Buka Penagihan untuk menerbitkan invoice"}
               tone={collectionRate >= 80 ? "green" : collectionRate > 0 ? "amber" : "slate"}
             />
-          </div>
-          <div className="grid gap-2 w-full min-[380px]:w-[148px]">
-            <MetricCard label="Invoice lunas" value={`${collectionRate}%`} description={`Porsi invoice ${selectedMonthLabel} yang sudah dibayar.`} icon="↗" tone={collectionRate >= 80 ? "green" : "amber"} />
-            <MetricCard label="Arus kas bersih" value={formatRupiah(cash.laba)} description={`Kas diterima dikurangi pengeluaran ${selectedMonthLabel}.`} icon="◎" tone={cash.laba >= 0 ? "blue" : "red"} />
           </div>
         </div>
         <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2.5 text-xs leading-relaxed text-slate-600">

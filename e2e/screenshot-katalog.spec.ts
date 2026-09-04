@@ -112,12 +112,6 @@ test("05-catat-sesi", async ({ page }) => {
   await shot(page, "05-catat-sesi.png");
 });
 
-test("06-catatan", async ({ page }) => {
-  await page.goto("/catatan"); await page.waitForTimeout(1500);
-  await closeChangelog(page);
-  await shot(page, "06-catatan.png");
-});
-
 /** Siapkan layar laporan BERISI DATA: bulan Juni (seed) + murid ber-sesi + laporan dibuat. */
 async function openReportWithData(page: Page) {
   await page.goto("/report"); await page.waitForTimeout(1500);

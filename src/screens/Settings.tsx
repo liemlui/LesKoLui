@@ -18,6 +18,7 @@ import { APP_VERSION } from "../lib/version";
 import type { Settings, AuditAction } from "../db/types";
 import Toggle from "../components/Toggle";
 import PinConfirmModal from "../components/PinConfirmModal";
+import ExitAppModal from "../components/ExitAppModal";
 
 const WORDLIST = [
   "apel","baju","cabe","dadu","elang","fajar","gula","harap","ikan","jalan",
@@ -219,6 +220,7 @@ export default function SettingsPage() {
   const [relaySecret, setRelaySecret] = useState(() => { try { return localStorage.getItem("leskolui_relay_secret") || ""; } catch { return ""; } });
   const [relayBusy,   setRelayBusy]   = useState(false);
   const [openSection, setOpenSection] = useState<string | null>(null);
+  const [showExitModal, setShowExitModal] = useState(false);
   const restoreRef = useRef<HTMLInputElement>(null);
   const fileRef    = useRef<HTMLInputElement>(null);
   const pinRecoveryInFlightRef = useRef(false);
@@ -1021,8 +1023,16 @@ export default function SettingsPage() {
             className="w-full py-2.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-semibold hover:bg-gray-200 transition-colors">
             🗑️ Hapus Cache & Muat Ulang
           </button>
+
+          <button
+            onClick={() => setShowExitModal(true)}
+            className="w-full py-2.5 rounded-xl bg-red-50 text-red-600 text-sm font-semibold hover:bg-red-100 transition-colors">
+            ⏻ Keluar Aplikasi
+          </button>
         </div>
       </Section>
+
+      {showExitModal && <ExitAppModal onClose={() => setShowExitModal(false)} />}
 
       {/* ── Simpan ── */}
       <button onClick={handleSave} disabled={saving}

@@ -1,6 +1,7 @@
 import type { Session } from "../../db/types";
 import type { StudentMap } from "../../lib/studentColor";
 import Badge from "../../components/Badge";
+import EmptyState from "../../components/EmptyState";
 import ProgressBar from "../../components/charts/ProgressBar";
 import SessionPill, { type SessionActions } from "./SessionPill";
 
@@ -61,7 +62,7 @@ export default function TodayHero({ today, sessions, studentMap, onAdd, ...actio
 
       {/* Session pills with visual separation between time blocks */}
       {ordered.length === 0 ? (
-        <p className="text-xs text-gray-600 py-3 text-center">Tidak ada sesi hari ini 🎉</p>
+        <EmptyState icon="🎉" message="Tidak ada sesi hari ini" />
       ) : (
         <div className="space-y-0.5">
           {ordered.map((s, i) => {

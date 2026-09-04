@@ -22,7 +22,6 @@ import type { Session, IaEeProject, IaEeType } from "../db/types";
 import { billingPolicyOf } from "../db/types";
 import { CURRICULUM_META } from "../lib/ibSubjects";
 import PaginationControls from "../components/PaginationControls";
-import Breadcrumb from "../components/Breadcrumb";
 import Tabs from "../components/Tabs";
 import Badge from "../components/Badge";
 import { clampPage, paginateItems } from "../lib/pagination";
@@ -397,8 +396,6 @@ export default function StudentDetail() {
   return (
     <div className="p-4 space-y-4 pb-24">
 
-      <Breadcrumb />
-
       {/* Back */}
       <button onClick={() => navigate(-1)}
         className="flex items-center gap-1.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-xl transition-colors">
@@ -423,11 +420,6 @@ export default function StudentDetail() {
             ) : (
               <span className="text-xs text-gray-500">{student.level}</span>
             )}
-            {student.grade && <span className="text-xs text-gray-500">{student.grade}</span>}
-            {student.school && <span className="text-xs text-gray-500">· {student.school}</span>}
-            {student.subjects.length > 0 && (
-              <span className="text-xs text-gray-500">· {student.subjects.join(", ")}</span>
-            )}
           </div>
         </div>
         <Badge tone={student.active ? "green" : "slate"}>
@@ -437,7 +429,7 @@ export default function StudentDetail() {
 
       {/* Quick actions */}
       <div className="grid grid-cols-2 gap-2">
-        <button onClick={() => navigate("/capture")}
+        <button onClick={() => navigate(`/capture?studentId=${encodeURIComponent(id ?? "")}`)}
           className="flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 text-white text-sm font-semibold shadow-sm hover:bg-blue-700 transition-colors">
           <span>📝</span> Catat Sesi
         </button>
@@ -488,6 +480,12 @@ export default function StudentDetail() {
           <div className="flex items-center gap-2 text-sm">
             <span className="text-gray-500 w-28 flex-shrink-0">Kelas</span>
             <span className="text-gray-700 font-medium">{student.grade}</span>
+          </div>
+        )}
+        {student.subjects.length > 0 && (
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-gray-500 w-28 flex-shrink-0">Mapel</span>
+            <span className="text-gray-700 font-medium">{student.subjects.join(", ")}</span>
           </div>
         )}
         <div className="flex items-center gap-2 text-sm">
@@ -599,6 +597,13 @@ export default function StudentDetail() {
           </div>
         )}
       </div>
+      {student && (
+        <StudyNoteCard
+          studentId={student.id}
+          studyNote={studyNote}
+          onSave={async (content) => { await saveStudyNote(student.id, content); }}
+        />
+      )}
       </>)}
       {detailTab === "sesi" && (<>
 
@@ -607,15 +612,6 @@ export default function StudentDetail() {
         <EvidenceCard
           avgEngScore={avgEngScore}
           engSessions={engSessions}
-        />
-      )}
-
-      {/* Study Note Card */}
-      {student && (
-        <StudyNoteCard
-          studentId={student.id}
-          studyNote={studyNote}
-          onSave={async (content) => { await saveStudyNote(student.id, content); }}
         />
       )}
 

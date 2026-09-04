@@ -47,7 +47,6 @@ export function toneForPayment(payment: Pick<Payment, "dueAt" | "periodEnd" | "m
 // ── Teks WA tagihan manual (tanpa sesi) ───────────────────────────────
 
 export function buildManualBillingText(student: Student, payment: Payment, settings: Settings): string {
-  const bank = settings.bankAccounts;
   const lines = [
     `NAMA MURID: ${student.name}`,
     "",
@@ -56,17 +55,6 @@ export function buildManualBillingText(student: Student, payment: Payment, setti
     "TAGIHAN MANUAL (TANPA SESI)",
     `Total Tagihan — ${formatRupiah(payment.totalCost)}`,
   ];
-
-  if (bank && (bank.bca || bank.cimb || bank.bri || bank.mandiri || bank.bsi || bank.ewallet)) {
-    lines.push("");
-    if (bank.bca) lines.push(`BCA ${bank.bca}`);
-    if (bank.cimb) lines.push(`CIMB ${bank.cimb}`);
-    if (bank.bri) lines.push(`BRI ${bank.bri}`);
-    if (bank.mandiri) lines.push(`Mandiri ${bank.mandiri}`);
-    if (bank.bsi) lines.push(`BSI ${bank.bsi}`);
-    if (bank.ewallet) lines.push(`E-wallet ${bank.ewallet}`);
-    if (bank.accountName) lines.push(`a.n. ${bank.accountName}`);
-  }
 
   lines.push("", "Thank you 😇", settings.tutorProfile?.name || "Ko Lui");
   return lines.join("\n");

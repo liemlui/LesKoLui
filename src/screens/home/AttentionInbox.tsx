@@ -6,6 +6,7 @@ import { clampPage, paginateItems } from "../../lib/pagination";
 import PaginationControls from "../../components/PaginationControls";
 import Tabs from "../../components/Tabs";
 import Badge from "../../components/Badge";
+import EmptyState from "../../components/EmptyState";
 import type { Tab } from "../../components/Tabs";
 
 interface Props {
@@ -17,7 +18,7 @@ interface Props {
   onCompleteFollowUp: (id: string) => void;
 }
 
-/** Tabbed "needs attention" inbox — missed sessions, study notes, and follow-ups. */
+/** Tabbed "needs attention" inbox — missed sessions and follow-ups. */
 export default function AttentionInbox({
   missed,
   follows,
@@ -35,7 +36,6 @@ export default function AttentionInbox({
   const tabs: Tab[] = useMemo(
     () => [
       { key: "missed", label: "Sesi", count: missed.length },
-      { key: "catatan", label: "Catatan", count: 0 },
       { key: "follows", label: "Follow-up", count: follows.length },
     ],
     [missed.length, follows.length],
@@ -70,9 +70,7 @@ export default function AttentionInbox({
             {activeTab === "missed" && (
               <div className="space-y-2">
                 {missed.length === 0 ? (
-                  <p className="text-xs text-slate-500 text-center py-4">
-                    Tidak ada sesi terlewat 🎉
-                  </p>
+                  <EmptyState icon="🎉" message="Tidak ada sesi terlewat" />
                 ) : (
                   <>
                     {paginateItems(missed, safeMissedPage).map((s) => {
@@ -117,24 +115,11 @@ export default function AttentionInbox({
               </div>
             )}
 
-            {/* Catatan — study notes pointer */}
-            {activeTab === "catatan" && (
-              <div className="text-center py-6">
-                <p className="text-sm text-slate-600 mb-1">📒 Catatan Belajar</p>
-                <p className="text-xs text-slate-400">
-                  Catatan belajar bisa dilihat di halaman{" "}
-                  <span className="font-semibold text-blue-600">Catatan</span>.
-                </p>
-              </div>
-            )}
-
             {/* Follow-ups */}
             {activeTab === "follows" && (
               <div className="space-y-2">
                 {follows.length === 0 ? (
-                  <p className="text-xs text-slate-500 text-center py-4">
-                    Tidak ada follow-up 🎉
-                  </p>
+                  <EmptyState icon="🎉" message="Tidak ada follow-up" />
                 ) : (
                   <>
                     {paginateItems(follows, safeFollowUpPage).map((f) => {

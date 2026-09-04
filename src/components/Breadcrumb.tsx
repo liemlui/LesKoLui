@@ -18,8 +18,6 @@ interface Props {
 const ROUTE_LABELS: Record<string, string> = {
   "": "Home",
   "students": "Murid",
-  "tugas": "Tugas",
-  "catatan": "Catatan",
   "capture": "Catat Sesi",
   "report": "Laporan Perkembangan",
   "payments": "Keuangan",

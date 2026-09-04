@@ -114,7 +114,7 @@ export default function CaptureSession() {
   const [currentStep, setCurrentStep] = useState<StepNum>(1);
 
   // Main form
-  const [studentId,      setStudentId]      = useState("");
+  const [studentId,      setStudentId]      = useState(() => searchParams.get("studentId") ?? "");
   const [subjects,       setSubjects]        = useState<string[]>([]);
   const { currentStudent, studentSubjects, briefLastSession, briefFollowUps } = useStudentBrief(studentId);
   const [showIBPicker,   setShowIBPicker]    = useState(false);

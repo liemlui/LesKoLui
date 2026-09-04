@@ -23,16 +23,9 @@ type Tab = "ringkasan" | "tagihan" | "pengeluaran" | "audit";
 const TAB_KEYS: Tab[] = ["ringkasan", "tagihan", "pengeluaran", "audit"];
 const MONTH_QUERY_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
-const TAB_DESCRIPTIONS: Record<Tab, string> = {
-  ringkasan: "Angka & tren bulan terpilih — hanya untuk dipantau; semua aksi ada di tab Penagihan.",
-  tagihan: "Pusat aksi penagihan lintas bulan — terbitkan invoice, kirim WA, tandai lunas.",
-  pengeluaran: "Catat dan tinjau biaya keluar pada periode terpilih.",
-  audit: "Rekap 12 bulan untuk arsip & laporan tahunan.",
-};
-
 /**
  * PaymentsPage — halaman keuangan dengan 4 tab:
- * Ringkasan, pengeluaran, tagihan lintas bulan, dan rekap tahunan.
+ * Bulan Ini, pengeluaran, tagihan lintas bulan, dan rekap tahunan.
  * export PDF/CSV, forecasting, WhatsApp billing, dan audit trail.
  *
  * @component
@@ -54,7 +47,7 @@ export default function PaymentsPage() {
   const activeTab: Tab = TAB_KEYS.includes(urlTab as Tab) ? (urlTab as Tab) : "ringkasan";
   const [message, setMessage] = useState("");
 
-  // Shared month for Ringkasan + Penagihan/Tutup Bulan + Pengeluaran
+  // Shared month for Bulan Ini + Penagihan/Tutup Bulan + Pengeluaran
   const requestedMonth = searchParams.get("month");
   const month = requestedMonth && MONTH_QUERY_PATTERN.test(requestedMonth)
     ? requestedMonth
@@ -159,9 +152,9 @@ export default function PaymentsPage() {
 
       {/* Pengeluaran tetap mendapat konteks kas periode; Tagihan punya pusat koleksi sendiri. */}
       {activeTab === "pengeluaran" && (
-        <div className="space-y-2" aria-label={`Ringkasan keuangan ${monthLabel(month)}`}>
+        <div className="space-y-2" aria-label={`Keuangan bulan ini ${monthLabel(month)}`}>
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
-            Ringkasan {monthLabel(month)}
+            Bulan Ini · {monthLabel(month)}
           </p>
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-xl border border-green-100 bg-green-50/60 px-3 py-2">
@@ -181,13 +174,20 @@ export default function PaymentsPage() {
       )}
 
       {activeTab !== "audit" && activeTab !== "tagihan" && (
-        <FinancePeriodPicker month={month} onChange={handleMonthChange} />
+        <>
+          {activeTab === "ringkasan" && (
+            <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+              Bulan Ini · {monthLabel(month)}
+            </p>
+          )}
+          <FinancePeriodPicker month={month} onChange={handleMonthChange} />
+        </>
       )}
 
       {/* Tabs */}
       <Tabs
         tabs={[
-          { key: "ringkasan", label: "Ringkasan", compactLabel: "Ringkas" },
+          { key: "ringkasan", label: "Bulan Ini", compactLabel: "Bulan Ini" },
           { key: "tagihan", label: "Penagihan", compactLabel: "Tagih", count: tagihanBadge },
           { key: "pengeluaran", label: "Pengeluaran", compactLabel: "Keluar" },
           { key: "audit", label: "Rekap Tahunan", compactLabel: "Rekap" },
@@ -196,9 +196,6 @@ export default function PaymentsPage() {
         onChange={handleTabChange}
         fullWidth
       >
-        <p className="mt-1 text-xs leading-relaxed text-slate-500">
-          {TAB_DESCRIPTIONS[activeTab]}
-        </p>
       </Tabs>
 
       {message && (

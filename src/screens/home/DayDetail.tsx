@@ -1,6 +1,7 @@
 import type { Session } from "../../db/types";
 import type { StudentMap } from "../../lib/studentColor";
 import { dayLabel } from "../../lib/format";
+import EmptyState from "../../components/EmptyState";
 import SessionPill, { type SessionActions } from "./SessionPill";
 
 interface Props extends SessionActions {
@@ -22,7 +23,7 @@ export default function DayDetail({ date, sessions, studentMap, today, onAdd, ..
         </button>
       </div>
       {sessions.length === 0
-        ? <p className="text-xs text-gray-600 py-2 text-center">Belum ada sesi. Tap "+ Jadwal" untuk tambah.</p>
+        ? <EmptyState message="Belum ada sesi" description='Tap "+ Jadwal" untuk menambahkan.' />
         : [...sessions]
             .sort((a, b) => (a.time ?? "").localeCompare(b.time ?? ""))
             .map((s) => (

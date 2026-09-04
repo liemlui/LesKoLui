@@ -62,15 +62,16 @@ describe("buildBillingMessage", () => {
     expect(r.text).toContain("Rp 500.000");
   });
 
-  it("renders bank transfer lines when accounts are configured", () => {
+  it("does not render bank transfer lines", () => {
+    // Prinsip "tanpa info bank di pesan" — format pesan tidak boleh memuat
+    // rekening/emoney apa pun, apa pun isi settings.
     const r = buildBillingMessage({
       student,
       sessions,
       month: "2026-06",
-      settings: { bankAccounts: { bca: "1234567", accountName: "Ko Lui" }, tutorProfile: { name: "Ko Lui", phone: "" } },
+      settings: { tutorProfile: { name: "Ko Lui", phone: "" } },
     });
-    expect(r.text).toContain("BCA  1234567");
-    expect(r.text).toContain("a.n. Ko Lui");
+    expect(r.text).not.toMatch(/BCA|CIMB|BRI|Mandiri|BSI|E-wallet|a\.n\./);
   });
 
   it("returns an empty bill for a month with no DONE sessions", () => {
@@ -84,33 +85,32 @@ describe("buildBillingMessage", () => {
     const pkgStudent = { name: "Budi", hourlyRate: 150000, billingPolicy: "session_count" as const };
     const r = buildBillingMessage({ student: pkgStudent, sessions, month: "2026-06" });
     expect(r.text).toContain("Total 2 pertemuan");
-    expect(r.text).toContain("📌 5 Juni — Physics");
-    expect(r.text).toContain("📌 12 Juni — Sesi umum");
+    expect(r.text).toContain("📌 5 Juni — Physics — Pertemuan ke-1");
+    expect(r.text).toContain("📌 12 Juni — Sesi umum — Pertemuan ke-2");
     expect(r.text).toContain("──────"); // separator
     expect(r.text).not.toContain("📅");
     expect(r.text).not.toContain("jam");
   });
 
-  it("uses a pin icon with duration and no date for monthly students", () => {
+  it("uses a pin icon with date and duration for monthly students", () => {
     const r = buildBillingMessage({ student, sessions, month: "2026-06" });
-    expect(r.text).toContain("📌 Physics (2j)");
-    expect(r.text).toContain("📌 Sesi umum (1.5j)");
-    expect(r.text).not.toContain("📅");
-    expect(r.text).not.toContain("5 Juni"); // date text removed from session lines
+    expect(r.text).toContain("📌 5 Juni — Physics (2j)");
+    expect(r.text).toContain("📌 12 Juni — Sesi umum (1.5j)");
     expect(r.text).toContain("Total 3.5 jam");
   });
 
-  it("supports a firm tone with a preamble and firmer closing", () => {
+  it("uses a warm firm tone and consistent closing", () => {
     const r = buildBillingMessage({ student, sessions, month: "2026-06", tone: "firm" });
-    expect(r.text).toContain("mohon segera ditindaklanjuti");
-    expect(r.text).toContain("Mohon konfirmasi pembayaran");
-    expect(r.text).not.toContain("Thank you 😇");
+    expect(r.text).toContain("Salam hangat,");
+    expect(r.text).toContain("Thank you 😇");
+    expect(r.text).not.toMatch(/segera|harap|jatuh tempo|tunggakan|kewajiban|ditindaklanjuti|konfirmasi pembayaran|mohon maaf/i);
   });
 
   it("supports a gentle tone", () => {
     const r = buildBillingMessage({ student, sessions, month: "2026-06", tone: "gentle" });
-    expect(r.text).toContain("pengingat ramah");
-    expect(r.text).toContain("mohon dimaklumi");
+    expect(r.text).toContain("Semoga sehat selalu 🙏");
+    expect(r.text).toContain("Thank you 😇");
+    expect(r.text).not.toContain("mohon dimaklumi");
   });
 
   it("keeps the default message unchanged when tone is omitted", () => {

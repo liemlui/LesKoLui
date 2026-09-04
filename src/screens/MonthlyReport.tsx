@@ -40,6 +40,7 @@ import { buildBillingMessage } from "../lib/waBilling";
 import { blobToDataUrl } from "../lib/imageUtils";
 import PaginationControls from "../components/PaginationControls";
 import Breadcrumb from "../components/Breadcrumb";
+import EmptyState from "../components/EmptyState";
 import { clampPage, paginateItems } from "../lib/pagination";
 import { calcEngagementScore, scoreLabel, averageEngagement } from "../lib/engagement";
 import { pickDirtyNarrativeSessions } from "../lib/aiIncremental";
@@ -1276,10 +1277,10 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
               )}
 
               {studentId && sessions && sessions.length === 0 && (
-                <div className="text-center py-2 space-y-2">
-                  <p className="text-sm text-gray-500">Belum ada sesi di {periodLabel(periodStart, periodEnd) || monthLabel(month)}.</p>
-                  <Link to="/capture" className="btn btn-primary w-full text-sm">Rekam Sesi Sekarang</Link>
-                </div>
+                <EmptyState
+                  message={`Belum ada sesi di ${periodLabel(periodStart, periodEnd) || monthLabel(month)}`}
+                  action={<Link to="/capture" className="btn btn-primary w-full text-sm">Rekam Sesi Sekarang</Link>}
+                />
               )}
 
               {studentId && sessions && sessions.length > 0 && reportSessions.length === 0 && (

@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useRef } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useToastCtx } from "../../components/ToastProvider";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -22,7 +22,6 @@ import EditSessionModal from "./EditSessionModal";
 import ResolveMissedSessionModal from "./ResolveMissedSessionModal";
 import OperationalSnapshot from "./OperationalSnapshot";
 import QuickExpenseModal from "../../components/QuickExpenseModal";
-import ExitAppModal from "../../components/ExitAppModal";
 import type { SessionActions } from "./SessionPill";
 
 export default function Home() {
@@ -39,15 +38,8 @@ export default function Home() {
   const [resolveMissedTarget, setResolveMissedTarget] = useState<Session | null>(null);
   const [filterStudentId, setFilterStudentId] = useState<string>("");
   const [showExpenseModal, setShowExpenseModal] = useState(false);
-  const [showExitModal, setShowExitModal] = useState(false);
 
   const toast = useToastCtx();
-  const attentionRef = useRef<HTMLDivElement>(null);
-
-  const scrollToAttention = useCallback(() => {
-    attentionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, []);
-
   // ── Data ──────────────────────────────────────────────────────────────────
   const students = useLiveQuery(() => listStudents(true), []);
   const allStudents = useLiveQuery(() => listStudents(), []);
@@ -148,37 +140,27 @@ export default function Home() {
         <div className="flex items-center gap-1.5">
           <button onClick={() => setShowExpenseModal(true)}
             className="bg-blue-600 text-white rounded-xl px-3.5 py-2.5 text-sm font-semibold flex items-center gap-1.5 hover:bg-blue-700 transition-colors shadow-sm">
-            <span>💸</span> Catat
+            <span>💸</span> Pengeluaran
           </button>
           <Link to="/settings" aria-label="Pengaturan"
             className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl w-[44px] h-[44px] flex items-center justify-center text-lg transition-colors">
             ⚙️
           </Link>
-          <button onClick={() => setShowExitModal(true)} aria-label="Keluar aplikasi"
-            className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl w-[44px] h-[44px] flex items-center justify-center text-lg transition-colors">
-            <span>⏻</span>
-          </button>
         </div>
       </div>
 
       {/* Agenda "Hari Ini" */}
       <OperationalSnapshot
         activeStudents={(students ?? []).length}
-        todayDone={todayList.filter((s) => s.status === "DONE").length}
-        todayScheduled={todayList.filter((s) => s.status === "SCHEDULED").length}
         weekDone={(currentWeekSessions ?? []).filter((s) => s.status === "DONE").length}
         weekPlanned={(currentWeekSessions ?? []).filter((s) => s.status === "DONE" || s.status === "SCHEDULED").length}
-        missedCount={missed.length}
-        attentionCount={missed.length + follows.length}
         weeklyTrend={weeklyTrend ?? []}
-        onAttentionClick={scrollToAttention}
-        onMissedClick={scrollToAttention}
         onActiveStudentsClick={() => navigate("/students")}
       />
       <TodayHero today={today} sessions={todayList} studentMap={studentMap} onAdd={openAdd} {...actions} />
 
       {/* Perlu Perhatian */}
-      <div ref={attentionRef}>
+      <div>
       <AttentionInbox
         missed={missed} follows={follows}
         studentMap={studentMap}
@@ -261,7 +243,6 @@ export default function Home() {
           onSaved={msg}
         />
       )}
-      {showExitModal && <ExitAppModal onClose={() => setShowExitModal(false)} />}
     </div>
   );
 }

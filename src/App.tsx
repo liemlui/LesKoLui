@@ -25,7 +25,6 @@ const StudentDetail = lazy(() => import("./screens/StudentDetail"));
 const CaptureSession = lazy(() => import("./screens/CaptureSession"));
 const MonthlyReport = lazy(() => import("./screens/MonthlyReport"));
 const Payments = lazy(() => import("./screens/Payments"));
-const Tugas = lazy(() => import("./screens/CatatanBelajar"));
 const Settings = lazy(() => import("./screens/Settings"));
 
 const AUTO_BACKUP_KEY = "leskolui_last_auto_backup_prompt";
@@ -262,7 +261,6 @@ const router = createBrowserRouter([
       { path: "/students", element: <Students /> },
       { path: "/students/:id", element: <StudentDetail /> },
       { path: "/capture", element: <CaptureSession /> },
-      { path: "/catatan", element: <Tugas /> },
       { path: "/report", element: <MonthlyReport /> },
       { path: "/payments", element: <Payments /> },
       { path: "/settings", element: <Settings /> },

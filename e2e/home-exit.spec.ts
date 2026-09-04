@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("tombol keluar di header membuka konfirmasi tanpa memakai navigasi back", async ({ page }) => {
+test("tombol keluar di Pengaturan membuka konfirmasi tanpa memakai navigasi back", async ({ page }) => {
   await page.goto("/");
   await page.waitForTimeout(4000);
   await page.evaluate(async () => {
@@ -16,8 +16,14 @@ test("tombol keluar di header membuka konfirmasi tanpa memakai navigasi back", a
   // banner risiko muncul, lalu tutup melalui UI agar tidak menutupi header.
   await dismissWarning.click({ timeout: 5000 }).catch(() => undefined);
 
-  await expect(page.getByRole("button", { name: "Keluar aplikasi" })).toBeVisible();
-  await page.getByRole("button", { name: "Keluar aplikasi" }).click();
+  // Tombol keluar dipindahkan ke Pengaturan → Aplikasi (PWA).
+  await page.goto("/settings");
+  await page.waitForTimeout(1500);
+  if (await changelog.isVisible({ timeout: 1500 }).catch(() => false)) await changelog.click();
+  await dismissWarning.click({ timeout: 5000 }).catch(() => undefined);
+
+  await expect(page.getByRole("button", { name: "Keluar Aplikasi" })).toBeVisible();
+  await page.getByRole("button", { name: "Keluar Aplikasi" }).click();
   await expect(page.getByRole("heading", { name: "Keluar dari Les Ko Lui?" })).toBeVisible();
   await expect(page.getByText("Perubahan sudah tersimpan di perangkat.")).toBeVisible();
 });

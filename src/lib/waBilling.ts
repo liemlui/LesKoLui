@@ -23,7 +23,7 @@ export interface BuildBillingArgs {
   sessions: Session[];
   /** YYYY-MM billing period. */
   month: string;
-  settings?: Pick<Settings, "bankAccounts" | "tutorProfile">;
+  settings?: Pick<Settings, "tutorProfile">;
   /** Override the headline total (e.g. an edited Payment amount). */
   amountOverride?: number;
   /** Periode bebas (tagihan laporan) — filter sesi pakai rentang ini, bukan bulan. */
@@ -36,14 +36,14 @@ export interface BuildBillingArgs {
 
 const TONE_PREAMBLE: Record<BillingTone, string> = {
   normal: "",
-  gentle: "Semoga sehat selalu 🙏 Mohon maaf mengganggu — berikut pengingat ramah untuk tagihan di bawah.",
-  firm: "Salam, mohon segera ditindaklanjuti — berikut rincian tagihan yang belum lunas:",
+  gentle: "Semoga sehat selalu 🙏",
+  firm: "Salam hangat,",
 };
 
 const TONE_CLOSING: Record<BillingTone, string> = {
   normal: "Thank you 😇",
-  gentle: "Terima kasih banyak, mohon dimaklumi ya 🙏",
-  firm: "Mohon konfirmasi pembayaran agar tercatat lunas. Terima kasih.",
+  gentle: "Thank you 😇",
+  firm: "Thank you 😇",
 };
 
 export function buildBillingMessage(args: BuildBillingArgs): BillingResult {
@@ -59,8 +59,6 @@ export function buildBillingMessage(args: BuildBillingArgs): BillingResult {
   const totalHours = billableSessions.reduce((sum, s) => sum + s.durationHours, 0);
   const sessionCost = billableSessions.reduce((sum, s) => sum + s.cost, 0);
   const totalCost = amountOverride ?? sessionCost;
-  const bank = settings?.bankAccounts;
-
   const lines: string[] = [
     `NAMA MURID: ${student.name}`,
     ``,
@@ -77,15 +75,16 @@ export function buildBillingMessage(args: BuildBillingArgs): BillingResult {
     lines.push(`──────────────────`, ``);
   }
 
-  billableSessions.forEach((s) => {
+  billableSessions.forEach((s, index) => {
     const subj = s.status === "NO_SHOW"
       ? "Tidak hadir (sesuai kebijakan)"
       : s.subjects.length > 0 ? s.subjects.join(", ") : "Sesi umum";
     if (isSessionCount) {
       const dateShort = dayLabel(s.date).replace(/^\w+, /, "").replace(/ \d{4}$/, "");
-      lines.push(`📌 ${dateShort} — ${subj}`);
+      lines.push(`📌 ${dateShort} — ${subj} — Pertemuan ke-${index + 1}`);
     } else {
-      lines.push(`📌 ${subj} (${s.durationHours}j)`);
+      const dateShort = dayLabel(s.date).replace(/^\w+, /, "").replace(/ \d{4}$/, "");
+      lines.push(`📌 ${dateShort} — ${subj} (${s.durationHours}j)`);
     }
   });
 
@@ -95,14 +94,6 @@ export function buildBillingMessage(args: BuildBillingArgs): BillingResult {
       ? `Total ${billableSessions.length} pertemuan — ${formatRupiah(totalCost)}`
       : `Total ${totalHours} jam — ${formatRupiah(totalCost)}`,
   );
-
-  if (bank && (bank.bca || bank.cimb || bank.bri)) {
-    lines.push(``);
-    if (bank.bca)  lines.push(`BCA  ${bank.bca}`);
-    if (bank.cimb) lines.push(`CIMB ${bank.cimb}`);
-    if (bank.bri)  lines.push(`BRI  ${bank.bri}`);
-    if (bank.accountName) lines.push(`a.n. ${bank.accountName}`);
-  }
 
   lines.push(``, TONE_CLOSING[tone], settings?.tutorProfile?.name || "Ko Lui");
   return { text: lines.join("\n"), totalHours, totalCost, count: billableSessions.length };

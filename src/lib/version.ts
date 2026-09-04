@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.70.5",
+    date: "2026-09-05",
+    title: "UI/UX Lebih Ringkas dan Pesan WhatsApp Lebih Personal",
+    items: [
+      "Home diringkas: progress Hari Ini dan indikator Perlu Perhatian tidak lagi tampil berulang",
+      "Catatan Belajar dipusatkan di detail murid; route /catatan dan Reminder AI dihapus",
+      "Keuangan dirapikan: kolektibilitas dan arus kas tidak lagi ditampilkan berulang",
+      "Pesan billing WhatsApp kini tanpa info bank, memakai tanggal sesi, nomor pertemuan paket, dan penutup konsisten Thank you 😇",
+    ],
+  },
+
+  {
     version: "v1.70.3",
     date: "2026-09-04",
     title: "Perbaikan UI/UX — Navigasi Lebih Cepat, Aksesibilitas, dan Kontras Lebih Baik",
@@ -33,7 +45,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: "Keuangan Bebas Redundansi — Ringkasan Pantau, Penagihan Eksekusi",
     items: [
       "Ringkasan jadi read-only (pantau) — semua tombol aksi penagihan dihapus dari papan pipeline; kini hanya tampil status + chip + link navigasi ke Penagihan atau Laporan",
-      "Tab Penagihan jadi satu-satunya pusat eksekusi — terbitkan invoice, kirim WA, tandai lunas, edit nominal, dan reminder AI hanya di sini",
+      "Tab Penagihan jadi satu-satunya pusat eksekusi — terbitkan invoice, kirim WA, tandai lunas, dan edit nominal hanya di sini",
       "Subtitle deskriptif muncul di bawah setiap tab: Ringkasan → 'hanya dipantau', Penagihan → 'Pusat aksi', Pengeluaran → 'biaya periode', Rekap → 'arsip tahunan'",
       "Label piutang diseragamkan di seluruh halaman: 'Masih ditagih' → 'Piutang (belum dibayar)' agar tidak rancu dengan tab Penagihan",
       "Catatan scope eksplisit di kartu Status Pendapatan: 'Ringkasan hanya untuk bulan terpilih — invoice lintas bulan di tab Penagihan'",

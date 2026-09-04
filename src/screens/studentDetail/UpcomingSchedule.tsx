@@ -2,6 +2,7 @@ import type { Session } from "../../db/types";
 import { dayLabel } from "../../lib/format";
 import { clampPage, paginateItems } from "../../lib/pagination";
 import PaginationControls from "../../components/PaginationControls";
+import EmptyState from "../../components/EmptyState";
 
 interface UpcomingScheduleProps {
   upcomingSched: Session[] | undefined;
@@ -51,10 +52,8 @@ export default function UpcomingSchedule({
       )}
 
       {filteredList.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-dashed border-gray-200 py-6 text-center">
-          <p className="text-2xl mb-1">📅</p>
-          <p className="text-sm text-gray-500">{schedMonth ? "Tidak ada jadwal di bulan ini" : "Belum ada jadwal mendatang"}</p>
-        </div>
+        <EmptyState tone="dashed" icon="📅"
+          message={schedMonth ? "Tidak ada jadwal di bulan ini" : "Belum ada jadwal mendatang"} />
       ) : (
         <div className="space-y-2">
           {paginatedFiltered.map((s) => (

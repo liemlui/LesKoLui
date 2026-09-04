@@ -8,7 +8,6 @@ import {
 import type { Payment, Student, Settings, Session, MonthlyReport } from "../../db/types";
 import { reportDisplayStatus } from "../../db/types";
 import { formatRupiah, todayWIB, monthLabel, periodLabel } from "../../lib/format";
-import { AiCostModal } from "../../components/AiCostModal";
 import Modal from "../../components/Modal";
 import { buildBillingMessage, toWaNumber } from "../../lib/waBilling";
 import { MAX_PAYMENT_AMOUNT, clampCurrencyAmount, isValidCurrencyAmount, parseCurrencyDigits } from "../../lib/money";
@@ -26,7 +25,6 @@ import { useSessionCountBilling } from "./useSessionCountBilling";
 import type { ConfirmState } from "./useSessionCountBilling";
 import { useInvoiceFilters } from "./useInvoiceFilters";
 import { useInvoiceExports } from "./useInvoiceExports";
-import { useAiReminder } from "./useAiReminder";
 
 interface TagihanTabProps {
   payments: Payment[];
@@ -87,11 +85,6 @@ export default function TagihanTab({
     payments, students, reports, allBillableSessions, settings,
     allReportSessions, itemsPerPdfPage: ITEMS_PER_PDF_PAGE,
   });
-  // Pengingat pembayaran AI (Reminder WA AI).
-  const aiReminder = useAiReminder({
-    students, tutorName: settings.tutorProfile?.name || "Ko Lui", setMessage,
-  });
-
   // Deep-link focus lanjutan (murid non-paket) — case paket ditangani hook.
   useEffect(() => {
     if (appliedFocusRef.current) return;
@@ -122,11 +115,6 @@ export default function TagihanTab({
     sessionCountInvoiceBusy, sessionCountCancelBusy,
     handleCreateSessionCountInvoice, handleCancelSessionCountInvoice,
   } = sessionCount;
-  const {
-    reminderLoading, reminderModal, setReminderModal,
-    openReminderModal, confirmGenerateReminder, estimateCost: estimateReminderCost,
-  } = aiReminder;
-
   const readyActionCount = readyReportRows.length + needsActionCount;
   const agingRows = useMemo(() => {
     const buckets: Record<AgeBucket, { amount: number; count: number }> = {
@@ -248,14 +236,11 @@ export default function TagihanTab({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-[0.12em] text-indigo-500">Penagihan · Semua Periode</p>
-            <h2 id="collection-center-title" className="mt-0.5 text-base font-bold text-slate-800">Pusat Koleksi</h2>
+            <h2 id="collection-center-title" className="mt-0.5 text-base font-bold text-slate-800">Penagihan</h2>
             <p className="mt-1 max-w-sm text-xs leading-relaxed text-slate-500">
               Terbitkan invoice, tindak lanjuti piutang, lalu catat pelunasan dalam satu alur.
             </p>
           </div>
-          <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${collectionRate >= 80 ? "bg-green-100 text-green-700" : collectionRate > 0 ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}`}>
-            {allPayments.length > 0 ? `${collectionRate}% tertagih` : "Belum ada invoice"}
-          </span>
         </div>
 
         <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-2" role="group" aria-label="Filter tahap penagihan">
@@ -326,21 +311,6 @@ export default function TagihanTab({
             <span className="font-semibold text-slate-700">Status invoice ≠ kas masuk.</span>{" "}
             Pelunasan menutup piutang; kas dicatat menurut tanggal pembayaran di Ringkasan.
           </p>
-        </div>
-
-        {/* Kolektibilitas bulan ini — warna threshold: <70 merah, 70–89 kuning, ≥90 hijau */}
-        <div className="mt-3 rounded-xl border border-slate-100 bg-white p-3" aria-label="Kolektibilitas">
-          <ProgressBar
-            value={collectionRate}
-            max={100}
-            label="Kolektibilitas"
-            detail={allPayments.length > 0
-              ? `${paidCount} dari ${allPayments.length} invoice lunas`
-              : "Belum ada invoice pada periode ini"}
-            showPercent
-            tone="red"
-            thresholds={[{ pct: 90, tone: "green" }, { pct: 70, tone: "amber" }]}
-          />
         </div>
 
         <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-3" aria-label="Umur piutang">
@@ -718,13 +688,6 @@ export default function TagihanTab({
                       📄 Invoice
                     </button>
                   )}
-                  {!paid && student && settings.ai?.enabled && settings.ai.apiKey && (
-                    <button disabled={reminderLoading === payment.id}
-                      onClick={() => openReminderModal(payment.id, student, periodLbl || payment.month, payment.totalCost)}
-                      className="min-w-[88px] flex-1 py-1.5 rounded-lg border border-indigo-200 text-indigo-600 text-xs font-medium hover:bg-indigo-50 transition-colors disabled:opacity-50">
-                      {reminderLoading === payment.id ? "⏳..." : "✨ Reminder AI"}
-                    </button>
-                  )}
                   {report?.billingMode === "session_count" && !paid && payment.source !== "manual" && (
                     <button
                       type="button"
@@ -854,17 +817,6 @@ export default function TagihanTab({
             navigate(`/report?studentId=${encodeURIComponent(s.id)}`);
           }}
           onClose={() => setInvoiceTarget(null)}
-        />
-      )}
-
-      {reminderModal && (
-        <AiCostModal
-          open={!!reminderModal}
-          title="Reminder WA AI"
-          estimatedIDR={estimateReminderCost()}
-          description={`Pesan pengingat tagihan untuk ${reminderModal.studentName}`}
-          onCancel={() => setReminderModal(null)}
-          onConfirm={confirmGenerateReminder}
         />
       )}
 
