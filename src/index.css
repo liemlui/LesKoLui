@@ -34,6 +34,34 @@
   --text-muted: var(--color-text-muted);
   --brand: var(--color-brand-600);
   --brand-strong: var(--color-brand-700);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-surface: #020817;
+    --color-surface-strong: #0f172a;
+    --color-surface-soft: #111827;
+    --color-border: rgba(148, 163, 184, 0.32);
+    --color-text: #e2e8f0;
+    --color-text-muted: #cbd5e1;
+    --color-brand-50: #dbeafe;
+    --color-brand-100: #bfdbfe;
+    --color-brand-200: #93c5fd;
+    --color-brand-500: #60a5fa;
+    --color-brand-600: #3b82f6;
+    --color-brand-700: #2563eb;
+    --color-brand-900: #dbeafe;
+    --surface: var(--color-surface);
+    --surface-strong: var(--color-surface-strong);
+    --surface-soft: var(--color-surface-soft);
+    --border: var(--color-border);
+    --text: var(--color-text);
+    --text-muted: var(--color-text-muted);
+    --brand: var(--color-brand-600);
+    --brand-strong: var(--color-brand-700);
+    color-scheme: dark;
+  }
 }
 
 html, body, #root { min-height: 100vh; }
@@ -42,6 +70,13 @@ body {
   font-family: var(--font-sans);
   background: linear-gradient(180deg, #f8fbff 0%, #f5f7fb 100%);
   color: var(--color-text);
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: linear-gradient(180deg, #020817 0%, #0f172a 100%);
+    color: var(--color-text);
+  }
 }
 
 * { box-sizing: border-box; }

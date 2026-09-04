@@ -55,15 +55,15 @@ const NAV_ITEMS: NavItem[] = [
 const linkClass = ({ isActive }: { isActive: boolean }, primary = false) =>
   `flex flex-col items-center justify-center gap-0.5 min-h-[48px] min-w-[48px] px-2 py-1 text-[12px] font-medium transition-colors rounded-xl ${
     primary
-      ? "h-14 w-14 -mt-4 rounded-full border-4 border-white bg-blue-600 text-white shadow-lg"
+      ? "h-14 w-14 -mt-4 rounded-full border-4 border-[var(--border)] bg-[var(--brand)] text-white shadow-lg"
       : isActive
-        ? "text-blue-700 bg-blue-50"
-        : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+        ? "text-[var(--brand)] bg-[var(--surface-soft)]"
+        : "text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-soft)]"
   }`;
 
 export default function BottomNav() {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white pb-[max(env(safe-area-inset-bottom),0px)]" style={{ height: "var(--bottom-nav-h)" }}>
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--border)] bg-[var(--surface-strong)] text-[var(--text)] pb-[max(env(safe-area-inset-bottom),0px)]" style={{ height: "var(--bottom-nav-h)" }}>
       <div className="mx-auto flex h-full max-w-md items-center justify-around px-2">
         {NAV_ITEMS.map(({ to, icon, label, primary }) => (
           <NavLink

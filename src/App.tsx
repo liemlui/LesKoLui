@@ -7,6 +7,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import Skeleton from "./components/Skeleton";
 import { ToastProvider, useToastCtx } from "./components/ToastProvider";
 import ToastContainer from "./components/Toast";
+import { BackupIcon, CloudIcon, CloseIcon, OfflineIcon, ShieldIcon, WarningIcon } from "./components/icons";
 import { isQuotaError, isStorageNearFull } from "./lib/storageGuard";
 import { Z } from "./lib/zIndex";
 
@@ -153,8 +154,8 @@ function Layout() {
       {/* Offline banner */}
       {offline && (
         <div className={`fixed top-0 inset-x-0 ${Z.toast} px-4 pt-[max(env(safe-area-inset-top),0.5rem)]`}>
-          <div className="max-w-md mx-auto bg-gray-800 text-white text-xs font-semibold px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg">
-            <span>📵</span> Offline — data tetap aman, perubahan disimpan lokal
+          <div className="max-w-md mx-auto bg-slate-900 text-white text-xs font-semibold px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg dark:bg-slate-800">
+            <OfflineIcon size={16} className="shrink-0" /> Offline — data tetap aman, perubahan disimpan lokal
           </div>
         </div>
       )}
@@ -163,9 +164,9 @@ function Layout() {
       {storageWarn && (
         <div className={`fixed top-0 inset-x-0 ${Z.bannerTop} px-4 pt-[max(env(safe-area-inset-top),0.5rem)]`}>
           <div className="max-w-md mx-auto bg-red-600 text-white text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-lg">
-            <span>⚠️</span>
+            <WarningIcon size={16} className="shrink-0" />
             <span className="flex-1">Penyimpanan hampir penuh — ekspor backup lalu hapus data/foto lama agar data baru tak gagal tersimpan.</span>
-            <button onClick={() => setStorageWarn(false)} className="font-bold px-1" aria-label="Tutup peringatan"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+            <button onClick={() => setStorageWarn(false)} className="font-bold px-1" aria-label="Tutup peringatan"><CloseIcon size={16} /></button>
           </div>
         </div>
       )}
@@ -174,14 +175,14 @@ function Layout() {
       {staleBackup && !storageWarn && (
         <div className={`fixed top-0 inset-x-0 ${Z.banner} px-4 pt-[max(env(safe-area-inset-top),0.5rem)]`}>
           <div className="max-w-md mx-auto bg-red-600 text-white text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-lg">
-            <span>🛟</span>
+            <ShieldIcon size={16} className="shrink-0" />
             <span className="flex-1">
               {staleBackup.days === null
                 ? "Datamu belum pernah di-backup. Lindungi dari kehilangan HP/kerusakan."
                 : `Backup terakhir ${staleBackup.days} hari lalu. Segera backup agar datamu aman.`}
             </span>
             <button onClick={() => { setStaleBackup(null); navigate("/settings"); }} className="bg-white/20 px-2 py-1 rounded-lg font-bold">Backup</button>
-            <button onClick={() => setStaleBackup(null)} className="font-bold px-1" aria-label="Tutup peringatan"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+            <button onClick={() => setStaleBackup(null)} className="font-bold px-1" aria-label="Tutup peringatan"><CloseIcon size={16} /></button>
           </div>
         </div>
       )}
@@ -200,11 +201,14 @@ function Layout() {
       {backupPrompt && (
         <div className={`fixed inset-x-0 ${Z.nag} px-4`} style={{ bottom: "calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 0.75rem)" }}>
           <div className="max-w-md mx-auto bg-amber-50 border border-amber-300 rounded-2xl px-4 py-3 shadow-xl flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-amber-800">💾 Saatnya backup mingguan</p>
-              <p className="text-xs text-amber-600 mt-0.5">
-                {driveAutoOn() ? "Backup terenkripsi langsung ke Google Drive" : "Lindungi datamu dengan file backup terenkripsi"}
-              </p>
+            <div className="flex items-start gap-2">
+              <BackupIcon size={18} className="mt-0.5 shrink-0 text-amber-700" />
+              <div>
+                <p className="text-sm font-semibold text-amber-800">Saatnya backup mingguan</p>
+                <p className="text-xs text-amber-600 mt-0.5">
+                  {driveAutoOn() ? "Backup terenkripsi langsung ke Google Drive" : "Lindungi datamu dengan file backup terenkripsi"}
+                </p>
+              </div>
             </div>
             <div className="flex gap-2 flex-shrink-0">
               <button
@@ -218,8 +222,9 @@ function Layout() {
                 <button
                   disabled={driveBusy}
                   onClick={doReminderDriveBackup}
-                  className="bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl disabled:opacity-60">
-                  {driveBusy ? "..." : "☁️ Backup ke Drive"}
+                  className="bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl disabled:opacity-60 inline-flex items-center gap-1.5">
+                  <CloudIcon size={14} />
+                  {driveBusy ? "..." : "Backup ke Drive"}
                 </button>
               ) : (
                 <button

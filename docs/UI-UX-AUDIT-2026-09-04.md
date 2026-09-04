@@ -201,8 +201,8 @@ Legend severitas: 🔴 Kritis · 🟠 Tinggi · 🟡 Sedang · 🟢 Rendah.
 - [x] Fase 2 — A11y core
 - [x] Fase 3 — Design tokens
 - [x] Fase 4 — Struktur & feedback
-- [ ] Fase 5 — Dark mode + motion
-- [ ] Fase 6 — Ikonografi
+- [x] Fase 5 — Dark mode + motion
+- [x] Fase 6 — Ikonografi
 
 **Verifikasi Fase 1:** `npm test -- --run src/__tests__/bottomNavNoVersion.test.tsx` (1/1 hijau) dan `npm run build` (sukses) setelah perbaikan nav, shell layout, modal, safe-area, dan cleanup file dead code.
 
