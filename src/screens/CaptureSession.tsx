@@ -518,8 +518,21 @@ export default function CaptureSession() {
           {STEPS.map((step) => {
             const done   = currentStep > step.id;
             const active = currentStep === step.id;
+            const future = !done && !active;
             return (
-              <button type="button" onClick={() => currentStep > step.id ? setCurrentStep(step.id as StepNum) : undefined} key={step.id} className="flex flex-col items-center gap-1.5 z-10 relative flex-1">
+              <button
+                type="button"
+                key={step.id}
+                disabled={future}
+                onClick={() => done && setCurrentStep(step.id as StepNum)}
+                aria-current={active ? "step" : undefined}
+                aria-label={active
+                  ? `Langkah ${step.id}: ${step.label} (saat ini)`
+                  : done
+                    ? `Kembali ke langkah ${step.id}: ${step.label}`
+                    : `Langkah ${step.id}: ${step.label} (belum aktif)`}
+                className={`flex flex-col items-center gap-1.5 z-10 relative flex-1 ${done ? "cursor-pointer" : "cursor-default"}`}
+              >
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all shadow-sm
                   ${done   ? "bg-green-500 text-white scale-95"
                   : active ? "bg-blue-600 text-white ring-4 ring-blue-100 scale-110"
@@ -563,11 +576,20 @@ export default function CaptureSession() {
 
       {/* ── MESSAGE ── */}
       {message && (
-        <div className="mx-4 mb-3" onClick={() => setMessage(null)}>
-          <div className={`p-3 rounded-xl text-sm cursor-pointer font-medium ${
-            message.kind === "success" ? "bg-green-50 text-green-700 border border-green-200"
-            : "bg-red-50 text-red-600 border border-red-200"}`}>
-            {message.text}
+        <div className="mx-4 mb-3">
+          <div className={`flex items-start gap-2 rounded-xl border p-3 text-sm font-medium ${
+            message.kind === "success" ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-600"}`}>
+            <span className="flex-1">{message.text}</span>
+            <button
+              type="button"
+              aria-label="Tutup pesan"
+              onClick={() => setMessage(null)}
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-current/80 transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
           </div>
         </div>
       )}
@@ -736,10 +758,10 @@ export default function CaptureSession() {
                 }}
               />
               {topicSearch && (
-                <button type="button" tabIndex={-1}
+                <button type="button" aria-label="Bersihkan pencarian topik"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => { setTopicSearch(""); setTopicResults([]); }}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 text-gray-500 hover:text-gray-700 transition-colors">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 </button>
               )}
@@ -750,10 +772,10 @@ export default function CaptureSession() {
                 {topics.map((t) => (
                   <span key={t} className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-2.5 py-1 text-xs font-medium">
                     {t}
-                    <button type="button" tabIndex={-1}
+                    <button type="button"
                       onClick={() => removeTopic(t)}
                       aria-label={`Hapus topik ${t}`}
-                      className="text-blue-400 hover:text-blue-700 transition-colors">
+                      className="-m-1.5 p-1.5 rounded-full text-blue-500 hover:text-blue-700 transition-colors">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
                     </button>
                   </span>
@@ -1093,7 +1115,7 @@ export default function CaptureSession() {
                             ? "bg-green-500 text-white border-green-500 shadow-sm"
                             : "bg-white text-gray-700 border-gray-200 hover:border-green-300 hover:bg-green-50"}`}>
                         <span>{tag.icon}</span> {tag.label}
-                        <span className={`ml-0.5 text-[9px] font-bold rounded px-1 ${responseTag === tag.id ? "bg-green-300 text-green-800" : "bg-green-50 text-green-600"}`}>{score}</span>
+                        <span className={`ml-0.5 text-xs font-bold rounded px-1 ${responseTag === tag.id ? "bg-green-300 text-green-800" : "bg-green-50 text-green-600"}`}>{score}</span>
                       </button>
                     );
                   })}
@@ -1114,7 +1136,7 @@ export default function CaptureSession() {
                             ? "bg-yellow-500 text-white border-yellow-500 shadow-sm"
                             : "bg-white text-gray-700 border-gray-200 hover:border-yellow-300 hover:bg-yellow-50"}`}>
                         <span>{tag.icon}</span> {tag.label}
-                        <span className={`ml-0.5 text-[9px] font-bold rounded px-1 ${responseTag === tag.id ? "bg-yellow-300 text-yellow-800" : "bg-yellow-50 text-yellow-600"}`}>{score}</span>
+                        <span className={`ml-0.5 text-xs font-bold rounded px-1 ${responseTag === tag.id ? "bg-yellow-300 text-yellow-800" : "bg-yellow-50 text-yellow-600"}`}>{score}</span>
                       </button>
                     );
                   })}
@@ -1134,7 +1156,7 @@ export default function CaptureSession() {
                             ? "bg-red-500 text-white border-red-500 shadow-sm"
                             : "bg-white text-gray-700 border-gray-200 hover:border-red-300 hover:bg-red-50"}`}>
                         <span>{tag.icon}</span> {tag.label}
-                        <span className={`ml-0.5 text-[9px] font-bold rounded px-1 ${responseTag === tag.id ? "bg-red-300 text-red-800" : "bg-red-50 text-red-600"}`}>−2</span>
+                        <span className={`ml-0.5 text-xs font-bold rounded px-1 ${responseTag === tag.id ? "bg-red-300 text-red-800" : "bg-red-50 text-red-600"}`}>−2</span>
                       </button>
                     );
                   })}
@@ -1464,7 +1486,7 @@ export default function CaptureSession() {
       {/* ══════════════════════════════════════════
           FIXED NAVIGATION BAR
           ══════════════════════════════════════════ */}
-      <div className="fixed bottom-16 left-0 right-0 z-50">
+      <div className="fixed bottom-[calc(4rem+var(--safe-bottom))] left-0 right-0 z-50">
         <div className="bg-white/95 backdrop-blur border-t border-gray-100 shadow-xl px-4 py-3">
           <div className="flex items-center gap-2 max-w-md mx-auto">
             {currentStep > 1 ? (
@@ -1495,7 +1517,7 @@ export default function CaptureSession() {
           ══════════════════════════════════════════ */}
       {activeTooltip && (
         <div role="dialog" aria-modal="true" aria-label="Info tag" className={`fixed inset-0 ${Z.tooltip}`} onClick={() => setActiveTooltip(null)}>
-          <div className="absolute bottom-24 left-4 right-4 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden"
+          <div className="absolute bottom-[calc(6rem+var(--safe-bottom))] left-4 right-4 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden"
             onClick={(e) => e.stopPropagation()}>
             <div className={`px-4 py-3 flex items-center gap-3 ${
               activeTooltip.type === "response" ? "bg-blue-50"
@@ -1640,8 +1662,9 @@ export default function CaptureSession() {
                     {subjects.map((s) => (
                       <span key={s} className="inline-flex items-center gap-1 text-xs bg-blue-600 text-white px-2.5 py-1 rounded-full font-medium">
                         {s}
-                        <button onClick={() => setSubjects((prev) => prev.filter((x) => x !== s))}
-                          className="text-blue-200 hover:text-white ml-0.5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                        <button type="button" aria-label={`Hapus ${s}`}
+                          onClick={() => setSubjects((prev) => prev.filter((x) => x !== s))}
+                          className="-my-1 -mr-1 p-1.5 text-blue-200 hover:text-white"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
                       </span>
                     ))}
                   </div>

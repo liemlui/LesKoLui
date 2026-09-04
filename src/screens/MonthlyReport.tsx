@@ -1070,9 +1070,18 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
         )}
         {message && (
           <div className="space-y-1.5">
-            <div onClick={() => setMessage("")}
-              className={`p-3 rounded-lg text-sm cursor-pointer ${message.includes("✓") ? "bg-green-50 text-green-700" : message.startsWith("Gagal") || message.startsWith("Error") ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700"}`}>
-              {message}
+            <div className={`flex items-start gap-2 rounded-lg p-3 text-sm ${message.includes("✓") ? "bg-green-50 text-green-700" : message.startsWith("Gagal") || message.startsWith("Error") ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700"}`}>
+              <span className="flex-1">{message}</span>
+              <button
+                type="button"
+                aria-label="Tutup pesan"
+                onClick={() => setMessage("")}
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-current/80 transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
             </div>
             {prevTexts && (
               <button
@@ -1117,18 +1126,18 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                 </div>
                 {drafts.length > 0 && (
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 space-y-1.5">
-                    <p className="text-[11px] font-semibold text-amber-700">📋 {drafts.length} laporan draft — belum final</p>
+                    <p className="text-xs font-semibold text-amber-700">📋 {drafts.length} laporan draft — belum final</p>
                     {drafts.map((d) => (
                       <div key={d.id} className="flex items-center justify-between gap-1 text-xs">
                         <span className="text-gray-700 truncate font-medium">{periodLabel(d.periodStart, d.periodEnd)}</span>
                         <span className="text-gray-400">{formatRupiah(d.totalCost)}</span>
                         <div className="flex gap-1 shrink-0">
                           <button onClick={() => jumpToDraft(d)}
-                            className="px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-[11px] font-medium hover:bg-blue-200 transition-colors">
+                            className="px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-xs font-medium hover:bg-blue-200 transition-colors">
                             Buka
                           </button>
                           <button onClick={async () => { if (confirm("Hapus draft ini?")) { await discardReport(d.id); } }}
-                            className="px-2 py-0.5 rounded text-red-500 text-[11px] hover:bg-red-50 transition-colors">
+                            className="px-2 py-0.5 rounded text-red-500 text-xs hover:bg-red-50 transition-colors">
                             ✕
                           </button>
                         </div>
@@ -1169,7 +1178,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                           )
                           && m !== "jumlah"
                         )}
-                        className={`rounded-lg px-1 py-2 text-[11px] font-semibold leading-tight transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${mode === m ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                        className={`rounded-lg px-1 py-2 text-xs font-semibold leading-tight transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${mode === m ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
                         {label}
                       </button>
                     ))}
@@ -1194,20 +1203,20 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                           beginControlScopeChange();
                           setCount(Math.max(1, Math.min(20, Number(e.target.value) || 1)));
                         }} />
-                      <p className="text-[11px] text-gray-500 mt-1">
+                      <p className="text-xs text-gray-500 mt-1">
                         {student && billingPolicyOf(student) === "session_count"
                           ? "Mengambil N sesi tertua sesuai siklus murid. Invoice paket tetap diterbitkan dari Keuangan."
                           : "Mengambil N sesi tertua yang belum masuk laporan final."}
                       </p>
                       {student && billingPolicyOf(student) === "session_count" && (
                         <div className="mt-1 space-y-1.5">
-                          <p className="text-[11px] font-semibold text-indigo-600">
+                          <p className="text-xs font-semibold text-indigo-600">
                             Siklus murid dikunci pada {student.billingSessionCount ?? 8} pertemuan. Terbitkan tagihan paket melalui Keuangan agar sesi diklaim secara atomik.
                           </p>
                           {(!report || reportStatus(report) !== "confirmed") && (
                             <Link
                               to={billingHref}
-                              className="inline-flex rounded-lg bg-indigo-50 px-2.5 py-1.5 text-[11px] font-semibold text-indigo-700 hover:bg-indigo-100"
+                              className="inline-flex rounded-lg bg-indigo-50 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100"
                             >
                               Buka Antrean Tagihan
                             </Link>
@@ -1248,13 +1257,13 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                 <div className="flex flex-wrap gap-1.5">
                   <button
                     onClick={() => setSubjectFilter("")}
-                    className={`text-[11px] font-semibold rounded-full px-2.5 py-1 transition-colors ${!subjectFilter ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+                    className={`text-xs font-semibold rounded-full px-2.5 py-1 transition-colors ${!subjectFilter ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
                     Semua
                   </button>
                   {uniqueSubjects.map((subj) => (
                     <button key={subj}
                       onClick={() => setSubjectFilter(subj === subjectFilter ? "" : subj)}
-                      className={`text-[11px] font-semibold rounded-full px-2.5 py-1 transition-colors ${subj === subjectFilter ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+                      className={`text-xs font-semibold rounded-full px-2.5 py-1 transition-colors ${subj === subjectFilter ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
                       {subj}
                     </button>
                   ))}
@@ -1282,7 +1291,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
 
               {studentId && periodStart && periodEnd && reportSessions.length > 0 && (
                 availability.ok ? (
-                  <p className="text-[11px] text-green-700 bg-green-50 border border-green-100 rounded-lg px-2.5 py-1.5">
+                  <p className="text-xs text-green-700 bg-green-50 border border-green-100 rounded-lg px-2.5 py-1.5">
                     {report
                       ? "✓ Laporan ini dapat diperbarui."
                       : mode === "jumlah"
@@ -1290,13 +1299,13 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                         : "✓ Periode tersedia — tanggal belum pernah direkap dan belum tutup buku."}
                   </p>
                 ) : (
-                  <p className="text-[11px] text-red-700 bg-red-50 border border-red-100 rounded-lg px-2.5 py-1.5">
+                  <p className="text-xs text-red-700 bg-red-50 border border-red-100 rounded-lg px-2.5 py-1.5">
                     ⛔ {availability.reason}
                   </p>
                 )
               )}
               {protectedNewSessionCount > 0 && (
-                <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
                   🔒 {protectedNewSessionCount} sesi baru tidak dimasukkan ke invoice yang sudah manual/lunas. {((student && billingPolicyOf(student) === "session_count") || report?.billingMode === "session_count")
                     ? "Sesi tersebut tetap masuk antrean Tagihan untuk paket berikutnya."
                     : student && billingPolicyOf(student) === "manual"
@@ -1311,21 +1320,21 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                   <div className="grid grid-cols-4 gap-1.5">
                     <div className="bg-blue-50 rounded-xl py-2 text-center">
                       <p className="text-lg font-bold text-blue-700">{reportSessions.length}</p>
-                      <p className="text-[11px] text-blue-500">Sesi</p>
+                      <p className="text-xs text-blue-500">Sesi</p>
                     </div>
                     <div className="bg-indigo-50 rounded-xl py-2 text-center">
                       <p className="text-lg font-bold text-indigo-700">{totalHours}j</p>
-                      <p className="text-[11px] text-indigo-500">Jam</p>
+                      <p className="text-xs text-indigo-500">Jam</p>
                     </div>
                     <div className="bg-purple-50 rounded-xl py-2 text-center">
                       <p className="text-lg font-bold text-purple-700">{avgEngagement != null ? `${avgEngagement}/10` : "—"}</p>
-                      <p className="text-[11px] text-purple-500">Fokus rata²</p>
+                      <p className="text-xs text-purple-500">Fokus rata²</p>
                     </div>
                     <div className={`rounded-xl py-2 text-center ${reportReadiness === 4 ? "bg-green-50" : "bg-amber-50"}`}>
                       <p className={`text-base font-bold leading-tight ${reportReadiness === 4 ? "text-green-700" : "text-amber-700"}`}>
                         {report ? `${reportReadiness}/4` : "—"}
                       </p>
-                      <p className={`text-[11px] ${reportReadiness === 4 ? "text-green-500" : "text-amber-500"}`}>Siap kirim</p>
+                      <p className={`text-xs ${reportReadiness === 4 ? "text-green-500" : "text-amber-500"}`}>Siap kirim</p>
                     </div>
                   </div>
                   {engagementTrend && (
@@ -1340,7 +1349,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                       <p className="font-semibold">
                         Laporan: Draft{report.billingMode === "session_count" ? ` · ${reportSessions.length}/${reportTargetCount} sesi` : ""}
                       </p>
-                      <p className="mt-0.5 text-[11px] text-blue-700">Masih dapat diedit dan dibatalkan sebelum difinalkan.</p>
+                      <p className="mt-0.5 text-xs text-blue-700">Masih dapat diedit dan dibatalkan sebelum difinalkan.</p>
                     </div>
                   )}
                   {report && reportStatus(report) === "confirmed" && (
@@ -1353,7 +1362,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                         <p className="font-semibold">
                           ✓ Laporan: {reportDisplayStatus(report) === "shared" ? "Sudah dibagikan" : "Final"}
                         </p>
-                        <p className="mt-0.5 text-[11px] opacity-80">
+                        <p className="mt-0.5 text-xs opacity-80">
                           {reportDisplayStatus(report) === "shared"
                             ? `Periode belajar dikunci dan laporan sudah dibagikan ${report.pdfGeneratedAt ? `pada ${dayLabel(report.pdfGeneratedAt.slice(0, 10))}` : ""}.`
                             : "Periode belajar sudah dikunci sebagai laporan final. Setelah dibagikan ke orang tua, tandai agar statusnya jelas."}
@@ -1361,7 +1370,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                         {reportDisplayStatus(report) !== "shared" && (
                           <button
                             onClick={handleMarkReportShared}
-                            className="mt-2 rounded-lg bg-violet-600 px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-violet-700"
+                            className="mt-2 rounded-lg bg-violet-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-violet-700"
                           >
                             Tandai Sudah Dibagikan
                           </button>
@@ -1377,7 +1386,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                             <p className="font-semibold">
                               Penagihan: {payment?.status === "PAID" ? "Lunas" : payment ? "Belum dibayar" : "Belum diterbitkan"}
                             </p>
-                            <p className="mt-0.5 text-[11px] opacity-80">
+                            <p className="mt-0.5 text-xs opacity-80">
                               {payment
                                 ? `Bulan tagihan ${monthLabel(payment.month)} · ${formatRupiah(payment.totalCost)}`
                                 : "Finalisasi laporan tidak otomatis membuat invoice. Buat tagihannya dari tombol di bawah."}
@@ -1388,7 +1397,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                           {payment ? (
                             <Link
                               to={billingHref}
-                              className="inline-flex rounded-lg bg-white px-2.5 py-1.5 text-[11px] font-semibold shadow-sm ring-1 ring-black/5 hover:bg-gray-50"
+                              className="inline-flex rounded-lg bg-white px-2.5 py-1.5 text-xs font-semibold shadow-sm ring-1 ring-black/5 hover:bg-gray-50"
                             >
                               Lihat Tagihan →
                             </Link>
@@ -1396,14 +1405,14 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                             <button
                               onClick={handleCreateInvoiceFromReport}
                               disabled={invoiceBusy}
-                              className="inline-flex rounded-lg bg-blue-600 px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                              className="inline-flex rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                             >
                               {invoiceBusy ? "Membuat..." : "Buat Tagihan dari Sesi Ini"}
                             </button>
                           )}
                           <Link
                             to={billingHref}
-                            className="inline-flex rounded-lg bg-white px-2.5 py-1.5 text-[11px] font-semibold shadow-sm ring-1 ring-black/5 hover:bg-gray-50"
+                            className="inline-flex rounded-lg bg-white px-2.5 py-1.5 text-xs font-semibold shadow-sm ring-1 ring-black/5 hover:bg-gray-50"
                           >
                             Buka Penagihan →
                           </Link>
@@ -1411,14 +1420,14 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                             <button
                               onClick={handleShareReportWithInvoice}
                               disabled={shareWithInvoiceBusy}
-                              className="inline-flex rounded-lg bg-green-600 px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+                              className="inline-flex rounded-lg bg-green-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50"
                             >
                               {shareWithInvoiceBusy ? "Mengirim..." : "📤 Kirim Laporan + Tagihan"}
                             </button>
                           )}
                         </div>
                         {olderUnpaidPayments.length > 0 && (
-                          <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[11px] font-medium leading-relaxed text-amber-800">
+                          <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-medium leading-relaxed text-amber-800">
                             ⚠ {olderUnpaidPayments.length} tagihan bulan sebelumnya belum lunas · {formatRupiah(olderUnpaidTotal)}. Buka Keuangan agar piutang tidak menumpuk.
                           </p>
                         )}
@@ -1440,7 +1449,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                     )}
                   </div>
                   {report && reportStatus(report) === "draft" && (
-                    <p className="text-[11px] text-gray-500">
+                    <p className="text-xs text-gray-500">
                       Final = kunci periode laporan agar tidak berubah. Tindakan ini <strong>tidak membuat invoice</strong>; lanjutkan penagihan dari Keuangan.
                     </p>
                   )}
@@ -1478,7 +1487,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                       </div>
                       <div className="grid grid-cols-2 gap-1.5">
                         {reportReadinessItems.map((item) => (
-                          <span key={item.label} className={`text-[11px] rounded-md px-2 py-1 ${item.complete ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-500"}`}>
+                          <span key={item.label} className={`text-xs rounded-md px-2 py-1 ${item.complete ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-500"}`}>
                             {item.complete ? "✓" : "○"} {item.label}
                           </span>
                         ))}
@@ -1526,7 +1535,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                             type="button"
                             onClick={() => setLayoutCategory(cat)}
                             aria-pressed={layoutCategory === cat}
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors ${
+                            className={`rounded-full px-2 py-0.5 text-xs font-semibold transition-colors ${
                               layoutCategory === cat ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                             }`}>
                             {cat === "" ? "Semua" : cat.charAt(0).toUpperCase() + cat.slice(1)}
@@ -1564,7 +1573,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                           </span>
                         ))}
                         {filteredLayouts.length === 0 && (
-                          <p className="text-[11px] text-gray-400">Tidak ada layout pada kategori ini.</p>
+                          <p className="text-xs text-gray-400">Tidak ada layout pada kategori ini.</p>
                         )}
                       </div>
                     </div>
@@ -1690,7 +1699,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                           />
                         </ScaledPreview>
                       </div>
-                      <p className="mt-2 text-center text-[10px] text-gray-400">
+                      <p className="mt-2 text-center text-xs text-gray-400">
                         Preview memakai data contoh — bukan data murid.
                       </p>
                     </div>
@@ -1734,7 +1743,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                       </button>
                     </div>
                   </div>
-                  <p className="text-[11px] text-gray-500">
+                  <p className="text-xs text-gray-500">
                     {pageRatio === "3:4"
                       ? "Rasio 3:4 membuat gambar tidak terlalu tinggi sehingga tidak terpotong saat dikirim ke WhatsApp. Sesi otomatis dipindah ke halaman berikutnya bila catatan panjang."
                       : "Tinggi otomatis mengikuti isi halaman (cocok untuk PDF)."}
@@ -1777,7 +1786,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                           onClick={handleGenerateLocalNarratives}>
                           ⚡ Generate Narasi Gratis
                         </button>
-                        <span className="text-[11px] text-gray-500 self-center">
+                        <span className="text-xs text-gray-500 self-center">
                           Isi narasi kosong dari catatan singkat/topik/perhatian tanpa AI.
                         </span>
                       </div>
@@ -1820,7 +1829,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                       <div className="flex items-center gap-2">
                         <p className="font-semibold text-gray-800 text-sm">📝 Teks Laporan</p>
                         {(report.summaryText || report.quote) && (
-                          <span className="text-[10px] bg-indigo-50 text-indigo-500 font-bold px-1.5 py-0.5 rounded-full">✨ AI</span>
+                          <span className="text-xs bg-indigo-50 text-indigo-500 font-bold px-1.5 py-0.5 rounded-full">✨ AI</span>
                         )}
                       </div>
                       <p className="text-xs text-gray-500 mt-0.5">Ringkasan · Catatan guru · Kutipan</p>
@@ -1834,7 +1843,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                           onClick={handleGenerateLocalTexts}>
                           ⚡ Generate Teks Gratis
                         </button>
-                        <span className="text-[11px] text-gray-500 self-center">
+                        <span className="text-xs text-gray-500 self-center">
                           Isi ringkasan, catatan guru & kutipan dari data sesi tanpa AI.
                         </span>
                       </div>
@@ -1903,7 +1912,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="font-semibold text-gray-800 text-sm">🎯 Fokus & Rencana Berikutnya</p>
-                        {hasPlan && <span className="text-[10px] bg-green-50 text-green-600 font-bold px-1.5 py-0.5 rounded-full">Siap</span>}
+                        {hasPlan && <span className="text-xs bg-green-50 text-green-600 font-bold px-1.5 py-0.5 rounded-full">Siap</span>}
                       </div>
                       <p className="text-xs text-gray-500 mt-0.5">
                         {hasPlan ? `${report.nextMonthPlan!.priorities.filter((item) => item.target.trim()).length} prioritas terukur` : "Tetapkan maksimal 3 prioritas yang bisa ditindaklanjuti."}
@@ -1927,7 +1936,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                                 <div key={item.id} className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-3">
                                   <div className="flex items-start justify-between gap-2">
                                     <p className="text-sm font-semibold text-gray-800">{index + 1}. {item.subject || `Prioritas ${index + 1}`}</p>
-                                    <span className="text-[10px] font-semibold rounded-full bg-white text-indigo-600 px-2 py-0.5">
+                                    <span className="text-xs font-semibold rounded-full bg-white text-indigo-600 px-2 py-0.5">
                                       {PLAN_STATUSES.find((status) => status.value === item.status)?.label ?? "Belum dimulai"}
                                     </span>
                                   </div>
@@ -1977,7 +1986,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
 
       {/* Bantuan hubungan laporan perkembangan dan penagihan */}
       {showBillingHelp && (
-        <Modal onClose={() => setShowBillingHelp(false)} ariaLabel="Hubungan laporan perkembangan dan penagihan"
+        <Modal onClose={() => setShowBillingHelp(false)} ariaLabel="Hubungan laporan perkembangan dan penagihan" showCloseButton={false}
           panelClassName="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl outline-none">
           <div className="flex items-start justify-between border-b border-gray-100 px-5 py-4">
             <div>
@@ -1990,7 +1999,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
 
           <div className="space-y-4 overflow-y-auto px-5 py-4 text-sm text-gray-700">
             <section>
-              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">Pilihan Periode Belajar</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-600">Pilihan Periode Belajar</h3>
               <ul className="mt-2 space-y-2 text-xs leading-relaxed">
                 <li><strong>Bulan Kalender</strong> — semua sesi dalam satu bulan, misalnya Oktober 2026.</li>
                 <li><strong>Jumlah Sesi</strong> — sejumlah sesi tertua yang belum masuk laporan final.</li>
@@ -1999,7 +2008,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
             </section>
 
             <section>
-              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">Siklus Tagihan Murid</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-600">Siklus Tagihan Murid</h3>
               <ul className="mt-2 space-y-2 text-xs leading-relaxed">
                 <li><strong>Bulanan</strong> — gabung sesi yang dapat ditagih lewat Tutup Bulan.</li>
                 <li><strong>Paket per N pertemuan</strong> — tagihan setiap N pertemuan (8, 10, 12, dst). Sesi tertua ditagih lebih dulu; sisa yang belum genap ditagih lewat <em>Tagihan Penutup</em>.</li>
@@ -2008,7 +2017,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
             </section>
 
             <section>
-              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">Penting</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-600">Penting</h3>
               <ul className="mt-2 list-disc space-y-1 pl-4 text-xs leading-relaxed">
                 <li><strong>Draft</strong> masih bisa diubah atau dihapus. <strong>Final</strong> mengunci periode laporan.</li>
                 <li>Finalisasi laporan <strong>tidak membuat invoice</strong>. Buka Keuangan → Penagihan untuk menerbitkan atau memeriksa tagihan.</li>

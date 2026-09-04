@@ -11,6 +11,8 @@ interface ModalProps {
   ariaLabel?: string;
   /** Override the default bottom-sheet panel classes. */
   panelClassName?: string;
+  /** Sembunyikan tombol ✕ bawaan — pakai bila modal sudah punya tombol tutup sendiri. Default: tampil. */
+  showCloseButton?: boolean;
 }
 
 /**
@@ -19,8 +21,11 @@ interface ModalProps {
  * - Escape closes, backdrop click closes
  * - focus moves into the panel on open and is restored on close
  * - Tab is trapped within the panel
+ * - drag-handle + tombol ✕ (A2 audit UI/UX). ✕ dirender SETELAH children
+ *   agar fokus awal tetap ke elemen pertama konten (mis. input PIN dengan
+ *   autoFocus), bukan ke tombol tutup.
  */
-export default function Modal({ onClose, children, ariaLabel, panelClassName }: ModalProps) {
+export default function Modal({ onClose, children, ariaLabel, panelClassName, showCloseButton = true }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const prevFocus = useRef<HTMLElement | null>(null);
 
@@ -58,11 +63,25 @@ export default function Modal({ onClose, children, ariaLabel, panelClassName }: 
         aria-modal="true"
         aria-label={ariaLabel}
         tabIndex={-1}
-        className={panelClassName ?? "bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 pb-8 space-y-4 max-h-[90vh] overflow-y-auto overflow-x-hidden overscroll-contain outline-none"}
+        className={panelClassName ?? "relative bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 pb-[calc(2rem+var(--safe-bottom))] space-y-4 max-h-[90vh] overflow-y-auto overflow-x-hidden overscroll-contain outline-none"}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mx-auto mb-2 h-1.5 w-12 rounded-full bg-gray-300" aria-hidden="true" />
+        <div className="flex items-center justify-between gap-3">
+          <div className="mx-auto h-1.5 w-12 rounded-full bg-gray-300" aria-hidden="true" />
+        </div>
         {children}
+        {showCloseButton && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Tutup panel"
+            className="absolute right-2 top-1 inline-flex h-10 w-10 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
     </div>
   );
