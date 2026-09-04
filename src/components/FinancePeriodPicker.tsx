@@ -42,7 +42,7 @@ export default function FinancePeriodPicker({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p id={titleId} className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
+          <p id={titleId} className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
             Bulan keuangan
           </p>
           <p aria-live="polite" className="mt-0.5 text-lg font-bold text-slate-800">

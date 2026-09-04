@@ -47,7 +47,7 @@ function Chip({ tone, children }: { tone: "green" | "amber" | "violet" | "gray";
     gray: "bg-gray-100 text-gray-500",
   };
   return (
-    <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${tones[tone]}`}>
+    <span className={`rounded-md px-1.5 py-0.5 text-xs font-semibold ${tones[tone]}`}>
       {children}
     </span>
   );
@@ -64,7 +64,7 @@ export default function FinancePipelineBoard({
   return (
     <section aria-labelledby="pipeline-title" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="mb-3">
-        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">Papan pantau per murid</p>
+        <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Papan pantau per murid</p>
         <h2 id="pipeline-title" className="text-base font-bold text-slate-800">
           Sesi → Laporan → Tagihan → Lunas → Dibagikan
         </h2>
@@ -103,7 +103,7 @@ export default function FinancePipelineBoard({
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-gray-800 truncate">{row.student.name}</p>
-                    <p className="text-[11px] text-gray-500">
+                    <p className="text-xs text-gray-500">
                       {POLICY_LABEL[billingPolicyOf(row.student)] ?? "—"}
                       {row.potential > 0 && ` · ${formatRupiah(row.potential)} potensi`}
                       {row.unpaidAmount > 0 && ` · ${formatRupiah(row.unpaidAmount)} piutang`}
@@ -114,12 +114,12 @@ export default function FinancePipelineBoard({
                       <button
                         type="button"
                         onClick={() => navigate(ACTION_LINK[nextAction].route + row.student.id)}
-                        className="rounded-lg border border-blue-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-blue-600 transition-colors hover:bg-blue-50"
+                        className="rounded-lg border border-blue-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-50"
                       >
                         {ACTION_LINK[nextAction].label} ↗
                       </button>
                     ) : (
-                      <span className="rounded-lg bg-green-100 px-2.5 py-1.5 text-[11px] font-semibold text-green-700">
+                      <span className="rounded-lg bg-green-100 px-2.5 py-1.5 text-xs font-semibold text-green-700">
                         ✓ Sinkron
                       </span>
                     )}

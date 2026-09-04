@@ -95,32 +95,32 @@ ${invoiceRows.join("\n")}
             <p className="mt-0.5 text-xs text-gray-400">Pendapatan saat sesi berlangsung · Uang Masuk saat transfer diterima.</p>
           </div>
           <div className="flex items-center gap-3">
-            <button aria-label="Tahun sebelumnya" onClick={() => setAuditYear((y) => y - 1)} className="text-gray-500 hover:text-gray-700 text-lg leading-none">‹</button>
+            <button aria-label="Tahun sebelumnya" onClick={() => setAuditYear((y) => y - 1)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors">‹</button>
             <span className="font-semibold text-gray-700">{auditYear}</span>
-            <button aria-label="Tahun berikutnya" onClick={() => setAuditYear((y) => y + 1)} className="text-gray-500 hover:text-gray-700 text-lg leading-none">›</button>
+            <button aria-label="Tahun berikutnya" onClick={() => setAuditYear((y) => y + 1)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors">›</button>
           </div>
         </div>
 
         {/* Ringkasan tahunan — 4 kartu inti + badge konteks */}
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-indigo-600">Pendapatan</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Pendapatan</p>
             <p className="mt-0.5 text-base font-bold text-indigo-700">{formatRupiah(auditTotals.pendapatan)}</p>
           </div>
           <div className="rounded-xl border border-green-100 bg-green-50/60 p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-green-600">Uang Masuk</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-green-600">Uang Masuk</p>
             <p className="mt-0.5 text-base font-bold text-green-700">{formatRupiah(auditTotals.realisasi)}</p>
           </div>
           <div className="rounded-xl border border-red-100 bg-red-50/60 p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-red-600">Pengeluaran</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-red-600">Pengeluaran</p>
             <p className="mt-0.5 text-base font-bold text-red-600">{formatRupiah(auditTotals.pengeluaran)}</p>
           </div>
           <div className={`rounded-xl border p-3 ${auditTotals.laba >= 0 ? "border-emerald-200 bg-emerald-600" : "border-red-300 bg-red-600"}`}>
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-white/70">Laba</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-white/90">Laba</p>
             <p className="mt-0.5 text-base font-bold text-white">{formatRupiah(auditTotals.laba)}</p>
           </div>
         </div>
-        <div className="flex flex-wrap gap-1.5 text-[10px]">
+        <div className="flex flex-wrap gap-1.5 text-xs">
           {auditTotals.sesi > 0 && <span className="rounded-full bg-slate-100 text-slate-600 px-2 py-0.5 font-semibold">📚 {auditTotals.sesi} sesi · {auditTotals.jam} jam</span>}
           {auditTotals.piutang > 0 && <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 font-semibold">Belum dibayar {formatRupiah(auditTotals.piutang)}</span>}
           {marginRate > 0 && <span className="rounded-full bg-indigo-100 text-indigo-700 px-2 py-0.5 font-semibold">Margin {marginRate}%</span>}
@@ -131,7 +131,7 @@ ${invoiceRows.join("\n")}
             return (
               <div key={r.month} className="rounded-xl border border-slate-100 bg-slate-50/60 p-3">
                 <p className="text-sm font-bold text-slate-700">{monthLabel(r.month)}</p>
-                <p className="mt-1 text-[11px] text-gray-400">{r.sesi ? `${r.sesi} sesi · ${r.jam} jam` : "Tidak ada sesi"}</p>
+                <p className="mt-1 text-xs text-gray-500">{r.sesi ? `${r.sesi} sesi · ${r.jam} jam` : "Tidak ada sesi"}</p>
                 <div className="mt-2 grid grid-cols-3 gap-x-3 gap-y-1.5 text-xs">
                   <div><p className="text-gray-400">Pendapatan</p><p className="font-semibold text-indigo-700">{r.pendapatan ? formatRupiah(r.pendapatan) : "–"}</p></div>
                   <div><p className="text-gray-400">Uang Masuk</p><p className="font-semibold text-green-700">{r.realisasi ? formatRupiah(r.realisasi) : "–"}</p></div>
@@ -142,7 +142,7 @@ ${invoiceRows.join("\n")}
                   <p className={`font-bold ${r.laba >= 0 ? "text-green-700" : "text-red-600"}`}>{has ? formatRupiah(r.laba) : "–"}</p>
                 </div>
                 {r.piutang > 0 && (
-                  <p className="mt-1.5 text-[11px] text-amber-700">⚠️ Belum dibayar: {formatRupiah(r.piutang)}</p>
+                  <p className="mt-1.5 text-xs text-amber-700">⚠️ Belum dibayar: {formatRupiah(r.piutang)}</p>
                 )}
               </div>
             );
@@ -177,7 +177,7 @@ ${invoiceRows.join("\n")}
                     <td className="py-1 text-right text-amber-600">{r.piutang ? formatRupiah(r.piutang) : "–"}</td>
                     <td className="py-1 text-center">
                       <button onClick={() => exportMonthlyCsv(r.month)}
-                        className="text-[10px] font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+                        className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors"
                       >CSV</button>
                     </td>
                   </tr>

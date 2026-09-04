@@ -73,7 +73,7 @@ export default function DonutChart({
         </svg>
         {/* Center text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">{centerLabel}</span>
+          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{centerLabel}</span>
           <span className="text-lg font-bold text-slate-800">
             {centerValue ?? String(total)}
           </span>
@@ -86,7 +86,7 @@ export default function DonutChart({
             const color = seg.color ?? DEFAULT_COLORS[i % DEFAULT_COLORS.length];
             const pct = total > 0 ? Math.round((Math.max(0, seg.value) / total) * 100) : 0;
             return (
-              <div key={i} className="flex items-center gap-1.5 text-[11px] text-slate-600">
+              <div key={i} className="flex items-center gap-1.5 text-xs text-slate-600">
                 <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: color }} />
                 <span className="font-medium">{seg.label}</span>
                 <span className="text-slate-400">{pct}%</span>

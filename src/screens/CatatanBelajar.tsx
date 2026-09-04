@@ -330,7 +330,7 @@ export default function CatatanBelajar() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-gray-800 truncate">{s.name}</p>
-                  <p className="text-[11px] text-gray-500 truncate">
+                  <p className="text-xs text-gray-500 truncate">
                     {s.subjects.slice(0, 3).join(", ") || "Belum ada mapel"}
                   </p>
                 </div>
@@ -354,7 +354,7 @@ export default function CatatanBelajar() {
                       {sessions.map((ses) => (
                         <div
                           key={ses.id}
-                          className="text-[11px] text-gray-500 bg-gray-50 rounded-lg px-2.5 py-1.5 leading-relaxed"
+                          className="text-xs text-gray-500 bg-gray-50 rounded-lg px-2.5 py-1.5 leading-relaxed"
                         >
                           <span className="font-medium text-gray-600">
                             {new Date(ses.date).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}:
@@ -389,27 +389,27 @@ export default function CatatanBelajar() {
 
                 {/* Error */}
                 {error && (
-                  <p className="text-[11px] text-red-500 mt-1">{error}</p>
+                  <p className="text-xs text-red-500 mt-1">{error}</p>
                 )}
                 {saveError[s.id] && !isSaving && (
-                  <p className="text-[11px] text-red-500 mt-1" role="alert">{saveError[s.id]}</p>
+                  <p className="text-xs text-red-500 mt-1" role="alert">{saveError[s.id]}</p>
                 )}
 
                 {/* Saving indicator + timestamp + AI button */}
                 <div className="flex items-center justify-between gap-2 mt-1 min-h-[18px]">
                   <div className="flex items-center gap-2">
                     {isSaving && (
-                      <span className="text-[10px] text-blue-500 animate-pulse">menyimpan...</span>
+                      <span className="text-xs text-blue-500 animate-pulse">menyimpan...</span>
                     )}
                     {!isSaving && content.trim() && savedNote?.updatedAt && (
-                      <span className="text-[10px] text-gray-400">
+                      <span className="text-xs text-gray-400">
                         Disimpan {formatRelative(savedNote.updatedAt)}
                       </span>
                     )}
                     {canUndoAi && (
                       <button
                         onClick={() => undoAi(s.id)}
-                        className="text-[10px] font-semibold text-amber-600 hover:text-amber-700">
+                        className="text-xs font-semibold text-amber-600 hover:text-amber-700">
                         ↩ Undo AI
                       </button>
                     )}
@@ -419,7 +419,7 @@ export default function CatatanBelajar() {
                     {hasSessions && (
                       <button
                         onClick={() => regenerateAuto(s.id)}
-                        className="text-[10px] font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 px-2 py-1 rounded-lg transition-colors whitespace-nowrap"
+                        className="text-xs font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 px-2 py-1 rounded-lg transition-colors whitespace-nowrap"
                         title="Rakit ulang catatan dari sesi terakhir">
                         🔄 Otomatis
                       </button>
@@ -427,7 +427,7 @@ export default function CatatanBelajar() {
                     {content.trim() && (
                       <button
                         onClick={() => setEditingId(isEditing ? null : s.id)}
-                        className="text-[10px] font-semibold text-gray-500 bg-gray-50 hover:bg-gray-100 border border-gray-200 px-2 py-1 rounded-lg transition-colors whitespace-nowrap"
+                        className="text-xs font-semibold text-gray-500 bg-gray-50 hover:bg-gray-100 border border-gray-200 px-2 py-1 rounded-lg transition-colors whitespace-nowrap"
                         title={isEditing ? "Selesai edit" : "Edit manual"}>
                         {isEditing ? "👁 Selesai" : "✏️ Edit"}
                       </button>
@@ -438,7 +438,7 @@ export default function CatatanBelajar() {
                       <button
                         onClick={() => handleAiDraft(s.id, s.name, s.subjects)}
                         disabled={isLoading}
-                        className="flex items-center gap-1 text-[10px] font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2 py-1 rounded-lg transition-colors disabled:opacity-50 whitespace-nowrap"
+                        className="flex items-center gap-1 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2 py-1 rounded-lg transition-colors disabled:opacity-50 whitespace-nowrap"
                         title={`~Rp${Math.round(estimateDraftStudyNoteCost(sessions.length)).toLocaleString("id-ID")}`}
                       >
                         {isLoading ? (
@@ -463,7 +463,7 @@ export default function CatatanBelajar() {
 
       {/* Bantuan cara memakai catatan */}
       {showHelp && (
-        <Modal onClose={() => setShowHelp(false)} ariaLabel="Cara memakai catatan belajar"
+        <Modal onClose={() => setShowHelp(false)} ariaLabel="Cara memakai catatan belajar" showCloseButton={false}
           panelClassName="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl outline-none">
           <div className="flex items-start justify-between border-b border-gray-100 px-5 py-4">
             <div>
@@ -476,7 +476,7 @@ export default function CatatanBelajar() {
 
           <div className="space-y-4 overflow-y-auto px-5 py-4 text-sm text-gray-700">
             <section>
-              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">Auto-save</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-600">Auto-save</h3>
               <ul className="mt-2 space-y-2 text-xs leading-relaxed">
                 <li>Ketik di kotak catatan murid — isi <strong>tersimpan otomatis</strong> sekitar 1 detik setelah berhenti mengetik.</li>
                 <li>Saat pindah halaman, ketikan terakhir ikut disimpan; ada peringatan bila menutup aplikasi sebelum tersimpan.</li>
@@ -484,7 +484,7 @@ export default function CatatanBelajar() {
             </section>
 
             <section>
-              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">Konteks Sesi</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-600">Konteks Sesi</h3>
               <ul className="mt-2 space-y-2 text-xs leading-relaxed">
                 <li>Tombol <strong>📋 N sesi terakhir</strong> membuka ringkasan sesi terbaru sebagai bahan menulis.</li>
                 <li>Pencarian juga menyentuh <strong>isi catatan</strong>, bukan cuma nama murid &amp; mapel.</li>
@@ -492,7 +492,7 @@ export default function CatatanBelajar() {
             </section>
 
             <section>
-              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">✨ Perkuat (AI)</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-600">✨ Perkuat (AI)</h3>
               <ul className="mt-2 space-y-2 text-xs leading-relaxed">
                 <li><strong>Draft ketikanmu jadi bahan utama</strong> — AI mempertahankan tulisannya lalu melengkapi topik, PR, kesulitan, dan rencana dari sesi terakhir.</li>
                 <li>Tanpa sesi pun tetap bisa dipakai untuk merapikan catatan yang sudah ditulis.</li>

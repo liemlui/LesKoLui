@@ -38,7 +38,7 @@ export default function RatingIndicator({
   if (variant === "bars") {
     return (
       <div className="inline-flex flex-col gap-0.5" aria-label={label ? `${label}: ${safeValue}/${max}` : undefined}>
-        {label && <span className="text-[10px] font-semibold text-slate-500">{label}</span>}
+        {label && <span className="text-xs font-semibold text-slate-500">{label}</span>}
         <div className="flex items-end gap-px" style={{ height: d * 3 }}>
           {Array.from({ length: max }).map((_, i) => {
             const h = Math.round(((i + 1) / max) * d * 3);
@@ -64,7 +64,7 @@ export default function RatingIndicator({
   // Dots variant
   return (
     <div className="inline-flex items-center gap-1.5" aria-label={label ? `${label}: ${safeValue}/${max}` : undefined}>
-      {label && <span className="text-[10px] font-semibold text-slate-500">{label}</span>}
+      {label && <span className="text-xs font-semibold text-slate-500">{label}</span>}
       <svg width={totalW} height={d} viewBox={`0 0 ${totalW} ${d}`} aria-hidden="true" className="flex-shrink-0">
         {Array.from({ length: max }).map((_, i) => {
           const cx = i * (d + g) + d / 2;
@@ -95,7 +95,7 @@ export default function RatingIndicator({
           );
         })}
       </svg>
-      <span className={`text-[11px] font-bold`} style={{ color: colors.fill }}>{safeValue}/{max}</span>
+      <span className={`text-xs font-bold`} style={{ color: colors.fill }}>{safeValue}/{max}</span>
     </div>
   );
 }

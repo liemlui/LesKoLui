@@ -50,7 +50,7 @@ export default function ProgressBar({
   }
 
   const heights = { sm: "h-2", md: "h-3", lg: "h-4" };
-  const textSizes = { sm: "text-[10px]", md: "text-xs", lg: "text-sm" };
+  const textSizes = { sm: "text-xs", md: "text-xs", lg: "text-sm" };
 
   return (
     <div className="w-full" aria-label={label ? `${label}: ${safeValue} dari ${safeMax}` : undefined}>
@@ -71,7 +71,7 @@ export default function ProgressBar({
         />
       </div>
       {detail && (
-        <p className={`mt-1 text-[11px] text-slate-600`}>{detail}</p>
+        <p className={`mt-1 text-xs text-slate-600`}>{detail}</p>
       )}
     </div>
   );

@@ -1136,8 +1136,9 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                             className="px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-xs font-medium hover:bg-blue-200 transition-colors">
                             Buka
                           </button>
-                          <button onClick={async () => { if (confirm("Hapus draft ini?")) { await discardReport(d.id); } }}
-                            className="px-2 py-0.5 rounded text-red-500 text-xs hover:bg-red-50 transition-colors">
+                          <button type="button" aria-label={`Hapus draft ${periodLabel(d.periodStart, d.periodEnd)}`}
+                            onClick={async () => { if (confirm("Hapus draft ini?")) { await discardReport(d.id); } }}
+                            className="px-1.5 py-1.5 -m-0.5 rounded text-red-500 text-xs hover:bg-red-50 transition-colors">
                             ✕
                           </button>
                         </div>
@@ -1573,7 +1574,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                           </span>
                         ))}
                         {filteredLayouts.length === 0 && (
-                          <p className="text-xs text-gray-400">Tidak ada layout pada kategori ini.</p>
+                          <p className="text-xs text-gray-500">Tidak ada layout pada kategori ini.</p>
                         )}
                       </div>
                     </div>
@@ -1699,7 +1700,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                           />
                         </ScaledPreview>
                       </div>
-                      <p className="mt-2 text-center text-xs text-gray-400">
+                      <p className="mt-2 text-center text-xs text-gray-500">
                         Preview memakai data contoh — bukan data murid.
                       </p>
                     </div>

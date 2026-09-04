@@ -50,7 +50,7 @@ export default function EditSessionModal({ target, students, onClose, onResult }
   };
 
   return (
-    <Modal onClose={onClose} ariaLabel="Edit jadwal"
+    <Modal onClose={onClose} ariaLabel="Edit jadwal" showCloseButton={false}
       panelClassName="bg-white w-full max-w-md rounded-t-2xl pb-8 max-h-[92vh] overflow-y-auto overflow-x-hidden outline-none">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">

@@ -21,6 +21,8 @@
 }
 
 :root {
+  /* Safe-area iOS (notch / home indicator) — dipakai bottom-nav, toast,
+     banner atas, dan bar tetap agar tidak tertutup area sistem (K2 audit UI/UX). */
   --bottom-nav-h: 64px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);

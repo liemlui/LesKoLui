@@ -58,11 +58,13 @@ export default function Breadcrumb({ crumbs, resolveNames }: Props) {
     return result;
   }, [location.pathname, crumbs, students, resolveNames]);
 
+  const segments = location.pathname.split("/").filter(Boolean);
+  if (crumbs ? crumbs.length <= 1 : segments.length < 2) return null;
   if (autoCrumbs.length <= 1) return null; // Don't show on home
 
   return (
     <nav aria-label="Breadcrumb" className="px-4 pt-3 pb-1">
-      <ol className="flex items-center gap-1 text-[11px] font-medium flex-wrap">
+      <ol className="flex items-center gap-1 text-[12px] font-medium flex-wrap">
         {autoCrumbs.map((crumb, i) => {
           const isLast = i === autoCrumbs.length - 1;
           return (
@@ -71,11 +73,11 @@ export default function Breadcrumb({ crumbs, resolveNames }: Props) {
               {crumb.path && !isLast ? (
                 <Link
                   to={crumb.path}
-                  className="text-slate-400 hover:text-blue-600 transition-colors truncate max-w-[120px]">
+                  className="text-slate-500 hover:text-blue-600 transition-colors truncate max-w-[120px]">
                   {crumb.label}
                 </Link>
               ) : (
-                <span className={`truncate max-w-[140px] ${isLast ? "text-slate-700 font-bold" : "text-slate-400"}`}>
+                <span className={`truncate max-w-[140px] ${isLast ? "text-slate-700 font-bold" : "text-slate-500"}`}>
                   {crumb.label}
                 </span>
               )}

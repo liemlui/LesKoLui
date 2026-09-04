@@ -213,7 +213,7 @@ function Layout() {
                   localStorage.setItem(AUTO_BACKUP_KEY, String(remindTomorrow));
                   setBackupPrompt(false);
                 }}
-                className="text-xs text-amber-500 px-2 py-1.5">Nanti</button>
+                className="text-xs text-amber-500 px-2 py-1.5">Besok</button>
               {driveAutoOn() ? (
                 <button
                   disabled={driveBusy}

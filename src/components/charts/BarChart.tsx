@@ -115,7 +115,7 @@ export default function BarChart({
             <button
               key={r}
               onClick={() => onRangeChange(r)}
-              className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-colors ${
+              className={`text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors ${
                 range === r
                   ? "bg-blue-100 text-blue-700"
                   : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
@@ -217,7 +217,7 @@ export default function BarChart({
         {/* Tooltip overlay */}
         {tooltip && (
           <div
-            className="absolute pointer-events-none bg-gray-800 text-white text-[11px] font-semibold px-2 py-1 rounded-lg shadow-lg whitespace-nowrap z-10"
+            className="absolute pointer-events-none bg-gray-800 text-white text-xs font-semibold px-2 py-1 rounded-lg shadow-lg whitespace-nowrap z-10"
             style={{ left: tooltip.x, top: tooltip.y, transform: "translate(-50%, -100%)" }}>
             {tooltip.text}
           </div>

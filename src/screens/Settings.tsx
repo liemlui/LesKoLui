@@ -861,7 +861,7 @@ export default function SettingsPage() {
               onClick={() => requireFinancialPin("exportCsv")}>
               📊 Ekspor data ke CSV (terbaca)
             </button>
-            <p className="text-[11px] text-blue-500">CSV terbaca tanpa app (cadangan tambahan). Backup .jles tetap utama (terenkripsi).</p>
+            <p className="text-xs text-blue-600">CSV terbaca tanpa app (cadangan tambahan). Backup .jles tetap utama (terenkripsi).</p>
             <div className="border-t border-blue-100 pt-2.5 space-y-2">
               <label htmlFor="set-restore-file" className="label text-blue-800">Restore dari file</label>
               <input id="set-restore-file" ref={restoreRef} type="file" accept=".jles" className="text-sm text-gray-600 w-full" />
@@ -884,7 +884,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-green-700">☁️ Google Drive</p>
                 {form.driveBackup?.backupAt && (
-                  <p className="text-[11px] text-gray-500">
+                  <p className="text-xs text-gray-500">
                     {new Date(form.driveBackup.backupAt).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}
                   </p>
                 )}
@@ -915,7 +915,7 @@ export default function SettingsPage() {
                 <span className="text-xs font-medium text-green-800">Auto backup mingguan (1-tap dari reminder)</span>
               </label>
               {driveAuto && (
-                <p className="text-[11px] text-amber-700 bg-amber-50 rounded-lg px-2 py-1.5">
+                <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-2 py-1.5">
                   ⚠️ Kata sandi disimpan di perangkat ini agar backup bisa 1-tap — pastikan layar HP terkunci (PIN/biometrik). Tetap simpan salinannya untuk restore di HP lain.
                 </p>
               )}
@@ -931,9 +931,9 @@ export default function SettingsPage() {
                     className="text-xs px-3 py-1.5 rounded-xl bg-green-100 text-green-700 font-medium disabled:opacity-50">
                     {relayBusy ? "Menguji..." : "Tes relay"}
                   </button>
-                  <span className="text-[11px] text-gray-500">{relaySecret ? "Aktif — backup tanpa popup" : "Nonaktif (pakai 1-tap)"}</span>
+                  <span className="text-xs text-gray-500">{relaySecret ? "Aktif — backup tanpa popup" : "Nonaktif (pakai 1-tap)"}</span>
                 </div>
-                <p className="text-[11px] text-gray-500">Butuh setup server 1x. Lihat docs/ZERO-TOUCH-BACKUP.md.</p>
+                <p className="text-xs text-gray-500">Butuh setup server 1x. Lihat docs/ZERO-TOUCH-BACKUP.md.</p>
               </div>
             </div>
           ) : (

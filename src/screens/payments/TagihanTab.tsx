@@ -240,20 +240,20 @@ export default function TagihanTab({
               {pdfExporting ? "⏳ Ekspor..." : "📄 PDF"}
             </button>
           </div>
-          <p className="mt-1 text-right text-[10px] text-gray-500">Ekspor mengikuti filter status dan asal pada daftar Tagihan Terbit.</p>
+          <p className="mt-1 text-right text-xs text-gray-500">Ekspor mengikuti filter status dan asal pada daftar Tagihan Terbit.</p>
         </div>
       )}
 
       <section aria-labelledby="collection-center-title" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-indigo-500">Penagihan · Semua Periode</p>
+            <p className="text-xs font-bold uppercase tracking-[0.12em] text-indigo-500">Penagihan · Semua Periode</p>
             <h2 id="collection-center-title" className="mt-0.5 text-base font-bold text-slate-800">Pusat Koleksi</h2>
-            <p className="mt-1 max-w-sm text-[11px] leading-relaxed text-slate-500">
+            <p className="mt-1 max-w-sm text-xs leading-relaxed text-slate-500">
               Terbitkan invoice, tindak lanjuti piutang, lalu catat pelunasan dalam satu alur.
             </p>
           </div>
-          <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${collectionRate >= 80 ? "bg-green-100 text-green-700" : collectionRate > 0 ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}`}>
+          <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${collectionRate >= 80 ? "bg-green-100 text-green-700" : collectionRate > 0 ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}`}>
             {allPayments.length > 0 ? `${collectionRate}% tertagih` : "Belum ada invoice"}
           </span>
         </div>
@@ -266,9 +266,9 @@ export default function TagihanTab({
               onClick={() => selectCollectionStage("ready")}
               className={`rounded-lg border px-2.5 py-2 text-left transition-colors ${invoiceStatusFilter === "ready" ? "border-indigo-300 bg-indigo-600 text-white shadow-sm" : "border-indigo-100 bg-white text-indigo-800 hover:bg-indigo-50"}`}
             >
-              <span className="block text-[10px] font-bold uppercase tracking-wide opacity-80">01 · Siap</span>
+              <span className="block text-xs font-bold uppercase tracking-wide opacity-80">01 · Siap</span>
               <span className="mt-0.5 block text-sm font-bold leading-tight">{readyActionCount} tindakan</span>
-              <span className="mt-0.5 block text-[10px] leading-snug opacity-80">Laporan final, paket, atau siap ditagih</span>
+              <span className="mt-0.5 block text-xs leading-snug opacity-80">Laporan final, paket, atau siap ditagih</span>
             </button>
             <span aria-hidden="true" className="flex items-center justify-center px-0.5 text-base font-bold text-slate-400">→</span>
             <button
@@ -277,13 +277,13 @@ export default function TagihanTab({
               onClick={() => selectCollectionStage("semua")}
               className={`rounded-lg border px-2.5 py-2 text-left transition-colors ${invoiceStatusFilter === "semua" ? "border-blue-300 bg-blue-600 text-white shadow-sm" : "border-blue-100 bg-white text-blue-800 hover:bg-blue-50"}`}
             >
-              <span className="block text-[10px] font-bold uppercase tracking-wide opacity-80">02 · Terbit</span>
+              <span className="block text-xs font-bold uppercase tracking-wide opacity-80">02 · Terbit</span>
               <span className="mt-0.5 block text-sm font-bold leading-tight">{formatRupiah(totalBilled)}</span>
-              <span className="mt-0.5 block text-[10px] leading-snug opacity-80">{allPayments.length} invoice lintas periode</span>
+              <span className="mt-0.5 block text-xs leading-snug opacity-80">{allPayments.length} invoice lintas periode</span>
             </button>
           </div>
 
-          <div className="my-2 flex items-center gap-2 px-1 text-[10px] font-medium text-slate-500">
+          <div className="my-2 flex items-center gap-2 px-1 text-xs font-medium text-slate-500">
             <span className="h-px flex-1 bg-slate-200" />
             <span>Invoice terbit terbagi menurut pembayaran</span>
             <span className="h-px flex-1 bg-slate-200" />
@@ -296,9 +296,9 @@ export default function TagihanTab({
               onClick={() => selectCollectionStage("unpaid")}
               className={`rounded-lg border px-2.5 py-2 text-left transition-colors ${invoiceStatusFilter === "unpaid" ? "border-amber-300 bg-amber-500 text-white shadow-sm" : "border-amber-100 bg-white text-amber-800 hover:bg-amber-50"}`}
             >
-              <span className="block text-[10px] font-bold uppercase tracking-wide opacity-80">Belum dibayar</span>
+              <span className="block text-xs font-bold uppercase tracking-wide opacity-80">Belum dibayar</span>
               <span className="mt-0.5 block text-sm font-bold leading-tight">{formatRupiah(totalUnpaid)}</span>
-              <span className="mt-0.5 block text-[10px] leading-snug opacity-80">{unpaidCount} invoice perlu tindak lanjut</span>
+              <span className="mt-0.5 block text-xs leading-snug opacity-80">{unpaidCount} invoice perlu tindak lanjut</span>
             </button>
             <button
               type="button"
@@ -306,9 +306,9 @@ export default function TagihanTab({
               onClick={() => selectCollectionStage("paid")}
               className={`rounded-lg border px-2.5 py-2 text-left transition-colors ${invoiceStatusFilter === "paid" ? "border-green-300 bg-green-600 text-white shadow-sm" : "border-green-100 bg-white text-green-800 hover:bg-green-50"}`}
             >
-              <span className="block text-[10px] font-bold uppercase tracking-wide opacity-80">Lunas</span>
+              <span className="block text-xs font-bold uppercase tracking-wide opacity-80">Lunas</span>
               <span className="mt-0.5 block text-sm font-bold leading-tight">{formatRupiah(totalPaid)}</span>
-              <span className="mt-0.5 block text-[10px] leading-snug opacity-80">{paidCount} invoice sudah selesai</span>
+              <span className="mt-0.5 block text-xs leading-snug opacity-80">{paidCount} invoice sudah selesai</span>
             </button>
           </div>
         </div>
@@ -322,7 +322,7 @@ export default function TagihanTab({
             size="sm"
             tone={collectionRate >= 80 ? "green" : collectionRate > 0 ? "amber" : "slate"}
           />
-          <p className="min-w-0 text-[11px] leading-relaxed text-slate-500">
+          <p className="min-w-0 text-xs leading-relaxed text-slate-500">
             <span className="font-semibold text-slate-700">Status invoice ≠ kas masuk.</span>{" "}
             Pelunasan menutup piutang; kas dicatat menurut tanggal pembayaran di Ringkasan.
           </p>
@@ -346,10 +346,10 @@ export default function TagihanTab({
         <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-3" aria-label="Umur piutang">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wide text-slate-600">Umur piutang</p>
-              <p className="mt-0.5 text-[10px] text-slate-500">Tap bar untuk menyaring daftar invoice belum dibayar pada periode ini.</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-600">Umur piutang</p>
+              <p className="mt-0.5 text-xs text-slate-500">Tap bar untuk menyaring daftar invoice belum dibayar pada periode ini.</p>
             </div>
-            <span className="rounded-full bg-white px-2 py-1 text-[10px] font-semibold text-amber-700 shadow-sm">
+            <span className="rounded-full bg-white px-2 py-1 text-xs font-semibold text-amber-700 shadow-sm">
               {agingTotal > 0 ? formatRupiah(agingTotal) : "Tidak ada piutang"}
             </span>
           </div>
@@ -389,7 +389,7 @@ export default function TagihanTab({
         <section aria-labelledby="ready-report-invoices-title" className="space-y-3 rounded-xl border border-blue-200 bg-blue-50/40 p-4 shadow-sm">
           <div>
             <h2 id="ready-report-invoices-title" className="text-sm font-bold text-blue-900">Laporan Final Siap Ditagih</h2>
-            <p className="mt-0.5 text-[11px] text-blue-700">Laporan Perkembangan sudah final, tetapi belum mempunyai invoice. Terbitkan satu per satu setelah nominal diperiksa.</p>
+            <p className="mt-0.5 text-xs text-blue-700">Laporan Perkembangan sudah final, tetapi belum mempunyai invoice. Terbitkan satu per satu setelah nominal diperiksa.</p>
           </div>
           <div className="space-y-2">
             {readyReportRows.map(({ report, student }) => {
@@ -400,10 +400,10 @@ export default function TagihanTab({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-gray-800">{studentName}</p>
-                      <p className="mt-0.5 text-[11px] font-medium text-blue-700">Periode belajar {periodLabel(report.periodStart, report.periodEnd)}</p>
+                      <p className="mt-0.5 text-xs font-medium text-blue-700">Periode belajar {periodLabel(report.periodStart, report.periodEnd)}</p>
                       <p className="mt-1 text-xs font-bold text-gray-800">{formatRupiah(report.totalCost)}</p>
                     </div>
-                    <span className="shrink-0 rounded-full bg-blue-100 px-2 py-1 text-[10px] font-bold text-blue-700">Laporan Final</span>
+                    <span className="shrink-0 rounded-full bg-blue-100 px-2 py-1 text-xs font-bold text-blue-700">Laporan Final</span>
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2">
                     <button
@@ -440,11 +440,11 @@ export default function TagihanTab({
                   className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-gray-100 text-sm font-bold text-gray-600 transition-colors hover:bg-indigo-100 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 >?</button>
               </div>
-              <p className="mt-0.5 rounded-lg bg-indigo-50 px-2 py-1 text-[11px] font-medium text-indigo-700">
+              <p className="mt-0.5 rounded-lg bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700">
                 Lintas bulan — tidak dipengaruhi pilihan Bulan Keuangan. Sesi tertua ditagih lebih dahulu.
               </p>
             </div>
-            <span className="flex-shrink-0 rounded-full bg-indigo-50 px-2 py-1 text-[10px] font-semibold text-indigo-700">
+            <span className="flex-shrink-0 rounded-full bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700">
               {needsActionCount} perlu tindakan
             </span>
           </div>
@@ -474,23 +474,23 @@ export default function TagihanTab({
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-gray-800">{progress.studentName}</p>
-                        <p className="mt-0.5 text-[11px] text-gray-500">
+                        <p className="mt-0.5 text-xs text-gray-500">
                           {progress.unbilledCount} sesi belum ditagih
                           {ready && progress.readyBatchCount > 1 ? ` · ${progress.readyBatchCount} paket siap` : ""}
                         </p>
                         {progress.pendingBillingPolicy && (
-                          <p className="mt-1 text-[10px] font-semibold text-amber-700">
+                          <p className="mt-1 text-xs font-semibold text-amber-700">
                             Peralihan ke {pendingPolicyLabel} tertunda
                           </p>
                         )}
                       </div>
-                      <span className={`flex-shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${ready ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-600"}`}>
+                      <span className={`flex-shrink-0 rounded-full px-2 py-1 text-xs font-bold ${ready ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-600"}`}>
                         {invalidTarget ? "Atur N" : ready ? "Paket siap" : `${currentCount}/${progress.targetCount}`}
                       </span>
                     </div>
                     <div className="mt-2 flex items-center gap-2">
                       {invalidTarget ? (
-                        <span className="min-w-0 flex-1 rounded-lg bg-amber-50 px-2 py-1.5 text-[11px] font-medium text-amber-700">
+                        <span className="min-w-0 flex-1 rounded-lg bg-amber-50 px-2 py-1.5 text-xs font-medium text-amber-700">
                           Jumlah pertemuan belum diatur — buka profil murid.
                         </span>
                       ) : (
@@ -511,7 +511,7 @@ export default function TagihanTab({
 
                   {expanded && (
                     <div className="mt-3 border-t border-indigo-100 pt-3">
-                      <div className="mb-2 flex flex-wrap items-center justify-between gap-1 text-[11px]">
+                      <div className="mb-2 flex flex-wrap items-center justify-between gap-1 text-xs">
                         <span className="font-semibold text-gray-600">
                           {ready ? `${progress.targetCount} sesi paket berikutnya` : "Sesi terkumpul"}
                         </span>
@@ -522,7 +522,7 @@ export default function TagihanTab({
                       ) : (
                         <div className="space-y-1 rounded-lg bg-white p-2">
                           {progress.nextBatchSessions.map((session) => (
-                            <div key={session.id} className="grid grid-cols-[46px_minmax(0,1fr)_auto] items-center gap-2 px-1 py-1 text-[11px]">
+                            <div key={session.id} className="grid grid-cols-[46px_minmax(0,1fr)_auto] items-center gap-2 px-1 py-1 text-xs">
                               <span className="font-mono text-gray-500">{session.date.slice(5).replace("-", "/")}</span>
                               <span className="truncate text-gray-600">
                                 {session.status === "NO_SHOW" ? "Tidak hadir (ditagihkan)" : session.subjects.slice(0, 2).join(", ") || "—"}
@@ -584,21 +584,21 @@ export default function TagihanTab({
         <div className="flex items-center justify-between gap-2">
           <div>
             <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Tagihan Terbit</p>
-            <p className="text-[11px] text-gray-500 mt-0.5">Kelola nominal, pembayaran, WhatsApp, laporan, dan invoice.</p>
+            <p className="text-xs text-gray-500 mt-0.5">Kelola nominal, pembayaran, WhatsApp, laporan, dan invoice.</p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
               onClick={() => setShowWaAll(true)}
-              className="rounded-lg bg-green-500 px-2.5 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-green-600"
+              className="rounded-lg bg-green-500 px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-green-600"
             >
               📋 Daftar Tagihan
             </button>
-            <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 rounded-full px-2 py-1">{allPayments.length} tagihan</span>
+            <span className="text-xs font-semibold text-gray-500 bg-gray-100 rounded-full px-2 py-1">{allPayments.length} tagihan</span>
           </div>
         </div>
         <div className="space-y-2 rounded-xl bg-gray-50 p-2.5">
           <div>
-            <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-gray-500">Asal invoice</p>
+            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-gray-500">Asal invoice</p>
             <div className="flex flex-wrap gap-1" role="group" aria-label="Filter asal invoice">
               {([
                 ["semua", "Semua"],
@@ -608,7 +608,7 @@ export default function TagihanTab({
                 ["manual", "Manual"],
               ] as const).map(([filter, label]) => (
                 <button key={filter} type="button" onClick={() => setInvoiceOriginFilter(filter)}
-                  className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                  className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
                     invoiceOriginFilter === filter ? "bg-white text-gray-800 shadow-sm ring-1 ring-gray-300" : "text-gray-500 hover:text-gray-700"
                   }`}>
                   {label}
@@ -644,29 +644,29 @@ export default function TagihanTab({
                   <div className="min-w-0">
                     <p className="truncate font-medium text-gray-700 text-sm">{student?.name ?? "(dihapus)"}</p>
                     <div className="mt-1 flex flex-wrap items-center gap-1">
-                      <span className={`inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold ${INVOICE_ORIGIN_CLASS[origin]}`}>
+                      <span className={`inline-flex rounded-full px-1.5 py-0.5 text-xs font-bold ${INVOICE_ORIGIN_CLASS[origin]}`}>
                         {INVOICE_ORIGIN_LABEL[origin]}
                       </span>
                       {report && (
-                        <span className={`inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold ${REPORT_DISPLAY_STATUS_CLASS[reportDisplayStatus(report)]}`}>
+                        <span className={`inline-flex rounded-full px-1.5 py-0.5 text-xs font-bold ${REPORT_DISPLAY_STATUS_CLASS[reportDisplayStatus(report)]}`}>
                           Laporan: {REPORT_DISPLAY_STATUS_LABEL[reportDisplayStatus(report)]}
                         </span>
                       )}
                     </div>
                     {origin === "package" && (
-                      <p className="mt-1 text-[10px] font-medium text-indigo-600">
+                      <p className="mt-1 text-xs font-medium text-indigo-600">
                         {report?.finalBillingBatch ? "Paket Penutup" : `Paket ${report?.billingSessionCount ?? sessions.length} Pertemuan`}
                       </p>
                     )}
                   </div>
                   <span className={statusPillClass(paid)}>{paid ? "Lunas" : "Belum dibayar"}</span>
                   {!paid && (
-                    <span className={`inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold ${AGE_BUCKET_CLASS[ageBucket(invoiceAgeDays(payment))]}`}>
+                    <span className={`inline-flex rounded-full px-1.5 py-0.5 text-xs font-bold ${AGE_BUCKET_CLASS[ageBucket(invoiceAgeDays(payment))]}`}>
                       {AGE_BUCKET_LABEL[ageBucket(invoiceAgeDays(payment))]}
                     </span>
                   )}
                 </div>
-                <div className="rounded-lg bg-slate-50 px-2.5 py-1.5 text-[10px] leading-relaxed text-slate-600">
+                <div className="rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs leading-relaxed text-slate-600">
                   <p>🗓 Periode sesi: <strong>{periodLbl || "Tanpa sesi"}</strong></p>
                   <p>🧾 Bulan tagihan: <strong>{monthLabel(payment.month)}</strong></p>
                 </div>
@@ -869,7 +869,7 @@ export default function TagihanTab({
       )}
 
       {showBillingHelp && (
-        <Modal onClose={() => setShowBillingHelp(false)} ariaLabel="Cara kerja tagihan"
+        <Modal onClose={() => setShowBillingHelp(false)} ariaLabel="Cara kerja tagihan" showCloseButton={false}
           panelClassName="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl outline-none">
           <div className="flex items-start justify-between border-b border-gray-100 px-5 py-4">
             <div>
@@ -882,7 +882,7 @@ export default function TagihanTab({
 
           <div className="space-y-4 overflow-y-auto px-5 py-4 text-sm text-gray-700">
             <section>
-              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">Tagihan per Pertemuan (Paket)</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-600">Tagihan per Pertemuan (Paket)</h3>
               <ul className="mt-2 space-y-2 text-xs leading-relaxed">
                 <li>Untuk murid <strong>Paket per N pertemuan</strong> (8, 10, 12, dst).</li>
                 <li>Antrean lintas bulan — sesi <strong>tertua</strong> ditagih lebih dulu.</li>
@@ -892,7 +892,7 @@ export default function TagihanTab({
             </section>
 
             <section>
-              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">Bulanan</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-600">Bulanan</h3>
               <ul className="mt-2 space-y-2 text-xs leading-relaxed">
                 <li>Murid <strong>Bulanan</strong> — sahkan Laporan Perkembangan, lalu terbitkan invoice dari tahap <strong>Siap Ditagih</strong>.</li>
                 <li>Daftar tagihan lintas bulan — semua invoice tampil tanpa perlu memilih bulan.</li>
@@ -900,7 +900,7 @@ export default function TagihanTab({
             </section>
 
             <section>
-              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">Laporan Perkembangan</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-600">Laporan Perkembangan</h3>
               <ul className="mt-2 space-y-2 text-xs leading-relaxed">
                 <li>Laporan yang sudah <strong>final</strong> tetapi belum punya invoice muncul di tahap <strong>Siap Ditagih</strong>.</li>
                 <li><strong>Terbitkan Invoice</strong> membuat tagihan dari nominal dan periode belajar pada laporan tersebut.</li>
@@ -908,7 +908,7 @@ export default function TagihanTab({
             </section>
 
             <section>
-              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">Manual & Filter</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-600">Manual & Filter</h3>
               <ul className="mt-2 space-y-2 text-xs leading-relaxed">
                 <li><strong>Manual</strong> — buat tagihan nominal bebas tanpa mengambil atau menampilkan sesi.</li>
                 <li>Filter <strong>Status</strong> dan <strong>Asal invoice</strong> menyaring daftar serta hasil ekspor CSV/PDF.</li>
@@ -927,7 +927,7 @@ export default function TagihanTab({
 
       {/* Daftar Tagihan WA modal */}
       {showWaAll && (
-        <Modal onClose={() => setShowWaAll(false)} ariaLabel="Daftar Tagihan WA"
+        <Modal onClose={() => setShowWaAll(false)} ariaLabel="Daftar Tagihan WA" showCloseButton={false}
           panelClassName="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl outline-none">
           <div className="flex items-start justify-between border-b border-gray-100 px-5 py-4">
             <div>
@@ -948,7 +948,7 @@ export default function TagihanTab({
                     className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 px-3 py-2.5 transition-colors hover:bg-green-50">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-gray-700">{row.label}</p>
-                      <p className="inline-flex items-center gap-1 text-[11px] font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">💬 WhatsApp</p>
+                      <p className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">💬 WhatsApp</p>
                     </div>
                     <span className="flex-shrink-0 text-sm font-semibold text-amber-700">{formatRupiah(row.payment.totalCost)}</span>
                   </a>

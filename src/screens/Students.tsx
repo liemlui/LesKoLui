@@ -507,7 +507,7 @@ export default function Students() {
         <Modal
           onClose={() => { setPendingAction(null); pin.resetPin(); }}
           ariaLabel="Konfirmasi PIN"
-          panelClassName="bg-white w-full max-w-xs rounded-2xl p-5 space-y-4 shadow-xl mx-4"
+          panelClassName="relative bg-white w-full max-w-xs rounded-2xl p-5 space-y-4 shadow-xl mx-4"
         >
           <div>
             <p className="font-bold text-base text-gray-800">

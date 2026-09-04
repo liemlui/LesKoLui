@@ -59,10 +59,10 @@ export default function StudyNoteCard({ studentId, studyNote, onSave }: Props) {
       <div className="flex items-center justify-between min-h-[18px]">
         <div>
           {saving && (
-            <span className="text-[10px] text-blue-500 animate-pulse">menyimpan...</span>
+            <span className="text-xs text-blue-500 animate-pulse">menyimpan...</span>
           )}
           {!saving && content.trim() && studyNote?.updatedAt && (
-            <span className="text-[10px] text-gray-400">
+            <span className="text-xs text-gray-500">
               Disimpan {new Date(studyNote.updatedAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
             </span>
           )}
@@ -71,7 +71,7 @@ export default function StudyNoteCard({ studentId, studyNote, onSave }: Props) {
           <button
             type="button"
             onClick={() => setPreview((v) => !v)}
-            className="text-[10px] font-semibold text-gray-500 bg-gray-50 hover:bg-gray-100 border border-gray-200 px-2 py-1 rounded-lg transition-colors">
+            className="text-xs font-semibold text-gray-500 bg-gray-50 hover:bg-gray-100 border border-gray-200 px-2 py-1 rounded-lg transition-colors">
             {preview ? "✏️ Edit" : "👁 Pratinjau"}
           </button>
         )}

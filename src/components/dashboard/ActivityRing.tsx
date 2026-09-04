@@ -47,14 +47,14 @@ export default function ActivityRing({ value, total, label, detail, tone = "blue
             cx={side / 2} cy={side / 2} r={radius} fill="none" stroke={palette.stroke} strokeWidth={width}
             strokeLinecap="round" strokeDasharray={`${dash} ${circumference - dash}`} />
         </svg>
-        <span className={`absolute inset-0 flex items-center justify-center font-bold ${palette.text} ${size === "sm" ? "text-[10px]" : "text-xs"}`}>
+        <span className={`absolute inset-0 flex items-center justify-center font-bold ${palette.text} ${size === "sm" ? "text-xs" : "text-xs"}`}>
           {safeTotal > 0 ? `${percent}%` : "—"}
         </span>
       </div>
       <div className="min-w-0">
         <p className="text-xs font-semibold text-gray-700">{label}</p>
         <p className={`font-bold ${palette.text} ${size === "sm" ? "text-sm" : "text-base"}`}>{safeValue}/{safeTotal}</p>
-        {detail && <p className="text-[11px] text-gray-500 leading-snug">{detail}</p>}
+        {detail && <p className="text-xs text-gray-500 leading-snug">{detail}</p>}
       </div>
     </div>
   );

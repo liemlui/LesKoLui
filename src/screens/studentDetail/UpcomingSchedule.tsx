@@ -58,9 +58,10 @@ export default function UpcomingSchedule({
       ) : (
         <div className="space-y-2">
           {paginatedFiltered.map((s) => (
-            <div key={s.id}
-              className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex items-center justify-between gap-3 cursor-pointer hover:border-blue-200 transition-colors"
-              onClick={() => openEditSched(s)}>
+            <button key={s.id} type="button"
+              className="w-full text-left bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex items-center justify-between gap-3 cursor-pointer hover:border-blue-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              onClick={() => openEditSched(s)}
+              aria-label={`Edit jadwal ${dayLabel(s.date)}${s.time ? ` pukul ${s.time}` : ""}`}>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   {s.date === today && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-semibold">Hari ini</span>}
@@ -70,7 +71,7 @@ export default function UpcomingSchedule({
                 <p className="text-xs text-gray-500">{s.time ? `${s.time} · ` : ""}{s.durationHours} jam</p>
               </div>
               <span className="text-gray-500 text-xs flex-shrink-0">✏️ Edit</span>
-            </div>
+            </button>
           ))}
           <PaginationControls
             page={safeFilteredPage}

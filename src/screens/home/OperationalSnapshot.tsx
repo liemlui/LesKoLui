@@ -58,7 +58,7 @@ export default function OperationalSnapshot({
       {/* ── Header ── */}
       <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-3 border-b border-slate-100">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-600">Command center</p>
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-600">Command center</p>
           <h2 id="operational-title" className="text-base font-bold text-slate-800">Operasional hari ini</h2>
           <p className="mt-0.5 text-xs text-slate-600">Ringkasan yang bisa langsung ditindaklanjuti.</p>
         </div>
@@ -95,7 +95,7 @@ export default function OperationalSnapshot({
         >
           <div className="flex items-center justify-between gap-2">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-600">Hari Ini</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Hari Ini</p>
               <p className="mt-1 text-[32px] font-bold leading-none text-slate-800">
                 {todayTotal > 0 ? `${todayPct}%` : "—"}
               </p>
@@ -142,7 +142,7 @@ export default function OperationalSnapshot({
         <div className="grid grid-cols-2 gap-3">
           {/* Minggu Ini */}
           <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-600">Minggu ini</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Minggu ini</p>
             <p className="mt-1 text-[28px] font-bold leading-none text-slate-800">
               {weekPlanned > 0 ? `${weekPct}%` : "—"}
             </p>
@@ -255,7 +255,7 @@ export default function OperationalSnapshot({
         ) : (
           <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/50 p-3 text-center">
             <p className="text-xs text-slate-600">Belum ada sesi hari ini.</p>
-            <p className="text-[11px] text-slate-500 mt-0.5">Tambahkan jadwal di bagian "Hari Ini" di bawah.</p>
+            <p className="text-xs text-slate-500 mt-0.5">Tambahkan jadwal di bagian "Hari Ini" di bawah.</p>
           </div>
         )}
       </div>

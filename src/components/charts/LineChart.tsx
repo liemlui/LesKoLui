@@ -210,7 +210,7 @@ export default function LineChart({
 
       {tooltip && (
         <div
-          className="absolute pointer-events-none bg-gray-800 text-white text-[11px] font-semibold px-2 py-1 rounded-lg shadow-lg whitespace-nowrap z-10"
+          className="absolute pointer-events-none bg-gray-800 text-white text-xs font-semibold px-2 py-1 rounded-lg shadow-lg whitespace-nowrap z-10"
           style={{ left: tooltip.x, top: tooltip.y, transform: "translate(-50%, -100%)" }}>
           {tooltip.text}
         </div>

@@ -87,5 +87,5 @@ export function groupPdfPages(payments: readonly Payment[], perPage = ITEMS_PER_
 
 /** Kelas Tailwind pill status lunas/belum. */
 export function statusPillClass(paid: boolean): string {
-  return `text-[11px] font-semibold px-2 py-0.5 rounded-full ${paid ? "text-green-700 bg-green-100" : "text-amber-700 bg-amber-100"}`;
+  return `text-xs font-semibold px-2 py-0.5 rounded-full ${paid ? "text-green-700 bg-green-100" : "text-amber-700 bg-amber-100"}`;
 }

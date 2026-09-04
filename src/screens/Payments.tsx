@@ -160,20 +160,20 @@ export default function PaymentsPage() {
       {/* Pengeluaran tetap mendapat konteks kas periode; Tagihan punya pusat koleksi sendiri. */}
       {activeTab === "pengeluaran" && (
         <div className="space-y-2" aria-label={`Ringkasan keuangan ${monthLabel(month)}`}>
-          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
             Ringkasan {monthLabel(month)}
           </p>
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-xl border border-green-100 bg-green-50/60 px-3 py-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-green-600">Kas diterima</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-green-600">Kas diterima</p>
               <p className="mt-0.5 text-sm font-bold text-green-700">{formatRupiah(cashInMonth)}</p>
             </div>
             <div className="rounded-xl border border-amber-100 bg-amber-50/60 px-3 py-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-600">Belum dibayar</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-amber-600">Belum dibayar</p>
               <p className="mt-0.5 text-sm font-bold text-amber-700">{formatRupiah(piutangMonth)}</p>
             </div>
             <div className="rounded-xl border border-red-100 bg-red-50/60 px-3 py-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-red-600">Pengeluaran</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-red-600">Pengeluaran</p>
               <p className="mt-0.5 text-sm font-bold text-red-700">{formatRupiah(expenseMonth)}</p>
             </div>
           </div>
@@ -196,7 +196,7 @@ export default function PaymentsPage() {
         onChange={handleTabChange}
         fullWidth
       >
-        <p className="mt-1 text-[10px] leading-relaxed text-slate-400 sm:text-[11px]">
+        <p className="mt-1 text-xs leading-relaxed text-slate-500">
           {TAB_DESCRIPTIONS[activeTab]}
         </p>
       </Tabs>
@@ -205,9 +205,16 @@ export default function PaymentsPage() {
         <div
           role={message.startsWith("Gagal") ? "alert" : "status"}
           aria-live={message.startsWith("Gagal") ? "assertive" : "polite"}
-          onClick={() => setMessage("")}
-          className={`p-3 rounded-lg text-sm cursor-pointer ${message.includes("✓") ? "bg-green-50 text-green-700" : message.startsWith("Gagal") ? "bg-red-50 text-red-600" : "bg-blue-50 text-blue-700"}`}>
-          {message}
+          className={`flex items-start gap-2 rounded-lg p-3 text-sm ${message.includes("✓") ? "bg-green-50 text-green-700" : message.startsWith("Gagal") ? "bg-red-50 text-red-600" : "bg-blue-50 text-blue-700"}`}>
+          <span className="flex-1">{message}</span>
+          <button
+            type="button"
+            aria-label="Tutup pesan"
+            onClick={() => setMessage("")}
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
         </div>
       )}
 

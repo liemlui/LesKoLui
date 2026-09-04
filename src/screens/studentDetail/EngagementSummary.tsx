@@ -94,7 +94,7 @@ export default function EngagementSummary({
             dateXAxis={false}
             formatY={(v) => `${Math.round(v)}`}
           />
-          <p className="mt-1 text-center text-[10px] text-gray-400">Skor fokus per sesi — 15 sesi terakhir</p>
+          <p className="mt-1 text-center text-xs text-gray-500">Skor fokus per sesi — 15 sesi terakhir</p>
         </div>
       )}
 

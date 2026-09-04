@@ -54,7 +54,7 @@ export default function ResolveMissedSessionModal({ session, studentName, onClos
     `text-left rounded-xl border p-3 transition-colors ${resolution === value ? active : idle}`;
 
   return (
-    <Modal onClose={onClose} ariaLabel="Kelola sesi terlewat">
+    <Modal onClose={onClose} ariaLabel="Kelola sesi terlewat" showCloseButton={false}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="font-bold text-lg">Kelola Sesi Terlewat</h3>

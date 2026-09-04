@@ -455,7 +455,7 @@ export default function StudentDetail() {
               : "Buat Tagihan Manual"}
         </button>
         {studentBillingPolicy === "monthly" && (
-          <p className="col-span-2 text-[11px] text-gray-500 -mt-1">
+          <p className="col-span-2 text-xs text-gray-500 -mt-1">
             💡 Laporan perkembangan difinalkan di menu Laporan. Tagihan bulanan diterbitkan dan diperiksa terpisah melalui <strong>Keuangan → Penagihan</strong>.
           </p>
         )}
@@ -722,7 +722,10 @@ export default function StudentDetail() {
               const photoUrl = photoUrls.get(s.id);
               const sigUrl   = sigUrls.get(s.id);
               return (
-                <div key={s.id} className="bg-white rounded-xl shadow-sm border border-gray-100 px-4 py-3 cursor-pointer active:bg-gray-50"
+                <div key={s.id} role="button" tabIndex={0}
+                  aria-label={`Buka detail sesi ${(s.subjects ?? []).join(", ") || "Sesi umum"}`}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDetailSession(s); } }}
+                  className="bg-white rounded-xl shadow-sm border border-gray-100 px-4 py-3 cursor-pointer active:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   onClick={() => setDetailSession(s)}>
                   <div className="flex items-start gap-2">
                     {(photoUrl || sigUrl) && (
@@ -773,7 +776,8 @@ export default function StudentDetail() {
                       <div className="flex items-center gap-1">
                         {s.status === "DONE" && (
                           <button onClick={(e) => { e.stopPropagation(); openEditNote(s); }}
-                            className="text-gray-500 hover:text-blue-500 transition-colors text-xs px-1">✏️</button>
+                            aria-label="Edit catatan sesi"
+                            className="text-gray-500 hover:text-blue-500 transition-colors text-xs p-1.5 -m-1.5 rounded-full hover:bg-gray-100">✏️</button>
                         )}
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.status === "DONE" ? "bg-green-50 text-green-600" : s.status === "CANCELLED" ? "bg-red-50 text-red-500" : "bg-blue-50 text-blue-600"}`}>
                           {s.status === "DONE" ? `${s.durationHours}j` : s.status}
@@ -824,7 +828,7 @@ export default function StudentDetail() {
           <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
             <div>
               <h2 className="font-semibold text-gray-700">IA / EE / PP Tracker</h2>
-              <p className="text-[11px] text-gray-400 mt-0.5">IA = Internal Assessment (DP) · EE = Extended Essay (DP) · PP = Personal Project (MYP)</p>
+              <p className="text-xs text-gray-500 mt-0.5">IA = Internal Assessment (DP) · EE = Extended Essay (DP) · PP = Personal Project (MYP)</p>
             </div>
             <button
               onClick={() => { setShowIaEeForm((v) => !v); setIaeeSubject(""); setIaeeTitle(""); setIaeeDeadline(""); setIaeeNotes(""); }}
@@ -842,7 +846,7 @@ export default function StudentDetail() {
                   <option value="EE">EE — Extended Essay (esai riset DP)</option>
                   <option value="PP">PP — Personal Project (proyek pribadi MYP)</option>
                 </select>
-                <p className="text-[11px] text-blue-700 mt-1">
+                <p className="text-xs text-blue-700 mt-1">
                   {iaeeType === "IA" && "Internal Assessment: tugas resmi dari satu mapel DP, dinilai internal + moderasi IB."}
                   {iaeeType === "EE" && "Extended Essay: esai riset mandiri ±4.000 kata dari salah satu mapel DP."}
                   {iaeeType === "PP" && "Personal Project: proyek mandiri siswa MYP — tidak terikat satu mapel."}

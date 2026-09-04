@@ -198,13 +198,58 @@ Legend severitas: 🔴 Kritis · 🟠 Tinggi · 🟡 Sedang · 🟢 Rendah.
 **Checklist pengerjaan:**
 
 - [x] Fase 1 — Quick wins
-- [ ] Fase 2 — A11y core
+- [x] Fase 2 — A11y core
 - [x] Fase 3 — Design tokens
-- [ ] Fase 4 — Struktur & feedback
+- [x] Fase 4 — Struktur & feedback
 - [ ] Fase 5 — Dark mode + motion
 - [ ] Fase 6 — Ikonografi
 
 **Verifikasi Fase 1:** `npm test -- --run src/__tests__/bottomNavNoVersion.test.tsx` (1/1 hijau) dan `npm run build` (sukses) setelah perbaikan nav, shell layout, modal, safe-area, dan cleanup file dead code.
+
+---
+
+## 🛠 Log Implementasi — Fase 2 A11y core (2026-09-04)
+
+> Dieksekusi bersamaan dengan sesi kerja paralel (Fase 1/3/4). Item di bawah adalah kontribusi sesi ini; yang ternyata sudah dikerjakan sesi paralel dibiarkan. Verifikasi akhir Fase 2: **lint 0/0 · test 351/351 · build OK**.
+
+### K2 — Safe-area (sisa yang belum tertangani sesi paralel)
+- `Toast.tsx` — `top-4` → `top-[max(1rem,env(safe-area-inset-top))]`.
+- `Modal.tsx` — padding bawah panel default → `pb-[calc(2rem+var(--safe-bottom))]`.
+- `CaptureSession.tsx` — bar CTA wizard `bottom-16` → `bottom-[calc(4rem+var(--safe-bottom))]`; panel tooltip `bottom-24` → `bottom-[calc(6rem+var(--safe-bottom))]`.
+- Housekeeping: hapus duplikasi variabel (`--safe-area-b/t`) demi satu konvensi `--safe-top/--safe-bottom`.
+
+### A1 — Elemen klik jadi semantik
+- `UpcomingSchedule.tsx` — kartu jadwal `div onClick` → `<button type="button">` + `aria-label` + focus ring.
+- `StudentDetail.tsx:725` — kartu riwayat sesi → `role="button"` + `tabIndex={0}` + handler Enter/Space + focus ring (bukan `<button>` karena ada tombol ✏️ bersarang — HTML melarang button di dalam button).
+- `Payments.tsx` — bar pesan `div onClick` → flex + tombol ✕ `aria-label="Tutup pesan"` (role/aria-live dipertahankan). *(CaptureSession & MonthlyReport sudah dikerjakan sesi paralel.)*
+
+### A2 — Modal close + drag handle (penyempurnaan atas implementasi sesi paralel)
+- Tombol ✕ dipindah **setelah children** dalam DOM → fokus awal modal kembali ke elemen pertama konten (memulihkan alur autoFocus input PIN; tanpa ini fokus lompat ke ✕).
+- Prop baru `showCloseButton` (default `true`) → `false` di 7 modal yang sudah punya tombol tutup sendiri (AddSchedule, EditSession, ResolveMissed, TagihanTab ×2, CatatanBelajar, MonthlyReport) → dobel ✕ hilang.
+- Panel PIN modal (Students) diberi `relative` agar ✕ absolut teranchor benar.
+
+### A5 — Touch target
+- `CaptureSession` — chip hapus topik: `tabIndex={-1}` dihapus, target diperluas (`p-1.5 -m-1.5`), `blue-400`→`blue-500`; tombol bersihkan pencarian: `aria-label` + perluasan; chip hapus mapel (IB picker): `type` + `aria-label` + perluasan.
+- `StudentDetail` — ✏️ edit catatan: perluasan target + `aria-label`.
+- `MonthlyReport` — ✕ hapus draft: `type` + `aria-label` dinamis + target ≥24px.
+- `AuditTab` — nav tahun ‹/›: target 36×36px + hover.
+- `PengeluaranTab` — Edit/Hapus: `type` + `aria-label` dinamis + target diperluas.
+- `BottomNav` — label FAB "Catat" `text-[10px]` → 12px.
+
+### A7 — Stepper wizard
+- Langkah masa depan kini `disabled` (tidak lagi fokusabel-tanpa-efek); langkah aktif tetap fokusabel dengan `aria-current="step"`; `aria-label` kontekstual per status.
+
+### A4 — Font floor 12px + kontras
+- **Bulk:** `text-[9px]/[10px]/[11px]` → `text-xs` di 22 file.
+- **Kontras teks:** `slate-400/gray-400` → `-500` di ±15 titik (RingkasanTab ×4, PengeluaranTab ×5, AuditTab ×2, FinancePipelineBoard, DonutChart, EngagementSummary, StudyNoteCard, MonthlyReport ×2, StudentDetail, Payments); `blue-500`→`blue-600` (Settings); `white/70`→`white/90` (kartu Laba); `indigo-400`→`indigo-600`.
+
+### Pengecualian terdokumentasi (sengaja tidak diubah)
+- Label sumbu SVG chart (`BarChart.tsx:141,201`, `LineChart.tsx:115,147,205`) — font-size dalam koordinat viewBox SVG, bukan px CSS.
+- Glyph kalender mikro (`MonthView`, `DayView`, skor StudentDetail) — data-dense, terikat tinggi sel 64px.
+- Thumbnail preview tema laporan (`MonthlyReport`) — miniatur canvas, bukan teks UI.
+
+### Catatan konvensi
+Dua ekuivalen 12px hidup berdampingan: `text-xs` (hasil bulk sesi ini, mayoritas) dan `text-[12px]` (BottomNav/Breadcrumb/TodayHero, sesi paralel). Nilai komputasi identik; penyatuan bisa menyusul saat refactor kecil.
 
 ---
 
