@@ -1,7 +1,17 @@
 @import "tailwindcss";
 
+:root {
+  --bottom-nav-h: 64px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 html, body, #root { min-height: 100vh; }
 body { margin: 0; }
+
+.app-shell {
+  padding-bottom: calc(var(--bottom-nav-h) + var(--safe-bottom) + 1rem);
+}
 
 @keyframes slide-up {
   from { transform: translateY(100%); opacity: 0; }
@@ -9,6 +19,15 @@ body { margin: 0; }
 }
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @layer base {

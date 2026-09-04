@@ -31,6 +31,7 @@ export default function Tabs({ tabs, active, onChange, children, fullWidth }: Pr
               key={tab.key}
               role="tab"
               aria-selected={isActive}
+              aria-label={tab.label}
               onClick={() => onChange(tab.key)}
               className={`relative py-2.5 font-semibold transition-colors whitespace-nowrap ${
                 fullWidth

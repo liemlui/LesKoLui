@@ -123,7 +123,6 @@ export default function RingkasanTab({
     row.readyBatchCount > 0
     || Boolean(row.pendingBillingPolicy && row.unbilledCount > 0 && row.unbilledCount < row.targetCount)
   )).length;
-  const needsActionCount = readyReportCount + packageActionCount;
 
   // ── Papan pipeline per murid: Sesi → Laporan → Tagihan → Lunas → Dibagikan ──
   const pipelineRows = useMemo(
@@ -136,10 +135,12 @@ export default function RingkasanTab({
     }),
     [students, monthSessions, reports, payments, month],
   );
+  const pipelineActionCount = pipelineRows.filter((row) => row.nextAction !== null).length;
   const pipelineSummary = [
-    readyReportCount > 0 && `${readyReportCount} laporan final tanpa invoice`,
+    pipelineActionCount > 0 && `${pipelineActionCount} murid perlu ditindaklanjuti`,
+    readyReportCount > 0 && `${readyReportCount} laporan siap ditagih`,
     packageActionCount > 0 && `${packageActionCount} antrean paket siap terbit`,
-    needsActionCount === 0 && "Semua alur penagihan sinkron.",
+    pipelineActionCount === 0 && "Semua alur penagihan sinkron.",
   ].filter(Boolean).join(" · ") || "Selesaikan langkah yang tersisa agar arus kas tidak tertunda.";
   const monthPayments = useMemo(() => payments.filter((p) => p.month === month), [payments, month]);
   const sessionPotential = monthSessions.reduce((s, x) => s + x.cost, 0);

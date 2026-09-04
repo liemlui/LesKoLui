@@ -247,7 +247,7 @@ export default function TagihanTab({
       <section aria-labelledby="collection-center-title" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-indigo-500">Penagihan {'Semua Tagihan'}</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-indigo-500">Penagihan · Semua Periode</p>
             <h2 id="collection-center-title" className="mt-0.5 text-base font-bold text-slate-800">Pusat Koleksi</h2>
             <p className="mt-1 max-w-sm text-[11px] leading-relaxed text-slate-500">
               Terbitkan invoice, tindak lanjuti piutang, lalu catat pelunasan dalam satu alur.
@@ -279,7 +279,7 @@ export default function TagihanTab({
             >
               <span className="block text-[10px] font-bold uppercase tracking-wide opacity-80">02 · Terbit</span>
               <span className="mt-0.5 block text-sm font-bold leading-tight">{formatRupiah(totalBilled)}</span>
-              <span className="mt-0.5 block text-[10px] leading-snug opacity-80">{allPayments.length} invoice periode ini</span>
+              <span className="mt-0.5 block text-[10px] leading-snug opacity-80">{allPayments.length} invoice lintas periode</span>
             </button>
           </div>
 

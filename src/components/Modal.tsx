@@ -58,9 +58,10 @@ export default function Modal({ onClose, children, ariaLabel, panelClassName }: 
         aria-modal="true"
         aria-label={ariaLabel}
         tabIndex={-1}
-        className={panelClassName ?? "bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 pb-8 space-y-4 max-h-[90vh] overflow-y-auto overflow-x-hidden outline-none"}
+        className={panelClassName ?? "bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 pb-8 space-y-4 max-h-[90vh] overflow-y-auto overflow-x-hidden overscroll-contain outline-none"}
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="mx-auto mb-2 h-1.5 w-12 rounded-full bg-gray-300" aria-hidden="true" />
         {children}
       </div>
     </div>

@@ -78,7 +78,7 @@ export function PwaPrompts() {
     <>
       {/* Install prompt */}
       {showInstall && (
-        <div className="fixed bottom-20 inset-x-0 z-50 px-4">
+        <div className="fixed inset-x-0 z-50 px-4" style={{ bottom: "calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 0.75rem)" }}>
           <div className="max-w-md mx-auto bg-blue-600 text-white rounded-2xl p-4 shadow-xl flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold">Pasang di layar utama</p>
