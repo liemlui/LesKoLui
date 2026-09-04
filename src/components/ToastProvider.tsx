@@ -1,9 +1,10 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, type ReactNode } from "react";
-import { useToast, type ToastMessage } from "../hooks/useToast";
+import { useToast, type ToastAction, type ToastMessage } from "../hooks/useToast";
 
 interface ToastCtx {
   toasts: ToastMessage[];
+  show: (text: string, type?: ToastMessage["type"], durationMs?: number, action?: ToastAction) => number;
   success: (text: string) => number;
   error:   (text: string) => number;
   info:    (text: string) => number;
@@ -13,9 +14,9 @@ interface ToastCtx {
 const ToastContext = createContext<ToastCtx | null>(null);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const { toasts, success, error, info, dismiss } = useToast();
+  const { toasts, show, success, error, info, dismiss } = useToast();
   return (
-    <ToastContext.Provider value={{ toasts, success, error, info, dismiss }}>
+    <ToastContext.Provider value={{ toasts, show, success, error, info, dismiss }}>
       {children}
     </ToastContext.Provider>
   );
