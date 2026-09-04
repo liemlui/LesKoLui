@@ -11,6 +11,23 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.70.3",
+    date: "2026-09-04",
+    title: "Perbaikan UI/UX — Navigasi Lebih Cepat, Aksesibilitas, dan Kontras Lebih Baik",
+    items: [
+      "Navigasi bawah didesain ulang: tombol aksi utama '+ Catat Sesi' di tengah + akses langsung ke Laporan bulanan",
+      "Ikon menu Keuangan diperbaiki agar konsisten dengan label (sebelumnya tampak seperti ikon jam)",
+      "Dukungan layar ber-notch/bertonjolan: navigasi, toast, dan modal kini menghormati area aman sistem (safe-area)",
+      "Modal kini punya gagang tarik dan tombol tutup ✕ yang jelas di pojok — semua layar",
+      "Ukuran teks minimum dinaikkan ke 12px dan kontras warna teks diperbaiki agar nyaman dibaca (WCAG AA)",
+      "Elemen yang bisa diklik (kartu jadwal, riwayat sesi, pesan info) kini bisa dioperasikan keyboard & dibaca screen reader",
+      "Area ketuk tombol kecil (hapus topik, edit, hapus draft, dll.) diperbesar agar lebih mudah ditekan di HP",
+      "Wizard Catat Sesi: langkah yang belum dibuka tidak bisa diklik lagi — alur jadi lebih jelas",
+      "Desain sistem terpusat: warna & font brand dikelola melalui token di satu tempat",
+    ],
+  },
+
+  {
     version: "v1.70.0",
     date: "2026-09-01",
     title: "Keuangan Bebas Redundansi — Ringkasan Pantau, Penagihan Eksekusi",
