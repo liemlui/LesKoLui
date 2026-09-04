@@ -199,7 +199,7 @@ Legend severitas: 🔴 Kritis · 🟠 Tinggi · 🟡 Sedang · 🟢 Rendah.
 
 - [x] Fase 1 — Quick wins
 - [ ] Fase 2 — A11y core
-- [ ] Fase 3 — Design tokens
+- [x] Fase 3 — Design tokens
 - [ ] Fase 4 — Struktur & feedback
 - [ ] Fase 5 — Dark mode + motion
 - [ ] Fase 6 — Ikonografi

@@ -44,7 +44,7 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
-  `flex flex-col items-center justify-center gap-0.5 min-h-[48px] min-w-[48px] px-2 py-1 text-[11px] font-medium transition-colors rounded-xl ${
+  `flex flex-col items-center justify-center gap-0.5 min-h-[48px] min-w-[48px] px-2 py-1 text-[12px] font-medium transition-colors rounded-xl ${
     isActive
       ? "text-blue-700 bg-blue-50"
       : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"

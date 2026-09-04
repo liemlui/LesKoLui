@@ -46,7 +46,7 @@ export default function Tabs({ tabs, active, onChange, children, fullWidth }: Pr
                 {tab.compactLabel && <span className="sm:hidden">{tab.compactLabel}</span>}
                 <span className={tab.compactLabel ? "hidden sm:inline" : undefined}>{tab.label}</span>
                 {tab.count != null && tab.count > 0 && (
-                  <span className={`rounded-full px-1.5 py-0 text-[10px] font-bold ${
+                  <span className={`rounded-full px-1.5 py-0 text-[12px] font-bold ${
                     isActive ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600"
                   }`}>
                     {tab.count > 99 ? "99+" : tab.count}

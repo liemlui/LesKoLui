@@ -23,14 +23,14 @@ interface Props {
 
 /** Status badge for pills, cards, chips — severity + count. */
 export default function Badge({ children, tone = "slate", count, variant = "soft", size = "sm" }: Props) {
-  const sizeClass = size === "sm" ? "text-[10px] px-1.5 py-0.5" : "text-xs px-2 py-1";
+  const sizeClass = size === "sm" ? "text-[12px] px-1.5 py-0.5" : "text-xs px-2 py-1";
   const borderClass = variant === "outline" ? "border bg-white" : "border";
 
   return (
     <span className={`inline-flex items-center gap-1 rounded-full font-semibold ${sizeClass} ${borderClass} ${TONE_CLASSES[tone]}`}>
       {children}
       {count != null && count > 0 && (
-        <span className={`rounded-full px-1.5 py-0 text-[10px] font-bold ${variant === "outline" ? "bg-slate-100 text-slate-600" : "bg-white/60"}`}>
+        <span className={`rounded-full px-1.5 py-0 text-[12px] font-bold ${variant === "outline" ? "bg-slate-100 text-slate-600" : "bg-white/60"}`}>
           {count > 99 ? "99+" : count}
         </span>
       )}

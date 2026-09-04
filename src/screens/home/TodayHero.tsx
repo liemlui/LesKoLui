@@ -75,7 +75,7 @@ export default function TodayHero({ today, sessions, studentMap, onAdd, ...actio
                 {showSep && (
                   <div className="flex items-center gap-2 my-2">
                     <div className="flex-1 border-t border-slate-100" />
-                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                    <span className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider">
                       {thisTime}:00
                     </span>
                     <div className="flex-1 border-t border-slate-100" />

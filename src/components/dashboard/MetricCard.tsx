@@ -43,15 +43,15 @@ export default function MetricCard({ label, value, description, icon, tone = "sl
   const content = (
     <>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-600">{label}</p>
+        <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-600">{label}</p>
         {icon && <span aria-hidden="true" className="text-sm leading-none">{icon}</span>}
       </div>
       <p className="mt-1 text-xl font-bold leading-none text-slate-800">{value}</p>
-      <p className="mt-1.5 text-[11px] leading-snug text-slate-600">{description}</p>
+      <p className="mt-1.5 text-[12px] leading-snug text-slate-600">{description}</p>
       {action && (
-        <p className={`mt-2 text-[11px] font-semibold flex items-center gap-1 ${TONE_ACTION[tone]}`}>
+        <p className={`mt-2 text-[12px] font-semibold flex items-center gap-1 ${TONE_ACTION[tone]}`}>
           {action}
-          <span aria-hidden="true" className="text-[10px]">›</span>
+          <span aria-hidden="true" className="text-[12px]">›</span>
         </p>
       )}
     </>
