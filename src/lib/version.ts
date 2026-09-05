@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.71.0",
+    date: "2026-09-05",
+    title: "Ketahanan Data, Validasi AI, dan Pengaturan Atomik",
+    items: [
+      "Draf Catat Sesi tersimpan lokal, terisolasi per murid/jadwal, dapat dipulihkan setelah reload, dan aman saat update PWA",
+      "Restore/reset/delete murid membersihkan draf secara atomik tanpa memasukkan draf ke backup",
+      "Respons AI divalidasi saat runtime dan batch narasi digulirkan atomik bila penyimpanan gagal",
+      "Pengaturan menggunakan patch atomik agar perubahan profil, AI, backup, dan preferensi tidak saling menimpa",
+    ],
+  },
+
+  {
     version: "v1.70.5",
     date: "2026-09-05",
     title: "UI/UX Lebih Ringkas dan Pesan WhatsApp Lebih Personal",

@@ -10,6 +10,9 @@ export { logAudit, listAuditLog } from "./auditRepo";
 
 // Settings
 export { getSettings, initSettings, saveSettings } from "./settingsRepo";
+export type { SettingsPatch } from "./settingsRepo";
+export { applyAiNarrativeBatch } from "./aiRepo";
+export type { AiNarrativeUpdate } from "./aiRepo";
 
 // Students + Rapor Grades
 export { listStudents, getStudent, createStudent, updateStudent, deleteStudent } from "./studentRepo";
@@ -18,7 +21,8 @@ export type { StudentBillingUpdateOptions } from "./studentRepo";
 
 // Sessions + Scheduling + Photo maintenance + Streak
 export {
-  createSession, markSessionDone, updateSession, deleteSession,
+  createSession, createSessionWithCloseoutDraft, markSessionDone,
+  markSessionDoneWithCloseoutDraft, updateSession, deleteSession,
   cancelSession, markSessionNoShow, rescheduleSession,
   listSessionsByStudent, listSessionsForMonth, listSessionsByStudentMonth,
   listSessionsByStudentRange,
@@ -74,8 +78,15 @@ export {
 export type { IaEeMilestone } from "./paymentRepo";
 
 // Follow-ups
-export { createFollowUp, listPendingFollowUps, completeFollowUp } from "./followUpRepo";
-export type { FollowUpType } from "./followUpRepo";
+export { createFollowUp, createFollowUpBatch, listPendingFollowUps, completeFollowUp } from "./followUpRepo";
+export type { FollowUpBatchItem, FollowUpType } from "./followUpRepo";
 
 // Study Notes
 export { getStudyNote, saveStudyNote, listAllStudyNotes } from "./studyNotesRepo";
+
+// Capture drafts (local device only; intentionally excluded from backup)
+export {
+  getCaptureDraft, getCaptureDraftByScope, saveCaptureDraft,
+  deleteCaptureDraft, deleteCaptureDraftsForStudent, clearCaptureDrafts,
+  CaptureDraftConflictError,
+} from "./captureDraftRepo";

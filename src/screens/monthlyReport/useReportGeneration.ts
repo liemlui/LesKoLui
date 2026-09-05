@@ -9,7 +9,7 @@ import { generateReportSummary, generateNarratives } from "../../lib/aiClient";
 import { buildReportAiInput } from "../../lib/reportSessionScope";
 import { pickDirtyNarrativeSessions, reportSummaryFingerprint, sessionAiFingerprint } from "../../lib/aiIncremental";
 import { normaliseAiPlan, cleanText, buildSessionNarrative, sessionSubjectLabel } from "./helpers";
-import { upsertReport, updateSession } from "../../db/repos";
+import { applyAiNarrativeBatch, upsertReport, updateSession } from "../../db/repos";
 import { periodLabel, monthLabel } from "../../lib/format";
 import type { MonthlyReport, Session, Student, NextMonthPlan } from "../../db/types";
 
@@ -129,38 +129,35 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
       const sourceById = new Map(selectedSessions.map((s) => [s.id, s]));
 
       const validIds = new Set(targetSessions.map((s) => s.id));
-      let applied = 0;
+      const updates: Array<{ id: string; narrative: string; aiNarrativeHash: number }> = [];
       for (const entry of out.entries ?? []) {
-        if (requestId !== aiRequestRef.current) return;
         if (validIds.has(entry.id) && entry.narrative?.trim()) {
           const source = sourceById.get(entry.id);
-          await updateSession(entry.id, {
+          if (source) updates.push({
+            id: entry.id,
             narrative: entry.narrative.trim(),
-            aiNarrativeHash: source ? sessionAiFingerprint(source) : undefined,
+            aiNarrativeHash: sessionAiFingerprint(source),
           });
-          if (requestId !== aiRequestRef.current) return;
-          applied++;
         }
       }
       if (requestId !== aiRequestRef.current) return;
       // Ringkasan/kutipan hanya ditimpa bila SEMUA sesi ikut dikirim — bila
       // parsial, ringkasan lama dipertahankan (jangan meringkas data sebagian).
       const aiPlan = normaliseAiPlan(out.nextMonthPlan);
-      await upsertReport({
-        ...draft,
-        summaryText: sentAll ? (out.summary?.trim() || draft.summaryText) : draft.summaryText,
-        teacherNote: sentAll ? (out.teacherNote?.trim() || draft.teacherNote) : draft.teacherNote,
-        quote: sentAll ? (out.quote?.trim() || draft.quote) : draft.quote,
-        nextMonthPlan: sentAll ? (aiPlan ?? draft.nextMonthPlan) : draft.nextMonthPlan,
-      });
+      await applyAiNarrativeBatch(draft, updates, sentAll ? {
+        summaryText: out.summary.trim() || draft.summaryText,
+        teacherNote: out.teacherNote?.trim() || draft.teacherNote,
+        quote: out.quote?.trim() || draft.quote,
+        nextMonthPlan: aiPlan ?? draft.nextMonthPlan,
+      } : {});
       if (requestId !== aiRequestRef.current) return;
       setPrevTexts({
         summaryText: draft.summaryText, teacherNote: draft.teacherNote,
         quote: draft.quote, nextMonthPlan: draft.nextMonthPlan, narratives: prevNarratives,
       });
       setMessage(sentAll
-        ? `Narasi AI selesai ✓ ${applied} narasi sesi + ringkasan & kutipan terisi`
-        : `Narasi AI selesai ✓ ${applied}/${targetSessions.length} sesi berubah (${selectedSessions.length - targetSessions.length} dipertahankan). Ringkasan tidak diubah.`);
+        ? `Narasi AI selesai ✓ ${updates.length} narasi sesi + ringkasan & kutipan terisi`
+        : `Narasi AI selesai ✓ ${updates.length}/${targetSessions.length} sesi berubah (${selectedSessions.length - targetSessions.length} dipertahankan). Ringkasan tidak diubah.`);
       setOpenNarasi(true);
       setOpenPlan(true);
     } catch (e) {

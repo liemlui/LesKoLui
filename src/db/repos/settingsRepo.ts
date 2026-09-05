@@ -5,7 +5,8 @@ import type { Settings } from "../types";
 import { DEFAULT_RATE } from "../types";
 import { hashPin, isHashedPin } from "../../lib/crypto";
 
-const DEFAULT_SETTINGS: Settings = {
+function defaultSettings(): Settings {
+  return {
   id: "app",
   tutorProfile: { name: "", phone: "" },
   defaultRate: DEFAULT_RATE,
@@ -23,12 +24,21 @@ const DEFAULT_SETTINGS: Settings = {
     bri: "",
     accountName: "",
   },
+  };
+}
+
+export type SettingsPatch = Omit<Partial<Settings>, "ai" | "tutorProfile" | "templatePref" | "bankAccounts" | "driveBackup"> & {
+  ai?: Partial<Settings["ai"]>;
+  tutorProfile?: Partial<Settings["tutorProfile"]>;
+  templatePref?: Partial<Settings["templatePref"]>;
+  bankAccounts?: Partial<NonNullable<Settings["bankAccounts"]>>;
+  driveBackup?: Partial<NonNullable<Settings["driveBackup"]>>;
 };
 
 /** Reads settings — pure reader, no side effects. */
 export async function getSettings(): Promise<Settings> {
   const s = await db.settings.get("app");
-  return s ?? { ...DEFAULT_SETTINGS };
+  return s ?? defaultSettings();
 }
 
 /** Initialize default settings row + run one-off migrations — call at app startup. */
@@ -36,7 +46,7 @@ export async function initSettings(): Promise<void> {
   const exists = await db.settings.get("app");
   if (!exists) {
     try {
-      await db.settings.add({ ...DEFAULT_SETTINGS });
+      await db.settings.add(defaultSettings());
     } catch (e) {
       if ((e as { name?: string }).name !== "ConstraintError") throw e;
     }
@@ -57,7 +67,7 @@ async function migrateSettings(): Promise<void> {
   }
 
   if (!s.bankAccounts?.bca && !s.bankAccounts?.cimb && !s.bankAccounts?.bri) {
-    s.bankAccounts = DEFAULT_SETTINGS.bankAccounts;
+    s.bankAccounts = defaultSettings().bankAccounts;
     changed = true;
   }
 
@@ -66,7 +76,35 @@ async function migrateSettings(): Promise<void> {
   }
 }
 
-export async function saveSettings(patch: Partial<Settings>): Promise<void> {
-  const current = await getSettings();
-  await db.settings.put({ ...current, ...patch, id: "app" } as Settings);
+function mergeDefined<T extends object>(current: T | undefined, patch: Partial<T> | undefined): T | undefined {
+  if (patch === undefined) return undefined;
+  return { ...(current ?? {}), ...patch } as T;
+}
+
+export async function saveSettings(patch: SettingsPatch): Promise<void> {
+  await db.transaction("rw", db.settings, async () => {
+    const current = (await db.settings.get("app")) ?? defaultSettings();
+    const next: Settings = { ...current, id: "app" };
+    const scalarPatch = { ...patch } as Record<string, unknown>;
+    delete scalarPatch.ai;
+    delete scalarPatch.tutorProfile;
+    delete scalarPatch.templatePref;
+    delete scalarPatch.bankAccounts;
+    delete scalarPatch.driveBackup;
+    Object.assign(next, scalarPatch);
+    if (Object.prototype.hasOwnProperty.call(patch, "ai")) next.ai = { ...current.ai, ...(patch.ai ?? {}) };
+    if (Object.prototype.hasOwnProperty.call(patch, "tutorProfile")) {
+      next.tutorProfile = { ...current.tutorProfile, ...(patch.tutorProfile ?? {}) };
+    }
+    if (Object.prototype.hasOwnProperty.call(patch, "templatePref")) {
+      next.templatePref = { ...current.templatePref, ...(patch.templatePref ?? {}) };
+    }
+    if (Object.prototype.hasOwnProperty.call(patch, "bankAccounts")) {
+      next.bankAccounts = mergeDefined(current.bankAccounts, patch.bankAccounts);
+    }
+    if (Object.prototype.hasOwnProperty.call(patch, "driveBackup")) {
+      next.driveBackup = mergeDefined(current.driveBackup, patch.driveBackup);
+    }
+    await db.settings.put(next);
+  });
 }

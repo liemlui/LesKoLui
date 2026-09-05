@@ -2,7 +2,9 @@ import { db } from "../db/db";
 import { encryptJson, decryptJson } from "./crypto";
 import { downloadBlob } from "./download";
 import { invoiceDueAt } from "./finance";
+import { validateBackupData } from "./backupValidation";
 import type { Table } from "dexie";
+import type { ValidationWarning } from "./backupValidation";
 
 /**
  * Semua tabel data domain yang ikut berpindah antar-perangkat.
@@ -17,7 +19,7 @@ export const BACKUP_TABLES = [
 /** Format payload JSON di dalam file terenkripsi. Versi 1 tetap didukung saat restore. */
 export const BACKUP_VERSION = 2;
 
-type BackupTable = typeof BACKUP_TABLES[number];
+export type BackupTable = typeof BACKUP_TABLES[number];
 type BackupRow = Record<string, unknown>;
 type BackupData = Record<BackupTable, BackupRow[]>;
 type BackupDb = typeof db & Record<BackupTable, Table<BackupRow, string>>;
@@ -44,6 +46,7 @@ export type BackupSummary = {
   version: 1 | typeof BACKUP_VERSION;
   exportedAt: string;
   tableCounts: Record<BackupTable, number>;
+  warnings: ValidationWarning[];
 };
 
 export type ImportBackupOptions = {
@@ -52,6 +55,12 @@ export type ImportBackupOptions = {
    * database diganti. Callback dapat menunggu mekanisme penyimpanan lain.
    */
   onPreRestoreBackup?: (backup: { blob: Blob; filename: string; summary: BackupSummary }) => Promise<void> | void;
+  /**
+   * Dipanggil ketika backup memiliki peringatan validasi yang perlu
+   * diakui pengguna sebelum restore dilanjutkan. Kembalikan false untuk
+   * membatalkan restore; true untuk melanjutkan.
+   */
+  onValidationWarnings?: (warnings: ValidationWarning[]) => Promise<boolean> | boolean;
 };
 
 export type ImportBackupResult = {
@@ -374,7 +383,7 @@ async function readSnapshot(): Promise<BackupData> {
 function summaryOf(parsed: ParsedBackup): BackupSummary {
   const tableCounts = {} as Record<BackupTable, number>;
   for (const table of BACKUP_TABLES) tableCounts[table] = parsed.data[table].length;
-  return { version: parsed.version, exportedAt: parsed.exportedAt, tableCounts };
+  return { version: parsed.version, exportedAt: parsed.exportedAt, tableCounts, warnings: [] };
 }
 
 async function buildBackup(passphrase: string): Promise<{ blob: Blob; summary: BackupSummary }> {
@@ -393,11 +402,11 @@ async function buildBackup(passphrase: string): Promise<{ blob: Blob; summary: B
   };
   return {
     blob: await encryptJson(dump, passphrase),
-    summary: { version: BACKUP_VERSION, exportedAt, tableCounts },
+    summary: { version: BACKUP_VERSION, exportedAt, tableCounts, warnings: [] },
   };
 }
 
-async function prepareBackupImport(file: Blob, passphrase: string): Promise<{ parsed: ParsedBackup; decoded: BackupData }> {
+async function prepareBackupImport(file: Blob, passphrase: string): Promise<{ parsed: ParsedBackup; decoded: BackupData; warnings: ValidationWarning[] }> {
   const parsed = parseBackupDump(await decryptJson(file, passphrase));
   const decoded = {} as BackupData;
   for (const table of BACKUP_TABLES) decoded[table] = await decodeRows(parsed.data[table]);
@@ -411,13 +420,20 @@ async function prepareBackupImport(file: Blob, passphrase: string): Promise<{ pa
   // tidak konsisten: setelah restore, waktu backup menunjukkan file sumbernya.
   if (decoded.settings.length === 1) decoded.settings[0].lastBackupAt = parsed.exportedAt;
 
-  return { parsed, decoded };
+  // Validasi data dan relasi setelah migrasi dan decode.
+  const validation = validateBackupData(decoded, parsed.databaseVersion);
+  if (!validation.valid) {
+    const messages = validation.errors.map((e) => e.message).join("; ");
+    throw new Error(`Backup tidak valid: ${messages}`);
+  }
+
+  return { parsed, decoded, warnings: validation.warnings };
 }
 
 /** Memeriksa dekripsi dan struktur backup tanpa menyentuh database lokal. */
 export async function inspectBackup(file: Blob, passphrase: string): Promise<BackupSummary> {
-  const { parsed } = await prepareBackupImport(file, passphrase);
-  return summaryOf(parsed);
+  const { parsed, warnings } = await prepareBackupImport(file, passphrase);
+  return { ...summaryOf(parsed), warnings };
 }
 
 export async function exportBackup(passphrase: string): Promise<Blob> {
@@ -429,9 +445,18 @@ export async function importBackup(
   passphrase: string,
   options: ImportBackupOptions = {},
 ): Promise<ImportBackupResult> {
-  // Dekripsi, validasi bentuk, dan decode media selesai sebelum data saat ini
-  // disentuh. File corrupt atau versi tak didukung tidak bisa menghapus data.
-  const { parsed, decoded } = await prepareBackupImport(file, passphrase);
+  // Dekripsi, validasi bentuk, decode media, dan validasi data selesai sebelum
+  // data saat ini disentuh. File corrupt, versi tak didukung, atau data tidak
+  // valid tidak bisa menghapus data.
+  const { parsed, decoded, warnings } = await prepareBackupImport(file, passphrase);
+
+  // Tanyakan pengguna untuk peringatan validasi sebelum melanjutkan.
+  if (warnings.length > 0 && options.onValidationWarnings) {
+    const acknowledged = await options.onValidationWarnings(warnings);
+    if (!acknowledged) {
+      throw new Error("Restore dibatalkan oleh pengguna karena peringatan validasi.");
+    }
+  }
 
   // Buat cadangan tambahan dari kondisi sekarang sebelum restore. Callback
   // memungkinkan UI memakai penyimpanan yang lebih eksplisit bila tersedia.
@@ -447,14 +472,16 @@ export async function importBackup(
 
   // clear + bulkAdd berada dalam satu transaksi. Bila salah satu operasi gagal,
   // IndexedDB membatalkan seluruh perubahan dan data lama tetap ada.
-  const tables = BACKUP_TABLES.map((table) => backupDb[table]);
+  const tables = [...BACKUP_TABLES.map((table) => backupDb[table]), db.captureDrafts];
   await db.transaction("rw", tables, async () => {
     for (const table of BACKUP_TABLES) {
       await backupDb[table].clear();
       const rows = decoded[table];
       if (rows.length > 0) await backupDb[table].bulkAdd(rows);
     }
+    await db.captureDrafts.clear();
   });
 
-  return { restored: summaryOf(parsed), preRestore: preRestore.summary };
+  const restored = summaryOf(parsed);
+  return { restored: { ...restored, warnings }, preRestore: { ...preRestore.summary, warnings: [] } };
 }

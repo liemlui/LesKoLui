@@ -2,7 +2,7 @@
 // CRUD sessions, scheduling, conflicts, photo maintenance, streak.
 
 import { db } from "../db";
-import type { Payment, Session } from "../types";
+import type { CaptureDraft, Payment, Session } from "../types";
 import { MIN_DURATION, DURATION_STEP, reportStatus, billingPolicyOf } from "../types";
 import { timestamp, nowTimeWIB, subtractHoursFromTime, monthRange, timeToMin } from "./helpers";
 import { todayWIB } from "../../lib/format";
@@ -78,6 +78,50 @@ export async function createSession(
   return id;
 }
 
+type DraftCloseout = NonNullable<CaptureDraft["form"]["closeout"]>;
+
+async function saveCloseoutDraft(
+  draft: CaptureDraft,
+  session: DraftCloseout["session"],
+  followUps: DraftCloseout["followUps"],
+): Promise<void> {
+  const current = await db.captureDrafts.get(draft.draftId);
+  if (!current || current.revision !== draft.revision) {
+    throw new Error("Draf berubah sebelum sesi disimpan. Muat ulang draf terbaru.");
+  }
+  await db.captureDrafts.put({
+    ...draft,
+    revision: draft.revision + 1,
+    updatedAt: timestamp(),
+    phase: "closeout",
+    savedSessionId: session.id,
+    form: {
+      ...draft.form,
+      closeout: { session, followUps, followUpText: "" },
+    },
+  });
+}
+
+export async function createSessionWithCloseoutDraft(
+  input: Omit<Session, "id" | "rateSnapshot" | "cost" | "createdAt" | "updatedAt">,
+  draft: CaptureDraft,
+  followUps: DraftCloseout["followUps"],
+): Promise<{ id: string; session: DraftCloseout["session"] }> {
+  return db.transaction("rw", db.students, db.sessions, db.captureDrafts, async () => {
+    const id = await createSession(input);
+    const session = {
+      id,
+      date: input.date,
+      subjects: input.subjects,
+      durationHours: input.durationHours,
+      shortNote: input.shortNote,
+      topic: input.topic,
+    };
+    await saveCloseoutDraft(draft, session, followUps);
+    return { id, session };
+  });
+}
+
 export async function markSessionDone(
   id: string,
   data: {
@@ -110,6 +154,29 @@ export async function markSessionDone(
     timeOut: session.timeOut ?? tout,
     status: "DONE",
     updatedAt: timestamp(),
+  });
+}
+
+export async function markSessionDoneWithCloseoutDraft(
+  id: string,
+  data: Parameters<typeof markSessionDone>[1],
+  draft: CaptureDraft,
+  followUps: DraftCloseout["followUps"],
+): Promise<{ id: string; session: DraftCloseout["session"] }> {
+  return db.transaction("rw", db.students, db.sessions, db.captureDrafts, async () => {
+    await markSessionDone(id, data);
+    const saved = await db.sessions.get(id);
+    if (!saved) throw new Error("Sesi tidak ditemukan setelah disimpan.");
+    const session = {
+      id,
+      date: saved.date,
+      subjects: saved.subjects,
+      durationHours: saved.durationHours,
+      shortNote: saved.shortNote,
+      topic: saved.topic,
+    };
+    await saveCloseoutDraft(draft, session, followUps);
+    return { id, session };
   });
 }
 

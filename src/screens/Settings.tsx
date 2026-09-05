@@ -380,7 +380,12 @@ export default function SettingsPage() {
   const doRestore = async () => {
     const file = restoreRef.current?.files?.[0];
     if (!file || !backupPass) { toastCtx.info("Pilih file dan masukkan kata sandi!"); return; }
-    await importBackup(file, backupPass);
+    await importBackup(file, backupPass, {
+      onValidationWarnings: async (warnings) => {
+        const summary = warnings.map((w) => `- ${w.table}.${w.rowId}.${w.field}: ${w.message}`).join("\n");
+        return confirm(`Backup memiliki ${warnings.length} peringatan validasi:\n\n${summary}\n\nLanjutkan restore?`);
+      },
+    });
     await logAudit("data.restore", "data", undefined, "dari file");
     toastCtx.info("Restore berhasil! Memuat ulang... ✓");
     setTimeout(() => location.reload(), 1500);
@@ -409,7 +414,12 @@ export default function SettingsPage() {
       fileId = found.id;
     }
     const blob = await downloadBackupFromDrive(fileId);
-    await importBackup(blob, backupPass);
+    await importBackup(blob, backupPass, {
+      onValidationWarnings: async (warnings) => {
+        const summary = warnings.map((w) => `- ${w.table}.${w.rowId}.${w.field}: ${w.message}`).join("\n");
+        return confirm(`Backup memiliki ${warnings.length} peringatan validasi:\n\n${summary}\n\nLanjutkan restore?`);
+      },
+    });
     await logAudit("data.restore", "data", undefined, "dari Google Drive");
     toastCtx.info("Restore dari Drive berhasil! Memuat ulang... ✓");
     setTimeout(() => location.reload(), 1500);
@@ -478,7 +488,7 @@ export default function SettingsPage() {
       db.students, db.sessions, db.reports,
       db.payments, db.followUps,
       db.raporGrades, db.expenses, db.iaeeProjects,
-      db.studyNotes, db.settings, db.auditLog,
+      db.studyNotes, db.captureDrafts, db.settings, db.auditLog,
     ];
     await db.transaction("rw", tables, async () => {
       for (const t of tables) await t.clear();
@@ -514,7 +524,7 @@ export default function SettingsPage() {
 
     restore: {
       title: "Konfirmasi Restore",
-      description: "Restore akan mengganti data saat ini. Masukkan PIN untuk lanjut.",
+      description: "Restore akan mengganti data saat ini dan menghapus draf lokal perangkat. Masukkan PIN untuk lanjut.",
       confirmLabel: "Restore",
     },
     resetAll: {

@@ -1,73 +1,36 @@
-# React + TypeScript + Vite
+# Les Ko Lui
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplikasi jurnal les privat & laporan otomatis untuk orang tua — lokal-first PWA.
 
-Currently, two official plugins are available:
+## Perintah
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```powershell
+npm.cmd install          # install dependencies
+npm.cmd run dev          # dev server (Vite)
+npm.cmd test             # vitest (unit/integration)
+npm.cmd run build        # tsc + vite build
+npm.cmd run lint         # eslint
+npm.cmd run e2e          # Playwright E2E (perlu build dulu)
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Dokumentasi
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Dokumentasi arsitektur berada di direktori `../` (root `Private Tutor/`):
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+1. `01-architecture-and-stack.md` — stack, struktur, konfigurasi
+2. `02-data-model.md` — skema Dexie, tipe, repositori
+3. `03-capture-flow.md` — alur catat sesi
+4. `06-ai-generation.md` — integrasi AI DeepSeek
+5. `08-backup-and-pwa.md` — backup terenkripsi + PWA
+6. `09-build-phases.md` — fase pembangunan
+7. `10-conventions-and-pitfalls.md` — aturan kode
+
+**Data Resilience Plan:** lihat `docs/RENCANA-KETAHANAN-DATA-2026-09-05.md` untuk enam lingkup ketahanan data (Fase A–F) yang sedang berjalan.
+
+## Status
+
+- **Version:** 1.71.0
+- **Dexie schema:** v15 (10 backup tables + auditLog + studyNotes + local captureDrafts)
+- **Backup tables (10):** students, sessions, reports, payments, settings, raporGrades, followUps, expenses, iaeeProjects, studyNotes
+- **AI model:** DeepSeek v4 Flash (direct dari browser)
+- **Framework:** React 19 + TypeScript + Vite + Tailwind v4 + Dexie

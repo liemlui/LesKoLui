@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { DEFAULT_RATE, MIN_DURATION } from "../db/types";
 import { db } from "../db/db";
 import { defaultInvoiceDueAt } from "../lib/finance";
@@ -570,6 +570,66 @@ describe("FollowUps", () => {
     await completeFollowUp(fuId);
     const after = await listPendingFollowUps(sid);
     expect(after.length).toBe(0);
+  });
+
+  it("saves a close-out batch atomically and retries with stable IDs", async () => {
+    const { createStudent, createSession, createFollowUpBatch, listPendingFollowUps } = await import("../db/repos");
+    const sid = await createStudent({
+      name: "Batch Murid", level: "IBDP", subjects: [], parentContact: { phone: "081" },
+      hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30),
+    });
+    const sessionId = await createSession({
+      studentId: sid, date: wibDate(), durationHours: MIN_DURATION,
+      subjects: ["Math"], shortNote: "x", status: "DONE",
+    });
+    const items = [
+      { id: "fu-1", text: "Review limits" },
+      { id: "fu-2", text: "Practice graphs" },
+    ];
+
+    await createFollowUpBatch(sid, sessionId, items);
+    await createFollowUpBatch(sid, sessionId, items);
+
+    const pending = await listPendingFollowUps(sid);
+    expect(pending.map((item) => item.id).sort()).toEqual(["fu-1", "fu-2"]);
+  });
+
+  it("rolls back the whole batch when the database write fails", async () => {
+    const { createStudent, createSession, createFollowUpBatch, listPendingFollowUps } = await import("../db/repos");
+    const sid = await createStudent({
+      name: "Rollback Murid", level: "IBDP", subjects: [], parentContact: { phone: "081" },
+      hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30),
+    });
+    const sessionId = await createSession({
+      studentId: sid, date: wibDate(), durationHours: MIN_DURATION,
+      subjects: ["Math"], shortNote: "x", status: "DONE",
+    });
+    const bulkAdd = vi.spyOn(db.followUps, "bulkAdd").mockRejectedValueOnce(new Error("simulated write failure"));
+
+    await expect(createFollowUpBatch(sid, sessionId, [
+      { id: "rollback-1", text: "First" },
+      { id: "rollback-2", text: "Second" },
+    ])).rejects.toThrow("simulated write failure");
+    bulkAdd.mockRestore();
+
+    expect(await listPendingFollowUps(sid)).toHaveLength(0);
+  });
+
+  it("rejects an ID conflict without overwriting the existing item", async () => {
+    const { createStudent, createSession, createFollowUpBatch, listPendingFollowUps } = await import("../db/repos");
+    const sid = await createStudent({
+      name: "Conflict Murid", level: "IBDP", subjects: [], parentContact: { phone: "081" },
+      hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30),
+    });
+    const sessionId = await createSession({
+      studentId: sid, date: wibDate(), durationHours: MIN_DURATION,
+      subjects: ["Math"], shortNote: "x", status: "DONE",
+    });
+    await createFollowUpBatch(sid, sessionId, [{ id: "conflict-1", text: "Original" }]);
+
+    await expect(createFollowUpBatch(sid, sessionId, [{ id: "conflict-1", text: "Changed" }]))
+      .rejects.toThrow("Konflik ID tindak lanjut");
+    expect((await listPendingFollowUps(sid))[0]?.text).toBe("Original");
   });
 });
 

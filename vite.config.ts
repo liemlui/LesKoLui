@@ -18,13 +18,8 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      // "autoUpdate": SW baru langsung skipWaiting + clientsClaim lalu reload.
-      // Dipakai karena generateSW menyajikan index.html hasil precache secara
-      // cache-first via navigateFallback — kalau SW lama tetap aktif ("prompt"),
-      // index.html basi bisa mereferensikan chunk lama yang sudah dihapus origin,
-      // memicu "Failed to fetch dynamically imported module" setelah deploy.
-      // Auto-reload saat update menghilangkan jendela stale itu.
-      registerType: "autoUpdate",
+      // Update diterapkan setelah form/draf diberi kesempatan flush.
+      registerType: "prompt",
       includeAssets: ["favicon.svg", "icon-192.png", "icon-512.png"],
       manifest: {
         id: "/",

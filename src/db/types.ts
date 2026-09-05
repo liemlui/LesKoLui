@@ -81,6 +81,58 @@ export interface FollowUpItem {
   createdAt: string;
 }
 
+export type CaptureDraftPhase = "editing" | "closeout";
+
+export interface CaptureDraftFollowUp {
+  id: string;
+  text: string;
+}
+
+export interface CaptureDraftForm {
+  step: number;
+  date: string;
+  durationHours: number;
+  subjects: string[];
+  topic: string;
+  topicSearch: string;
+  shortNote: string;
+  needsWork: string;
+  predictedGrade: string;
+  mood?: string;
+  engagementFlags: Omit<EngagementLog, "score">;
+  behaviorTags: string[];
+  responseTag?: string;
+  situasiNote: string;
+  sessionType?: string;
+  photo?: Blob;
+  signature?: Blob;
+  closeout?: {
+    session: {
+      id: string;
+      date: string;
+      subjects: string[];
+      durationHours: number;
+      shortNote: string;
+      topic?: string;
+    };
+    followUps: CaptureDraftFollowUp[];
+    followUpText: string;
+  };
+}
+
+export interface CaptureDraft {
+  draftId: string;
+  formatVersion: 1;
+  revision: number;
+  updatedAt: string;
+  scopeKey: string;
+  studentId?: string;
+  scheduleId?: string;
+  phase: CaptureDraftPhase;
+  savedSessionId?: string;
+  form: CaptureDraftForm;
+}
+
 export interface RaporGrade {
   id: string;
   studentId: string;

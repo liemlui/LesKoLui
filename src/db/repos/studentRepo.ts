@@ -103,7 +103,7 @@ export async function deleteStudent(id: string): Promise<void> {
   const tables = [
     db.students, db.sessions, db.reports,
     db.payments, db.followUps, db.raporGrades,
-    db.iaeeProjects, db.studyNotes,
+    db.iaeeProjects, db.studyNotes, db.captureDrafts,
   ];
   await db.transaction("rw", tables, async () => {
     await db.students.delete(id);
@@ -114,6 +114,7 @@ export async function deleteStudent(id: string): Promise<void> {
     await db.raporGrades.where({ studentId: id }).delete();
     await db.iaeeProjects.where({ studentId: id }).delete();
     await db.studyNotes.where({ studentId: id }).delete();
+    await db.captureDrafts.where({ studentId: id }).delete();
   });
   await logAudit("student.delete", "student", id, student?.name);
 }

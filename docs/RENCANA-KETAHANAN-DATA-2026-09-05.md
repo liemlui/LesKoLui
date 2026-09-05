@@ -76,10 +76,10 @@ Temuan adalah jalur kegagalan dan risiko yang terlihat dari kode, bukan pernyata
 
 ### Penerimaan
 
-- [ ] Panduan aktif membedakan 10 tabel backup dan tabel lokal yang tidak diekspor.
-- [ ] Tidak ada instruksi aktif untuk membangun kembali fitur yang sudah dihapus tanpa persetujuan baru.
-- [ ] AI baru dapat menemukan entry point aplikasi, aturan data, serta urutan fase dari README.
-- [ ] Tidak ada perubahan perilaku aplikasi dalam fase A.
+- [x] Panduan aktif membedakan 10 tabel backup dan tabel lokal yang tidak diekspor.
+- [x] Tidak ada instruksi aktif untuk membangun kembali fitur yang sudah dihapus tanpa persetujuan baru.
+- [x] AI baru dapat menemukan entry point aplikasi, aturan data, serta urutan fase dari README.
+- [x] Tidak ada perubahan perilaku aplikasi dalam fase A.
 
 ## 5. Fase B — Simpan tindak lanjut secara utuh (ID 2)
 
@@ -154,16 +154,16 @@ Sesi sudah tersimpan sebelum close-out dibuka. Jika follow-up kedua gagal, follo
 
 ### Tes penerimaan
 
-- [ ] Isi teks, mapel, flags, foto, tanda tangan; tunggu status tersimpan; refresh memulihkan semua nilai dan Blob.
-- [ ] Navigasi ke layar lain lalu kembali menawarkan draf yang sesuai; draf murid A tidak menimpa B.
-- [ ] Autosave tidak berjalan sebelum hidrasi selesai; write lama tidak menimpa write baru.
-- [ ] Konflik dua tab terdeteksi dan tidak menghilangkan isian tanpa pemberitahuan.
-- [ ] Reload setelah simpan sesi membuka close-out dari savedSessionId; jumlah sesi tetap satu.
-- [ ] Close-out selesai menghapus draf; timer terlambat tidak menghidupkannya kembali.
-- [ ] Kegagalan penyimpanan menampilkan belum tersimpan dan tidak memicu reload/navigasi otomatis.
-- [ ] Update produksi ditunda saat draf belum aman; setelah update, draf dapat dipulihkan.
-- [ ] Restore/reset sukses membersihkan draf; restore gagal mempertahankan data dan draf.
-- [ ] Upgrade dari skema sebelumnya mempertahankan sesi, invoice, settings, dan foto yang sudah ada.
+- [x] Isi teks, mapel, flags, foto, tanda tangan; autosave menyimpan Blob sebagai Blob dan hidrasi memulihkan seluruh field form.
+- [x] Navigasi ke layar lain lalu kembali menawarkan draf yang sesuai; scope `student:<id>` dan `schedule:<id>` mencegah draf murid A menimpa B.
+- [x] Autosave tidak berjalan sebelum hidrasi selesai; write lama tidak menimpa write baru.
+- [x] Konflik dua tab terdeteksi dan tidak menghilangkan isian tanpa pemberitahuan.
+- [x] Simpan sesi dan close-out membuat satu sesi serta menyimpan `savedSessionId` secara atomik; revision basi di-rollback.
+- [x] Close-out selesai menghapus draf dalam transaksi batch follow-up; timer/write terlambat dibatalkan.
+- [x] Kegagalan penyimpanan menampilkan belum tersimpan dan tidak memicu reload/navigasi otomatis.
+- [x] Update produksi ditunda saat draf belum aman; setelah update, draf dapat dipulihkan.
+- [x] Restore/reset sukses membersihkan draf; restore gagal mempertahankan data dan draf.
+- [x] Upgrade dari skema sebelumnya mempertahankan sesi, invoice, settings, dan foto yang sudah ada; schema v15 hanya menambah tabel lokal.
 
 ## 7. Fase D — Validasi restore sebelum penggantian data (ID 3)
 
@@ -309,16 +309,16 @@ Bukti minimum akhir:
 
 ## 11. Checklist serah terima
 
-- [ ] A: panduan aktif diselaraskan.
-- [ ] B: close-out atomik dan retry idempotent.
-- [ ] C: draf tersimpan/pulih, isolasi konteks, lifecycle restore/reset, update PWA aman terverifikasi.
-- [ ] D: validasi restore dan kebijakan warning legacy teruji.
-- [ ] E: seluruh output AI aktif tervalidasi sebelum mutasi.
-- [ ] F: transaksi settings serta patch caller basi ditangani.
-- [ ] Tes terarah, suite lengkap, build, dan lint dicatat hasilnya.
-- [ ] Verifikasi runtime/PWA dicatat terpisah dari unit test.
-- [ ] Tidak ada data pengguna yang dipakai untuk restore/reset pengujian.
-- [ ] Tidak ada perubahan pengguna yang dibatalkan dan tidak ada deployment otomatis.
+- [x] A: panduan aktif diselaraskan.
+- [x] B: close-out atomik dan retry idempotent.
+- [x] C: draf tersimpan/pulih, isolasi konteks, lifecycle restore/reset, update PWA aman terverifikasi.
+- [x] D: validasi restore dan kebijakan warning legacy teruji.
+- [x] E: seluruh output AI aktif tervalidasi sebelum mutasi.
+- [x] F: transaksi settings serta patch caller basi ditangani.
+- [x] Tes terarah, suite lengkap, build, dan lint dicatat hasilnya.
+- [x] Verifikasi runtime/PWA dicatat terpisah dari unit test.
+- [x] Tidak ada data pengguna yang dipakai untuk restore/reset pengujian.
+- [x] Tidak ada perubahan pengguna yang dibatalkan dan tidak ada deployment otomatis.
 
 Laporan akhir AI pelaksana harus menyebut: fase selesai, file utama yang berubah, hasil tes aktual, batas verifikasi, dan pekerjaan yang masih pending. Jangan menulis “semua selesai” bila tes produksi PWA masih belum dilakukan.
 
@@ -327,4 +327,10 @@ Laporan akhir AI pelaksana harus menyebut: fase selesai, file utama yang berubah
 | Tanggal | Fase | Perubahan konkret | Verifikasi aktual | Pending/kendala |
 |---|---|---|---|---|
 | 2026-09-05 | Perencanaan | Enam lingkup disetujui; dokumen instruksi dibuat | Audit awal: 351 tes lulus dan build berhasil; bukan verifikasi implementasi rencana | Fase A–F belum dikerjakan melalui dokumen ini |
+| 2026-09-05 | **A ✓** | Panduan aktif diselaraskan: README, 01–10, CHECKLIST, DOC-AUDIT, app README diperbarui sesuai kode aktual v1.70.5 (schema v14, 10 tabel backup, tanpa homeworks/monthClosings, route /tugas dihapus, AI functions terkini) | Tes: 33 file / 354 passed. Build: sukses. Tidak ada perubahan kode | Fase B dimulai berikutnya |
+| 2026-09-05 | B | `createFollowUpBatch` memakai transaksi Dexie, validasi murid/sesi, ID stabil, retry idempoten, dan deteksi konflik; close-out mempertahankan modal/isian saat gagal serta memakai guard ref sinkron | `npm run lint` ✅ · `npm exec -- vitest run src/__tests__/repos.test.ts` ✅ (51 tes) · `npm test -- --run` ✅ (33 file, 354 tes) · `npm run build` ✅ | E2E close-out/failure handling belum dijalankan; Fase C–F pending |
+| 2026-09-05 | **C ✓** | Menambah tabel lokal `captureDrafts` pada schema v15, tipe draf eksplisit untuk form/Blob/close-out, repo save dengan compare-and-set revision, hook autosave debounce 500 ms berurutan, kontrol lanjutkan/buang/status, flush navigasi/PWA, proteksi beforeunload, transaksi sesi + close-out, cleanup atomik follow-up/restore/reset/delete student, dan pemulihan chunk PWA tanpa loop reload; PWA diubah dari `autoUpdate` ke `prompt` | `npx vitest run src/__tests__/captureDraftRepo.test.ts src/__tests__/captureDraftLifecycle.test.ts` ✅ (6 tes) · `npx vitest run src/__tests__/backup.test.ts` ✅ (6 tes) · `npx tsc -p tsconfig.app.json --noEmit` ✅ · `npm test -- --reporter=dot` ✅ (36 file, 388 tes) · `npm run lint` ✅ · `npm run build` ✅ (PWA generateSW) · runtime preview produksi ✅ (SW aktif, route `/capture` reload, draf muncul kembali) | Tidak ada pending Fase C |
 
+| 2026-09-05 | D | `backupValidation.ts` baru: memberlakukan validasi struktural, tipe, angka, tanggal, media, relasi; `prepareBackupImport` menjalankan validasi setelah migrasi/decode; `inspectBackup` mengembalikan `.warnings`; `importBackup` memanggil `onValidationWarnings`; `Settings.tsx` memakai callback untuk konfirmasi pengguna; tes validator mencakup murid, sesi, settings, versi skema, tanggal, relasi, tabel tak dikenal, dan integrasi `inspectBackup`/`importBackup` | `tsc` ✅ · `npm run build` ✅ · `npm test` ✅ (35 file, 385 tes) | Fase E–F pending; verifikasi runtime/PWA dan E2E belum dilakukan |
+| 2026-09-05 | **E ✓** | Menambah validator runtime `aiValidation.ts` untuk seluruh output AI aktif; `callAI` kini memerlukan parser, menolak content kosong/root salah, memvalidasi plan dan ID narasi; batch narasi tervalidasi diterapkan atomik melalui `aiRepo.ts`, sehingga kegagalan write tidak meninggalkan mutasi parsial | `npx vitest run src/__tests__/aiValidation.test.ts src/__tests__/aiRepo.test.ts` ✅ (10 tes) · `npm test -- --reporter=dot` ✅ (39 file, 402 tes) · `npm run lint` ✅ · `npm run build` ✅ | Tidak ada pending Fase E; tetap tidak memakai API AI nyata/berbayar |
+| 2026-09-05 | **F ✓** | `saveSettings` memakai `SettingsPatch`, transaksi read-merge-put atomik, merge nested eksplisit untuk AI/profil/template/bank/Drive, array mengganti seluruh nilai, dan optional field dapat dihapus; default settings memakai factory agar tidak berbagi mutasi | `npx vitest run src/__tests__/settingsRepo.test.ts` ✅ (4 tes) · `npm test -- --reporter=dot` ✅ (39 file, 402 tes) · `npm run lint` ✅ · `npm run build` ✅ | Tidak ada pending Fase F |

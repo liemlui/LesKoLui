@@ -13,12 +13,12 @@ async function clearDomainData(): Promise<void> {
   await db.transaction("rw", [
     db.students, db.sessions, db.reports, db.payments, db.settings,
     db.raporGrades, db.followUps, db.expenses, db.iaeeProjects,
-    db.auditLog, db.studyNotes,
+    db.auditLog, db.studyNotes, db.captureDrafts,
   ], async () => {
     await Promise.all([
       db.students.clear(), db.sessions.clear(), db.reports.clear(), db.payments.clear(), db.settings.clear(),
       db.raporGrades.clear(), db.followUps.clear(), db.expenses.clear(), db.iaeeProjects.clear(),
-      db.auditLog.clear(), db.studyNotes.clear(),
+      db.auditLog.clear(), db.studyNotes.clear(), db.captureDrafts.clear(),
     ]);
   });
 }
@@ -79,6 +79,16 @@ async function seedEveryBackupTable(): Promise<void> {
 describe("backup / restore", () => {
   it("round-trips every domain table and top-level Blob fields", async () => {
     await seedEveryBackupTable();
+    await db.captureDrafts.add({
+      draftId: "local-draft", formatVersion: 1, revision: 1,
+      updatedAt: "2026-07-20T08:00:00.000Z", scopeKey: "student:student-1",
+      studentId: "student-1", phase: "editing",
+      form: {
+        step: 1, date: "2026-07-20", durationHours: 1, subjects: [], topic: "",
+        topicSearch: "", shortNote: "lokal", needsWork: "", predictedGrade: "",
+        engagementFlags: {}, behaviorTags: [], situasiNote: "",
+      },
+    });
     const source = await exportBackup(PASS);
     const sourceSummary = await inspectBackup(source, PASS);
 
@@ -111,6 +121,7 @@ describe("backup / restore", () => {
     await expect(db.expenses.count()).resolves.toBe(1);
     await expect(db.iaeeProjects.count()).resolves.toBe(1);
     await expect(db.studyNotes.count()).resolves.toBe(1);
+    await expect(db.captureDrafts.count()).resolves.toBe(0);
 
     await expect((await db.students.get("student-1"))!.photo!.text()).resolves.toBe("student-photo");
     await expect((await db.sessions.get("session-1"))!.photo!.text()).resolves.toBe("session-photo");
@@ -125,6 +136,15 @@ describe("backup / restore", () => {
 
   it("rejects incomplete v2 data before changing current records", async () => {
     await seedEveryBackupTable();
+    await db.captureDrafts.add({
+      draftId: "preserved-draft", formatVersion: 1, revision: 1,
+      updatedAt: "2026-07-20T08:00:00.000Z", scopeKey: "new", phase: "editing",
+      form: {
+        step: 1, date: "2026-07-20", durationHours: 1, subjects: [], topic: "",
+        topicSearch: "", shortNote: "tetap ada", needsWork: "", predictedGrade: "",
+        engagementFlags: {}, behaviorTags: [], situasiNote: "",
+      },
+    });
     const malformed = await encryptJson({
       version: 2,
       exportedAt: "2026-07-20T08:00:00.000Z",
@@ -136,6 +156,7 @@ describe("backup / restore", () => {
       .rejects.toThrow("File backup tidak lengkap");
     await expect(db.students.count()).resolves.toBe(1);
     await expect(db.sessions.count()).resolves.toBe(1);
+    await expect(db.captureDrafts.count()).resolves.toBe(1);
   }, 30_000);
 
   it("accepts v1 payloads that predate newer domain tables", async () => {
@@ -242,6 +263,11 @@ describe("backup / restore", () => {
 
   it("materializes legacy payment due dates during restore without overwriting an explicit deadline", async () => {
     const data = Object.fromEntries(BACKUP_TABLES.map((table) => [table, []])) as Record<string, Record<string, unknown>[]>;
+    data.students = [
+      { id: "student-period-end", name: "Siswa A", level: "MYP", subjects: [], parentContact: { phone: "0811" }, hourlyRate: 200_000, active: true, enrolledAt: "2026-01-01" },
+      { id: "student-month-end", name: "Siswa B", level: "MYP", subjects: [], parentContact: { phone: "0812" }, hourlyRate: 200_000, active: true, enrolledAt: "2024-01-01" },
+      { id: "student-explicit-due", name: "Siswa C", level: "MYP", subjects: [], parentContact: { phone: "0813" }, hourlyRate: 200_000, active: true, enrolledAt: "2026-01-01" },
+    ];
     data.payments = [
       {
         id: "payment-period-end", studentId: "student-period-end", month: "2026-06",

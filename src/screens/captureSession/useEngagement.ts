@@ -82,6 +82,20 @@ export default function useEngagement() {
     setActiveTooltip(null);
   }, []);
 
+  const hydrate = useCallback((next: {
+    flags: EngagementState;
+    mood?: string;
+    behaviorTags: string[];
+    responseTag?: string;
+    situasiNote: string;
+  }) => {
+    setFlags(next.flags);
+    setMood(next.mood);
+    setBehaviorTags(next.behaviorTags);
+    setResponseTag(next.responseTag);
+    setSituasiNote(next.situasiNote);
+  }, []);
+
   return {
     flags, mood, setMood,
     behaviorTags, setBehaviorTags,
@@ -91,6 +105,6 @@ export default function useEngagement() {
     situasiNote, setSituasiNote,
     touched, hasEngagementInput,
     score, scoreInfo,
-    toggleFlag, applyPreset, resetEngagementFlags, resetAll,
+    toggleFlag, applyPreset, resetEngagementFlags, resetAll, hydrate,
   };
 }

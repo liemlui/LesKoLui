@@ -4,9 +4,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db/db";
 import {
-  listStudents, createSession, recentShortNotes,
-  createFollowUp, getSettings, listDoneSessionsForDate,
-  markSessionDone,
+  listStudents, createSessionWithCloseoutDraft, recentShortNotes,
+  createFollowUpBatch, getSettings, listDoneSessionsForDate,
+  markSessionDoneWithCloseoutDraft,
 } from "../db/repos";
 import { compressPhoto, stampPhoto } from "../lib/foto";
 import SignaturePad from "../components/SignaturePad";
@@ -26,10 +26,12 @@ import { SimpleMarkdown } from "../components/SimpleMarkdown";
 import Breadcrumb from "../components/Breadcrumb";
 import type { Student } from "../db/types";
 import PaginationControls from "../components/PaginationControls";
-import { PAGE_SIZE, clampPage, paginateItems } from "../lib/pagination";
+import { clampPage, paginateItems } from "../lib/pagination";
 import { Z } from "../lib/zIndex";
 import useEngagement from "./captureSession/useEngagement";
 import useStudentBrief from "./captureSession/useStudentBrief";
+import useCaptureDraft from "./captureSession/useCaptureDraft";
+import type { CaptureDraft, CaptureDraftForm } from "../db/types";
 
 const DURATIONS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
 const MOODS = [
@@ -151,7 +153,7 @@ export default function CaptureSession() {
     situasiNote, setSituasiNote,
     touched: engTouched, hasEngagementInput,
     score: engScore, scoreInfo: engScoreInfo,
-    toggleFlag, applyPreset, resetEngagementFlags, resetAll,
+    toggleFlag, applyPreset, resetEngagementFlags, resetAll, hydrate: hydrateEngagement,
   } = useEngagement();
   // Situasi humanis hari ini (opsional) — konteks, bukan perilaku.
 
@@ -185,10 +187,72 @@ export default function CaptureSession() {
     id: string; date: string; subjects: string[]; durationHours: number;
     shortNote: string; topic?: string;
   } | null>(null);
-  const [coFollowUps,    setCoFollowUps]    = useState<string[]>([]);
+  const [coFollowUps,    setCoFollowUps]    = useState<Array<{ id: string; text: string }>>([]);
   const [coFollowUpText, setCoFollowUpText] = useState("");
   const [coSaving,       setCoSaving]       = useState(false);
+  const coSavingRef = useRef(false);
   const [coFollowPage,   setCoFollowPage]   = useState(1);
+
+  const draftScopeKey = scheduleId ? `schedule:${scheduleId}` : studentId ? `student:${studentId}` : "new";
+  const draftForm: CaptureDraftForm = {
+    step: currentStep,
+    date: sessionDate,
+    durationHours: duration,
+    subjects,
+    topic,
+    topicSearch,
+    shortNote,
+    needsWork,
+    predictedGrade,
+    mood,
+    engagementFlags: {
+      prepared: engPrepared, focused: engFocused, drowsy: engDrowsy,
+      playingPhone: engPhone, activeAsking: engActiveAsking, quickLearner: engQuickLearner,
+      needsRepetition: engNeedsRepeat, hwMissed: engHwMissed, late: engLate,
+      bathroomBreaks: engBathroom, restless: engRestless, offTask: engOffTask,
+    },
+    behaviorTags,
+    responseTag,
+    situasiNote,
+    sessionType,
+    photo,
+    signature,
+    closeout: coSessionData ? {
+      session: coSessionData,
+      followUps: coFollowUps,
+      followUpText: coFollowUpText,
+    } : undefined,
+  };
+
+  const restoreDraft = (draft: CaptureDraft) => {
+    const form = draft.form;
+    setCurrentStep((form.step >= 1 && form.step <= 6 ? form.step : 1) as StepNum);
+    setSessionDate(form.date); setDuration(form.durationHours); setSubjects(form.subjects);
+    setTopicSearch(form.topicSearch); setTopics(form.topic ? form.topic.split("; ").filter(Boolean) : []);
+    setShortNote(form.shortNote); setNeedsWork(form.needsWork); setPredictedGrade(form.predictedGrade);
+    setSessionType(form.sessionType as SessionType | undefined); setPhoto(form.photo); setSignature(form.signature);
+    hydrateEngagement({
+      flags: {
+        prepared: form.engagementFlags.prepared ?? false, focused: form.engagementFlags.focused ?? false,
+        activeAsking: form.engagementFlags.activeAsking ?? false, quickLearner: form.engagementFlags.quickLearner ?? false,
+        drowsy: form.engagementFlags.drowsy ?? false, playingPhone: form.engagementFlags.playingPhone ?? false,
+        needsRepetition: form.engagementFlags.needsRepetition ?? false, hwMissed: form.engagementFlags.hwMissed ?? false,
+        late: form.engagementFlags.late ?? false, bathroomBreaks: form.engagementFlags.bathroomBreaks ?? false,
+        restless: form.engagementFlags.restless ?? false, offTask: form.engagementFlags.offTask ?? false,
+      }, mood: form.mood,
+      behaviorTags: form.behaviorTags, responseTag: form.responseTag, situasiNote: form.situasiNote,
+    });
+    if (form.closeout) {
+      setCoSessionData(form.closeout.session); setCoFollowUps(form.closeout.followUps);
+      setCoFollowUpText(form.closeout.followUpText); setShowCloseOut(true);
+    }
+  };
+
+  const draft = useCaptureDraft({
+    scopeKey: draftScopeKey, studentId, scheduleId,
+    phase: showCloseOut ? "closeout" : "editing", savedSessionId: coSessionData?.id,
+    form: draftForm, onRestore: restoreDraft,
+  });
 
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
@@ -314,6 +378,9 @@ export default function CaptureSession() {
       setMessage({ kind: "error", text: "Pilih minimal 1 mata pelajaran." }); return;
     }
     if (!shortNote.trim()) { setMessage({ kind: "error", text: "Tulis catatan singkat." }); return; }
+    await draft.flush();
+    const draftSnapshot = draft.getSnapshot();
+    const initialFollowUps = needsWork.trim() ? [{ id: crypto.randomUUID(), text: needsWork.trim() }] : [];
     setSaving(true);
     const engData = hasEngagementInput ? {
       prepared: engPrepared, focused: engFocused,
@@ -332,9 +399,12 @@ export default function CaptureSession() {
       }),
     } : undefined;
     try {
-      let newId: string;
+      let savedSession: {
+        id: string; date: string; subjects: string[]; durationHours: number;
+        shortNote: string; topic?: string;
+      };
       if (scheduleId) {
-        await markSessionDone(scheduleId, {
+        const result = await markSessionDoneWithCloseoutDraft(scheduleId, {
           subjects: subjects.length > 0 ? subjects : undefined,
           photo, shortNote: shortNote.trim(), mood,
           topic: topic.trim() || undefined,
@@ -346,10 +416,10 @@ export default function CaptureSession() {
           responseTag: responseTag || undefined,
           signature: signature || undefined,
           durationHours: duration,
-        });
-        newId = scheduleId;
+        }, draftSnapshot, initialFollowUps);
+        savedSession = result.session;
       } else {
-        newId = await createSession({
+        const result = await createSessionWithCloseoutDraft({
           studentId,
           date: sessionDate,
           durationHours: duration,
@@ -366,15 +436,12 @@ export default function CaptureSession() {
           responseTag: responseTag || undefined,
           signature: signature || undefined,
           status: "DONE",
-        });
+        }, draftSnapshot, initialFollowUps);
+        savedSession = result.session;
       }
 
-      setCoSessionData({
-        id: newId, date: sessionDate, subjects: subjects.length > 0 ? subjects : [],
-        durationHours: duration, shortNote: shortNote.trim(),
-        topic: topic.trim() || undefined,
-      });
-      setCoFollowUps(needsWork.trim() ? [needsWork.trim()] : []);
+      setCoSessionData(savedSession);
+      setCoFollowUps(initialFollowUps);
       setCoFollowUpText("");
       setShowCloseOut(true);
     } catch (e) {
@@ -386,27 +453,28 @@ export default function CaptureSession() {
 
   const addCoFollowUp = () => {
     if (!coFollowUpText.trim()) return;
-    setCoFollowUps((prev) => [...prev, coFollowUpText.trim()]);
+    setCoFollowUps((prev) => [...prev, { id: crypto.randomUUID(), text: coFollowUpText.trim() }]);
     setCoFollowUpText("");
   };
 
   const handleCloseOutDone = async () => {
     if (!coSessionData || !studentId) { resetForm(); setShowCloseOut(false); return; }
+    if (coSavingRef.current) return;
+    coSavingRef.current = true;
     setCoSaving(true);
     try {
-      for (const text of coFollowUps) {
-        await createFollowUp({
-          studentId, sourceSessionId: coSessionData.id,
-          type: "continue-topic", text,
-        });
-      }
-    } finally {
-      setCoSaving(false);
+      await createFollowUpBatch(studentId, coSessionData.id, coFollowUps, draft.getSnapshot().draftId);
       const savedStudentId = studentId;
+      await draft.remove();
       resetForm();
       setShowCloseOut(false);
       setCoSessionData(null);
       navigate("/students/" + savedStudentId);
+    } catch (e) {
+      setMessage({ kind: "error", text: "Sesi sudah tersimpan. Tindak lanjut belum tersimpan; coba lagi. " + (e as Error).message });
+    } finally {
+      coSavingRef.current = false;
+      setCoSaving(false);
     }
   };
 
@@ -420,16 +488,18 @@ export default function CaptureSession() {
     return null;
   };
 
-  const goNext = () => {
+  const goNext = async () => {
     const err = validateCurrentStep();
     if (err) { setMessage({ kind: "error", text: err }); return; }
     setMessage(null);
+    await draft.flush();
     if (currentStep < 6) setCurrentStep((s) => (s + 1) as StepNum);
     else handleSave();
   };
 
-  const goBack = () => {
+  const goBack = async () => {
     setMessage(null);
+    await draft.flush();
     if (currentStep > 1) setCurrentStep((s) => (s - 1) as StepNum);
   };
 
@@ -510,6 +580,23 @@ export default function CaptureSession() {
         <h1 className="text-2xl font-bold text-gray-800">📓 Catat Sesi</h1>
         <p className="text-xs text-gray-500 mt-0.5">Langkah {currentStep} dari {STEPS.length}</p>
       </div>
+
+      {draft.pending && (
+        <div className="mx-4 mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          <p className="font-semibold">Draf Catat Sesi tersedia</p>
+          <p className="mt-1">Draf tersimpan di perangkat ini. Lanjutkan atau buang sebelum mulai mengedit.</p>
+          <div className="mt-2 flex gap-2">
+            <button type="button" className="rounded-lg bg-amber-600 px-3 py-2 text-white" onClick={draft.resume}>Lanjutkan draf</button>
+            <button type="button" className="rounded-lg border border-amber-300 px-3 py-2" onClick={() => void draft.discard()}>Buang draf</button>
+          </div>
+        </div>
+      )}
+      {!draft.pending && draft.status === "unsaved" && (
+        <p className="mx-4 mb-3 text-xs font-semibold text-amber-700">Draf belum tersimpan. Isian tetap ada, coba simpan lagi.</p>
+      )}
+      {!draft.pending && draft.status === "conflict" && (
+        <p className="mx-4 mb-3 text-xs font-semibold text-red-700">Draf berubah di tab lain. Muat draf terbaru sebelum melanjutkan.</p>
+      )}
 
       {/* ── PROGRESS STEPPER ── */}
       <div className="px-4 mb-4">
@@ -1790,13 +1877,12 @@ export default function CaptureSession() {
                 </div>
                 {coFollowUps.length > 0 && (
                   <div className="mt-2 space-y-1.5">
-                    {paginatedCoFollowUps.map((f, i) => {
-                      const absIdx = (safeCoFollowPage - 1) * PAGE_SIZE + i;
+                    {paginatedCoFollowUps.map((f) => {
                       return (
-                        <div key={absIdx} className="flex items-center gap-2 bg-amber-50 rounded-xl px-3 py-2.5 border border-amber-100">
+                        <div key={f.id} className="flex items-center gap-2 bg-amber-50 rounded-xl px-3 py-2.5 border border-amber-100">
                           <span className="text-amber-400">🔁</span>
-                          <p className="flex-1 text-sm font-semibold text-gray-700">{f}</p>
-                          <button onClick={() => setCoFollowUps((prev) => prev.filter((_, j) => j !== absIdx))}
+                          <p className="flex-1 text-sm font-semibold text-gray-700">{f.text}</p>
+                          <button onClick={() => setCoFollowUps((prev) => prev.filter((item) => item.id !== f.id))}
                             className="text-gray-500 hover:text-red-400"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
                         </div>
                       );
@@ -1815,7 +1901,7 @@ export default function CaptureSession() {
                   )}
                   <div className="bg-green-50 border border-green-200 rounded-2xl p-3.5 mb-2">
                     <pre className="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed font-sans">
-                      {aiWaText ?? buildWaMessage(currentStudent, coSessionData, coFollowUps, tutorName)}
+                      {aiWaText ?? buildWaMessage(currentStudent, coSessionData, coFollowUps.map((item) => item.text), tutorName)}
                     </pre>
                   </div>
                   {settings?.ai?.enabled && settings.ai.apiKey && (
@@ -1833,7 +1919,7 @@ export default function CaptureSession() {
                       )}
                     </div>
                   )}
-                  <a href={`https://wa.me/${waNumber}?text=${encodeURIComponent(aiWaText ?? buildWaMessage(currentStudent, coSessionData, coFollowUps, tutorName))}`}
+                  <a href={`https://wa.me/${waNumber}?text=${encodeURIComponent(aiWaText ?? buildWaMessage(currentStudent, coSessionData, coFollowUps.map((item) => item.text), tutorName))}`}
                     target="_blank" rel="noopener noreferrer"
                     className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl bg-green-500 text-white font-black text-sm hover:bg-green-600 transition-colors shadow-md shadow-green-200">
                     <span className="text-lg">💬</span> Kirim ke {currentStudent.parentContact.name || "Orang Tua"}
@@ -1864,7 +1950,7 @@ export default function CaptureSession() {
           if (!currentStudent || !coSessionData) return;
           setAiWaLoading(true); setAiError("");
           try {
-            const original = buildWaMessage(currentStudent, coSessionData, coFollowUps, tutorName ?? "");
+            const original = buildWaMessage(currentStudent, coSessionData, coFollowUps.map((item) => item.text), tutorName ?? "");
             const res = await polishWhatsApp({ original, studentName: currentStudent.name, tutorName: tutorName ?? "" });
             if (res.message) setAiWaText(res.message);
           } catch (e) { setAiError((e as Error).message); }

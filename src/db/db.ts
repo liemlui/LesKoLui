@@ -1,6 +1,6 @@
 import Dexie from "dexie";
 import type { Table } from "dexie";
-import type { Student, Session, MonthlyReport, Payment, Settings, RaporGrade, FollowUpItem, Expense, IaEeProject, AuditEntry, StudyNote } from "./types";
+import type { Student, Session, MonthlyReport, Payment, Settings, RaporGrade, FollowUpItem, Expense, IaEeProject, AuditEntry, StudyNote, CaptureDraft } from "./types";
 import { invoiceDueAt } from "../lib/finance";
 
 type LegacySessionRow = {
@@ -26,6 +26,7 @@ export class JurnalDB extends Dexie {
   iaeeProjects!:Table<IaEeProject,   string>;
   auditLog!:    Table<AuditEntry,    string>;
   studyNotes!:  Table<StudyNote,     string>;
+  captureDrafts!: Table<CaptureDraft, string>;
 
   constructor() {
     super("jurnalles");
@@ -109,6 +110,10 @@ export class JurnalDB extends Dexie {
     // Snapshot lama hanya salinan angka; semua metrik dihitung live dari
     // sessions/payments/expenses, jadi tidak ada data asli yang hilang.
     this.version(14).stores({ monthClosings: null });
+    // v15: draf Catat Sesi lokal per perangkat; tidak ikut backup/restore.
+    this.version(15).stores({
+      captureDrafts: "draftId, scopeKey, studentId, scheduleId, updatedAt",
+    });
   }
 }
 
