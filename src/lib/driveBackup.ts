@@ -54,6 +54,20 @@ function loadGis(): Promise<void> {
 // Token akses Google (cache di memori, expire ~1 jam). Dipakai relay & GIS.
 let cachedToken: { value: string; expiresAt: number } | undefined;
 
+/** Ubah error dari Google Identity Services jadi pesan Bahasa Indonesia yang actionable. */
+function driveAuthErrorMessage(typeOrError: string | undefined): string {
+  if (!typeOrError) return "Gagal mendapat token Google.";
+  if (typeOrError === "popup_closed") return "Otorisasi Google dibatalkan.";
+  if (typeOrError === "access_denied") return "Akses ke Google Drive tidak digizinkan.";
+  if (typeOrError === "origin_mismatch") {
+    return "Otorisasi Google gagal (origin_mismatch): origin ini belum didaftarkan di Google Cloud Console → OAuth 2.0 Client IDs → Authorized JavaScript origins. Lihat docs/ZERO-TOUCH-BACKUP.md.";
+  }
+  if (typeOrError === "invalid_request" || typeOrError === "invalid_client") {
+    return `Otorisasi Google gagal (${typeOrError}): VITE_GOOGLE_CLIENT_ID tidak cocok dengan OAuth client di Google Cloud Console. Lihat docs/ZERO-TOUCH-BACKUP.md.`;
+  }
+  return `Otorisasi Google gagal (${typeOrError}). Error 400 origin_mismatch di popup? Daftarkan origin di Google Cloud Console → Authorized JavaScript origins (lihat docs/ZERO-TOUCH-BACKUP.md).`;
+}
+
 // ── Backend token-relay (opsional) ──────────────────────────────────
 // Bila dikonfigurasi, app dapat access-token TANPA popup Google (silent),
 // memungkinkan backup tanpa tap saat app dibuka & sudah waktunya. Server
@@ -99,13 +113,13 @@ function getToken(forceNew = false): Promise<string> {
           scope: SCOPE,
           callback: (resp) => {
             if (resp.error || !resp.access_token) {
-              reject(new Error(resp.error || "Gagal mendapat token Google."));
+              reject(new Error(driveAuthErrorMessage(resp.error)));
               return;
             }
             cachedToken = { value: resp.access_token, expiresAt: Date.now() + (resp.expires_in ?? 3600) * 1000 };
             resolve(resp.access_token);
           },
-          error_callback: (err) => reject(new Error(err?.type === "popup_closed" ? "Otorisasi Google dibatalkan." : "Otorisasi Google gagal.")),
+          error_callback: (err) => reject(new Error(driveAuthErrorMessage(err?.type))),
         });
         // prompt:'' → konsensus hanya pada akses pertama, lalu silent untuk berikutnya.
         client.requestAccessToken({ prompt: "" });

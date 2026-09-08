@@ -25,8 +25,20 @@ Server **tidak pernah** melihat data murid — endpoint relay hanya menukar
 1. Google Cloud Console → APIs & Services → Credentials.
 2. Buat/edit **OAuth client ID** tipe **Web application**.
 3. Tambahkan **Authorized redirect URI**: `http://localhost:4567/callback` (untuk langkah 2).
-4. Catat **Client ID** & **Client secret**.
-5. Pastikan scope `https://www.googleapis.com/auth/drive.file` (sama dgn yang dipakai app).
+4. Tambahkan **Authorized JavaScript origins** — wajib untuk popup Google Identity Services (GIS)
+   yang dipakai backup 1-tap & restore dari dalam app:
+   - `https://<domain-produksi-app>` — origin **persis**: skema (`http`/`https`) + host + port,
+     **tak ada** path dan **tak ada** `/` di akhir.
+   - `http://localhost:5173` (dev server Vite default) kalau diada tesing lokal.
+   - Google Console **tak menerima alamat IP** (mis. `http://192.168.x.x:5173`) sebagai JavaScript
+     origin — hanya `localhost` atau domain nyata.
+5. Catat **Client ID** & **Client secret**.
+6. Pastikan scope `https://www.googleapis.com/auth/drive.file` (sama dgn yang dipakai app).
+
+> ⚠️ **Error 400: `origin_mismatch`** saat backup/restore Drive = origin di address bar **belum
+> didaftarkan** di *Authorized JavaScript origins* (atau tidak persis — mis. subdomain `www`, port,
+> atau skema diubah). Daftarkan origin → **Save** → tunggu ~5 menit propagasi → hard-refresh app
+> (PWA: tutup tab → buka ulang).
 
 ### 2. Dapatkan refresh-token (sekali, di komputermu)
 ```bash
