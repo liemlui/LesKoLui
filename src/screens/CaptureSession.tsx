@@ -21,7 +21,7 @@ import type { BehaviorTag, ResponseTag } from "../lib/responseTaxonomy";
 import type { SessionType } from "../lib/sessionTemplates";
 import { MIN_DURATION } from "../db/types";
 import { draftShortNote, polishWhatsApp, estimateDraftNoteCost, estimatePolishWACost } from "../lib/aiClient";
-import { DEEPSEEK_MODEL_LABEL, DEEPSEEK_COST_NOTE, getDeepSeekPricing } from "../lib/aiConfig";
+import { DEEPSEEK_MODEL_LABEL, DEEPSEEK_COST_NOTE, DEEPSEEK_PRICING_URL, getDeepSeekPricing } from "../lib/aiConfig";
 import { AiCostModal } from "../components/AiCostModal";
 import { SimpleMarkdown } from "../components/SimpleMarkdown";
 import Breadcrumb from "../components/Breadcrumb";
@@ -1981,6 +1981,8 @@ export default function CaptureSession() {
                   ≈ ${est.usdCost.toFixed(6)} (Rp {est.idrCost.toFixed(4)})
                 </p>
                 <p className="text-xs text-gray-500">{DEEPSEEK_COST_NOTE}</p>
+                <a href={DEEPSEEK_PRICING_URL} target="_blank" rel="noopener noreferrer"
+                  className="inline-block text-xs text-blue-600 underline">Sumber tarif resmi DeepSeek</a>
               </div>
               <p className="text-xs text-gray-500">
                 {currentDraft

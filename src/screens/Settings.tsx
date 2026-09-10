@@ -15,7 +15,7 @@ import { todayWIB } from "../lib/format";
 import { compressPhoto } from "../lib/foto";
 import { downloadBlob } from "../lib/download";
 import { APP_VERSION } from "../lib/version";
-import { DEEPSEEK_MODEL, DEEPSEEK_MODEL_LABEL, DEEPSEEK_DOCS_URL, DEEPSEEK_COST_NOTE } from "../lib/aiConfig";
+import { DEEPSEEK_MODEL, DEEPSEEK_MODEL_LABEL, DEEPSEEK_DOCS_URL, DEEPSEEK_PRICING_URL, DEEPSEEK_COST_NOTE } from "../lib/aiConfig";
 import type { Settings, AuditAction } from "../db/types";
 import Toggle from "../components/Toggle";
 import PinConfirmModal from "../components/PinConfirmModal";
@@ -804,7 +804,11 @@ export default function SettingsPage() {
                   Model API: <span className="font-mono">{DEEPSEEK_MODEL}</span>. Mode cepat untuk catatan dan laporan.
                 </p>
                 <p className="text-xs text-gray-500 mt-1">{DEEPSEEK_COST_NOTE}</p>
-                <a href={DEEPSEEK_DOCS_URL} target="_blank" rel="noopener noreferrer" className="inline-block text-xs text-blue-600 underline mt-1">Model dan tarif resmi DeepSeek</a>
+                <p className="text-xs mt-1">
+                  <a href={DEEPSEEK_DOCS_URL} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Dokumentasi DeepSeek</a>
+                  {" · "}
+                  <a href={DEEPSEEK_PRICING_URL} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Tarif resmi</a>
+                </p>
               </div>
               <div className="rounded-xl border border-gray-200 p-3 space-y-2">
                 <p className="text-sm font-semibold text-gray-700">Data yang dikirim ke DeepSeek</p>

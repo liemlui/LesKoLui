@@ -18,6 +18,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Semua fitur AI memakai deepseek-flash; pengaturan model lama diperbarui tanpa menghapus API key",
       "Estimasi biaya mengikuti tarif V4.1 dan jadwal peak/off-peak, dengan kurs asumsi yang dijelaskan",
       "Menu AI menampilkan rincian data yang dikirim untuk catatan sesi, WhatsApp, laporan, dan insight keuangan",
+      "Modal estimasi biaya dan Pengaturan menautkan sumber tarif resmi DeepSeek",
       "Respons AI yang terpotong atau belum selesai ditolak sebelum disimpan",
     ],
   },

@@ -12,7 +12,7 @@ interface AiCostModalProps {
 }
 
 import Modal from "./Modal";
-import { DEEPSEEK_MODEL_LABEL, DEEPSEEK_COST_NOTE, getDeepSeekPricing } from "../lib/aiConfig";
+import { DEEPSEEK_MODEL_LABEL, DEEPSEEK_COST_NOTE, DEEPSEEK_PRICING_URL, getDeepSeekPricing } from "../lib/aiConfig";
 
 export function AiCostModal({ open, title, estimatedIDR, description, dataSent, extraContent, onConfirm, onCancel }: AiCostModalProps) {
   if (!open) return null;
@@ -25,6 +25,8 @@ export function AiCostModal({ open, title, estimatedIDR, description, dataSent, 
         <p className="text-xl font-bold text-indigo-800">≈ Rp {estimatedIDR.toFixed(2)}</p>
         {description && <p className="text-xs text-indigo-500">{description}</p>}
         <p className="text-xs text-gray-500">{DEEPSEEK_COST_NOTE}</p>
+        <a href={DEEPSEEK_PRICING_URL} target="_blank" rel="noopener noreferrer"
+          className="inline-block text-xs text-blue-600 underline">Sumber tarif resmi DeepSeek</a>
       </div>
       {dataSent && (
         <div className="rounded-xl border border-gray-200 p-3 space-y-1">
