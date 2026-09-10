@@ -667,6 +667,7 @@ export default function RingkasanTab({
           title="Analisis AI Keuangan"
           estimatedIDR={estimateFinancialInsightsCost()}
           description={`Analisis ${monthLabel(month)} dengan pembanding 3 bulan sebelumnya.`}
+          dataSent="Periode dan ringkasan keuangan; nama murid, nominal dan umur piutang; pendapatan, jumlah sesi, level, tarif dan rata-rata engagement hingga 10 murid; pengeluaran per kategori; rata-rata 3 bulan sebelumnya, proyeksi, kolektibilitas, laporan belum dibagikan, serta indikator piutang dan pembayaran."
           onCancel={() => setFinancialAiCostMonth(null)}
           onConfirm={() => {
             setFinancialAiCostMonth(null);

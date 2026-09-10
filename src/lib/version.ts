@@ -11,6 +11,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.71.1",
+    date: "2026-09-11",
+    title: "DeepSeek V4.1 Flash dan Rincian Data AI",
+    items: [
+      "Semua fitur AI memakai deepseek-flash; pengaturan model lama diperbarui tanpa menghapus API key",
+      "Estimasi biaya mengikuti tarif V4.1 dan jadwal peak/off-peak, dengan kurs asumsi yang dijelaskan",
+      "Menu AI menampilkan rincian data yang dikirim untuk catatan sesi, WhatsApp, laporan, dan insight keuangan",
+      "Respons AI yang terpotong atau belum selesai ditolak sebelum disimpan",
+    ],
+  },
+  {
     version: "v1.71.0",
     date: "2026-09-05",
     title: "Ketahanan Data, Validasi AI, dan Pengaturan Atomik",

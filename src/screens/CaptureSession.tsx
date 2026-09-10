@@ -21,6 +21,7 @@ import type { BehaviorTag, ResponseTag } from "../lib/responseTaxonomy";
 import type { SessionType } from "../lib/sessionTemplates";
 import { MIN_DURATION } from "../db/types";
 import { draftShortNote, polishWhatsApp, estimateDraftNoteCost, estimatePolishWACost } from "../lib/aiClient";
+import { DEEPSEEK_MODEL_LABEL, DEEPSEEK_COST_NOTE, getDeepSeekPricing } from "../lib/aiConfig";
 import { AiCostModal } from "../components/AiCostModal";
 import { SimpleMarkdown } from "../components/SimpleMarkdown";
 import Breadcrumb from "../components/Breadcrumb";
@@ -512,6 +513,9 @@ export default function CaptureSession() {
   if (!students) return <Skeleton variant="card" lines={4} className="p-4" />;
 
   const tutorName    = settings?.tutorProfile?.name || "Ko Lui";
+  const originalWaMessage = currentStudent && coSessionData
+    ? buildWaMessage(currentStudent, coSessionData, coFollowUps.map((item) => item.text), tutorName)
+    : "";
   const waNumber     = currentStudent?.parentContact.phone.replace(/^0/, "62").replace(/[^0-9]/g, "") ?? "";
   const stepMeta     = STEPS[currentStep - 1];
 
@@ -1942,16 +1946,16 @@ export default function CaptureSession() {
       <AiCostModal
         open={showAiWaModal}
         title="Poles WA AI"
-        estimatedIDR={estimatePolishWACost(300)}
+        estimatedIDR={estimatePolishWACost(originalWaMessage.length)}
         description="Poles pesan WhatsApp jadi lebih hangat dan personal"
+        dataSent="Pesan awal sesi: nama murid dan tutor, tanggal, mapel, durasi, catatan sesi, topik, dan tindak lanjut yang tercantum dalam pesan."
         onCancel={() => setShowAiWaModal(false)}
         onConfirm={async () => {
           setShowAiWaModal(false);
           if (!currentStudent || !coSessionData) return;
           setAiWaLoading(true); setAiError("");
           try {
-            const original = buildWaMessage(currentStudent, coSessionData, coFollowUps.map((item) => item.text), tutorName ?? "");
-            const res = await polishWhatsApp({ original, studentName: currentStudent.name, tutorName: tutorName ?? "" });
+            const res = await polishWhatsApp({ original: originalWaMessage, studentName: currentStudent.name, tutorName });
             if (res.message) setAiWaText(res.message);
           } catch (e) { setAiError((e as Error).message); }
           finally { setAiWaLoading(false); }
@@ -1965,24 +1969,32 @@ export default function CaptureSession() {
         return (
           <div role="dialog" aria-modal="true" aria-label="Draft Catatan dengan AI" className={`fixed inset-0 bg-black/50 ${Z.dialog} flex items-end justify-center`}
             onClick={() => setShowAiCostModal(false)}>
-            <div className="bg-white w-full max-w-md rounded-t-2xl p-5 pb-8 space-y-4"
+            <div className="bg-white w-full max-w-md rounded-t-2xl p-5 pb-8 space-y-4 max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}>
               <h3 className="font-bold text-base">✨ Draft Catatan dengan AI</h3>
               <div className="bg-indigo-50 rounded-xl p-3 space-y-1">
                 <p className="text-sm font-semibold text-indigo-700">Estimasi biaya DeepSeek</p>
                 <p className="text-xs text-indigo-600">
-                  deepseek-v4-flash (off-peak) · ~{est.inputTokens} input + {est.outputTokens} output token
+                  {DEEPSEEK_MODEL_LABEL} · tarif {getDeepSeekPricing().period} · ~{est.inputTokens} token masukan + {est.outputTokens} token keluaran
                 </p>
                 <p className="text-sm font-bold text-indigo-800">
                   ≈ ${est.usdCost.toFixed(6)} (Rp {est.idrCost.toFixed(4)})
                 </p>
+                <p className="text-xs text-gray-500">{DEEPSEEK_COST_NOTE}</p>
               </div>
               <p className="text-xs text-gray-500">
                 {currentDraft
                   ? `Tulisan di textbox (${currentDraft.length} karakter) dikirim sebagai bahan utama, lalu dipoles AI.`
-                  : "Textbox kosong — AI akan membuat catatan baru."}{" "}
-                Berdasarkan mapel{topic ? `, topik (${topic})` : ""}{engTouched ? `, engagement (${engScore}/10)` : ""}{needsWork ? `, area perhatian` : ""}{briefLastSession ? `, dan konteks sesi lalu` : ""}.
+                  : "Textbox kosong — AI akan membuat catatan baru."}
               </p>
+              <div className="rounded-xl border border-gray-200 p-3 space-y-1">
+                <p className="text-xs font-semibold text-gray-700">Data yang dikirim ke DeepSeek</p>
+                <p className="text-xs text-gray-600">
+                  Nama, level dan kelas murid; mapel, topik, jenis dan durasi sesi, mood, area perhatian, prediksi nilai, Situasi Hari Ini,
+                  skor dan indikator engagement, label perilaku dan respons, catatan sesi lalu, tindak lanjut,
+                  isi textbox, dan gaya penulisan yang dipilih. Data opsional disertakan bila tersedia.
+                </p>
+              </div>
               <div>
                 <label className="label">Gaya penulisan</label>
                 <div className="grid grid-cols-3 gap-2">

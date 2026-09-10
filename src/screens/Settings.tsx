@@ -15,6 +15,7 @@ import { todayWIB } from "../lib/format";
 import { compressPhoto } from "../lib/foto";
 import { downloadBlob } from "../lib/download";
 import { APP_VERSION } from "../lib/version";
+import { DEEPSEEK_MODEL, DEEPSEEK_MODEL_LABEL, DEEPSEEK_DOCS_URL, DEEPSEEK_COST_NOTE } from "../lib/aiConfig";
 import type { Settings, AuditAction } from "../db/types";
 import Toggle from "../components/Toggle";
 import PinConfirmModal from "../components/PinConfirmModal";
@@ -261,8 +262,7 @@ export default function SettingsPage() {
     setForm((f) => {
       if (!f) return f;
       const ai = { ...f.ai, [field]: value };
-      // Hanya satu model yang diizinkan — aktifkan AI selalu memakai flash termurah.
-      if (field === "enabled" && value === true) ai.model = "deepseek-v4-flash";
+      if (field === "enabled" && value === true) ai.model = DEEPSEEK_MODEL;
       return { ...f, ai };
     });
     setDirty(true);
@@ -774,13 +774,13 @@ export default function SettingsPage() {
       </Section>
 
       {/* ── AI ── */}
-      <Section title="AI — Narasi Otomatis" icon="🤖" badge={form.ai.enabled && form.ai.apiKey ? "Aktif" : undefined}>
+      <Section title="AI — DeepSeek" icon="🤖" badge={form.ai.enabled && form.ai.apiKey ? "Aktif" : undefined}>
         <div className="pt-3 space-y-3">
           <label className="flex items-center gap-3 cursor-pointer">
             <Toggle checked={form.ai.enabled} onChange={(v) => updateAi("enabled", v)} />
             <div>
               <p className="text-sm text-gray-700 font-medium">Aktifkan AI</p>
-              <p className="text-xs text-gray-500">Generate narasi sesi otomatis via DeepSeek</p>
+              <p className="text-xs text-gray-500">Bantu menulis catatan, laporan, pesan WA, dan analisis keuangan</p>
             </div>
           </label>
           {form.ai.enabled && (
@@ -791,19 +791,29 @@ export default function SettingsPage() {
                   value={form.ai.apiKey ?? ""}
                   onChange={(e) => updateAi("apiKey", e.target.value)} />
                 <p className="text-xs text-gray-500 mt-1">
-                  Dapatkan di <span className="font-medium text-blue-600">platform.deepseek.com → API Keys</span>.
-                  Disimpan lokal di perangkat ini saja.
+                  Dapatkan di <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 underline">DeepSeek API Keys</a>.
+                  {" "}Disimpan di perangkat ini dan dipakai untuk menghubungkan langsung ke DeepSeek.
                 </p>
               </div>
               <div>
                 <label className="label">Model</label>
                 <div className="input bg-gray-50 text-gray-700 text-sm flex items-center gap-2 cursor-default">
-                  <span className="font-semibold">deepseek-v4-flash</span>
-                  <span className="text-xs text-gray-500">(cepat, hemat — satu-satunya model aktif)</span>
+                  <span className="font-semibold">{DEEPSEEK_MODEL_LABEL}</span>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  Model lain dinonaktifkan agar setiap panggilan AI selalu memakai tarif termurah.
+                  Model API: <span className="font-mono">{DEEPSEEK_MODEL}</span>. Mode cepat untuk catatan dan laporan.
                 </p>
+                <p className="text-xs text-gray-500 mt-1">{DEEPSEEK_COST_NOTE}</p>
+                <a href={DEEPSEEK_DOCS_URL} target="_blank" rel="noopener noreferrer" className="inline-block text-xs text-blue-600 underline mt-1">Model dan tarif resmi DeepSeek</a>
+              </div>
+              <div className="rounded-xl border border-gray-200 p-3 space-y-2">
+                <p className="text-sm font-semibold text-gray-700">Data yang dikirim ke DeepSeek</p>
+                <p className="text-xs text-gray-600">Data dikirim saat kamu melanjutkan fitur AI. Rinciannya ditampilkan sebelum setiap panggilan.</p>
+                <ul className="list-disc pl-4 space-y-1 text-xs text-gray-600">
+                  <li>Catatan dan laporan: identitas murid serta data belajar sesuai sesi yang dipilih. Draft catatan juga menyertakan Situasi Hari Ini dan tindak lanjut bila tersedia.</li>
+                  <li>Poles WA: isi pesan awal sesi beserta nama murid dan tutor.</li>
+                  <li>Analisis keuangan: ringkasan periode, nama dan data keuangan murid, piutang, pengeluaran, serta pembanding dan proyeksi.</li>
+                </ul>
               </div>
             </>
           )}

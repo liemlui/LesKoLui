@@ -2044,6 +2044,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
         title="✨ Ringkasan AI — Ringkasan, Kutipan & Rencana Depan"
         estimatedIDR={estimateReportSummaryCost(reportSessions.length)}
         description={`${reportSessions.length} sesi · ringkasan periode + kutipan + rencana depan untuk ${student?.name ?? "murid"}. Bila tidak ada perubahan sesi, akan dilewati otomatis.`}
+        dataSent="Nama dan level murid, periode laporan, serta ID, tanggal, mapel dan catatan sesi yang dipilih. Bila tersedia: mood, topik, area perhatian, prediksi dan nilai akhir, refleksi nilai, skor engagement, label perilaku dan respons, serta rata-rata engagement periode sebelumnya."
         extraContent={
           <label className="flex items-start gap-2 mt-3 text-xs text-gray-600 cursor-pointer select-none">
             <input type="checkbox" checked={forceSummary} onChange={(e) => setForceSummary(e.target.checked)}
@@ -2063,10 +2064,13 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
           : narrativeDirtyCount === 0
             ? "Narasi AI — Semua Sudah Terbaru"
             : `Narasi AI — ${narrativeDirtyCount} Sesi Berubah`}
-        estimatedIDR={estimateNarrativesCost(forceNarratives ? reportSessions.length : narrativeDirtyCount)}
-        description={forceNarratives
+        estimatedIDR={!forceNarratives && narrativeDirtyCount === 0 ? 0 : estimateNarrativesCost(forceNarratives ? reportSessions.length : narrativeDirtyCount)}
+        description={forceNarratives || (narrativeDirtyCount > 0 && narrativeDirtyCount === reportSessions.length)
           ? `Perluas shortNote jadi narasi 40–60 kata untuk SEMUA ${reportSessions.length} sesi + ringkasan, catatan guru, kutipan & rencana depan.`
-          : `${narrativeDirtyCount} dari ${reportSessions.length} sesi akan dikirim ulang · ${reportSessions.length - narrativeDirtyCount} narasi lain (termasuk edit manual tutor) dipertahankan. Ringkasan tidak diubah.`}
+          : narrativeDirtyCount === 0
+            ? "Semua narasi sudah terbaru. Tidak ada data dikirim atau biaya AI, kecuali kamu memilih tulis ulang paksa."
+            : `${narrativeDirtyCount} dari ${reportSessions.length} sesi akan dikirim ulang · ${reportSessions.length - narrativeDirtyCount} narasi lain (termasuk edit manual tutor) dipertahankan. Ringkasan tidak diubah.`}
+        dataSent={forceNarratives || narrativeDirtyCount > 0 ? "Nama dan level murid, periode laporan, serta ID, tanggal, mapel dan catatan sesi yang akan dibuat ulang. Bila tersedia: mood, topik, area perhatian, prediksi dan nilai akhir, refleksi nilai, skor engagement, label perilaku dan respons, serta rata-rata engagement periode sebelumnya." : undefined}
         extraContent={
           <label className="flex items-start gap-2 mt-3 text-xs text-gray-600 cursor-pointer select-none">
             <input type="checkbox" checked={forceNarratives} onChange={(e) => setForceNarratives(e.target.checked)}

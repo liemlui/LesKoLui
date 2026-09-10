@@ -4,6 +4,7 @@ import { db } from "../db";
 import type { Settings } from "../types";
 import { DEFAULT_RATE } from "../types";
 import { hashPin, isHashedPin } from "../../lib/crypto";
+import { DEEPSEEK_MODEL } from "../../lib/aiConfig";
 
 function defaultSettings(): Settings {
   return {
@@ -16,7 +17,7 @@ function defaultSettings(): Settings {
     "Economics", "Business Management", "Geography", "History", "Psychology",
     "Computer Science", "ESS", "Bahasa Indonesia", "TOK", "Other",
   ],
-  ai: { enabled: false, apiKey: "", model: "deepseek-v4-flash" },
+  ai: { enabled: false, apiKey: "", model: DEEPSEEK_MODEL },
   templatePref: {},
   bankAccounts: {
     bca: "",
@@ -38,7 +39,7 @@ export type SettingsPatch = Omit<Partial<Settings>, "ai" | "tutorProfile" | "tem
 /** Reads settings — pure reader, no side effects. */
 export async function getSettings(): Promise<Settings> {
   const s = await db.settings.get("app");
-  return s ?? defaultSettings();
+  return s ? { ...s, ai: { ...s.ai, model: DEEPSEEK_MODEL } } : defaultSettings();
 }
 
 /** Initialize default settings row + run one-off migrations — call at app startup. */
@@ -57,6 +58,13 @@ export async function initSettings(): Promise<void> {
 
 /** One-off migrations: hash legacy PINs, fill default bank accounts. Idempotent. */
 async function migrateSettings(): Promise<void> {
+  // Patch only the model so concurrent settings edits and restored API keys survive.
+  await db.transaction("rw", db.settings, async () => {
+    const current = await db.settings.get("app");
+    if (current && current.ai.model !== DEEPSEEK_MODEL) {
+      await db.settings.update("app", { "ai.model": DEEPSEEK_MODEL });
+    }
+  });
   const s = await db.settings.get("app");
   if (!s) return;
   let changed = false;
@@ -93,6 +101,7 @@ export async function saveSettings(patch: SettingsPatch): Promise<void> {
     delete scalarPatch.driveBackup;
     Object.assign(next, scalarPatch);
     if (Object.prototype.hasOwnProperty.call(patch, "ai")) next.ai = { ...current.ai, ...(patch.ai ?? {}) };
+    next.ai = { ...next.ai, model: DEEPSEEK_MODEL };
     if (Object.prototype.hasOwnProperty.call(patch, "tutorProfile")) {
       next.tutorProfile = { ...current.tutorProfile, ...(patch.tutorProfile ?? {}) };
     }
