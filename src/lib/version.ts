@@ -11,6 +11,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.71.2",
+    date: "2026-09-11",
+    title: "Tautan Tarif Resmi AI",
+    items: [
+      "Modal estimasi biaya AI dan Pengaturan menautkan sumber tarif resmi DeepSeek",
+    ],
+  },
+  {
     version: "v1.71.1",
     date: "2026-09-11",
     title: "DeepSeek V4.1 Flash dan Rincian Data AI",
@@ -18,7 +26,6 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Semua fitur AI memakai deepseek-flash; pengaturan model lama diperbarui tanpa menghapus API key",
       "Estimasi biaya mengikuti tarif V4.1 dan jadwal peak/off-peak, dengan kurs asumsi yang dijelaskan",
       "Menu AI menampilkan rincian data yang dikirim untuk catatan sesi, WhatsApp, laporan, dan insight keuangan",
-      "Modal estimasi biaya dan Pengaturan menautkan sumber tarif resmi DeepSeek",
       "Respons AI yang terpotong atau belum selesai ditolak sebelum disimpan",
     ],
   },
