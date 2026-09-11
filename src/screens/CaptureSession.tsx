@@ -1,4 +1,5 @@
 import Skeleton from "../components/Skeleton";
+import { TargetIcon, BookIcon, SmileIcon, ClipboardIcon, PencilIcon, CameraIcon } from "../components/icons";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -56,12 +57,12 @@ const SITUASI_CHIPS = [
 ];
 
 const STEPS = [
-  { id: 1, label: "Jadwal",  icon: "🎯", desc: "Murid & waktu",       optional: false },
-  { id: 2, label: "Materi",  icon: "📚", desc: "Mapel & topik",       optional: false },
-  { id: 3, label: "Kondisi", icon: "😊", desc: "Mood & perilaku",     optional: true  },
-  { id: 4, label: "Detail",  icon: "📋", desc: "Respons & nilai",    optional: true  },
-  { id: 5, label: "Catatan", icon: "✏️", desc: "Ringkasan sesi",      optional: false },
-  { id: 6, label: "Bukti",   icon: "📸", desc: "Foto & tanda tangan", optional: true  },
+  { id: 1, label: "Jadwal",  Icon: TargetIcon, desc: "Murid & waktu",       optional: false },
+  { id: 2, label: "Materi",  Icon: BookIcon,   desc: "Mapel & topik",       optional: false },
+  { id: 3, label: "Kondisi", Icon: SmileIcon,     desc: "Mood & perilaku",     optional: true  },
+  { id: 4, label: "Detail",  Icon: ClipboardIcon, desc: "Respons & nilai",    optional: true  },
+  { id: 5, label: "Catatan", Icon: PencilIcon,    desc: "Ringkasan sesi",      optional: false },
+  { id: 6, label: "Bukti",   Icon: CameraIcon,    desc: "Foto & tanda tangan", optional: true  },
 ] as const;
 
 type StepNum = 1 | 2 | 3 | 4 | 5 | 6;
@@ -628,7 +629,7 @@ export default function CaptureSession() {
                   ${done   ? "bg-green-500 text-white scale-95"
                   : active ? "bg-blue-600 text-white ring-4 ring-blue-100 scale-110"
                   :          "bg-white text-gray-500 border-2 border-gray-200"}`}>
-                  {done ? "✓" : step.icon}
+                  {done ? "✓" : <step.Icon size={16} />}
                 </div>
                 <span className={`text-xs font-bold tracking-wide transition-colors
                   ${active ? "text-blue-600" : done ? "text-green-600" : "text-gray-500"}`}>
@@ -651,8 +652,8 @@ export default function CaptureSession() {
 
       {/* ── STEP HEADER CARD ── */}
       <div className="mx-4 mb-4 rounded-2xl border border-gray-100 bg-gradient-to-r from-gray-50 to-white px-4 py-3 flex items-center gap-3 shadow-sm">
-        <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-xl flex-shrink-0">
-          {stepMeta.icon}
+        <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center flex-shrink-0">
+          <stepMeta.Icon size={20} />
         </div>
         <div className="flex-1 min-w-0">
           <h2 className="font-bold text-gray-800 text-base">{stepMeta.label}</h2>

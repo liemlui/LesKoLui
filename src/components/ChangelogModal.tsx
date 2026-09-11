@@ -56,16 +56,20 @@ export default function ChangelogModal() {
           <p className="text-sm opacity-80 mt-1">Versi {entry.version}</p>
         </div>
 
-        {/* Items */}
-        <div className="px-5 py-4 max-h-[50vh] overflow-y-auto">
-          <ul className="space-y-3">
-            {entry.items.map((item, i) => (
-              <li key={i} className="flex items-start gap-2.5">
-                <span className="text-blue-500 text-sm mt-0.5 flex-shrink-0">✦</span>
-                <span className="text-sm text-gray-700 leading-relaxed">{item}</span>
-              </li>
-            ))}
-          </ul>
+        {/* Items — overlay gradien menandakan masih ada konten di bawah (audit V-13) */}
+        <div className="relative">
+          <div className="px-5 py-4 max-h-[50vh] overflow-y-auto">
+            <ul className="space-y-3">
+              {entry.items.map((item, i) => (
+                <li key={i} className="flex items-start gap-2.5">
+                  <span className="text-blue-500 text-sm mt-0.5 flex-shrink-0">✦</span>
+                  <span className="text-sm text-gray-700 leading-relaxed">{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-white to-transparent" />
         </div>
 
         {/* Footer */}

@@ -396,8 +396,9 @@ export default function StudentDetail() {
   return (
     <div className="p-4 space-y-4 pb-24">
 
-      {/* Back */}
-      <button onClick={() => navigate(-1)}
+      {/* Back — label menyebut tujuan spesifik, jadi arahkan eksplisit ke daftar
+          murid (bukan history-back generik) agar cocok dibuka dari mana pun. */}
+      <button onClick={() => navigate("/students")}
         className="flex items-center gap-1.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-xl transition-colors">
         ‹ Kembali ke Daftar Murid
       </button>

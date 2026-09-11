@@ -15,11 +15,16 @@ import { todayWIB } from "../lib/format";
 import { compressPhoto } from "../lib/foto";
 import { downloadBlob } from "../lib/download";
 import { APP_VERSION } from "../lib/version";
+import { saveButtonState } from "../lib/settingsPresentation";
 import { DEEPSEEK_MODEL, DEEPSEEK_MODEL_LABEL, DEEPSEEK_DOCS_URL, DEEPSEEK_PRICING_URL, DEEPSEEK_COST_NOTE } from "../lib/aiConfig";
 import type { Settings, AuditAction } from "../db/types";
 import Toggle from "../components/Toggle";
 import PinConfirmModal from "../components/PinConfirmModal";
 import ExitAppModal from "../components/ExitAppModal";
+import {
+  UserIcon, KeyIcon, BankIcon, RobotIcon, BackupIcon,
+  TrashIcon, ReceiptIcon, PhoneIcon,
+} from "../components/icons";
 
 const WORDLIST = [
   "apel","baju","cabe","dadu","elang","fajar","gula","harap","ikan","jalan",
@@ -126,21 +131,55 @@ const AUDIT_LABEL: Record<AuditAction, string> = {
   "photos.prune": "Hapus foto lama",
 };
 
+/** Kunci tanggal lokal "YYYY-MM-DD" — bukan UTC, supaya grup hari tidak bergeser. */
+function auditDayKey(ts: string): string {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** Header grup: "Hari ini"/"Kemarin" lalu tanggal absolut agar konsisten. */
+function auditDayLabel(ts: string): string {
+  const d = new Date(ts);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return "Hari ini";
+  if (d.toDateString() === yesterday.toDateString()) return "Kemarin";
+  return d.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+}
+
 function AuditLogViewer() {
   const entries = useLiveQuery(() => listAuditLog(50), []);
   if (!entries || entries.length === 0)
     return <p className="text-xs text-gray-500 pt-3">Belum ada aktivitas tercatat.</p>;
+
+  // Kelompokkan per hari (audit V-14) — daftar panjang jadi mudah dipindai.
+  const groups: Array<{ key: string; label: string; items: NonNullable<typeof entries> }> = [];
+  for (const e of entries) {
+    const key = auditDayKey(e.timestamp);
+    const last = groups[groups.length - 1];
+    if (last && last.key === key) last.items.push(e);
+    else groups.push({ key, label: auditDayLabel(e.timestamp), items: [e] });
+  }
+
   return (
-    <div className="pt-3 space-y-1.5 max-h-72 overflow-y-auto">
-      {entries.map((e) => (
-        <div key={e.id} className="flex items-start justify-between gap-2 text-xs border-b border-gray-50 pb-1.5">
-          <div className="min-w-0">
-            <p className="font-medium text-gray-700">{AUDIT_LABEL[e.action] ?? e.action}</p>
-            {e.details && <p className="text-gray-500 truncate">{e.details}</p>}
-          </div>
-          <span className="text-gray-500 flex-shrink-0">
-            {new Date(e.timestamp).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" })}
-          </span>
+    <div className="pt-3 space-y-3 max-h-72 overflow-y-auto">
+      {groups.map((g) => (
+        <div key={g.key} className="space-y-1.5">
+          <p className="sticky top-0 z-10 bg-white/95 py-0.5 text-xs font-bold uppercase tracking-wide text-gray-500">
+            {g.label}
+          </p>
+          {g.items.map((e) => (
+            <div key={e.id} className="flex items-start justify-between gap-2 text-xs border-b border-gray-50 pb-1.5">
+              <div className="min-w-0">
+                <p className="font-medium text-gray-700">{AUDIT_LABEL[e.action] ?? e.action}</p>
+                {e.details && <p className="text-gray-500 truncate">{e.details}</p>}
+              </div>
+              <span className="text-gray-500 flex-shrink-0">
+                {new Date(e.timestamp).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            </div>
+          ))}
         </div>
       ))}
     </div>
@@ -156,7 +195,7 @@ const AccordionContext = createContext<{
 function Section({
   title, icon, badge, defaultOpen = false, children,
 }: {
-  title: string; icon: string; badge?: string; defaultOpen?: boolean; children: React.ReactNode;
+  title: string; icon: React.ReactNode; badge?: string; defaultOpen?: boolean; children: React.ReactNode;
 }) {
   const ctx = useContext(AccordionContext);
   const [localOpen, setLocalOpen] = useState(defaultOpen);
@@ -176,7 +215,7 @@ function Section({
         className="w-full flex items-center justify-between px-4 py-3.5 text-left"
       >
         <div className="flex items-center gap-2.5">
-          <span className="text-base">{icon}</span>
+          <span className="flex-shrink-0 text-gray-500">{icon}</span>
           <span className="text-sm font-semibold text-gray-800">{title}</span>
           {badge && (
             <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">{badge}</span>
@@ -528,9 +567,9 @@ export default function SettingsPage() {
       confirmLabel: "Restore",
     },
     resetAll: {
-      title: "Hapus Semua Data",
-      description: "Masukkan PIN sebelum mengosongkan database aplikasi.",
-      confirmLabel: "Hapus",
+      title: "Hapus Semua Data (Permanen)",
+      description: "Tindakan ini PERMANEN dan tidak bisa dibatalkan — semua murid, sesi, tagihan, laporan, dan pengeluaran akan hilang. Masukkan PIN untuk lanjut.",
+      confirmLabel: "Hapus Permanen",
     },
     driveBackup: {
       title: "Backup ke Google Drive",
@@ -548,6 +587,8 @@ export default function SettingsPage() {
       confirmLabel: "Ekspor",
     },
   } as const;
+
+  const saveState = saveButtonState(dirty, saving);
 
   return (
     <AccordionContext.Provider value={{ openId: openSection, setOpenId: setOpenSection }}>
@@ -573,7 +614,7 @@ export default function SettingsPage() {
       </div>
 
       {/* ── Profil Tutor ── */}
-      <Section title="Profil Tutor" icon="👤">
+      <Section title="Profil Tutor" icon={<UserIcon size={18} />}>
         <div className="pt-3 space-y-3">
           <div>
             <label htmlFor="set-nama-tutor" className="label">Nama Tutor</label>
@@ -622,7 +663,7 @@ export default function SettingsPage() {
 
 
       {/* ── PIN Keuangan ── */}
-      <Section title="PIN Keuangan" icon="🔐" badge={form.financialPin ? "Aktif" : undefined}>
+      <Section title="PIN Keuangan" icon={<KeyIcon size={18} />} badge={form.financialPin ? "Aktif" : undefined}>
         <div className="pt-3 space-y-3">
           <p className="text-xs text-gray-500">Melindungi akses rekap keuangan & hapus sesi</p>
 
@@ -723,7 +764,7 @@ export default function SettingsPage() {
       </Section>
 
       {/* ── Rekening Bank ── */}
-      <Section title="Rekening Bank" icon="🏦">
+      <Section title="Rekening Bank" icon={<BankIcon size={18} />}>
         <div className="pt-3 space-y-3">
           <p className="text-xs text-gray-500">Ditampilkan di lembar absensi untuk memudahkan transfer</p>
           <div>
@@ -774,7 +815,7 @@ export default function SettingsPage() {
       </Section>
 
       {/* ── AI ── */}
-      <Section title="AI — DeepSeek" icon="🤖" badge={form.ai.enabled && form.ai.apiKey ? "Aktif" : undefined}>
+      <Section title="AI — DeepSeek" icon={<RobotIcon size={18} />} badge={form.ai.enabled && form.ai.apiKey ? "Aktif" : undefined}>
         <div className="pt-3 space-y-3">
           <label className="flex items-center gap-3 cursor-pointer">
             <Toggle checked={form.ai.enabled} onChange={(v) => updateAi("enabled", v)} />
@@ -827,7 +868,7 @@ export default function SettingsPage() {
 
 
       {/* ── Backup & Restore ── */}
-      <Section title="Backup & Restore" icon="💾">
+      <Section title="Backup & Restore" icon={<BackupIcon size={18} />}>
         <div className="pt-3 space-y-3">
           <StorageUsage />
           <PhotoMaintenance onToast={toastCtx.info} />
@@ -982,7 +1023,7 @@ export default function SettingsPage() {
       </Section>
 
       {/* ── Hapus Semua Data ── */}
-      <Section title="Hapus Semua Data" icon="🗑️">
+      <Section title="Hapus Semua Data" icon={<TrashIcon size={18} />}>
         <div className="pt-3 space-y-3">
           <p className="text-xs text-red-600 font-semibold">
             ⚠️ Menghapus semua data murid, sesi, tagihan, laporan, dan pengeluaran.
@@ -1004,12 +1045,12 @@ export default function SettingsPage() {
       </Section>
 
       {/* ── Riwayat Aktivitas (audit trail) ── */}
-      <Section title="Riwayat Aktivitas" icon="🧾">
+      <Section title="Riwayat Aktivitas" icon={<ReceiptIcon size={18} />}>
         <AuditLogViewer />
       </Section>
 
       {/* ── PWA / Aplikasi ── */}
-      <Section title="Aplikasi (PWA)" icon="📱">
+      <Section title="Aplikasi (PWA)" icon={<PhoneIcon size={18} />}>
         <div className="pt-3 space-y-3">
           <StorageUsage />
           <div className="bg-gray-50 rounded-xl p-3 space-y-1.5">
@@ -1059,13 +1100,8 @@ export default function SettingsPage() {
       {showExitModal && <ExitAppModal onClose={() => setShowExitModal(false)} />}
 
       {/* ── Simpan ── */}
-      <button onClick={handleSave} disabled={saving || !dirty}
-        className={`w-full py-3.5 rounded-xl font-bold text-base transition-colors shadow-sm ${
-          dirty
-            ? "bg-blue-600 hover:bg-blue-700 text-white"
-            : "bg-gray-100 text-slate-700"
-        } ${saving || !dirty ? "disabled:opacity-60 disabled:cursor-not-allowed" : ""}`}>
-        {saving ? "Menyimpan..." : dirty ? "Simpan Pengaturan" : "Tersimpan ✓"}
+      <button onClick={handleSave} disabled={saveState.disabled} className={saveState.className}>
+        {saveState.label}
       </button>
     </div>
     </AccordionContext.Provider>

@@ -60,14 +60,17 @@ export default function MonthView({
           const isToday    = date === today;
           const isSelected = date === selectedDay;
           const isPast     = date < today;
-          const isSunday   = new Date(date + "T00:00:00").getDay() === 0;
+          const dow        = new Date(date + "T00:00:00").getDay();
+          const isSunday   = dow === 0;
+          // Weekend (Sabtu/Minggu) diberi tint halus agar orientasi grid cepat (audit V-09).
+          const isWeekend  = dow === 0 || dow === 6;
           const dayNum     = parseInt(date.slice(8), 10);
           const heatBg     = heatByDay.get(date) ?? "";
           return (
             <button key={date}
               onClick={() => setSelectedDay(isSelected ? null : date)}
               className={`min-h-[64px] flex flex-col items-start p-1 border-b border-r border-gray-100 last:border-r-0 transition-colors ${
-                isSelected ? "bg-blue-50" : isPast ? "bg-gray-50 hover:bg-gray-100" : "hover:bg-gray-50"
+                isSelected ? "bg-blue-50" : isPast ? "bg-gray-50 hover:bg-gray-100" : isWeekend ? "bg-gray-50/60 hover:bg-gray-100" : "hover:bg-gray-50"
               }`}
               style={heatBg && !isSelected ? { background: heatBg } : undefined}>
               <span className={`text-xs font-medium w-5 h-5 flex items-center justify-center rounded-full mb-0.5 self-center ${

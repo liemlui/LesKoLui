@@ -16,9 +16,11 @@ async function closeChangelog(page: Page) {
 test.describe("smoke", () => {
   test("app shell memuat dengan navigasi bawah", async ({ page }) => {
     await page.goto("/");
-    // Bottom nav selalu ada di semua layar
+    await closeChangelog(page);
+    // Bottom nav selalu ada di semua layar (5 item: Home/Murid/Catat/Laporan/Keuangan)
     await expect(page.getByRole("link", { name: "Murid" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Catatan" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Catat" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Laporan" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Keuangan" })).toBeVisible();
   });
 

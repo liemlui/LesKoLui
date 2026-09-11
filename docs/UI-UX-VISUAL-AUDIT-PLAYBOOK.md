@@ -413,4 +413,11 @@ _Tandai checkbox sesuai progres; set hasil verifikasi di baris paling atas._
 - [x] Fase 0 — regen katalog audit/ (87 PNG) + hapus basi
 - [x] Fase 1 — dokumen audit visual templated → `docs/UI-UX-AUDIT-VISUAL-2026-09-11.md`
 - [x] Fase 2 — P1-a dark deaktivasi · P1-b kontras · P2 wayfinding/nonaktifkan · P3 glossary (emoji→SVG = backlog)
-- [ ] Fase 3 — guard rail test + e2e smoke + docs final
+- [x] Fase 3 — guard rail test + e2e smoke + docs final (2026-09-11)
+
+> **Fase 3 — hasil (2026-09-11):**
+> - `e2e/smoke.spec.ts` diperbaiki: assert nav basi `"Catatan"` → `"Catat"`/`"Laporan"` (BottomNav 5-item) + `closeChangelog` di test pertama.
+> - Test kontras tombol simpan: `src/__tests__/settingsSaveButton.test.ts` + helper murni `src/lib/settingsPresentation.ts` (V-02 guard).
+> - Backlog temuan visual V-03, V-05, V-06, V-09, V-12, V-13, V-14 dituntaskan; V-10 & V-11 terverifikasi sudah beres (ditandai ✅ di dokumen audit).
+> - Verifikasi: lint 0/0 · test hijau · build OK.
+> - Sinkronisasi versi dokumentasi ke `v1.71.3` (`les-ko-lui/README.md`, root `README.md`).
