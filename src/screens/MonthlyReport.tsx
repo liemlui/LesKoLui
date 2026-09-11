@@ -1341,7 +1341,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                   </div>
                   {engagementTrend && (
                     <p className={`text-xs rounded-lg px-2.5 py-2 ${engagementTrend === "Meningkat" ? "bg-green-50 text-green-700" : engagementTrend === "Perlu perhatian" ? "bg-amber-50 text-amber-700" : "bg-gray-50 text-gray-600"}`}>
-                      Tren fokus: <strong>{engagementTrend}</strong> dibandingkan awal periode.
+                      Fokus tren: <strong>{engagementTrend}</strong> dibandingkan awal periode.
                     </p>
                   )}
 

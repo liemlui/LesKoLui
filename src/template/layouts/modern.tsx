@@ -384,7 +384,7 @@ export const infographic: Layout = {
             {(series.length >= 2 || d.prevAvgEngagement != null) && (
               <div style={{ ...panel, marginBottom: 12 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: series.length >= 2 ? 8 : 0 }}>
-                  <p style={overline}>Tren Fokus</p>
+                  <p style={overline}>Fokus Tren</p>
                   {series.length >= 2 && (
                     <span style={{ fontSize: 10, color: t.muted }}>skala 1–10 · rata-rata {d.avgEngagement ?? "—"}</span>
                   )}

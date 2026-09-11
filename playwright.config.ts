@@ -13,6 +13,8 @@ export default defineConfig({
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    { name: "mobile", use: { ...devices["Pixel 7"], deviceScaleFactor: 2 } },
+    { name: "mobile-dark", use: { ...devices["Pixel 7"], deviceScaleFactor: 2, colorScheme: "dark" } },
   ],
   webServer: {
     // Port di-pin agar cocok dengan baseURL — tanpa ini vite default ke 5173

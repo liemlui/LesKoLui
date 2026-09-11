@@ -29,7 +29,7 @@ export default function OperationalSnapshot({
       {/* ── Header ── */}
       <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-3 border-b border-slate-100">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-600">Command center</p>
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-600">Pusat Tindakan</p>
           <h2 id="operational-title" className="text-base font-bold text-slate-800">Operasional hari ini</h2>
           <p className="mt-0.5 text-xs text-slate-600">Ringkasan yang bisa langsung ditindaklanjuti.</p>
         </div>

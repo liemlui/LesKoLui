@@ -332,7 +332,8 @@ export default function Students() {
           {s.active ? (
             <button
               onClick={() => requirePin("deactivate", s)}
-              className="text-xs text-orange-500 hover:text-orange-700 px-2 py-1 rounded-lg hover:bg-orange-50 transition-colors"
+              aria-label={`Nonaktifkan ${s.name}`}
+              className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1 rounded-lg hover:bg-slate-50 transition-colors"
             >
               Nonaktifkan
             </button>
@@ -344,9 +345,11 @@ export default function Students() {
               Aktifkan
             </button>
           )}
+          <span aria-hidden="true" className="h-4 w-px bg-gray-200" />
           <button
             onClick={() => requirePin("delete", s)}
-            className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors"
+            aria-label={`Hapus permanen ${s.name}`}
+            className="text-xs font-semibold text-red-500 hover:text-red-700 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors"
           >
             Hapus
           </button>

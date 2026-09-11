@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.71.3",
+    date: "2026-09-11",
+    title: "Audit Visual UI/UX dan Mode Terang yang Konsisten",
+    items: [
+      "Mode gelap dinonaktifkan sementara — tampilan kembali konsisten terang karena token warna belum menyeluruh",
+      "Tombol simpan Pengaturan kini lebih jelas: kontras diperbaiki dan nonaktif saat tidak ada perubahan, dengan status \"Tersimpan ✓\" yang terbaca",
+      "Daftar Murid: \"Nonaktifkan\" jadi netral (non-destruktif) dan dipisahkan dari \"Hapus\" yang kini lebih tegas",
+      "Istilah diseragamkan ke Bahasa Indonesia: \"Command center\" → \"Pusat Tindakan\", \"Tren fokus\" → \"Fokus tren\"",
+      "Katalog screenshot audit baru: 29 layar × 3 viewport (desktop, mobile, dark), plus playbook audit & hasil temuan",
+    ],
+  },
+  {
     version: "v1.71.2",
     date: "2026-09-11",
     title: "Tautan Tarif Resmi AI",

@@ -1059,12 +1059,12 @@ export default function SettingsPage() {
       {showExitModal && <ExitAppModal onClose={() => setShowExitModal(false)} />}
 
       {/* ── Simpan ── */}
-      <button onClick={handleSave} disabled={saving}
+      <button onClick={handleSave} disabled={saving || !dirty}
         className={`w-full py-3.5 rounded-xl font-bold text-base transition-colors shadow-sm ${
           dirty
             ? "bg-blue-600 hover:bg-blue-700 text-white"
-            : "bg-gray-100 text-gray-500"
-        } disabled:opacity-50`}>
+            : "bg-gray-100 text-slate-700"
+        } ${saving || !dirty ? "disabled:opacity-60 disabled:cursor-not-allowed" : ""}`}>
         {saving ? "Menyimpan..." : dirty ? "Simpan Pengaturan" : "Tersimpan ✓"}
       </button>
     </div>
