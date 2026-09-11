@@ -11,6 +11,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.71.4",
+    date: "2026-09-11",
+    title: "Penuntasan Audit Visual UI/UX",
+    items: [
+      "Wayfinding: tombol \"Kembali ke Daftar Murid\" kini benar-benar menuju daftar murid, konsisten dibuka dari mana pun",
+      "Ikon emoji fungsional diganti glyph SVG — stepper Catat Sesi 6 langkah & ikon section Pengaturan tampil konsisten di semua perangkat",
+      "Kalender Home: Sabtu & Minggu dibedakan halus agar orientasi tanggal lebih cepat",
+      "Konfirmasi Hapus Semua Data menegaskan sifat PERMANEN dan tidak bisa dibatalkan",
+      "Riwayat Aktivitas dikelompokkan per hari (Hari ini/Kemarin/tanggal) dengan jam yang konsisten",
+      "Modal changelog menambah gradien di tepi bawah sebagai tanda masih ada konten",
+      "Guard test aksesibilitas tombol simpan Pengaturan (kontras AA) dan perbaikan smoke E2E navigasi 5-item",
+    ],
+  },
+  {
     version: "v1.71.3",
     date: "2026-09-11",
     title: "Audit Visual UI/UX dan Mode Terang yang Konsisten",

@@ -420,4 +420,4 @@ _Tandai checkbox sesuai progres; set hasil verifikasi di baris paling atas._
 > - Test kontras tombol simpan: `src/__tests__/settingsSaveButton.test.ts` + helper murni `src/lib/settingsPresentation.ts` (V-02 guard).
 > - Backlog temuan visual V-03, V-05, V-06, V-09, V-12, V-13, V-14 dituntaskan; V-10 & V-11 terverifikasi sudah beres (ditandai ✅ di dokumen audit).
 > - Verifikasi: lint 0/0 · test hijau · build OK.
-> - Sinkronisasi versi dokumentasi ke `v1.71.3` (`les-ko-lui/README.md`, root `README.md`).
+> - Rilis versi `v1.71.4` + entri CHANGELOG "Penuntasan Audit Visual UI/UX"; sinkronisasi versi dokumentasi (`les-ko-lui/README.md`, root `README.md`).

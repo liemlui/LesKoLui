@@ -29,7 +29,7 @@ Dokumentasi arsitektur berada di direktori `../` (root `Private Tutor/`):
 
 ## Status
 
-- **Version:** 1.71.3
+- **Version:** 1.71.4
 - **Dexie schema:** v15 (10 backup tables + auditLog + studyNotes + local captureDrafts)
 - **Backup tables (10):** students, sessions, reports, payments, settings, raporGrades, followUps, expenses, iaeeProjects, studyNotes
 - **AI model:** DeepSeek V4.1 Flash (`deepseek-flash`, direct dari browser, thinking nonaktif)
