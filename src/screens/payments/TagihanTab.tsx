@@ -11,7 +11,7 @@ import { formatRupiah, todayWIB, monthLabel, periodLabel } from "../../lib/forma
 import Modal from "../../components/Modal";
 import { buildBillingMessage, toWaNumber } from "../../lib/waBilling";
 import { MAX_PAYMENT_AMOUNT, clampCurrencyAmount, isValidCurrencyAmount, parseCurrencyDigits } from "../../lib/money";
-import { invoiceAgeDays, ageBucket, AGE_BUCKET_LABEL, AGE_BUCKET_CLASS, type AgeBucket } from "../../lib/finance";
+import { invoiceAgeDays, ageBucket, AGE_BUCKET_LABEL, invoiceDueAt, type AgeBucket } from "../../lib/finance";
 import { db } from "../../db/db";
 import ActivityRing from "../../components/dashboard/ActivityRing";
 import { ProgressBar } from "../../components/charts";
@@ -62,6 +62,11 @@ export default function TagihanTab({
   const [showWaAll, setShowWaAll] = useState(false);
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const [agingFilter, setAgingFilter] = useState<AgeBucket | "all">("all");
+  /**
+   * Baris tagihan terbuka. Daftar ditampilkan sebagai baris ringkas agar 60+
+   * tagihan tidak menjadi puluhan layar; aksi & rincian hidup di panel baris.
+   */
+  const [expandedPaymentId, setExpandedPaymentId] = useState<string | null>(null);
   const appliedFocusRef = useRef(false);
 
   // Sesi yang dirujuk laporan — dipakai baris invoice & pesan WA.
@@ -216,89 +221,103 @@ export default function TagihanTab({
 
   return (
     <div className="space-y-4">
-      {showIssuedList && (
-        <div>
-          <div className="flex items-center justify-end gap-2">
-            <button onClick={handleExportCsv}
-              className="flex items-center gap-1.5 text-sm font-semibold bg-green-50 text-green-700 border border-green-200 px-3 py-2 rounded-xl hover:bg-green-100 transition-colors">
-              📊 CSV
-            </button>
-            <button onClick={handleExportPdf} disabled={pdfExporting}
-              className="flex items-center gap-1.5 text-sm font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-2 rounded-xl hover:bg-indigo-100 transition-colors disabled:opacity-50">
-              {pdfExporting ? "⏳ Ekspor..." : "📄 PDF"}
-            </button>
-          </div>
-          <p className="mt-1 text-right text-xs text-gray-500">Ekspor mengikuti filter status dan asal pada daftar Tagihan Terbit.</p>
-        </div>
-      )}
-
       <section aria-labelledby="collection-center-title" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-indigo-500">Penagihan · Semua Periode</p>
-            <h2 id="collection-center-title" className="mt-0.5 text-base font-bold text-slate-800">Penagihan</h2>
-            <p className="mt-1 max-w-sm text-xs leading-relaxed text-slate-500">
-              Terbitkan invoice, tindak lanjuti piutang, lalu catat pelunasan dalam satu alur.
+            <p className="text-xs font-bold uppercase tracking-[0.12em] text-indigo-500">Semua periode</p>
+            <h2 id="collection-center-title" className="mt-0.5 text-base font-bold text-slate-800">Alur tagihan</h2>
+            <p className="mt-1 max-w-prose text-xs leading-relaxed text-slate-500">
+              Dari laporan menjadi tagihan, lalu dibayar. Ketuk salah satu langkah untuk menyaring daftar di bawah.
             </p>
           </div>
         </div>
 
-        <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-2" role="group" aria-label="Filter tahap penagihan">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-1">
-            <button
-              type="button"
-              aria-pressed={invoiceStatusFilter === "ready"}
-              onClick={() => selectCollectionStage("ready")}
-              className={`rounded-lg border px-2.5 py-2 text-left transition-colors ${invoiceStatusFilter === "ready" ? "border-indigo-300 bg-indigo-600 text-white shadow-sm" : "border-indigo-100 bg-white text-indigo-800 hover:bg-indigo-50"}`}
-            >
-              <span className="block text-xs font-bold uppercase tracking-wide opacity-80">01 · Siap</span>
-              <span className="mt-0.5 block text-sm font-bold leading-tight">{readyActionCount} tindakan</span>
-              <span className="mt-0.5 block text-xs leading-snug opacity-80">Laporan final, paket, atau siap ditagih</span>
-            </button>
-            <span aria-hidden="true" className="flex items-center justify-center px-0.5 text-base font-bold text-slate-400">→</span>
-            <button
-              type="button"
-              aria-pressed={invoiceStatusFilter === "semua"}
-              onClick={() => selectCollectionStage("semua")}
-              className={`rounded-lg border px-2.5 py-2 text-left transition-colors ${invoiceStatusFilter === "semua" ? "border-blue-300 bg-blue-600 text-white shadow-sm" : "border-blue-100 bg-white text-blue-800 hover:bg-blue-50"}`}
-            >
-              <span className="block text-xs font-bold uppercase tracking-wide opacity-80">02 · Terbit</span>
-              <span className="mt-0.5 block text-sm font-bold leading-tight">{formatRupiah(totalBilled)}</span>
-              <span className="mt-0.5 block text-xs leading-snug opacity-80">{allPayments.length} invoice lintas periode</span>
-            </button>
-          </div>
-
-          <div className="my-2 flex items-center gap-2 px-1 text-xs font-medium text-slate-500">
-            <span className="h-px flex-1 bg-slate-200" />
-            <span>Invoice terbit terbagi menurut pembayaran</span>
-            <span className="h-px flex-1 bg-slate-200" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              aria-pressed={invoiceStatusFilter === "unpaid"}
-              onClick={() => selectCollectionStage("unpaid")}
-              className={`rounded-lg border px-2.5 py-2 text-left transition-colors ${invoiceStatusFilter === "unpaid" ? "border-amber-300 bg-amber-500 text-white shadow-sm" : "border-amber-100 bg-white text-amber-800 hover:bg-amber-50"}`}
-            >
-              <span className="block text-xs font-bold uppercase tracking-wide opacity-80">Belum dibayar</span>
-              <span className="mt-0.5 block text-sm font-bold leading-tight">{formatRupiah(totalUnpaid)}</span>
-              <span className="mt-0.5 block text-xs leading-snug opacity-80">{unpaidCount} invoice perlu tindak lanjut</span>
-            </button>
-            <button
-              type="button"
-              aria-pressed={invoiceStatusFilter === "paid"}
-              onClick={() => selectCollectionStage("paid")}
-              className={`rounded-lg border px-2.5 py-2 text-left transition-colors ${invoiceStatusFilter === "paid" ? "border-green-300 bg-green-600 text-white shadow-sm" : "border-green-100 bg-white text-green-800 hover:bg-green-50"}`}
-            >
-              <span className="block text-xs font-bold uppercase tracking-wide opacity-80">Lunas</span>
-              <span className="mt-0.5 block text-sm font-bold leading-tight">{formatRupiah(totalPaid)}</span>
-              <span className="mt-0.5 block text-xs leading-snug opacity-80">{paidCount} invoice sudah selesai</span>
-            </button>
-          </div>
+        <div className="mt-3 grid grid-cols-2 gap-1.5" role="group" aria-label="Filter tahap tagihan">
+          {([
+            {
+              key: "ready" as const,
+              step: "01",
+              label: "Siap ditagih",
+              value: `${readyActionCount} tindakan`,
+              hint: "Laporan final & paket yang menunggu invoice",
+              activeClass: "border-indigo-300 bg-indigo-600 text-white shadow-sm",
+              idleClass: "border-indigo-100 bg-white text-indigo-800 hover:bg-indigo-50",
+            },
+            {
+              key: "semua" as const,
+              step: "02",
+              label: "Sudah diterbitkan",
+              value: formatRupiah(totalBilled),
+              hint: `${allPayments.length} tagihan lintas periode`,
+              activeClass: "border-blue-300 bg-blue-600 text-white shadow-sm",
+              idleClass: "border-blue-100 bg-white text-blue-800 hover:bg-blue-50",
+            },
+            {
+              key: "unpaid" as const,
+              step: "03",
+              label: "Belum dibayar",
+              value: formatRupiah(totalUnpaid),
+              hint: `${unpaidCount} tagihan perlu ditindaklanjuti`,
+              activeClass: "border-amber-300 bg-amber-500 text-white shadow-sm",
+              idleClass: "border-amber-100 bg-white text-amber-800 hover:bg-amber-50",
+            },
+            {
+              key: "paid" as const,
+              step: "04",
+              label: "Lunas",
+              value: formatRupiah(totalPaid),
+              hint: `${paidCount} tagihan sudah selesai`,
+              activeClass: "border-green-300 bg-green-600 text-white shadow-sm",
+              idleClass: "border-green-100 bg-white text-green-800 hover:bg-green-50",
+            },
+          ]).map((stage) => {
+            const active = invoiceStatusFilter === stage.key;
+            return (
+              <button
+                key={stage.key}
+                type="button"
+                aria-pressed={active}
+                onClick={() => selectCollectionStage(stage.key)}
+                className={`rounded-lg border px-2.5 py-2 text-left transition-colors ${active ? stage.activeClass : stage.idleClass}`}
+              >
+                <span className="block text-xs font-bold uppercase tracking-wide opacity-80">
+                  {stage.step} · {stage.label}
+                </span>
+                <span className="mt-0.5 block text-sm font-bold leading-tight">{stage.value}</span>
+                <span className="mt-0.5 block text-xs leading-snug opacity-80">{stage.hint}</span>
+              </button>
+            );
+          })}
         </div>
 
-        <div className="mt-3 flex items-center gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2.5">
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            aria-pressed={invoiceStatusFilter === "all"}
+            onClick={() => selectCollectionStage("all")}
+            className={`rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors ${
+              invoiceStatusFilter === "all"
+                ? "border-slate-400 bg-slate-700 text-white"
+                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+            }`}
+          >
+            Tampilkan semua langkah
+          </button>
+          {invoiceStatusFilter === "ready" && (
+            <button
+              type="button"
+              onClick={() => selectCollectionStage("unpaid")}
+              className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100"
+            >
+              Ke tagihan belum dibayar →
+            </button>
+          )}
+        </div>
+
+        {/* Cincin dan catatannya ditumpuk, bukan berdampingan: pada lebar kolom
+            keuangan (±382px) teks penjelas hanya kebagian ~100px bila dipaksa
+            satu baris dengan cincin. */}
+        <div className="mt-3 rounded-xl border border-slate-100 bg-white px-3 py-2.5">
           <ActivityRing
             value={paidCount}
             total={allPayments.length}
@@ -307,9 +326,9 @@ export default function TagihanTab({
             size="sm"
             tone={collectionRate >= 80 ? "green" : collectionRate > 0 ? "amber" : "slate"}
           />
-          <p className="min-w-0 text-xs leading-relaxed text-slate-500">
-            <span className="font-semibold text-slate-700">Status invoice ≠ kas masuk.</span>{" "}
-            Pelunasan menutup piutang; kas dicatat menurut tanggal pembayaran di Ringkasan.
+          <p className="mt-2 border-t border-slate-100 pt-2 text-xs leading-relaxed text-slate-500">
+            <span className="font-semibold text-slate-700">Status invoice ≠ uang masuk.</span>{" "}
+            Pelunasan menutup piutang; uang masuk dicatat menurut tanggal pembayaran di Ringkasan.
           </p>
         </div>
 
@@ -358,7 +377,7 @@ export default function TagihanTab({
       {showReadySections && readyReportRows.length > 0 && (
         <section aria-labelledby="ready-report-invoices-title" className="space-y-3 rounded-xl border border-blue-200 bg-blue-50/40 p-4 shadow-sm">
           <div>
-            <h2 id="ready-report-invoices-title" className="text-sm font-bold text-blue-900">Laporan Final Siap Ditagih</h2>
+            <h2 id="ready-report-invoices-title" className="text-sm font-bold text-blue-900">Laporan final siap ditagih</h2>
             <p className="mt-0.5 text-xs text-blue-700">Laporan Perkembangan sudah final, tetapi belum mempunyai invoice. Terbitkan satu per satu setelah nominal diperiksa.</p>
           </div>
           <div className="space-y-2">
@@ -553,17 +572,30 @@ export default function TagihanTab({
       <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Tagihan Terbit</p>
-            <p className="text-xs text-gray-500 mt-0.5">Kelola nominal, pembayaran, WhatsApp, laporan, dan invoice.</p>
+            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Daftar tagihan</p>
+            <p className="text-xs text-gray-500 mt-0.5">Ketuk satu tagihan untuk mengubah nominal, mencatat pembayaran, mengirim WA, atau mengunduh invoice.</p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
               onClick={() => setShowWaAll(true)}
               className="rounded-lg bg-green-500 px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-green-600"
             >
-              📋 Daftar Tagihan
+              Kirim WA massal
             </button>
-            <span className="text-xs font-semibold text-gray-500 bg-gray-100 rounded-full px-2 py-1">{allPayments.length} tagihan</span>
+            <span className="text-xs font-semibold text-gray-500 bg-gray-100 rounded-full px-2 py-1">{filteredBillRows.length}/{allPayments.length}</span>
+          </div>
+        </div>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-50 px-2.5 py-1.5">
+          <p className="text-xs text-gray-500">Ekspor CSV/PDF mengikuti langkah dan asal tagihan yang tersaring.</p>
+          <div className="flex items-center gap-2">
+            <button onClick={handleExportCsv}
+              className="rounded-lg border border-green-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-green-700 transition-colors hover:bg-green-50">
+              Ekspor CSV
+            </button>
+            <button onClick={handleExportPdf} disabled={pdfExporting}
+              className="rounded-lg border border-indigo-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 disabled:opacity-50">
+              {pdfExporting ? "Mengekspor..." : "Ekspor PDF"}
+            </button>
           </div>
         </div>
         <div className="space-y-2 rounded-xl bg-gray-50 p-2.5">
@@ -588,138 +620,177 @@ export default function TagihanTab({
           </div>
         </div>
         {filteredBillRows.length === 0 ? (
-          <p className="rounded-lg bg-gray-50 px-3 py-4 text-center text-sm text-gray-500">Tidak ada invoice yang cocok dengan filter status dan asal ini.</p>
+          <p className="rounded-lg bg-gray-50 px-3 py-4 text-center text-sm text-gray-500">
+            Tidak ada tagihan yang cocok dengan langkah dan asal ini.
+          </p>
         ) : (
-          filteredBillRows.map(({ payment, report, student, sessions }) => {
-            const paid = payment.status === "PAID";
-            const periodLbl = payment.periodStart && payment.periodEnd ? periodLabel(payment.periodStart, payment.periodEnd) : "";
-            const amountStr = billEdits[payment.id] ?? String(payment.totalCost);
-            const totalHours = sessions.reduce((s, x) => s + x.durationHours, 0);
-            const phone = student?.parentContact?.phone ? toWaNumber(student.parentContact.phone) : "";
-            const origin = invoiceOriginOf(payment, report);
-            const standaloneManual = origin === "manual";
-            const waText = student
-              ? standaloneManual
-                ? buildManualBillingText(student, payment, settings)
-                : buildBillingMessage({
-                    student, sessions, month: payment.month, settings, amountOverride: payment.totalCost,
-                    period: payment.periodStart && payment.periodEnd ? { start: payment.periodStart, end: payment.periodEnd } : undefined,
-                    periodLabelText: periodLbl || undefined,
-                    tone: toneForPayment(payment),
-                  }).text
-              : "";
-            return (
-              <div key={payment.id} className="border border-gray-100 rounded-lg p-3 space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate font-medium text-gray-700 text-sm">{student?.name ?? "(dihapus)"}</p>
-                    <div className="mt-1 flex flex-wrap items-center gap-1">
-                      <span className={`inline-flex rounded-full px-1.5 py-0.5 text-xs font-bold ${INVOICE_ORIGIN_CLASS[origin]}`}>
-                        {INVOICE_ORIGIN_LABEL[origin]}
-                      </span>
-                      {report && (
-                        <span className={`inline-flex rounded-full px-1.5 py-0.5 text-xs font-bold ${REPORT_DISPLAY_STATUS_CLASS[reportDisplayStatus(report)]}`}>
-                          Laporan: {REPORT_DISPLAY_STATUS_LABEL[reportDisplayStatus(report)]}
+          <ul className="divide-y divide-gray-100">
+            {filteredBillRows.map(({ payment, report, student, sessions }) => {
+              const paid = payment.status === "PAID";
+              const periodLbl = payment.periodStart && payment.periodEnd ? periodLabel(payment.periodStart, payment.periodEnd) : "";
+              const amountStr = billEdits[payment.id] ?? String(payment.totalCost);
+              const totalHours = sessions.reduce((s, x) => s + x.durationHours, 0);
+              const phone = student?.parentContact?.phone ? toWaNumber(student.parentContact.phone) : "";
+              const origin = invoiceOriginOf(payment, report);
+              const standaloneManual = origin === "manual";
+              const busy = Boolean(sessionCountCancelBusy[payment.id]);
+              const expanded = expandedPaymentId === payment.id;
+              const ageLabel = paid ? null : AGE_BUCKET_LABEL[ageBucket(invoiceAgeDays(payment))];
+              const waText = student
+                ? standaloneManual
+                  ? buildManualBillingText(student, payment, settings)
+                  : buildBillingMessage({
+                      student, sessions, month: payment.month, settings, amountOverride: payment.totalCost,
+                      period: payment.periodStart && payment.periodEnd ? { start: payment.periodStart, end: payment.periodEnd } : undefined,
+                      periodLabelText: periodLbl || undefined,
+                      tone: toneForPayment(payment),
+                    }).text
+                : "";
+              const metaLine = standaloneManual
+                ? "Nominal manual · tanpa sesi"
+                : `${sessions.length} pertemuan · ${totalHours} jam · ${periodLbl || "tanpa periode"}`;
+              return (
+                <li key={payment.id}>
+                  {/* Baris ringkas: satu baris per tagihan. Aksi & rincian hidup
+                      di panel, supaya daftar panjang tetap bisa dipindai. */}
+                  <button
+                    type="button"
+                    aria-expanded={expanded}
+                    onClick={() => setExpandedPaymentId(expanded ? null : payment.id)}
+                    className="flex w-full items-center gap-2 py-2.5 text-left transition-colors hover:bg-gray-50"
+                  >
+                    <span aria-hidden="true" className={`shrink-0 text-xs text-gray-400 transition-transform ${expanded ? "rotate-90" : ""}`}>▶</span>
+                    <span className="min-w-0 flex-1">
+                      {/* Nominal di baris pertama supaya nama murid tidak
+                          terpotong oleh kolom kanan yang lebar tetapnya. */}
+                      <span className="flex items-baseline justify-between gap-2">
+                        <span className="min-w-0 truncate text-sm font-semibold text-gray-800">{student?.name ?? "(dihapus)"}</span>
+                        <span className={`shrink-0 text-sm font-bold ${paid ? "text-green-700" : "text-gray-800"}`}>
+                          {formatRupiah(payment.totalCost)}
                         </span>
-                      )}
-                    </div>
-                    {origin === "package" && (
-                      <p className="mt-1 text-xs font-medium text-indigo-600">
-                        {report?.finalBillingBatch ? "Paket Penutup" : `Paket ${report?.billingSessionCount ?? sessions.length} Pertemuan`}
-                      </p>
-                    )}
-                  </div>
-                  <span className={statusPillClass(paid)}>{paid ? "Lunas" : "Belum dibayar"}</span>
-                  {!paid && (
-                    <span className={`inline-flex rounded-full px-1.5 py-0.5 text-xs font-bold ${AGE_BUCKET_CLASS[ageBucket(invoiceAgeDays(payment))]}`}>
-                      {AGE_BUCKET_LABEL[ageBucket(invoiceAgeDays(payment))]}
+                      </span>
+                      <span className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                        <span className={`shrink-0 rounded px-1.5 py-0.5 text-[13px] font-bold ${INVOICE_ORIGIN_CLASS[origin]}`}>
+                          {INVOICE_ORIGIN_LABEL[origin]}
+                        </span>
+                        <span className="truncate text-xs text-gray-500">{metaLine}</span>
+                      </span>
+                      <span className="mt-0.5 block text-xs font-semibold">
+                        {paid
+                          ? <span className="text-green-700">Lunas{payment.paidAt ? ` · ${payment.paidAt}` : ""}</span>
+                          : <span className="text-amber-700">Belum dibayar{ageLabel ? ` · ${ageLabel}` : ""}</span>}
+                      </span>
                     </span>
+                  </button>
+
+                  {expanded && (
+                    <div className="mb-3 space-y-3 rounded-xl border border-gray-100 bg-gray-50/70 p-3">
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                        <span className={statusPillClass(paid)}>{paid ? "Lunas" : "Belum dibayar"}</span>
+                        {report && (
+                          <span className={`inline-flex rounded-full px-1.5 py-0.5 font-bold ${REPORT_DISPLAY_STATUS_CLASS[reportDisplayStatus(report)]}`}>
+                            Laporan: {REPORT_DISPLAY_STATUS_LABEL[reportDisplayStatus(report)]}
+                          </span>
+                        )}
+                        {origin === "package" && (
+                          <span className="inline-flex rounded-full bg-indigo-100 px-1.5 py-0.5 font-bold text-indigo-700">
+                            {report?.finalBillingBatch ? "Paket penutup" : `Paket ${report?.billingSessionCount ?? sessions.length} pertemuan`}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="rounded-lg bg-white px-2.5 py-1.5 text-xs leading-relaxed text-slate-600">
+                        <p>Periode pertemuan: <strong>{periodLbl || "Tanpa sesi"}</strong></p>
+                        <p>Bulan tagihan: <strong>{monthLabel(payment.month)}</strong></p>
+                        <p>Jatuh tempo: <strong>{invoiceDueAt(payment) ?? "—"}</strong></p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <label htmlFor={`amount-${payment.id}`} className="text-xs text-gray-500">Rp</label>
+                        <input
+                          id={`amount-${payment.id}`}
+                          aria-label={`Nominal tagihan ${student?.name ?? "murid"}`}
+                          className="input flex-1 text-sm py-1.5"
+                          inputMode="numeric"
+                          value={amountStr}
+                          disabled={paid}
+                          onChange={(e) => {
+                            const { raw } = parseCurrencyDigits(e.target.value, MAX_PAYMENT_AMOUNT);
+                            setBillEdits((prev) => ({ ...prev, [payment.id]: raw }));
+                          }}
+                          onBlur={() => saveBillAmount(payment.id, payment.totalCost)} />
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        {phone && !paid && (
+                          <a href={`https://wa.me/${phone}?text=${encodeURIComponent(waText)}`} target="_blank" rel="noopener noreferrer"
+                            className="min-w-[120px] flex-1 py-2 text-center rounded-lg bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition-colors">
+                            Kirim tagihan via WA
+                          </a>
+                        )}
+                        {!paid ? (
+                          <button onClick={() => markPaymentTransferredById(payment.id)}
+                            className="min-w-[120px] flex-1 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors">
+                            Tandai sudah dibayar
+                          </button>
+                        ) : (
+                          <button onClick={() => markPaymentUnpaidById(payment.id)}
+                            className="min-w-[120px] flex-1 py-2 rounded-lg border border-gray-200 text-gray-600 text-xs font-medium hover:bg-gray-50 transition-colors">
+                            Batalkan pelunasan
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        {report ? (
+                          <button onClick={() => navigate(`/report?reportId=${encodeURIComponent(report.id)}`)}
+                            className="min-w-[88px] flex-1 py-1.5 rounded-lg border border-blue-200 text-blue-600 text-xs font-medium hover:bg-blue-50 transition-colors">
+                            Buka laporan
+                          </button>
+                        ) : (
+                          student && (
+                            <button onClick={() => navigate(`/report?studentId=${encodeURIComponent(student.id)}`)}
+                              className="min-w-[88px] flex-1 py-1.5 rounded-lg border border-blue-200 text-blue-600 text-xs font-medium hover:bg-blue-50 transition-colors">
+                              Lengkapi laporan
+                            </button>
+                          )
+                        )}
+                        {student && (
+                          <button onClick={() => setInvoiceTarget({ payment, student })}
+                            className="min-w-[88px] flex-1 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-xs font-medium hover:bg-gray-50 transition-colors">
+                            Unduh invoice PDF
+                          </button>
+                        )}
+                        {report?.billingMode === "session_count" && !paid && payment.source !== "manual" && (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => void handleCancelSessionCountInvoice(
+                              payment,
+                              student?.name ?? "murid",
+                              report.billingPolicyTransitionTarget ?? report.billingPolicyAfterBatch,
+                              Boolean(report.finalBillingBatch),
+                            )}
+                            className="min-w-[128px] flex-1 py-1.5 rounded-lg border border-red-200 text-red-600 text-xs font-medium hover:bg-red-50 transition-colors disabled:cursor-wait disabled:opacity-50"
+                          >
+                            {busy
+                              ? "Membatalkan..."
+                              : report.finalBillingBatch
+                                ? "Batalkan tagihan penutup"
+                                : "Batalkan tagihan paket"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   )}
-                </div>
-                <div className="rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs leading-relaxed text-slate-600">
-                  <p>🗓 Periode sesi: <strong>{periodLbl || "Tanpa sesi"}</strong></p>
-                  <p>🧾 Bulan tagihan: <strong>{monthLabel(payment.month)}</strong></p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">Rp</span>
-                  <input aria-label={`Nominal tagihan ${student?.name ?? "murid"}`} className="input flex-1 text-sm py-1.5" inputMode="numeric" value={amountStr} disabled={paid}
-                    onChange={(e) => {
-                      const { raw } = parseCurrencyDigits(e.target.value, MAX_PAYMENT_AMOUNT);
-                      setBillEdits((prev) => ({ ...prev, [payment.id]: raw }));
-                    }}
-                    onBlur={() => saveBillAmount(payment.id, payment.totalCost)} />
-                </div>
-                <div className="flex gap-2">
-                  {phone && !paid && (
-                    <a href={`https://wa.me/${phone}?text=${encodeURIComponent(waText)}`} target="_blank" rel="noopener noreferrer"
-                      className="flex-1 text-center py-2 rounded-lg bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition-colors">
-                      💬 Tagih WA
-                    </a>
-                  )}
-                  {!paid ? (
-                    <button onClick={() => markPaymentTransferredById(payment.id)}
-                      className="flex-1 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors">
-                      ✓ Sudah Transfer
-                    </button>
-                  ) : (
-                    <button onClick={() => markPaymentUnpaidById(payment.id)}
-                      className="flex-1 py-2 rounded-lg border border-gray-200 text-gray-500 text-xs font-medium hover:bg-gray-50 transition-colors">
-                      ↩ Batalkan
-                    </button>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {report ? (
-                    <button onClick={() => navigate(`/report?reportId=${encodeURIComponent(report.id)}`)}
-                      className="min-w-[88px] flex-1 py-1.5 rounded-lg border border-blue-200 text-blue-600 text-xs font-medium hover:bg-blue-50 transition-colors">
-                      📋 Buka Laporan
-                    </button>
-                  ) : (
-                    student && (
-                      <button onClick={() => navigate(`/report?studentId=${encodeURIComponent(student.id)}`)}
-                        className="min-w-[88px] flex-1 py-1.5 rounded-lg border border-blue-200 text-blue-600 text-xs font-medium hover:bg-blue-50 transition-colors">
-                        📋 Lengkapi Laporan Perkembangan
-                      </button>
-                    )
-                  )}
-                  {student && (
-                    <button onClick={() => setInvoiceTarget({ payment, student })}
-                      className="min-w-[88px] flex-1 py-1.5 rounded-lg border border-gray-200 text-gray-500 text-xs font-medium hover:bg-gray-50 transition-colors">
-                      📄 Invoice
-                    </button>
-                  )}
-                  {report?.billingMode === "session_count" && !paid && payment.source !== "manual" && (
-                    <button
-                      type="button"
-                      disabled={Boolean(sessionCountCancelBusy[payment.id])}
-                      onClick={() => void handleCancelSessionCountInvoice(
-                        payment,
-                        student?.name ?? "murid",
-                        report.billingPolicyTransitionTarget ?? report.billingPolicyAfterBatch,
-                        Boolean(report.finalBillingBatch),
-                      )}
-                      className="min-w-[128px] flex-1 py-1.5 rounded-lg border border-red-200 text-red-600 text-xs font-medium hover:bg-red-50 transition-colors disabled:cursor-wait disabled:opacity-50"
-                    >
-                      {sessionCountCancelBusy[payment.id]
-                        ? "Membatalkan..."
-                        : report.finalBillingBatch
-                          ? "Batalkan Tagihan Penutup"
-                          : "Batalkan Tagihan Paket"}
-                    </button>
-                  )}
-                </div>
-                <p className="text-xs text-gray-500">
-                  {standaloneManual
-                    ? "Tanpa sesi · nominal manual"
-                    : `${sessions.length} sesi · ${totalHours}j`}
-                  {paid && payment.paidAt ? ` · dibayar ${payment.paidAt}` : ""}
-                </p>
-              </div>
-            );
-          })
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
       )}
+
 
 
       {/* Manual invoice (collapsible) */}
@@ -846,7 +917,7 @@ export default function TagihanTab({
             <section>
               <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-600">Bulanan</h3>
               <ul className="mt-2 space-y-2 text-xs leading-relaxed">
-                <li>Murid <strong>Bulanan</strong> — sahkan Laporan Perkembangan, lalu terbitkan invoice dari tahap <strong>Siap Ditagih</strong>.</li>
+                <li>Murid <strong>Bulanan</strong> — finalkan Laporan Perkembangan, lalu terbitkan invoice dari langkah <strong>Siap ditagih</strong>.</li>
                 <li>Daftar tagihan lintas bulan — semua invoice tampil tanpa perlu memilih bulan.</li>
               </ul>
             </section>
@@ -854,7 +925,7 @@ export default function TagihanTab({
             <section>
               <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-600">Laporan Perkembangan</h3>
               <ul className="mt-2 space-y-2 text-xs leading-relaxed">
-                <li>Laporan yang sudah <strong>final</strong> tetapi belum punya invoice muncul di tahap <strong>Siap Ditagih</strong>.</li>
+                <li>Laporan yang sudah <strong>final</strong> tetapi belum punya invoice muncul di langkah <strong>Siap ditagih</strong>.</li>
                 <li><strong>Terbitkan Invoice</strong> membuat tagihan dari nominal dan periode belajar pada laporan tersebut.</li>
               </ul>
             </section>
@@ -877,14 +948,14 @@ export default function TagihanTab({
         </Modal>
       )}
 
-      {/* Daftar Tagihan WA modal */}
+      {/* Modal kirim tagihan WhatsApp massal */}
       {showWaAll && (
-        <Modal onClose={() => setShowWaAll(false)} ariaLabel="Daftar Tagihan WA" showCloseButton={false}
+        <Modal onClose={() => setShowWaAll(false)} ariaLabel="Kirim tagihan via WhatsApp" showCloseButton={false}
           panelClassName="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl outline-none">
           <div className="flex items-start justify-between border-b border-gray-100 px-5 py-4">
             <div>
-              <h2 className="text-lg font-bold text-gray-800">Daftar Tagihan</h2>
-              <p className="mt-0.5 text-xs text-gray-600">Semua tagihan belum lunas yang punya nomor HP — tap untuk buka WhatsApp.</p>
+              <h2 className="text-lg font-bold text-gray-800">Kirim tagihan via WhatsApp</h2>
+              <p className="mt-0.5 text-xs text-gray-600">Semua tagihan belum lunas yang punya nomor HP — ketuk untuk membuka WhatsApp.</p>
             </div>
             <button onClick={() => setShowWaAll(false)} aria-label="Tutup"
               className="text-xl leading-none text-gray-500 hover:text-gray-700">✕</button>

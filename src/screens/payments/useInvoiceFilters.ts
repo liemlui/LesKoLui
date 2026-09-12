@@ -17,7 +17,7 @@ import {
 } from "../../lib/invoicePresentation";
 import type { InvoiceOriginFilter as OriginFilter } from "../../lib/invoicePresentation";
 
-export type InvoiceStatusFilter = "semua" | "ready" | "unpaid" | "paid";
+export type InvoiceStatusFilter = "all" | "ready" | "semua" | "unpaid" | "paid";
 export type InvoiceOriginFilter = OriginFilter;
 
 export interface BillRow {
@@ -50,7 +50,9 @@ export function useInvoiceFilters({
   payments, students, reports, allBillableSessions, settings, allReportSessions,
   itemsPerPdfPage = 5,
 }: UseInvoiceFiltersArgs) {
-  const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<InvoiceStatusFilter>("semua");
+  // Default ke "unpaid": daftar tagihan yang menuntut tindakan adalah tampilan
+  // paling berguna, dan sebagian besar invoice biasanya sudah lunas.
+  const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<InvoiceStatusFilter>("unpaid");
   const [invoiceOriginFilter, setInvoiceOriginFilter] = useState<InvoiceOriginFilter>("semua");
   const [searchText, setSearchText] = useState("");
 
@@ -106,7 +108,7 @@ export function useInvoiceFilters({
   [allPayments, reports, studentMap, allReportSessions, allBillableSessions]);
 
   const filteredBillRows = useMemo(() => billRows.filter((row) => {
-    const statusMatches = invoiceStatusFilter === "semua"
+    const statusMatches = invoiceStatusFilter === "all" || invoiceStatusFilter === "semua"
       ? true
       : invoiceStatusFilter === "ready"
         ? false
@@ -142,7 +144,7 @@ export function useInvoiceFilters({
     .sort((a, b) => reportPeriodOf(a.report).periodStart.localeCompare(reportPeriodOf(b.report).periodStart)),
   [reports, payments, studentMap]);
 
-  const showReadySections = invoiceStatusFilter === "semua" || invoiceStatusFilter === "ready";
+  const showReadySections = invoiceStatusFilter === "all" || invoiceStatusFilter === "semua" || invoiceStatusFilter === "ready";
   const showIssuedList = invoiceStatusFilter !== "ready";
 
   // ── Daftar Tagihan WA (semua unpaid dengan nomor HP tercatat) ──

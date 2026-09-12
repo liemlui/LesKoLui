@@ -18,10 +18,11 @@ function shiftMonth(month: string, amount: number): string {
 }
 
 /**
- * Shared period control for financial screens.
+ * Period control for financial screens.
  *
- * The friendly label keeps the active reporting period visible while the
- * native month field remains available for jumping directly to another month.
+ * Deliberately compact: it sits inside the page's sticky header so the active
+ * period stays visible on every finance tab. It does not render its own card or
+ * page title — the surrounding screen owns that framing.
  */
 export default function FinancePeriodPicker({
   month,
@@ -30,42 +31,26 @@ export default function FinancePeriodPicker({
   children,
 }: FinancePeriodPickerProps) {
   const inputId = useId();
-  const titleId = `${inputId}-title`;
   const currentMonth = todayWIB().slice(0, 7);
   const previousMonth = shiftMonth(month, -1);
   const nextMonth = shiftMonth(month, 1);
 
   return (
-    <section
-      aria-labelledby={titleId}
-      className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm space-y-3"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p id={titleId} className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
-            Bulan keuangan
-          </p>
-          <p aria-live="polite" className="mt-0.5 text-lg font-bold text-slate-800">
-            {monthLabel(month)}
-          </p>
-        </div>
-        {rightContent && <div className="flex shrink-0 items-center">{rightContent}</div>}
-      </div>
-
+    <section aria-label="Bulan keuangan" className="space-y-2">
       <div className="flex flex-wrap items-end gap-2">
         <button
           type="button"
           aria-label={`Bulan sebelumnya: ${monthLabel(previousMonth)}`}
           title={`Bulan sebelumnya: ${monthLabel(previousMonth)}`}
           onClick={() => onChange(previousMonth)}
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-xl font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-lg font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         >
           <span aria-hidden="true">‹</span>
         </button>
 
-        <div className="min-w-[11rem] flex-1">
-          <label htmlFor={inputId} className="block text-xs font-medium text-slate-600">
-            Pilih bulan keuangan
+        <div className="min-w-[9.5rem] flex-1">
+          <label htmlFor={inputId} className="block text-xs font-medium text-slate-500">
+            Bulan keuangan
           </label>
           <input
             id={inputId}
@@ -75,7 +60,7 @@ export default function FinancePeriodPicker({
             onChange={(event) => {
               if (event.target.value) onChange(event.target.value);
             }}
-            className="input mt-1 w-full"
+            className="input mt-0.5 w-full py-1.5"
           />
         </div>
 
@@ -84,7 +69,7 @@ export default function FinancePeriodPicker({
           aria-label={`Bulan berikutnya: ${monthLabel(nextMonth)}`}
           title={`Bulan berikutnya: ${monthLabel(nextMonth)}`}
           onClick={() => onChange(nextMonth)}
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-xl font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-lg font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         >
           <span aria-hidden="true">›</span>
         </button>
@@ -93,15 +78,12 @@ export default function FinancePeriodPicker({
           type="button"
           onClick={() => onChange(currentMonth)}
           disabled={month === currentMonth}
-          className="h-10 rounded-xl border border-blue-200 bg-blue-50 px-3 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100 disabled:cursor-default disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+          className="h-9 shrink-0 rounded-xl border border-blue-200 bg-blue-50 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100 disabled:cursor-default disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
         >
           Bulan ini
         </button>
+        {rightContent && <div className="flex shrink-0 items-center">{rightContent}</div>}
       </div>
-
-      <p className="text-xs leading-relaxed text-slate-500">
-        Ringkasan, daftar invoice, dan Pengeluaran mengikuti bulan ini. Antrean paket per sesi tetap lintas bulan.
-      </p>
 
       {children && <div>{children}</div>}
     </section>

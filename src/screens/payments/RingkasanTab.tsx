@@ -135,12 +135,18 @@ export default function RingkasanTab({
     [students, monthSessions, reports, payments, month],
   );
   const pipelineActionCount = pipelineRows.filter((row) => row.nextAction !== null).length;
+  // Ringkasan menyebut jenis pekerjaannya, bukan sekadar "perlu tindakan".
+  const pipelineDraftReportCount = pipelineRows.filter((row) => row.nextAction === "confirm-report").length;
+  const pipelineCollectionCount = pipelineRows.filter((row) => row.nextAction === "send-wa").length;
+  const pipelineShareCount = pipelineRows.filter((row) => row.nextAction === "share-report").length;
   const pipelineSummary = [
-    pipelineActionCount > 0 && `${pipelineActionCount} murid perlu ditindaklanjuti`,
+    pipelineDraftReportCount > 0 && `${pipelineDraftReportCount} laporan perlu difinalkan`,
     readyReportCount > 0 && `${readyReportCount} laporan siap ditagih`,
     packageActionCount > 0 && `${packageActionCount} antrean paket siap terbit`,
-    pipelineActionCount === 0 && "Semua alur penagihan sinkron.",
-  ].filter(Boolean).join(" · ") || "Selesaikan langkah yang tersisa agar arus kas tidak tertunda.";
+    pipelineCollectionCount > 0 && `${pipelineCollectionCount} tagihan perlu ditagih`,
+    pipelineShareCount > 0 && `${pipelineShareCount} laporan perlu dibagikan`,
+    pipelineActionCount === 0 && "Semua alur tagihan sinkron.",
+  ].filter(Boolean).join(" · ") || "Selesaikan langkah yang tersisa agar uang masuk tidak tertunda.";
   const monthPayments = useMemo(() => payments.filter((p) => p.month === month), [payments, month]);
   const sessionPotential = monthSessions.reduce((s, x) => s + x.cost, 0);
   const totalBilled = monthPayments.reduce((s, p) => s + p.totalCost, 0);
@@ -249,6 +255,20 @@ export default function RingkasanTab({
     .map((p) => ({ payment: p, student: studentMap.get(p.studentId) }))
     .sort((a, b) => a.payment.month.localeCompare(b.payment.month));
 
+  // ── Billing split: invoice bulan terpilih vs batch paket lintas periode ──
+  // A `session_count` package is anchored to the month of its LAST session, so
+  // its nominal can include sessions from an earlier month. Separating the two
+  // is what makes "potensi sesi" and "tagihan diterbitkan" comparable.
+  const sessionCountInvoiceReportIds = useMemo(
+    () => new Set(reports.filter((r) => r.billingMode === "session_count").map((r) => r.id)),
+    [reports],
+  );
+  const crossPeriodInvoices = monthPayments.filter(
+    (p) => Boolean(p.reportId) && sessionCountInvoiceReportIds.has(p.reportId!),
+  );
+  const crossPeriodTotal = crossPeriodInvoices.reduce((s, p) => s + p.totalCost, 0);
+  const monthOnlyBilled = totalBilled - crossPeriodTotal;
+
   // ── AI handlers ──
   const handleRequestFinancialInsights = () => {
     if (!financialAiConfigured) {
@@ -339,143 +359,192 @@ export default function RingkasanTab({
 
   return (
     <div className="space-y-4">
+      {/* ── 1. Yang perlu ditindaklanjuti: ditaruh paling atas karena ini satu-satunya
+             bagian yang menuntut aksi, bukan sekadar bacaan. ── */}
+      <section aria-labelledby="needs-action-title" className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 shadow-sm">
+        <p className="text-xs font-bold uppercase tracking-[0.12em] text-amber-600">Perlu ditindaklanjuti</p>
+        <h2 id="needs-action-title" className="text-base font-bold text-amber-950">
+          {allUnpaidCount > 0
+            ? `${allUnpaidCount} tagihan belum dibayar`
+            : pipelineActionCount > 0
+              ? `${pipelineActionCount} murid punya langkah tertunda`
+              : "Tidak ada yang tertunda"}
+        </h2>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <div className="rounded-xl bg-white/90 px-3 py-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Piutang (semua bulan)</p>
+            <p className="mt-0.5 text-base font-bold text-amber-700">{formatRupiah(allUnpaidTotal)}</p>
+            <p className="mt-0.5 text-xs text-amber-700">{allUnpaidCount} tagihan belum lunas</p>
+          </div>
+          <div className="rounded-xl bg-white/90 px-3 py-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Piutang dari {selectedMonthLabel}</p>
+            <p className="mt-0.5 text-base font-bold text-slate-800">{formatRupiah(cash.piutang)}</p>
+            <p className="mt-0.5 text-xs text-slate-500">{monthPayments.length - paidCount} tagihan bulan ini</p>
+          </div>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Link
+            to="/payments?tab=tagihan"
+            className="inline-flex rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-amber-700"
+          >
+            Tindak lanjuti di Tagihan
+          </Link>
+          {pipelineActionCount > 0 && (
+            <Link
+              to="/payments?tab=tagihan"
+              className="inline-flex rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100"
+            >
+              Lihat {pipelineActionCount} murid yang tertunda
+            </Link>
+          )}
+        </div>
+      </section>
+
+      {/* ── 2. Yang masuk rekening (kas): mengikuti tanggal pembayaran ── */}
+      <section aria-labelledby="cash-flow-title" className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 shadow-sm">
+        <div className="mb-3">
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-emerald-600">Uang masuk & keluar</p>
+          <h2 id="cash-flow-title" className="text-base font-bold text-emerald-950">Yang benar-benar bergerak di rekening</h2>
+          <p className="mt-1 text-xs leading-relaxed text-emerald-800">
+            Dihitung dari <strong>tanggal transfer diterima</strong>, bukan tanggal les. Karena itu angkanya berbeda
+            dengan tagihan di bawah, yang dihitung dari periode sesi.          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-xl bg-white/90 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Uang masuk · {selectedMonthLabel}</p>
+            <p className="mt-1 text-lg font-bold text-emerald-700">{formatRupiah(cash.realisasi)}</p>
+            <p className="mt-1 text-xs text-emerald-700">Transfer diterima bulan ini</p>
+          </div>
+          <div className="rounded-xl bg-white/90 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-red-600">Pengeluaran · {selectedMonthLabel}</p>
+            <p className="mt-1 text-lg font-bold text-red-600">{formatRupiah(cash.pengeluaran)}</p>
+            <p className="mt-1 text-xs text-slate-500">Transaksi keluar bulan ini</p>
+          </div>
+        </div>
+        <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-white/80 px-3 py-2.5">
+          <div>
+            <p className="text-xs font-bold text-emerald-950">Sisa kas bulan ini</p>
+            <p className="text-xs text-emerald-700">Uang masuk dikurangi pengeluaran</p>
+          </div>
+          <p className={`text-xl font-bold ${cash.laba >= 0 ? "text-emerald-700" : "text-red-600"}`}>{formatRupiah(cash.laba)}</p>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-emerald-800">
+          <span>Hari ini: <b>{formatRupiah(todayRevenue)}</b></span>
+          <span>Minggu ini: <b>{formatRupiah(weekRevenue)}</b></span>
+          {!isCurrentMonth && (
+            <Link to={`/payments?tab=ringkasan&month=${todayStr.slice(0, 7)}`} className="font-semibold underline">
+              Kembali ke {monthLabel(todayStr.slice(0, 7))}
+            </Link>
+          )}
+        </div>
+      </section>
+
+      {/* ── 3. Yang ditagih (akrual): mengikuti periode sesi ── */}
+      <section aria-labelledby="invoice-status-title" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-3">
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Tagihan</p>
+          <h2 id="invoice-status-title" className="text-base font-bold text-slate-800">
+            Yang ditagih untuk {selectedMonthLabel}
+          </h2>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500">
+            Dihitung dari <strong>periode sesi</strong>: nilai sesi menjadi tagihan, lalu tagihan dibayar atau tetap
+            menjadi piutang.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Potensi sesi {selectedMonthLabel}</p>
+            <p className="mt-1 text-lg font-bold text-slate-800">{formatRupiah(cash.potensi)}</p>
+            <p className="mt-1 text-xs text-slate-500">{cash.hours} jam · {monthSessions.length} pertemuan selesai</p>
+          </div>
+          <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">Tagihan diterbitkan</p>
+            <p className="mt-1 text-lg font-bold text-blue-700">{formatRupiah(cash.tagihan)}</p>
+            <p className="mt-1 text-xs text-blue-600">Invoice ber-anchor {selectedMonthLabel}</p>
+          </div>
+          <div className="rounded-xl border border-green-100 bg-green-50/60 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-green-700">Tagihan lunas</p>
+            <p className="mt-1 text-lg font-bold text-green-700">{formatRupiah(cash.lunas)}</p>
+            <p className="mt-1 text-xs text-green-700">{paidCount} dari {monthPayments.length} tagihan bulan ini</p>
+          </div>
+          <div className="rounded-xl border border-amber-100 bg-amber-50/60 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Piutang {selectedMonthLabel}</p>
+            <p className="mt-1 text-lg font-bold text-amber-700">{formatRupiah(cash.piutang)}</p>
+            <p className="mt-1 text-xs text-amber-700">Tagihan bulan ini yang belum dibayar</p>
+          </div>
+        </div>
+
+        {crossPeriodTotal > 0 && (
+          <div className="mt-2 rounded-xl border border-violet-200 bg-violet-50/70 px-3 py-2 text-xs leading-relaxed text-violet-800">
+            <p>
+              <strong>{formatRupiah(crossPeriodTotal)}</strong> dari tagihan di atas berasal dari{" "}
+              <strong>paket lintas bulan</strong>
+              {crossPeriodInvoices.length === 1 ? " (1 paket)" : ` (${crossPeriodInvoices.length} paket)`}
+              {" "}— pertemuannya tidak semuanya di {selectedMonthLabel}
+              {monthOnlyBilled > 0 && `, bukan ${formatRupiah(monthOnlyBilled)} yang murni bulan ini`}.
+            </p>
+            <ul className="mt-1.5 space-y-0.5">
+              {crossPeriodInvoices.map((p) => (
+                <li key={p.id} className="flex items-center justify-between gap-2">
+                  <span className="min-w-0 truncate">{studentMap.get(p.studentId)?.name ?? "(dihapus)"} · paket</span>
+                  <span className="shrink-0 font-semibold">{formatRupiah(p.totalCost)}</span>
+                </li>
+              ))}
+            </ul>
+            <Link to="/payments?tab=tagihan" className="mt-1.5 inline-flex font-semibold underline">
+              Periksa di tab Tagihan
+            </Link>
+          </div>
+        )}
+
+        <p className="mt-2 border-t border-slate-100 pt-2 text-xs leading-relaxed text-slate-500">
+          Semua aksi penagihan (terbitkan invoice, kirim WA, tandai lunas) ada di tab <strong>Tagihan</strong>, yang
+          mencakup semua periode.
+        </p>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" aria-labelledby="business-health-title">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Langkah berikutnya</p>
+            <h2 id="business-health-title" className="text-base font-bold text-slate-800">Kesehatan penagihan</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Baca angka sebagai keputusan, bukan sekadar laporan.</p>
+          </div>
+          <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${collectionRate >= 80 ? "bg-green-100 text-green-700" : collectionRate > 0 ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}`}>
+            {monthPayments.length > 0 ? `${collectionRate}% lunas` : "Belum ada invoice"}
+          </span>
+        </div>
+        <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+          <ActivityRing
+            value={paidCount} total={monthPayments.length} label="Tagihan dilunasi"
+            detail={monthPayments.length > 0 ? `${monthPayments.length - paidCount} tagihan belum dibayar` : "Buka Tagihan untuk menerbitkan invoice"}
+            tone={collectionRate >= 80 ? "green" : collectionRate > 0 ? "amber" : "slate"}
+          />
+        </div>
+        <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2.5 text-xs leading-relaxed text-slate-600">
+          <p>
+            {monthPayments.length === 0
+              ? `Belum ada tagihan pada ${selectedMonthLabel}. Buat laporan lalu terbitkan invoice dari tab Tagihan.`
+              : collectionRate < 100
+                ? `${monthPayments.length - paidCount} tagihan masih belum dibayar. Tindak lanjuti agar piutang berubah menjadi uang masuk.`
+                : `Semua tagihan ${selectedMonthLabel} sudah dibayar. Pantau sisa kas dan pengeluaran agar margin tetap sehat.`}
+          </p>
+          <Link
+            to={`/payments?tab=tagihan`}
+            className="mt-2 inline-flex rounded-lg bg-blue-600 px-3 py-1.5 font-semibold text-white transition-colors hover:bg-blue-700"
+          >
+            {monthPayments.length === 0 ? "Buka antrean tagihan" : collectionRate < 100 ? "Lihat tagihan belum dibayar" : "Buka Tagihan"}
+          </Link>
+        </div>
+      </section>
+
+      {/* ── 4. Papan pantau per murid: hanya baris yang butuh tindakan ── */}
       <FinancePipelineBoard
         rows={pipelineRows}
         month={month}
         navigate={navigate}
         summary={pipelineSummary}
       />
-
-      <section aria-labelledby="invoice-status-title" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="mb-3">
-          <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Status pendapatan</p>
-          <h2 id="invoice-status-title" className="text-base font-bold text-slate-800">Tagihan {selectedMonthLabel}</h2>
-          <p className="mt-1 text-xs leading-relaxed text-slate-500">
-            Urutannya: nilai sesi menjadi tagihan, lalu tagihan dibayar atau tetap menjadi piutang.
-          </p>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Potensi dari sesi</p>
-            <p className="mt-1 text-lg font-bold text-slate-800">{formatRupiah(cash.potensi)}</p>
-            <p className="mt-1 text-xs text-slate-500">{cash.hours} jam sesi selesai</p>
-          </div>
-          <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">Tagihan diterbitkan</p>
-            <p className="mt-1 text-lg font-bold text-blue-700">{formatRupiah(cash.tagihan)}</p>
-            <p className="mt-1 text-xs text-blue-600">Invoice pada periode ini</p>
-          </div>
-          <div className="rounded-xl border border-green-100 bg-green-50/60 p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-green-700">Invoice lunas</p>
-            <p className="mt-1 text-lg font-bold text-green-700">{formatRupiah(cash.lunas)}</p>
-            <p className="mt-1 text-xs text-green-700">Status pembayaran invoice</p>
-          </div>
-          <div className="rounded-xl border border-amber-100 bg-amber-50/60 p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Piutang (belum dibayar)</p>
-            <p className="mt-1 text-lg font-bold text-amber-700">{formatRupiah(cash.piutang)}</p>
-            <p className="mt-1 text-xs text-amber-700">Piutang yang belum dibayar</p>
-          </div>
-        </div>
-        <p className="mt-2 text-xs leading-relaxed text-slate-500 border-t border-slate-100 pt-2">
-          Ringkasan hanya untuk bulan terpilih. Daftar lengkap invoice lintas bulan tersedia di tab <strong>Penagihan</strong>. Semua aksi penagihan (terbitkan invoice, kirim WA, tandai lunas) hanya dilakukan di tab tersebut.
-        </p>
-      </section>
-
-      <section aria-labelledby="cash-flow-title" className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 shadow-sm">
-        <div className="mb-3">
-          <p className="text-xs font-bold uppercase tracking-[0.12em] text-emerald-600">Arus kas</p>
-          <h2 id="cash-flow-title" className="text-base font-bold text-emerald-950">Uang yang benar-benar bergerak</h2>
-          <p className="mt-1 text-xs leading-relaxed text-emerald-800">
-            Kas diterima mengikuti tanggal pembayaran, sehingga dapat berbeda dengan nilai invoice pada periode yang sama.
-          </p>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-xl bg-white/90 p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Kas diterima</p>
-            <p className="mt-1 text-lg font-bold text-emerald-700">{formatRupiah(cash.realisasi)}</p>
-            <p className="mt-1 text-xs text-emerald-700">Pembayaran masuk di {selectedMonthLabel}</p>
-          </div>
-          <div className="rounded-xl bg-white/90 p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-red-600">Pengeluaran</p>
-            <p className="mt-1 text-lg font-bold text-red-600">{formatRupiah(cash.pengeluaran)}</p>
-            <p className="mt-1 text-xs text-slate-500">Transaksi keluar di {selectedMonthLabel}</p>
-          </div>
-        </div>
-        <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-white/80 px-3 py-2.5">
-          <div>
-            <p className="text-xs font-bold text-emerald-950">Arus kas bersih</p>
-            <p className="text-xs text-emerald-700">Kas diterima dikurangi pengeluaran</p>
-          </div>
-          <p className={`text-xl font-bold ${cash.laba >= 0 ? "text-emerald-700" : "text-red-600"}`}>{formatRupiah(cash.laba)}</p>
-        </div>
-      </section>
-
-      {/* Today & week revenue glance */}
-      {isCurrentMonth && (
-      <div className="flex items-center gap-3 text-xs">
-        <div className="flex-1 rounded-lg bg-blue-50 border border-blue-100 px-3 py-2">
-          <p className="text-blue-500 font-semibold uppercase tracking-wide text-xs">Kas Masuk Hari Ini</p>
-          <p className="text-blue-700 font-bold text-sm">
-            {formatRupiah(todayRevenue)}
-          </p>
-        </div>
-        <div className="flex-1 rounded-lg bg-green-50 border border-green-100 px-3 py-2">
-          <p className="text-green-500 font-semibold uppercase tracking-wide text-xs">Kas Masuk Minggu Ini</p>
-          <p className="text-green-700 font-bold text-sm">
-            {formatRupiah(weekRevenue)}
-          </p>
-        </div>
-      </div>
-      )}
-
-      {allUnpaidCount > 0 && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs">
-          <div className="flex items-center justify-between gap-3 font-semibold">
-            <span>Piutang lintas bulan</span>
-            <span className="text-amber-700">{allUnpaidCount} invoice · {formatRupiah(allUnpaidTotal)}</span>
-          </div>
-          <p className="mt-1 leading-relaxed text-amber-800">
-            Total piutang dari semua bulan — bukan hanya {selectedMonthLabel}. Termasuk invoice yang tanggalnya sudah lewat.
-          </p>
-        </div>
-      )}
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" aria-labelledby="business-health-title">
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Langkah berikutnya</p>
-            <h2 id="business-health-title" className="text-base font-bold text-slate-800">Kesehatan keuangan</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Baca angka sebagai keputusan, bukan sekadar laporan.</p>
-          </div>
-          <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${collectionRate >= 80 ? "bg-green-100 text-green-700" : collectionRate > 0 ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}`}>
-            {monthPayments.length > 0 ? `${collectionRate}% lunas` : "Belum ada invoice"}
-          </span>
-        </div>
-        <div className="grid grid-cols-1 gap-3 items-stretch min-[380px]:grid-cols-[1fr_auto]">
-          <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 flex items-center">
-            <ActivityRing
-              value={paidCount} total={monthPayments.length} label="Tagihan dilunasi"
-              detail={monthPayments.length > 0 ? `${monthPayments.length - paidCount} invoice belum dibayar` : "Buka Penagihan untuk menerbitkan invoice"}
-              tone={collectionRate >= 80 ? "green" : collectionRate > 0 ? "amber" : "slate"}
-            />
-          </div>
-        </div>
-        <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2.5 text-xs leading-relaxed text-slate-600">
-          <p>
-            {monthPayments.length === 0
-              ? `Belum ada invoice pada ${selectedMonthLabel}. Buat laporan & terbitkan invoice dari tab Tagihan.`
-              : collectionRate < 100
-                ? `${monthPayments.length - paidCount} invoice masih belum dibayar. Tindak lanjuti agar piutang berubah menjadi kas diterima.`
-                : `Semua invoice ${selectedMonthLabel} sudah dibayar. Pantau laba kas dan pengeluaran agar margin tetap sehat.`}
-          </p>
-          <Link
-            to={`/payments?tab=tagihan`}
-            className="mt-2 inline-flex rounded-lg bg-blue-600 px-3 py-1.5 font-semibold text-white transition-colors hover:bg-blue-700"
-          >
-            {monthPayments.length === 0 ? "Buka antrean penagihan" : collectionRate < 100 ? "Lihat invoice belum dibayar" : "Buka penagihan"}
-          </Link>
-        </div>
-      </section>
 
       <details className="group rounded-2xl border border-slate-200 bg-white shadow-sm">
         <summary className="cursor-pointer list-none px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
@@ -606,7 +675,7 @@ export default function RingkasanTab({
         <p className="text-xs text-gray-500 text-center py-4">Belum ada data murid pada {selectedMonthLabel}</p>
       )}
 
-      {/* Kas masuk vs pengeluaran — satu line chart dua series dengan rentang */}
+      {/* Uang masuk vs pengeluaran — satu line chart dua series dengan rentang */}
       <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -627,7 +696,7 @@ export default function RingkasanTab({
         <LineChart
           series={[
             {
-              label: "Kas Masuk",
+              label: "Uang masuk",
               data: trendData.map((row) => ({ x: row.month, y: row.income })),
               areaFill: true,
               color: "#16a34a",

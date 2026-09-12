@@ -35,18 +35,23 @@ export default function Tabs({ tabs, active, onChange, children, fullWidth }: Pr
               onClick={() => onChange(tab.key)}
               className={`relative py-2.5 font-semibold transition-colors whitespace-nowrap ${
                 fullWidth
-                  ? "flex-1 min-w-max px-2 text-xs sm:min-w-0 sm:px-3 sm:text-sm"
+                  ? "flex-1 min-w-0 basis-0 px-1 text-xs sm:px-1.5 sm:text-sm"
                   : "px-3 text-sm"
               } ${
                 isActive
                   ? "text-blue-700"
                   : "text-slate-600 hover:text-slate-700"
               }`}>
-              <span className="flex items-center gap-1.5 justify-center">
+              <span className="flex items-center justify-center gap-1 min-w-0">
                 {tab.compactLabel && <span className="sm:hidden">{tab.compactLabel}</span>}
-                <span className={tab.compactLabel ? "hidden sm:inline" : undefined}>{tab.label}</span>
+                <span
+                  className={`truncate ${tab.compactLabel ? "hidden sm:inline" : ""}`}
+                  title={tab.label}
+                >
+                  {tab.label}
+                </span>
                 {tab.count != null && tab.count > 0 && (
-                  <span className={`rounded-full px-1.5 py-0 text-[12px] font-bold ${
+                  <span className={`shrink-0 rounded-full px-1.5 py-0 text-[12px] font-bold ${
                     isActive ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600"
                   }`}>
                     {tab.count > 99 ? "99+" : tab.count}

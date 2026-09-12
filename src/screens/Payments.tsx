@@ -7,7 +7,7 @@ import {
   listExpenses, listBillableSessionsForMonth,
   listAllReports, listSessionCountBillingProgress,
 } from "../db/repos";
-import { todayWIB, formatRupiah, monthLabel } from "../lib/format";
+import { todayWIB, monthLabel } from "../lib/format";
 import { reportStatus } from "../db/types";
 import { usePinGate } from "../hooks/usePinGate";
 import Breadcrumb from "../components/Breadcrumb";
@@ -16,17 +16,32 @@ import FinancePeriodPicker from "../components/FinancePeriodPicker";
 import RingkasanTab from "./payments/RingkasanTab";
 import TagihanTab from "./payments/TagihanTab";
 import PengeluaranTab from "./payments/PengeluaranTab";
-import AuditTab from "./payments/AuditTab";
+import RekapTab from "./payments/RekapTab";
 
-type Tab = "ringkasan" | "tagihan" | "pengeluaran" | "audit";
+type Tab = "ringkasan" | "tagihan" | "pengeluaran" | "rekap";
 
-const TAB_KEYS: Tab[] = ["ringkasan", "tagihan", "pengeluaran", "audit"];
+const TAB_KEYS: Tab[] = ["ringkasan", "tagihan", "pengeluaran", "rekap"];
 const MONTH_QUERY_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
+/** Legacy deep links used `tab=audit` for the yearly recap. */
+const LEGACY_TAB_ALIAS: Record<string, Tab> = { audit: "rekap" };
+
 /**
- * PaymentsPage — halaman keuangan dengan 4 tab:
- * Bulan Ini, pengeluaran, tagihan lintas bulan, dan rekap tahunan.
- * export PDF/CSV, forecasting, WhatsApp billing, dan audit trail.
+ * One scope sentence per tab. The finance module mixes a single selected month
+ * (Ringkasan, Pengeluaran) with genuinely cross-period lists (Tagihan), so every
+ * tab states its own coverage instead of leaving the user to infer it.
+ */
+const TAB_SCOPE: Record<Tab, string> = {
+  ringkasan: "Angka untuk bulan terpilih.",
+  tagihan: "Semua periode — tidak mengikuti bulan terpilih.",
+  pengeluaran: "Hanya transaksi keluar pada bulan terpilih.",
+  rekap: "Januari–Desember pada tahun terpilih (di dalam tab).",
+};
+
+/**
+ * PaymentsPage — halaman keuangan dengan 4 area kerja:
+ * Ringkasan (bulan terpilih), Tagihan (lintas periode),
+ * Pengeluaran (bulan terpilih), dan Rekap & Ekspor (per tahun).
  *
  * @component
  * @route /payments
@@ -43,11 +58,12 @@ export default function PaymentsPage() {
   const requestedStudentId = searchParams.get("studentId") ?? "";
 
   // Tab disinkronkan dengan URL agar bisa di-bookmark / di-share.
-  const urlTab = searchParams.get("tab");
-  const activeTab: Tab = TAB_KEYS.includes(urlTab as Tab) ? (urlTab as Tab) : "ringkasan";
+  const urlTab = searchParams.get("tab") ?? "";
+  const resolvedTab = LEGACY_TAB_ALIAS[urlTab] ?? (urlTab as Tab);
+  const activeTab: Tab = TAB_KEYS.includes(resolvedTab) ? resolvedTab : "ringkasan";
   const [message, setMessage] = useState("");
 
-  // Shared month for Bulan Ini + Penagihan/Tutup Bulan + Pengeluaran
+  // Satu bulan terpilih, dipakai bersama oleh Ringkasan dan Pengeluaran.
   const requestedMonth = searchParams.get("month");
   const month = requestedMonth && MONTH_QUERY_PATTERN.test(requestedMonth)
     ? requestedMonth
@@ -75,16 +91,12 @@ export default function PaymentsPage() {
   )).length;
   const tagihanBadge = packageActionCount + readyReportInvoiceCount;
 
-  // Konteks cepat khusus Pengeluaran. Tagihan memiliki pusat koleksinya sendiri
-  // agar metrik kas dan status invoice tidak bercampur atau berulang.
-  const monthPayments = (payments ?? []).filter((p) => p.month === month);
+  // Uang yang benar-benar masuk bulan ini (mengikuti tanggal pembayaran) —
+  // dipakai Pengeluaran untuk menghitung sisa kas, bukan untuk mengulang
+  // kartu ringkasan yang sudah ada di tab Ringkasan.
   const cashInMonth = (payments ?? [])
     .filter((p) => p.status === "PAID" && (p.paidAt?.slice(0, 7) ?? p.month) === month)
     .reduce((sum, p) => sum + p.totalCost, 0);
-  const piutangMonth = monthPayments
-    .filter((p) => p.status === "UNPAID")
-    .reduce((sum, p) => sum + p.totalCost, 0);
-  const expenseMonth = (monthExpenses ?? []).reduce((sum, e) => sum + e.amount, 0);
 
   // ── Ringkasan cepat untuk header ──
   if (!payments || !students || !settings
@@ -143,117 +155,96 @@ export default function PaymentsPage() {
   };
 
   return (
-    <div className="p-4 pb-24 space-y-4">
-      <Breadcrumb />
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Keuangan</h1>
+    <div className="pb-24">
+      {/* Header lengket: periode dan area kerja selalu terlihat bersama, sehingga
+          pindah tab tidak pernah menyembunyikan konteks waktu. */}
+      <div className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+        <Breadcrumb />
+        <div className="space-y-2 px-4 pb-2 pt-1">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <h1 className="text-xl font-bold">Keuangan</h1>
+            <p aria-live="polite" className="text-sm font-semibold text-slate-700">
+              {monthLabel(month)}
+            </p>
+          </div>
+          <FinancePeriodPicker month={month} onChange={handleMonthChange} />
+          <p className="text-xs leading-relaxed text-slate-500">
+            <span className="font-semibold text-slate-600">Cakupan tab ini:</span> {TAB_SCOPE[activeTab]}
+          </p>
+        </div>
+        <Tabs
+          tabs={[
+            // Label sengaja pendek: empat tab harus muat dalam satu baris tanpa terpotong.
+            { key: "ringkasan", label: "Ringkasan", compactLabel: "Ringkas" },
+            { key: "tagihan", label: "Tagihan", compactLabel: "Tagihan", count: tagihanBadge },
+            { key: "pengeluaran", label: "Pengeluaran", compactLabel: "Keluar" },
+            { key: "rekap", label: "Rekap", compactLabel: "Rekap" },
+          ]}
+          active={activeTab}
+          onChange={handleTabChange}
+          fullWidth
+        />
       </div>
 
-      {/* Pengeluaran tetap mendapat konteks kas periode; Tagihan punya pusat koleksi sendiri. */}
-      {activeTab === "pengeluaran" && (
-        <div className="space-y-2" aria-label={`Keuangan bulan ini ${monthLabel(month)}`}>
-          <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
-            Bulan Ini · {monthLabel(month)}
-          </p>
-          <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-xl border border-green-100 bg-green-50/60 px-3 py-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-green-600">Kas diterima</p>
-              <p className="mt-0.5 text-sm font-bold text-green-700">{formatRupiah(cashInMonth)}</p>
-            </div>
-            <div className="rounded-xl border border-amber-100 bg-amber-50/60 px-3 py-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-amber-600">Belum dibayar</p>
-              <p className="mt-0.5 text-sm font-bold text-amber-700">{formatRupiah(piutangMonth)}</p>
-            </div>
-            <div className="rounded-xl border border-red-100 bg-red-50/60 px-3 py-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-red-600">Pengeluaran</p>
-              <p className="mt-0.5 text-sm font-bold text-red-700">{formatRupiah(expenseMonth)}</p>
-            </div>
+      <div className="space-y-4 p-4">
+        {message && (
+          <div
+            role={message.startsWith("Gagal") ? "alert" : "status"}
+            aria-live={message.startsWith("Gagal") ? "assertive" : "polite"}
+            className={`flex items-start gap-2 rounded-lg p-3 text-sm ${message.includes("✓") ? "bg-green-50 text-green-700" : message.startsWith("Gagal") ? "bg-red-50 text-red-600" : "bg-blue-50 text-blue-700"}`}>
+            <span className="flex-1">{message}</span>
+            <button
+              type="button"
+              aria-label="Tutup pesan"
+              onClick={() => setMessage("")}
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
+            </button>
           </div>
-        </div>
-      )}
+        )}
 
-      {activeTab !== "audit" && activeTab !== "tagihan" && (
-        <>
-          {activeTab === "ringkasan" && (
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
-              Bulan Ini · {monthLabel(month)}
-            </p>
-          )}
-          <FinancePeriodPicker month={month} onChange={handleMonthChange} />
-        </>
-      )}
-
-      {/* Tabs */}
-      <Tabs
-        tabs={[
-          { key: "ringkasan", label: "Bulan Ini", compactLabel: "Bulan Ini" },
-          { key: "tagihan", label: "Penagihan", compactLabel: "Tagih", count: tagihanBadge },
-          { key: "pengeluaran", label: "Pengeluaran", compactLabel: "Keluar" },
-          { key: "audit", label: "Rekap Tahunan", compactLabel: "Rekap" },
-        ]}
-        active={activeTab}
-        onChange={handleTabChange}
-        fullWidth
-      >
-      </Tabs>
-
-      {message && (
-        <div
-          role={message.startsWith("Gagal") ? "alert" : "status"}
-          aria-live={message.startsWith("Gagal") ? "assertive" : "polite"}
-          className={`flex items-start gap-2 rounded-lg p-3 text-sm ${message.includes("✓") ? "bg-green-50 text-green-700" : message.startsWith("Gagal") ? "bg-red-50 text-red-600" : "bg-blue-50 text-blue-700"}`}>
-          <span className="flex-1">{message}</span>
-          <button
-            type="button"
-            aria-label="Tutup pesan"
-            onClick={() => setMessage("")}
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
-          </button>
-        </div>
-      )}
-
-      {/* Tab components mount on demand so each tab's useLiveQuery runs lazily. */}
-      {activeTab === "ringkasan" && (
-        <RingkasanTab
-          month={month}
-          payments={payments}
-          students={students}
-          settings={settings}
-          reports={reports}
-          monthSessions={monthSessions}
-          monthExpenses={monthExpenses}
-          sessionCountBillingProgress={sessionCountBillingProgress}
-          setMessage={setMessage}
-        />
-      )}
-      {activeTab === "tagihan" && (
-        <TagihanTab
-          payments={payments}
-          students={students}
-          settings={settings}
-          reports={reports}
-          setMessage={setMessage}
-          navigate={navigate}
-          requestedStudentId={requestedStudentId}
-        />
-      )}
-      {activeTab === "pengeluaran" && (
-        <PengeluaranTab
-          month={month}
-          monthExpenses={monthExpenses}
-          setMessage={setMessage}
-          students={students ?? []}
-        />
-      )}
-      {activeTab === "audit" && (
-        <AuditTab
-          payments={payments}
-          students={students}
-        />
-      )}
+        {/* Tab components mount on demand so each tab's useLiveQuery runs lazily. */}
+        {activeTab === "ringkasan" && (
+          <RingkasanTab
+            month={month}
+            payments={payments}
+            students={students}
+            settings={settings}
+            reports={reports}
+            monthSessions={monthSessions}
+            monthExpenses={monthExpenses}
+            sessionCountBillingProgress={sessionCountBillingProgress}
+            setMessage={setMessage}
+          />
+        )}
+        {activeTab === "tagihan" && (
+          <TagihanTab
+            payments={payments}
+            students={students}
+            settings={settings}
+            reports={reports}
+            setMessage={setMessage}
+            navigate={navigate}
+            requestedStudentId={requestedStudentId}
+          />
+        )}
+        {activeTab === "pengeluaran" && (
+          <PengeluaranTab
+            month={month}
+            monthExpenses={monthExpenses}
+            cashInMonth={cashInMonth}
+            setMessage={setMessage}
+            students={students ?? []}
+          />
+        )}
+        {activeTab === "rekap" && (
+          <RekapTab
+            payments={payments}
+            students={students}
+          />
+        )}
+      </div>
     </div>
   );
 }

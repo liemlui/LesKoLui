@@ -11,6 +11,23 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.72.0",
+    date: "2026-09-12",
+    title: "Keuangan: tab yang jelas, angka yang bisa dibaca",
+    items: [
+      "Tab Keuangan dinamai ulang sesuai isinya: Ringkasan, Tagihan, Pengeluaran, Rekap — sebelumnya \"Bulan Ini\" dan \"Rekap Tahunan\" mudah tertukar dengan filter bulan",
+      "Bulan keuangan kini berada di header yang selalu terlihat, dan setiap tab menyatakan cakupannya sendiri (mis. \"Semua periode — tidak mengikuti bulan terpilih\")",
+      "Daftar tagihan jauh lebih ringkas: 63 tagihan turun dari ±27 layar menjadi ±3 layar, dengan aksi di panel yang terbuka saat tagihan diketuk",
+      "Alur tagihan ditampilkan sebagai 4 langkah yang bisa diketuk: Siap ditagih → Sudah diterbitkan → Belum dibayar → Lunas; default membuka tagihan yang belum dibayar",
+      "Tagihan paket lintas bulan tidak lagi tercampur diam-diam: nominal paket ditandai terpisah beserta rentang pertemuannya, sehingga \"potensi sesi\" dan \"tagihan diterbitkan\" tidak lagi tampak bertentangan",
+      "Ringkasan Keuangan dibuka dengan blok \"Perlu ditindaklanjuti\" agar piutang terlihat lebih dulu, bukan terkubur di tengah halaman",
+      "Papan pantau per murid hanya menampilkan murid yang butuh tindakan, dengan kata kerja yang spesifik (Kirim pengingat WA, Periksa & finalkan laporan, Terbitkan invoice) menggantikan empat label status yang saling mengulang",
+      "Istilah diseragamkan: \"Kas diterima\" menjadi \"Uang masuk\", \"Laba\" menjadi \"Sisa kas\", \"sahkan\" menjadi \"finalkan\"",
+      "Rekap menunjukkan selisih pendapatan dan uang masuk beserta penjelasannya, dan tabel tahunan diganti kartu ringkas pada layar sempit agar tidak terpotong",
+      "Perbaikan tata letak: teks \"Kolektibilitas invoice\" tidak lagi terjepit menjadi kolom selebar 4 karakter, dan label tab tidak lagi terpotong",
+    ],
+  },
+  {
     version: "v1.71.4",
     date: "2026-09-11",
     title: "Penuntasan Audit Visual UI/UX",

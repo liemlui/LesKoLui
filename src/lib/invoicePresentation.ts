@@ -22,10 +22,14 @@ export function invoiceOriginOf(payment: Payment, report?: { billingMode?: strin
   return "manual";
 }
 
+/**
+ * Label asal tagihan untuk chip ringkas. Sengaja pendek: chip ini tampil di
+ * baris daftar yang sempit, dan label panjang akan memakan ruang nama murid.
+ */
 export const INVOICE_ORIGIN_LABEL: Record<InvoiceOrigin, string> = {
   package: "Paket",
-  monthly: "Bulanan/Tutup Buku",
-  report: "Laporan Perkembangan",
+  monthly: "Bulanan",
+  report: "Laporan",
   manual: "Manual",
 };
 

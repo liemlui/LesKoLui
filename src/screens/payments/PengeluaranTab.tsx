@@ -9,11 +9,13 @@ import ConfirmSheet from "../../components/ConfirmSheet";
 interface PengeluaranTabProps {
   month: string;
   monthExpenses: Expense[];
+  /** Uang yang benar-benar masuk pada bulan ini (dari tanggal pembayaran). */
+  cashInMonth: number;
   setMessage: (message: string) => void;
   students: Student[];
 }
 
-export default function PengeluaranTab({ month, monthExpenses, setMessage, students }: PengeluaranTabProps) {
+export default function PengeluaranTab({ month, monthExpenses, cashInMonth, setMessage, students }: PengeluaranTabProps) {
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [editTarget, setEditTarget] = useState<Expense | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; description: string } | null>(null);
@@ -22,6 +24,7 @@ export default function PengeluaranTab({ month, monthExpenses, setMessage, stude
   const todayStr = useMemo(() => todayWIB(), []);
   const isHistoricalMonth = month < todayStr.slice(0, 7);
   const expenseTotal = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const netCash = cashInMonth - expenseTotal;
   const categories = Array.from(sumExpensesByCategory(monthExpenses).entries())
     .sort((a, b) => b[1] - a[1]);
   const studentMap = useMemo(() => new Map(students.map((s) => [s.id, s.name])), [students]);
@@ -62,12 +65,16 @@ export default function PengeluaranTab({ month, monthExpenses, setMessage, stude
 
       <div className="grid grid-cols-2 gap-2">
         <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Total Pengeluaran</p>
+          <p className="text-xs text-gray-500 uppercase tracking-wide">Total pengeluaran</p>
           <p className="text-lg font-bold text-red-600">{formatRupiah(expenseTotal)}</p>
+          <p className="mt-0.5 text-xs text-gray-500">{monthExpenses.length} transaksi</p>
         </div>
         <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Jumlah Transaksi</p>
-          <p className="text-lg font-bold text-gray-700">{monthExpenses.length}</p>
+          <p className="text-xs text-gray-500 uppercase tracking-wide">Sisa kas bulan ini</p>
+          <p className={`text-lg font-bold ${netCash >= 0 ? "text-emerald-700" : "text-red-600"}`}>{formatRupiah(netCash)}</p>
+          <p className="mt-0.5 text-xs text-gray-500">
+            {formatRupiah(cashInMonth)} uang masuk − pengeluaran
+          </p>
         </div>
       </div>
 

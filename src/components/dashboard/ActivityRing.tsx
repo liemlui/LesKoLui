@@ -15,10 +15,24 @@ interface Props {
   detail?: string;
   tone?: Tone;
   size?: "sm" | "md";
+  /**
+   * Extra classes for the wrapper. Callers that place the ring inside a flex or
+   * grid row must keep it from being squeezed, otherwise the label wraps into a
+   * ~4-character column (`min-w-fit` preserves it).
+   */
+  className?: string;
 }
 
-/** Compact progress ring for a single actionable metric. */
-export default function ActivityRing({ value, total, label, detail, tone = "blue", size = "md" }: Props) {
+/**
+ * Compact progress ring for a single actionable metric.
+ *
+ * `min-w-fit` (not `shrink-0`) is deliberate: the ring must never be squeezed
+ * below the width of its own label — without it a long sibling such as the
+ * "Status invoice ≠ uang masuk" note wins the flex split and collapses this
+ * component's text into a ~4-character column. Shrinking down to min-content is
+ * still allowed so the wrapper cannot overflow its parent.
+ */
+export default function ActivityRing({ value, total, label, detail, tone = "blue", size = "md", className = "" }: Props) {
   const safeTotal = Math.max(0, total);
   const safeValue = Math.max(0, Math.min(value, safeTotal));
   const percent = safeTotal > 0 ? Math.round((safeValue / safeTotal) * 100) : 0;
@@ -30,7 +44,7 @@ export default function ActivityRing({ value, total, label, detail, tone = "blue
   const palette = TONE[tone];
 
   return (
-    <div className="flex items-center gap-3 min-w-0" aria-label={`${label}: ${safeValue} dari ${safeTotal}`}>
+    <div className={`flex items-center gap-3 min-w-fit ${className}`.trim()} aria-label={`${label}: ${safeValue} dari ${safeTotal}`}>
       <div
         className="relative flex-shrink-0"
         style={{ width: side, height: side }}
@@ -52,7 +66,7 @@ export default function ActivityRing({ value, total, label, detail, tone = "blue
         </span>
       </div>
       <div className="min-w-0">
-        <p className="text-xs font-semibold text-gray-700">{label}</p>
+        <p className="text-xs font-semibold text-gray-700 whitespace-nowrap">{label}</p>
         <p className={`font-bold ${palette.text} ${size === "sm" ? "text-sm" : "text-base"}`}>{safeValue}/{safeTotal}</p>
         {detail && <p className="text-xs text-gray-500 leading-snug">{detail}</p>}
       </div>
