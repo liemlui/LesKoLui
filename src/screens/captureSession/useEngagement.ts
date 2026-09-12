@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { calcEngagementScore, scoreLabel } from "../../lib/engagement";
 import type { BehaviorTag, ResponseTag } from "../../lib/responseTaxonomy";
 import { BEHAVIOR_TAGS } from "../../lib/responseTaxonomy";
@@ -36,6 +36,28 @@ export default function useEngagement() {
   } | null>(null);
   const [situasiNote, setSituasiNote] = useState("");
 
+  // ── Undo untuk aksi massal (preset / reset) ──────────────────────────
+  // Preset dulu MENGHAPUS indikator yang sudah ditandai tanpa konfirmasi dan
+  // tanpa jalan kembali (audit C-04: 3 flag negatif hilang, skor 2 → 5).
+  const snapshotRef = useRef<{ flags: EngagementState; mood?: string }>({ flags: INITIAL });
+  const undoRef = useRef<{ flags: EngagementState; mood?: string } | null>(null);
+  const [undoAvailable, setUndoAvailable] = useState(false);
+  snapshotRef.current = { flags, mood };
+
+  const rememberForUndo = () => {
+    undoRef.current = snapshotRef.current;
+    setUndoAvailable(true);
+  };
+
+  const undo = useCallback(() => {
+    const previous = undoRef.current;
+    if (!previous) return;
+    setFlags(previous.flags);
+    setMood(previous.mood);
+    undoRef.current = null;
+    setUndoAvailable(false);
+  }, []);
+
   const touched =
     flags.prepared || flags.focused || flags.drowsy || flags.playingPhone ||
     flags.activeAsking || flags.quickLearner || flags.needsRepetition ||
@@ -63,12 +85,21 @@ export default function useEngagement() {
   }, []);
 
   const resetEngagementFlags = useCallback(() => {
+    rememberForUndo();
     setFlags(INITIAL);
     setMood(undefined);
   }, []);
 
+  /**
+   * Preset bersifat ADITIF: hanya menyalakan indikator yang disebut `pattern`.
+   * Sebelumnya `{ ...INITIAL, ...pattern }` mengosongkan seluruh indikator lain
+   * secara diam-diam (audit C-04) — pada aplikasi rekam-jejak, kehilangan sinyal
+   * perilaku berarti mengubah skor engagement, narasi, dan dasar tindak lanjut
+   * tanpa jejak bahwa hal itu terjadi.
+   */
   const applyPreset = useCallback((pattern: Partial<EngagementState>, nextMood?: string) => {
-    setFlags({ ...INITIAL, ...pattern });
+    rememberForUndo();
+    setFlags((prev) => ({ ...prev, ...pattern }));
     setMood(nextMood);
   }, []);
 
@@ -106,5 +137,6 @@ export default function useEngagement() {
     touched, hasEngagementInput,
     score, scoreInfo,
     toggleFlag, applyPreset, resetEngagementFlags, resetAll, hydrate,
+    undoAvailable, undo,
   };
 }

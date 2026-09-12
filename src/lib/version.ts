@@ -11,6 +11,27 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.73.0",
+    date: "2026-09-12",
+    title: "Catat Sesi: berhenti berkedip & tidak lagi salah murid",
+    items: [
+      "Layar Catat Sesi tidak lagi berkedip: sebelumnya form bergeser naik-turun ±2×/detik dan menulis draf ±108×/menit padahal tidak ada data yang berubah (draf ditulis ulang tanpa henti karena isi form dibandingkan lewat identitas objek, bukan isinya)",
+      "Menyelesaikan jadwal kini jelas dan aman: ada penanda \"Menyelesaikan jadwal\" beserta murid, tanggal, dan durasinya; murid & tanggal dikunci mengikuti jadwal (dulu bisa diubah tetapi diam-diam diabaikan sehingga catatan tersimpan pada murid yang berbeda), plus jalan pintas \"Catat sesi baru\" bila salah jadwal",
+      "Mapel bawaan jadwal tidak lagi terhapus saat layar dibuka",
+      "Laporan sesi bisa ditutup (tombol tutup, tombol Escape, atau ketuk latar) dan memakai pola modal yang sama dengan layar lain: fokus berpindah ke dalam laporan dan tidak keluar",
+      "Sesi yang sudah tersimpan tidak pernah dibuat dua kali: menekan Simpan lagi membuka kembali laporan, dan tersedia aksi \"Perbaiki catatan sesi\" yang menyimpan ulang dengan MEMPERBARUI sesi itu",
+      "Preset kondisi (Lancar/Biasa/Kurang Fit) kini hanya menambah indikator — tidak lagi menghapus tanda yang sudah dibuat — dan selalu bisa dibatalkan lewat \"Batalkan perubahan terakhir\"; preset kualitas respons tidak lagi mengosongkan kolom Fokus Perbaikan",
+      "Status draf pindah ke header (Tersimpan/Menyimpan) tanpa menggeser tata letak, dan pesannya kini punya aksi: \"Coba simpan lagi\", \"Pakai versi tersimpan\", atau \"Pertahankan versi di layar\"",
+      "Draf lama diminta diputuskan lebih dulu sebelum form diisi, dengan label yang menyebut akibatnya, sehingga isian baru tidak bisa tertimpa diam-diam",
+      "Pesan galat validasi menggulir ke kolom yang bermasalah, memindahkan fokus ke sana, dan dibacakan pembaca layar (dulu muncul di luar layar sehingga tombol seperti tidak merespons)",
+      "Pengingat backup mingguan tidak lagi menutupi tombol \"Lanjut →\"; banner atas tidak lagi menutupi judul halaman karena konten diberi ruang setinggi banner, dan hanya satu pengingat backup tampil sekaligus",
+      "Warna status skor engagement diperbaiki agar lolos kontras AA — sebelumnya kelima tingkat gagal (terburuk \"Cukup\" 2,86:1) — termasuk teks di laporan sesi",
+      "Istilah dirapikan: \"Perlu Perhatian\" kini hanya untuk satu hal, sementara indikator, perilaku, respons akademik, dan fokus perbaikan punya nama masing-masing",
+      "Langkah Bukti hanya punya satu tombol simpan, kolom Catatan Singkat naik ke atas kolom opsional, kartu \"Konteks yang dipakai AI\" dilipat, dan skor menjelaskan dasarnya (mulai dari 5/10)",
+      "Tombol info (ⓘ) pada observasi perilaku berukuran 32 px, berlabel aksesibel, dan terpisah dari chip-nya sehingga tidak lagi salah ketuk; deret chip durasi diberi penanda masih ada pilihan di kanan",
+    ],
+  },
+  {
     version: "v1.72.0",
     date: "2026-09-12",
     title: "Keuangan: tab yang jelas, angka yang bisa dibaca",

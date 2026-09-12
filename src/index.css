@@ -24,6 +24,14 @@
   /* Safe-area iOS (notch / home indicator) — dipakai bottom-nav, toast,
      banner atas, dan bar tetap agar tidak tertutup area sistem (K2 audit UI/UX). */
   --bottom-nav-h: 64px;
+  /* Tinggi bar aksi tugas yang mengambang di atas bottom-nav (mis. wizard Catat
+     Sesi). Di-set oleh layar yang memilikinya; 0px di layar lain. Dipakai banner
+     & toast global agar tidak menutupi tombol aksi (audit C-01). */
+  --task-bar-h: 0px;
+  /* Tinggi banner atas yang mengambang (offline / penyimpanan / backup menua).
+     Di-set otomatis dari tingginya; dipakai .app-shell agar judul halaman tidak
+     tertutup (audit C-12). */
+  --top-banner-h: 0px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --surface: var(--color-surface);
@@ -59,6 +67,8 @@ a, button, input, select, textarea {
 }
 
 .app-shell {
+  /* Konten tidak boleh tersembunyi di balik banner atas yang mengambang. */
+  padding-top: var(--top-banner-h, 0px);
   padding-bottom: calc(var(--bottom-nav-h) + var(--safe-bottom) + 1rem);
 }
 

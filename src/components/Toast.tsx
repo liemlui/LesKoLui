@@ -15,7 +15,7 @@ interface Props {
 export default function ToastContainer({ toasts, onDismiss }: Props) {
   if (toasts.length === 0) return null;
   return (
-    <div className={`fixed inset-x-0 bottom-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom)+0.75rem)] ${Z.toast} mx-auto max-w-md space-y-2 px-4 pointer-events-none`}>
+    <div className={`fixed inset-x-0 bottom-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom)+0.75rem+var(--task-bar-h,0px))] ${Z.toast} mx-auto max-w-md space-y-2 px-4 pointer-events-none`}>
       {toasts.map((t) => (
         <div
           key={t.id}

@@ -1,14 +1,15 @@
 import Skeleton from "../components/Skeleton";
 import { TargetIcon, BookIcon, SmileIcon, ClipboardIcon, PencilIcon, CameraIcon } from "../components/icons";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db/db";
 import {
   listStudents, createSessionWithCloseoutDraft, recentShortNotes,
   createFollowUpBatch, getSettings, listDoneSessionsForDate,
-  markSessionDoneWithCloseoutDraft,
+  markSessionDoneWithCloseoutDraft, updateSession,
 } from "../db/repos";
+import Modal from "../components/Modal";
 import { compressPhoto, stampPhoto } from "../lib/foto";
 import SignaturePad from "../components/SignaturePad";
 import { todayWIB, dayLabel } from "../lib/format";
@@ -29,7 +30,8 @@ import Breadcrumb from "../components/Breadcrumb";
 import type { Student } from "../db/types";
 import PaginationControls from "../components/PaginationControls";
 import { clampPage, paginateItems } from "../lib/pagination";
-import { Z } from "../lib/zIndex";
+import { scheduleCaptureMismatch } from "../lib/scheduleCapture";
+import type { ScheduleCaptureLock } from "../lib/scheduleCapture";
 import useEngagement from "./captureSession/useEngagement";
 import useStudentBrief from "./captureSession/useStudentBrief";
 import useCaptureDraft from "./captureSession/useCaptureDraft";
@@ -91,6 +93,21 @@ function buildWaMessage(
 
   lines.push(``, `Terima kasih, salam 🙏`, tutorName || "Ko Lui");
   return lines.join("\n");
+}
+
+/** Tinggi bar aksi tetap (kelas `h-[4.25rem]`) — dipublikasikan ke CSS var agar
+ *  banner/toast global mengambang di atasnya (audit C-01). Konstanta, bukan hasil
+ *  pengukuran: mengukur lewat ref di dalam efek ternyata tidak andal karena efek
+ *  bisa berjalan saat ref belum terpasang (render offscreen/transition). */
+const TASK_BAR_H = "4.25rem";
+
+/** "12 Sep 20.14" — penanda waktu draf terakhir disimpan. */
+function draftStamp(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString("id-ID", {
+      day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+    });
+  } catch { return ""; }
 }
 
 /**
@@ -156,6 +173,7 @@ export default function CaptureSession() {
     touched: engTouched, hasEngagementInput,
     score: engScore, scoreInfo: engScoreInfo,
     toggleFlag, applyPreset, resetEngagementFlags, resetAll, hydrate: hydrateEngagement,
+    undoAvailable, undo: undoEngagement,
   } = useEngagement();
   // Situasi humanis hari ini (opsional) — konteks, bukan perilaku.
 
@@ -180,6 +198,11 @@ export default function CaptureSession() {
   // Conflict warning
   const [conflictWarn, setConflictWarn] = useState<string[]>([]);
 
+  // Mode "menyelesaikan jadwal" (?scheduleId=): murid & tanggal mengikuti jadwal
+  // dan dikunci — markSessionDone tidak menerima keduanya (audit C-02).
+  const [scheduleLock, setScheduleLock] = useState<ScheduleCaptureLock | null>(null);
+  const scheduledStudentRef = useRef<string | null>(null);
+
   // Brief (loaded on student change)
   const [briefFollowPage,  setBriefFollowPage]  = useState(1);
 
@@ -194,9 +217,15 @@ export default function CaptureSession() {
   const [coSaving,       setCoSaving]       = useState(false);
   const coSavingRef = useRef(false);
   const [coFollowPage,   setCoFollowPage]   = useState(1);
+  // Sesi sudah tersimpan tetapi laporan belum ditutup (mis. pengguna menutup
+  // laporan) → simpan ulang harus MEMPERBARUI, bukan membuat sesi kedua.
+  const [editingSavedSession, setEditingSavedSession] = useState(false);
 
   const draftScopeKey = scheduleId ? `schedule:${scheduleId}` : studentId ? `student:${studentId}` : "new";
-  const draftForm: CaptureDraftForm = {
+  // WAJIB useMemo: `useCaptureDraft` menjadwalkan penulisan berdasarkan isi form.
+  // Sebelum ini objeknya dibuat ulang tiap render → draf ditulis berulang tanpa
+  // perubahan data (audit C-17: layar berkedip 2×/detik, ~108 tulis/menit).
+  const draftForm: CaptureDraftForm = useMemo(() => ({
     step: currentStep,
     date: sessionDate,
     durationHours: duration,
@@ -224,7 +253,15 @@ export default function CaptureSession() {
       followUps: coFollowUps,
       followUpText: coFollowUpText,
     } : undefined,
-  };
+    // Dependensi sengaja primitif (bukan objek form) supaya identitas `draftForm`
+    // stabil selama datanya tidak berubah.
+  }), [
+    currentStep, sessionDate, duration, subjects, topic, topicSearch, shortNote,
+    needsWork, predictedGrade, mood, behaviorTags, responseTag, situasiNote,
+    sessionType, photo, signature, coSessionData, coFollowUps, coFollowUpText,
+    engPrepared, engFocused, engDrowsy, engPhone, engActiveAsking, engQuickLearner,
+    engNeedsRepeat, engHwMissed, engLate, engBathroom, engRestless, engOffTask,
+  ]);
 
   const restoreDraft = (draft: CaptureDraft) => {
     const form = draft.form;
@@ -258,6 +295,7 @@ export default function CaptureSession() {
 
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
+  const messageRef = useRef<HTMLDivElement>(null);
 
   // AI states
   const [aiNoteLoading,    setAiNoteLoading]    = useState(false);
@@ -270,6 +308,9 @@ export default function CaptureSession() {
   const [aiNoteDraft,      setAiNoteDraft]      = useState<string | null>(null);
   const [aiNoteOriginal,   setAiNoteOriginal]   = useState("");
   const [aiNoteStyle,      setAiNoteStyle]      = useState<"rapikan" | "perluas" | "ringkas">("rapikan");
+  // Kartu "Konteks yang dipakai AI" dilipat secara default supaya kolom wajib
+  // (Catatan Singkat) tidak terdorong jauh ke bawah (audit C-16).
+  const [showAiContext,    setShowAiContext]    = useState(false);
 
   useEffect(() => {
     if (!photo) { setPhotoUrl(undefined); return; }
@@ -285,11 +326,25 @@ export default function CaptureSession() {
     return () => URL.revokeObjectURL(url);
   }, [signature]);
 
+  // Publikasikan tinggi bar aksi ke CSS var `--task-bar-h` supaya banner
+  // mingguan, flash, dan toast global mengambang DI ATAS bar ini — bukan
+  // menutupi tombol "Lanjut →" (audit C-01: hit-test mengembalikan banner,
+  // bukan tombolnya, sehingga wizard tidak bisa dilanjutkan).
   useEffect(() => {
-    if (!scheduleId) return;
+    const root = document.documentElement;
+    root.style.setProperty("--task-bar-h", TASK_BAR_H);
+    return () => { root.style.removeProperty("--task-bar-h"); };
+  }, [draft.pending]);
+
+  useEffect(() => {
+    if (!scheduleId) { setScheduleLock(null); return; }
     (async () => {
       const session = await db.sessions.get(scheduleId);
       if (!session) return;
+      // Tandai bahwa perubahan studentId berikutnya berasal dari prefill jadwal,
+      // supaya efek reset di bawah tidak menghapus mapel bawaan jadwal (C-02).
+      scheduledStudentRef.current = session.studentId;
+      setScheduleLock({ studentId: session.studentId, date: session.date });
       setStudentId(session.studentId);
       setSessionDate(session.date);
       setDuration(session.durationHours);
@@ -308,7 +363,11 @@ export default function CaptureSession() {
     return () => { cancelled = true; };
   }, [studentId, sessionDate]);
 
-  useEffect(() => { setSubjects([]); }, [studentId]);
+  useEffect(() => {
+    // Murid berubah karena prefill jadwal → mapel dari jadwal harus dipertahankan.
+    if (scheduledStudentRef.current === studentId) { scheduledStudentRef.current = null; return; }
+    setSubjects([]);
+  }, [studentId]);
 
   const suggestions = shortNote.length > 1
     ? (allNotes ?? []).filter((n) => n.toLowerCase().includes(shortNote.toLowerCase()) && n !== shortNote).slice(0, 4)
@@ -375,11 +434,21 @@ export default function CaptureSession() {
   };
 
   const handleSave = async () => {
-    if (!studentId) { setMessage({ kind: "error", text: "Pilih murid dulu." }); return; }
-    if (studentSubjects.length > 0 && subjects.length === 0) {
-      setMessage({ kind: "error", text: "Pilih minimal 1 mata pelajaran." }); return;
+    // Sudah tersimpan & laporan belum selesai → jangan buat sesi kedua.
+    if (coSessionData && !editingSavedSession) {
+      setMessage({ kind: "success", text: "Sesi ini sudah tersimpan. Selesaikan tindak lanjutnya di laporan sesi." });
+      setShowCloseOut(true);
+      return;
     }
-    if (!shortNote.trim()) { setMessage({ kind: "error", text: "Tulis catatan singkat." }); return; }
+    if (!studentId) { showValidationError("👤 Pilih murid dulu.", "cs-murid"); return; }
+    // Jaring pengaman C-02: pada mode jadwal, murid & tanggal tidak boleh
+    // menyimpang dari jadwal yang sedang diselesaikan.
+    const mismatch = scheduleCaptureMismatch(scheduleLock, studentId, sessionDate);
+    if (mismatch) { showValidationError(mismatch); return; }
+    if (studentSubjects.length > 0 && subjects.length === 0) {
+      showValidationError("📖 Pilih minimal 1 mata pelajaran."); return;
+    }
+    if (!shortNote.trim()) { showValidationError("✏️ Tulis catatan singkat dulu.", "cs-catatan"); return; }
     await draft.flush();
     const draftSnapshot = draft.getSnapshot();
     const initialFollowUps = needsWork.trim() ? [{ id: crypto.randomUUID(), text: needsWork.trim() }] : [];
@@ -405,7 +474,32 @@ export default function CaptureSession() {
         id: string; date: string; subjects: string[]; durationHours: number;
         shortNote: string; topic?: string;
       };
-      if (scheduleId) {
+      const isUpdate = Boolean(coSessionData && editingSavedSession);
+      if (coSessionData && editingSavedSession) {
+        // "Perbaiki catatan" → perbarui sesi yang sudah ada (updateSession juga
+        // menghitung ulang biaya bila durasi berubah), bukan membuat sesi baru.
+        await updateSession(coSessionData.id, {
+          subjects: subjects.length > 0 ? subjects : undefined,
+          photo, shortNote: shortNote.trim(), mood,
+          topic: topic.trim() || undefined,
+          needsWork: needsWork.trim() || undefined,
+          predictedGrade: predictedGrade.trim() || undefined,
+          situasiNote: situasiNote.trim() || undefined,
+          engagement: engData,
+          behaviorTags: behaviorTags.length > 0 ? behaviorTags : undefined,
+          responseTag: responseTag || undefined,
+          signature: signature || undefined,
+          durationHours: duration,
+        });
+        savedSession = {
+          id: coSessionData.id,
+          date: coSessionData.date,
+          subjects: subjects.length > 0 ? subjects : coSessionData.subjects,
+          durationHours: duration,
+          shortNote: shortNote.trim(),
+          topic: topic.trim() || undefined,
+        };
+      } else if (scheduleId) {
         const result = await markSessionDoneWithCloseoutDraft(scheduleId, {
           subjects: subjects.length > 0 ? subjects : undefined,
           photo, shortNote: shortNote.trim(), mood,
@@ -443,8 +537,24 @@ export default function CaptureSession() {
       }
 
       setCoSessionData(savedSession);
-      setCoFollowUps(initialFollowUps);
+      // Repositori baru saja menulis fase `closeout` ke draf — selaraskan revisi
+      // agar penulisan hook berikutnya tidak dianggap konflik.
+      await draft.syncFromStore();
+      if (isUpdate) {
+        // Pertahankan tindak lanjut yang sudah ditulis di laporan; tambahkan
+        // yang baru dari "Fokus perbaikan" tanpa menghapus yang lama.
+        setCoFollowUps((prev) => {
+          const merged = [...prev];
+          for (const item of initialFollowUps) {
+            if (!merged.some((existing) => existing.text === item.text)) merged.push(item);
+          }
+          return merged;
+        });
+      } else {
+        setCoFollowUps(initialFollowUps);
+      }
       setCoFollowUpText("");
+      setEditingSavedSession(false);
       setShowCloseOut(true);
     } catch (e) {
       setMessage({ kind: "error", text: "Gagal: " + (e as Error).message });
@@ -480,19 +590,49 @@ export default function CaptureSession() {
     }
   };
 
+  /** Tutup laporan tanpa menyelesaikan tindak lanjut — sesi tetap tersimpan,
+   *  draf tetap ada, dan wizard memberi jalan kembali ke laporan (audit C-05). */
+  const closeReport = () => setShowCloseOut(false);
+
+  /** Perbaiki catatan sesi yang sudah tersimpan → kembali ke langkah Catatan.
+   *  Simpan berikutnya MEMPERBARUI sesi itu (bukan membuat sesi baru). */
+  const handleFixNote = () => {
+    setShowCloseOut(false);
+    setEditingSavedSession(true);
+    setCurrentStep(5);
+  };
+
   // Step validation & navigation
-  const validateCurrentStep = (): string | null => {
-    if (currentStep === 1 && !studentId) return "👤 Pilih murid dulu.";
+  /** Tampilkan galat + arahkan pandangan ke sumbernya. Pesan saja tidak cukup:
+   *  blok pesan berada di atas halaman, sedangkan pengguna menekan "Lanjut →"
+   *  dari bawah — pada layar yang sudah digulir pesannya berada di luar viewport
+   *  (audit C-03, terukur rect.top = −92 px). */
+  const showValidationError = (text: string, focusId?: string) => {
+    setMessage({ kind: "error", text });
+    requestAnimationFrame(() => {
+      const field = focusId ? document.getElementById(focusId) : null;
+      if (field) {
+        field.scrollIntoView({ block: "center", behavior: "smooth" });
+        field.focus({ preventScroll: true });
+        return;
+      }
+      messageRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+      messageRef.current?.focus({ preventScroll: true });
+    });
+  };
+
+  const validateCurrentStep = (): { text: string; focusId?: string } | null => {
+    if (currentStep === 1 && !studentId) return { text: "👤 Pilih murid dulu.", focusId: "cs-murid" };
     if (currentStep === 2) {
-      if (studentSubjects.length > 0 && subjects.length === 0) return "📖 Pilih minimal 1 mata pelajaran.";
+      if (studentSubjects.length > 0 && subjects.length === 0) return { text: "📖 Pilih minimal 1 mata pelajaran." };
     }
-    if (currentStep === 5 && !shortNote.trim()) return "✏️ Tulis catatan singkat dulu.";
+    if (currentStep === 5 && !shortNote.trim()) return { text: "✏️ Tulis catatan singkat dulu.", focusId: "cs-catatan" };
     return null;
   };
 
   const goNext = async () => {
     const err = validateCurrentStep();
-    if (err) { setMessage({ kind: "error", text: err }); return; }
+    if (err) { showValidationError(err.text, err.focusId); return; }
     setMessage(null);
     await draft.flush();
     if (currentStep < 6) setCurrentStep((s) => (s + 1) as StepNum);
@@ -519,6 +659,27 @@ export default function CaptureSession() {
     : "";
   const waNumber     = currentStudent?.parentContact.phone.replace(/^0/, "62").replace(/[^0-9]/g, "") ?? "";
   const stepMeta     = STEPS[currentStep - 1];
+
+  // Status draf ditampilkan di header (baris tinggi tetap) — "saving" transien
+  // TIDAK boleh diperlakukan sebagai galat (audit C-17 / C-07).
+  const draftStatusLabel =
+    draft.status === "saving"     ? "Menyimpan…"
+    : draft.status === "saved"    ? "Draf tersimpan ✓"
+    : draft.status === "conflict" ? "Draf bentrok"
+    : draft.status === "unsaved"  ? "Draf gagal disimpan"
+    : "";
+  const draftTone =
+    draft.status === "saved"  ? "text-green-600"
+    : draft.status === "saving" ? "text-gray-500"
+    : "text-red-600";
+
+  /** Ada isian nyata di layar? Dipakai untuk memutuskan apakah draf tertunda
+   *  boleh memblokir form atau cukup ditawarkan dengan label eksplisit. */
+  const hasFormContent = Boolean(
+    shortNote.trim() || needsWork.trim() || predictedGrade.trim() || situasiNote.trim() ||
+    subjects.length > 0 || topics.length > 0 || topicSearch.trim() || sessionType ||
+    photo || signature || behaviorTags.length > 0 || responseTag || mood || engTouched,
+  );
 
   const activeSubjects      = subjects.length ? subjects : studentSubjects;
   const activeBehaviorLabels = behaviorTags.length > 0
@@ -575,32 +736,143 @@ export default function CaptureSession() {
     });
   };
 
+  // ── Draf tertunda (C-06) ──
+  // Bila form masih KOSONG: tahan dulu dan minta keputusan — tidak ada isian
+  // yang bisa hilang, dan draf justru data yang berharga.
+  // Bila sudah ada isian: jangan blokir, tetapi label aksinya menyebut akibatnya
+  //   ("ganti dengan draf" / "hapus draf, pakai isian layar") supaya tidak ada
+  //   penimpaan senyap seperti temuan C-06.
+  if (draft.pending && !hasFormContent) {
+    const pendingStudent = students.find((s) => s.id === draft.pending?.studentId);
+    return (
+      <div className="pb-24">
+        <Breadcrumb />
+        <div className="px-4 pt-4 pb-3">
+          <h1 className="text-2xl font-bold text-gray-800">📓 Catat Sesi</h1>
+          <p className="text-xs text-gray-500 mt-0.5">Draf tersimpan menunggu keputusan</p>
+        </div>
+        <div className="mx-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+          <p className="font-bold text-amber-900">Draf Catat Sesi tersedia</p>
+          <p className="mt-1 text-sm text-amber-800">
+            Draf ini tersimpan di perangkat pada {draftStamp(draft.pending.updatedAt)}. Pilih salah satu
+            sebelum mengisi form.
+          </p>
+          <div className="mt-3 space-y-1 text-xs text-amber-800">
+            <p className="font-semibold">
+              Langkah {draft.pending.form.step} dari {STEPS.length}
+              {pendingStudent ? ` · ${pendingStudent.name}` : ""}
+            </p>
+            <p>Tanggal sesi: {dayLabel(draft.pending.form.date)}</p>
+            {draft.pending.form.shortNote.trim() && (
+              <p className="line-clamp-2">Catatan: “{draft.pending.form.shortNote.trim()}”</p>
+            )}
+          </div>
+          <div className="mt-4 flex flex-col gap-2">
+            <button type="button" onClick={draft.resume}
+              className="w-full py-3 rounded-xl bg-amber-600 text-white font-bold text-sm hover:bg-amber-700 transition-colors">
+              Lanjutkan draf
+            </button>
+            <button type="button" onClick={() => void draft.discard()}
+              className="w-full py-2.5 rounded-xl border border-amber-300 bg-white text-amber-800 font-semibold text-sm hover:bg-amber-100 transition-colors">
+              Buang draf & mulai baru
+            </button>
+          </div>
+        </div>
+        <p className="mx-4 mt-3 text-xs text-gray-500">
+          Form disembunyikan sampai pilihan ini dibuat agar isian baru tidak tertimpa draf lama.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="pb-36">
 
       <Breadcrumb />
 
       {/* ── PAGE HEADER ── */}
-      <div className="px-4 pt-4 pb-3">
-        <h1 className="text-2xl font-bold text-gray-800">📓 Catat Sesi</h1>
-        <p className="text-xs text-gray-500 mt-0.5">Langkah {currentStep} dari {STEPS.length}</p>
+      <div className="px-4 pt-4 pb-3 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold text-gray-800">📓 Catat Sesi</h1>
+          <p className="text-xs text-gray-500 mt-0.5">Langkah {currentStep} dari {STEPS.length}</p>
+        </div>
+        {/* Status draf berada di baris ber-tinggi tetap: perubahan status tidak
+            boleh menggeser tata letak form (audit C-17). */}
+        <span aria-live="polite" className={`mt-1 shrink-0 text-xs font-semibold ${draftTone}`}>
+          {draftStatusLabel}
+        </span>
       </div>
 
-      {draft.pending && (
-        <div className="mx-4 mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          <p className="font-semibold">Draf Catat Sesi tersedia</p>
-          <p className="mt-1">Draf tersimpan di perangkat ini. Lanjutkan atau buang sebelum mulai mengedit.</p>
-          <div className="mt-2 flex gap-2">
-            <button type="button" className="rounded-lg bg-amber-600 px-3 py-2 text-white" onClick={draft.resume}>Lanjutkan draf</button>
-            <button type="button" className="rounded-lg border border-amber-300 px-3 py-2" onClick={() => void draft.discard()}>Buang draf</button>
+      {/* Draf tertunda padahal form sudah terisi: jangan blokir, tetapi label
+          aksinya menyebut akibatnya supaya tidak ada penimpaan senyap (C-06). */}
+      {draft.pending && hasFormContent && (
+        <div className="mx-4 mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+          <p className="font-semibold">Draf sesi tersimpan untuk murid ini</p>
+          <p className="mt-0.5">
+            Isian di layar ini sudah ada — memuat draf akan menimpa isian tersebut.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button type="button" onClick={draft.resume}
+              className="rounded-lg bg-amber-600 px-3 py-2 font-semibold text-white hover:bg-amber-700 transition-colors">
+              Ganti dengan draf
+            </button>
+            <button type="button" onClick={() => void draft.discard()}
+              className="rounded-lg border border-amber-300 bg-white px-3 py-2 font-semibold text-amber-800 hover:bg-amber-100 transition-colors">
+              Hapus draf, pakai isian layar
+            </button>
           </div>
         </div>
       )}
-      {!draft.pending && draft.status === "unsaved" && (
-        <p className="mx-4 mb-3 text-xs font-semibold text-amber-700">Draf belum tersimpan. Isian tetap ada, coba simpan lagi.</p>
+
+      {/* Sesi sudah tersimpan tapi laporan belum rampung → beri jalan kembali
+          tanpa menyimpan ulang (audit C-05). */}
+      {coSessionData && !editingSavedSession && !showCloseOut && (
+        <div className="mx-4 mb-3 rounded-xl border border-green-200 bg-green-50 p-3 text-xs text-green-800">
+          <p className="font-semibold">✅ Sesi sudah tersimpan</p>
+          <p className="mt-0.5">Tindak lanjut sesi berikutnya & pesan ke orang tua belum diselesaikan.</p>
+          <button type="button" onClick={() => setShowCloseOut(true)}
+            className="mt-2 rounded-lg bg-green-600 px-3 py-2 font-semibold text-white hover:bg-green-700 transition-colors">
+            Buka laporan sesi
+          </button>
+        </div>
       )}
-      {!draft.pending && draft.status === "conflict" && (
-        <p className="mx-4 mb-3 text-xs font-semibold text-red-700">Draf berubah di tab lain. Muat draf terbaru sebelum melanjutkan.</p>
+
+      {!draft.pending && (draft.status === "unsaved" || draft.status === "conflict") && (
+        <div
+          role="alert"
+          className={`mx-4 mb-3 rounded-xl border p-3 text-xs ${
+            draft.status === "conflict"
+              ? "border-red-200 bg-red-50 text-red-700"
+              : "border-amber-200 bg-amber-50 text-amber-800"}`}
+        >
+          <p className="font-semibold">
+            {draft.status === "conflict" ? "Draf berubah di tab lain" : "Draf belum tersimpan"}
+          </p>
+          <p className="mt-0.5">
+            {draft.status === "conflict"
+              ? "Versi di penyimpanan perangkat lebih baru daripada versi di layar ini. Pilih satu untuk dilanjutkan."
+              : "Isian tetap ada di layar. Coba simpan lagi; bila tetap gagal, muat ulang aplikasi lalu ulangi."}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {draft.status === "unsaved" ? (
+              <button type="button" onClick={() => void draft.retry()}
+                className="rounded-lg bg-amber-600 px-3 py-2 font-semibold text-white hover:bg-amber-700 transition-colors">
+                Coba simpan lagi
+              </button>
+            ) : (
+              <>
+                <button type="button" onClick={() => void draft.reload()}
+                  className="rounded-lg bg-red-600 px-3 py-2 font-semibold text-white hover:bg-red-700 transition-colors">
+                  Pakai versi tersimpan
+                </button>
+                <button type="button" onClick={() => void draft.overwrite()}
+                  className="rounded-lg border border-red-300 bg-white px-3 py-2 font-semibold text-red-700 hover:bg-red-50 transition-colors">
+                  Pertahankan versi di layar
+                </button>
+              </>
+            )}
+          </div>
+        </div>
       )}
 
       {/* ── PROGRESS STEPPER ── */}
@@ -639,15 +911,6 @@ export default function CaptureSession() {
             );
           })}
         </div>
-        <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{
-              width: `${((currentStep - 1) / (STEPS.length - 1)) * 100}%`,
-              background: "linear-gradient(90deg, #3b82f6, #60a5fa)",
-            }}
-          />
-        </div>
       </div>
 
       {/* ── STEP HEADER CARD ── */}
@@ -669,7 +932,11 @@ export default function CaptureSession() {
       {/* ── MESSAGE ── */}
       {message && (
         <div className="mx-4 mb-3">
-          <div className={`flex items-start gap-2 rounded-xl border p-3 text-sm font-medium ${
+          <div
+            ref={messageRef}
+            tabIndex={-1}
+            role={message.kind === "error" ? "alert" : "status"}
+            className={`flex items-start gap-2 rounded-xl border p-3 text-sm font-medium outline-none ${
             message.kind === "success" ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-600"}`}>
             <span className="flex-1">{message.text}</span>
             <button
@@ -692,36 +959,70 @@ export default function CaptureSession() {
       {currentStep === 1 && (
         <div className="px-4 space-y-4">
 
+          {/* Mode jadwal — jelaskan bahwa layar ini menyelesaikan jadwal, bukan
+              membuat sesi baru, dan mengapa murid/tanggal tidak bisa diubah. */}
+          {scheduleId && (
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-3.5">
+              <p className="text-xs font-bold text-blue-700 uppercase tracking-wide">🗓️ Menyelesaikan jadwal</p>
+              <p className="mt-1 text-sm font-bold text-blue-900">
+                {currentStudent?.name ?? "Murid jadwal"}
+                <span className="font-semibold text-blue-700"> · {dayLabel(sessionDate)} · {duration} jam</span>
+              </p>
+              <p className="mt-1 text-xs text-blue-700">
+                Murid dan tanggal mengikuti jadwal ini. Salah jadwal?{" "}
+                <button type="button" onClick={() => navigate("/capture")}
+                  className="font-semibold underline hover:text-blue-900">Catat sesi baru</button>.
+              </p>
+            </div>
+          )}
+
           {/* Murid */}
           <div>
             <label htmlFor="cs-murid" className="label">👤 Murid <span className="text-red-400">*</span></label>
-            <select id="cs-murid" className="input" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
+            <select id="cs-murid" className="input disabled:bg-gray-100 disabled:text-gray-500"
+              value={studentId} disabled={Boolean(scheduleId)}
+              aria-describedby={scheduleId ? "cs-murid-hint" : undefined}
+              onChange={(e) => setStudentId(e.target.value)}>
               <option value="">Pilih murid...</option>
               {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
+            {scheduleId && (
+              <p id="cs-murid-hint" className="text-xs text-gray-500 mt-1">
+                Terkunci karena sesi ini menyelesaikan jadwal yang sudah ada.
+              </p>
+            )}
           </div>
 
           {/* Tanggal */}
           <div>
             <label htmlFor="cs-tanggal" className="label">📅 Tanggal Sesi</label>
-            <input id="cs-tanggal" className="input" type="date" value={sessionDate}
-              max={today}
+            <input id="cs-tanggal" className="input disabled:bg-gray-100 disabled:text-gray-500" type="date" value={sessionDate}
+              max={today} disabled={Boolean(scheduleId)}
+              aria-describedby={scheduleId ? "cs-tanggal-hint" : undefined}
               onChange={(e) => setSessionDate(e.target.value)} />
-            {sessionDate !== today && (
-              <p className="text-xs text-orange-500 mt-1">⏪ Merekam sesi masa lalu</p>
+            {scheduleId ? (
+              <p id="cs-tanggal-hint" className="text-xs text-gray-500 mt-1">
+                Tanggal terkunci mengikuti jadwal.
+              </p>
+            ) : sessionDate !== today && (
+              <p className="text-xs text-orange-600 mt-1">⏪ Merekam sesi masa lalu</p>
             )}
           </div>
 
           {/* Durasi */}
           <div>
             <label className="label">⏱️ Durasi</label>
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {DURATIONS.map((d) => (
-                <button key={d} type="button"
-                  className={`flex-shrink-0 px-3 py-2 rounded-xl text-sm font-semibold border transition-colors ${
-                    duration === d ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200"}`}
-                  onClick={() => setDuration(d)}>{d}j</button>
-              ))}
+            <div className="relative">
+              <div className="flex gap-2 overflow-x-auto pb-1 pr-8 snap-x">
+                {DURATIONS.map((d) => (
+                  <button key={d} type="button"
+                    className={`snap-start flex-shrink-0 px-3 py-2 rounded-xl text-sm font-semibold border transition-colors ${
+                      duration === d ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200"}`}
+                    onClick={() => setDuration(d)}>{d}j</button>
+                ))}
+              </div>
+              {/* Penanda masih ada pilihan di kanan (audit C-14) */}
+              <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent" aria-hidden="true" />
             </div>
           </div>
 
@@ -908,9 +1209,10 @@ export default function CaptureSession() {
       {currentStep === 3 && (
         <div className="px-4 space-y-4">
 
-          {/* Quick Presets — isi sekali klik */}
+          {/* Quick Presets — isi sekali klik (ADITIF: tidak mengosongkan indikator
+              lain; audit C-04) */}
           <div>
-            <label className="label">⚡ Cepat <span className="text-gray-500 font-normal text-xs">(isi 1 detik)</span></label>
+            <label className="label">⚡ Isi cepat (kondisi) <span className="text-gray-500 font-normal text-xs">(menambah, tidak menghapus)</span></label>
             <div className="flex flex-wrap gap-2">
               <button type="button"
                 onClick={() => applyPreset({ prepared: true, focused: true, activeAsking: true }, "Fokus")}
@@ -930,8 +1232,19 @@ export default function CaptureSession() {
               <button type="button"
                 onClick={resetEngagementFlags}
                 className="px-3 py-2 rounded-full text-sm font-semibold bg-white text-gray-500 border border-gray-200 hover:bg-gray-50 transition-colors">
-                🔄 Reset
+                🔄 Kosongkan
               </button>
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <p className="text-xs text-gray-500">
+                “Kosongkan” menghapus semua indikator &amp; mood.
+              </p>
+              {undoAvailable && (
+                <button type="button" onClick={undoEngagement}
+                  className="text-xs font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-900">
+                  ↩ Batalkan perubahan terakhir
+                </button>
+              )}
             </div>
           </div>
 
@@ -974,7 +1287,7 @@ export default function CaptureSession() {
 
           {/* Positif */}
           <div>
-            <p className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-2">✨ Positif</p>
+            <p className="text-xs font-semibold text-green-700 uppercase tracking-wide mb-2">✨ Indikator Positif</p>
             <div className="grid grid-cols-2 gap-2">
               <button type="button" onClick={() => toggleFlag("prepared")}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
@@ -1001,7 +1314,7 @@ export default function CaptureSession() {
 
           {/* Perlu perhatian */}
           <div>
-            <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide mb-2">⚠️ Perlu Perhatian</p>
+            <p className="text-xs font-semibold text-orange-700 uppercase tracking-wide mb-2">⚠️ Indikator Perlu Perhatian</p>
             <div className="grid grid-cols-2 gap-2">
               <button type="button" onClick={() => toggleFlag("playingPhone")}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
@@ -1059,7 +1372,13 @@ export default function CaptureSession() {
               </div>
               <div>
                 <p className="font-bold text-base" style={{ color: engScoreInfo.color }}>{engScoreInfo.text}</p>
-                <p className="text-xs mt-0.5" style={{ color: engScoreInfo.color, opacity: 0.75 }}>Skor keterlibatan: {engScore}/10</p>
+                <p className="text-xs mt-0.5" style={{ color: engScoreInfo.color }}>Skor keterlibatan: {engScore}/10</p>
+                {/* Skor selalu dimulai dari 5/10, sementara chip di bawah
+                    mencantumkan +2/+1/−1 — tanpa penjelasan ini aritmetikanya
+                    tidak bisa diprediksi pengguna (audit C-10). */}
+                <p className="text-xs mt-1" style={{ color: engScoreInfo.color }}>
+                  Dasar 5/10: tiap indikator di bawah menambah atau mengurangi.
+                </p>
               </div>
             </div>
           )}
@@ -1080,20 +1399,21 @@ export default function CaptureSession() {
             {showBehavior && (
               <div className="p-4 space-y-4 bg-white">
                 <div>
-                  <p className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-2">✨ Positif</p>
+                  <p className="text-xs font-semibold text-green-700 uppercase tracking-wide mb-2">✨ Perilaku Positif</p>
                   <div className="flex flex-wrap gap-2">
                     {BEHAVIOR_TAGS.filter((t) => t.valence === "positive").map((tag) => (
-                      <div key={tag.id} className="flex items-center">
+                      <div key={tag.id} className="flex items-center gap-1">
                         <button type="button"
                           onClick={() => setBehaviorTags((prev) => prev.includes(tag.id) ? prev.filter((x) => x !== tag.id) : [...prev, tag.id])}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-l-full text-xs font-medium border-y border-l transition-all ${
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
                             behaviorTags.includes(tag.id) ? "bg-green-500 text-white border-green-500" : "bg-white text-gray-600 border-gray-200 hover:border-green-300"}`}>
                           <span>{tag.icon}</span> {tag.label}
                         </button>
                         <button type="button"
+                          aria-label={`Info ${tag.label}`}
                           onClick={(e) => { e.stopPropagation(); setActiveTooltip({ tag, type: "behavior" }); }}
-                          className={`px-1.5 py-1.5 rounded-r-full text-xs border-y border-r transition-all ${
-                            behaviorTags.includes(tag.id) ? "bg-green-400 text-white border-green-400" : "bg-gray-50 text-gray-500 border-gray-200 hover:text-green-500"}`}>
+                          className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs border transition-all ${
+                            behaviorTags.includes(tag.id) ? "bg-green-600 text-white border-green-600" : "bg-white text-gray-600 border-gray-200 hover:text-green-700 hover:border-green-300"}`}>
                           ⓘ
                         </button>
                       </div>
@@ -1101,20 +1421,21 @@ export default function CaptureSession() {
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">📊 Netral</p>
+                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">📊 Perilaku Netral</p>
                   <div className="flex flex-wrap gap-2">
                     {BEHAVIOR_TAGS.filter((t) => t.valence === "neutral").map((tag) => (
-                      <div key={tag.id} className="flex items-center">
+                      <div key={tag.id} className="flex items-center gap-1">
                         <button type="button"
                           onClick={() => setBehaviorTags((prev) => prev.includes(tag.id) ? prev.filter((x) => x !== tag.id) : [...prev, tag.id])}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-l-full text-xs font-medium border-y border-l transition-all ${
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
                             behaviorTags.includes(tag.id) ? "bg-gray-600 text-white border-gray-600" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"}`}>
                           <span>{tag.icon}</span> {tag.label}
                         </button>
                         <button type="button"
+                          aria-label={`Info ${tag.label}`}
                           onClick={(e) => { e.stopPropagation(); setActiveTooltip({ tag, type: "behavior" }); }}
-                          className={`px-1.5 py-1.5 rounded-r-full text-xs border-y border-r transition-all ${
-                            behaviorTags.includes(tag.id) ? "bg-gray-500 text-white border-gray-500" : "bg-gray-50 text-gray-500 border-gray-200 hover:text-gray-500"}`}>
+                          className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs border transition-all ${
+                            behaviorTags.includes(tag.id) ? "bg-gray-700 text-white border-gray-700" : "bg-white text-gray-600 border-gray-200 hover:text-gray-800 hover:border-gray-400"}`}>
                           ⓘ
                         </button>
                       </div>
@@ -1122,20 +1443,21 @@ export default function CaptureSession() {
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide mb-2">⚠️ Negatif lanjutan</p>
+                  <p className="text-xs font-semibold text-orange-700 uppercase tracking-wide mb-2">⚠️ Perilaku Negatif</p>
                   <div className="flex flex-wrap gap-2">
                     {BEHAVIOR_TAGS.filter((t) => t.valence === "negative").map((tag) => (
-                      <div key={tag.id} className="flex items-center">
+                      <div key={tag.id} className="flex items-center gap-1">
                         <button type="button"
                           onClick={() => setBehaviorTags((prev) => prev.includes(tag.id) ? prev.filter((x) => x !== tag.id) : [...prev, tag.id])}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-l-full text-xs font-medium border-y border-l transition-all ${
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
                             behaviorTags.includes(tag.id) ? "bg-orange-500 text-white border-orange-500" : "bg-white text-gray-600 border-gray-200 hover:border-orange-300"}`}>
                           <span>{tag.icon}</span> {tag.label}
                         </button>
                         <button type="button"
+                          aria-label={`Info ${tag.label}`}
                           onClick={(e) => { e.stopPropagation(); setActiveTooltip({ tag, type: "behavior" }); }}
-                          className={`px-1.5 py-1.5 rounded-r-full text-xs border-y border-r transition-all ${
-                            behaviorTags.includes(tag.id) ? "bg-orange-400 text-white border-orange-400" : "bg-gray-50 text-gray-500 border-gray-200 hover:text-orange-500"}`}>
+                          className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs border transition-all ${
+                            behaviorTags.includes(tag.id) ? "bg-orange-600 text-white border-orange-600" : "bg-white text-gray-600 border-gray-200 hover:text-orange-700 hover:border-orange-300"}`}>
                           ⓘ
                         </button>
                       </div>
@@ -1154,39 +1476,36 @@ export default function CaptureSession() {
       {currentStep === 4 && (
         <div className="px-4 space-y-4">
 
-          {/* Quick Presets */}
+          {/* Quick Presets — isi cepat kualitas respons (tidak menyentuh kolom
+              "Fokus perbaikan"; hapus otomatis isian pengguna dihapus di sini
+              karena itu kehilangan data tanpa peringatan — audit C-04) */}
           <div>
-            <label className="label">⚡ Cepat <span className="text-gray-500 font-normal text-xs">(isi 1 detik)</span></label>
+            <label className="label">⚡ Isi cepat (respons) <span className="text-gray-500 font-normal text-xs">(pilih satu)</span></label>
             <div className="flex flex-wrap gap-2">
               <button type="button"
-                onClick={() => {
-                  setResponseTag("correct-independent"); setNeedsWork("");
-                }}
+                onClick={() => setResponseTag("correct-independent")}
                 className="px-3 py-2 rounded-full text-sm font-semibold bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors">
                 ⭐ Lancar
               </button>
               <button type="button"
-                onClick={() => {
-                  setResponseTag("partial-correct"); setNeedsWork("");
-                }}
+                onClick={() => setResponseTag("partial-correct")}
                 className="px-3 py-2 rounded-full text-sm font-semibold bg-yellow-50 text-yellow-700 border border-yellow-200 hover:bg-yellow-100 transition-colors">
                 🟡 Butuh Latihan
               </button>
               <button type="button"
-                onClick={() => {
-                  setResponseTag("misconception"); setNeedsWork("");
-                }}
+                onClick={() => setResponseTag("misconception")}
                 className="px-3 py-2 rounded-full text-sm font-semibold bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 transition-colors">
                 🔴 Miskonsepsi
               </button>
               <button type="button"
-                onClick={() => {
-                  setResponseTag(undefined); setNeedsWork("");
-                }}
+                onClick={() => { setResponseTag(undefined); setNeedsWork(""); }}
                 className="px-3 py-2 rounded-full text-sm font-semibold bg-white text-gray-500 border border-gray-200 hover:bg-gray-50 transition-colors">
-                🔄 Reset
+                🔄 Kosongkan
               </button>
             </div>
+            <p className="text-xs text-gray-500 mt-2">
+              “Kosongkan” menghapus pilihan respons sekaligus isi kolom Fokus perbaikan.
+            </p>
           </div>
 
           {/* Kualitas Respons Akademik */}
@@ -1237,7 +1556,7 @@ export default function CaptureSession() {
 
               {/* ── Perlu Perhatian ── */}
               <div>
-                <p className="text-xs font-semibold text-red-600 uppercase tracking-wide mb-1.5">⚠️ Perlu Perhatian</p>
+                <p className="text-xs font-semibold text-red-700 uppercase tracking-wide mb-1.5">⚠️ Respons Perlu Perhatian</p>
                 <div className="flex flex-wrap gap-1.5">
                   {RESPONSE_TAGS.filter(t => ["misconception","prerequisite-gap"].includes(t.id)).map((tag) => {
                     return (
@@ -1273,9 +1592,9 @@ export default function CaptureSession() {
             </div>
           </div>
 
-          {/* Perlu perhatian */}
+          {/* Fokus perbaikan — jadi bahan follow-up saat nilai akhir keluar */}
           <div>
-            <label htmlFor="cs-perhatian" className="label">⚠️ Perlu Perhatian Lebih</label>
+            <label htmlFor="cs-perhatian" className="label">🎯 Fokus Perbaikan Berikutnya</label>
             <input id="cs-perhatian" className="input" maxLength={150} placeholder="mis. ketelitian angka, time management" value={needsWork}
               onChange={(e) => setNeedsWork(e.target.value)} />
           </div>
@@ -1289,9 +1608,19 @@ export default function CaptureSession() {
       {currentStep === 5 && (
         <div className="px-4 space-y-4">
 
-          {/* Context summary — what AI will use */}
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-3.5 space-y-1.5">
-            <p className="text-xs font-bold text-blue-500 uppercase tracking-wide mb-1.5">📊 Konteks yang dipakai AI</p>
+          {/* Context summary — dilipat agar kolom wajib tidak tertimbun (C-16) */}
+          <div className="bg-blue-50 border border-blue-100 rounded-xl overflow-hidden">
+            <button type="button" onClick={() => setShowAiContext((v) => !v)}
+              aria-expanded={showAiContext}
+              className="flex w-full items-center justify-between gap-2 px-3.5 py-3 text-left">
+              <span className="text-xs font-bold text-blue-700 uppercase tracking-wide">📊 Konteks yang dipakai AI</span>
+              <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold text-blue-700">
+                {showAiContext ? "Sembunyikan" : "Lihat"}
+                <span aria-hidden="true">{showAiContext ? "▲" : "▼"}</span>
+              </span>
+            </button>
+            {showAiContext && (
+            <div className="px-3.5 pb-3 space-y-1.5">
             {(subjects.length > 0 || studentSubjects.length > 0) && (
               <p className="text-xs text-gray-600">
                 <span className="font-semibold">📚 Mapel:</span> {(subjects.length ? subjects : studentSubjects).join(", ")}
@@ -1344,26 +1673,21 @@ export default function CaptureSession() {
             )}
             {needsWork && (
               <p className="text-xs text-gray-600">
-                <span className="font-semibold">⚠️ Perlu perhatian:</span> {needsWork}
+                <span className="font-semibold">🎯 Fokus perbaikan:</span> {needsWork}
               </p>
             )}
             {briefLastSession && (
-              <p className="text-xs text-gray-500 italic">
-                <span className="font-semibold not-italic text-gray-600">🔁 Sesi lalu:</span>{" "}
+              <p className="text-xs text-gray-600 italic">
+                <span className="font-semibold not-italic text-gray-700">🔁 Sesi lalu:</span>{" "}
                 "{briefLastSession.shortNote.length > 70 ? briefLastSession.shortNote.slice(0, 70) + "…" : briefLastSession.shortNote}"
               </p>
             )}
+            </div>
+            )}
           </div>
 
-          {/* Prediksi nilai — jadi bahan follow-up saat nilai akhir keluar */}
-          <div>
-            <label htmlFor="cs-prediksi" className="label">📈 Prediksi Nilai <span className="text-gray-500 font-normal text-xs">(opsional — mis. 6, 7, A, B)</span></label>
-            <input id="cs-prediksi" className="input" maxLength={10} value={predictedGrade}
-              onChange={(e) => setPredictedGrade(e.target.value)}
-              placeholder="Prediksi nilai akhir murid untuk materi ini" />
-          </div>
-
-          {/* Catatan singkat */}
+          {/* Catatan singkat — kolom WAJIB, diletakkan sebelum kolom opsional
+              "Prediksi Nilai" agar tidak tertimbun (audit C-16) */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <label htmlFor="cs-catatan" className="label">✏️ Catatan Singkat <span className="text-red-400">*</span></label>
@@ -1396,9 +1720,9 @@ export default function CaptureSession() {
                     </button>
                   ))}
                   {needsWork && (
-                    <button type="button" onClick={() => appendNoteChip(`Perlu perhatian: ${needsWork}.`)}
-                      className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-full px-2.5 py-1 hover:bg-red-100 transition-colors">
-                      ⚠️ Perlu perhatian
+                    <button type="button" onClick={() => appendNoteChip(`Fokus perbaikan: ${needsWork}.`)}
+                      className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-full px-2.5 py-1 hover:bg-red-100 transition-colors">
+                      🎯 Fokus perbaikan
                     </button>
                   )}
                 </div>
@@ -1461,6 +1785,14 @@ export default function CaptureSession() {
               </div>
             )}
           </div>
+
+          {/* Prediksi nilai — jadi bahan follow-up saat nilai akhir keluar */}
+          <div>
+            <label htmlFor="cs-prediksi" className="label">📈 Prediksi Nilai <span className="text-gray-500 font-normal text-xs">(opsional — mis. 6, 7, A, B)</span></label>
+            <input id="cs-prediksi" className="input" maxLength={10} value={predictedGrade}
+              onChange={(e) => setPredictedGrade(e.target.value)}
+              placeholder="Prediksi nilai akhir murid untuk materi ini" />
+          </div>
         </div>
       )}
 
@@ -1473,20 +1805,11 @@ export default function CaptureSession() {
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-2.5">
             <span className="text-amber-500 text-xl">⏭️</span>
             <div className="flex-1">
-              <p className="text-xs font-bold text-amber-700">Foto & tanda tangan bisa diisi nanti</p>
-              <p className="text-xs text-amber-600 mt-0.5">Lengkapi dari profil murid setelah sesi. Simpan dulu detailnya sekarang.</p>
+              <p className="text-xs font-bold text-amber-800">Foto & tanda tangan bisa diisi nanti</p>
+              <p className="text-xs text-amber-800 mt-0.5">Lengkapi dari profil murid setelah sesi. Simpan dulu detailnya sekarang.</p>
             </div>
           </div>
-          <button type="button" onClick={handleSave}
-            className="w-full py-2.5 rounded-xl border border-gray-300 bg-white text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-colors">
-            ⏭️ Nanti Saja — Simpan Tanpa Foto
-          </button>
-
-          <div className="flex items-center gap-3 my-1">
-            <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-xs text-gray-500 font-medium">atau isi sekarang</span>
-            <div className="flex-1 h-px bg-gray-200" />
-          </div>
+          <p className="text-xs font-semibold text-gray-600">Isi sekarang (opsional)</p>
 
           {/* Kamera — capture langsung */}
           <input ref={cameraRef} type="file" accept="image/*" capture="environment"
@@ -1578,9 +1901,9 @@ export default function CaptureSession() {
       {/* ══════════════════════════════════════════
           FIXED NAVIGATION BAR
           ══════════════════════════════════════════ */}
-      <div className="fixed bottom-[calc(4rem+var(--safe-bottom))] left-0 right-0 z-50">
-        <div className="bg-white/95 backdrop-blur border-t border-gray-100 shadow-xl px-4 py-3">
-          <div className="flex items-center gap-2 max-w-md mx-auto">
+      <div className="fixed bottom-[calc(var(--bottom-nav-h)+var(--safe-bottom))] left-0 right-0 z-50 h-[4.25rem]">
+        <div className="h-full bg-white/95 backdrop-blur border-t border-gray-100 shadow-xl px-4 py-3">
+          <div className="flex items-center gap-2 max-w-md mx-auto h-full">
             {currentStep > 1 ? (
               <button onClick={goBack}
                 className="flex items-center gap-1 px-4 py-2.5 rounded-xl bg-gray-100 text-gray-600 font-semibold text-sm hover:bg-gray-200 transition-colors flex-shrink-0">
@@ -1589,9 +1912,9 @@ export default function CaptureSession() {
             ) : (
               <div className="w-2 flex-shrink-0" />
             )}
-            {stepMeta.optional && (
+            {stepMeta.optional && currentStep !== 6 && (
               <button onClick={skipStep}
-                className="flex items-center gap-1 px-4 py-2.5 rounded-xl border border-gray-300 text-gray-500 font-semibold text-sm hover:bg-gray-50 transition-colors flex-shrink-0">
+                className="flex items-center gap-1 px-4 py-2.5 rounded-xl border border-gray-300 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-colors flex-shrink-0">
                 Lewati
               </button>
             )}
@@ -1608,9 +1931,12 @@ export default function CaptureSession() {
           TOOLTIP OVERLAY
           ══════════════════════════════════════════ */}
       {activeTooltip && (
-        <div role="dialog" aria-modal="true" aria-label="Info tag" className={`fixed inset-0 ${Z.tooltip}`} onClick={() => setActiveTooltip(null)}>
-          <div className="absolute bottom-[calc(6rem+var(--safe-bottom))] left-4 right-4 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden"
-            onClick={(e) => e.stopPropagation()}>
+        <Modal
+          ariaLabel="Info tag"
+          onClose={() => setActiveTooltip(null)}
+          showCloseButton={false}
+          panelClassName="relative bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[85vh] overflow-y-auto overscroll-contain outline-none"
+        >
             <div className={`px-4 py-3 flex items-center gap-3 ${
               activeTooltip.type === "response" ? "bg-blue-50"
               : (activeTooltip.tag as BehaviorTag).valence === "positive" ? "bg-green-50"
@@ -1623,7 +1949,8 @@ export default function CaptureSession() {
                   {activeTooltip.type === "behavior" ? "Observasi perilaku" : "Kualitas respons akademik"}
                 </p>
               </div>
-              <button onClick={() => setActiveTooltip(null)} className="text-gray-500 hover:text-gray-600 text-xl w-7 h-7 flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+              <button onClick={() => setActiveTooltip(null)} aria-label="Tutup info"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-600 hover:bg-black/5 hover:text-gray-800 transition-colors"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
             <div className="px-4 py-3 space-y-3">
               <p className="text-sm text-gray-700 leading-relaxed">{activeTooltip.tag.description}</p>
@@ -1638,16 +1965,19 @@ export default function CaptureSession() {
                   : (activeTooltip.tag as ResponseTag).teacherNote}
               </div>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* ══════════════════════════════════════════
           SUBJECT PICKER MODAL
           ══════════════════════════════════════════ */}
       {showIBPicker && (
-        <div role="dialog" aria-modal="true" aria-label="Pilih Mata Pelajaran" className={`fixed inset-0 bg-black/50 ${Z.picker} flex items-end justify-center`} onClick={() => setShowIBPicker(false)}>
-          <div className="bg-white w-full max-w-md rounded-t-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <Modal
+          ariaLabel="Pilih Mata Pelajaran"
+          onClose={() => setShowIBPicker(false)}
+          showCloseButton={false}
+          panelClassName="relative bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[88vh] overflow-y-auto overscroll-contain outline-none"
+        >
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div>
                 <h3 className="font-bold text-lg">Pilih Mata Pelajaran</h3>
@@ -1767,17 +2097,20 @@ export default function CaptureSession() {
                 Selesai
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* ══════════════════════════════════════════
           CLOSE-OUT LAPORAN SESI
           ══════════════════════════════════════════ */}
       {showCloseOut && coSessionData && currentStudent && (
-        <div role="dialog" aria-modal="true" aria-label="Laporan sesi" className={`fixed inset-0 bg-black/60 ${Z.picker} flex items-center justify-center p-3 overflow-y-auto`}>
-          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden my-auto"
-            style={{ fontFamily: "'Nunito', sans-serif" }}>
+        <Modal
+          ariaLabel="Laporan sesi"
+          onClose={closeReport}
+          showCloseButton={false}
+          panelClassName="relative bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[92vh] overflow-y-auto overscroll-contain outline-none"
+        >
+          <div style={{ fontFamily: "'Nunito', sans-serif" }}>
 
             {/* ── REPORT HEADER ── */}
             <div className="relative overflow-hidden" style={{ background: "linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%)" }}>
@@ -1787,6 +2120,12 @@ export default function CaptureSession() {
               <div className="absolute top-4 right-16 w-8 h-8 rounded-full bg-white opacity-10" />
 
               <div className="relative px-5 pt-6 pb-5">
+                <button type="button" onClick={closeReport} aria-label="Tutup laporan"
+                  className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/25 text-white backdrop-blur-sm hover:bg-white/40 transition-colors">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </button>
                 <div className="flex items-center gap-4 mb-4">
                   {/* Avatar */}
                   <div className="w-16 h-16 rounded-2xl bg-white/25 backdrop-blur-sm flex items-center justify-center shadow-lg border-2 border-white/30">
@@ -1823,16 +2162,16 @@ export default function CaptureSession() {
             </div>
 
             {/* ── REPORT BODY ── */}
-            <div className="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
+            <div className="p-5 space-y-4">
 
               {/* Catatan sesi */}
               <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100">
-                <p className="text-xs font-black text-blue-400 uppercase tracking-widest mb-2">📝 Catatan Sesi</p>
+                <p className="text-xs font-black text-blue-700 uppercase tracking-widest mb-2">📝 Catatan Sesi</p>
                 <p className="text-sm text-gray-700 leading-relaxed font-semibold">{coSessionData.shortNote}</p>
                 {coSessionData.topic && (
                   <div className="flex items-center gap-1.5 mt-2">
-                    <span className="text-blue-400 text-xs">💡</span>
-                    <p className="text-xs text-blue-600 font-semibold">Topik: {coSessionData.topic}</p>
+                    <span className="text-blue-600 text-xs">💡</span>
+                    <p className="text-xs text-blue-700 font-semibold">Topik: {coSessionData.topic}</p>
                   </div>
                 )}
               </div>
@@ -1854,7 +2193,7 @@ export default function CaptureSession() {
                     </div>
                     <div className="flex-1">
                       <p className="font-black text-base" style={{ color: engScoreInfo.color }}>{engScoreInfo.text}</p>
-                      <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                      <p className="text-xs text-gray-700 mt-1 leading-relaxed">
                         {generateEngagementNarrative(
                           { prepared: engPrepared, focused: engFocused, activeAsking: engActiveAsking,
                             quickLearner: engQuickLearner, drowsy: engDrowsy, playingPhone: engPhone,
@@ -1932,6 +2271,12 @@ export default function CaptureSession() {
                 </div>
               )}
 
+              {/* Perbaiki catatan tanpa membuat sesi kedua (audit C-05) */}
+              <button type="button" onClick={handleFixNote}
+                className="w-full py-3 rounded-2xl border border-gray-300 bg-white text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors">
+                ✏️ Perbaiki catatan sesi
+              </button>
+
               {/* Done button */}
               <button onClick={handleCloseOutDone} disabled={coSaving}
                 className="w-full py-4 rounded-2xl font-black text-base text-white transition-all disabled:opacity-50 shadow-lg"
@@ -1940,7 +2285,7 @@ export default function CaptureSession() {
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Poles WA AI modal */}
@@ -1968,10 +2313,11 @@ export default function CaptureSession() {
         const currentDraft = shortNote.trim() || undefined;
         const est = estimateDraftNoteCost(activeSubjects, topic || undefined, currentDraft);
         return (
-          <div role="dialog" aria-modal="true" aria-label="Draft Catatan dengan AI" className={`fixed inset-0 bg-black/50 ${Z.dialog} flex items-end justify-center`}
-            onClick={() => setShowAiCostModal(false)}>
-            <div className="bg-white w-full max-w-md rounded-t-2xl p-5 pb-8 space-y-4 max-h-[90vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}>
+          <Modal
+            ariaLabel="Draft Catatan dengan AI"
+            onClose={() => setShowAiCostModal(false)}
+            panelClassName="relative bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 pb-8 space-y-4 max-h-[92vh] overflow-y-auto overscroll-contain outline-none"
+          >
               <h3 className="font-bold text-base">✨ Draft Catatan dengan AI</h3>
               <div className="bg-indigo-50 rounded-xl p-3 space-y-1">
                 <p className="text-sm font-semibold text-indigo-700">Estimasi biaya DeepSeek</p>
@@ -2063,8 +2409,7 @@ export default function CaptureSession() {
                   OK, Generate
                 </button>
               </div>
-            </div>
-          </div>
+          </Modal>
         );
       })()}
     </div>

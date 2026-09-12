@@ -102,8 +102,7 @@ function Layout() {
   }, []);
 
   useEffect(() => {
-    appData().then((r) => r.initSettings()).catch((e: unknown) => { console.warn("initSettings failed:", e); });
-    // Minta penyimpanan persisten (anti-eviction). persist() sering false sampai PWA
+    appData().then((r) => r.initSettings()).catch((e: unknown) => { console.warn("initSettings failed:", e); });    // Minta penyimpanan persisten (anti-eviction). persist() sering false sampai PWA
     // di-install — itu normal, jadi JANGAN warn di situ; cukup peringatkan kalau
     // penyimpanan sudah mendekati penuh.
     navigator.storage?.persist?.();
@@ -143,6 +142,19 @@ function Layout() {
     })().catch((e: unknown) => { console.warn("auto-backup/silent relay failed:", e); });
   }, [checkAutoBackup]);
 
+  // Ukur tinggi banner atas yang mengambang → `.app-shell` memberi ruang
+  // setinggi itu sehingga judul halaman tidak tertutup (audit C-12).
+  useEffect(() => {
+    const root = document.documentElement;
+    const el = document.querySelector<HTMLElement>("[data-top-banner]");
+    if (!el) { root.style.removeProperty("--top-banner-h"); return; }
+    const apply = () => root.style.setProperty("--top-banner-h", `${el.offsetHeight}px`);
+    apply();
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(apply) : null;
+    observer?.observe(el);
+    return () => { observer?.disconnect(); root.style.removeProperty("--top-banner-h"); };
+  });
+
   return (
     <ErrorBoundary>
     <ToastProvider>
@@ -152,7 +164,7 @@ function Layout() {
     <div className="max-w-md mx-auto min-h-screen app-shell">
       {/* Offline banner */}
       {offline && (
-        <div className={`fixed top-0 inset-x-0 ${Z.toast} px-4 pt-[max(env(safe-area-inset-top),0.5rem)]`}>
+        <div data-top-banner className={`fixed top-0 inset-x-0 ${Z.toast} px-4 pt-[max(env(safe-area-inset-top),0.5rem)]`}>
           <div className="max-w-md mx-auto bg-slate-900 text-white text-xs font-semibold px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg dark:bg-slate-800">
             <OfflineIcon size={16} className="shrink-0" /> Offline — data tetap aman, perubahan disimpan lokal
           </div>
@@ -161,7 +173,7 @@ function Layout() {
 
       {/* Peringatan penyimpanan penuh — risiko kehilangan data (persistent, bisa ditutup) */}
       {storageWarn && (
-        <div className={`fixed top-0 inset-x-0 ${Z.bannerTop} px-4 pt-[max(env(safe-area-inset-top),0.5rem)]`}>
+        <div data-top-banner className={`fixed top-0 inset-x-0 ${Z.bannerTop} px-4 pt-[max(env(safe-area-inset-top),0.5rem)]`}>
           <div className="max-w-md mx-auto bg-red-600 text-white text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-lg">
             <WarningIcon size={16} className="shrink-0" />
             <span className="flex-1">Penyimpanan hampir penuh — ekspor backup lalu hapus data/foto lama agar data baru tak gagal tersimpan.</span>
@@ -172,7 +184,7 @@ function Layout() {
 
       {/* Peringatan backup menua — risiko kehilangan data bila HP hilang/rusak */}
       {staleBackup && !storageWarn && (
-        <div className={`fixed top-0 inset-x-0 ${Z.banner} px-4 pt-[max(env(safe-area-inset-top),0.5rem)]`}>
+        <div data-top-banner className={`fixed top-0 inset-x-0 ${Z.banner} px-4 pt-[max(env(safe-area-inset-top),0.5rem)]`}>
           <div className="max-w-md mx-auto bg-red-600 text-white text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-lg">
             <ShieldIcon size={16} className="shrink-0" />
             <span className="flex-1">
@@ -188,17 +200,20 @@ function Layout() {
 
       {/* Flash hasil aksi (mis. backup Drive) */}
       {flash && (
-        <div className={`fixed inset-x-0 ${Z.flash} px-4`} style={{ bottom: "calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 0.75rem)" }}>
+        <div className={`fixed inset-x-0 ${Z.flash} px-4`} style={{ bottom: "calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 0.75rem + var(--task-bar-h, 0px))" }}>
           <div className="max-w-md mx-auto bg-gray-800 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-lg text-center" role="status" aria-live="polite">{flash}</div>
         </div>
       )}
 
-      {/* Auto backup prompt — di BAWAH (atas bottom-nav) agar tidak menutupi
-          header/form halaman (di /report sempat menutup selector murid+bulan).
+      {/* Auto backup prompt — di BAWAH (atas bottom-nav), dan DI ATAS bar aksi
+          tugas bila layar memilikinya (var --task-bar-h) agar tombol "Lanjut →"
+          di wizard Catat Sesi tidak pernah tertutup (audit C-01).
+          Hanya satu pengingat backup tampil pada satu waktu (audit C-12):
+          banner "backup menua"/penyimpanan menang atas nag mingguan.
           z-[55]: di atas nav (z-50) tapi DI BAWAH semua modal (Modal z-60,
           Changelog z-90) — nag tidak boleh menghalangi tombol modal. */}
-      {backupPrompt && (
-        <div className={`fixed inset-x-0 ${Z.nag} px-4`} style={{ bottom: "calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 0.75rem)" }}>
+      {backupPrompt && !staleBackup && !storageWarn && (
+        <div className={`fixed inset-x-0 ${Z.nag} px-4`} style={{ bottom: "calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 0.75rem + var(--task-bar-h, 0px))" }}>
           <div className="max-w-md mx-auto bg-amber-50 border border-amber-300 rounded-2xl px-4 py-3 shadow-xl flex items-center justify-between gap-3">
             <div className="flex items-start gap-2">
               <BackupIcon size={18} className="mt-0.5 shrink-0 text-amber-700" />

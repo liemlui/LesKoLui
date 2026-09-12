@@ -97,12 +97,18 @@ export function averageEngagement(
   return Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length);
 }
 
+/**
+ * Label + warna status skor. Semua pasangan `color`/`bg` WAJIB memenuhi kontras
+ * WCAG AA 4,5:1 (dijaga `src/__tests__/engagementContrast.test.ts`) — versi lama
+ * gagal di kelima tingkat (2,86–4,24:1) dan yang terburuk justru status paling
+ * sering muncul ("Cukup", karena skor dasar perhitungan = 5). Audit C-08.
+ */
 export function scoreLabel(score: number): { text: string; color: string; bg: string } {
-  if (score >= 9) return { text: "Sangat Baik",     color: "#059669", bg: "#D1FAE5" };
-  if (score >= 7) return { text: "Baik",             color: "#2563EB", bg: "#DBEAFE" };
-  if (score >= 5) return { text: "Cukup",            color: "#D97706", bg: "#FEF3C7" };
-  if (score >= 3) return { text: "Kurang Fokus",     color: "#EA580C", bg: "#FFEDD5" };
-  return             { text: "Perlu Perhatian",  color: "#DC2626", bg: "#FEE2E2" };
+  if (score >= 9) return { text: "Sangat Baik",     color: "#065F46", bg: "#D1FAE5" };
+  if (score >= 7) return { text: "Baik",            color: "#1D4ED8", bg: "#DBEAFE" };
+  if (score >= 5) return { text: "Cukup",           color: "#B45309", bg: "#FEF3C7" };
+  if (score >= 3) return { text: "Kurang Fokus",    color: "#C2410C", bg: "#FFEDD5" };
+  return             { text: "Perlu Perhatian",  color: "#B91C1C", bg: "#FEE2E2" };
 }
 
 export function scoreBarColor(score: number): string {
