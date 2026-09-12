@@ -74,7 +74,7 @@ backup akan jalan **otomatis tanpa popup** saat app dibuka & sudah lewat 7 hari.
   non-browser bisa membaca respons).
 - `refresh_token` & `client_secret` **hanya** di server (env), tak pernah ke klien.
 - Secret relay tersimpan di perangkat (localStorage) — sama threat-model solo
-  (pastikan layar HP terkunci). Lihat waiver H-2 di `AUDIT-CHECKLIST.md`.
+  (pastikan layar HP terkunci). Lihat waiver H-2 di `arsip/AUDIT-CHECKLIST.md`.
 
 ## Fase 2 — true background (app tertutup)
 Service Worker `periodicSync`: SW bangun berkala, baca IndexedDB, ambil token via relay,

@@ -1,7 +1,7 @@
 # Audit Redundansi & Penataan Informasi — Les Ko Lui
 
 > **Tanggal audit:** 2026-09-05
-> **Fokus:** **redundansi informasi**, **arsitektur informasi**, dan **konsistensi penamaan** yang di-show-off ke user pada layar utama. **Bukan** pengulangan `docs/UI-UX-AUDIT-2026-09-04.md` (fokus interaksi/a11y/design-system) maupun `docs/UI-UX-ANALYSIS.md` (fokus data-viz/chart).
+> **Fokus:** **redundansi informasi**, **arsitektur informasi**, dan **konsistensi penamaan** yang di-show-off ke user pada layar utama. **Bukan** pengulangan `arsip/UI-UX-AUDIT-2026-09-04.md` (fokus interaksi/a11y/design-system) maupun `arsip/UI-UX-ANALYSIS.md` (fokus data-viz/chart).
 > **Metode:** inspeksi kode statis atas 8 layar utama (`home/*`, `Students`, `StudentDetail`, `CaptureSession`, `MonthlyReport`, `Payments/*`, `CatatanBelajar`, `Settings`) + komponen shared + navigasi.
 > **Status:** ✅ **dieksekusi** — Fase 0–3 selesai dan terverifikasi pada 2026-09-05; verifikasi ulang menyeluruh terhadap kode aktual dilakukan pada 2026-09-12 (R1–R17 terbukti di kode, lihat catatan verifikasi di bagian bawah).
 
@@ -127,7 +127,7 @@ Legend severitas: 🔴 Kritis · 🟠 Tinggi · 🟡 Sedang.
 ## Fase 1 — Hapus `/catatan` (Opsi A, disetujui user)
 6. Hapus `screens\CatatanBelajar.tsx`; hapus route `/catatan` + import `Tugas` di `App.tsx`; bersihkan `ROUTE_LABELS` ("catatan", "tugas") di `Breadcrumb.tsx`.
 7. Pindahkan `<StudyNoteCard>` ke tab "Ringkasan" StudentDetail; hapus dari tab "sesi".
-8. Update `e2e\screenshot-katalog.spec.ts` (hapus step `06-catatan`) dan referensi `PANDUAN-PENUNTASAN-CATAT-SESI.md` bila ada.
+8. Update `e2e\screenshot-katalog.spec.ts` (hapus step `06-catatan`) dan referensi `arsip/PANDUAN-PENUNTASAN-CATAT-SESI.md` bila ada.
 
 ## Fase 2 — Keuangan
 9. `TagihanTab`: hapus ProgressBar "Kolektibilitas" + badge `%` header; sisakan `ActivityRing`. Ganti judul "Pusat Koleksi" → "Penagihan".

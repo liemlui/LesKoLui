@@ -3,10 +3,14 @@
 > **Tanggal:** 2026-09-11 · **Target:** `les-ko-lui` v1.71.0 (HEAD `3f27a30`)
 > **Tujuan:** panduan eksekusi mandiri — semua fase audit UI/UX visual + perbaikan,
 > dieksekusi oleh AI/engineer tanpa konteks tambahan.
-> **Kenapa:** audit UI/UX sebelumnya (`docs/UI-UX-ANALYSIS.md`,
-> `docs/UI-UX-AUDIT-2026-09-04.md`, `docs/UI-UX-REDUNDANSI-AUDIT-2026-09-05.md`)
+> **Kenapa:** audit UI/UX sebelumnya (`arsip/UI-UX-ANALYSIS.md`,
+> `arsip/UI-UX-AUDIT-2026-09-04.md`, `arsip/UI-UX-REDUNDANSI-AUDIT-2026-09-05.md`)
 > statis + screenshot catalog basi (v1.51.x). Playbook ini: regenerasi katalog →
 > audit visual berdasarkan gambar → perbaikan prioritas → guard rail.
+> **Status:** prosedur ini masih berlaku (dapat diulang untuk audit visual berikutnya). Penerapan
+> 2026-09-11 sudah ditutup dan dokumen hasilnya diarsipkan di `arsip/UI-UX-AUDIT-VISUAL-2026-09-11.md`.
+> Audit baru yang dihasilkan playbook ini juga diarsipkan ke `arsip/` setelah seluruh temuannya
+> ditutup — lihat `README.md` (aturan pemeliharaan).
 
 ---
 
@@ -302,7 +306,7 @@ Remove-Item test-results\audit-*.png
 - Buka 2-3 file sebagai gambar (mis. `audit/mobile/01-home-dashboard.png`, `audit/mobile-dark/07-settings-top.png`):
   - Home: 5 item nav, ikon dompet, tanpa strip versi.
   - Dark: bila card masih putih → bukti isu P1-a (jangan fix di Fase 0; catat di dokumen audit).
-- Registrasi hasil → `docs/UI-UX-AUDIT-VISUAL-2026-09-11.md` (template §4.2).
+- Registrasi hasil → `arsip/UI-UX-AUDIT-VISUAL-2026-09-11.md` (template §4.2).
 ## 4. FASE 1 — Audit Visual (pakai kemampuan gambar)
 
 ### 4.1 Cara membaca
@@ -312,7 +316,7 @@ Remove-Item test-results\audit-*.png
 - Checklist per gambar: hierarchy · spacing · kontras (teks ≥4.5:1, besar ≥3:1 — WCAG 1.4.3/1.4.11) · alignment · state (aktif/disabled/empty/error) · tap-target ≥44px · safe-area iOS · tint teks.
 - Temuan → tabel template; klasifikasi severitas; dedup daftar §2.3.
 
-### 4.2 Template dokumen hasil: `docs/UI-UX-AUDIT-VISUAL-2026-09-11.md`
+### 4.2 Template dokumen hasil: `arsip/UI-UX-AUDIT-VISUAL-2026-09-11.md`
 
 ```md
 # UI/UX Visual Audit (screenshot) — Les Ko Lui v1.71.0
@@ -389,7 +393,7 @@ Klasifikasi: P1 (kritis usabiltas/kontras/dark) · P2 (wayfinding/konsistens/iko
 | Fase | Verifikasi | DoD |
 |---|---|---|
 | 0 | audit/ ≥60 PNG; lint/test/build hijau; katalog basi dihapus | F0 ✓ |
-| 1 | `docs/UI-UX-AUDIT-VISUAL-2026-09-11.md` dengan temuan template | F1 ✓ |
+| 1 | `arsip/UI-UX-AUDIT-VISUAL-2026-09-11.md` dengan temuan template | F1 ✓ |
 | 2 | lint 0/0 · test hijau · build OK; dark deaktivasi | F2 ✓ |
 | 3 | lint/test/build hijau + e2e smoke green | F3 ✓ |
 
@@ -411,7 +415,7 @@ Rollback: `git checkout -- <file>` · `git stash pop` bila perlu.
 _Tandai checkbox sesuai progres; set hasil verifikasi di baris paling atas._
 
 - [x] Fase 0 — regen katalog audit/ (87 PNG) + hapus basi
-- [x] Fase 1 — dokumen audit visual templated → `docs/UI-UX-AUDIT-VISUAL-2026-09-11.md`
+- [x] Fase 1 — dokumen audit visual templated → `arsip/UI-UX-AUDIT-VISUAL-2026-09-11.md`
 - [x] Fase 2 — P1-a dark deaktivasi · P1-b kontras · P2 wayfinding/nonaktifkan · P3 glossary (emoji→SVG = backlog)
 - [x] Fase 3 — guard rail test + e2e smoke + docs final (2026-09-11)
 

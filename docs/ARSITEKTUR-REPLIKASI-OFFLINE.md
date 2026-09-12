@@ -249,7 +249,7 @@ Catatan penting:
 
 ### 5.4 Lain-lain
 
-- **AI (DeepSeek)**: dipanggil langsung dari klien (`fetch api.deepseek.com` + Bearer API key). API key disimpan user di IndexedDB (settings), bukan env build. Input ke AI di-**sanitize** (trim, batasi panjang) sebelum dikirim; timeout 30 dtk; guard eksplisit `!navigator.onLine → "Offline."`; kegagalan tidak memengaruhi fitur lain. **Risiko disadari**: key bisa dicuri pemilik perangkat — acceptable untuk threat-model solo user (waiver terdokumentasi di AUDIT-CHECKLIST).
+- **AI (DeepSeek)**: dipanggil langsung dari klien (`fetch api.deepseek.com` + Bearer API key). API key disimpan user di IndexedDB (settings), bukan env build. Input ke AI di-**sanitize** (trim, batasi panjang) sebelum dikirim; timeout 30 dtk; guard eksplisit `!navigator.onLine → "Offline."`; kegagalan tidak memengaruhi fitur lain. **Risiko disadari**: key bisa dicuri pemilik perangkat — acceptable untuk threat-model solo user (waiver terdokumentasi di `arsip/AUDIT-CHECKLIST.md`).
 - **Backup Drive relay**: secret dibanding constant-time di server (§3.2); refresh-token & client-secret hanya di server.
 - **ErrorBoundary** global: fallback UI + tombol "Muat Ulang" — app offline harus punya pemulihan yang jelas.
 - **Threat model yang disadari (waiver)**: lockout lokal bisa di-bypass (hapus localStorage / akses langsung DB), secret relay & passphrase tersimpan di localStorage perangkat. Diterima karena single-user di HP pribadi — **dokumentasikan waiver ini di app baru juga**.
@@ -362,7 +362,7 @@ Semua aksi backup/restore/reset dilindungi **PIN Keuangan**; passphrase min 8 ka
 
 ### D. Kualitas
 20. [ ] Unit test dengan **fake-indexeddb** (repo + konsistensi uang diuji); lint 0/0; e2e Playwright (smoke + fitur inti).
-21. [ ] Audit checklist tertulis (AUDIT-CHECKLIST.md) yang mencatat temuan + status — jadikan bagian dari workflow.
+21. [ ] Audit checklist tertulis (`arsip/AUDIT-CHECKLIST.md`) yang mencatat temuan + status — jadikan bagian dari workflow.
 
 ---
 
@@ -393,4 +393,4 @@ BACKUP_API_SECRET=            # openssl rand -hex 24
 - `src/lib/storageGuard.ts` — ketahanan penyimpanan
 - `api/drive/token.js` — pola serverless relay
 - `docs/ZERO-TOUCH-BACKUP.md` — setup relay Google Drive
-- `AUDIT-CHECKLIST.md` — riwayat temuan keamanan & perbaikannya
+- `arsip/AUDIT-CHECKLIST.md` — riwayat temuan keamanan & perbaikannya

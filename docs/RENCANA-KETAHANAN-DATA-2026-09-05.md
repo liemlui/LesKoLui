@@ -1,6 +1,12 @@
 # Rencana implementasi ketahanan data Les Ko Lui
 
-Tanggal: 2026-09-05. Status: **enam lingkup disetujui pengguna; implementasi belum dikerjakan melalui dokumen ini**.
+Tanggal: 2026-09-05. Status: **enam lingkup (Fase A–F) sudah diimplementasikan dan diuji** — rincian bukti per fase ada di log §12.
+
+> **Status pemeliharaan (diperbarui 2026-09-12):** dokumen ini **tetap aktif**, bukan arsip, karena masih ada
+> pekerjaan verifikasi yang belum ditutup: (a) skenario E2E close-out yang gagal (Fase B) dan (b) verifikasi
+> runtime/PWA untuk restore (Fase D). 32 kriteria penerimaan di §5–§9 belum dicentang walaupun implementasinya
+> sudah ada dan tercakup unit test yang disebut di §12 — centanglah setelah E2E/runtime dijalankan, lalu
+> dokumen ini bisa dipindahkan ke `arsip/` (lihat `README.md` untuk aturan pemeliharaan).
 
 Dokumen ini adalah instruksi kerja untuk AI pelaksana. Kerjakan per fase, buktikan hasilnya, lalu lanjut. Jangan menganggap kotak checklist sebagai selesai sebelum ada perubahan kode dan bukti pengujian.
 
@@ -61,7 +67,8 @@ Temuan adalah jalur kegagalan dan risiko yang terlihat dari kode, bukan pernyata
 
 - `../README.md`, `../01-architecture-and-stack.md`, `../02-data-model.md`.
 - `../03-capture-flow.md`, `../06-ai-generation.md`, `../08-backup-and-pwa.md`.
-- `../09-build-phases.md`, `../10-conventions-and-pitfalls.md`, `../CHECKLIST.md`, `../DOC-AUDIT.md`.
+- `../09-build-phases.md`, `../10-conventions-and-pitfalls.md`. (Dua dokumen historis `CHECKLIST.md` dan
+  `DOC-AUDIT.md` sudah dipindahkan ke arsip repo ini: `arsip/CHECKLIST.md`, `arsip/DOC-AUDIT.md`.)
 - `README.md` aplikasi yang masih berupa template Vite.
 - Dokumen lain di root dan `docs/` hanya bila memuat instruksi aktif yang bertentangan.
 

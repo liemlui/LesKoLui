@@ -574,7 +574,7 @@ npm run build
 - Rotation logic: `05-rotation-logic.md`.
 - Export & share: `07-export-and-share.md`.
 - Konvensi & pitfalls: `10-conventions-and-pitfalls.md`.
-- Audit checklist: `les-ko-lui/AUDIT-CHECKLIST.md`.
+- Audit checklist: `arsip/AUDIT-CHECKLIST.md`.
 
 ---
 

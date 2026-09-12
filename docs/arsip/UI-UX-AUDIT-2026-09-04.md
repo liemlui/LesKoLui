@@ -3,7 +3,7 @@
 > **Tanggal audit:** 2026-09-04
 > **Metode:** inspeksi kode statis (289 file) — heuristik Nielsen, WCAG 2.1 AA, Fitts's Law, standar touch target Material/Apple HIG, praktik mobile-PWA.
 > **Cakupan:** `src/App.tsx`, `src/index.css`, 8 layar utama (`home/*`, `Students`, `StudentDetail`, `CaptureSession`, `MonthlyReport`, `Payments/*`, `CatatanBelajar`, `Settings`), 20+ komponen shared, `index.html`, `vite.config.ts` (PWA manifest), `components/BottomNav` & navigasi.
-> **Hubungan dengan dokumen lain:** melengkapi `docs/UI-UX-ANALYSIS.md` (fokus data-viz/chart) dan `AUDIT-CHECKLIST.md` (fokus keamanan/teknis). Audit ini mengaudit **interaksi, navigasi, aksesibilitas, dan design system** — area yang belum pernah diaudit.
+> **Hubungan dengan dokumen lain:** melengkapi `arsip/UI-UX-ANALYSIS.md` (fokus data-viz/chart) dan `arsip/AUDIT-CHECKLIST.md` (fokus keamanan/teknis). Audit ini mengaudit **interaksi, navigasi, aksesibilitas, dan design system** — area yang belum pernah diaudit.
 > **Status:** ✅ Fase 1 selesai: perbaikan quick wins utama untuk bottom nav, safe-area, dan modal shell sudah dieksekusi. Rencana perbaikan lanjutan masih ada di bagian akhir.
 
 ---
@@ -257,7 +257,7 @@ Dua ekuivalen 12px hidup berdampingan: `text-xs` (hasil bulk sesi ini, mayoritas
 
 - Berbasis **inspeksi kode statis** — tidak ada run-time/visual check; temuan overlap (K3) dihitung dari kalkulus tinggi elemen, kontras (A4) dari nilai hex Tailwind.
 - Nomor baris mengacu pada state kode per **2026-09-04 (v1.70.0)** dan bisa bergeser saat refactor.
-- Temuan yang membutuhkan penilaian visual (estetika tema laporan, keterbacaan hasil export) tetap di domain `docs/UI-UX-ANALYSIS.md`.
+- Temuan yang membutuhkan penilaian visual (estetika tema laporan, keterbacaan hasil export) tetap di domain `arsip/UI-UX-ANALYSIS.md`.
 
 _Catatan: tandai item ☐ → ☑ saat dikerjakan, dan tambahkan hasil verifikasi (lint/test/build) di bagian ini setiap fase selesai._
 
