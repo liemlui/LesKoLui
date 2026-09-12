@@ -3,7 +3,7 @@
 > **Tanggal audit:** 2026-09-05
 > **Fokus:** **redundansi informasi**, **arsitektur informasi**, dan **konsistensi penamaan** yang di-show-off ke user pada layar utama. **Bukan** pengulangan `docs/UI-UX-AUDIT-2026-09-04.md` (fokus interaksi/a11y/design-system) maupun `docs/UI-UX-ANALYSIS.md` (fokus data-viz/chart).
 > **Metode:** inspeksi kode statis atas 8 layar utama (`home/*`, `Students`, `StudentDetail`, `CaptureSession`, `MonthlyReport`, `Payments/*`, `CatatanBelajar`, `Settings`) + komponen shared + navigasi.
-> **Status:** ☐ belum dieksekusi — dokumen ini adalah hasil audit + rencana perbaikan terprioritias.
+> **Status:** ✅ **dieksekusi** — Fase 0–3 selesai dan terverifikasi pada 2026-09-05; verifikasi ulang menyeluruh terhadap kode aktual dilakukan pada 2026-09-12 (R1–R17 terbukti di kode, lihat catatan verifikasi di bagian bawah).
 
 ---
 
@@ -111,7 +111,7 @@ Legend severitas: 🔴 Kritis · 🟠 Tinggi · 🟡 Sedang.
 - **R13.** Header StudentDetail mengulang sekolah/mapel yang juga tercetak di kartu "Info Murid" (`StudentDetail.tsx:427-430` vs `481-493`).
 - **R14.** Empty-state ganda "tidak ada sesi hari ini": snapshot (`OperationalSnapshot.tsx:256-259`, merujuk komponen lain *by name*: `'bagian "Hari Ini" di bawah'` — copy coupling rapuh) vs TodayHero ("Tidak ada sesi hari ini 🎉").
 - **R15.** Tombol `⏻` Keluar di header Home (`Home.tsx:157-160` + `ExitAppModal`): di Android PWA `window.close()` hampir selalu ditolak → modal "browser tidak mengizinkan". Fitur yang nyaris selalu gagal di real estate termahal layar.
-- **R16.** `Breadcrumb.tsx:21` masih menyimpan label legacy `"tugas"`; `App.tsx:27` meng-import `CatatanBelajar` sebagai `Tugas` — sisa rebranding yang belum dibersihkan.
+- **R16.** `Breadcrumb.tsx:21` masih menyimpan label legacy `"tugas"`; `App.tsx:27` meng-import `CatatanBelajar` sebagai `Tugas` — sisa rebranding yang belum dibersihkan. *(Selesai: `ROUTE_LABELS` dibersihkan (tanpa "catatan"/"tugas"); route `/catatan` + `CatatanBelajar` dihapus. Komponen `Breadcrumb` tetap dipakai di CaptureSession/MonthlyReport/Payments, hanya tidak lagi di halaman murid.)*
 - **R17.** Tab "Ringkasan" = dashboard "segalanya": pipeline board (read-only) + status pendapatan + arus kas + Kesehatan keuangan + AI + forecast + 3 chart — satu tab sangat panjang (punya `<details>` "Analitik lanjutan" sebagai penyangga).
 ---
 
@@ -166,3 +166,27 @@ _Verifikasi Fase 0 (2026-09-05): `npm run lint` ✅ · `npm test -- --run` ✅ �
 _Verifikasi Fase 1 (2026-09-05): `npm run lint` ✅ · `npm test -- --run` ✅ (33 file, 351 tes) · `npm run build` ✅._
 _Verifikasi Fase 2 (2026-09-05): `npm run lint` ✅ · `npm test -- --run` ✅ (33 file, 351 tes) · `npm run build` ✅. R17 dipertahankan dengan panel Analitik Lanjutan yang collapsed._
 _Verifikasi Fase 3 (2026-09-05): `npm run lint` ✅ · `npm test -- --run` ✅ (33 file, 351 tes) · `npm run build` ✅._
+
+### Verifikasi ulang 2026-09-12 (penutupan Fase 4)
+
+Pemeriksaan terhadap kode aktual (commit `6a51a42`/`e85c8c0`, v1.71.4) mengonfirmasi seluruh R1–R17 **sudah diterapkan**:
+
+| Item | Bukti di kode aktual |
+|---|---|
+| R1 | `OperationalSnapshot.tsx` tidak lagi punya KPI `todayPct` maupun bagian "Progress sesi hari ini"; card kini "Minggu ini" + "Murid aktif". Satu progress bar hidup di `TodayHero` |
+| R2 | Alert strip + MetricCard "Tindak lanjut"/"Sesi terlewat" sudah tidak ada; `AttentionInbox` selalu tampil dengan badge count di header |
+| R3 | `AttentionInbox.tsx` hanya punya tab `Sesi` \| `Follow-up`; rute `/catatan` sudah dihapus dari `App.tsx` (7 route) dan `CatatanBelajar.tsx` tidak lagi ada di `src/` |
+| R4 | Header Home `Home.tsx:143` → `💸 Pengeluaran` |
+| R5 | Istilah "Catatan" kini konsisten = catatan belajar per murid (`StudyNoteCard` di tab Ringkasan) |
+| R6/R7 | `TagihanTab` hanya satu `ActivityRing` (tanpa badge `%`/ProgressBar/label "Pusat Koleksi"); `RingkasanTab` tak ada "Invoice lunas"/"Arus kas bersih" |
+| R8 | `StudentDetail` header hanya tombol "‹ Kembali ke Daftar Murid" (tanpa Breadcrumb); `Breadcrumb` tetap dipakai di CaptureSession/MonthlyReport/Payments sesuai perannya |
+| R9 | `StudentDetail.tsx:433` → `/capture?studentId=…`; `CaptureSession.tsx:121` membaca `searchParams.get("studentId")` |
+| R10/R11 | `Payments.tsx:189-192` tab = "Bulan Ini" \| "Penagihan" \| "Pengeluaran" \| "Rekap Tahunan" (ringkasan + pengeluaran memakai `FinancePeriodPicker` yang sama) |
+| R12 | `StudyNoteCard` dirender di blok `detailTab === "ringkasan"` (`StudentDetail.tsx:601-607`) |
+| R13 | Header murid = nama + chip kurikulum; Sekolah/Kelas/Mapel hanya di kartu Info Murid |
+| R14 | Empty-state snapshot memakai copy generik "Belum ada agenda" (tidak merujuk nama section lain) |
+| R15 | Tombol `⏻` di header Home dihapus; "Keluar" dipindah ke Settings (`Settings.tsx:1093`, `ExitAppModal`) |
+| R16 | `ROUTE_LABELS` bersih (tanpa "catatan"/"tugas"); `App.tsx` tanpa import `CatatanBelajar`/`Tugas`; route `/catatan` dihapus |
+| R17 | `RingkasanTab` dipertahankan sebagai read-only dengan panel "Analitik lanjutan" collapsed (`<details>`) — keputusan terverifikasi Fase 2 disetujui |
+
+Catatan: dokumentasi ini kini mencerminkan kode final; detail rilis termuat di `src/lib/version.ts` (entri "Home diringkas…" & "Catatan Belajar dipusatkan di detail murid…").
