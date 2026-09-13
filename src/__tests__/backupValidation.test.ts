@@ -138,6 +138,21 @@ describe("validateBackupData sessions", () => {
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.message.includes("angka finite"))).toBe(true);
   });
+
+  it("rejects a string amount and reports the exact location", () => {
+    const data = emptyData();
+    data.students = [{ id: "s1", name: "A", level: "MYP", subjects: [], parentContact: { phone: "0800" }, hourlyRate: 1, active: true, enrolledAt: "2026-01-01" }];
+    data.sessions = [{
+      id: "ses1", studentId: "s1", date: "2026-07-20", durationHours: 1, subjects: ["Math"],
+      status: "DONE", rateSnapshot: 100_000, cost: "100000",
+      createdAt: "2026-07-20T08:00:00Z", updatedAt: "2026-07-20T08:00:00Z",
+    }];
+    const result = validateBackupData(data, db.verno);
+    expect(result.valid).toBe(false);
+    const error = result.errors.find((e) => e.field === "cost");
+    expect(error).toMatchObject({ table: "sessions", rowId: "ses1", field: "cost" });
+    expect(error?.message).toContain("sessions.ses1.cost");
+  });
 });
 // ── Settings validation ───────────────────────────────────────────
 

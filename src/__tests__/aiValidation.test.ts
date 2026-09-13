@@ -2,9 +2,18 @@ import { describe, expect, it } from "vitest";
 import {
   AiValidationError,
   validateAiDraftNote,
+  validateAiDraftStudyNote,
   validateAiNarratives,
+  validateAiPolishedWa,
   validateAiReportSummary,
+  validateAiStudentInsight,
+  validateFinancialInsights,
 } from "../lib/aiValidation";
+
+const SINGLE_FIELD_PARSERS: ReadonlyArray<(value: unknown) => unknown> = [
+  validateAiReportSummary, validateAiDraftNote, validateAiPolishedWa,
+  validateAiStudentInsight, validateAiDraftStudyNote, validateFinancialInsights,
+];
 
 describe("AI response validation", () => {
   it.each([null, [], "text", {}])("rejects invalid root %j", (value) => {
@@ -45,5 +54,37 @@ describe("AI response validation", () => {
   it("requires a non-empty draft note", () => {
     expect(validateAiDraftNote({ note: "Catatan valid." })).toMatchObject({ note: "Catatan valid." });
     expect(() => validateAiDraftNote({ note: " " })).toThrow(AiValidationError);
+  });
+
+  it.each([null, [], "text", 42, {}])("rejects invalid root for every AI feature %j", (value) => {
+    for (const parse of SINGLE_FIELD_PARSERS) {
+      expect(() => parse(value)).toThrow(AiValidationError);
+    }
+    expect(() => validateAiNarratives(value, [])).toThrow(AiValidationError);
+  });
+
+  it("rejects valid JSON whose main field has the wrong type", () => {
+    expect(() => validateAiReportSummary({ summary: {} })).toThrow(/summary/);
+    expect(() => validateAiDraftNote({ note: 12 })).toThrow(/note/);
+    expect(() => validateAiPolishedWa({ message: [] })).toThrow(/message/);
+    expect(() => validateAiDraftStudyNote({ content: " " })).toThrow(/content/);
+    expect(() => validateAiStudentInsight({ patterns: "bukan array", nextFocus: "x", encouragement: "y" }))
+      .toThrow(/patterns/);
+    expect(() => validateFinancialInsights({ anomali: [{ level: "kritis", text: "x" }], rekomendasi: [] }))
+      .toThrow(/level/);
+    expect(() => validateAiNarratives({ entries: [{ id: "s1", narrative: {} }], summary: "x" }, ["s1"]))
+      .toThrow(/narrative/);
+  });
+
+  it("accepts a minimal valid response for every AI feature", () => {
+    expect(validateAiReportSummary({ summary: "Ringkasan." })).toEqual({ summary: "Ringkasan." });
+    expect(validateAiDraftNote({ note: "Catatan." })).toEqual({ note: "Catatan." });
+    expect(validateAiPolishedWa({ message: "Halo." })).toEqual({ message: "Halo." });
+    expect(validateAiDraftStudyNote({ content: "Isi catatan." })).toEqual({ content: "Isi catatan." });
+    expect(validateAiStudentInsight({ patterns: ["Sering terlambat"], nextFocus: "Fokus", encouragement: "Semangat" }))
+      .toMatchObject({ nextFocus: "Fokus", encouragement: "Semangat" });
+    expect(validateFinancialInsights({ anomali: [], rekomendasi: [] })).toMatchObject({ anomali: [] });
+    expect(validateAiNarratives({ entries: [{ id: "s1", narrative: "N" }], summary: "S" }, ["s1"]))
+      .toMatchObject({ summary: "S" });
   });
 });

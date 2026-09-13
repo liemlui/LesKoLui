@@ -1,7 +1,7 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "../db/db";
 import { BACKUP_TABLES, exportBackup, importBackup, inspectBackup } from "../lib/backup";
-import { encryptJson } from "../lib/crypto";
+import { decryptJson, encryptJson } from "../lib/crypto";
 import type {
   Expense, FollowUpItem, IaEeProject, MonthlyReport,
   Payment, RaporGrade, Session, Settings, Student, StudyNote,
@@ -152,8 +152,11 @@ describe("backup / restore", () => {
       data: { students: [{ id: "student-malformed" }] },
     }, PASS);
 
-    await expect(importBackup(malformed, PASS, { onPreRestoreBackup: () => undefined }))
+    let preRestoreCalls = 0;
+    await expect(importBackup(malformed, PASS, { onPreRestoreBackup: () => { preRestoreCalls += 1; } }))
       .rejects.toThrow("File backup tidak lengkap");
+    // Validasi gagal → tidak ada cadangan pra-restore, tidak ada clear/write.
+    expect(preRestoreCalls).toBe(0);
     await expect(db.students.count()).resolves.toBe(1);
     await expect(db.sessions.count()).resolves.toBe(1);
     await expect(db.captureDrafts.count()).resolves.toBe(1);
@@ -296,4 +299,71 @@ describe("backup / restore", () => {
     await expect(db.payments.get("payment-month-end")).resolves.toMatchObject({ dueAt: "2024-02-29" });
     await expect(db.payments.get("payment-explicit-due")).resolves.toMatchObject({ dueAt: "2026-07-07" });
   }, 30_000);
+
+  it("menerima tabel legacy monthClosings tetapi tetap menolak tabel tak dikenal", async () => {
+    await seedEveryBackupTable();
+    const source = await exportBackup(PASS);
+    const dump = await decryptJson(source, PASS) as { data: Record<string, unknown> };
+
+    // Backup lama masih memuat snapshot Tutup Bulan yang sudah dihapus di v14.
+    dump.data.monthClosings = [{ id: "2026-07", month: "2026-07", totalCost: 1 }];
+    await importBackup(await encryptJson(dump, PASS), PASS, { onPreRestoreBackup: () => undefined });
+
+    await expect(db.students.get("student-1")).resolves.toMatchObject({ name: "Alya" });
+    expect(db.tables.map((table) => table.name)).not.toContain("monthClosings");
+
+    // Pengecualian hanya untuk monthClosings — tabel asing lain tetap ditolak.
+    const withUnknown = await decryptJson(await encryptJson(dump, PASS), PASS) as { data: Record<string, unknown> };
+    withUnknown.data.kartuNama = [];
+    await expect(importBackup(await encryptJson(withUnknown, PASS), PASS, { onPreRestoreBackup: () => undefined }))
+      .rejects.toThrow("tabel tidak dikenal");
+    await expect(db.students.count()).resolves.toBe(1);
+  }, 60_000);
+
+  it("membatalkan penggantian data ketika backup pra-restore gagal", async () => {
+    await seedEveryBackupTable();
+    const source = await exportBackup(PASS);
+
+    // Enkripsi gagal pada cadangan pra-restore → restore harus batal total.
+    const encryptSpy = vi.spyOn(crypto.subtle, "encrypt")
+      .mockRejectedValueOnce(new Error("simulated pre-restore failure"));
+    let preRestoreCalls = 0;
+    await expect(importBackup(source, PASS, { onPreRestoreBackup: () => { preRestoreCalls += 1; } }))
+      .rejects.toThrow("Backup sebelum restore gagal");
+    encryptSpy.mockRestore();
+
+    expect(preRestoreCalls).toBe(0);
+    await expect(db.students.get("student-1")).resolves.toMatchObject({ name: "Alya" });
+    await expect(db.sessions.count()).resolves.toBe(1);
+    await expect(db.settings.get("app")).resolves.toMatchObject({ tutorProfile: { name: "Ko Lui" } });
+  }, 60_000);
+
+  it("membatalkan seluruh penggantian bila bulkAdd gagal di tengah restore", async () => {
+    await seedEveryBackupTable();
+    await db.captureDrafts.add({
+      draftId: "draft-tetap", formatVersion: 1, revision: 1,
+      updatedAt: "2026-07-20T08:00:00.000Z", scopeKey: "new", phase: "editing",
+      form: {
+        step: 1, date: "2026-07-20", durationHours: 1, subjects: [], topic: "",
+        topicSearch: "", shortNote: "tetap ada", needsWork: "", predictedGrade: "",
+        engagementFlags: {}, behaviorTags: [], situasiNote: "",
+      },
+    });
+    const source = await exportBackup(PASS);
+
+    // `reports` ditulis setelah `students`/`sessions` di transaksi yang sama.
+    const bulkAdd = vi.spyOn(db.reports, "bulkAdd").mockRejectedValueOnce(new Error("simulated bulkAdd failure"));
+    let preRestoreCalls = 0;
+    await expect(importBackup(source, PASS, { onPreRestoreBackup: () => { preRestoreCalls += 1; } }))
+      .rejects.toThrow("simulated bulkAdd failure");
+    bulkAdd.mockRestore();
+
+    // Cadangan pra-restore memang dibuat, tetapi penggantian datanya di-rollback penuh.
+    expect(preRestoreCalls).toBe(1);
+    await expect(db.students.count()).resolves.toBe(1);
+    await expect(db.sessions.count()).resolves.toBe(1);
+    await expect(db.reports.count()).resolves.toBe(1);
+    await expect(db.settings.count()).resolves.toBe(1);
+    await expect(db.captureDrafts.count()).resolves.toBe(1);
+  }, 60_000);
 });

@@ -24,7 +24,7 @@ beforeEach(async () => {
   await db.studyNotes.clear();
 });
 
-// ΓöÇΓöÇ Helpers ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ── Helpers ────────────────────────────────────────────────────────
 
 function wibDate(offsetDays = 0): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -36,7 +36,7 @@ function wibDate(offsetDays = 0): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-// ΓöÇΓöÇ Pure Helper Tests ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ── Pure Helper Tests ──────────────────────────────────────────────
 
 describe("repos internal helpers (tested via lib functions)", () => {
   it("recentShortNotes returns empty array when no sessions", async () => {
@@ -46,7 +46,7 @@ describe("repos internal helpers (tested via lib functions)", () => {
   });
 });
 
-// ΓöÇΓöÇ Payment Atomicity ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ── Payment Atomicity ──────────────────────────────────────────────
 
 describe("Payment upsert atomicity", () => {
   it("does not create duplicate rows under concurrent upsert (same student+month)", async () => {
@@ -151,7 +151,7 @@ describe("Payment upsert atomicity", () => {
   });
 });
 
-// ΓöÇΓöÇ Audit Trail (L-1) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ── Audit Trail (L-1) ──────────────────────────────────────────────
 
 describe("Audit trail", () => {
   it("records entries and lists them newest-first", async () => {
@@ -181,7 +181,7 @@ describe("Audit trail", () => {
   });
 });
 
-// ΓöÇΓöÇ Photo maintenance (M-5) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ── Photo maintenance (M-5) ────────────────────────────────────────
 
 describe("pruneSessionPhotosBefore", () => {
   it("removes photos from old sessions, keeps recent ones, preserves data", async () => {
@@ -212,7 +212,7 @@ describe("pruneSessionPhotosBefore", () => {
   });
 });
 
-// ΓöÇΓöÇ initSettings idempotency (race-safe) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ── initSettings idempotency (race-safe) ───────────────────────────
 
 describe("initSettings", () => {
   it("does not throw or duplicate under concurrent calls", async () => {
@@ -223,7 +223,7 @@ describe("initSettings", () => {
   });
 });
 
-// ΓöÇΓöÇ Settings Tests ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ── Settings Tests ─────────────────────────────────────────────────
 
 describe("Settings", () => {
   it("getSettings returns default settings when none exist", async () => {
@@ -247,7 +247,7 @@ describe("Settings", () => {
   });
 });
 
-// ΓöÇΓöÇ Student Tests ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ── Student Tests ──────────────────────────────────────────────────
 
 describe("Student CRUD", () => {
   it("creates and reads a student", async () => {
@@ -300,7 +300,7 @@ describe("Student CRUD", () => {
   });
 });
 
-// ΓöÇΓöÇ Session Tests ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ── Session Tests ──────────────────────────────────────────────────
 
 describe("Session CRUD", () => {
   it("orders same-day range sessions deterministically by time then id", async () => {
@@ -408,7 +408,7 @@ describe("Session CRUD", () => {
   });
 });
 
-// ΓöÇΓöÇ Payment Tests ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ── Payment Tests ──────────────────────────────────────────────────
 
 describe("Payment CRUD", () => {
   it("menyimpan jatuh tempo eksplisit dan tidak mengubahnya saat invoice diperbarui", async () => {
@@ -499,7 +499,7 @@ describe("Financial summaries", () => {
 
     const summary = await getCashSummary(["2026-04", "2026-05", "2026-06"]);
     expect(summary[0].realisasi).toBe(0);
-    // Invoice manual tanpa data sesi ΓåÆ pendapatan mengikuti bulan anchor invoice (April).
+    // Invoice manual tanpa data sesi → pendapatan mengikuti bulan anchor invoice (April).
     expect(summary[0].pendapatan).toBe(300_000);
     expect(summary[2]).toMatchObject({ realisasi: 500_000, piutang: 150_000, pengeluaran: 50_000, laba: 300_000, pendapatan: 350_000 });
 
@@ -538,7 +538,7 @@ describe("Financial summaries", () => {
     });
 
     const before = await getCashSummary(["2026-07", "2026-08"]);
-    // Belum bayar ΓåÆ piutang mengikuti bulan sesi, bukan bulan anchor invoice (Agustus).
+    // Belum bayar → piutang mengikuti bulan sesi, bukan bulan anchor invoice (Agustus).
     expect(before[0]).toMatchObject({ sesi: 1, jam: 1, pendapatan: DEFAULT_RATE, piutang: DEFAULT_RATE, realisasi: 0, laba: DEFAULT_RATE });
     expect(before[1]).toMatchObject({ sesi: 1, jam: 1, pendapatan: DEFAULT_RATE, piutang: DEFAULT_RATE, realisasi: 0, laba: DEFAULT_RATE });
 
@@ -547,13 +547,13 @@ describe("Financial summaries", () => {
     await markPaymentTransferredById(payment!.id, "transfer", "2026-08-20");
 
     const after = await getCashSummary(["2026-07", "2026-08"]);
-    // Lunas di Agustus ΓåÆ kas penuh tercatat Agustus; pendapatan akrual tetap per-bulan sesi.
+    // Lunas di Agustus → kas penuh tercatat Agustus; pendapatan akrual tetap per-bulan sesi.
     expect(after[0]).toMatchObject({ pendapatan: DEFAULT_RATE, piutang: 0, realisasi: 0 });
     expect(after[1]).toMatchObject({ pendapatan: DEFAULT_RATE, piutang: 0, realisasi: 2 * DEFAULT_RATE });
   });
 });
 
-// ΓöÇΓöÇ FollowUp Tests ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ── FollowUp Tests ─────────────────────────────────────────────────
 
 describe("FollowUps", () => {
   it("creates and completes follow-up items", async () => {
@@ -631,12 +631,35 @@ describe("FollowUps", () => {
       .rejects.toThrow("Konflik ID tindak lanjut");
     expect((await listPendingFollowUps(sid))[0]?.text).toBe("Original");
   });
+
+  it("does not reopen a completed follow-up when the same batch is retried", async () => {
+    const { createStudent, createSession, createFollowUpBatch, completeFollowUp, listPendingFollowUps } =
+      await import("../db/repos");
+    const sid = await createStudent({
+      name: "Selesai Murid", level: "IBDP", subjects: [], parentContact: { phone: "081" },
+      hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30),
+    });
+    const sessionId = await createSession({
+      studentId: sid, date: wibDate(), durationHours: MIN_DURATION,
+      subjects: ["Math"], shortNote: "x", status: "DONE",
+    });
+    await createFollowUpBatch(sid, sessionId, [{ id: "fu-selesai", text: "Sudah dikerjakan" }]);
+    await completeFollowUp("fu-selesai");
+    const completedAt = (await db.followUps.get("fu-selesai"))!.completedAt;
+
+    // Retry dengan ID & isi sama dianggap sudah tersimpan — tidak membuka kembali.
+    await createFollowUpBatch(sid, sessionId, [{ id: "fu-selesai", text: "Sudah dikerjakan" }]);
+
+    await expect(db.followUps.get("fu-selesai")).resolves.toMatchObject({ completedAt });
+    await expect(db.followUps.count()).resolves.toBe(1);
+    await expect(listPendingFollowUps(sid)).resolves.toHaveLength(0);
+  });
 });
 
-// ΓöÇΓöÇ Month Closing Tests ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ── Month Closing Tests ────────────────────────────────────────────
 
 
-// ΓöÇΓöÇ Report Payments (tagihan per laporan periode) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ── Report Payments (tagihan per laporan periode) ─────────────────
 
 describe("Report payments", () => {
   async function seedReport(overrides: Partial<import("../db/types").MonthlyReport> = {}) {
@@ -674,17 +697,17 @@ describe("Report payments", () => {
     const { syncReportPayment, getPaymentByReport, markPaymentTransferredById, updatePaymentAmountById } = await import("../db/repos");
     const id = await seedReport();
     await syncReportPayment({ id, studentId: "stu-pay", month: "2026-02", periodStart: "2026-01-20", periodEnd: "2026-02-03", totalCost: 600_000 });
-    // Belum lunas ΓåÆ nominal mengikuti laporan.
+    // Belum lunas → nominal mengikuti laporan.
     await syncReportPayment({ id, studentId: "stu-pay", month: "2026-02", periodStart: "2026-01-20", periodEnd: "2026-02-05", totalCost: 750_000 });
     expect((await getPaymentByReport(id))?.totalCost).toBe(750_000);
     expect((await getPaymentByReport(id))?.periodEnd).toBe("2026-02-05");
 
-    // Lunas ΓåÆ nominal tidak berubah walau laporan berubah.
+    // Lunas → nominal tidak berubah walau laporan berubah.
     await markPaymentTransferredById((await getPaymentByReport(id))!.id);
     await syncReportPayment({ id, studentId: "stu-pay", month: "2026-02", periodStart: "2026-01-20", periodEnd: "2026-02-05", totalCost: 800_000 });
     expect((await getPaymentByReport(id))?.totalCost).toBe(750_000);
 
-    // Manual ΓåÆ nominal tidak berubah.
+    // Manual → nominal tidak berubah.
     const id2 = await seedReport({ id: crypto.randomUUID(), month: "2026-03", periodStart: "2026-03-01", periodEnd: "2026-03-31", totalCost: 500_000 });
     await syncReportPayment({ id: id2, studentId: "stu-pay", month: "2026-03", periodStart: "2026-03-01", periodEnd: "2026-03-31", totalCost: 500_000 });
     await updatePaymentAmountById((await getPaymentByReport(id2))!.id, 450_000);
@@ -973,4 +996,4 @@ describe("Report identity", () => {
   });
 });
 
-// ΓöÇΓöÇ Month Closing (v2 ΓÇö unified: tutup buku ΓåÆ laporan otomatis + sahkan) ΓöÇ
+// ── Month Closing (v2 — unified: tutup buku → laporan otomatis + sahkan) ─
