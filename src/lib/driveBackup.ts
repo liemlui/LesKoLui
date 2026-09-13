@@ -60,12 +60,12 @@ function driveAuthErrorMessage(typeOrError: string | undefined): string {
   if (typeOrError === "popup_closed") return "Otorisasi Google dibatalkan.";
   if (typeOrError === "access_denied") return "Akses ke Google Drive tidak digizinkan.";
   if (typeOrError === "origin_mismatch") {
-    return "Otorisasi Google gagal (origin_mismatch): origin ini belum didaftarkan di Google Cloud Console → OAuth 2.0 Client IDs → Authorized JavaScript origins. Lihat docs/ZERO-TOUCH-BACKUP.md.";
+    return "Otorisasi Google gagal (origin_mismatch): origin ini belum didaftarkan di Google Cloud Console → OAuth 2.0 Client IDs → Authorized JavaScript origins. Lihat docs/02-PANDUAN-BACKUP-DRIVE-SENYAP.md.";
   }
   if (typeOrError === "invalid_request" || typeOrError === "invalid_client") {
-    return `Otorisasi Google gagal (${typeOrError}): VITE_GOOGLE_CLIENT_ID tidak cocok dengan OAuth client di Google Cloud Console. Lihat docs/ZERO-TOUCH-BACKUP.md.`;
+    return `Otorisasi Google gagal (${typeOrError}): VITE_GOOGLE_CLIENT_ID tidak cocok dengan OAuth client di Google Cloud Console. Lihat docs/02-PANDUAN-BACKUP-DRIVE-SENYAP.md.`;
   }
-  return `Otorisasi Google gagal (${typeOrError}). Error 400 origin_mismatch di popup? Daftarkan origin di Google Cloud Console → Authorized JavaScript origins (lihat docs/ZERO-TOUCH-BACKUP.md).`;
+  return `Otorisasi Google gagal (${typeOrError}). Error 400 origin_mismatch di popup? Daftarkan origin di Google Cloud Console → Authorized JavaScript origins (lihat docs/02-PANDUAN-BACKUP-DRIVE-SENYAP.md).`;
 }
 
 // ── Backend token-relay (opsional) ──────────────────────────────────

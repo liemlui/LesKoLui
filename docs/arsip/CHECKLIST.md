@@ -1,6 +1,6 @@
 # Les Ko Lui - Status Checklist
 
-> **Dokumen historis — audit 2026-06-26.** Status di bawah mencerminkan kode v1.12.1. Sejak saat itu, `homeworks` dan `monthClosings` sudah dihapus, schema naik ke v14, backup turun ke 10 tabel. Lihat `docs/RENCANA-KETAHANAN-DATA-2026-09-05.md` untuk rencana ketahanan data terkini.
+> **Dokumen historis — audit 2026-06-26.** Status di bawah mencerminkan kode v1.12.1. Sejak saat itu, `homeworks` dan `monthClosings` sudah dihapus, schema naik ke v14, backup turun ke 10 tabel. Lihat `../04-RENCANA-KETAHANAN-DATA.md` untuk rencana ketahanan data terkini.
 
 > Status umum: SEMUA DOKUMENTASI TELAH DISELARASKAN dengan kode aktual v1.12.1.  
 > Terakhir diupdate: 2026-06-26.

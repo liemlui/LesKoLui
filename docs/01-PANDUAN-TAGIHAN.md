@@ -1,4 +1,9 @@
-# Panduan Cepat Tagihan (Cheat-Sheet)
+# 01 — Panduan Cepat Tagihan (Cheat-Sheet)
+
+> **Sekilas** · Jenis: panduan fitur (cheat-sheet) · Diperbarui: 2026-09-01 · Status: **aktif**
+> **Untuk siapa:** tutor/pemilik app yang mengurus tagihan murid.
+> **Baca kalau:** ingin tahu kapan sesi ditagih, kenapa sebuah sesi (tidak) muncul di tagihan, atau apa arti tiap status tagihan.
+> **Isi:** 3 siklus tagihan murid (bagian 1) · hubungan laporan ↔ tagihan (bagian 2) · hal yang sering bikin bingung.
 
 Satu murid punya **satu siklus tagihan** (bisa diubah kapan saja). Laporan & tagihan saling terhubung: sesi yang sudah masuk laporan **sah** tidak akan ditagih dua kali.
 

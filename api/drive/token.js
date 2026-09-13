@@ -11,7 +11,7 @@
 //
 // Env yang dibutuhkan (set di Vercel → Project → Settings → Environment Variables):
 //   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN, BACKUP_API_SECRET
-// Lihat docs/ZERO-TOUCH-BACKUP.md untuk cara mendapatkan GOOGLE_REFRESH_TOKEN.
+// Lihat docs/02-PANDUAN-BACKUP-DRIVE-SENYAP.md untuk cara mendapatkan GOOGLE_REFRESH_TOKEN.
 
 import { createHash, timingSafeEqual } from "node:crypto";
 

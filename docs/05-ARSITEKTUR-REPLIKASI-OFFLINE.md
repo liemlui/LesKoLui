@@ -1,4 +1,10 @@
-# Arsitektur Offline-First — Blueprint Replikasi
+# 05 — Arsitektur Offline-First (Blueprint Replikasi)
+
+> **Sekilas** · Jenis: referensi/cetak biru · Diperbarui: 2026-08-03 · Status: **referensi** (baseline v1.37.0)
+> **Untuk siapa:** siapa pun yang membangun app offline-first baru dengan pola Les Ko Lui, atau ingin memahami keputusan arsitektur app ini.
+> **Baca kalau:** ingin menyalin pola (stack, Dexie, keamanan, PWA, backup 3 tingkat) ke app lain — atau saat mempertanyakan "kenapa arsitekturnya begitu".
+> **Isi:** 10 bagian bernomor — ringkasan arsitektur (§1) → struktur folder (§2) → Vercel (§3) → Dexie (§4) → keamanan (§5) → offline/PWA (§6) → backup 3 tingkat (§7) → **checklist replikasi (§8)** → env vars (§9) → rujukan (§10).
+> **Catatan:** angka versi/uji di dalamnya adalah potret v1.37.0 — bukan kondisi hari ini.
 
 > Dibedah dari **Les Ko Lui v1.37.0** (2026-08, baseline audit hijau: lint 0/0, unit test 166/166).
 > Dokumen ini adalah cetak biru: teknologi, struktur, sistem keamanan, sistem database, dan
@@ -77,7 +83,7 @@
 │  ├─ hooks/                ← usePinGate (state machine PIN)
 │  ├─ components/           ← PinConfirmModal, PwaPrompts, ErrorBoundary, dll
 │  └─ screens/              ← halaman (Home, Students, Payments, Settings, ...)
-├─ docs/                    ← ZERO-TOUCH-BACKUP.md (setup relay), ARSITEKTUR ini
+├─ docs/                    ← 02-PANDUAN-BACKUP-DRIVE-SENYAP.md (setup relay), 05-ARSITEKTUR ini
 ├─ e2e/                     ← Playwright (smoke, finance, report, screenshot)
 └─ src/__tests__/           ← Vitest unit/integration (fake-indexeddb)
 ```
@@ -114,7 +120,7 @@ Hal krusial yang diatur header (vercel.json:7-33):
 - **POST-only** (selain method → 405).
 - **Otentikasi**: header `x-backup-secret` dibandingkan **constant-time** (SHA-256 hash kedua sisi + `timingSafeEqual`) — komentar di kode: *"CORS browser tak cukup karena pemanggil non-browser bisa baca respons"*.
 - **Prinsip data**: server **tidak pernah melihat data backup** — hanya menukar token; respons hanya `{ access_token, expires_in }`, refresh-token & client-secret tidak pernah keluar server.
-- Env yang dibutuhkan: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`, `BACKUP_API_SECRET` (set di Vercel → Settings → Environment Variables; detail di `docs/ZERO-TOUCH-BACKUP.md`).
+- Env yang dibutuhkan: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`, `BACKUP_API_SECRET` (set di Vercel → Settings → Environment Variables; detail di `docs/02-PANDUAN-BACKUP-DRIVE-SENYAP.md`).
 
 > **Pelajaran arsitektur**: jika app offline perlu fitur "server-assisted" (token relay, dsb.), buat endpoint **sekecil mungkin**, aman-default, dan pastikan server tidak pernah menyentuh data domain.
 
@@ -392,5 +398,5 @@ BACKUP_API_SECRET=            # openssl rand -hex 24
 - `src/lib/backup.ts`, `src/lib/driveBackup.ts` — backup/restore
 - `src/lib/storageGuard.ts` — ketahanan penyimpanan
 - `api/drive/token.js` — pola serverless relay
-- `docs/ZERO-TOUCH-BACKUP.md` — setup relay Google Drive
+- `docs/02-PANDUAN-BACKUP-DRIVE-SENYAP.md` — setup relay Google Drive
 - `arsip/AUDIT-CHECKLIST.md` — riwayat temuan keamanan & perbaikannya

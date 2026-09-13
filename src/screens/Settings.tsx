@@ -1000,7 +1000,7 @@ export default function SettingsPage() {
                   </button>
                   <span className="text-xs text-gray-500">{relaySecret ? "Aktif — backup tanpa popup" : "Nonaktif (pakai 1-tap)"}</span>
                 </div>
-                <p className="text-xs text-gray-500">Butuh setup server 1x. Lihat docs/ZERO-TOUCH-BACKUP.md.</p>
+                <p className="text-xs text-gray-500">Butuh setup server 1x. Lihat docs/02-PANDUAN-BACKUP-DRIVE-SENYAP.md.</p>
               </div>
             </div>
           ) : (

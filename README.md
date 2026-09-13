@@ -15,11 +15,19 @@ npm.cmd run e2e          # Playwright E2E (perlu build dulu)
 
 ## Dokumentasi
 
-**Indeks dokumen (mulai dari sini):** `docs/README.md` — daftar dokumen aktif, pekerjaan yang masih
-terbuka, riwayat kronologis, dan aturan pemeliharaan. Dokumen yang sudah selesai dibekukan di `docs/arsip/`
-(12 dokumen: audit keamanan, audit UI/UX, panduan kerja yang tuntas).
+**Indeks dokumen (mulai dari sini):** `docs/README.md` — peta "kalau mau X buka Y", daftar pekerjaan yang
+masih terbuka, riwayat, dan aturan pemeliharaan. Dokumen di `docs/` bernomor urut baca:
 
-Dokumentasi arsitektur berada di direktori `../` (root `Private Tutor/`):
+1. `docs/01-PANDUAN-TAGIHAN.md` — kapan sesi ditagih & kenapa sesi (tidak) masuk tagihan
+2. `docs/02-PANDUAN-BACKUP-DRIVE-SENYAP.md` — setup backup otomatis ke Google Drive
+3. `docs/03-PLAYBOOK-AUDIT-UIUX-VISUAL.md` — prosedur audit tampilan berbasis screenshot
+4. `docs/04-RENCANA-KETAHANAN-DATA.md` — rencana + bukti implementasi ketahanan data (Fase A–F)
+5. `docs/05-ARSITEKTUR-REPLIKASI-OFFLINE.md` — cetak biru replikasi offline-first
+
+Dokumen yang sudah selesai dibekukan di `docs/arsip/` (12 dokumen: audit keamanan, audit UI/UX, panduan
+kerja yang tuntas) — ringkasannya di `docs/arsip/README.md`.
+
+Dokumentasi arsitektur sistem berada di direktori `../` (root `Private Tutor/`, seri `01`–`10`):
 
 1. `01-architecture-and-stack.md` — stack, struktur, konfigurasi
 2. `02-data-model.md` — skema Dexie, tipe, repositori
@@ -29,7 +37,7 @@ Dokumentasi arsitektur berada di direktori `../` (root `Private Tutor/`):
 6. `09-build-phases.md` — fase pembangunan
 7. `10-conventions-and-pitfalls.md` — aturan kode
 
-**Rencana ketahanan data:** `docs/RENCANA-KETAHANAN-DATA-2026-09-05.md` — enam lingkup (Fase A–F)
+**Rencana ketahanan data:** `docs/04-RENCANA-KETAHANAN-DATA.md` — enam lingkup (Fase A–F)
 sudah **diimplementasikan** 2026-09-05 (lihat log §12); sisa verifikasi E2E close-out gagal (Fase B)
 dan runtime/PWA restore (Fase D).
 

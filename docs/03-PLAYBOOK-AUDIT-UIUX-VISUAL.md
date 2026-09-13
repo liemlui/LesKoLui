@@ -1,4 +1,10 @@
-# UI/UX Visual Audit Playbook — Les Ko Lui
+# 03 — Playbook Audit UI/UX Visual (Prosedur)
+
+> **Sekilas** · Jenis: prosedur yang dapat diulang · Diperbarui: 2026-09-11 · Status: **aktif (prosedur)**
+> **Untuk siapa:** AI/engineer yang menjalankan audit UI/UX visual berikutnya.
+> **Baca kalau:** ingin mengaudit tampilan aplikasi secara sistematis (bukan menebak-nebak dari kode).
+> **Isi:** 6 fase — Fase 0 regenerasi katalog screenshot → Fase 1 dokumen audit bertemplate → Fase 2 perbaikan prioritas → Fase 3 backlog → Fase 4 penutupan & guard rail.
+> **Hasil terakhir:** `arsip/UI-UX-AUDIT-VISUAL-2026-09-11.md` (14 temuan V-01…V-14, semuanya sudah ditutup di v1.71.4).
 
 > **Tanggal:** 2026-09-11 · **Target:** `les-ko-lui` v1.71.0 (HEAD `3f27a30`)
 > **Tujuan:** panduan eksekusi mandiri — semua fase audit UI/UX visual + perbaikan,

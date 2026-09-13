@@ -1,4 +1,10 @@
-# Backup Senyap / Zero-Touch — Panduan Setup
+# 02 — Backup Senyap ke Google Drive (Panduan Setup)
+
+> **Sekilas** · Jenis: panduan setup · Diperbarui: 2026-09-08 · Status: **aktif**
+> **Untuk siapa:** pemilik app yang memasang/memperbaiki backup otomatis ke Google Drive.
+> **Baca kalau:** ingin backup berjalan sendiri tanpa menekan apa pun, atau saat backup Drive gagal.
+> **Isi:** koreksi arsitektur (kenapa bukan cron server) · langkah setup relay + env Vercel · Fase 2 untuk app yang tertutup.
+> **Butuh akses:** Vercel → Settings → Environment Variables (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`, `BACKUP_API_SECRET`).
 
 ## Koreksi arsitektur (penting)
 

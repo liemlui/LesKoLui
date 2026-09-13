@@ -1,4 +1,10 @@
-# Rencana implementasi ketahanan data Les Ko Lui
+# 04 — Rencana Ketahanan Data
+
+> **Sekilas** · Jenis: rencana kerja + catatan implementasi · Diperbarui: 2026-09-05 (status 2026-09-12) · Status: **aktif** (implementasi selesai, verifikasi belum tuntas)
+> **Untuk siapa:** siapa pun yang akan mengubah backup/restore, draf Catat Sesi, kontrak respons AI, atau `saveSettings`.
+> **Baca kalau:** menyentuh data pengguna (risiko kehilangan data) atau ingin tahu kenapa sebuah keputusan ketahanan data diambil.
+> **Isi:** 6 fase — **A** panduan selaras · **B** tindak lanjut utuh (transaksional) · **C** draf Catat Sesi + PWA · **D** validasi restore · **E** kontrak respons AI · **F** `saveSettings` atomik. Bukti tiap fase di **§12**.
+> **Sisa pekerjaan:** skenario E2E close-out gagal (Fase B) dan verifikasi runtime/PWA restore (Fase D).
 
 Tanggal: 2026-09-05. Status: **enam lingkup (Fase A–F) sudah diimplementasikan dan diuji** — rincian bukti per fase ada di log §12.
 

@@ -1,69 +1,71 @@
-# Dokumentasi Les Ko Lui — Indeks & Riwayat
+# 00 — Mulai di Sini (Indeks Dokumentasi Les Ko Lui)
 
-> **Versi aplikasi saat dokumen ini diperbarui:** v1.73.0 (2026-09-12) · 475 unit test / 47 berkas · `eslint` 0/0 · `tsc` bersih · build produksi sukses.
-> Dokumen arsitektur tingkat sistem (stack, data model, template engine, dsb.) ada di direktori induk `../` (seri `01`–`10` + `../README.md`).
+> **Sekilas** · Versi aplikasi: **v1.73.0** (2026-09-12) · 475 unit test / 47 berkas · `eslint` 0/0 · `tsc` bersih · build produksi sukses.
+> Folder ini memuat **dokumentasi operasional aplikasi**. Dokumentasi arsitektur sistem (seri `01`–`10`) ada di folder induk `../`.
 
-Folder ini punya dua wilayah, dan bedanya penting:
+---
 
-| Wilayah | Isi | Aturan |
+## 1. "Kalau mau X, buka Y"
+
+| Kalau Anda mau… | Buka | Waktu baca |
 |---|---|---|
-| `docs/` (folder ini) | dokumen yang **masih berlaku** | boleh diperbarui bila kode berubah |
-| `docs/arsip/` | dokumen yang **sudah selesai** atau historis | **dibekukan** — isi tidak diubah; hanya rujukan path yang boleh disesuaikan saat pengarsipan |
-
-Tujuan pemisahan ini: satu tempat untuk hal yang harus dibaca sebelum mengubah kode, dan satu tempat untuk jejak keputusan lama yang tidak boleh hilang.
-
----
-
-## 1. Dokumen aktif
-
-| Dokumen | Jenis | Terakhir | Status | Ubah/lihat kapan |
-|---|---|---|---|---|
-| `RENCANA-KETAHANAN-DATA-2026-09-05.md` | rencana kerja (instruksi) | 2026-09-05 | **6 fase (A–F) selesai diimplementasikan**; sisa: verifikasi E2E Fase B & runtime/PWA Fase D — 32 kriteria penerimaan di §5–§9 belum dicentang | Sebelum mengubah backup/restore, draf Catat Sesi, kontrak respons AI, atau `saveSettings` |
-| `ZERO-TOUCH-BACKUP.md` | panduan setup | 2026-09-08 | panduan aktif (relay Google Drive) | Saat memasang/memperbaiki backup senyap ke Drive |
-| `PANDUAN-TAGIHAN.md` | panduan fitur (cheat-sheet) | 2026-09-01 | panduan aktif (3 siklus tagihan) | Saat mengubah alur laporan → tagihan |
-| `ARSITEKTUR-REPLIKASI-OFFLINE.md` | cetak biru/referensi | 2026-08-03 | referensi (baseline v1.37.0) | Bila membangun app offline-first baru dengan pola yang sama |
-| `UI-UX-VISUAL-AUDIT-PLAYBOOK.md` | prosedur (dapat diulang) | 2026-09-11 | prosedur aktif; penerapan 2026-09-11 sudah selesai dan hasilnya diarsipkan | Sebelum menjalankan audit UI/UX visual baru |
-| `../README.md` (app) | titik masuk repo app | 2026-09-12 | aktif | Pertama kali membuka repo |
-| `../TODO.md` | pelacak utang teknis | 2026-08-29 | aktif (refactor & test coverage) | Saat memilih pekerjaan refactor berikutnya |
-
-**Pekerjaan yang benar-benar masih terbuka** (jangan tertukar dengan dokumen arsip):
-
-1. `RENCANA-KETAHANAN-DATA` §5–§9 — kriteria penerimaan yang belum dicentang; implementasinya sudah ada dan diuji unit, yang belum: skenario E2E close-out gagal (Fase B) dan verifikasi runtime/PWA restore (Fase D).
-2. `../TODO.md` — pemecahan layar besar (`StudentDetail`, `CaptureSession`, `Payments`, `Settings`) dan penambahan test layar.
-3. Utang yang tercatat di audit terakhir dan **sengaja tidak dikerjakan**: bottom-nav tidak disembunyikan selama wizard Catat Sesi, dan chip teks 38–42 px dibiarkan (alasan ada di `arsip/AUDIT-UIUX-CATAT-SESI-2026-09-12.md` §9.3).
+| tahu kapan sesi ditagih & kenapa sebuah sesi (tidak) masuk tagihan | [`01-PANDUAN-TAGIHAN.md`](01-PANDUAN-TAGIHAN.md) | ±3 menit |
+| memasang/memperbaiki backup otomatis ke Google Drive | [`02-PANDUAN-BACKUP-DRIVE-SENYAP.md`](02-PANDUAN-BACKUP-DRIVE-SENYAP.md) | ±10 menit |
+| mengaudit tampilan aplikasi secara sistematis (berbasis screenshot) | [`03-PLAYBOOK-AUDIT-UIUX-VISUAL.md`](03-PLAYBOOK-AUDIT-UIUX-VISUAL.md) | ±30 menit (kerja beberapa jam) |
+| mengubah backup/restore, draf Catat Sesi, respons AI, atau `saveSettings` | [`04-RENCANA-KETAHANAN-DATA.md`](04-RENCANA-KETAHANAN-DATA.md) | ±20 menit |
+| membangun app lain dengan pola offline-first seperti ini | [`05-ARSITEKTUR-REPLIKASI-OFFLINE.md`](05-ARSITEKTUR-REPLIKASI-OFFLINE.md) | ±25 menit |
+| tahu **apa yang masih harus dikerjakan** | bagian 3 di halaman ini | ±2 menit |
+| mencari keputusan lama (audit & panduan yang sudah selesai) | [`arsip/README.md`](arsip/README.md) | sesuai kebutuhan |
 
 ---
 
-## 2. Riwayat kronologis
+## 2. Angka pada nama berkas — artinya apa
 
-Semua baris di bawah sudah selesai; dokumennya ada di `arsip/` (kecuali yang ditandai *aktif*).
+| Angka | Letaknya | Artinya |
+|---|---|---|
+| `00`–`05` | folder ini (`docs/`) | **urutan baca dokumentasi operasional aplikasi.** `00` = halaman ini. |
+| `01`–`10` | folder induk (`../`) | seri **arsitektur sistem** (build guide): stack, data model, template engine, dsb. |
+| tanpa nomor | `arsip/` | dokumen yang **sudah selesai**. Nama berkasnya dipertahankan apa adanya (lihat bagian 5). |
 
-| Tanggal | Dokumen | Yang terjadi | Versi |
+> Dua daftar angka ini berbeda dan sengaja dipisah: yang satu menjawab "bagaimana saya memakai/merawat aplikasi ini", yang lain menjawab "bagaimana aplikasi ini dibangun".
+
+---
+
+## 3. Yang masih harus dikerjakan
+
+| # | Pekerjaan | Di mana | Kenapa belum selesai |
 |---|---|---|---|
-| 2026-06-20–21 | `arsip/…` seri spec `04`–`07` (root) | Template engine, rotasi, export ditulis | v1.8–1.9 |
-| 2026-06-26 | `arsip/DOC-AUDIT.md`, `arsip/CHECKLIST.md` | Audit dokumen vs kode: 9 kategori gap diperbaiki, 13 dokumen diselaraskan | v1.12.1 |
-| 2025-07-16 → 2026-08-28 | `arsip/AUDIT-CHECKLIST.md` | Audit keamanan/teknis 4 ronde: 26/26 ditangani (1 di-waive sesuai threat model solo) | v1.37.0 → v1.53.0 |
-| 2026-08-02 | `docs/ARSITEKTUR-REPLIKASI-OFFLINE.md` | Cetak biru replikasi offline-first (diturunkan dari v1.37.0) | v1.37.0 |
-| 2026-08-29 | `arsip/PANDUAN-PENUNTASAN-CATAT-SESI.md` | Refactor Catat Sesi: 3 hook diekstrak (engagement, brief, draf) + polish P1 | v1.64.x |
-| 2026-09-01 | `arsip/UI-UX-ANALYSIS.md`, `docs/PANDUAN-TAGIHAN.md` | Analisis data-viz/chart (sebagian besar diimplementasikan) + cheat-sheet tagihan | v1.66–1.68 |
-| 2026-09-04 | `arsip/UI-UX-AUDIT-2026-09-04.md` | Audit interaksi/navigasi/a11y/design system; quick wins dieksekusi | v1.70.0 |
-| 2026-09-05 | `arsip/UI-UX-REDUNDANSI-AUDIT-2026-09-05.md` | Audit redundansi & penataan informasi; dieksekusi, diverifikasi ulang 2026-09-12 (R1–R17) | v1.70.x |
-| 2026-09-05 | `docs/RENCANA-KETAHANAN-DATA-2026-09-05.md` | Enam lingkup ketahanan data dieksekusi: panduan selaras, follow-up transaksional, draf Catat Sesi (schema v15), validasi restore, validasi respons AI, `saveSettings` atomik | v1.70.5 |
-| 2026-09-05 | `arsip/WA-MESSAGE-ADJUSTMENT-2026-09-05.md` | Humanisasi pesan WhatsApp ke orang tua; penghapusan Reminder AI | v1.70.x |
-| 2026-09-08 | `docs/ZERO-TOUCH-BACKUP.md` | Backup senyap ke Google Drive lewat relay (koreksi: tidak bisa lewat cron server) | v1.71.x |
-| 2026-09-11 | `docs/UI-UX-VISUAL-AUDIT-PLAYBOOK.md`, `arsip/UI-UX-AUDIT-VISUAL-2026-09-11.md` | Audit visual berbasis 87 screenshot: 14 temuan (V-01…V-14) — **semua ditutup** | v1.71.0 → v1.71.4 |
-| 2026-09-12 | `arsip/AUDIT-UIUX-KEUANGAN-2026-09-12.md` | Audit modul Keuangan: 10 item prioritas, semuanya diimplementasikan (tab dinamai ulang, 63 tagihan dari ±27 layar → ±3 layar) | v1.72.0 |
-| 2026-09-12 | `arsip/AUDIT-UIUX-CATAT-SESI-2026-09-12.md` | Audit alur Catat Sesi: 17 temuan (C-01…C-17) — **semua diimplementasikan**; 2 bug tambahan ditemukan saat verifikasi. Keluhan pengguna "layar berkedip" = C-17 (draf ditulis 108×/menit tanpa perubahan data) | v1.73.0 |
+| 1 | **Verifikasi E2E close-out gagal (Fase B)** dan **runtime/PWA restore (Fase D)** | [`04-RENCANA-KETAHANAN-DATA.md`](04-RENCANA-KETAHANAN-DATA.md) §5–§9, log §12 | Implementasi + unit test sudah ada; 32 kriteria penerimaan belum dicentang karena skenario E2E/runtime belum dijalankan |
+| 2 | **Refactor layar besar + tambah test layar** | [`../TODO.md`](../TODO.md) | Belum diprioritaskan; daftar lengkap ada di sana |
+| 3 | **Dua hal yang sengaja TIDAK dikerjakan** (bukan lupa) | [`arsip/AUDIT-UIUX-CATAT-SESI-2026-09-12.md`](arsip/AUDIT-UIUX-CATAT-SESI-2026-09-12.md) §9.3 | bottom-nav dibiarkan tampil selama wizard Catat Sesi (menghindari pengguna terjebak), dan chip teks 38–42 px dibiarkan (≥ 24 px, lolos WCAG 2.5.8) |
 
 ---
 
-## 3. Aturan pemeliharaan
+## 4. Riwayat (jejak lengkapnya ada di arsip)
 
-Supaya folder ini tidak kembali berantakan:
+Ringkas saja; versi lengkap + ringkasan tiap dokumen ada di [`arsip/README.md`](arsip/README.md).
 
-1. **Audit/hasil kerja yang sudah dieksekusi → pindahkan ke `arsip/`** dan catat satu baris di `arsip/README.md` (tanggal, target versi, status akhir, hasil). Jangan menimpa audit lama dengan audit baru — buat dokumen bertanggal baru.
-2. **Panduan kerja (instruksi untuk AI/engineer) diarsipkan setelah seluruh fasenya selesai.** Kalau masih ada fase/kriteria yang terbuka, dokumennya tetap di `docs/` dan **wajib** punya blok `> Status:` di baris atas.
-3. **Dokumen arsip dibekukan.** Tidak ada penyuntingan isi. Satu-satunya pengecualian: rujukan path disesuaikan saat pemindahan (mis. `docs/X.md` → `arsip/X.md`), dan itu dicatat di `arsip/README.md`.
-4. **Setiap dokumen baru wajib menyebut dirinya**: tanggal, target versi, status (`aktif` / `selesai` / `historis`), dan apa yang harus dilakukan pembaca berikutnya.
-5. **Rujukan antar dokumen memakai path relatif** ke lokasi sebenarnya; dokumen aktif tidak boleh menunjuk ke lokasi pra-arsip.
+| Tanggal | Peristiwa | Versi |
+|---|---|---|
+| 2026-06-26 | Audit dokumentasi vs kode: 13 dokumen diselaraskan | v1.12.1 |
+| 2026-07 → 08 | Audit keamanan/teknis 4 ronde: 26/26 ditangani (1 di-waive: H-2, API key AI) | v1.37.0 → v1.53.0 |
+| 2026-08-29 | Refactor Catat Sesi: state besar dipecah ke 3 hook | v1.64.x |
+| 2026-09-01 | Analisis UI/UX (chart/data-viz) + cheat-sheet tagihan | v1.66–1.68 |
+| 2026-09-04 | Audit interaksi, navigasi, a11y, design system | v1.70.0 |
+| 2026-09-05 | Audit redundansi informasi + humanisasi pesan WhatsApp | v1.70.x |
+| 2026-09-05 | **Ketahanan data: 6 fase (A–F) diimplementasikan** (draf Catat Sesi, schema v15, validasi restore, kontrak AI, `saveSettings` atomik) | v1.70.5 |
+| 2026-09-08 | Backup senyap ke Google Drive lewat relay | v1.71.x |
+| 2026-09-11 | Audit visual 87 screenshot: 14 temuan — semua ditutup | v1.71.0 → v1.71.4 |
+| 2026-09-12 | Audit modul Keuangan: 10 item — semua diimplementasikan | v1.72.0 |
+| 2026-09-12 | Audit alur Catat Sesi: **17 temuan — semua diimplementasikan** + 2 bug tambahan yang ketemu saat verifikasi | **v1.73.0** |
+
+---
+
+## 5. Aturan pemeliharaan (supaya tetap rapi)
+
+1. **Dokumen selesai → pindahkan ke `arsip/`** dan tambahkan satu baris di [`arsip/README.md`](arsip/README.md): tanggal · target versi · status akhir · hasil. Jangan menimpa dokumen lama dengan dokumen baru — buat dokumen bertanggal baru.
+2. **Nama berkas di `arsip/` tidak diganti.** Isi arsip dibekukan (temuan, angka, keputusan tetap seperti saat ditulis); yang berubah hanya rujukan path yang menunjuk lokasi pra-arsip. Karena itu arsip tidak memakai nomor urut — urutannya diatur di tabel inventaris arsip.
+3. **Dokumen dengan pekerjaan terbuka tetap di folder ini** dan wajib punya blok `> **Sekilas** …` di baris atas (jenis · status · untuk siapa · baca kalau · isi).
+4. **Nomor berkas hanya untuk dokumen operasional di folder ini.** Dokumen baru masuk ke urutan `06`, `07`, … setelah isinya jelas; jangan menyisipkan nomor di tengah.
+5. **Rujukan memakai path relatif** ke lokasi sebenarnya; dokumen di folder ini tidak boleh menunjuk lokasi pra-arsip.
 6. **Artefak tidak masuk repo**: `dist/`, `test-results/`, `typecheck-output.txt`, dan ekspor data (`leskolui-data-*.csv`) sudah diabaikan `.gitignore` — jangan dilepas dari daftar itu.
