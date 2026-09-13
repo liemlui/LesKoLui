@@ -1,7 +1,7 @@
 import type { Layout, LayoutCategory } from "../types";
 
 /**
- * Metadata kompatibilitas per layout (Milestone A dari docs/UI-UX-ANALYSIS.md).
+ * Metadata kompatibilitas per layout (Milestone A dari docs/arsip/UI-UX-ANALYSIS.md).
  * Dipakai oleh:
  *  - ReportRenderer (rasio aman 3:4/auto, fallback bila layout tidak mendukung)
  *  - galeri template (filter kategori agar pilihan tidak membebani pengguna — Hick's Law)

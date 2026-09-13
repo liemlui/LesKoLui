@@ -1,7 +1,7 @@
 # 00 — Mulai di Sini (Indeks Dokumentasi Les Ko Lui)
 
 > **Sekilas** · Versi aplikasi: **v1.73.0** (2026-09-12) · **491 unit test / 47 berkas** · `eslint` 0/0 · `tsc` bersih · build produksi sukses · E2E: `e2e/` (dev) + `e2e-pwa/` (build produksi, SW aktif).
-> Folder ini memuat **dokumentasi operasional aplikasi**. Dokumentasi arsitektur sistem (seri `01`–`10`) ada di folder induk `../`.
+> Folder ini memuat **dokumentasi operasional aplikasi**. Dokumentasi arsitektur sistem (seri `01`–`10`) ada di [`arsitektur/`](arsitektur/README.md).
 
 ---
 
@@ -14,6 +14,7 @@
 | mengaudit tampilan aplikasi secara sistematis (berbasis screenshot) | [`03-PLAYBOOK-AUDIT-UIUX-VISUAL.md`](03-PLAYBOOK-AUDIT-UIUX-VISUAL.md) | ±30 menit (kerja beberapa jam) |
 | mengubah backup/restore, draf Catat Sesi, respons AI, atau `saveSettings` | [`04-RENCANA-KETAHANAN-DATA.md`](04-RENCANA-KETAHANAN-DATA.md) | ±20 menit |
 | membangun app lain dengan pola offline-first seperti ini | [`05-ARSITEKTUR-REPLIKASI-OFFLINE.md`](05-ARSITEKTUR-REPLIKASI-OFFLINE.md) | ±25 menit |
+| tahu **bagaimana aplikasi ini dibangun** (stack, data model, template, dsb.) | [`arsitektur/README.md`](arsitektur/README.md) | sesuai kebutuhan |
 | tahu **apa yang masih harus dikerjakan** | bagian 3 di halaman ini | ±2 menit |
 | mencari keputusan lama (audit & panduan yang sudah selesai) | [`arsip/README.md`](arsip/README.md) | sesuai kebutuhan |
 
@@ -24,10 +25,10 @@
 | Angka | Letaknya | Artinya |
 |---|---|---|
 | `00`–`05` | folder ini (`docs/`) | **urutan baca dokumentasi operasional aplikasi.** `00` = halaman ini. |
-| `01`–`10` | folder induk (`../`) | seri **arsitektur sistem** (build guide): stack, data model, template engine, dsb. |
+| `01`–`10` | `docs/arsitektur/` | seri **arsitektur sistem** (build guide): stack, data model, template engine, dsb. |
 | tanpa nomor | `arsip/` | dokumen yang **sudah selesai**. Nama berkasnya dipertahankan apa adanya (lihat bagian 5). |
 
-> Dua daftar angka ini berbeda dan sengaja dipisah: yang satu menjawab "bagaimana saya memakai/merawat aplikasi ini", yang lain menjawab "bagaimana aplikasi ini dibangun".
+> Dua daftar angka ini berbeda dan sengaja dipisah: yang satu menjawab "bagaimana saya memakai/merawat aplikasi ini", yang lain menjawab "bagaimana aplikasi ini dibangun". Semuanya kini berada di dalam repo aplikasi sehingga ikut ter-versi.
 
 ---
 
@@ -72,6 +73,7 @@ Ringkas saja; versi lengkap + ringkasan tiap dokumen ada di [`arsip/README.md`](
 1. **Dokumen selesai → pindahkan ke `arsip/`** dan tambahkan satu baris di [`arsip/README.md`](arsip/README.md): tanggal · target versi · status akhir · hasil. Jangan menimpa dokumen lama dengan dokumen baru — buat dokumen bertanggal baru.
 2. **Nama berkas di `arsip/` tidak diganti.** Isi arsip dibekukan (temuan, angka, keputusan tetap seperti saat ditulis); yang berubah hanya rujukan path yang menunjuk lokasi pra-arsip. Karena itu arsip tidak memakai nomor urut — urutannya diatur di tabel inventaris arsip.
 3. **Dokumen dengan pekerjaan terbuka tetap di folder ini** dan wajib punya blok `> **Sekilas** …` di baris atas (jenis · status · untuk siapa · baca kalau · isi).
-4. **Nomor berkas hanya untuk dokumen operasional di folder ini.** Dokumen baru masuk ke urutan `06`, `07`, … setelah isinya jelas; jangan menyisipkan nomor di tengah.
+4. **Nomor berkas hanya untuk dokumen operasional di folder ini.** Dokumen baru masuk ke urutan `06`, `07`, … setelah isinya jelas; jangan menyisipkan nomor di tengah. Nomor `01`–`10` di `arsitektur/` milik **seri build guide**, bukan urutan baca dokumen operasional.
 5. **Rujukan memakai path relatif** ke lokasi sebenarnya; dokumen di folder ini tidak boleh menunjuk lokasi pra-arsip.
 6. **Artefak tidak masuk repo**: `dist/`, `test-results/`, `typecheck-output.txt`, dan ekspor data (`leskolui-data-*.csv`) sudah diabaikan `.gitignore` — jangan dilepas dari daftar itu.
+7. **Tidak ada dokumentasi penting di luar repo.** Seri arsitektur `01`–`10` (dulu ada di folder induk `Private Tutor/` yang tidak dikelola git) sudah dipindahkan ke `docs/arsitektur/` pada 2026-09-13 agar punya riwayat versi; dokumen baru jangan ditaruh di luar repo.

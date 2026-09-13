@@ -2,7 +2,7 @@ import type { ReportData } from "./types";
 
 /**
  * Data contoh untuk thumbnail/preview desain laporan (C-2 dari
- * docs/UI-UX-ANALYSIS.md).
+ * docs/arsip/UI-UX-ANALYSIS.md).
  *
  * Dipakai oleh:
  *  - galeri layout di MonthlyReport (preview on-demand per kombinasi yang

@@ -36,7 +36,7 @@ Persetujuan meliputi implementasi lokal dan tes yang diperlukan. Ini tidak mengi
 
 Audit membaca kode kerja, termasuk perubahan pengguna yang belum di-commit. Pada audit awal, `npm.cmd test -- --reporter=dot` menghasilkan **33 file tes / 351 tes lulus**, dan `npm.cmd run build` berhasil. Hasil tersebut bukan bukti bahwa skenario kegagalan di dokumen ini sudah tertangani. Audit awal tidak menjalankan E2E maupun memverifikasi PWA di HP.
 
-Lokasi proyek aplikasi adalah direktori `les-ko-lui/`. Semua path di dokumen ini relatif terhadap direktori tersebut kecuali diawali `../`.
+Lokasi proyek aplikasi adalah root repo (`les-ko-lui/`, folder yang memuat `package.json`). Semua path di dokumen ini relatif terhadap direktori tersebut, kecuali yang menunjuk dokumen arsitektur (`arsitektur/…`).
 
 Fakta kode pada saat penulisan:
 
@@ -70,10 +70,12 @@ Temuan adalah jalur kegagalan dan risiko yang terlihat dari kode, bukan pernyata
 
 ### File yang dibaca dan diperbarui
 
-- `../README.md`, `../01-architecture-and-stack.md`, `../02-data-model.md`.
-- `../03-capture-flow.md`, `../06-ai-generation.md`, `../08-backup-and-pwa.md`.
-- `../09-build-phases.md`, `../10-conventions-and-pitfalls.md`. (Dua dokumen historis `CHECKLIST.md` dan
+- `arsitektur/README.md`, `arsitektur/01-architecture-and-stack.md`, `arsitektur/02-data-model.md`.
+- `arsitektur/03-capture-flow.md`, `arsitektur/06-ai-generation.md`, `arsitektur/08-backup-and-pwa.md`.
+- `arsitektur/09-build-phases.md`, `arsitektur/10-conventions-and-pitfalls.md`. (Dua dokumen historis `CHECKLIST.md` dan
   `DOC-AUDIT.md` sudah dipindahkan ke arsip repo ini: `arsip/CHECKLIST.md`, `arsip/DOC-AUDIT.md`.)
+  Catatan 2026-09-13: seri arsitektur dulu berada di folder induk `Private Tutor/` yang tidak dikelola git;
+  sekarang seluruhnya di `docs/arsitektur/` sehingga punya riwayat versi.
 - `README.md` aplikasi yang masih berupa template Vite.
 - Dokumen lain di root dan `docs/` hanya bila memuat instruksi aktif yang bertentangan.
 

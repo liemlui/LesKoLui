@@ -28,7 +28,8 @@ masih terbuka, riwayat, dan aturan pemeliharaan. Dokumen di `docs/` bernomor uru
 Dokumen yang sudah selesai dibekukan di `docs/arsip/` (12 dokumen: audit keamanan, audit UI/UX, panduan
 kerja yang tuntas) — ringkasannya di `docs/arsip/README.md`.
 
-Dokumentasi arsitektur sistem berada di direktori `../` (root `Private Tutor/`, seri `01`–`10`):
+Dokumentasi arsitektur sistem berada di [`docs/arsitektur/`](docs/arsitektur/README.md) (seri `01`–`10`,
+ikut ter-versi bersama aplikasi):
 
 1. `01-architecture-and-stack.md` — stack, struktur, konfigurasi
 2. `02-data-model.md` — skema Dexie, tipe, repositori
