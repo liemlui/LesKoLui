@@ -1,18 +1,17 @@
 # 04 — Rencana Ketahanan Data
 
-> **Sekilas** · Jenis: rencana kerja + catatan implementasi · Diperbarui: 2026-09-05 (status 2026-09-12) · Status: **aktif** (implementasi selesai, verifikasi belum tuntas)
+> **Sekilas** · Jenis: rencana kerja + catatan implementasi · Diperbarui: 2026-09-05 (status 2026-09-13) · Status: **aktif** (implementasi selesai; verifikasi E2E + PWA sudah dijalankan, 2 kriteria Fase E masih tanpa bukti otomatis)
 > **Untuk siapa:** siapa pun yang akan mengubah backup/restore, draf Catat Sesi, kontrak respons AI, atau `saveSettings`.
 > **Baca kalau:** menyentuh data pengguna (risiko kehilangan data) atau ingin tahu kenapa sebuah keputusan ketahanan data diambil.
 > **Isi:** 6 fase — **A** panduan selaras · **B** tindak lanjut utuh (transaksional) · **C** draf Catat Sesi + PWA · **D** validasi restore · **E** kontrak respons AI · **F** `saveSettings` atomik. Bukti tiap fase di **§12**.
-> **Sisa pekerjaan:** skenario E2E close-out gagal (Fase B) dan verifikasi runtime/PWA restore (Fase D).
+> **Sisa pekerjaan:** 2 kriteria Fase E (teks/hash lama saat respons gagal; respons terlambat setelah ganti scope) dan 1 kriteria Fase F (snapshot form basi dari luar form Pengaturan) — semuanya butuh tes di lapisan komponen/hook, lihat §13.
 
 Tanggal: 2026-09-05. Status: **enam lingkup (Fase A–F) sudah diimplementasikan dan diuji** — rincian bukti per fase ada di log §12.
 
-> **Status pemeliharaan (diperbarui 2026-09-12):** dokumen ini **tetap aktif**, bukan arsip, karena masih ada
-> pekerjaan verifikasi yang belum ditutup: (a) skenario E2E close-out yang gagal (Fase B) dan (b) verifikasi
-> runtime/PWA untuk restore (Fase D). 32 kriteria penerimaan di §5–§9 belum dicentang walaupun implementasinya
-> sudah ada dan tercakup unit test yang disebut di §12 — centanglah setelah E2E/runtime dijalankan, lalu
-> dokumen ini bisa dipindahkan ke `arsip/` (lihat `README.md` untuk aturan pemeliharaan).
+> **Status pemeliharaan (diperbarui 2026-09-13):** dokumen ini **tetap aktif**, bukan arsip, karena masih ada
+> pekerjaan verifikasi yang belum ditutup: 2 kriteria Fase E dan 1 kriteria Fase F pada §8–§9 (rincian di §13).
+> Skenario E2E close-out gagal (Fase B) dan verifikasi runtime/PWA restore (Fase D) **sudah dijalankan**
+> pada 2026-09-13 — lihat §12 baris terakhir dan §10 tabel bukti.
 
 Dokumen ini adalah instruksi kerja untuk AI pelaksana. Kerjakan per fase, buktikan hasilnya, lalu lanjut. Jangan menganggap kotak checklist sebagai selesai sebelum ada perubahan kode dan bukti pengujian.
 
@@ -118,12 +117,12 @@ Sesi sudah tersimpan sebelum close-out dibuka. Jika follow-up kedua gagal, follo
 
 ### Tes penerimaan
 
-- [ ] Dua item valid menghasilkan tepat dua follow-up milik sesi/murid yang benar.
-- [ ] Gagalkan write kedua secara deterministik di tes: tidak satu pun item baru tertinggal setelah rollback.
-- [ ] Setelah kegagalan, modal dan semua teks tetap ada; tidak ada navigasi sukses.
-- [ ] Retry setelah gagal menyimpan tepat satu batch; submit ulang dengan ID sama tidak menambah duplikat.
-- [ ] Konflik ID tidak menimpa data lama atau membuka kembali follow-up completed.
-- [ ] Sesi awal tidak dihapus maupun dibuat ulang ketika close-out gagal.
+- [x] Dua item valid menghasilkan tepat dua follow-up milik sesi/murid yang benar. — `repos.test.ts` "saves a close-out batch atomically and retries with stable IDs"; `e2e/capture-closeout-failure.spec.ts` (2 baris, `studentId` cocok, satu `sourceSessionId`).
+- [x] Gagalkan write kedua secara deterministik di tes: tidak satu pun item baru tertinggal setelah rollback. — `repos.test.ts` "rolls back the whole batch when the database write fails" (`bulkAdd` di-spy) + E2E: `followUps` tetap 0 setelah gagal.
+- [x] Setelah kegagalan, modal dan semua teks tetap ada; tidak ada navigasi sukses. — `e2e/capture-closeout-failure.spec.ts` (dialog "Laporan sesi" + 2 chip masih tampil, URL tetap `/capture?studentId=…`, pesan "Tindak lanjut belum tersimpan; coba lagi.").
+- [x] Retry setelah gagal menyimpan tepat satu batch; submit ulang dengan ID sama tidak menambah duplikat. — `repos.test.ts` (retry ID stabil) + E2E: setelah retry tepat 2 baris, bukan 4.
+- [x] Konflik ID tidak menimpa data lama atau membuka kembali follow-up completed. — `repos.test.ts` "rejects an ID conflict without overwriting the existing item" dan "does not reopen a completed follow-up when the same batch is retried".
+- [x] Sesi awal tidak dihapus maupun dibuat ulang ketika close-out gagal. — `e2e/capture-closeout-failure.spec.ts`: `sessions` = 1 sebelum gagal, sesudah gagal, dan sesudah retry.
 
 ## 6. Fase C — Draf Catat Sesi dan pembaruan PWA (ID 1)
 
@@ -217,16 +216,16 @@ Urutan pipeline: dekripsi → periksa format/envelope/versi dan struktur dasar �
 
 ### Tes penerimaan
 
-- [ ] Round-trip semua tabel backup, foto, tanda tangan, dan logo tetap lulus.
-- [ ] Backup v1 dan v2 pra-v11/pra-v13 yang didukung tetap dimigrasikan dengan benar.
-- [ ] Payload JSON valid dengan nominal string, array salah bentuk, tanggal mustahil, enum salah, atau Settings non-app ditolak dengan pesan lokasi.
-- [ ] Future databaseVersion ditolak meski tableCounts dan payload version cocok.
-- [ ] Relasi lintas murid/relasi wajib hilang ditolak; referensi opsional historis mendapat warning sesuai kebijakan tertulis.
-- [ ] Unknown legacy table monthClosings tetap diperlakukan sesuai kontrak lama.
-- [ ] Kegagalan validasi tidak menjalankan clear/write pada DB ataupun callback backup sebelum restore.
-- [ ] Kegagalan backup sebelum restore membatalkan penggantian data.
-- [ ] Kegagalan bulkAdd di tengah restore membatalkan seluruh penggantian, termasuk pembersihan draf.
-- [ ] Fixture invoice PAID/manual tidak berubah nominal, status, paidAt, dan keterkaitan sesinya akibat validasi.
+- [x] Round-trip semua tabel backup, foto, tanda tangan, dan logo tetap lulus. — `backup.test.ts` "round-trips every domain table and top-level Blob fields".
+- [x] Backup v1 dan v2 pra-v11/pra-v13 yang didukung tetap dimigrasikan dengan benar. — `backup.test.ts` (v1 tanpa tabel baru, laporan+payment v1, v2 < v11, `dueAt` legacy) + restore nyata di browser: `e2e-pwa/pwa-runtime.spec.ts`.
+- [x] Payload JSON valid dengan nominal string, array salah bentuk, tanggal mustahil, enum salah, atau Settings non-app ditolak dengan pesan lokasi. — `backupValidation.test.ts` (level/status enum, tanggal, Settings non-app, **nominal string dengan lokasi `sessions.ses1.cost`**); struktur array dijaga `assertRows` di `backup.ts` dan diuji lewat "rejects incomplete v2 data".
+- [x] Future databaseVersion ditolak meski tableCounts dan payload version cocok. — `backupValidation.test.ts` "rejects schema version higher than current".
+- [x] Relasi lintas murid/relasi wajib hilang ditolak; referensi opsional historis mendapat warning sesuai kebijakan tertulis. — `backupValidation.test.ts` blok relations (lintas murid, sesi tanpa murid, warning expense/followUp yatim) + integrasi `inspectBackup`/`importBackup`.
+- [x] Unknown legacy table monthClosings tetap diperlakukan sesuai kontrak lama. — `backup.test.ts` "menerima tabel legacy monthClosings tetapi tetap menolak tabel tak dikenal".
+- [x] Kegagalan validasi tidak menjalankan clear/write pada DB ataupun callback backup sebelum restore. — `backup.test.ts` "rejects incomplete v2 data before changing current records" (kini juga menegaskan `onPreRestoreBackup` tidak dipanggil).
+- [x] Kegagalan backup sebelum restore membatalkan penggantian data. — `backup.test.ts` "membatalkan penggantian data ketika backup pra-restore gagal" (enkripsi cadangan pra-restore digagalkan).
+- [x] Kegagalan bulkAdd di tengah restore membatalkan seluruh penggantian, termasuk pembersihan draf. — `backup.test.ts` "membatalkan seluruh penggantian bila bulkAdd gagal di tengah restore".
+- [x] Fixture invoice PAID/manual tidak berubah nominal, status, paidAt, dan keterkaitan sesinya akibat validasi. — `backup.test.ts` "migrates v1 monthly reports and links their legacy payments before restore" (399_000 · PAID · manual · 2025-12-02 · `reportId`).
 
 ## 8. Fase E — Kontrak respons AI yang dapat dipercaya (ID 4)
 
@@ -250,14 +249,14 @@ Urutan pipeline: dekripsi → periksa format/envelope/versi dan struktur dasar �
 
 ### Tes penerimaan
 
-- [ ] JSON valid tetapi `{}`, `null`, array root, string root, atau field utama bertipe object ditolak.
-- [ ] Respons valid tiap fitur lolos dengan optional field absen sesuai kontraknya.
-- [ ] Plan dengan priorities bukan array atau target bukan string gagal sebelum `.filter`/`.trim` dijalankan.
-- [ ] Narasi dengan ID asing, duplikat, atau ID diminta yang hilang ditolak tanpa perubahan DB.
-- [ ] Respons gagal mempertahankan teks lama dan hash lama; retry sukses baru memperbaruinya.
-- [ ] Kegagalan write di tengah batch merollback semua perubahan AI.
-- [ ] Respons terlambat setelah pergantian scope tidak menimpa scope lama/baru tanpa otorisasi alur yang benar.
-- [ ] Semua tes memakai mock fetch/fixture, tanpa API key nyata atau request berbayar.
+- [x] JSON valid tetapi `{}`, `null`, array root, string root, atau field utama bertipe object ditolak. — `aiValidation.test.ts`: `it.each([null, [], "text", 42, {}])` untuk **semua** parser + "rejects valid JSON whose main field has the wrong type".
+- [x] Respons valid tiap fitur lolos dengan optional field absen sesuai kontraknya. — `aiValidation.test.ts` "accepts a minimal valid response for every AI feature" (7 parser) + "accepts a plan with optional priority fields absent".
+- [x] Plan dengan priorities bukan array atau target bukan string gagal sebelum `.filter`/`.trim` dijalankan. — `aiValidation.test.ts` "rejects malformed nested plan before callers inspect priorities".
+- [x] Narasi dengan ID asing, duplikat, atau ID diminta yang hilang ditolak tanpa perubahan DB. — `aiValidation.test.ts` menolak ketiga kasus; mutasi hanya lewat `applyAiNarrativeBatch` setelah parser lolos, dan kegagalan write batch di-rollback (`aiRepo.test.ts`).
+- [ ] Respons gagal mempertahankan teks lama dan hash lama; retry sukses baru memperbaruinya. — **belum ada bukti otomatis**: logikanya ada di `useReportGeneration` (lapisan hook/komponen) dan belum tercakup tes.
+- [x] Kegagalan write di tengah batch merollback semua perubahan AI. — `aiRepo.test.ts` "rolls back all narratives and report changes when a session write fails".
+- [ ] Respons terlambat setelah pergantian scope tidak menimpa scope lama/baru tanpa otorisasi alur yang benar. — **belum ada bukti otomatis**: butuh tes di `useReportGeneration` (request invalidation), di luar cakupan kelas unit test yang ada.
+- [x] Semua tes memakai mock fetch/fixture, tanpa API key nyata atau request berbayar. — `aiClient.test.ts` memakai `vi.stubGlobal("fetch", fetchMock)`; tidak ada request jaringan nyata di suite.
 
 ## 9. Fase F — Pengaturan atomik dan patch yang tepat (ID 5)
 
@@ -283,14 +282,14 @@ Urutan pipeline: dekripsi → periksa format/envelope/versi dan struktur dasar �
 
 ### Tes penerimaan
 
-- [ ] `Promise.all` dua patch berbeda (profil dan lastBackupAt) menghasilkan kedua perubahan; gunakan sinkronisasi tes yang benar-benar menguji overlap, bukan mengandalkan keberuntungan scheduling.
-- [ ] Patch nested `ai.enabled` dan `ai.apiKey` bersamaan tidak saling menghapus.
-- [ ] Form dibuka, backup selesai, lalu form profil disimpan: metadata backup terbaru tetap utuh.
-- [ ] Menghapus field optional bekerja sesuai kontrak, termasuk PIN/key bila alur UI mengizinkan.
-- [ ] Array preferensi mengganti array lama, bukan menggabungkannya tidak sengaja.
-- [ ] Dua inisialisasi bersamaan tetap menghasilkan satu row `app`.
-- [ ] Migrasi PIN tidak mengembalikan PIN lama ketika pengguna sudah menggantinya.
-- [ ] Gagal put tidak menghasilkan notifikasi sukses atau perubahan parsial.
+- [x] `Promise.all` dua patch berbeda (profil dan lastBackupAt) menghasilkan kedua perubahan; gunakan sinkronisasi tes yang benar-benar menguji overlap, bukan mengandalkan keberuntungan scheduling. — `settingsRepo.test.ts` "keeps concurrent patches to different fields".
+- [x] Patch nested `ai.enabled` dan `ai.apiKey` bersamaan tidak saling menghapus. — `settingsRepo.test.ts` "merges nested AI fields without dropping the other field".
+- [ ] Form dibuka, backup selesai, lalu form profil disimpan: metadata backup terbaru tetap utuh. — **sebagian**: `settingsRepo.test.ts` "keeps freshly written operational metadata when the form saves its own fields" membuktikan jaminan di lapisan repo, dan form Pengaturan memang menyegarkan `lastBackupAt` setelah backup yang dijalankannya sendiri. Yang **belum** tertutup: `handleSave` masih mengirim snapshot Settings lengkap, jadi backup yang dipicu dari luar form (mis. prompt mingguan di `App.tsx`) saat Pengaturan terbuka bisa mengembalikan `lastBackupAt` basi. Butuh dirty-field tracking di form (lihat §13).
+- [x] Menghapus field optional bekerja sesuai kontrak, termasuk PIN/key bila alur UI mengizinkan. — `settingsRepo.test.ts` "replaces arrays and permits explicit optional deletion".
+- [x] Array preferensi mengganti array lama, bukan menggabungkannya tidak sengaja. — tes yang sama (`subjects` → `["Math"]`).
+- [x] Dua inisialisasi bersamaan tetap menghasilkan satu row `app`. — `settingsRepo.test.ts` "initializes only one app row under concurrent startup".
+- [x] Migrasi PIN tidak mengembalikan PIN lama ketika pengguna sudah menggantinya. — `settingsRepo.test.ts` "does not resurrect an old PIN after the user replaced it" + "hashes a legacy plaintext PIN during startup migration".
+- [x] Gagal put tidak menghasilkan notifikasi sukses atau perubahan parsial. — `settingsRepo.test.ts` "fails loudly without a partial change when the write fails".
 
 ## 10. Strategi verifikasi dan perintah
 
@@ -309,16 +308,16 @@ E2E memakai Playwright konfigurasi yang sudah ada. Tambahkan kasus capture recov
 
 Untuk inspeksi browser, ikuti skill browser yang tersedia di lingkungan pelaksana. Jangan menyimpulkan PWA aman hanya dari tes fake-indexeddb atau render statis React.
 
-Bukti minimum akhir:
+Bukti minimum akhir (status per 2026-09-13):
 
-| Area | Bukti |
-|---|---|
-| Database | Tes rollback batch follow-up, settings race, restore validation, migrasi draf |
-| Capture | E2E refresh, salah scope, close-out retry, sesi tidak duplikat |
-| AI | Parser malformed response, batch rollback, teks lama tetap utuh |
-| PWA | Verifikasi dua build produksi dan pemulihan draf, atau status pending yang jujur |
-| Regresi | Suite lama tetap lulus, build berhasil, lint ditinjau |
-| Dokumentasi | Panduan aktif dan checklist mencerminkan implementasi final |
+| Area | Bukti yang diminta | Bukti aktual |
+|---|---|---|
+| Database | Tes rollback batch follow-up, settings race, restore validation, migrasi draf | ✅ `repos.test.ts`, `settingsRepo.test.ts`, `backup.test.ts`, `backupValidation.test.ts`, `captureDraft*.test.ts` |
+| Capture | E2E refresh, salah scope, close-out retry, sesi tidak duplikat | ✅ `e2e/capture-closeout-failure.spec.ts` (close-out gagal + retry + sesi tunggal, lolos di chromium/mobile/mobile-dark); cakupan refresh & salah scope dari `captureDraft*.test.ts` |
+| AI | Parser malformed response, batch rollback, teks lama tetap utuh | ⚠️ parser + batch rollback ✅ (`aiValidation.test.ts`, `aiRepo.test.ts`); "teks lama tetap utuh" **belum** (lapisan hook, lihat §13) |
+| PWA | Verifikasi dua build produksi dan pemulihan draf, atau status pending yang jujur | ✅ `e2e-pwa/pwa-runtime.spec.ts` di **build produksi** (`vite preview`, SW aktif): offline reload + rute lazy dari precache, dan restore nyata dari file `.jles`. Dua build berbeda (uji update antar-deploy) belum dijalankan — lihat §13 |
+| Regresi | Suite lama tetap lulus, build berhasil, lint ditinjau | ✅ 47 berkas / 491 tes lulus · `npm run build` sukses (SW `generateSW`, 137 entri precache) · `npm run lint` 0/0 |
+| Dokumentasi | Panduan aktif dan checklist mencerminkan implementasi final | ✅ §5–§9 dicentang dengan rujukan tes; sisa yang belum terbukti dicatat di §13 |
 
 ## 11. Checklist serah terima
 
@@ -347,3 +346,26 @@ Laporan akhir AI pelaksana harus menyebut: fase selesai, file utama yang berubah
 | 2026-09-05 | D | `backupValidation.ts` baru: memberlakukan validasi struktural, tipe, angka, tanggal, media, relasi; `prepareBackupImport` menjalankan validasi setelah migrasi/decode; `inspectBackup` mengembalikan `.warnings`; `importBackup` memanggil `onValidationWarnings`; `Settings.tsx` memakai callback untuk konfirmasi pengguna; tes validator mencakup murid, sesi, settings, versi skema, tanggal, relasi, tabel tak dikenal, dan integrasi `inspectBackup`/`importBackup` | `tsc` ✅ · `npm run build` ✅ · `npm test` ✅ (35 file, 385 tes) | Fase E–F pending; verifikasi runtime/PWA dan E2E belum dilakukan |
 | 2026-09-05 | **E ✓** | Menambah validator runtime `aiValidation.ts` untuk seluruh output AI aktif; `callAI` kini memerlukan parser, menolak content kosong/root salah, memvalidasi plan dan ID narasi; batch narasi tervalidasi diterapkan atomik melalui `aiRepo.ts`, sehingga kegagalan write tidak meninggalkan mutasi parsial | `npx vitest run src/__tests__/aiValidation.test.ts src/__tests__/aiRepo.test.ts` ✅ (10 tes) · `npm test -- --reporter=dot` ✅ (39 file, 402 tes) · `npm run lint` ✅ · `npm run build` ✅ | Tidak ada pending Fase E; tetap tidak memakai API AI nyata/berbayar |
 | 2026-09-05 | **F ✓** | `saveSettings` memakai `SettingsPatch`, transaksi read-merge-put atomik, merge nested eksplisit untuk AI/profil/template/bank/Drive, array mengganti seluruh nilai, dan optional field dapat dihapus; default settings memakai factory agar tidak berbagi mutasi | `npx vitest run src/__tests__/settingsRepo.test.ts` ✅ (4 tes) · `npm test -- --reporter=dot` ✅ (39 file, 402 tes) · `npm run lint` ✅ · `npm run build` ✅ | Tidak ada pending Fase F |
+| 2026-09-13 | **B/D verifikasi** | Menambah `e2e/capture-closeout-failure.spec.ts` (kegagalan tulis `followUps` disuntik di lapisan IndexedDB → rollback batch, isian + modal bertahan, tanpa navigasi, retry menyimpan tepat satu batch, sesi tidak dibuat ulang) | `npm run e2e -- e2e/capture-closeout-failure.spec.ts e2e/smoke.spec.ts` ✅ 12/12 (chromium + 2 profil mobile) | Tidak ada pending Fase B |
+| 2026-09-13 | **D/PWA runtime** | Menambah `playwright.sw.config.ts` + `e2e-pwa/pwa-runtime.spec.ts` (build produksi via `vite preview`, port 4174) dan skrip `npm run e2e:pwa`: (a) SW produksi mengontrol halaman & app tetap terbuka offline termasuk rute lazy, (b) restore dari file `.jles` hasil aplikasi sendiri benar-benar mengganti seluruh data dan draf lokal dibersihkan | `npm run e2e:pwa` ✅ 2/2 (39,7 dtk) · `npm run build` ✅ (precache 137 entri) | Verifikasi dua build berbeda (uji pembaruan antar-deploy) belum dijalankan — §13 |
+| 2026-09-13 | **Bukti kriteria §5–§9** | Menambah tes yang belum punya bukti: legacy `monthClosings` diterima & ditolak untuk tabel asing lain, backup pra-restore gagal → restore batal, `bulkAdd` gagal → rollback penuh termasuk draf, validasi gagal → `onPreRestoreBackup` tidak dipanggil, nominal string dengan lokasi `sessions.ses1.cost`, root/field salah tipe untuk **semua** 7 parser AI + respons minimal valid, retry batch tidak membuka follow-up selesai, migrasi PIN legacy & PIN yang sudah diganti, gagal `put` tanpa perubahan parsial | `npx vitest run backup backupValidation aiValidation settingsRepo repos` ✅ (4 berkas, 83 tes) · `npm test -- --reporter=dot` ✅ (47 berkas, 491 tes) · `npm run lint` ✅ 0/0 · `npm run build` ✅ | 2 kriteria Fase E + 1 kriteria Fase F masih tanpa bukti otomatis → §13 |
+
+## 13. Sisa verifikasi (per 2026-09-13)
+
+Tiga kriteria masih **tidak dicentang** karena memang belum punya bukti otomatis. Semuanya berada di
+lapisan hook/komponen (`useReportGeneration`, form Pengaturan), sedangkan suite saat ini adalah unit/integration
+repo + E2E alur; menutupnya butuh tes komponen (mis. React Testing Library) yang belum jadi bagian toolchain.
+
+| # | Kriteria | Kenapa belum | Cara menutup |
+|---|---|---|---|
+| 1 | Fase E: respons AI gagal mempertahankan teks lama + hash lama, retry sukses baru memperbarui | Logika ada di `src/screens/monthlyReport/useReportGeneration.ts`; tidak ada tes komponen | Tes hook dengan mock `aiClient` + DB fake: respons ditolak → `narrative`/`aiNarrativeHash` tidak berubah; retry sukses → berubah |
+| 2 | Fase E: respons terlambat setelah pergantian murid/periode tidak menimpa scope lain | Butuh kontrol urutan promise di lapisan hook (request invalidation) | Tes hook: mulai permintaan untuk murid A, ganti ke murid B, selesaikan permintaan A → tidak ada mutasi untuk B |
+| 3 | Fase F: metadata backup terbaru tetap utuh saat form profil disimpan | Jaminan repo sudah ada dan diuji; yang belum tertutup adalah form (`handleSave`) yang masih mengirim snapshot Settings lengkap, sehingga backup yang dipicu dari **luar** form saat Pengaturan terbuka bisa mengembalikan `lastBackupAt` basi | Terapkan dirty-field tracking di `Settings.tsx` (kirim hanya field yang diubah) lalu uji skenarionya |
+
+Di luar tiga kriteria di atas, satu bukti PWA masih lebih lemah dari yang diminta §6: verifikasi **dua build
+produksi berbeda** (pembaruan antar-deploy: halaman lama masih bisa membuka route lazy setelah deploy baru).
+Yang sudah terbukti di `e2e-pwa/pwa-runtime.spec.ts` adalah **satu** build produksi dengan SW aktif — offline
+reload dan rute lazy dari precache. Uji dua build belum dijalankan.
+
+Konsekuensinya dokumen ini **belum** dipindahkan ke `arsip/`: pindahkan setelah tiga kriteria di atas ditutup
+(dan opsional: uji dua build), sesuai aturan pemeliharaan di `README.md`.

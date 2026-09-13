@@ -40,6 +40,13 @@ Setiap screen component besar perlu dipecah menjadi sub-components dan custom ho
 
 ## 🟢 Lower Priority
 
+### Ketahanan Data — 3 Kriteria Tanpa Bukti Otomatis (dari `docs/04-RENCANA-KETAHANAN-DATA.md` §13)
+- [ ] Tes hook `useReportGeneration`: respons AI gagal → `narrative`/`aiNarrativeHash` lama tetap utuh; retry sukses baru memperbarui
+- [ ] Tes hook `useReportGeneration`: respons terlambat setelah ganti murid/periode tidak menimpa scope lain
+- [ ] `Settings.tsx`: kirim hanya field yang diubah (dirty-field tracking) agar backup dari luar form tidak ter-rollback oleh snapshot `handleSave` yang basi
+- [ ] `e2e-pwa`: uji dua build produksi berbeda (pembaruan antar-deploy, halaman lama membuka route lazy)
+- [ ] Pertimbangkan menambah React Testing Library sebagai prasyarat tiga item pertama
+
 ### localStorage Usage Clarification
 - [ ] Document which localStorage keys are "app meta" vs "domain data"
 - [ ] Consider migrating relay config to IndexedDB settings table

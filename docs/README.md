@@ -1,6 +1,6 @@
 # 00 — Mulai di Sini (Indeks Dokumentasi Les Ko Lui)
 
-> **Sekilas** · Versi aplikasi: **v1.73.0** (2026-09-12) · 475 unit test / 47 berkas · `eslint` 0/0 · `tsc` bersih · build produksi sukses.
+> **Sekilas** · Versi aplikasi: **v1.73.0** (2026-09-12) · **491 unit test / 47 berkas** · `eslint` 0/0 · `tsc` bersih · build produksi sukses · E2E: `e2e/` (dev) + `e2e-pwa/` (build produksi, SW aktif).
 > Folder ini memuat **dokumentasi operasional aplikasi**. Dokumentasi arsitektur sistem (seri `01`–`10`) ada di folder induk `../`.
 
 ---
@@ -35,9 +35,14 @@
 
 | # | Pekerjaan | Di mana | Kenapa belum selesai |
 |---|---|---|---|
-| 1 | **Verifikasi E2E close-out gagal (Fase B)** dan **runtime/PWA restore (Fase D)** | [`04-RENCANA-KETAHANAN-DATA.md`](04-RENCANA-KETAHANAN-DATA.md) §5–§9, log §12 | Implementasi + unit test sudah ada; 32 kriteria penerimaan belum dicentang karena skenario E2E/runtime belum dijalankan |
-| 2 | **Refactor layar besar + tambah test layar** | [`../TODO.md`](../TODO.md) | Belum diprioritaskan; daftar lengkap ada di sana |
-| 3 | **Dua hal yang sengaja TIDAK dikerjakan** (bukan lupa) | [`arsip/AUDIT-UIUX-CATAT-SESI-2026-09-12.md`](arsip/AUDIT-UIUX-CATAT-SESI-2026-09-12.md) §9.3 | bottom-nav dibiarkan tampil selama wizard Catat Sesi (menghindari pengguna terjebak), dan chip teks 38–42 px dibiarkan (≥ 24 px, lolos WCAG 2.5.8) |
+| 1 | **3 kriteria ketahanan data yang belum punya bukti otomatis** — 2 kriteria Fase E (teks/hash lama saat respons AI gagal; respons terlambat setelah ganti scope) dan 1 kriteria Fase F (snapshot form Pengaturan yang basi) | [`04-RENCANA-KETAHANAN-DATA.md`](04-RENCANA-KETAHANAN-DATA.md) §13 | Semuanya di lapisan hook/komponen; suite sekarang unit/integration repo + E2E alur, jadi butuh tes komponen (belum ada RTL di toolchain) |
+| 2 | **Verifikasi PWA dua build berbeda** (pembaruan antar-deploy: halaman lama masih bisa membuka route lazy setelah deploy baru) | [`04-RENCANA-KETAHANAN-DATA.md`](04-RENCANA-KETAHANAN-DATA.md) §13 | Baru **satu** build produksi yang terbukti (SW aktif + offline reload + restore nyata, `npm run e2e:pwa`); uji dua build belum dijalankan |
+| 3 | **Refactor layar besar + tambah test layar** | [`../TODO.md`](../TODO.md) | Belum diprioritaskan; daftar lengkap ada di sana |
+| 4 | **Dua hal yang sengaja TIDAK dikerjakan** (bukan lupa) | [`arsip/AUDIT-UIUX-CATAT-SESI-2026-09-12.md`](arsip/AUDIT-UIUX-CATAT-SESI-2026-09-12.md) §9.3 | bottom-nav dibiarkan tampil selama wizard Catat Sesi (menghindari pengguna terjebak), dan chip teks 38–42 px dibiarkan (≥ 24 px, lolos WCAG 2.5.8) |
+
+> **Sudah ditutup 2026-09-13:** verifikasi E2E close-out gagal (Fase B) dan runtime/PWA restore (Fase D)
+> dijalankan — `e2e/capture-closeout-failure.spec.ts` dan `e2e-pwa/pwa-runtime.spec.ts` (`npm run e2e:pwa`).
+> Dari 32 kriteria penerimaan §5–§9, 29 kini dicentang dengan rujukan tes; 3 sisanya ada di tabel di atas.
 
 ---
 
@@ -58,6 +63,7 @@ Ringkas saja; versi lengkap + ringkasan tiap dokumen ada di [`arsip/README.md`](
 | 2026-09-11 | Audit visual 87 screenshot: 14 temuan — semua ditutup | v1.71.0 → v1.71.4 |
 | 2026-09-12 | Audit modul Keuangan: 10 item — semua diimplementasikan | v1.72.0 |
 | 2026-09-12 | Audit alur Catat Sesi: **17 temuan — semua diimplementasikan** + 2 bug tambahan yang ketemu saat verifikasi | **v1.73.0** |
+| 2026-09-13 | Ketahanan data: **E2E close-out gagal (Fase B)** + **runtime PWA/restore di build produksi (Fase D)** dijalankan; 29 dari 32 kriteria §5–§9 dicentang dengan rujukan tes (+16 tes baru) | v1.73.0 (tanpa perubahan perilaku) |
 
 ---
 
