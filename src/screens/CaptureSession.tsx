@@ -2212,7 +2212,7 @@ export default function CaptureSession() {
       {showCloseOut && coSessionData && currentStudent && (
         <CloseOutSheet
           studentName={currentStudent.name}
-          parentName={currentStudent.parentContact.name}
+          parentName={currentStudent.parentContact.name || "Orang Tua"}
           session={coSessionData}
           followUps={coFollowUps}
           followUpText={coFollowUpText}
