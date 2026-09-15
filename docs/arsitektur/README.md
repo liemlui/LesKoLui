@@ -10,6 +10,16 @@
 > — di sana dokumen bernomor urut baca `00`–`05` (**operasional aplikasi**), berbeda dari seri `01`–`10` di
 > folder ini (**arsitektur sistem**).
 > Semua dokumen yang sudah selesai/historis kini dibekukan di [`../arsip/`](../arsip/README.md)
+
+> ⚠️ **BACA SEBELUM MENGUTIP ANGKA DARI FOLDER INI.**
+> Seri ini menjelaskan **CARA** aplikasi dibangun, bukan **keadaan hari ini**. Beberapa berkas memuat
+> potret versi yang berbeda-beda (mis. `05` = potret v1.37.0, `06` = potret v1.71.1). Aplikasi berjalan
+> **v1.75.1**. Untuk keadaan terkini pakai: **kode sumber** + [`../../src/lib/version.ts`](../../src/lib/version.ts) (CHANGELOG)
+> + [`../README.md`](../README.md) §5 (riwayat).
+>
+> **`03-capture-flow.md` sudah dipindahkan ke [`../arsip/03-capture-flow.md`](../arsip/03-capture-flow.md)**
+> karena urutan UI di dalamnya tidak lagi cocok dengan aplikasi (kini 6 langkah, plus pemilih topik berbasis bab
+> dan kondisi 3 lapis).
 > (12 dokumen, termasuk `CHECKLIST.md`, `DOC-AUDIT.md`, audit UI/UX 2026-09, serta audit Catat Sesi & Keuangan 2026-09-12)
 > — dipindahkan ke sana agar historisnya ikut terversi di repo aplikasi.
 > Rencana ketahanan data ([`../04-RENCANA-KETAHANAN-DATA.md`](../04-RENCANA-KETAHANAN-DATA.md)):
@@ -40,17 +50,20 @@ npm.cmd run e2e:pwa  # Playwright E2E PWA produksi (build dulu)
 
 1. `01-architecture-and-stack.md` - stack, exact dependencies, project structure, config.
 2. `02-data-model.md` - Dexie schema, TypeScript types, repos, validation.
-3. `03-capture-flow.md` - the daily record-a-session screen.
-4. `04-template-engine.md` - 20 themes x 5 layouts, renderer, pagination.
-5. `05-rotation-logic.md` - guaranteed no-repeat design per student.
-6. `06-ai-generation.md` - DeepSeek direct API, prompts, client.
-7. `07-export-and-share.md` - render to PNG/PDF and share.
-8. `08-backup-and-pwa.md` - encrypted backup, persistent storage, offline PWA, fonts.
-9. `09-build-phases.md` - runbook and current phase map.
-10. `10-conventions-and-pitfalls.md` - coding rules and gotchas.
+3. `04-template-engine.md` - 20 themes x 5 layouts, renderer, pagination.
+4. `05-rotation-logic.md` - guaranteed no-repeat design per student.
+5. `06-ai-generation.md` - DeepSeek direct API, prompts, client.
+6. `07-export-and-share.md` - render to PNG/PDF and share.
+7. `08-backup-and-pwa.md` - encrypted backup, persistent storage, offline PWA, fonts.
+8. `09-build-phases.md` - runbook and current phase map.
+9. `10-conventions-and-pitfalls.md` - coding rules and gotchas.
 
-> Panduan operasional aplikasi (setup backup Drive, alur tagihan, prosedur audit visual, arsip dokumen lama)
-> ada di folder `docs/` (satu level di atas) — mulai dari `../README.md`.
+> `03-capture-flow.md` tidak ada di daftar ini: sudah diarsipkan (lihat peringatan di atas).
+> Alur catat sesi yang berlaku sekarang: baca `src/screens/CaptureSession.tsx` +
+> `src/screens/captureSession/` (constants, helpers, useEngagement, useCaptureDraft, useStudentBrief).
+
+> Panduan operasional aplikasi (setup backup Drive, alur tagihan, prosedur audit visual, dokumen tugas AI,
+> arsip dokumen lama) ada di folder `docs/` (satu level di atas) — mulai dari `../README.md`.
 
 ---
 

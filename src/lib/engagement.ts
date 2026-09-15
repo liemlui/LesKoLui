@@ -1,4 +1,4 @@
-import type { EngagementLog, Session } from "../db/types";
+import type { EngagementLog, Session, EngagementScoreBasis, EngagementLevel } from "../db/types";
 
 export interface ExtendedEngagementInput {
   // Core engagement flags
@@ -18,14 +18,24 @@ export interface ExtendedEngagementInput {
   behaviorValences?: ("positive" | "neutral" | "negative")[];  // parallel to behaviorTagIds
   // Extended — academic response
   responseTagId?: string;      // RESPONSE_TAGS id
-  // Extended — mood
+  /** @deprecated Sejak audit P2 #15 mood TIDAK lagi menggeser skor (suasana ≠
+   *  perilaku). Field tetap diterima agar data lama bisa dihitung ulang dengan
+   *  hasil yang sama seperti dulu TIDAK dijamin — lihat catatan di
+   *  `calcEngagementScore`. */
   mood?: string;
 }
 
 /**
- * Compute engagement score (1–10) from all available signals.
- * Positives are boosted; negatives are mild (-1 each).
- * Behavior tags and response quality now contribute.
+ * Hitung skor engagement (1–10) dari sinyal yang tersedia.
+ *
+ * Perubahan audit P2 #15: **mood tidak lagi ikut menambah/mengurangi skor.**
+ * Suasana hati bukan perilaku belajar, dan mencampurnya membuat satu pengamatan
+ * terhitung dua kali (mood "Semangat" +1 dan tag perilaku "Antusias" +1).
+ * Mood tetap DISIMPAN pada sesi — ia konteks, bukan nilai.
+ *
+ * Catatan kompatibilitas: sesi lama yang skornya sudah TERSIMPAN
+ * (`engagement.score`) tidak berubah. Sesi lama yang belum punya skor dan
+ * dihitung ulang lewat fungsi ini bisa berbeda ≤1 poin dari rumus lama.
  */
 export function calcEngagementScore(e: Omit<EngagementLog, "score"> & Partial<ExtendedEngagementInput>): number {
   let s = 5;
@@ -66,35 +76,142 @@ export function calcEngagementScore(e: Omit<EngagementLog, "score"> & Partial<Ex
     if (rid === "misconception")                           s -= 2;
     if (rid === "prerequisite-gap")                        s -= 2;
     if (rid === "guessing")                                s -= 1;
-    // partial-correct & can-do-procedurally = neutral (guessing is −1, handled above)
+    // partial-correct & can-do-procedurally = neutral
   }
 
-  // ── Mood ──
-  if (e.mood === "Semangat")   s += 1;
-  if (e.mood === "Kesulitan")  s -= 1;
+  // ── Mood: SENGAJA TIDAK LAGI DIHITUNG (audit P2 #15) ──
+  // Sebelumnya: mood "Semangat" +1, "Kesulitan" −1.
 
   return Math.max(1, Math.min(10, s));
 }
 
+/** Ada pengamatan perilaku/akademik nyata? Dipakai untuk memutuskan apakah skor
+ *  boleh dihitung sama sekali (audit P2 #11). */
+export function hasObservedSignals(
+  e: Partial<ExtendedEngagementInput> & Partial<Omit<EngagementLog, "score">>,
+): boolean {
+  return Boolean(
+    e.prepared || e.focused || e.activeAsking || e.quickLearner ||
+    e.drowsy || e.playingPhone || e.needsRepetition || e.hwMissed ||
+    e.late || e.bathroomBreaks || e.restless || e.offTask ||
+    (e.behaviorValences && e.behaviorValences.length > 0) ||
+    e.responseTagId,
+  );
+}
+
+/**
+ * Kelengkapan dasar skor (audit P2 #11) — dipakai laporan supaya rata-rata
+ * tidak menyesatkan:
+ *   - `full`    : ada indikator inti DAN tag perilaku/ respons akademik
+ *   - `partial` : hanya indikator inti (tanpa observasi lanjutan)
+ *   - `none`    : belum ada pengamatan sama sekali → skor tidak dihitung
+ */
+export function engagementScoreBasis(
+  e: Partial<ExtendedEngagementInput> & Partial<Omit<EngagementLog, "score">>,
+): EngagementScoreBasis {
+  if (!hasObservedSignals(e)) return "none";
+  const hasAdvanced = Boolean(
+    (e.behaviorValences && e.behaviorValences.length > 0) || e.responseTagId,
+  );
+  return hasAdvanced ? "full" : "partial";
+}
+
+/** Label basis skor untuk ditampilkan ke manusia. */
+export function scoreBasisLabel(basis: EngagementScoreBasis): string {
+  switch (basis) {
+    case "full":    return "Lengkap";
+    case "partial": return "Sebagian";
+    default:        return "Tidak ada pengamatan";
+  }
+}
+
+/** Label kondisi sesi (audit P2 #12). */
+export const ENGAGEMENT_LEVELS: ReadonlyArray<{
+  value: EngagementLevel; icon: string; label: string; hint: string; activeClass: string; idleClass: string;
+}> = [
+  {
+    value: "lancar", icon: "✅", label: "Berjalan lancar",
+    hint: "Tidak ada yang perlu dicatat khusus",
+    activeClass: "bg-green-600 text-white border-green-600",
+    idleClass: "bg-white text-green-700 border-green-200 hover:border-green-400 hover:bg-green-50",
+  },
+  {
+    value: "biasa", icon: "🌤️", label: "Seperti biasa",
+    hint: "Hari normal — tersimpan sebagai fakta, bukan kekosongan",
+    activeClass: "bg-gray-600 text-white border-gray-600",
+    idleClass: "bg-white text-gray-700 border-gray-300 hover:border-gray-400 hover:bg-gray-50",
+  },
+  {
+    value: "berat", icon: "⚠️", label: "Berat hari ini",
+    hint: "Ada hambatan — tandai sebabnya di lapisan berikutnya",
+    activeClass: "bg-orange-600 text-white border-orange-600",
+    idleClass: "bg-white text-orange-700 border-orange-200 hover:border-orange-400 hover:bg-orange-50",
+  },
+];
+
 /** Skor engagement satu sesi (1–10) — dari snapshot, atau dihitung ulang bila
- *  snapshot belum ada. Dipakai untuk rata-rata periode dan tren MoM. */
+ *  snapshot belum ada. Dipakai untuk rata-rata periode dan tren MoM.
+ *
+ *  Mengembalikan `undefined` bila sesi tidak mencatat pengamatan apa pun ATAU
+ *  basisnya `none` — supaya sesi kosong tidak masuk rata-rata sebagai "5/10".
+ *  Sesi lama (tanpa `scoreBasis`) tetap dihormati bila punya skor tersimpan. */
 export function sessionEngagementScore(
   session: Pick<Session, "engagement">,
 ): number | undefined {
-  return session.engagement?.score
-    ?? (session.engagement ? calcEngagementScore(session.engagement) : undefined);
+  const eng = session.engagement;
+  if (!eng) return undefined;
+  if (eng.scoreBasis === "none") return undefined;
+  if (typeof eng.score === "number" && eng.score > 0) return eng.score;
+  // Data lama tanpa skor tersimpan: hitung ulang, tetapi hanya bila ada sinyal.
+  if (!hasObservedSignals(eng)) return undefined;
+  return calcEngagementScore(eng);
+}
+
+/** Rata-rata skor + berapa sesi yang benar-benar punya dasar perhitungan.
+ *  `coverage` dipakai laporan agar rata-rata selalu punya penyebut (audit P3 #17). */
+export interface EngagementAverage {
+  average?: number;
+  /** Jumlah sesi yang skornya dihitung. */
+  counted: number;
+  /** Jumlah sesi yang diperiksa. */
+  total: number;
+  /** Jumlah sesi yang punya observasi lanjutan (basis `full`). */
+  full: number;
+  /** Jumlah sesi yang punya entri engagement tetapi basisnya `none`. */
+  noObservation: number;
+}
+
+export function engagementAverage(
+  sessions: readonly Pick<Session, "engagement">[],
+): EngagementAverage {
+  let counted = 0, sum = 0, full = 0, noObservation = 0;
+  for (const s of sessions) {
+    const score = sessionEngagementScore(s);
+    if (score != null) {
+      counted += 1;
+      sum += score;
+      if (s.engagement?.scoreBasis === "full") full += 1;
+    } else if (s.engagement && s.engagement.scoreBasis === "none") {
+      noObservation += 1;
+    }
+  }
+  return {
+    average: counted > 0 ? Math.round(sum / counted) : undefined,
+    counted,
+    total: sessions.length,
+    full,
+    noObservation,
+  };
 }
 
 /** Rata-rata engagement (dibulatkan) dari sekumpulan sesi. Undefined bila
- *  tidak ada satu pun sesi yang punya data engagement. */
+ *  tidak ada satu pun sesi yang punya data engagement.
+ *  @deprecated untuk laporan baru pakai `engagementAverage` yang menyertakan
+ *  penyebut (cakupan data). */
 export function averageEngagement(
   sessions: readonly Pick<Session, "engagement">[],
 ): number | undefined {
-  const scores = sessions
-    .map(sessionEngagementScore)
-    .filter((score): score is number => score != null);
-  if (scores.length === 0) return undefined;
-  return Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length);
+  return engagementAverage(sessions).average;
 }
 
 /**

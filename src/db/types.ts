@@ -1,4 +1,17 @@
-export type Level = "MYP" | "IBDP" | "UNIV";
+/**
+ * Jenjang murid.
+ *
+ * Sebelum audit P0 (T-07), tipe ini hanya `"MYP" | "IBDP" | "UNIV"` dan SEMUA
+ * kurikulum non-IB dipetakan ke `"UNIV"` — sehingga siswa Cambridge O Level
+ * kelas 9 tertulis sebagai jenjang universitas di kartu murid, ekspor, dan
+ * laporan. Anggota baru di bawah menutup celah itu; `"UNIV"` tetap ada untuk
+ * kurikulum Custom dan data lama.
+ */
+export type Level =
+  | "MYP" | "IBDP"
+  | "IGCSE" | "O Level" | "A Level" | "AP"
+  | "SMP" | "SMA"
+  | "UNIV";
 
 export type CurriculumType =
   | "IB MYP"
@@ -44,12 +57,54 @@ export function reportDisplayStatus(
   return report.pdfGeneratedAt ? "shared" : "final";
 }
 
+/** Kurikulum → jenjang murid. Setiap kurikulum punya jenjangnya sendiri (T-07):
+ *  pemetaan lama mengembalikan "UNIV" untuk IGCSE/O Level/A Level/AP/National. */
+export function levelForCurriculum(curriculum: CurriculumType): Level {
+  switch (curriculum) {
+    case "IB MYP":              return "MYP";
+    case "IB DP":               return "IBDP";
+    case "Cambridge IGCSE":     return "IGCSE";
+    case "Cambridge O Level":   return "O Level";
+    case "Cambridge AS Level":
+    case "Cambridge A Level":   return "A Level";
+    case "AP":                  return "AP";
+    case "National":            return "SMP";   // dinaikkan ke "SMA" saat kelas ≥ 10 (lihat levelForStudent)
+    default:                    return "UNIV";  // Custom
+  }
+}
+
+/** Label jenjang untuk ditampilkan (kartu murid, ekspor, laporan).
+ *  Kelas menentukan SMP/SMA untuk kurikulum Nasional dan memberi konteks pada
+ *  jenjang Cambridge. */
+export function levelLabel(student: Pick<Student, "level" | "curriculum" | "grade">): string {
+  const grade = student.grade?.trim();
+  if (student.curriculum === "National" && grade) {
+    const n = Number((grade.match(/(\d{1,2})/) ?? [])[1]);
+    const jenjang = n >= 10 ? "SMA" : n >= 7 ? "SMP" : "Nasional";
+    return `${jenjang} · Kelas ${n || grade}`;
+  }
+  if (student.curriculum === "IB MYP" && grade) return `MYP · ${grade}`;
+  return grade ? `${student.level} · ${grade}` : student.level;
+}
+
 export const DEFAULT_RATE = 200_000;   // IDR per hour
 export const MIN_DURATION = 1;         // hours
 export const DURATION_STEP = 0.5;      // hours
 export const PHOTO_MAX_PX = 640;       // longest side — cukup untuk tampil di laporan PDF
 
 export interface ParentContact { name?: string; phone: string; }
+
+/** Kondisi umum satu sesi (audit P2 #12) — satu nilai eksplisit yang TIDAK
+ *  mengklaim indikator perilaku apa pun. Menggantikan tombol preset lama yang
+ *  menyalakan "aktif bertanya"/"cepat paham" hanya karena tutor menekan
+ *  "Lancar". */
+export type EngagementLevel = "lancar" | "biasa" | "berat";
+
+/** Seberapa lengkap dasar perhitungan skor (audit P2 #11).
+ *  - `full`    : diisi sampai lapisan observasi lanjutan/ respons akademik
+ *  - `partial` : hanya lapisan 1–2 (kondisi + beberapa penanda)
+ *  - `none`    : tidak ada pengamatan — skor TIDAK dihitung, `score` = 0 */
+export type EngagementScoreBasis = "full" | "partial" | "none";
 
 export interface EngagementLog {
   // Positif
@@ -66,7 +121,11 @@ export interface EngagementLog {
   bathroomBreaks?: boolean; // sering ke toilet (-1)
   restless?: boolean;       // gelisah, loncat-loncat, tak bisa diam duduk (-1)
   offTask?: boolean;        // sibuk sendiri / melamun, susah diajak fokus (-1)
-  score: number;            // 1-10, computed
+  score: number;            // 1-10, computed. 0 = tidak ada pengamatan (lihat scoreBasis)
+  /** Kondisi umum sesi; tidak menambah/mengurangi skor. */
+  level?: EngagementLevel;
+  /** Kelengkapan dasar skor — dipakai laporan agar rata-rata tidak menyesatkan. */
+  scoreBasis?: EngagementScoreBasis;
 }
 
 export type FollowUpType   = "continue-topic" | "misconception" | "send-resource" | "other";
@@ -94,11 +153,17 @@ export interface CaptureDraftForm {
   durationHours: number;
   subjects: string[];
   topic: string;
+  /** Bab katalog untuk topik terpilih (audit P1 #9). Opsional agar draf lama
+   *  di IndexedDB (yang belum punya kolom ini) tetap bisa dipulihkan. */
+  topicUnit?: string;
   topicSearch: string;
   shortNote: string;
   needsWork: string;
   predictedGrade: string;
   mood?: string;
+  /** Kondisi umum sesi (audit P2 #12) — tidak mengubah skor. Opsional agar draf
+   *  lama tetap bisa dipulihkan. */
+  engagementLevel?: EngagementLevel;
   engagementFlags: Omit<EngagementLog, "score">;
   behaviorTags: string[];
   responseTag?: string;
@@ -114,6 +179,7 @@ export interface CaptureDraftForm {
       durationHours: number;
       shortNote: string;
       topic?: string;
+      topicUnit?: string;
     };
     followUps: CaptureDraftFollowUp[];
     followUpText: string;
@@ -181,6 +247,10 @@ export interface Session {
    *  karena itu informasi pribadi/kekeluargaan. */
   situasiNote?: string;
   topic?: string;
+  /** Bab/unit katalog tempat topik di atas diambil (audit P1 #9). Opsional:
+   *  topik yang diketik bebas tidak punya bab. Membuat topik bisa direkap per
+   *  bab, bukan hanya sebagai teks yang tidak bisa dibandingkan. */
+  topicUnit?: string;
   needsWork?: string;
   predictedGrade?: string;
   /** Nilai akhir yang benar-benar didapat murid (follow-up dari prediksi). */

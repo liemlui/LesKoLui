@@ -6,6 +6,7 @@ import type { StudentBillingUpdateOptions } from "../db/repos";
 import { todayWIB } from "../lib/format";
 import { toggleArrayItem } from "../lib/arrays";
 import type { Student, Level, CurriculumType, BillingPolicy } from "../db/types";
+import { levelForCurriculum } from "../db/types";
 import { DEFAULT_RATE, billingPolicyOf } from "../db/types";
 import { ALL_CURRICULA, CURRICULUM_META, getSubjectGroups } from "../lib/ibSubjects";
 import Toggle from "./Toggle";
@@ -29,10 +30,18 @@ function hasInvalidChars(raw: string): boolean {
   return raw.length > 0 && /[^0-9+\- ]/.test(raw);
 }
 
-function curriculumToLevel(c: CurriculumType): Level {
-  if (c === "IB MYP") return "MYP";
-  if (c === "IB DP")  return "IBDP";
-  return "UNIV";
+/**
+ * Kurikulum → jenjang murid. Sejak audit P0 (T-07) memakai `levelForCurriculum`
+ * dari `db/types`: pemetaan lama mengembalikan "UNIV" untuk IGCSE/O Level/
+ * A Level/AP/National, sehingga siswa 15 tahun tercatat sebagai jenjang
+ * universitas. Fungsi di bawah menambahkan koreksi SMP/SMA dari kelas.
+ */
+function curriculumToLevel(c: CurriculumType, grade?: string): Level {
+  const base = levelForCurriculum(c);
+  if (base !== "SMP" && base !== "SMA") return base;
+  const n = Number((grade?.match(/(\d{1,2})/) ?? [])[1]);
+  if (!Number.isFinite(n)) return base;
+  return n >= 10 ? "SMA" : "SMP";
 }
 
 function inferCurriculum(s: Student): CurriculumType {
@@ -109,7 +118,7 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
     try {
       const data: Omit<Student, "id"> = {
         name: name.trim(),
-        level: curriculumToLevel(curriculum),
+        level: curriculumToLevel(curriculum, grade),
         curriculum,
         grade: grade.trim() || undefined,
         school: school.trim() || undefined,

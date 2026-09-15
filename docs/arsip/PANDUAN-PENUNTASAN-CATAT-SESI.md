@@ -1,4 +1,7 @@
-﻿# PANDUAN PENUNTASAN — Refactor Catat Sesi (CaptureSession.tsx)
+# PANDUAN PENUNTASAN — Refactor Catat Sesi (CaptureSession.tsx)
+
+> ⚠️ **DOKUMEN SELESAI & DIBEKUKAN (v1.64.x).** Pekerjaannya tuntas (3 hook diekstrak). Disebut di §8 panduan ini `TODO.md` — berkas itu **sudah diarsipkan 2026-09-13** (`TODO-2026-09-13.md`); daftar pekerjaan aktif kini di [`../README.md`](../README.md) §4 dan dokumen tugas refactor terbaru di [`../kerja/TASK-01-refactor-layar-besar.md`](../kerja/TASK-01-refactor-layar-besar.md).
+> **Untuk panduan tugas versi baru:** pakai pola di [`../kerja/TASK-02-format-dokumen-tugas-ai.md`](../kerja/TASK-02-format-dokumen-tugas-ai.md) (jangkar kode, kontrak prop, perintah verifikasi, tabel larangan).
 
 > **Untuk:** AI executor. Kerjakan BERURUTAN.
 > **Status:** v1.64.0 parsial — 358/358 test lulus.

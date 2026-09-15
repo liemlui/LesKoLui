@@ -19,6 +19,44 @@ function mk(
   return topics.map(t => ({ subject, level, gradeLabel, unit, topic: t, aliases }));
 }
 
+// ─── Normalisasi nama mata pelajaran ────────────────────────────────────────
+//
+// MASALAH YANG DISELESAIKAN (audit T-01): pemilih mapel menyimpan nama PERSIS
+// seperti di `lib/ibSubjects.ts` — termasuk kode silabus Cambridge, mis.
+// `"Mathematics (0580)"`, `"Biology (9700)"`, `"Chemistry (5070)"`. Indeks topik
+// di bawah memakai nama polos (`"Mathematics"`, `"Biology"`, `"Chemistry"`).
+// Tanpa penyeragaman, pencarian mapel ber-kode tidak menemukan satu pun topiknya:
+// seluruh 30 mapel IGCSE, 11 O Level, 14 AS/A Level, dan sebagian AP/DP kosong.
+//
+// `normalizeSubject()` menyeragamkan penulisan; `SUBJECT_ALIASES` (lihat bagian
+// bawah berkas) memetakan penulisan → himpunan nama mapel di indeks topik.
+
+/** Buang diakritik: "Sosiologi" → "sosiologi", "Français" → "francais". */
+function stripDiacritics(s: string): string {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+/**
+ * Bentuk kanonik sebuah nama mapel — DIPAKAI UNTUK PENCARIAN, bukan untuk
+ * ditampilkan:
+ *   1. huruf kecil + diakritik dibuang ("Français" → "francais"),
+ *   2. isi tanda kurung DIBUANG — kode silabus maupun level — sehingga
+ *      "Mathematics (0580)" → "mathematics" dan "Theory of Knowledge (TOK)"
+ *      → "theory of knowledge". Konsekuensinya: penulisan yang hanya berbeda di
+ *      dalam tanda kurung dianggap SAMA, dan untuk varian SL/HL itu memang yang
+ *      diinginkan (Math AA SL ≡ Math AA HL ≡ Math AA).
+ *   3. "&" → "and" (ESS = "Environmental Systems & Societies"),
+ *   4. tanda baca → spasi, lalu spasi dirapikan.
+ */
+export function normalizeSubject(subject: string): string {
+  return stripDiacritics(subject ?? "")
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, " ")   // kode silabus / level dalam kurung
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
 // ─── Grade → MYP Level Mapping ──────────────────────────────────────────────
 
 const GRADE_TO_MYP: Record<string, string> = {
@@ -83,17 +121,27 @@ function inferNationalLevel(grade?: string): string | null {
   return null;
 }
 
-/** Predicate hard-filter: topik level mana yang valid untuk kurikulum tertentu. */
+/** Predicate hard-filter: topik level mana yang valid untuk kurikulum tertentu.
+ *
+ *  PENTING (audit P0): filter level TIDAK boleh menumpang pada nama mapel, dan
+ *  nama mapel TIDAK boleh dipakai sebagai jembatan antar-kurikulum. Sebelum
+ *  perbaikan, `"Matematika"` dipetakan ke grup `Mathematics` sehingga himpunan
+ *  aliasnya memuat entri MYP 1 — dan murid Nasional mendapat topik
+ *  "Mathematics · MYP 1" karena hard-filter hanya menyaring MYP-family.
+ *  Karena itu MYP-family kini DITOLAK secara eksplisit, bukan sekadar "bukan
+ *  level saya". */
 function curriculumLevelFilter(curriculum?: string): ((level: string) => boolean) | null {
+  const lv = (l: string) => l.toLowerCase();
+  const isMypFamily = (l: string) => lv(l).startsWith("myp");
   switch (curriculum) {
-    case "IB MYP":             return (l) => l.toLowerCase().startsWith("myp");
-    case "IB DP":              return (l) => l.toLowerCase() === "dp";
-    case "Cambridge IGCSE":    return (l) => l.toLowerCase() === "igcse";
-    case "Cambridge O Level":  return (l) => l.toLowerCase().startsWith("o level");
+    case "IB MYP":             return (l) => isMypFamily(l);
+    case "IB DP":              return (l) => lv(l) === "dp";
+    case "Cambridge IGCSE":    return (l) => lv(l) === "igcse" && !isMypFamily(l);
+    case "Cambridge O Level":  return (l) => lv(l).startsWith("o level");
     case "Cambridge AS Level":
-    case "Cambridge A Level":  return (l) => l.toLowerCase().startsWith("a level");
-    case "AP":                 return (l) => l.toLowerCase() === "ap";
-    case "National":           return (l) => { const x = l.toLowerCase(); return x.startsWith("smp") || x.startsWith("sma"); };
+    case "Cambridge A Level":  return (l) => lv(l).startsWith("a level");
+    case "AP":                 return (l) => lv(l) === "ap";
+    case "National":           return (l) => { const x = lv(l); return (x.startsWith("smp") || x.startsWith("sma")) && !isMypFamily(l); };
     default:                   return null; // Custom / tanpa kurikulum → tampilkan semua
   }
 }
@@ -2404,80 +2452,203 @@ export const IB_TOPICS: TopicEntry[] = [
   ]),
 ];
 
-// ─── Canonical subject name map ────────────────────────────────────────────
+// ─── Kelompok mapel setara + alias ke nama indeks topik ─────────────────────
+//
+// Tujuan: setiap nama mapel yang BISA DIPILIH di layar (lihat `lib/ibSubjects.ts`)
+// dapat diterjemahkan ke nama mapel yang ADA di indeks topik ini. Daftar ini
+// sengaja eksplisit (bukan cocok-kira) supaya keputusan "mapel X memakai topik
+// mapel Y" bisa ditinjau manusia — dan dijaga oleh
+// `src/__tests__/topicCoverage.test.ts`, yang gagal begitu ada mapel baru tanpa
+// pemetaan.
+//
+// Aturan penambahan entri — PENTING, gampang salah:
+//   * satu `key` = satu nama mapel di indeks topik atas (mis. `"English A"`,
+//     `"AP Calculus AB"`), supaya himpunan hasilnya tepat. `key` boleh berupa
+//     nama yang ditulis dalam bentuk sudah-dinormalisasi (huruf kecil, tanpa
+//     "&"/tanda baca) — kunci pencariannya tetap `normalizeSubject(key)`.
+//   * `aka` = penulisan lain untuk mapel yang SAMA. Setiap `aka` juga dicari
+//     lewat bentuk normalisasinya, jadi tulisan seperti `"AP Precalculus"`
+//     (→ `"ap precalculus"`) HARUS didaftarkan apa adanya; menulis
+//     `"Precalculus"` saja tidak akan cocok karena normalisasi tidak
+//     memindahkan urutan kata. `src/__tests__/topicCoverage.test.ts`
+//     memverifikasi setiap `aka` benar-benar berfungsi.
+//   * JANGAN menautkan mapel berbeda bidang hanya karena "berdekatan"
+//     (mis. "Global Politics" ⇸ "History"): salah topik lebih berbahaya daripada
+//     kosong. Mapel yang belum punya topik harus tetap KOSONG supaya terlihat.
+const TOPIC_SUBJECT_ALIASES: ReadonlyArray<{ key: string; aka: readonly string[] }> = [
+  { key: "Mathematics", aka: ["Math", "Maths", "Additional Mathematics", "Additional Math", "International Mathematics", "Mathematics AA", "Mathematics AI", "Math AA", "Math AA HL", "Math AA SL", "Math AI HL", "Math AI SL", "Further Mathematics"] },
+  // "Matematika" SENGAJA dipisah dari "Mathematics": keduanya mapel berbeda di
+  // aplikasi (kurikulum nasional vs IB/Cambridge). Menggabungkannya membuat satu
+  // himpunan alias memuat entri dua kurikulum sekaligus — dan begitu ada satu
+  // entri nyasar, hard-filter kurikulum ikut membocorkannya (terbukti: murid
+  // Nasional dapat topik "Mathematics · MYP 1").
+  { key: "Matematika", aka: ["Matematika Nasional", "Matematika SMA", "Matematika SMP"] },
+  { key: "Sciences", aka: ["Science", "IPA", "Combined Science", "Coordinated Sciences", "Physical Science", "General Science"] },
+  { key: "Biology", aka: ["Biologi", "Biology SL", "Biology HL"] },
+  { key: "Chemistry", aka: ["Kimia", "Chemistry SL", "Chemistry HL"] },
+  { key: "Physics", aka: ["Fisika", "Physics SL", "Physics HL"] },
+  { key: "Economics", aka: ["Ekonomi"] },
+  { key: "Akuntansi", aka: ["Accounting"] },
+  { key: "Business Management", aka: ["Business", "Business Studies", "Business and Management", "Business Management SL", "Business Management HL"] },
+  { key: "History", aka: ["Sejarah"] },
+  { key: "Geography", aka: ["Geografi"] },
+  { key: "Sosiologi", aka: ["Sociology"] },
+  { key: "Psychology", aka: ["Psikologi", "Psychology SL", "Psychology HL"] },
+  { key: "Computer Science", aka: ["Informatika", "ICT", "Information Technology", "Information and Communication Technology", "Computer Science SL", "Computer Science HL"] },
+  { key: "Environmental Systems & Societies", aka: ["ESS", "Environmental Management"] },
+  { key: "Theory of Knowledge", aka: ["TOK", "Global Perspectives", "Global Perspectives and Research", "Thinking Skills"] },
+  { key: "Extended Essay", aka: ["EE"] },
+  { key: "CAS", aka: [] },
+  // Rumpun bahasa & sastra dipisah per mapel indeks supaya hasilnya tidak
+  // tercampur antar-kurikulum (mis. "English Literature" O Level ⇸ "English" IGCSE).
+  { key: "English", aka: ["English Language", "English Language and Literature", "English Literature", "English Literature and Language", "English B", "English B SL", "English B HL"] },
+  { key: "English A", aka: ["English A Literature", "English A Lang and Lit", "English Literature and Performance"] },
+  { key: "Bahasa Indonesia", aka: ["Indonesian"] },
+  { key: "Bahasa Indonesia B", aka: ["Bahasa Indonesia A", "Bahasa Indonesia ab initio"] },
+  { key: "Bahasa Inggris", aka: [] },
+  { key: "Mandarin B", aka: ["Mandarin", "Chinese B", "Mandarin ab initio"] },
+  { key: "French B", aka: ["French", "Francais", "French ab initio"] },
+  { key: "Spanish B", aka: ["Spanish", "Espanol", "Spanish ab initio"] },
+  // ── AP: nama mapel AP harus didaftarkan apa adanya.
+  //
+  // `key` di sini adalah NAMA MAPEL AP yang benar-benar ada di indeks (mis.
+  // "AP Calculus AB"), dan `aka` berisi mapel AP lain yang materinya setara pada
+  // level AP yang sama. Bentuk "ap …" dipertahankan agar tidak bertabrakan
+  // dengan anak kunci "tanpa kode" milik IB/Cambridge — mis. alias
+  // `"AP Computer Science Principles"` pada kunci `"Computer Science"` akan
+  // MENEKAN pencarian "Computer Science" dan menghilangkan topik DP-nya.
+  { key: "AP Calculus AB", aka: ["AP Calculus BC", "AP Precalculus"] },
+  { key: "AP Physics 1", aka: ["AP Physics 2", "AP Physics C Mechanics", "AP Physics C Electricity and Magnetism"] },
+  { key: "AP World History: Modern", aka: ["AP European History", "AP Human Geography"] },
+  { key: "AP US History", aka: ["AP US Government and Politics", "AP Comparative Government and Politics"] },
+  { key: "AP English Language & Composition", aka: ["AP English Literature and Composition"] },
+  { key: "AP Biology", aka: ["AP Environmental Science"] },
+  { key: "AP Computer Science A", aka: ["AP Computer Science Principles"] },
+];
 
-const SUBJECT_ALIASES: Record<string, string[]> = {
-  "mathematics":        ["Mathematics", "Math", "Matematika", "Math AA HL", "Math AA SL", "Math AI HL", "Math AI SL"],
-  "math":               ["Mathematics", "Math", "Matematika"],
-  "maths":              ["Mathematics", "Math", "Matematika"],
-  "matematika":         ["Matematika", "Mathematics", "Math"],
-  "math aa hl":         ["Math AA HL", "Mathematics"],
-  "math aa sl":         ["Math AA SL", "Mathematics"],
-  "math ai hl":         ["Math AI HL", "Mathematics"],
-  "math ai sl":         ["Math AI SL", "Mathematics"],
-  "biology":            ["Biology", "Biologi", "Sciences"],
-  "biologi":            ["Biologi", "Biology"],
-  "chemistry":          ["Chemistry", "Kimia", "Sciences"],
-  "kimia":              ["Kimia", "Chemistry"],
-  "physics":            ["Physics", "Fisika", "Sciences"],
-  "fisika":             ["Fisika", "Physics"],
-  "sciences":           ["Sciences", "Biology", "Chemistry", "Physics"],
-  "science":            ["Sciences", "Biology", "Chemistry", "Physics"],
-  "economics":          ["Economics", "Ekonomi"],
-  "ekonomi":            ["Ekonomi", "Economics"],
-  "business":           ["Business Management", "Business"],
-  "business management":["Business Management", "Business"],
-  "history":            ["History", "Sejarah"],
-  "sejarah":            ["Sejarah", "History"],
-  "geography":          ["Geography", "Geografi"],
-  "geografi":           ["Geografi", "Geography"],
-  "computer science":   ["Computer Science", "Informatika"],
-  "cs":                 ["Computer Science", "Informatika"],
-  "informatika":        ["Informatika", "Computer Science"],
-  "english":            ["English", "English A", "English B"],
-  "english a":          ["English A", "English"],
-  "english b":          ["English B", "English"],
-  "bahasa indonesia":   ["Bahasa Indonesia"],
-  "bahasa inggris":     ["Bahasa Inggris", "English"],
-  "akuntansi":          ["Akuntansi", "Accounting"],
-  "accounting":         ["Accounting", "Akuntansi"],
-  "sosiologi":          ["Sosiologi", "Sociology"],
-  "sociology":          ["Sociology", "Sosiologi"],
-  "ipa":                ["IPA", "Sciences", "Fisika", "Kimia", "Biologi"],
-  "ips":                ["IPS", "Ekonomi", "Sejarah", "Geografi", "Sosiologi"],
-  "sastra indonesia":   ["Sastra Indonesia", "Bahasa Indonesia"],
-  "sastra inggris":     ["Sastra Inggris", "English Literature"],
-  "psychology":         ["Psychology"],
-  "tok":                ["Theory of Knowledge", "TOK"],
-  "theory of knowledge":["Theory of Knowledge", "TOK"],
-  "extended essay":     ["Extended Essay"],
-  "ee":                 ["Extended Essay"],
-  "ess":                ["Environmental Systems & Societies", "ESS"],
-  "environmental systems & societies": ["Environmental Systems & Societies", "ESS"],
-  "cas":                ["CAS"],
-};
+/**
+ * Semua nama mapel yang MUNGKIN muncul di indeks topik — dipakai test penjaga
+ * cakupan supaya setiap mapel pada `lib/ibSubjects.ts` terbukti tertaut atau
+ * terdaftar sadar sebagai "belum punya topik".
+ */
+export const TOPIC_INDEX_SUBJECTS: ReadonlySet<string> = new Set(
+  TOPIC_SUBJECT_ALIASES.map((g) => g.key),
+);
 
+/**
+ * Peta penulisan → himpunan nama mapel indeks. Dibangun otomatis dari
+ * `TOPIC_SUBJECT_ALIASES`, jadi menggabungkan nama kembar yang dulu terpisah
+ * (audit T-08): `ESS` ≡ `Environmental Systems & Societies`, `TOK` ≡
+ * `Theory of Knowledge`, `Math` ≡ `Mathematics`.
+ */
+const SUBJECT_ALIASES: Readonly<Record<string, readonly string[]>> = (() => {
+  const buckets = new Map<string, Set<string>>();
+  const add = (writing: string, target: string) => {
+    const k = normalizeSubject(writing);
+    if (!k) return;
+    const bucket = buckets.get(k) ?? new Set<string>();
+    bucket.add(target);
+    buckets.set(k, bucket);
+  };
+  for (const { key, aka } of TOPIC_SUBJECT_ALIASES) {
+    add(key, key);
+    for (const alt of aka) add(alt, key);
+  }
+  const out: Record<string, readonly string[]> = {};
+  for (const [k, v] of buckets) out[k] = [...v];
+  return out;
+})();
+
+/**
+ * Nama-nama mapel indeks yang cocok dengan satu nama mapel pilihan pengguna.
+ *
+ * Urutan percobaan:
+ *   1. penulisan lengkap yang sudah dinormalisasi — "Math AA HL" → {Math AA HL, Mathematics},
+ *   2. tanpa kode silabus/level — "Mathematics (0580)" → "mathematics",
+ *   3. sebagai jalan terakhir: kata sebelum kode — "Additional Mathematics (0606)" → "additional mathematics".
+ * Bila ketiganya meleset, kembalikan kata-dasar apa adanya (tanpa terjemahan),
+ * sehingga mapel tanpa topik tetap tampil KOSONG dan jujur — bukan dipaksa
+ * mencocokkan mapel lain.
+ */
 export function resolveSubjectAliases(subject: string): string[] {
-  const key = subject.toLowerCase().trim();
-  return SUBJECT_ALIASES[key] ?? [subject];
+  const key = normalizeSubject(subject);
+  if (!key) return [];
+  const direct = SUBJECT_ALIASES[key];
+  if (direct) return [...direct];
+
+  const base = key.includes("(") ? normalizeSubject(key.split("(")[0]) : null;
+  if (base && SUBJECT_ALIASES[base]) return [...SUBJECT_ALIASES[base]];
+
+  const sub = key.split(" ")[0];
+  if (sub && sub !== key && SUBJECT_ALIASES[sub]) return [...SUBJECT_ALIASES[sub]];
+
+  return [key];
 }
 
 // ─── Search function ────────────────────────────────────────────────────────
 
-export function searchTopics(
+/**
+ * Catatan tambahan hasil pencarian topik.
+ *
+ * `offLevelFallback === true` berarti: tidak ada satu pun topik pada level
+ * kurikulum murid, sehingga hasil yang dikembalikan berasal dari level KURIKULUM
+ * LAIN. Sebelum P0 (audit T-03) kondisi ini tidak pernah dilaporkan — pengguna
+ * melihat daftar yang tampak normal lalu mencatat topik level lain ke sesinya.
+ * Pemanggil WAJIB memberi tahu pengguna dan meminta persetujuan sebelum memakai
+ * hasil ini.
+ */
+export interface TopicSearchMeta {
+  /** Subject yang SEDANG disaring (hasil alias), untuk ditampilkan bila kosong. */
+  resolvedSubjects: string[];
+  /** Level yang diinginkan (mis. "IGCSE", "MYP 3-4"), null bila kurikulum tak dikenal. */
+  targetLevel: string | null;
+  /** Ada hasil pada level murid → tidak perlu tawaran level lain. */
+  inLevel: boolean;
+  /** Hasil berasal dari level lain (lihat catatan di atas). */
+  offLevelFallback: boolean;
+  /** Level-level lain yang punya hasil, terurut dari yang paling relevan. */
+  otherLevels: string[];
+}
+
+export interface TopicSearchResponse {
+  results: TopicEntry[];
+  meta: TopicSearchMeta;
+}
+
+/**
+ * Pencarian topik untuk layar Catat Sesi — memakai alias mapel
+ * (`resolveSubjectAliases`) dan TIDAK memakai fallback lintas-level yang senyap.
+ *
+ * Aturan yang berlaku sejak P0 (audit T-01…T-04):
+ *   * mapel diketahui → hasil hanya boleh berasal dari mapel itu (aliasnya).
+ *     Sebelumnya kecocokan kata longgar membuat kueri "power" pada mapel
+ *     "Global Politics" mengembalikan topik turunan Matematika.
+ *   * level kurikulum murid adalah hard-filter. Bila kosong, hasil level lain
+ *     dikembalikan HANYA sebagai tawaran eksplisit (`meta.offLevelFallback`),
+ *     bukan disamarkan sebagai hasil normal.
+ *   * tidak ada kurikulum → tanpa hard-filter (perilaku lama dipertahankan).
+ */
+export function searchTopicsExpanded(
   query: string,
   opts: { subject?: string; grade?: string; curriculum?: string } = {},
-): TopicEntry[] {
-  if (!query || query.length < 1) return [];
+): TopicSearchResponse {
+  const empty: TopicSearchResponse = {
+    results: [],
+    meta: {
+      resolvedSubjects: opts.subject ? resolveSubjectAliases(opts.subject) : [],
+      targetLevel: targetLevelFor(opts.curriculum, opts.grade),
+      inLevel: false,
+      offLevelFallback: false,
+      otherLevels: [],
+    },
+  };
+  if (!query || !query.trim()) return empty;
   const q = query.trim().toLowerCase();
 
+  // Himpunan nama mapel indeks yang cocok dengan pilihan pengguna.
   const allowedSubjects = opts.subject
-    ? new Set(resolveSubjectAliases(opts.subject).map(s => s.toLowerCase()))
+    ? new Set(resolveSubjectAliases(opts.subject).map((s) => normalizeSubject(s)))
     : null;
-
-  const sfWords = opts.subject
-    ? opts.subject.toLowerCase().split(/[\s,&-]+/).filter(w => w.length > 2)
-    : [];
 
   const target = targetLevelFor(opts.curriculum, opts.grade);
   const levelOk = curriculumLevelFilter(opts.curriculum);
@@ -2511,14 +2682,13 @@ export function searchTopics(
     const contentScore = topicScore + unitScore + aliasScore + subjInQuery;
     if (contentScore === 0) return { entry: t, score: 0 };
 
-    // Subject relevance bonus
+    // Penyaringan/bonus mapel. Saat mapel diketahui, hasil mapel lain TIDAK
+    // diikutkan sama sekali (sebelumnya hanya diberi bonus lebih kecil, sehingga
+    // topik mapel lain tetap lolos ke daftar saran — audit T-04).
     let subjectBonus = 0;
     if (allowedSubjects) {
-      if (allowedSubjects.has(sLow)) {
-        subjectBonus = 25;
-      } else if (sfWords.some(w => sLow.includes(w))) {
-        subjectBonus = 12;
-      }
+      if (allowedSubjects.has(normalizeSubject(sLow))) subjectBonus = 25;
+      else return { entry: t, score: 0 };
     }
 
     // Grade-level relevance bonus — prioritize student's grade
@@ -2536,20 +2706,48 @@ export function searchTopics(
   })
   .filter(x => x.score > 0);
 
-  // Hard-filter kurikulum; kalau kosong, fallback ke semua hasil agar search tetap berguna.
+  // Hard-filter kurikulum. Bila kosong, JANGAN diam-diam pakai level lain —
+  // laporkan lewat meta supaya UI menawarkannya secara eksplisit (audit T-03).
   const byCurriculum = levelOk ? scored.filter(x => levelOk(x.entry.level)) : scored;
+  const usingFallback = byCurriculum.length === 0 && scored.length > 0;
   const final = byCurriculum.length > 0 ? byCurriculum : scored;
 
-  return final
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 12)
-    .map(x => x.entry);
+  const sorted = final.sort((a, b) => b.score - a.score);
+  const otherLevels = usingFallback
+    ? [...new Set(sorted.map((x) => x.entry.level))].slice(0, 4)
+    : [];
+
+  return {
+    results: sorted.slice(0, 12).map(x => x.entry),
+    meta: {
+      resolvedSubjects: opts.subject ? resolveSubjectAliases(opts.subject) : [],
+      targetLevel: target,
+      inLevel: byCurriculum.length > 0,
+      offLevelFallback: usingFallback,
+      otherLevels,
+    },
+  };
+}
+
+/** Versi ringkas (hanya hasil) — untuk pemanggil yang tidak butuh meta. */
+export function searchTopics(
+  query: string,
+  opts: { subject?: string; grade?: string; curriculum?: string } = {},
+): TopicEntry[] {
+  return searchTopicsExpanded(query, opts).results;
 }
 
 // ─── Topic browser (grade-filtered chip groups) ─────────────────────────────
 
 export interface TopicGroup { unit: string; topics: TopicEntry[]; }
 
+/**
+ * Daftar topik yang dikelompokkan per unit (bab) untuk mapel yang SEDANG dipakai
+ * murid — sumber "pilih dari daftar", bukan "cari kalau ingat".
+ *
+ * Sejak P0 memakai `normalizeSubject()`, sehingga mapel ber-kode Cambridge
+ * ("Mathematics (0580)") dan nama kembar (ESS/TOK/Math) ikut terjangkau.
+ */
 export function browseTopicsForSubjects(
   subjects: string[],
   studentLevel?: string,
@@ -2561,7 +2759,7 @@ export function browseTopicsForSubjects(
   const resolvedSubjects = new Set<string>();
   for (const s of subjects) {
     for (const alias of resolveSubjectAliases(s)) {
-      resolvedSubjects.add(alias.toLowerCase());
+      resolvedSubjects.add(normalizeSubject(alias));
     }
   }
 
@@ -2569,7 +2767,7 @@ export function browseTopicsForSubjects(
   const levelOk = curriculumLevelFilter(curriculum);
 
   const scored = IB_TOPICS
-    .filter((t) => resolvedSubjects.has(t.subject.toLowerCase()))
+    .filter((t) => resolvedSubjects.has(normalizeSubject(t.subject)))
     .filter((t) => (levelOk ? levelOk(t.level) : true))
     .map((t) => {
       let score = 1;
@@ -2607,11 +2805,12 @@ export function browseTopicsForSubjects(
 
 // ─── Grade helpers ──────────────────────────────────────────────────────────
 
+/**
+ * Label jenjang murid dari kolom `grade` (mis. "Grade 8" → "MYP 3-4 / Grade 8-9").
+ * Dipakai layar Catat Sesi untuk menjelaskan level topik mana yang sedang
+ * diprioritaskan pada pencarian topik.
+ */
 export function getStudentGradeLabel(studentLevel?: string): string | null {
   const level = inferMypLevel(studentLevel);
   return level ? gradeLabelFromLevel(level) : null;
-}
-
-export function getStudentMypLevel(studentLevel?: string): string | null {
-  return inferMypLevel(studentLevel);
 }

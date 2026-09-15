@@ -1,5 +1,13 @@
 # 03 - Capture Flow
 
+> ⚠️ **DOKUMEN INI USANG — DIPINDAH KE `docs/arsip/` PADA 2026-09-13.**
+> Alasannya: urutan UI di bawah **tidak lagi cocok dengan aplikasi** (sekarang 6 langkah:
+> Jadwal → Materi → Kondisi → Detail → Catatan → Bukti; `mood` sudah bukan penilaian dan
+> tidak lagi menggeser skor; ada pemilih topik berbasis bab + penyimpanan bab). Isi aslinya
+> dibekukan sebagai catatan historis.
+> **Yang berlaku sekarang:** untuk perilaku terkini baca kode `src/screens/CaptureSession.tsx`
+> serta [`../arsitektur/10-conventions-and-pitfalls.md`](../arsitektur/10-conventions-and-pitfalls.md).
+
 Goal: record one completed session quickly, fully offline. Screen: `screens/CaptureSession.tsx`. Helpers: `lib/foto.ts`, `lib/engagement.ts`.
 
 ## UI Order

@@ -14,101 +14,55 @@ import { compressPhoto, stampPhoto } from "../lib/foto";
 import SignaturePad from "../components/SignaturePad";
 import { todayWIB, dayLabel } from "../lib/format";
 import { toggleArrayItem } from "../lib/arrays";
-import { calcEngagementScore } from "../lib/engagement";
+import { ENGAGEMENT_LEVELS, scoreBasisLabel } from "../lib/engagement";
 import { IB_MYP_SUBJECTS, IB_DP_GROUPS, getSubjectGroups, CURRICULUM_META } from "../lib/ibSubjects";
-import { searchTopics } from "../lib/ibTopics";
-import { SESSION_TYPE_OPTIONS, generateNote, generateEngagementNarrative, generateRichNote } from "../lib/sessionTemplates";
+import { searchTopicsExpanded, browseTopicsForSubjects } from "../lib/ibTopics";
+import type { TopicSearchResponse } from "../lib/ibTopics";
+import { SESSION_TYPE_OPTIONS, generateNote, generateEngagementNarrative } from "../lib/sessionTemplates";
 import { BEHAVIOR_TAGS, RESPONSE_TAGS } from "../lib/responseTaxonomy";
-import type { BehaviorTag, ResponseTag } from "../lib/responseTaxonomy";
 import type { SessionType } from "../lib/sessionTemplates";
 import { MIN_DURATION } from "../db/types";
-import { draftShortNote, polishWhatsApp, estimateDraftNoteCost, estimatePolishWACost } from "../lib/aiClient";
-import { DEEPSEEK_MODEL_LABEL, DEEPSEEK_COST_NOTE, DEEPSEEK_PRICING_URL, getDeepSeekPricing } from "../lib/aiConfig";
+import { estimatePolishWACost } from "../lib/aiClient";
 import { AiCostModal } from "../components/AiCostModal";
 import { SimpleMarkdown } from "../components/SimpleMarkdown";
 import Breadcrumb from "../components/Breadcrumb";
-import type { Student } from "../db/types";
 import PaginationControls from "../components/PaginationControls";
 import { clampPage, paginateItems } from "../lib/pagination";
 import { scheduleCaptureMismatch } from "../lib/scheduleCapture";
 import type { ScheduleCaptureLock } from "../lib/scheduleCapture";
-import useEngagement from "./captureSession/useEngagement";
+import useEngagement, { PRIMARY_ENGAGEMENT_FLAGS, SECONDARY_ENGAGEMENT_FLAGS } from "./captureSession/useEngagement";
 import useStudentBrief from "./captureSession/useStudentBrief";
 import useCaptureDraft from "./captureSession/useCaptureDraft";
+import AiCostConfirmModal from "./captureSession/AiCostConfirmModal";
+import AiTagTooltip from "./captureSession/AiTagTooltip";
+import useAiFill from "./captureSession/useAiFill";
+import CloseOutSheet from "./captureSession/CloseOutSheet";
 import type { CaptureDraft, CaptureDraftForm } from "../db/types";
+import { MOODS } from "../lib/moods";
+import {
+  DURATIONS, SITUASI_CHIPS, ENGAGEMENT_FLAG_META, STEP_META, TASK_BAR_H, isValidStep,
+} from "./captureSession/constants";
+import type { StepMeta, StepNum } from "./captureSession/constants";
+import {
+  buildWaMessage, topicLevelHint, draftStamp, mergeTopics, splitTopics,
+  mergeTopicUnits, recentTopics, appendSituasi, hasSituasi,
+} from "./captureSession/helpers";
 
-const DURATIONS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
-const MOODS = [
-  { v: "Semangat", icon: "🔥" },
-  { v: "Fokus",    icon: "🎯" },
-  { v: "Biasa",    icon: "😐" },
-  { v: "Lelah",    icon: "😴" },
-  { v: "Kesulitan",icon: "😰" },
-];
-
-/** Chips cepat "Situasi hari ini" — tap menambah frasa ke kolom bebas situasi.
- *  Murni konteks manusiawi, tidak memengaruhi skor engagement. */
-const SITUASI_CHIPS = [
-  { icon: "😷", label: "Habis sakit" },
-  { icon: "😴", label: "Kurang tidur" },
-  { icon: "🏃", label: "Habis ekskul" },
-  { icon: "🍚", label: "Belum makan" },
-  { icon: "📝", label: "Besok ulangan" },
-  { icon: "🎉", label: "Ada acara keluarga" },
-  { icon: "💭", label: "Ada masalah pribadi" },
-];
-
-const STEPS = [
-  { id: 1, label: "Jadwal",  Icon: TargetIcon, desc: "Murid & waktu",       optional: false },
-  { id: 2, label: "Materi",  Icon: BookIcon,   desc: "Mapel & topik",       optional: false },
-  { id: 3, label: "Kondisi", Icon: SmileIcon,     desc: "Mood & perilaku",     optional: true  },
-  { id: 4, label: "Detail",  Icon: ClipboardIcon, desc: "Respons & nilai",    optional: true  },
-  { id: 5, label: "Catatan", Icon: PencilIcon,    desc: "Ringkasan sesi",      optional: false },
-  { id: 6, label: "Bukti",   Icon: CameraIcon,    desc: "Foto & tanda tangan", optional: true  },
-] as const;
-
-type StepNum = 1 | 2 | 3 | 4 | 5 | 6;
-
-
-
-function buildWaMessage(
-  student: Student,
-  session: { date: string; subjects: string[]; durationHours: number; shortNote: string; topic?: string },
-  followUps: string[],
-  tutorName: string
-): string {
-  const lines: string[] = [
-    `Sesi les *${student.name}* (${dayLabel(session.date)}) sudah selesai. 📚`,
-    ``,
-    session.subjects.length > 0 ? `*Mapel:* ${session.subjects.join(", ")}` : "",
-    `*Durasi:* ${session.durationHours} jam`,
-    session.shortNote ? `*Catatan:* ${session.shortNote}` : "",
-    session.topic ? `*Topik:* ${session.topic}` : "",
-  ].filter((l) => l !== "");
-
-  if (followUps.length > 0) {
-    lines.push(``, `🎯 *Fokus sesi berikutnya:*`);
-    followUps.forEach((f) => lines.push(`• ${f}`));
+/** Ikon per langkah ditempelkan di sini (bukan di `constants.ts`) supaya berkas
+ *  konstanta bebas dependensi UI dan bisa diimpor unit test. */
+function iconForStep(name: StepMeta["icon"]) {
+  switch (name) {
+    case "target":    return TargetIcon;
+    case "book":      return BookIcon;
+    case "smile":     return SmileIcon;
+    case "clipboard": return ClipboardIcon;
+    case "pencil":    return PencilIcon;
+    default:          return CameraIcon;
   }
-
-  lines.push(``, `Terima kasih, salam 🙏`, tutorName || "Ko Lui");
-  return lines.join("\n");
 }
 
-/** Tinggi bar aksi tetap (kelas `h-[4.25rem]`) — dipublikasikan ke CSS var agar
- *  banner/toast global mengambang di atasnya (audit C-01). Konstanta, bukan hasil
- *  pengukuran: mengukur lewat ref di dalam efek ternyata tidak andal karena efek
- *  bisa berjalan saat ref belum terpasang (render offscreen/transition). */
-const TASK_BAR_H = "4.25rem";
-
-/** "12 Sep 20.14" — penanda waktu draf terakhir disimpan. */
-function draftStamp(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString("id-ID", {
-      day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
-    });
-  } catch { return ""; }
-}
+/** Metadata langkah + ikonnya — dipakai stepper dan kartu judul langkah. */
+const STEPS = STEP_META.map((s) => ({ ...s, Icon: iconForStep(s.icon) }));
 
 /**
  * CaptureSession — wizard 6 langkah untuk merekam sesi les yang selesai.
@@ -137,7 +91,7 @@ export default function CaptureSession() {
   // Main form
   const [studentId,      setStudentId]      = useState(() => searchParams.get("studentId") ?? "");
   const [subjects,       setSubjects]        = useState<string[]>([]);
-  const { currentStudent, studentSubjects, briefLastSession, briefFollowUps } = useStudentBrief(studentId);
+  const { currentStudent, studentSubjects, briefLastSession, briefFollowUps, studentRecentSessions } = useStudentBrief(studentId);
   const [showIBPicker,   setShowIBPicker]    = useState(false);
   const [ibTab,          setIbTab]           = useState<"MYP" | "DP">("MYP");
   const [ibCustom,       setIbCustom]        = useState("");
@@ -150,6 +104,9 @@ export default function CaptureSession() {
   const [duration,       setDuration]        = useState(MIN_DURATION);
   const [predictedGrade, setPredictedGrade]  = useState("");
   const [topics,         setTopics]          = useState<string[]>([]);
+  /** Bab katalog untuk tiap topik terpilih (audit P1 #9). Topik yang diketik
+   *  bebas tidak punya entri di sini → `topicUnit` tersimpan kosong. */
+  const [topicUnits,     setTopicUnits]      = useState<Record<string, string>>({});
   const [needsWork,      setNeedsWork]       = useState("");
   const [sessionDate,    setSessionDate]     = useState(today);
   const [saving,         setSaving]          = useState(false);
@@ -160,34 +117,96 @@ export default function CaptureSession() {
 
   // Engagement indicators
   const {
-    flags: { prepared: engPrepared, focused: engFocused, drowsy: engDrowsy,
-      playingPhone: engPhone, activeAsking: engActiveAsking, quickLearner: engQuickLearner,
-      needsRepetition: engNeedsRepeat, hwMissed: engHwMissed, late: engLate,
-      bathroomBreaks: engBathroom, restless: engRestless, offTask: engOffTask },
+    flags: engFlags,
     mood, setMood,
+    level: engLevel, setLevel: setEngLevel,
     behaviorTags, setBehaviorTags,
     responseTag, setResponseTag,
     showBehavior, setShowBehavior,
     activeTooltip, setActiveTooltip,
     situasiNote, setSituasiNote,
     touched: engTouched, hasEngagementInput,
+    basis: engBasis,
     score: engScore, scoreInfo: engScoreInfo,
-    toggleFlag, applyPreset, resetEngagementFlags, resetAll, hydrate: hydrateEngagement,
+    toggleFlag, resetEngagementFlags, resetAll, hydrate: hydrateEngagement,
     undoAvailable, undo: undoEngagement,
   } = useEngagement();
+  const {
+    prepared: engPrepared, focused: engFocused, drowsy: engDrowsy,
+    playingPhone: engPhone, activeAsking: engActiveAsking, quickLearner: engQuickLearner,
+    needsRepetition: engNeedsRepeat, hwMissed: engHwMissed, late: engLate,
+    bathroomBreaks: engBathroom, restless: engRestless, offTask: engOffTask,
+  } = engFlags;
+  /** Indikator di luar 6 terdepan (audit P2 #13). */
+  const [showMoreFlags, setShowMoreFlags] = useState(false);
   // Situasi humanis hari ini (opsional) — konteks, bukan perilaku.
 
   // Topic search
+  //
+  // Sejak audit P0 memakai `searchTopicsExpanded` yang melaporkan META, bukan
+  // hanya hasil: apakah hasil berada di level kurikulum murid (`inLevel`) dan
+  // level apa saja yang punya hasil (`otherLevels`). Tanpa meta, hasil level
+  // kurikulum lain tampil seolah normal — itulah cacat T-03.
   const [topicSearch,    setTopicSearch]    = useState("");
-  const [topicResults,   setTopicResults]   = useState<ReturnType<typeof searchTopics>>([]);
+  const [topicResponse,  setTopicResponse]  = useState<TopicSearchResponse | null>(null);
+  /** Pengguna sudah menekan "cari di level lain" untuk kueri yang sedang tampil. */
+  const [topicAllowOffLevel, setTopicAllowOffLevel] = useState(false);
+  const topicResults = topicResponse?.results ?? [];
+  const topicMeta    = topicResponse?.meta;
+  const topicOffLevel = Boolean(topicMeta?.offLevelFallback);
   // Topik bisa lebih dari satu: gabungan topik yang sudah dipilih (chips) +
-  // teks pencarian yang belum di-commit, dipisah dengan "; ".
-  const pendingTopicParts = topicSearch.split(";").map((p) => p.trim()).filter(Boolean);
-  const allTopics = [...topics];
-  for (const p of pendingTopicParts) if (!allTopics.includes(p)) allTopics.push(p);
-  const topic = allTopics.join("; ");
+  // teks pencarian yang belum di-commit, dipisah dengan "; " (lihat `mergeTopics`
+  // — aturan itu tinggal di `helpers.ts` supaya penyimpanan & pemulihan draf
+  // tidak pernah berbeda tafsir).
+  const topic = useMemo(() => mergeTopics(topics, topicSearch), [topics, topicSearch]);
   // Kalau mapel terpilih lebih dari satu, jangan bias pencarian ke satu mapel saja.
   const topicSearchSubject = subjects.length >= 2 ? undefined : subjects[0] ?? studentSubjects[0];
+
+  const topicSearchOptions = {
+    subject: topicSearchSubject,
+    grade: currentStudent?.grade,
+    curriculum: currentStudent?.curriculum,
+  };
+  /** Satu pintu masuk pencarian topik: selalu segarkan hasil + metanya. */
+  const runTopicSearch = (q: string) => {
+    setTopicSearch(q);
+    setTopicAllowOffLevel(false);
+    setTopicResponse(q.trim() ? searchTopicsExpanded(q, topicSearchOptions) : null);
+  };
+
+  // ── Pilih topik dari daftar bab (audit P1 #7) ──────────────────────────────
+  //
+  // Kotak pencarian menuntut tutor sudah tahu kata kuncinya; `browseTopics…`
+  // memberi daftar untuk DIBACA. Fungsi itu sudah ada di lib sejak lama tetapi
+  // tidak pernah dipanggil — inilah pemanggilnya.
+  //
+  // Isi daftar dihitung "atas permintaan" (saat panel dibuka), bukan setiap
+  // render: `browseTopicsForSubjects` menyaring seluruh 1.538 topik.
+  const browseSubjects = subjects.length > 0 ? subjects : studentSubjects;
+  const [showBrowse, setShowBrowse] = useState(false);
+  const [openUnit,   setOpenUnit]   = useState<string | null>(null);
+  const browseGroups = useMemo(
+    () => (showBrowse && browseSubjects.length > 0
+      ? browseTopicsForSubjects(browseSubjects, currentStudent?.grade, currentStudent?.curriculum)
+      : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [showBrowse, browseSubjects.join("\u0000"), currentStudent?.grade, currentStudent?.curriculum],
+  );
+
+  /** Bab untuk tiap topik terpilih — gabungan bab unik, urut kemunculan. */
+  const topicUnit = useMemo(
+    () => mergeTopicUnits(topics, topicUnits),
+    [topics, topicUnits],
+  );
+
+  // ── "Topik sesi lalu" murid ini (audit P1 #8) ──────────────────────────────
+  //
+  // 90% sesi membahas topik yang berdekatan dengan sesi sebelumnya; satu ketukan
+  // jauh lebih cepat daripada mengingat dan mengetik ulang.
+  const recentTopicChips = useMemo(
+    () => recentTopics(studentRecentSessions ?? [], 6),
+    [studentRecentSessions],
+  );
 
   // Behavior & response taxonomy tags
 
@@ -210,13 +229,12 @@ export default function CaptureSession() {
   const [showCloseOut,   setShowCloseOut]   = useState(false);
   const [coSessionData,  setCoSessionData]  = useState<{
     id: string; date: string; subjects: string[]; durationHours: number;
-    shortNote: string; topic?: string;
+    shortNote: string; topic?: string; topicUnit?: string;
   } | null>(null);
   const [coFollowUps,    setCoFollowUps]    = useState<Array<{ id: string; text: string }>>([]);
   const [coFollowUpText, setCoFollowUpText] = useState("");
   const [coSaving,       setCoSaving]       = useState(false);
   const coSavingRef = useRef(false);
-  const [coFollowPage,   setCoFollowPage]   = useState(1);
   // Sesi sudah tersimpan tetapi laporan belum ditutup (mis. pengguna menutup
   // laporan) → simpan ulang harus MEMPERBARUI, bukan membuat sesi kedua.
   const [editingSavedSession, setEditingSavedSession] = useState(false);
@@ -231,11 +249,13 @@ export default function CaptureSession() {
     durationHours: duration,
     subjects,
     topic,
+    topicUnit,
     topicSearch,
     shortNote,
     needsWork,
     predictedGrade,
     mood,
+    engagementLevel: engLevel,
     engagementFlags: {
       prepared: engPrepared, focused: engFocused, drowsy: engDrowsy,
       playingPhone: engPhone, activeAsking: engActiveAsking, quickLearner: engQuickLearner,
@@ -256,8 +276,8 @@ export default function CaptureSession() {
     // Dependensi sengaja primitif (bukan objek form) supaya identitas `draftForm`
     // stabil selama datanya tidak berubah.
   }), [
-    currentStep, sessionDate, duration, subjects, topic, topicSearch, shortNote,
-    needsWork, predictedGrade, mood, behaviorTags, responseTag, situasiNote,
+    currentStep, sessionDate, duration, subjects, topic, topicUnit, topicSearch, shortNote,
+    needsWork, predictedGrade, mood, engLevel, behaviorTags, responseTag, situasiNote,
     sessionType, photo, signature, coSessionData, coFollowUps, coFollowUpText,
     engPrepared, engFocused, engDrowsy, engPhone, engActiveAsking, engQuickLearner,
     engNeedsRepeat, engHwMissed, engLate, engBathroom, engRestless, engOffTask,
@@ -265,9 +285,16 @@ export default function CaptureSession() {
 
   const restoreDraft = (draft: CaptureDraft) => {
     const form = draft.form;
-    setCurrentStep((form.step >= 1 && form.step <= 6 ? form.step : 1) as StepNum);
+    setCurrentStep(isValidStep(form.step) ? form.step : 1);
     setSessionDate(form.date); setDuration(form.durationHours); setSubjects(form.subjects);
-    setTopicSearch(form.topicSearch); setTopics(form.topic ? form.topic.split("; ").filter(Boolean) : []);
+    setTopicSearch(form.topicSearch); setTopics(splitTopics(form.topic));
+    // Bab ikut dipulihkan (audit P1 #9). Draf lama tidak punya `topicUnit`, dan
+    // itu wajar: hanya topik yang pernah dipilih dari daftar bab yang punya bab.
+    // Draf menyimpan hanya bab pertama; sisanya diisi ulang saat pengguna
+    // memilih lagi dari daftar bab.
+    const restoredTopics = splitTopics(form.topic);
+    const firstTopic = restoredTopics[0];
+    setTopicUnits(form.topicUnit && firstTopic ? { [firstTopic]: form.topicUnit } : {});
     setShortNote(form.shortNote); setNeedsWork(form.needsWork); setPredictedGrade(form.predictedGrade);
     setSessionType(form.sessionType as SessionType | undefined); setPhoto(form.photo); setSignature(form.signature);
     hydrateEngagement({
@@ -279,6 +306,7 @@ export default function CaptureSession() {
         late: form.engagementFlags.late ?? false, bathroomBreaks: form.engagementFlags.bathroomBreaks ?? false,
         restless: form.engagementFlags.restless ?? false, offTask: form.engagementFlags.offTask ?? false,
       }, mood: form.mood,
+      level: form.engagementLevel,
       behaviorTags: form.behaviorTags, responseTag: form.responseTag, situasiNote: form.situasiNote,
     });
     if (form.closeout) {
@@ -296,21 +324,6 @@ export default function CaptureSession() {
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const messageRef = useRef<HTMLDivElement>(null);
-
-  // AI states
-  const [aiNoteLoading,    setAiNoteLoading]    = useState(false);
-  const [aiWaLoading,      setAiWaLoading]      = useState(false);
-  const [aiWaText,         setAiWaText]         = useState<string | null>(null);
-  const [aiError,          setAiError]          = useState("");
-  const [showAiCostModal,  setShowAiCostModal]  = useState(false);
-  const [showAiWaModal,    setShowAiWaModal]    = useState(false);
-  // Draft AI tidak langsung menimpa catatan — tampil sebagai usulan dulu.
-  const [aiNoteDraft,      setAiNoteDraft]      = useState<string | null>(null);
-  const [aiNoteOriginal,   setAiNoteOriginal]   = useState("");
-  const [aiNoteStyle,      setAiNoteStyle]      = useState<"rapikan" | "perluas" | "ringkas">("rapikan");
-  // Kartu "Konteks yang dipakai AI" dilipat secara default supaya kolom wajib
-  // (Catatan Singkat) tidak terdorong jauh ke bawah (audit C-16).
-  const [showAiContext,    setShowAiContext]    = useState(false);
 
   useEffect(() => {
     if (!photo) { setPhotoUrl(undefined); return; }
@@ -375,8 +388,6 @@ export default function CaptureSession() {
 
   const safeBriefFollowPage = clampPage(briefFollowPage, briefFollowUps.length);
   const paginatedBriefFollowUps = paginateItems(briefFollowUps, safeBriefFollowPage);
-  const safeCoFollowPage    = clampPage(coFollowPage, coFollowUps.length);
-  const paginatedCoFollowUps = paginateItems(coFollowUps, safeCoFollowPage);
 
   const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -399,12 +410,18 @@ export default function CaptureSession() {
 
   const toggleSubject = (s: string) => setSubjects((prev) => toggleArrayItem(prev, s));
 
-  const addTopic = (raw: string) => {
+  /**
+   * Tambah satu topik. `unit` diisi bila topik dipilih dari daftar bab katalog
+   * (audit P1 #9) — topik yang diketik bebas tidak punya bab.
+   */
+  const addTopic = (raw: string, unit?: string) => {
     const clean = raw.trim();
     if (!clean) return;
     setTopics((prev) => (prev.includes(clean) ? prev : [...prev, clean]));
+    if (unit) setTopicUnits((prev) => (prev[clean] ? prev : { ...prev, [clean]: unit }));
     setTopicSearch("");
-    setTopicResults([]);
+    setTopicResponse(null);
+    setTopicAllowOffLevel(false);
   };
 
   /** Tambah semua bagian dari input (pisahkan dengan ";") sebagai topik. */
@@ -417,15 +434,25 @@ export default function CaptureSession() {
       return next;
     });
     setTopicSearch("");
-    setTopicResults([]);
+    setTopicResponse(null);
+    setTopicAllowOffLevel(false);
   };
 
-  const removeTopic = (t: string) => setTopics((prev) => prev.filter((x) => x !== t));
+  const removeTopic = (t: string) => {
+    setTopics((prev) => prev.filter((x) => x !== t));
+    setTopicUnits((prev) => {
+      if (!(t in prev)) return prev;
+      const next = { ...prev };
+      delete next[t];
+      return next;
+    });
+  };
 
   const resetForm = () => {
     setSubjects([]); setShowIBPicker(false); setIbCustom("");
     setShortNote(""); setPhoto(undefined);
-    resetAll(); setPredictedGrade(""); setTopics([]); setTopicSearch(""); setTopicResults([]);
+    resetAll(); setPredictedGrade(""); setTopics([]); setTopicUnits({}); setTopicSearch(""); setTopicResponse(null);
+    setShowBrowse(false); setOpenUnit(null);
     setNeedsWork("");
     setSignature(undefined); setShowSigPad(false);
     setDuration(MIN_DURATION); setSessionDate(today);
@@ -453,26 +480,32 @@ export default function CaptureSession() {
     const draftSnapshot = draft.getSnapshot();
     const initialFollowUps = needsWork.trim() ? [{ id: crypto.randomUUID(), text: needsWork.trim() }] : [];
     setSaving(true);
+    /**
+     * Data kondisi sesi (audit P2 #11/#12/#15).
+     *
+     * Perubahan dari versi sebelumnya:
+     *  - `level` (kondisi umum) ikut disimpan — eksplisit, tanpa mengklaim
+     *    indikator apa pun;
+     *  - `scoreBasis` mencatat seberapa lengkap dasar skornya;
+     *  - bila TIDAK ada pengamatan sama sekali, `score` = 0 dan basis `none`,
+     *    supaya sesi ini tidak masuk rata-rata sebagai "5/10" (dulu memilih mood
+     *    saja sudah membuat skor 5 muncul);
+     *  - `mood` tidak lagi dihitung ke dalam skor.
+     */
     const engData = hasEngagementInput ? {
       prepared: engPrepared, focused: engFocused,
       drowsy: engDrowsy, playingPhone: engPhone,
       activeAsking: engActiveAsking, quickLearner: engQuickLearner,
       needsRepetition: engNeedsRepeat, hwMissed: engHwMissed,
       late: engLate, bathroomBreaks: engBathroom, restless: engRestless, offTask: engOffTask,
-      score: calcEngagementScore({
-        prepared: engPrepared, focused: engFocused, drowsy: engDrowsy, playingPhone: engPhone,
-        activeAsking: engActiveAsking, quickLearner: engQuickLearner,
-        needsRepetition: engNeedsRepeat, hwMissed: engHwMissed,
-        late: engLate, bathroomBreaks: engBathroom, restless: engRestless, offTask: engOffTask,
-        behaviorValences: behaviorTags.length > 0 ? behaviorTags.map(id => BEHAVIOR_TAGS.find(t => t.id === id)?.valence).filter(Boolean) as ("positive" | "neutral" | "negative")[] : undefined,
-        responseTagId: responseTag,
-        mood,
-      }),
+      level: engLevel,
+      scoreBasis: engBasis,
+      score: engScore,
     } : undefined;
     try {
       let savedSession: {
         id: string; date: string; subjects: string[]; durationHours: number;
-        shortNote: string; topic?: string;
+        shortNote: string; topic?: string; topicUnit?: string;
       };
       const isUpdate = Boolean(coSessionData && editingSavedSession);
       if (coSessionData && editingSavedSession) {
@@ -482,6 +515,7 @@ export default function CaptureSession() {
           subjects: subjects.length > 0 ? subjects : undefined,
           photo, shortNote: shortNote.trim(), mood,
           topic: topic.trim() || undefined,
+          topicUnit: topicUnit || undefined,
           needsWork: needsWork.trim() || undefined,
           predictedGrade: predictedGrade.trim() || undefined,
           situasiNote: situasiNote.trim() || undefined,
@@ -498,12 +532,14 @@ export default function CaptureSession() {
           durationHours: duration,
           shortNote: shortNote.trim(),
           topic: topic.trim() || undefined,
+          topicUnit: topicUnit || undefined,
         };
       } else if (scheduleId) {
         const result = await markSessionDoneWithCloseoutDraft(scheduleId, {
           subjects: subjects.length > 0 ? subjects : undefined,
           photo, shortNote: shortNote.trim(), mood,
           topic: topic.trim() || undefined,
+          topicUnit: topicUnit || undefined,
           needsWork: needsWork.trim() || undefined,
           predictedGrade: predictedGrade.trim() || undefined,
           situasiNote: situasiNote.trim() || undefined,
@@ -524,6 +560,7 @@ export default function CaptureSession() {
           shortNote: shortNote.trim(),
           mood,
           topic: topic.trim() || undefined,
+          topicUnit: topicUnit || undefined,
           needsWork: needsWork.trim() || undefined,
           predictedGrade: predictedGrade.trim() || undefined,
           situasiNote: situasiNote.trim() || undefined,
@@ -651,12 +688,37 @@ export default function CaptureSession() {
     else handleSave();
   };
 
-  if (!students) return <Skeleton variant="card" lines={4} className="p-4" />;
-
-  const tutorName    = settings?.tutorProfile?.name || "Ko Lui";
+  const tutorName = settings?.tutorProfile?.name || "Ko Lui";
+  const activeSubjects = subjects.length ? subjects : studentSubjects;
+  const activeBehaviorLabels = behaviorTags.length > 0
+    ? behaviorTags.map((id) => BEHAVIOR_TAGS.find((t) => t.id === id)?.label).filter(Boolean) as string[]
+    : [];
+  const activeResponseLabel = responseTag
+    ? RESPONSE_TAGS.find((t) => t.id === responseTag)?.label
+    : undefined;
   const originalWaMessage = currentStudent && coSessionData
     ? buildWaMessage(currentStudent, coSessionData, coFollowUps.map((item) => item.text), tutorName)
     : "";
+  const {
+    aiNoteLoading, aiWaLoading, aiWaText, setAiWaText, aiError,
+    showAiCostModal, setShowAiCostModal, showAiWaModal, setShowAiWaModal,
+    aiNoteDraft, setAiNoteDraft, aiNoteOriginal, setAiNoteOriginal,
+    aiNoteStyle, setAiNoteStyle, showAiContext, setShowAiContext,
+    handleLocalGenerate, appendNoteChip, onAiNoteConfirm, onPolishWa,
+  } = useAiFill({
+    student: currentStudent, sessionType, subjects: activeSubjects, topic: topic || undefined, mood,
+    needsWork, predictedGrade, situasiNote, duration, behaviorLabels: activeBehaviorLabels,
+    responseLabel: activeResponseLabel, previousNote: briefLastSession?.shortNote,
+    followUps: briefFollowUps.map((f) => f.text),
+    engagement: { prepared: engPrepared, focused: engFocused, activeAsking: engActiveAsking,
+      quickLearner: engQuickLearner, drowsy: engDrowsy, playingPhone: engPhone,
+      needsRepetition: engNeedsRepeat, hwMissed: engHwMissed, late: engLate,
+      bathroomBreaks: engBathroom, restless: engRestless, offTask: engOffTask, score: engScore },
+    hasEngagementInput: engTouched, originalWaMessage, tutorName, shortNote, setShortNote,
+  });
+
+  if (!students) return <Skeleton variant="card" lines={4} className="p-4" />;
+
   const waNumber     = currentStudent?.parentContact.phone.replace(/^0/, "62").replace(/[^0-9]/g, "") ?? "";
   const stepMeta     = STEPS[currentStep - 1];
 
@@ -681,59 +743,11 @@ export default function CaptureSession() {
     photo || signature || behaviorTags.length > 0 || responseTag || mood || engTouched,
   );
 
-  const activeSubjects      = subjects.length ? subjects : studentSubjects;
-  const activeBehaviorLabels = behaviorTags.length > 0
-    ? behaviorTags.map((id) => BEHAVIOR_TAGS.find((t) => t.id === id)?.label).filter(Boolean) as string[]
-    : [];
-  const activeResponseLabel = responseTag
-    ? RESPONSE_TAGS.find((t) => t.id === responseTag)?.label
-    : undefined;
-
-  /** Rangkum Cepat: rangkai semua data wizard jadi catatan gratis (tanpa AI). */
-  const handleLocalGenerate = () => {
-    setShortNote(generateRichNote({
-      studentName: currentStudent?.name,
-      sessionType,
-      subjects: activeSubjects,
-      topic: topic || undefined,
-      mood,
-      needsWork: needsWork || undefined,
-      behaviorLabels: activeBehaviorLabels.length > 0 ? activeBehaviorLabels : undefined,
-      responseLabel: activeResponseLabel,
-      previousNote: briefLastSession?.shortNote,
-      followUps: briefFollowUps.map((f) => f.text),
-      engagement: {
-        prepared: engPrepared, focused: engFocused, activeAsking: engActiveAsking,
-        quickLearner: engQuickLearner, drowsy: engDrowsy, playingPhone: engPhone,
-        needsRepetition: engNeedsRepeat, hwMissed: engHwMissed, late: engLate,
-        bathroomBreaks: engBathroom, restless: engRestless, offTask: engOffTask, score: engScore,
-      },
-    }));
-    setAiNoteDraft(null);
-    setAiNoteOriginal("");
-  };
-
-  /** Tambahkan chip saran ke textbox (tidak menimpa ketikan yang sudah ada). */
-  const appendNoteChip = (text: string) => {
-    setShortNote((prev) => {
-      const clean = text.trim();
-      if (!clean) return prev;
-      const next = prev.trim();
-      return next ? `${next} ${clean}` : clean;
-    });
-    setAiNoteDraft(null);
-    setAiNoteOriginal("");
-  };
-
   /** Tambahkan chip situasi ke kolom bebas (pisah koma, tanpa duplikat). */
   const appendSituasiChip = (text: string) => {
-    setSituasiNote((prev) => {
-      const clean = text.trim();
-      if (!clean) return prev;
-      const parts = prev.split(",").map((p) => p.trim()).filter(Boolean);
-      if (parts.includes(clean)) return prev;
-      return parts.length > 0 ? `${parts.join(", ")}, ${clean}` : clean;
-    });
+    const clean = text.trim();
+    if (!clean) return;
+    setSituasiNote((prev) => appendSituasi(prev, clean));
   };
 
   // ── Draf tertunda (C-06) ──
@@ -1122,27 +1136,26 @@ export default function CaptureSession() {
           {/* Topik — search + multi-select */}
           <div>
             <label htmlFor="cs-topik" className="label">🎯 Topik <span className="text-gray-500 font-normal text-xs">(cari topik, pilih beberapa, atau ketik bebas — pisahkan dengan ;)</span></label>
+            {/* Jenjang yang sedang diprioritaskan (audit P0) — sebelumnya
+                pembatasan level tidak terlihat, sehingga tutor tidak tahu
+                mengapa daftar topiknya sedikit. */}
+            {topicSearch.trim() && topicLevelHint(
+              currentStudent?.curriculum, currentStudent?.grade, topicMeta?.targetLevel ?? null,
+            ) && (
+              <p className="mt-1 text-xs text-gray-500">
+                Menampilkan topik jenjang <span className="font-semibold text-gray-700">{
+                  topicLevelHint(currentStudent?.curriculum, currentStudent?.grade, topicMeta?.targetLevel ?? null)
+                }</span>
+                {topicOffLevel && topicAllowOffLevel ? " — mode level lain aktif" : ""}
+              </p>
+            )}
             <div className="relative">
               <input id="cs-topik" className="input pr-8" maxLength={150}
                 placeholder="Cari topik atau ketik custom — mis. Integral substitution; Essay structure..."
                 value={topicSearch}
-                onChange={(e) => {
-                  const q = e.target.value;
-                  setTopicSearch(q);
-                  setTopicResults(searchTopics(q, {
-                    subject: topicSearchSubject,
-                    grade: currentStudent?.grade,
-                    curriculum: currentStudent?.curriculum,
-                  }));
-                }}
-                onFocus={() => {
-                  if (topicSearch.trim()) setTopicResults(searchTopics(topicSearch, {
-                    subject: topicSearchSubject,
-                    grade: currentStudent?.grade,
-                    curriculum: currentStudent?.curriculum,
-                  }));
-                }}
-                onBlur={() => setTimeout(() => setTopicResults([]), 150)}
+                onChange={(e) => runTopicSearch(e.target.value)}
+                onFocus={() => { if (topicSearch.trim()) runTopicSearch(topicSearch); }}
+                onBlur={() => setTimeout(() => setTopicResponse(null), 150)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -1153,44 +1166,189 @@ export default function CaptureSession() {
               {topicSearch && (
                 <button type="button" aria-label="Bersihkan pencarian topik"
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => { setTopicSearch(""); setTopicResults([]); }}
+                  onClick={() => { setTopicSearch(""); setTopicResponse(null); setTopicAllowOffLevel(false); }}
                   className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 text-gray-500 hover:text-gray-700 transition-colors">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 </button>
               )}
             </div>
-            {/* Chip topik terpilih */}
+            {/* Chip topik terpilih — lengkap dengan babnya (audit P1 #9) */}
             {topics.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {topics.map((t) => (
-                  <span key={t} className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-2.5 py-1 text-xs font-medium">
-                    {t}
+                  <span key={t} className="inline-flex items-start gap-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-2.5 py-1 text-xs font-medium">
+                    <span>
+                      {t}
+                      {topicUnits[t] && (
+                        <span className="block text-xs font-normal text-blue-500">📚 {topicUnits[t]}</span>
+                      )}
+                    </span>
                     <button type="button"
                       onClick={() => removeTopic(t)}
                       aria-label={`Hapus topik ${t}`}
-                      className="-m-1.5 p-1.5 rounded-full text-blue-500 hover:text-blue-700 transition-colors">
+                      className="-m-1 p-1 rounded-full text-blue-500 hover:text-blue-700 transition-colors">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
                     </button>
                   </span>
                 ))}
               </div>
             )}
-            {/* Dropdown hasil pencarian */}
-            {topicResults.length > 0 && (
-              <div className="mt-1 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm max-h-52 overflow-y-auto">
-                {topicResults.map((t, i) => (
-                  <button key={`${t.topic}-${i}`} type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    className={`block w-full text-left px-3.5 py-2.5 border-b border-gray-50 last:border-0 hover:bg-blue-50 transition-colors ${topics.includes(t.topic) ? "bg-blue-50" : ""}`}
-                    onClick={() => addTopic(t.topic)}>
-                    <span className="font-semibold text-gray-800 text-sm">{t.topic}</span>
-                    <span className="text-xs text-gray-500 ml-2">{t.gradeLabel} · {t.unit}</span>
-                  </button>
-                ))}
+            {/* Topik sesi lalu (audit P1 #8) — 1 ketuk untuk kasus paling umum */}
+            {recentTopicChips.length > 0 && (
+              <div className="mt-2">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                  ↩ Topik sesi lalu — ketuk untuk pakai lagi
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {recentTopicChips.map((t) => (
+                    <button key={t} type="button"
+                      onClick={() => addTopic(t)}
+                      className={`rounded-full border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                        topics.includes(t)
+                          ? "border-teal-500 bg-teal-500 text-white"
+                          : "border-teal-200 bg-white text-teal-700 hover:bg-teal-50"
+                      }`}>
+                      {topics.includes(t) ? "✓ " : ""}{t}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
-            {/* Indikator topik custom */}
-            {topicSearch.trim() && topicResults.length === 0 && (
+            {/* Pilih dari daftar bab (audit P1 #7) — untuk tutor yang ingin
+                MEMBACA pilihan, bukan mengingat kata kunci. */}
+            {browseSubjects.length > 0 && currentStudent?.curriculum && (
+              <div className="mt-3 rounded-xl border border-gray-200 overflow-hidden">
+                <button type="button"
+                  onClick={() => { setShowBrowse((v) => !v); setOpenUnit(null); }}
+                  aria-expanded={showBrowse}
+                  className="flex w-full items-center justify-between gap-2 bg-gray-50 px-3.5 py-3 text-left hover:bg-gray-100 transition-colors">
+                  <span className="text-xs font-bold text-gray-600 uppercase tracking-wide">
+                    📚 Pilih dari daftar bab
+                  </span>
+                  <span className="text-xs font-semibold text-gray-500">
+                    {showBrowse ? "Sembunyikan ▲" : "Lihat ▼"}
+                  </span>
+                </button>
+                {showBrowse && (
+                  <div className="divide-y divide-gray-100 bg-white">
+                    {browseGroups.length === 0 ? (
+                      <p className="px-3.5 py-3 text-xs text-gray-500">
+                        Belum ada bab untuk mapel ini pada jenjang {
+                          topicLevelHint(currentStudent.curriculum, currentStudent.grade, topicMeta?.targetLevel ?? null) ?? "murid ini"
+                        }. Pakai pencarian atau tulis topik sendiri di bawah.
+                      </p>
+                    ) : (
+                      browseGroups.map((group) => {
+                        const open = openUnit === group.unit;
+                        const selectedCount = group.topics.filter((t) => topics.includes(t.topic)).length;
+                        return (
+                          <div key={group.unit}>
+                            <button type="button"
+                              onClick={() => setOpenUnit(open ? null : group.unit)}
+                              aria-expanded={open}
+                              className="flex w-full items-center justify-between gap-2 px-3.5 py-2.5 text-left hover:bg-blue-50 transition-colors">
+                              <span className="min-w-0">
+                                <span className="block truncate text-sm font-medium text-gray-700">{group.unit}</span>
+                                <span className="block text-xs text-gray-500">
+                                  {group.topics.length} topik · {group.topics[0]?.gradeLabel}
+                                </span>
+                              </span>
+                              <span className="flex shrink-0 items-center gap-1.5">
+                                {selectedCount > 0 && (
+                                  <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-xs font-bold text-blue-700">
+                                    {selectedCount}
+                                  </span>
+                                )}
+                                <span className="text-gray-400" aria-hidden="true">{open ? "▲" : "▼"}</span>
+                              </span>
+                            </button>
+                            {open && (
+                              <div className="space-y-1 px-3.5 pb-3">
+                                {group.topics.map((t) => {
+                                  const checked = topics.includes(t.topic);
+                                  return (
+                                    <label key={`${t.unit}::${t.topic}`}
+                                      className={`flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors ${
+                                        checked ? "bg-blue-50 text-blue-800" : "text-gray-700 hover:bg-gray-50"
+                                      }`}>
+                                      <input type="checkbox" checked={checked} className="mt-0.5"
+                                        onChange={() => (checked ? removeTopic(t.topic) : addTopic(t.topic, t.unit))} />
+                                      <span className="min-w-0">{t.topic}</span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+            {/* Dropdown hasil pencarian */}
+            {topicResults.length > 0 && (
+              <div className="mt-1">
+                {topicOffLevel && topicAllowOffLevel && (
+                  <p className="mb-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs text-amber-800">
+                    ⚠️ Topik di bawah berasal dari <span className="font-semibold">{topicMeta?.otherLevels.join(", ")}</span> — <span className="font-semibold">bukan</span> jenjang murid ini.
+                  </p>
+                )}
+                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm max-h-52 overflow-y-auto">
+                  {topicResults.map((t, i) => (
+                    <button key={`${t.topic}-${i}`} type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      className={`block w-full text-left px-3.5 py-2.5 border-b border-gray-50 last:border-0 hover:bg-blue-50 transition-colors ${topics.includes(t.topic) ? "bg-blue-50" : ""}`}
+                      onClick={() => addTopic(t.topic, t.unit)}>
+                      <span className="font-semibold text-gray-800 text-sm">{t.topic}</span>
+                      <span className={`text-xs ml-2 ${topicOffLevel ? "text-amber-600 font-medium" : "text-gray-500"}`}>{t.gradeLabel} · {t.unit}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Tidak ada topik pada jenjang murid — tawarkan pilihan SADAR
+                (audit T-03): sebelumnya aplikasi diam-diam menampilkan topik
+                level lain seolah-olah topik murid itu. */}
+            {topicSearch.trim() && topicMeta && !topicMeta.inLevel && !topicAllowOffLevel && (
+              <div className="mt-1.5 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                <p className="text-xs font-semibold text-amber-800">
+                  Tidak ada topik jenjang {
+                    topicLevelHint(currentStudent?.curriculum, currentStudent?.grade, topicMeta.targetLevel) ?? "murid ini"
+                  } untuk mapel ini.
+                </p>
+                <p className="mt-0.5 text-xs text-amber-700">
+                  {topicResults.length > 0
+                    ? `Ada ${topicResults.length} topik pada jenjang lain (${topicMeta.otherLevels.join(", ")}) — berbeda dari jenjang murid, jadi periksa dulu sebelum dipakai.`
+                    : "Belum ada saran untuk kueri ini. Tulis sendiri lewat \"Tambah topik custom\" di bawah."}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {/* Tombol-tombol di bawah hanya muncul bila fallback benar-benar
+                      menghasilkan saran — supaya tidak ada tombol yang tidak
+                      melakukan apa pun (kotak kuning tetap tampil sebagai pesan). */}
+                  {topicResults.length > 0 && (
+                    <>
+                      <button type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => setTopicAllowOffLevel(true)}
+                        className="rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100 transition-colors">
+                        Tampilkan topik jenjang lain
+                      </button>
+                      <button type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={addTopicsFromInput}
+                        className="rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700 transition-colors">
+                        Pakai "{topicSearch.trim()}" sebagai topik
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+            {/* Indikator topik custom — hanya saat kotak kuning tidak tampil,
+                supaya aksinya tidak muncul dua kali di layar. */}
+            {topicSearch.trim() && topicResults.length === 0 && (topicMeta == null || topicMeta.inLevel) && (
               <button type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={addTopicsFromInput}
@@ -1209,58 +1367,133 @@ export default function CaptureSession() {
       {currentStep === 3 && (
         <div className="px-4 space-y-4">
 
-          {/* Quick Presets — isi sekali klik (ADITIF: tidak mengosongkan indikator
-              lain; audit C-04) */}
+          {/* ══ LAPIS 1 — kondisi umum: satu ketukan, tanpa mengklaim indikator ══
+              Menggantikan preset lama "✨ Lancar / 😐 Biasa / 😴 Kurang Fit" yang
+              menyalakan indikator yang belum tentu diamati (mis. "aktif bertanya"
+              hanya karena tutor menekan "Lancar") — audit P2 #12. */}
           <div>
-            <label className="label">⚡ Isi cepat (kondisi) <span className="text-gray-500 font-normal text-xs">(menambah, tidak menghapus)</span></label>
-            <div className="flex flex-wrap gap-2">
-              <button type="button"
-                onClick={() => applyPreset({ prepared: true, focused: true, activeAsking: true }, "Fokus")}
-                className="px-3 py-2 rounded-full text-sm font-semibold bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors">
-                ✨ Lancar
-              </button>
-              <button type="button"
-                onClick={() => applyPreset({}, "Biasa")}
-                className="px-3 py-2 rounded-full text-sm font-semibold bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 transition-colors">
-                😐 Biasa
-              </button>
-              <button type="button"
-                onClick={() => applyPreset({ drowsy: true }, "Lelah")}
-                className="px-3 py-2 rounded-full text-sm font-semibold bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 transition-colors">
-                😴 Kurang Fit
-              </button>
-              <button type="button"
-                onClick={resetEngagementFlags}
-                className="px-3 py-2 rounded-full text-sm font-semibold bg-white text-gray-500 border border-gray-200 hover:bg-gray-50 transition-colors">
-                🔄 Kosongkan
-              </button>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
+              Kondisi les hari ini
+            </p>
+            <div className="grid gap-2">
+              {ENGAGEMENT_LEVELS.map((opt) => {
+                const active = engLevel === opt.value;
+                return (
+                  <button key={opt.value} type="button"
+                    aria-pressed={active}
+                    onClick={() => setEngLevel(active ? undefined : opt.value)}
+                    className={`flex items-center gap-3 rounded-xl border-2 px-3 py-2.5 text-left transition-all ${
+                      active ? opt.activeClass + " shadow-sm" : opt.idleClass
+                    }`}>
+                    <span className="text-lg">{opt.icon}</span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold">{opt.label}</span>
+                      <span className={`block text-xs ${active ? "opacity-90" : "text-gray-500"}`}>{opt.hint}</span>
+                    </span>
+                    {active && <span className="ml-auto text-sm font-bold">✓</span>}
+                  </button>
+                );
+              })}
             </div>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <p className="text-xs text-gray-500">
-                “Kosongkan” menghapus semua indikator &amp; mood.
+            <p className="mt-2 text-xs text-gray-500">
+              Kondisi tersimpan apa adanya dan <span className="font-semibold">tidak</span> menambah
+              atau mengurangi skor.
+            </p>
+          </div>
+
+          {/* ══ LAPIS 2 — apa yang menonjol hari ini (opsional) ══ */}
+          <div className="rounded-xl border border-gray-100 p-3.5">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                Yang menonjol hari ini <span className="font-normal normal-case">(opsional)</span>
               </p>
               {undoAvailable && (
                 <button type="button" onClick={undoEngagement}
                   className="text-xs font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-900">
-                  ↩ Batalkan perubahan terakhir
+                  ↩ Batalkan
                 </button>
               )}
             </div>
-          </div>
 
-          {/* Mood */}
-          <div>
-            <label className="label">🔥 Semangat Hari Ini</label>
-            <div className="flex flex-wrap gap-2">
-              {MOODS.map((m) => (
-                <button key={m.v} type="button"
-                  className={`px-3 py-2 rounded-full text-sm border transition-colors ${
-                    mood === m.v ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-600 border-gray-200"}`}
-                  onClick={() => setMood(mood === m.v ? undefined : m.v)}>
-                  {m.icon} {m.v}
-                </button>
-              ))}
+            {/* Enam indikator terdepan (audit P2 #13) — urutan dari data nyata. */}
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {PRIMARY_ENGAGEMENT_FLAGS.map((key) => {
+                const meta = ENGAGEMENT_FLAG_META[key];
+                const active = Boolean(engFlags[key]);
+                return (
+                  <button key={key} type="button" onClick={() => toggleFlag(key)}
+                    aria-pressed={active}
+                    className={`flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-medium transition-all ${
+                      active
+                        ? meta.tone === "positive"
+                          ? "border-green-600 bg-green-600 text-white"
+                          : "border-rose-600 bg-rose-600 text-white"
+                        : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"
+                    }`}>
+                    <span>{meta.icon}</span> {meta.label}
+                    <span className={`text-xs font-bold ${active ? "opacity-80" : "text-gray-400"}`}>{meta.delta}</span>
+                  </button>
+                );
+              })}
             </div>
+
+            {/* Sisanya disembunyikan agar satu sesi biasa tidak melewati 22 kontrol. */}
+            <button type="button"
+              onClick={() => setShowMoreFlags((v) => !v)}
+              aria-expanded={showMoreFlags}
+              className="mt-2 text-xs font-semibold text-blue-700 hover:text-blue-900">
+              {showMoreFlags ? "▲ Sembunyikan" : `▼ ${SECONDARY_ENGAGEMENT_FLAGS.length} indikator lain`}
+            </button>
+            {showMoreFlags && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {SECONDARY_ENGAGEMENT_FLAGS.map((key) => {
+                  const meta = ENGAGEMENT_FLAG_META[key];
+                  const active = Boolean(engFlags[key]);
+                  return (
+                    <button key={key} type="button" onClick={() => toggleFlag(key)}
+                      aria-pressed={active}
+                      className={`flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-medium transition-all ${
+                        active
+                          ? meta.tone === "positive"
+                            ? "border-green-600 bg-green-600 text-white"
+                            : "border-rose-600 bg-rose-600 text-white"
+                          : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"
+                      }`}>
+                      <span>{meta.icon}</span> {meta.label}
+                      <span className={`text-xs font-bold ${active ? "opacity-80" : "text-gray-400"}`}>{meta.delta}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Suasana hati — konteks, bukan penilaian (audit P2 #15). */}
+            <div className="mt-3 border-t border-gray-100 pt-3">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Suasana hati <span className="font-normal normal-case">(opsional — tidak memengaruhi skor)</span>
+              </label>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {MOODS.map((m) => (
+                  <button key={m.v} type="button"
+                    aria-pressed={mood === m.v}
+                    className={`rounded-full border px-3 py-2 text-sm transition-colors ${
+                      mood === m.v ? "border-indigo-600 bg-indigo-600 text-white" : "border-gray-200 bg-white text-gray-600 hover:border-indigo-300"
+                    }`}
+                    onClick={() => setMood(mood === m.v ? undefined : m.v)}>
+                    {m.icon} {m.v}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {(engTouched || engLevel || behaviorTags.length > 0 || responseTag) && (
+              <div className="mt-3 border-t border-gray-100 pt-2 text-right">
+                <button type="button" onClick={resetEngagementFlags}
+                  className="text-xs font-semibold text-gray-500 underline underline-offset-2 hover:text-gray-700">
+                  🔄 Kosongkan kondisi &amp; mood
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Situasi hari ini — konteks humanis, bukan perilaku */}
@@ -1272,7 +1505,7 @@ export default function CaptureSession() {
               placeholder="Contoh: habis sakit, kurang tidur tadi malam, besok ulangan…" />
             <div className="flex flex-wrap gap-1.5 mt-2">
               {SITUASI_CHIPS.map((c) => {
-                const active = situasiNote.split(",").map((s) => s.trim()).includes(c.label);
+                const active = hasSituasi(situasiNote, c.label);
                 return (
                   <button key={c.label} type="button"
                     onClick={() => appendSituasiChip(c.label)}
@@ -1285,110 +1518,13 @@ export default function CaptureSession() {
             </div>
           </div>
 
-          {/* Positif */}
-          <div>
-            <p className="text-xs font-semibold text-green-700 uppercase tracking-wide mb-2">✨ Indikator Positif</p>
-            <div className="grid grid-cols-2 gap-2">
-              <button type="button" onClick={() => toggleFlag("prepared")}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                  engPrepared ? "bg-green-600 text-white border-green-600 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-green-300"}`}>
-                <span>📚</span> Sudah siap (+2)
-              </button>
-              <button type="button" onClick={() => toggleFlag("focused")}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                  engFocused ? "bg-green-600 text-white border-green-600 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-green-300"}`}>
-                <span>🎯</span> Sangat fokus (+1)
-              </button>
-              <button type="button" onClick={() => toggleFlag("activeAsking")}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                  engActiveAsking ? "bg-green-600 text-white border-green-600 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-green-300"}`}>
-                <span>🙋</span> Aktif bertanya (+1)
-              </button>
-              <button type="button" onClick={() => toggleFlag("quickLearner")}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                  engQuickLearner ? "bg-green-600 text-white border-green-600 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-green-300"}`}>
-                <span>⚡</span> Cepat paham (+1)
-              </button>
-            </div>
-          </div>
-
-          {/* Perlu perhatian */}
-          <div>
-            <p className="text-xs font-semibold text-orange-700 uppercase tracking-wide mb-2">⚠️ Indikator Perlu Perhatian</p>
-            <div className="grid grid-cols-2 gap-2">
-              <button type="button" onClick={() => toggleFlag("playingPhone")}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                  engPhone ? "bg-rose-600 text-white border-rose-600 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-rose-300"}`}>
-                <span>📱</span> Main HP (−1)
-              </button>
-              <button type="button" onClick={() => toggleFlag("drowsy")}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                  engDrowsy ? "bg-rose-600 text-white border-rose-600 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-rose-300"}`}>
-                <span>😴</span> Mengantuk (−1)
-              </button>
-              <button type="button" onClick={() => toggleFlag("needsRepetition")}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                  engNeedsRepeat ? "bg-rose-600 text-white border-rose-600 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-rose-300"}`}>
-                <span>🔄</span> Perlu diulang (−1)
-              </button>
-              <button type="button" onClick={() => toggleFlag("hwMissed")}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                  engHwMissed ? "bg-rose-600 text-white border-rose-600 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-rose-300"}`}>
-                <span>❌</span> PR tidak buat (−1)
-              </button>
-              <button type="button" onClick={() => toggleFlag("late")}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                  engLate ? "bg-rose-600 text-white border-rose-600 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-rose-300"}`}>
-                <span>⏰</span> Telat (−1)
-              </button>
-              <button type="button" onClick={() => toggleFlag("bathroomBreaks")}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                  engBathroom ? "bg-rose-600 text-white border-rose-600 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-rose-300"}`}>
-                <span>🚻</span> Sering ke toilet (−1)
-              </button>
-              <button type="button" onClick={() => toggleFlag("restless")}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                  engRestless ? "bg-rose-600 text-white border-rose-600 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-rose-300"}`}>
-                <span>🦘</span> Gelisah loncat-loncat (−1)
-              </button>
-              <button type="button" onClick={() => toggleFlag("offTask")}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                  engOffTask ? "bg-rose-600 text-white border-rose-600 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-rose-300"}`}>
-                <span>🙈</span> Sibuk sendiri (−1)
-              </button>
-            </div>
-          </div>
-
-          {/* Score gauge */}
-          {engScoreInfo && (
-            <div className="flex items-center gap-3 rounded-2xl p-4 shadow-sm" style={{ background: engScoreInfo.bg }}>
-              <div className="relative w-14 h-14 flex-shrink-0">
-                <svg viewBox="0 0 36 36" className="w-14 h-14 -rotate-90">
-                  <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(0,0,0,.08)" strokeWidth="4" />
-                  <circle cx="18" cy="18" r="14" fill="none" stroke={engScoreInfo.color} strokeWidth="4"
-                    strokeDasharray={`${(engScore / 10) * 100 * 0.879} 100`} strokeLinecap="round" />
-                </svg>
-                <span className="absolute inset-0 flex items-center justify-center text-sm font-bold" style={{ color: engScoreInfo.color }}>{engScore}</span>
-              </div>
-              <div>
-                <p className="font-bold text-base" style={{ color: engScoreInfo.color }}>{engScoreInfo.text}</p>
-                <p className="text-xs mt-0.5" style={{ color: engScoreInfo.color }}>Skor keterlibatan: {engScore}/10</p>
-                {/* Skor selalu dimulai dari 5/10, sementara chip di bawah
-                    mencantumkan +2/+1/−1 — tanpa penjelasan ini aritmetikanya
-                    tidak bisa diprediksi pengguna (audit C-10). */}
-                <p className="text-xs mt-1" style={{ color: engScoreInfo.color }}>
-                  Dasar 5/10: tiap indikator di bawah menambah atau mengurangi.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Observasi perilaku lanjutan */}
+          {/* ══ LAPIS 3 — observasi lanjutan (opsional) ══ */}
           <div className="border border-gray-100 rounded-xl overflow-hidden">
             <button type="button"
               className="flex items-center justify-between w-full px-4 py-3 bg-gray-50 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
+              aria-expanded={showBehavior}
               onClick={() => setShowBehavior(!showBehavior)}>
-              <span>🧩 Observasi Lanjutan <span className="font-normal text-gray-500">(opsional)</span></span>
+              <span>🧩 Observasi Lanjutan <span className="font-normal text-gray-500">(opsional — buat laporan lebih kaya)</span></span>
               <div className="flex items-center gap-2">
                 {behaviorTags.length > 0 && (
                   <span className="bg-purple-100 text-purple-700 text-xs font-bold px-2 py-0.5 rounded-full">{behaviorTags.length}</span>
@@ -1398,72 +1534,42 @@ export default function CaptureSession() {
             </button>
             {showBehavior && (
               <div className="p-4 space-y-4 bg-white">
-                <div>
-                  <p className="text-xs font-semibold text-green-700 uppercase tracking-wide mb-2">✨ Perilaku Positif</p>
-                  <div className="flex flex-wrap gap-2">
-                    {BEHAVIOR_TAGS.filter((t) => t.valence === "positive").map((tag) => (
-                      <div key={tag.id} className="flex items-center gap-1">
-                        <button type="button"
-                          onClick={() => setBehaviorTags((prev) => prev.includes(tag.id) ? prev.filter((x) => x !== tag.id) : [...prev, tag.id])}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                            behaviorTags.includes(tag.id) ? "bg-green-500 text-white border-green-500" : "bg-white text-gray-600 border-gray-200 hover:border-green-300"}`}>
-                          <span>{tag.icon}</span> {tag.label}
-                        </button>
-                        <button type="button"
-                          aria-label={`Info ${tag.label}`}
-                          onClick={(e) => { e.stopPropagation(); setActiveTooltip({ tag, type: "behavior" }); }}
-                          className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs border transition-all ${
-                            behaviorTags.includes(tag.id) ? "bg-green-600 text-white border-green-600" : "bg-white text-gray-600 border-gray-200 hover:text-green-700 hover:border-green-300"}`}>
-                          ⓘ
-                        </button>
-                      </div>
-                    ))}
+                {([
+                  ["positive", "✨ Perilaku Positif", "green"],
+                  ["neutral", "📊 Perilaku Netral", "gray"],
+                  ["negative", "⚠️ Perilaku Negatif", "orange"],
+                ] as const).map(([valence, heading, tone]) => (
+                  <div key={valence}>
+                    <p className={`text-xs font-semibold uppercase tracking-wide mb-2 ${
+                      tone === "green" ? "text-green-700" : tone === "orange" ? "text-orange-700" : "text-gray-600"
+                    }`}>{heading}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {BEHAVIOR_TAGS.filter((t) => t.valence === valence).map((tag) => {
+                        const active = behaviorTags.includes(tag.id);
+                        const activeClass = tone === "green" ? "bg-green-500 border-green-500"
+                          : tone === "orange" ? "bg-orange-500 border-orange-500" : "bg-gray-600 border-gray-600";
+                        return (
+                          <div key={tag.id} className="flex items-center gap-1">
+                            <button type="button"
+                              aria-pressed={active}
+                              onClick={() => setBehaviorTags((prev) => prev.includes(tag.id) ? prev.filter((x) => x !== tag.id) : [...prev, tag.id])}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                                active ? `${activeClass} text-white` : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"}`}>
+                              <span>{tag.icon}</span> {tag.label}
+                            </button>
+                            <button type="button"
+                              aria-label={`Info ${tag.label}`}
+                              onClick={(e) => { e.stopPropagation(); setActiveTooltip({ tag, type: "behavior" }); }}
+                              className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs border transition-all ${
+                                active ? "bg-gray-700 text-white border-gray-700" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"}`}>
+                              ⓘ
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">📊 Perilaku Netral</p>
-                  <div className="flex flex-wrap gap-2">
-                    {BEHAVIOR_TAGS.filter((t) => t.valence === "neutral").map((tag) => (
-                      <div key={tag.id} className="flex items-center gap-1">
-                        <button type="button"
-                          onClick={() => setBehaviorTags((prev) => prev.includes(tag.id) ? prev.filter((x) => x !== tag.id) : [...prev, tag.id])}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                            behaviorTags.includes(tag.id) ? "bg-gray-600 text-white border-gray-600" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"}`}>
-                          <span>{tag.icon}</span> {tag.label}
-                        </button>
-                        <button type="button"
-                          aria-label={`Info ${tag.label}`}
-                          onClick={(e) => { e.stopPropagation(); setActiveTooltip({ tag, type: "behavior" }); }}
-                          className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs border transition-all ${
-                            behaviorTags.includes(tag.id) ? "bg-gray-700 text-white border-gray-700" : "bg-white text-gray-600 border-gray-200 hover:text-gray-800 hover:border-gray-400"}`}>
-                          ⓘ
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-orange-700 uppercase tracking-wide mb-2">⚠️ Perilaku Negatif</p>
-                  <div className="flex flex-wrap gap-2">
-                    {BEHAVIOR_TAGS.filter((t) => t.valence === "negative").map((tag) => (
-                      <div key={tag.id} className="flex items-center gap-1">
-                        <button type="button"
-                          onClick={() => setBehaviorTags((prev) => prev.includes(tag.id) ? prev.filter((x) => x !== tag.id) : [...prev, tag.id])}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                            behaviorTags.includes(tag.id) ? "bg-orange-500 text-white border-orange-500" : "bg-white text-gray-600 border-gray-200 hover:border-orange-300"}`}>
-                          <span>{tag.icon}</span> {tag.label}
-                        </button>
-                        <button type="button"
-                          aria-label={`Info ${tag.label}`}
-                          onClick={(e) => { e.stopPropagation(); setActiveTooltip({ tag, type: "behavior" }); }}
-                          className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs border transition-all ${
-                            behaviorTags.includes(tag.id) ? "bg-orange-600 text-white border-orange-600" : "bg-white text-gray-600 border-gray-200 hover:text-orange-700 hover:border-orange-300"}`}>
-                          ⓘ
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                ))}
               </div>
             )}
           </div>
@@ -1597,6 +1703,39 @@ export default function CaptureSession() {
             <label htmlFor="cs-perhatian" className="label">🎯 Fokus Perbaikan Berikutnya</label>
             <input id="cs-perhatian" className="input" maxLength={150} placeholder="mis. ketelitian angka, time management" value={needsWork}
               onChange={(e) => setNeedsWork(e.target.value)} />
+          </div>
+
+          {/* ══ Skor akhir (audit P2 #14) ══
+              Pindah ke sini dari langkah 3 supaya angka yang dilihat tutor adalah
+              angka yang benar-benar disimpan — kualitas respons akademik (di atas)
+              ikut menentukan skor. */}
+          <div className="rounded-2xl border border-gray-100 p-4">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Skor sesi</p>
+            {engScoreInfo ? (
+              <div className="flex items-center gap-3 rounded-xl p-3" style={{ background: engScoreInfo.bg }}>
+                <div className="relative w-14 h-14 flex-shrink-0">
+                  <svg viewBox="0 0 36 36" className="w-14 h-14 -rotate-90">
+                    <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(0,0,0,.08)" strokeWidth="4" />
+                    <circle cx="18" cy="18" r="14" fill="none" stroke={engScoreInfo.color} strokeWidth="4"
+                      strokeDasharray={`${(engScore / 10) * 100 * 0.879} 100`} strokeLinecap="round" />
+                  </svg>
+                  <span className="absolute inset-0 flex items-center justify-center text-sm font-bold" style={{ color: engScoreInfo.color }}>{engScore}</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="font-bold text-base" style={{ color: engScoreInfo.color }}>{engScoreInfo.text}</p>
+                  <p className="text-xs mt-0.5" style={{ color: engScoreInfo.color }}>Skor keterlibatan: {engScore}/10</p>
+                  <p className="text-xs mt-1" style={{ color: engScoreInfo.color }}>
+                    Dasar 5/10 · kelengkapan data: {scoreBasisLabel(engBasis)}.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-500">
+                Belum ada pengamatan pada sesi ini, jadi <span className="font-semibold">skor tidak dihitung</span> —
+                sesi ini tidak akan masuk rata-rata keseriusan belajar. Kondisi yang tercatat (mis. “Seperti biasa”)
+                tetap tersimpan sebagai fakta.
+              </p>
+            )}
           </div>
 
         </div>
@@ -1931,41 +2070,11 @@ export default function CaptureSession() {
           TOOLTIP OVERLAY
           ══════════════════════════════════════════ */}
       {activeTooltip && (
-        <Modal
-          ariaLabel="Info tag"
+        <AiTagTooltip
+          tag={activeTooltip.tag}
+          type={activeTooltip.type}
           onClose={() => setActiveTooltip(null)}
-          showCloseButton={false}
-          panelClassName="relative bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[85vh] overflow-y-auto overscroll-contain outline-none"
-        >
-            <div className={`px-4 py-3 flex items-center gap-3 ${
-              activeTooltip.type === "response" ? "bg-blue-50"
-              : (activeTooltip.tag as BehaviorTag).valence === "positive" ? "bg-green-50"
-              : (activeTooltip.tag as BehaviorTag).valence === "neutral"  ? "bg-gray-50"
-              : "bg-orange-50"}`}>
-              <span className="text-2xl">{activeTooltip.tag.icon}</span>
-              <div className="flex-1">
-                <p className="font-bold text-sm text-gray-800">{activeTooltip.tag.label}</p>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  {activeTooltip.type === "behavior" ? "Observasi perilaku" : "Kualitas respons akademik"}
-                </p>
-              </div>
-              <button onClick={() => setActiveTooltip(null)} aria-label="Tutup info"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-600 hover:bg-black/5 hover:text-gray-800 transition-colors"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-            </div>
-            <div className="px-4 py-3 space-y-3">
-              <p className="text-sm text-gray-700 leading-relaxed">{activeTooltip.tag.description}</p>
-              <div className={`rounded-xl px-3 py-2.5 text-xs leading-relaxed ${
-                activeTooltip.type === "response" ? "bg-blue-50 text-blue-800" : "bg-amber-50 text-amber-800"}`}>
-                <span className="font-semibold">
-                  {activeTooltip.type === "behavior" ? "💡 Yang bisa dikatakan:" : "📌 Implikasi untuk tutor:"}
-                </span>
-                <br />
-                {activeTooltip.type === "behavior"
-                  ? (activeTooltip.tag as BehaviorTag).prompt
-                  : (activeTooltip.tag as ResponseTag).teacherNote}
-              </div>
-            </div>
-        </Modal>
+        />
       )}
 
       {/* ══════════════════════════════════════════
@@ -2100,194 +2209,40 @@ export default function CaptureSession() {
         </Modal>
       )}
 
-      {/* ══════════════════════════════════════════
-          CLOSE-OUT LAPORAN SESI
-          ══════════════════════════════════════════ */}
       {showCloseOut && coSessionData && currentStudent && (
-        <Modal
-          ariaLabel="Laporan sesi"
+        <CloseOutSheet
+          studentName={currentStudent.name}
+          parentName={currentStudent.parentContact.name}
+          session={coSessionData}
+          followUps={coFollowUps}
+          followUpText={coFollowUpText}
+          setFollowUpText={setCoFollowUpText}
+          saving={coSaving}
+          waNumber={waNumber}
+          originalWaMessage={originalWaMessage}
+          aiWaText={aiWaText}
+          onAddFollowUp={addCoFollowUp}
+          onDeleteFollowUp={(id) => setCoFollowUps((prev) => prev.filter((item) => item.id !== id))}
+          onDone={handleCloseOutDone}
           onClose={closeReport}
-          showCloseButton={false}
-          panelClassName="relative bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[92vh] overflow-y-auto overscroll-contain outline-none"
-        >
-          <div style={{ fontFamily: "'Nunito', sans-serif" }}>
-
-            {/* ── REPORT HEADER ── */}
-            <div className="relative overflow-hidden" style={{ background: "linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%)" }}>
-              {/* Decorative circles */}
-              <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white opacity-10" />
-              <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full bg-white opacity-10" />
-              <div className="absolute top-4 right-16 w-8 h-8 rounded-full bg-white opacity-10" />
-
-              <div className="relative px-5 pt-6 pb-5">
-                <button type="button" onClick={closeReport} aria-label="Tutup laporan"
-                  className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/25 text-white backdrop-blur-sm hover:bg-white/40 transition-colors">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
-                </button>
-                <div className="flex items-center gap-4 mb-4">
-                  {/* Avatar */}
-                  <div className="w-16 h-16 rounded-2xl bg-white/25 backdrop-blur-sm flex items-center justify-center shadow-lg border-2 border-white/30">
-                    <span className="text-2xl font-black text-white">{currentStudent.name.charAt(0).toUpperCase()}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="inline-flex items-center gap-1.5 bg-white/20 text-white/90 text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full mb-1">
-                      ✅ Sesi Selesai!
-                    </div>
-                    <h2 className="text-white text-xl font-black truncate">{currentStudent.name}</h2>
-                    <p className="text-white/80 text-sm mt-0.5">
-                      {dayLabel(coSessionData.date).split(",")[0]}
-                      {coSessionData.subjects.length > 0 && <span> · {coSessionData.subjects.join(", ")}</span>}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Stats row */}
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
-                    <p className="text-white/70 text-xs font-bold uppercase tracking-wider">📅 Tanggal</p>
-                    <p className="text-white text-sm font-black mt-0.5">{coSessionData.date.slice(5).replace("-", "/")}</p>
-                  </div>
-                  <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
-                    <p className="text-white/70 text-xs font-bold uppercase tracking-wider">⏱️ Durasi</p>
-                    <p className="text-white text-sm font-black mt-0.5">{coSessionData.durationHours} jam</p>
-                  </div>
-                  <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
-                    <p className="text-white/70 text-xs font-bold uppercase tracking-wider">🎯 Skor</p>
-                    <p className="text-white text-sm font-black mt-0.5">{engTouched ? `${engScore}/10` : "—"}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* ── REPORT BODY ── */}
-            <div className="p-5 space-y-4">
-
-              {/* Catatan sesi */}
-              <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100">
-                <p className="text-xs font-black text-blue-700 uppercase tracking-widest mb-2">📝 Catatan Sesi</p>
-                <p className="text-sm text-gray-700 leading-relaxed font-semibold">{coSessionData.shortNote}</p>
-                {coSessionData.topic && (
-                  <div className="flex items-center gap-1.5 mt-2">
-                    <span className="text-blue-600 text-xs">💡</span>
-                    <p className="text-xs text-blue-700 font-semibold">Topik: {coSessionData.topic}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Engagement */}
-              {engTouched && engScoreInfo && (
-                <div className="rounded-2xl p-4 border" style={{ borderColor: engScoreInfo.color + "30", background: engScoreInfo.bg }}>
-                  <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: engScoreInfo.color }}>
-                    😊 Kondisi Belajar
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <div className="relative w-16 h-16 flex-shrink-0">
-                      <svg viewBox="0 0 36 36" className="w-16 h-16 -rotate-90">
-                        <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(0,0,0,.06)" strokeWidth="3.5" />
-                        <circle cx="18" cy="18" r="14" fill="none" stroke={engScoreInfo.color} strokeWidth="3.5"
-                          strokeDasharray={`${(engScore / 10) * 100 * 0.879} 100`} strokeLinecap="round" />
-                      </svg>
-                      <span className="absolute inset-0 flex items-center justify-center font-black text-base" style={{ color: engScoreInfo.color }}>{engScore}</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-black text-base" style={{ color: engScoreInfo.color }}>{engScoreInfo.text}</p>
-                      <p className="text-xs text-gray-700 mt-1 leading-relaxed">
-                        {generateEngagementNarrative(
-                          { prepared: engPrepared, focused: engFocused, activeAsking: engActiveAsking,
-                            quickLearner: engQuickLearner, drowsy: engDrowsy, playingPhone: engPhone,
-                            needsRepetition: engNeedsRepeat, hwMissed: engHwMissed,
-                            late: engLate, bathroomBreaks: engBathroom, score: engScore },
-                          currentStudent.name,
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Follow-up */}
-              <div>
-                <p className="text-xs font-black text-gray-500 uppercase tracking-widest mb-2">
-                  🔁 Fokus Sesi Berikutnya <span className="font-normal normal-case text-gray-500">(opsional)</span>
-                </p>
-                <div className="flex gap-2">
-                  <input className="input flex-1 text-sm" placeholder="Topik/hal yang perlu dilanjutkan..."
-                    value={coFollowUpText} onChange={(e) => setCoFollowUpText(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && addCoFollowUp()} />
-                  <button onClick={addCoFollowUp} disabled={!coFollowUpText.trim()}
-                    className="px-3 py-2 rounded-xl bg-amber-500 text-white text-sm font-bold disabled:opacity-40 hover:bg-amber-600 transition-colors">+</button>
-                </div>
-                {coFollowUps.length > 0 && (
-                  <div className="mt-2 space-y-1.5">
-                    {paginatedCoFollowUps.map((f) => {
-                      return (
-                        <div key={f.id} className="flex items-center gap-2 bg-amber-50 rounded-xl px-3 py-2.5 border border-amber-100">
-                          <span className="text-amber-400">🔁</span>
-                          <p className="flex-1 text-sm font-semibold text-gray-700">{f.text}</p>
-                          <button onClick={() => setCoFollowUps((prev) => prev.filter((item) => item.id !== f.id))}
-                            className="text-gray-500 hover:text-red-400"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-                        </div>
-                      );
-                    })}
-                    <PaginationControls page={safeCoFollowPage} total={coFollowUps.length} onPageChange={setCoFollowPage} label="follow-up" />
-                  </div>
-                )}
-              </div>
-
-              {/* WhatsApp */}
-              {waNumber && (
-                <div>
-                  <p className="text-xs font-black text-gray-500 uppercase tracking-widest mb-2">💬 Update Orang Tua</p>
-                  {aiError && (
-                    <p className="text-xs text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-2">{aiError}</p>
-                  )}
-                  <div className="bg-green-50 border border-green-200 rounded-2xl p-3.5 mb-2">
-                    <pre className="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed font-sans">
-                      {aiWaText ?? buildWaMessage(currentStudent, coSessionData, coFollowUps.map((item) => item.text), tutorName)}
-                    </pre>
-                  </div>
-                  {settings?.ai?.enabled && settings.ai.apiKey && (
-                    <div className="flex gap-2 mb-2">
-                      <button type="button" disabled={aiWaLoading}
-                        onClick={() => setShowAiWaModal(true)}
-                        className="flex-1 flex items-center justify-center gap-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-2.5 rounded-xl transition-colors disabled:opacity-50">
-                        {aiWaLoading ? "⏳ Poles AI..." : "✨ Poles AI"}
-                      </button>
-                      {aiWaText && (
-                        <button type="button" onClick={() => setAiWaText(null)}
-                          className="text-xs text-gray-500 hover:text-gray-600 px-3 py-2 rounded-xl border border-gray-200 bg-white font-semibold">
-                          ↩ Original
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  <a href={`https://wa.me/${waNumber}?text=${encodeURIComponent(aiWaText ?? buildWaMessage(currentStudent, coSessionData, coFollowUps.map((item) => item.text), tutorName))}`}
-                    target="_blank" rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl bg-green-500 text-white font-black text-sm hover:bg-green-600 transition-colors shadow-md shadow-green-200">
-                    <span className="text-lg">💬</span> Kirim ke {currentStudent.parentContact.name || "Orang Tua"}
-                  </a>
-                </div>
-              )}
-
-              {/* Perbaiki catatan tanpa membuat sesi kedua (audit C-05) */}
-              <button type="button" onClick={handleFixNote}
-                className="w-full py-3 rounded-2xl border border-gray-300 bg-white text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors">
-                ✏️ Perbaiki catatan sesi
-              </button>
-
-              {/* Done button */}
-              <button onClick={handleCloseOutDone} disabled={coSaving}
-                className="w-full py-4 rounded-2xl font-black text-base text-white transition-all disabled:opacity-50 shadow-lg"
-                style={{ background: "linear-gradient(135deg, #1f2937, #374151)" }}>
-                {coSaving ? "⏳ Menyimpan..." : "🏁 Selesai & Lihat Profil"}
-              </button>
-            </div>
-          </div>
-        </Modal>
+          onFixNote={handleFixNote}
+          onPolishWa={() => setShowAiWaModal(true)}
+          aiWaEnabled={Boolean(settings?.ai?.enabled && settings.ai.apiKey)}
+          aiWaLoading={aiWaLoading}
+          aiError={aiError}
+          onClearAiWa={() => setAiWaText(null)}
+          engagement={engTouched && engScoreInfo ? {
+            score: engScore, color: engScoreInfo.color, background: engScoreInfo.bg, text: engScoreInfo.text,
+            narrative: generateEngagementNarrative(
+              { prepared: engPrepared, focused: engFocused, activeAsking: engActiveAsking,
+                quickLearner: engQuickLearner, drowsy: engDrowsy, playingPhone: engPhone,
+                needsRepetition: engNeedsRepeat, hwMissed: engHwMissed,
+                late: engLate, bathroomBreaks: engBathroom, score: engScore },
+              currentStudent.name,
+            ),
+          } : undefined}
+        />
       )}
-
       {/* Poles WA AI modal */}
       <AiCostModal
         open={showAiWaModal}
@@ -2296,122 +2251,20 @@ export default function CaptureSession() {
         description="Poles pesan WhatsApp jadi lebih hangat dan personal"
         dataSent="Pesan awal sesi: nama murid dan tutor, tanggal, mapel, durasi, catatan sesi, topik, dan tindak lanjut yang tercantum dalam pesan."
         onCancel={() => setShowAiWaModal(false)}
-        onConfirm={async () => {
-          setShowAiWaModal(false);
-          if (!currentStudent || !coSessionData) return;
-          setAiWaLoading(true); setAiError("");
-          try {
-            const res = await polishWhatsApp({ original: originalWaMessage, studentName: currentStudent.name, tutorName });
-            if (res.message) setAiWaText(res.message);
-          } catch (e) { setAiError((e as Error).message); }
-          finally { setAiWaLoading(false); }
-        }}
+        onConfirm={onPolishWa}
       />
 
       {/* AI Cost confirm modal */}
-      {showAiCostModal && (() => {
-        const currentDraft = shortNote.trim() || undefined;
-        const est = estimateDraftNoteCost(activeSubjects, topic || undefined, currentDraft);
-        return (
-          <Modal
-            ariaLabel="Draft Catatan dengan AI"
-            onClose={() => setShowAiCostModal(false)}
-            panelClassName="relative bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 pb-8 space-y-4 max-h-[92vh] overflow-y-auto overscroll-contain outline-none"
-          >
-              <h3 className="font-bold text-base">✨ Draft Catatan dengan AI</h3>
-              <div className="bg-indigo-50 rounded-xl p-3 space-y-1">
-                <p className="text-sm font-semibold text-indigo-700">Estimasi biaya DeepSeek</p>
-                <p className="text-xs text-indigo-600">
-                  {DEEPSEEK_MODEL_LABEL} · tarif {getDeepSeekPricing().period} · ~{est.inputTokens} token masukan + {est.outputTokens} token keluaran
-                </p>
-                <p className="text-sm font-bold text-indigo-800">
-                  ≈ ${est.usdCost.toFixed(6)} (Rp {est.idrCost.toFixed(4)})
-                </p>
-                <p className="text-xs text-gray-500">{DEEPSEEK_COST_NOTE}</p>
-                <a href={DEEPSEEK_PRICING_URL} target="_blank" rel="noopener noreferrer"
-                  className="inline-block text-xs text-blue-600 underline">Sumber tarif resmi DeepSeek</a>
-              </div>
-              <p className="text-xs text-gray-500">
-                {currentDraft
-                  ? `Tulisan di textbox (${currentDraft.length} karakter) dikirim sebagai bahan utama, lalu dipoles AI.`
-                  : "Textbox kosong — AI akan membuat catatan baru."}
-              </p>
-              <div className="rounded-xl border border-gray-200 p-3 space-y-1">
-                <p className="text-xs font-semibold text-gray-700">Data yang dikirim ke DeepSeek</p>
-                <p className="text-xs text-gray-600">
-                  Nama, level dan kelas murid; mapel, topik, jenis dan durasi sesi, mood, area perhatian, prediksi nilai, Situasi Hari Ini,
-                  skor dan indikator engagement, label perilaku dan respons, catatan sesi lalu, tindak lanjut,
-                  isi textbox, dan gaya penulisan yang dipilih. Data opsional disertakan bila tersedia.
-                </p>
-              </div>
-              <div>
-                <label className="label">Gaya penulisan</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(["rapikan", "perluas", "ringkas"] as const).map((style) => (
-                    <button key={style} type="button"
-                      onClick={() => setAiNoteStyle(style)}
-                      className={`py-2 rounded-xl text-xs font-bold border transition-colors ${aiNoteStyle === style ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-600 border-gray-200 hover:border-indigo-300"}`}>
-                      {style === "rapikan" ? "✍️ Rapikan" : style === "perluas" ? "📖 Perluas" : "✂️ Ringkas"}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <button onClick={() => setShowAiCostModal(false)}
-                  className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-500 font-semibold text-sm">
-                  Batal
-                </button>
-                <button
-                  onClick={async () => {
-                    setShowAiCostModal(false);
-                    setAiNoteLoading(true); setAiError("");
-                    setAiNoteDraft(null); setAiNoteOriginal(shortNote);
-                    try {
-                      const engagementLabels = engTouched ? [
-                        ...(engPrepared      ? ["sudah siap bahan"]     : []),
-                        ...(engFocused       ? ["sangat fokus"]         : []),
-                        ...(engActiveAsking  ? ["aktif bertanya"]       : []),
-                        ...(engQuickLearner  ? ["cepat memahami"]       : []),
-                        ...(engDrowsy        ? ["mengantuk"]            : []),
-                        ...(engPhone         ? ["main HP"]              : []),
-                        ...(engNeedsRepeat   ? ["perlu pengulangan"]    : []),
-                        ...(engHwMissed      ? ["PR tidak dikerjakan"]  : []),
-                        ...(engLate          ? ["telat"]                : []),
-                        ...(engBathroom      ? ["sering ke toilet"]     : []),
-                        ...(engRestless      ? ["gelisah loncat-loncat"]: []),
-                        ...(engOffTask       ? ["sibuk sendiri"]        : []),
-                      ] : undefined;
-                      const res = await draftShortNote({
-                        student: { name: currentStudent?.name ?? "", level: currentStudent?.level ?? "" },
-                        subjects: activeSubjects,
-                        topic: topic || undefined,
-                        mood,
-                        sessionType,
-                        grade: currentStudent?.grade,
-                        needsWork: needsWork || undefined,
-                        predictedGrade: predictedGrade.trim() || undefined,
-                        situasiNote: situasiNote.trim() || undefined,
-                        engagementScore: engTouched ? engScore : undefined,
-                        engagementLabels,
-                        behaviorLabels: activeBehaviorLabels.length > 0 ? activeBehaviorLabels : undefined,
-                        responseLabel: activeResponseLabel,
-                        previousNote: briefLastSession?.shortNote,
-                        draftText: currentDraft,
-                        style: aiNoteStyle,
-                        followUps: briefFollowUps.map((f) => f.text),
-                        durationHours: duration,
-                      });
-                      if (res.note) setAiNoteDraft(res.note);
-                    } catch (e) { setAiError((e as Error).message); }
-                    finally { setAiNoteLoading(false); }
-                  }}
-                  className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-bold text-sm">
-                  OK, Generate
-                </button>
-              </div>
-          </Modal>
-        );
-      })()}
+      <AiCostConfirmModal
+        open={showAiCostModal}
+        subjects={activeSubjects}
+        topic={topic || undefined}
+        draftNote={shortNote}
+        style={aiNoteStyle}
+        onStyleChange={setAiNoteStyle}
+        onConfirm={onAiNoteConfirm}
+        onCancel={() => setShowAiCostModal(false)}
+      />
     </div>
   );
 }

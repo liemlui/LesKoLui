@@ -14,6 +14,7 @@ import { todayWIB, monthOf, monthLabel, dayLabel } from "../lib/format";
 import { usePinGate } from "../hooks/usePinGate";
 import { colorForStudent } from "../lib/studentColor";
 import type { Student } from "../db/types";
+import { levelLabel } from "../db/types";
 import { useToastCtx } from "../components/ToastProvider";
 import StudentForm from "../components/StudentForm";
 import Modal from "../components/Modal";
@@ -275,7 +276,7 @@ export default function Students() {
 
               {/* Level + subjects */}
               <p className="text-sm text-gray-500 truncate">
-                {s.level}{s.grade ? ` · ${s.grade}` : ""}{s.school ? ` · ${s.school}` : ""}
+                {levelLabel(s)}{s.school ? ` · ${s.school}` : ""}
               </p>
               {s.subjects.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1">

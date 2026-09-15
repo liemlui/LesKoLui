@@ -18,6 +18,7 @@ import { APP_VERSION } from "../lib/version";
 import { saveButtonState } from "../lib/settingsPresentation";
 import { DEEPSEEK_MODEL, DEEPSEEK_MODEL_LABEL, DEEPSEEK_DOCS_URL, DEEPSEEK_PRICING_URL, DEEPSEEK_COST_NOTE } from "../lib/aiConfig";
 import type { Settings, AuditAction } from "../db/types";
+import { settingsDirtyPatch } from "../lib/settingsDirtyPatch";
 import Toggle from "../components/Toggle";
 import PinConfirmModal from "../components/PinConfirmModal";
 import ExitAppModal from "../components/ExitAppModal";
@@ -264,10 +265,15 @@ export default function SettingsPage() {
   const restoreRef = useRef<HTMLInputElement>(null);
   const fileRef    = useRef<HTMLInputElement>(null);
   const pinRecoveryInFlightRef = useRef(false);
+  const savedFormRef = useRef<Settings | null>(null);
 
   // Shallow copy preserves Blobs — JSON.stringify would corrupt them
   useEffect(() => {
-    if (settings && !form) setForm({ ...settings });
+    if (settings && !form) {
+      const snapshot = { ...settings };
+      setForm(snapshot);
+      savedFormRef.current = snapshot;
+    }
   }, [settings, form]);
 
   useEffect(() => {
@@ -311,7 +317,10 @@ export default function SettingsPage() {
     if (!form) return;
     setSaving(true);
     try {
-      await saveSettings(form);
+      // Jangan kirim snapshot Settings penuh: metadata backup yang baru ditulis
+      // alur lain dapat lebih baru daripada form yang sedang terbuka.
+      await saveSettings(settingsDirtyPatch(savedFormRef.current ?? form, form));
+      savedFormRef.current = form;
       setDirty(false);
       toastCtx.info("Pengaturan disimpan ✓");
     } catch (e) {

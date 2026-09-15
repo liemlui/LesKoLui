@@ -6,25 +6,23 @@ import {
   listAllBillableSessions,
 } from "../../db/repos";
 import type { Payment, Student, Settings, Session, MonthlyReport } from "../../db/types";
-import { reportDisplayStatus } from "../../db/types";
-import { formatRupiah, todayWIB, monthLabel, periodLabel } from "../../lib/format";
+import { formatRupiah, todayWIB, periodLabel } from "../../lib/format";
 import Modal from "../../components/Modal";
-import { buildBillingMessage, toWaNumber } from "../../lib/waBilling";
-import { MAX_PAYMENT_AMOUNT, clampCurrencyAmount, isValidCurrencyAmount, parseCurrencyDigits } from "../../lib/money";
-import { invoiceAgeDays, ageBucket, AGE_BUCKET_LABEL, invoiceDueAt, type AgeBucket } from "../../lib/finance";
+import { MAX_PAYMENT_AMOUNT, isValidCurrencyAmount, parseCurrencyDigits } from "../../lib/money";
+import { invoiceAgeDays, ageBucket, AGE_BUCKET_LABEL, type AgeBucket } from "../../lib/finance";
 import { db } from "../../db/db";
 import ActivityRing from "../../components/dashboard/ActivityRing";
 import { ProgressBar } from "../../components/charts";
 import ConfirmSheet from "../../components/ConfirmSheet";
 import InvoiceModal from "./InvoiceModal";
-import {
-  INVOICE_ORIGIN_CLASS, INVOICE_ORIGIN_LABEL, ITEMS_PER_PDF_PAGE,
-  buildManualBillingText, groupPdfPages, invoiceOriginOf, statusPillClass, toneForPayment,
-} from "../../lib/invoicePresentation";
+import { ITEMS_PER_PDF_PAGE } from "../../lib/invoicePresentation";
 import { useSessionCountBilling } from "./useSessionCountBilling";
 import type { ConfirmState } from "./useSessionCountBilling";
 import { useInvoiceFilters } from "./useInvoiceFilters";
 import { useInvoiceExports } from "./useInvoiceExports";
+import InvoiceRow from "./InvoiceRow";
+import ManualInvoiceForm from "./ManualInvoiceForm";
+import InvoicePdfPages from "./InvoicePdfPages";
 
 interface TagihanTabProps {
   payments: Payment[];
@@ -35,18 +33,6 @@ interface TagihanTabProps {
   navigate: (path: string) => void;
   requestedStudentId: string;
 }
-
-const REPORT_DISPLAY_STATUS_LABEL: Record<ReturnType<typeof reportDisplayStatus>, string> = {
-  draft: "Draft",
-  final: "Final",
-  shared: "Sudah dibagikan",
-};
-
-const REPORT_DISPLAY_STATUS_CLASS: Record<ReturnType<typeof reportDisplayStatus>, string> = {
-  draft: "bg-amber-100 text-amber-700",
-  final: "bg-emerald-100 text-emerald-700",
-  shared: "bg-violet-100 text-violet-700",
-};
 
 export default function TagihanTab({
   payments, students, settings, reports, setMessage, navigate, requestedStudentId,
@@ -152,10 +138,6 @@ export default function TagihanTab({
     }
     return rows;
   }, [agingFilter, filteredBillRows, invoiceStatusFilter]);
-  const pdfPageGroups = useMemo(
-    () => groupPdfPages(visibleBillRows.map((row) => row.payment), ITEMS_PER_PDF_PAGE),
-    [visibleBillRows],
-  );
   const exports = useInvoiceExports({
     studentMap,
     filteredBillRows: visibleBillRows,
@@ -625,167 +607,31 @@ export default function TagihanTab({
           </p>
         ) : (
           <ul className="divide-y divide-gray-100">
-            {filteredBillRows.map(({ payment, report, student, sessions }) => {
-              const paid = payment.status === "PAID";
-              const periodLbl = payment.periodStart && payment.periodEnd ? periodLabel(payment.periodStart, payment.periodEnd) : "";
-              const amountStr = billEdits[payment.id] ?? String(payment.totalCost);
-              const totalHours = sessions.reduce((s, x) => s + x.durationHours, 0);
-              const phone = student?.parentContact?.phone ? toWaNumber(student.parentContact.phone) : "";
-              const origin = invoiceOriginOf(payment, report);
-              const standaloneManual = origin === "manual";
-              const busy = Boolean(sessionCountCancelBusy[payment.id]);
-              const expanded = expandedPaymentId === payment.id;
-              const ageLabel = paid ? null : AGE_BUCKET_LABEL[ageBucket(invoiceAgeDays(payment))];
-              const waText = student
-                ? standaloneManual
-                  ? buildManualBillingText(student, payment, settings)
-                  : buildBillingMessage({
-                      student, sessions, month: payment.month, settings, amountOverride: payment.totalCost,
-                      period: payment.periodStart && payment.periodEnd ? { start: payment.periodStart, end: payment.periodEnd } : undefined,
-                      periodLabelText: periodLbl || undefined,
-                      tone: toneForPayment(payment),
-                    }).text
-                : "";
-              const metaLine = standaloneManual
-                ? "Nominal manual · tanpa sesi"
-                : `${sessions.length} pertemuan · ${totalHours} jam · ${periodLbl || "tanpa periode"}`;
-              return (
-                <li key={payment.id}>
-                  {/* Baris ringkas: satu baris per tagihan. Aksi & rincian hidup
-                      di panel, supaya daftar panjang tetap bisa dipindai. */}
-                  <button
-                    type="button"
-                    aria-expanded={expanded}
-                    onClick={() => setExpandedPaymentId(expanded ? null : payment.id)}
-                    className="flex w-full items-center gap-2 py-2.5 text-left transition-colors hover:bg-gray-50"
-                  >
-                    <span aria-hidden="true" className={`shrink-0 text-xs text-gray-400 transition-transform ${expanded ? "rotate-90" : ""}`}>▶</span>
-                    <span className="min-w-0 flex-1">
-                      {/* Nominal di baris pertama supaya nama murid tidak
-                          terpotong oleh kolom kanan yang lebar tetapnya. */}
-                      <span className="flex items-baseline justify-between gap-2">
-                        <span className="min-w-0 truncate text-sm font-semibold text-gray-800">{student?.name ?? "(dihapus)"}</span>
-                        <span className={`shrink-0 text-sm font-bold ${paid ? "text-green-700" : "text-gray-800"}`}>
-                          {formatRupiah(payment.totalCost)}
-                        </span>
-                      </span>
-                      <span className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                        <span className={`shrink-0 rounded px-1.5 py-0.5 text-[13px] font-bold ${INVOICE_ORIGIN_CLASS[origin]}`}>
-                          {INVOICE_ORIGIN_LABEL[origin]}
-                        </span>
-                        <span className="truncate text-xs text-gray-500">{metaLine}</span>
-                      </span>
-                      <span className="mt-0.5 block text-xs font-semibold">
-                        {paid
-                          ? <span className="text-green-700">Lunas{payment.paidAt ? ` · ${payment.paidAt}` : ""}</span>
-                          : <span className="text-amber-700">Belum dibayar{ageLabel ? ` · ${ageLabel}` : ""}</span>}
-                      </span>
-                    </span>
-                  </button>
-
-                  {expanded && (
-                    <div className="mb-3 space-y-3 rounded-xl border border-gray-100 bg-gray-50/70 p-3">
-                      <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                        <span className={statusPillClass(paid)}>{paid ? "Lunas" : "Belum dibayar"}</span>
-                        {report && (
-                          <span className={`inline-flex rounded-full px-1.5 py-0.5 font-bold ${REPORT_DISPLAY_STATUS_CLASS[reportDisplayStatus(report)]}`}>
-                            Laporan: {REPORT_DISPLAY_STATUS_LABEL[reportDisplayStatus(report)]}
-                          </span>
-                        )}
-                        {origin === "package" && (
-                          <span className="inline-flex rounded-full bg-indigo-100 px-1.5 py-0.5 font-bold text-indigo-700">
-                            {report?.finalBillingBatch ? "Paket penutup" : `Paket ${report?.billingSessionCount ?? sessions.length} pertemuan`}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="rounded-lg bg-white px-2.5 py-1.5 text-xs leading-relaxed text-slate-600">
-                        <p>Periode pertemuan: <strong>{periodLbl || "Tanpa sesi"}</strong></p>
-                        <p>Bulan tagihan: <strong>{monthLabel(payment.month)}</strong></p>
-                        <p>Jatuh tempo: <strong>{invoiceDueAt(payment) ?? "—"}</strong></p>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <label htmlFor={`amount-${payment.id}`} className="text-xs text-gray-500">Rp</label>
-                        <input
-                          id={`amount-${payment.id}`}
-                          aria-label={`Nominal tagihan ${student?.name ?? "murid"}`}
-                          className="input flex-1 text-sm py-1.5"
-                          inputMode="numeric"
-                          value={amountStr}
-                          disabled={paid}
-                          onChange={(e) => {
-                            const { raw } = parseCurrencyDigits(e.target.value, MAX_PAYMENT_AMOUNT);
-                            setBillEdits((prev) => ({ ...prev, [payment.id]: raw }));
-                          }}
-                          onBlur={() => saveBillAmount(payment.id, payment.totalCost)} />
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        {phone && !paid && (
-                          <a href={`https://wa.me/${phone}?text=${encodeURIComponent(waText)}`} target="_blank" rel="noopener noreferrer"
-                            className="min-w-[120px] flex-1 py-2 text-center rounded-lg bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition-colors">
-                            Kirim tagihan via WA
-                          </a>
-                        )}
-                        {!paid ? (
-                          <button onClick={() => markPaymentTransferredById(payment.id)}
-                            className="min-w-[120px] flex-1 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors">
-                            Tandai sudah dibayar
-                          </button>
-                        ) : (
-                          <button onClick={() => markPaymentUnpaidById(payment.id)}
-                            className="min-w-[120px] flex-1 py-2 rounded-lg border border-gray-200 text-gray-600 text-xs font-medium hover:bg-gray-50 transition-colors">
-                            Batalkan pelunasan
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        {report ? (
-                          <button onClick={() => navigate(`/report?reportId=${encodeURIComponent(report.id)}`)}
-                            className="min-w-[88px] flex-1 py-1.5 rounded-lg border border-blue-200 text-blue-600 text-xs font-medium hover:bg-blue-50 transition-colors">
-                            Buka laporan
-                          </button>
-                        ) : (
-                          student && (
-                            <button onClick={() => navigate(`/report?studentId=${encodeURIComponent(student.id)}`)}
-                              className="min-w-[88px] flex-1 py-1.5 rounded-lg border border-blue-200 text-blue-600 text-xs font-medium hover:bg-blue-50 transition-colors">
-                              Lengkapi laporan
-                            </button>
-                          )
-                        )}
-                        {student && (
-                          <button onClick={() => setInvoiceTarget({ payment, student })}
-                            className="min-w-[88px] flex-1 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-xs font-medium hover:bg-gray-50 transition-colors">
-                            Unduh invoice PDF
-                          </button>
-                        )}
-                        {report?.billingMode === "session_count" && !paid && payment.source !== "manual" && (
-                          <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() => void handleCancelSessionCountInvoice(
-                              payment,
-                              student?.name ?? "murid",
-                              report.billingPolicyTransitionTarget ?? report.billingPolicyAfterBatch,
-                              Boolean(report.finalBillingBatch),
-                            )}
-                            className="min-w-[128px] flex-1 py-1.5 rounded-lg border border-red-200 text-red-600 text-xs font-medium hover:bg-red-50 transition-colors disabled:cursor-wait disabled:opacity-50"
-                          >
-                            {busy
-                              ? "Membatalkan..."
-                              : report.finalBillingBatch
-                                ? "Batalkan tagihan penutup"
-                                : "Batalkan tagihan paket"}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </li>
-              );
-            })}
+            {filteredBillRows.map(({ payment, report, student, sessions }) => (
+              <InvoiceRow
+                key={payment.id}
+                invoice={payment}
+                report={report}
+                student={student}
+                sessions={sessions}
+                settings={settings}
+                expanded={expandedPaymentId === payment.id}
+                amount={billEdits[payment.id] ?? String(payment.totalCost)}
+                cancelBusy={Boolean(sessionCountCancelBusy[payment.id])}
+                onOpen={() => setExpandedPaymentId(expandedPaymentId === payment.id ? null : payment.id)}
+                onAmountChange={(value) => {
+                  const { raw } = parseCurrencyDigits(value, MAX_PAYMENT_AMOUNT);
+                  setBillEdits((previous) => ({ ...previous, [payment.id]: raw }));
+                }}
+                onAmountSave={() => void saveBillAmount(payment.id, payment.totalCost)}
+                onTogglePaid={() => void (payment.status === "PAID" ? markPaymentUnpaidById(payment.id) : markPaymentTransferredById(payment.id))}
+                onOpenReport={() => navigate(report ? `/report?reportId=${encodeURIComponent(report.id)}` : `/report?studentId=${encodeURIComponent(payment.studentId)}`)}
+                onOpenInvoice={() => student && setInvoiceTarget({ payment, student })}
+                onCancelPackage={() => void handleCancelSessionCountInvoice(
+                  payment, student?.name ?? "murid", report?.billingPolicyTransitionTarget ?? report?.billingPolicyAfterBatch, Boolean(report?.finalBillingBatch),
+                )}
+              />
+            ))}
           </ul>
         )}
       </div>
@@ -793,76 +639,20 @@ export default function TagihanTab({
 
 
 
-      {/* Manual invoice (collapsible) */}
-      <div className="bg-gray-50 rounded-xl p-4">
-        <button onClick={() => {
-          const opening = !showManual;
-          if (opening) setSelectedMonth(todayWIB().slice(0, 7));
-          setShowManual(opening);
-        }} className="w-full flex items-center justify-between text-sm font-semibold text-gray-600">
-          <span>+ Tagihan Manual (di luar tutup bulan)</span>
-          <span>{showManual ? "▾" : "▸"}</span>
-        </button>
-        {showManual && (
-          <div className="space-y-3 mt-3">
-            <select className="input" value={selectedStudentId} onChange={(e) => setSelectedStudentId(e.target.value)}>
-              <option value="">Pilih murid...</option>
-              {students.filter((s) => s.active).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-            <div>
-              <label htmlFor="manual-invoice-month" className="mb-1 block text-xs font-medium text-gray-600">Bulan tagihan</label>
-              <input id="manual-invoice-month" className="input" type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} />
-            </div>
-            <input className="input" type="number" placeholder="Total biaya (IDR)" value={totalCost || ""} min={1} max={100000000}
-              onChange={(e) => setTotalCost(clampCurrencyAmount(Number(e.target.value), MAX_PAYMENT_AMOUNT))} />
-            <button onClick={handleCreatePayment} className="btn-primary w-full">Buat Tagihan</button>
-          </div>
-        )}
-      </div>
+      <ManualInvoiceForm
+        students={students}
+        open={showManual}
+        selectedStudentId={selectedStudentId}
+        selectedMonth={selectedMonth}
+        totalCost={totalCost}
+        onOpenChange={setShowManual}
+        onStudentChange={setSelectedStudentId}
+        onMonthChange={setSelectedMonth}
+        onTotalCostChange={setTotalCost}
+        onSubmit={() => void handleCreatePayment()}
+      />
 
-      {/* Hidden PDF pages for bulk export */}
-      <div style={{ position: "absolute", left: -9999, top: 0, pointerEvents: "none" }}>
-        {pdfPageGroups.map((group, pageIdx) => (
-          <div key={pageIdx} data-pdf-page
-            style={{ width: 400, background: "#fff", padding: "24px 20px", fontFamily: "sans-serif" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, borderBottom: "2px solid #e5e7eb", paddingBottom: 10 }}>
-              <div>
-                <p style={{ fontWeight: 700, fontSize: 18, margin: 0, color: "#1e40af" }}>Rekap Tagihan</p>
-                <p style={{ fontSize: 12, color: "#6b7280", margin: 0 }}>{'Semua Tagihan'}</p>
-              </div>
-              <p style={{ fontSize: 11, color: "#9ca3af", margin: 0 }}>Hal {pageIdx + 1}/{pdfPageGroups.length}</p>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {group.map((p) => {
-                const sName = studentMap.get(p.studentId)?.name ?? "(dihapus)";
-                return (
-                  <div key={p.id} style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: "12px 14px",
-                    background: p.status === "PAID" ? "#f0fdf4" : "#fffbeb" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <div>
-                        <p style={{ fontWeight: 700, fontSize: 14, margin: 0, color: "#111827" }}>{sName}</p>
-                        <p style={{ fontSize: 12, color: "#6b7280", margin: "2px 0 0" }}>{p.month}</p>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <p style={{ fontWeight: 700, fontSize: 14, margin: 0, color: "#1e40af" }}>{formatRupiah(p.totalCost)}</p>
-                        <span style={{ fontSize: 11, fontWeight: 600,
-                          color: p.status === "PAID" ? "#16a34a" : "#d97706",
-                          background: p.status === "PAID" ? "#dcfce7" : "#fef3c7",
-                          padding: "2px 8px", borderRadius: 999, display: "inline-block", marginTop: 3 }}>
-                          {p.status === "PAID" ? "Lunas" : "Belum dibayar"}
-                        </span>
-                      </div>
-                    </div>
-                    {p.status === "PAID" && p.paidAt && (
-                      <p style={{ fontSize: 11, color: "#6b7280", margin: "6px 0 0" }}>Bayar {p.paidAt} via {p.method ?? "-"}</p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
+      <InvoicePdfPages payments={visibleBillRows.map((row) => row.payment)} studentsById={studentMap} />
 
       {/* ── Modals ── */}
       {invoiceTarget && (

@@ -37,7 +37,16 @@ const EXPENSE_CATEGORIES = new Set(["transport", "buku", "alat", "platform", "la
 const FOLLOWUP_TYPES = new Set(["continue-topic", "misconception", "send-resource", "other"]);
 const IAEE_TYPES = new Set(["IA", "EE", "PP"]);
 const MILESTONE_STATUSES = new Set(["pending", "in_progress", "done"]);
-const STUDENT_LEVELS = new Set(["MYP", "IBDP", "UNIV"]);
+/**
+ * Jenjang murid yang dikenal saat validasi backup.
+ * WAJIB sejalan dengan `Level` di `db/types.ts` — dijaga test
+ * `backupValidation.test.ts` → "menerima semua jenjang murid yang dikenal".
+ * Sebelum audit P0 daftar ini hanya MYP/IBDP/UNIV, sehingga backup yang memuat
+ * murid IGCSE / O Level / A Level / AP / SMP / SMA akan DITOLAK saat restore.
+ */
+const STUDENT_LEVELS = new Set([
+  "MYP", "IBDP", "IGCSE", "O Level", "A Level", "AP", "SMP", "SMA", "UNIV",
+]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

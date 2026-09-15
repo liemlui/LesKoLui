@@ -56,12 +56,30 @@ describe("validateBackupData students", () => {
   it("rejects unknown level", () => {
     const data = emptyData();
     data.students = [{
-      id: "s1", name: "Test", level: "SMP", subjects: [],
+      id: "s1", name: "Test", level: "KULIAH", subjects: [],
       parentContact: { phone: "0800" }, hourlyRate: 100_000, active: true, enrolledAt: "2026-01-01",
     }];
     const result = validateBackupData(data, db.verno);
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.message.includes("level tidak dikenal"))).toBe(true);
+  });
+
+  it("menerima semua jenjang murid yang dikenal (audit P0 T-07)", () => {
+    // Daftar ini WAJIB sejalan dengan `Level` di db/types.ts. Sebelum P0,
+    // backup yang memuat murid IGCSE/O Level/A Level/AP/SMP/SMA DITOLAK saat
+    // restore karena STUDENT_LEVELS hanya berisi MYP/IBDP/UNIV.
+    for (const level of ["MYP", "IBDP", "IGCSE", "O Level", "A Level", "AP", "SMP", "SMA", "UNIV"]) {
+      const data = emptyData();
+      data.students = [{
+        id: "s1", name: "Test", level, subjects: [],
+        parentContact: { phone: "0800" }, hourlyRate: 100_000, active: true, enrolledAt: "2026-01-01",
+      }];
+      const result = validateBackupData(data, db.verno);
+      expect(
+        result.errors.some((e) => e.message.includes("level tidak dikenal")),
+        `jenjang "${level}" ditolak padahal ada di tipe Level`,
+      ).toBe(false);
+    }
   });
 
   it("rejects invalid parentContact", () => {

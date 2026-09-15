@@ -182,23 +182,28 @@ async function seedInner(force: boolean): Promise<void> {
   });
 
   // ── Murid kurikulum lain ──
+  // Catatan audit P0 T-07: `level` DULU tidak sinkron dengan `curriculum`
+  // (murid IGCSE tertulis "MYP", murid AP tertulis "IBDP", murid Nasional
+  // tertulis "IBDP"). Selain itu mapel ditulis dalam bentuk pendek ("Calculus
+  // AB") yang TIDAK ada di picker, sehingga pencarian topik tidak menemukan
+  // apa pun — bentuk resmi di `lib/ibSubjects.ts` yang dipakai sekarang.
   const eko = await createStudent({
-    name: "Eko Firmansyah", level: "MYP", curriculum: "Cambridge IGCSE", grade: "Grade 10",
-    subjects: ["Economics", "Business Studies"],
+    name: "Eko Firmansyah", level: "IGCSE", curriculum: "Cambridge IGCSE", grade: "Grade 10",
+    subjects: ["Economics (0455)", "Business Studies (0450)"],
     parentContact: { name: "Bpk. Firmansyah", phone: "081234567805" },
     hourlyRate: 225000, active: true, enrolledAt: "2026-03-01",
     school: "Global Cambridge School",
   });
   const fani = await createStudent({
-    name: "Fani Hartono", level: "IBDP", curriculum: "AP", grade: "Grade 11",
-    subjects: ["Calculus AB", "Physics 1"],
+    name: "Fani Hartono", level: "AP", curriculum: "AP", grade: "Grade 11",
+    subjects: ["AP Calculus AB", "AP Physics 1"],
     parentContact: { name: "Ibu Hartono", phone: "081234567806" },
     hourlyRate: 325000, active: true, enrolledAt: "2025-08-15",
     school: "Springfield International Academy",
   });
   await createStudent({
-    name: "Galih Pratomo", level: "IBDP", curriculum: "National", grade: "Grade 12",
-    subjects: ["Mathematics", "Physics"],
+    name: "Galih Pratomo", level: "SMA", curriculum: "National", grade: "12",
+    subjects: ["Matematika", "Fisika"],
     parentContact: { name: "Bpk. Pratomo", phone: "081234567807" },
     hourlyRate: 175000, active: false, enrolledAt: "2025-01-05",
     notes: "Sudah tidak aktif sejak Juni 2026 — lulus.",
@@ -227,9 +232,10 @@ async function seedInner(force: boolean): Promise<void> {
   await addDone(bella, ["Chemistry"],     [{ date: "2026-06-11", dur: 2, note: "Kesetimbangan kimia" }], 7);
   await addDone(citra, ["Economics"],     [{ date: "2026-06-09", dur: 2, note: "Perdagangan internasional" }, { date: "2026-06-23", dur: 2, note: "Nilai tukar" }], 7);
   await addDone(dewi,  ["Biology"],       [{ date: "2026-06-16", dur: 2, note: "Evolusi" }], 8);
-  // Sesi murid baru
-  await addDone(eko,   ["Economics"],     [{ date: "2026-06-05", dur: 2, note: "Scarcity & opportunity cost" }], 7);
-  await addDone(fani,  ["Calculus AB"],   [{ date: "2026-06-10", dur: 2, note: "Derivatives intro" }, { date: "2026-06-24", dur: 2, note: "Chain rule" }], 8);
+  // Sesi murid baru — mapel memakai bentuk resmi picker (audit P0 T-07) supaya
+  // pencarian topik di demo benar-benar menemukan katalognya.
+  await addDone(eko,   ["Economics (0455)"],     [{ date: "2026-06-05", dur: 2, note: "Scarcity & opportunity cost" }], 7);
+  await addDone(fani,  ["AP Calculus AB"],       [{ date: "2026-06-10", dur: 2, note: "Derivatives intro" }, { date: "2026-06-24", dur: 2, note: "Chain rule" }], 8);
 
   // ── Sesi dengan engagement + taxonomy lengkap ──
   await addRichDone(andi, ["Mathematics AA"], [

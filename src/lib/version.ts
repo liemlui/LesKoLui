@@ -11,6 +11,59 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.76.0",
+    date: "2026-09-15",
+    title: "Ketahanan AI dan refactor layar besar",
+    items: [
+      "Respons AI gagal atau terlambat kini terbukti tidak menimpa data laporan; perubahan Pengaturan hanya menulis field yang benar-benar diubah.",
+      "Bagian besar Catat Sesi, detail nilai murid, dan daftar tagihan dipisah ke komponen/hook yang lebih kecil tanpa mengubah alur pengguna.",
+      "Daftar tagihan kini dipecah menjadi baris invoice, formulir tagihan manual, dan halaman PDF ekspor agar layar utama lebih mudah dirawat.",
+    ],
+  },
+  {
+    version: "v1.75.1",
+    date: "2026-09-13",
+    title: "Dua perbaikan kecil hasil pengetatan kode",
+    items: [
+      "Spanduk draf Catat Sesi tidak lagi bisa berbunyi \"tersimpan pada Invalid Date\" bila penanda waktunya rusak — sekarang bagian waktunya dihilangkan dan kalimatnya tetap utuh",
+      "Ikon indikator \"Mengantuk\" tidak lagi sama dengan ikon suasana \"Lelah\" (sebelumnya keduanya 🌙, sehingga dua kontrol berbeda tampak sama)",
+      "Di balik layar: logika layar Catat Sesi (penyusun pesan WhatsApp ke orang tua, penggabungan topik & bab, chip situasi, validasi langkah wizard) dipindah ke modul tersendiri dan kini dijaga 31 test otomatis; seksi Riwayat Sesi dan IA/EE Tracker di halaman murid dipindah ke komponen sendiri sehingga halaman itu turun dari 1.429 ke 1.039 baris",
+    ],
+  },
+  {
+    version: "v1.75.0",
+    date: "2026-09-13",
+    title: "Pilih topik dari daftar bab & kondisi les 3 lapis",
+    items: [
+      "Topik kini bisa DIPILIH, bukan hanya dicari: ada daftar bab yang bisa dibuka di langkah Materi (8 bab paling relevan untuk jenjang murid), lengkap dengan kotak centang per topik — sebelumnya hanya ada kotak pencarian yang menuntut Anda sudah tahu kata kuncinya",
+      "Chip \"Topik sesi lalu\" muncul di bawah kotak pencarian: ketuk sekali untuk memakai lagi topik dari 3 sesi terakhir murid itu",
+      "Bab topik ikut tersimpan pada sesi dan tampil di detail sesi, jadi topik bisa direkap per bab — bukan hanya sebagai teks bebas",
+      "Jenjang murid diperbaiki: dulu SEMUA kurikulum non-IB (IGCSE, O Level, A Level, AP, Nasional) tercatat sebagai \"UNIV\" (jenjang universitas), sehingga siswa 15 tahun tertulis sebagai mahasiswa di kartu murid dan ekspor. Sekarang setiap kurikulum punya jenjangnya sendiri (IGCSE / O Level / A Level / AP / SMP / SMA)",
+      "Langkah Kondisi dirapikan menjadi 3 lapis. Lapis 1: satu ketukan — \"Berjalan lancar\", \"Seperti biasa\", atau \"Berat hari ini\" — tersimpan sebagai fakta TANPA mengklaim indikator apa pun",
+      "Tombol lama \"✨ Lancar\" dihapus karena diam-diam menandai murid \"aktif bertanya\" dan \"cepat paham\" hanya karena Anda menekan tombol itu; tombol \"😐 Biasa\" juga dihapus karena tidak melakukan apa pun (hanya mengisi mood) sehingga sesi terlihat kosong padahal sudah dicatat",
+      "Indikator perilaku dirapikan: 6 yang paling sering dipakai tampil di depan (fokus, cepat paham, aktif bertanya, sudah siap, main HP, mengantuk), 6 sisanya tetap tersedia di balik \"indikator lain\" — satu sesi biasa tidak lagi melewati 22 kontrol",
+      "Suasana hati (mood) tidak lagi menambah/mengurangi skor — suasana adalah konteks, bukan penilaian. Sebelumnya mood \"Semangat\" +1 dan tag perilaku \"Antusias\" +1 bisa menumpuk untuk satu pengamatan yang sama. Ikon mood juga dibuat unik (dulu 🌟 dan 😴 dipakai dua kontrol berbeda)",
+      "Skor sesi pindah ke akhir langkah Detail: angka yang Anda lihat sekarang sama persis dengan angka yang disimpan (sebelumnya muncul di langkah Kondisi, padahal kualitas respons akademik di langkah berikutnya ikut menentukan skor)",
+      "Sesi yang tidak mencatat pengamatan apa pun tidak lagi tampil sebagai \"Cukup 5/10\" — skornya 0 dan sesi itu tidak ikut rata-rata; kondisi yang tercatat (mis. \"Seperti biasa\") tetap tersimpan",
+      "Rata-rata keseriusan belajar selalu menyebut penyebutnya (\"dari N sesi berdata\"), plus panel cakupan data yang jujur menyebut berapa sesi yang tidak mencatat kondisi, dan grafik baru sebaran kualitas respons akademik (sumbu kedua)",
+      "Detail sesi kini menampilkan KE-12 indikator perilaku (dulu 8 — ⏰ Telat, 🚻 Sering ke toilet, 🦘 Gelisah, 🙈 Sibuk sendiri tidak pernah tampil) beserta 16 tag observasi dan kualitas respons, dan semuanya bisa DIKOREKSI langsung dari detail sesi",
+      "Ekspor CSV menambah kolom \"Bab Topik\" dan \"Sumber Skor\" supaya angka skor tidak dibaca sebagai kondisi murid padahal sesinya tidak mencatat kondisi; kolom jenjang murid memakai label yang bisa dibaca manusia",
+    ],
+  },
+  {
+    version: "v1.74.0",
+    date: "2026-09-13",
+    title: "Topik mapel akhirnya ketemu — termasuk IGCSE, O Level, A Level & AP",
+    items: [
+      "Pencarian topik kini mengenali nama mapel ber-kode Cambridge. Sebelumnya pemilih mapel menyimpan \"Mathematics (0580)\" sementara katalog topik menyimpan \"Mathematics\", sehingga SELURUH 30 mapel IGCSE (juga 11 O Level, 14 AS/A Level, dan sebagian AP) tidak pernah menemukan satu pun topiknya meski katalognya ada — sekarang 93 dari 167 mapel punya topik di jenjangnya (sebelumnya 64)",
+      "Mapel kembar disatukan: ESS = \"Environmental Systems & Societies\", TOK = \"Theory of Knowledge\", Math = Mathematics, ditambah sinonim lain (IPA/Science, Informatika/ICT) — sementara Matematika tetap dipisah dari Mathematics karena kurikulumnya berbeda",
+      "Saran topik dari jenjang lain tidak lagi menyamar sebagai topik murid. Bila katalog untuk jenjang murid belum ada, aplikasi mengatakannya dan menawarkan pilihan sadar: \"Tampilkan topik jenjang lain\" (dengan penanda bahwa levelnya berbeda) atau menulis topik sendiri",
+      "Pencarian topik tidak lagi bocor antar mapel: kueri \"power\" pada mapel Global Politics dulu mengembalikan topik turunan Matematika karena pencocokan kata yang terlalu longgar",
+      "Murid kurikulum Nasional tidak lagi bisa menerima topik IB MYP — ditemukan saat perbaikan ini: penggabungan alias Matematika/Mathematics membuat entri dua kurikulum masuk ke satu himpunan",
+      "Ditambahkan penjaga otomatis: setiap mapel di daftar kurikulum wajib terbukti punya topik atau terdaftar sadar sebagai \"katalognya belum ada\", sehingga mapel baru tanpa topik langsung ketahuan",
+    ],
+  },
+  {
     version: "v1.73.0",
     date: "2026-09-12",
     title: "Catat Sesi: berhenti berkedip & tidak lagi salah murid",

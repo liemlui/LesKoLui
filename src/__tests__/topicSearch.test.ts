@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { searchTopics } from "../lib/ibTopics";
+import { searchTopics, searchTopicsExpanded } from "../lib/ibTopics";
 
 describe("searchTopics — curriculum & grade filtering", () => {
   it("filters National students to National topics (not IB)", () => {
@@ -43,9 +43,27 @@ describe("searchTopics — curriculum & grade filtering", () => {
     }
   });
 
-  it("falls back to all topics when curriculum has no match", () => {
-    // "perbandingan" appears in National but not in, e.g., AP — still returns results via fallback.
-    const results = searchTopics("perbandingan senilai", { subject: "Matematika", curriculum: "AP" });
+  it("menandai hasil level lain lewat meta, bukan menyamarkannya sebagai hasil normal", () => {
+    // Sebelum P0 test ini menuntut "masih mengembalikan hasil" — perilaku itu
+    // justru yang dilaporkan sebagai cacat (audit T-03): hasil level kurikulum
+    // lain tampil seolah normal. Sekarang hasilnya boleh kosong, TETAPI keadaan
+    // itu harus dilaporkan supaya UI bisa menawarkannya secara eksplisit.
+    const emptyish = searchTopicsExpanded("perbandingan senilai", { subject: "Matematika", curriculum: "AP" });
+    if (emptyish.results.length === 0) {
+      expect(emptyish.meta.inLevel).toBe(false);
+    } else {
+      // Bila ada hasil, ia HARUS ditandai sebagai dari luar level kurikulum.
+      expect(emptyish.meta.inLevel).toBe(false);
+      expect(emptyish.meta.offLevelFallback).toBe(true);
+      for (const r of emptyish.results) expect(r.level.toLowerCase()).not.toBe("ap");
+    }
+  });
+
+  it("murid Nasional tidak pernah menerima topik MYP (audit P0: alias mapel bocor antar-kurikulum)", () => {
+    const results = searchTopics("bilangan", { subject: "Matematika", grade: "XII", curriculum: "National" });
     expect(results.length).toBeGreaterThan(0);
+    for (const r of results) {
+      expect(r.level.toLowerCase().startsWith("myp")).toBe(false);
+    }
   });
 });

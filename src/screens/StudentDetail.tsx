@@ -6,22 +6,18 @@ import {
   getStudent, listSessionsByStudent, listScheduledForStudent,
   cancelSeriesSessions, updateSeriesSessions,
   getSettings, updateStudent,
-  listIaEeProjects, createIaEeProject, deleteIaEeProject,
-  addMilestone, updateMilestone, deleteMilestone,
+  listIaEeProjects,
   deleteSession, updateSession,
   getStudyNote, saveStudyNote,
 } from "../db/repos";
-import type { IaEeMilestone } from "../db/repos";
 import { verifyPin } from "../lib/crypto";
 import { getPinLockoutDelay, recordPinFailure, resetPinLockout } from "../lib/pinLockout";
 import type { CancelMode, EditMode } from "../db/repos";
-import { dayLabel, monthLabel, todayWIB, formatRupiah } from "../lib/format";
-import { scoreLabel } from "../lib/engagement";
+import { dayLabel, todayWIB, formatRupiah } from "../lib/format";
 import { isGradeLower } from "../lib/grades";
-import type { Session, IaEeProject, IaEeType } from "../db/types";
+import type { Session } from "../db/types";
 import { billingPolicyOf } from "../db/types";
 import { CURRICULUM_META } from "../lib/ibSubjects";
-import PaginationControls from "../components/PaginationControls";
 import Tabs from "../components/Tabs";
 import Badge from "../components/Badge";
 import { clampPage, paginateItems } from "../lib/pagination";
@@ -30,13 +26,16 @@ import SignaturePad from "../components/SignaturePad";
 import Modal from "../components/Modal";
 import { Z } from "../lib/zIndex";
 import { compressPhoto, stampPhoto } from "../lib/foto";
-import { getBehaviorTag, getResponseTag } from "../lib/responseTaxonomy";
+import { getResponseTag } from "../lib/responseTaxonomy";
 import { MAX_HOURLY_RATE, clampCurrencyAmount, isValidCurrencyAmount } from "../lib/money";
 import EvidenceCard from "./studentDetail/EvidenceCard";
 import StudyNoteCard from "./studentDetail/StudyNoteCard";
 import UpcomingSchedule from "./studentDetail/UpcomingSchedule";
 import SessionDetailModal from "./studentDetail/SessionDetailModal";
-import EngagementSummary from "./studentDetail/EngagementSummary";
+import RiwayatSesi from "./studentDetail/RiwayatSesi";
+import IaEeTracker from "./studentDetail/IaEeTracker";
+import NilaiRapor from "./studentDetail/NilaiRapor";
+import { engagementAverage, sessionEngagementScore } from "../lib/engagement";
 
 const DURATIONS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
 
@@ -54,7 +53,6 @@ export default function StudentDetail() {
   const { id }   = useParams<{ id: string }>();
   const navigate = useNavigate();
   const today    = todayWIB();
-  const todayMs  = useMemo(() => new Date(today).getTime(), [today]);
 
   const student       = useLiveQuery(() => (id ? getStudent(id) : undefined), [id]);
   const allSessions   = useLiveQuery(() => (id ? listSessionsByStudent(id) : []), [id]);
@@ -93,18 +91,9 @@ export default function StudentDetail() {
   const [flash, setFlash] = useState("");
   function msg(t: string) { setFlash(t); setTimeout(() => setFlash(""), 3000); }
 
-  // IA/EE milestone tracker
-  const [showIaEeForm,    setShowIaEeForm]    = useState(false);
-  const [iaeeType,        setIaeeType]        = useState<IaEeType>("IA");
-  const [iaeeSubject,     setIaeeSubject]     = useState("");
-  const [iaeeTitle,       setIaeeTitle]       = useState("");
-  const [iaeeDeadline,    setIaeeDeadline]    = useState("");
-  const [iaeeNotes,       setIaeeNotes]       = useState("");
-  const [iaeeSaving,      setIaeeSaving]      = useState(false);
-  const [expandedIaEe,    setExpandedIaEe]    = useState<string | null>(null);
-  const [showMsForm,      setShowMsForm]      = useState<string | null>(null); // projectId
-  const [msTitle,         setMsTitle]         = useState("");
-  const [msDue,           setMsDue]           = useState("");
+  // Catatan: state IA/EE/PP (11 useState + form milestone) TIDAK lagi di sini —
+  // seluruhnya pindah ke `studentDetail/IaEeTracker.tsx` karena tidak ada bagian
+  // lain layar ini yang memakainya (audit utang teknis #3).
 
   // Tarif les (PIN-protected reveal + edit)
   const [rateUnlocked,  setRateUnlocked]  = useState(false);
@@ -300,37 +289,62 @@ export default function StudentDetail() {
     () => (allSessions ?? []).filter((s) => s.engagement != null).sort((a, b) => a.date.localeCompare(b.date)),
     [allSessions]
   );
+  /** Hanya sesi yang benar-benar punya DASAR skor (audit P2 #11 / P3 #17).
+   *  Sebelumnya sesi ber-`engagement` tetapi tanpa pengamatan ikut terhitung
+   *  sebagai "5/10" — merusak rata-rata. */
+  const scoredEngSessions = useMemo(
+    () => engSessions.filter((s) => sessionEngagementScore(s) != null),
+    [engSessions],
+  );
 
   // Last 15 engagement sessions for trend chart
-  const recentEng = useMemo(() => engSessions.slice(-15), [engSessions]);
+  const recentEng = useMemo(() => scoredEngSessions.slice(-15), [scoredEngSessions]);
 
-  // Overall avg engagement score
-  const avgEngScore = useMemo(() => {
-    if (engSessions.length === 0) return null;
-    const sum = engSessions.reduce((s, x) => s + (x.engagement!.score), 0);
-    return Math.round((sum / engSessions.length) * 10) / 10;
-  }, [engSessions]);
+  /** Rata-rata + cakupan data: penyebutnya wajib ditampilkan. */
+  const engCoverage = useMemo(() => engagementAverage(engSessions), [engSessions]);
+  const avgEngScore = engCoverage.average != null
+    ? Math.round(engCoverage.average * 10) / 10
+    : null;
 
   // Trend: compare last 5 vs previous 5
   const engTrend = useMemo((): "up" | "down" | "stable" | null => {
-    if (engSessions.length < 6) return null;
-    const recent = engSessions.slice(-5);
-    const prev   = engSessions.slice(-10, -5);
+    if (scoredEngSessions.length < 6) return null;
+    const recent = scoredEngSessions.slice(-5);
+    const prev   = scoredEngSessions.slice(-10, -5);
     if (prev.length === 0) return null;
-    const rAvg = recent.reduce((s, x) => s + x.engagement!.score, 0) / recent.length;
-    const pAvg = prev.reduce((s, x)   => s + x.engagement!.score, 0) / prev.length;
+    const rAvg = recent.reduce((s, x) => s + (sessionEngagementScore(x) ?? 0), 0) / recent.length;
+    const pAvg = prev.reduce((s, x)   => s + (sessionEngagementScore(x) ?? 0), 0) / prev.length;
     if (rAvg - pAvg > 0.5) return "up";
     if (pAvg - rAvg > 0.5) return "down";
     return "stable";
+  }, [scoredEngSessions]);
+
+  /** Sebaran kualitas respons akademik — sumbu kedua (audit P3 #17). */
+  const responseStats = useMemo(() => {
+    const counts = new Map<string, number>();
+    let answered = 0;
+    for (const s of engSessions) {
+      if (!s.responseTag) continue;
+      const tag = getResponseTag(s.responseTag);
+      if (!tag) continue;
+      counts.set(tag.label, (counts.get(tag.label) ?? 0) + 1);
+      answered += 1;
+    }
+    return {
+      answered,
+      rows: [...counts.entries()].map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count),
+    };
   }, [engSessions]);
 
   // Per-subject engagement breakdown
   const subjectEngStats = useMemo(() => {
     const map = new Map<string, { scores: number[]; phoneCount: number; drowsyCount: number; prepCount: number }>();
-    engSessions.forEach((s) => {
+    scoredEngSessions.forEach((s) => {
+      const score = sessionEngagementScore(s);
+      if (score == null) return;
       s.subjects.forEach((sub) => {
         const curr = map.get(sub) ?? { scores: [], phoneCount: 0, drowsyCount: 0, prepCount: 0 };
-        curr.scores.push(s.engagement!.score);
+        curr.scores.push(score);
         if (s.engagement!.playingPhone) curr.phoneCount++;
         if (s.engagement!.drowsy)       curr.drowsyCount++;
         if (s.engagement!.prepared)     curr.prepCount++;
@@ -338,6 +352,7 @@ export default function StudentDetail() {
       });
     });
     return [...map.entries()]
+      .filter(([, d]) => d.scores.length > 0)
       .map(([sub, d]) => ({
         subject:    sub,
         count:      d.scores.length,
@@ -347,7 +362,7 @@ export default function StudentDetail() {
         prepRate:   Math.round((d.prepCount / d.scores.length) * 100),
       }))
       .sort((a, b) => b.count - a.count);
-  }, [engSessions]);
+  }, [scoredEngSessions]);
 
   // ── Handlers ────────────────────────────────────────────────────────
   const openEditSched = (s: Session) => {
@@ -616,195 +631,22 @@ export default function StudentDetail() {
         />
       )}
 
-      {/* ── RIWAYAT SESI ── */}
-      <div>
-        <div className="flex items-center justify-between mb-2 gap-2">
-          <h2 className="text-lg font-semibold">Riwayat Sesi</h2>
-          <div className="flex items-center gap-2">
-            <select
-              className="input py-1 text-xs w-auto"
-              value={historyMonth}
-              onChange={(e) => { setHistoryMonth(e.target.value); setHistoryPage(1); }}
-            >
-              <option value="">Semua bulan</option>
-              {historyMonthOptions.map((m) => (
-                <option key={m} value={m}>{monthLabel(m)}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-        {/* ── Engagement Score Chart ── */}
-        {(() => {
-          const scored = (allSessions ?? []).filter(s => s.status === "DONE" && s.engagement?.score != null).slice(-15);
-          if (scored.length < 2) return null;
-          const max = 10;
-          return (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Grafik Engagement (15 sesi terakhir)</p>
-              <div className="relative">
-                {/* Y-axis reference line at score 5 (netral) */}
-                <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 border-t border-dashed border-gray-200 z-0" />
-                <span className="absolute -left-0.5 top-1/2 -translate-y-1/2 text-gray-500 font-medium" style={{ fontSize: 10 }}>5</span>
-                <div className="flex items-end gap-1 h-20 relative z-[1]">
-                  {scored.map((s) => {
-                    const score = s.engagement!.score;
-                    const { color } = scoreLabel(score);
-                    const pct = Math.max(4, Math.round((score / max) * 100));
-                    return (
-                      // Kolom h-full + area bar flex-1: tanpa ini height % bar mengacu
-                      // ke parent auto-height → bar ter-render 0px (grafik tampak kosong)
-                      <div key={s.id} className="flex-1 h-full flex flex-col items-center gap-1">
-                        <div className="flex-1 w-full flex items-end min-h-0">
-                          <div className="w-full rounded-t-sm" style={{ height: `${pct}%`, background: color }} />
-                        </div>
-                        <span className="text-gray-500 font-semibold" style={{ fontSize: 10 }}>{score}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              <div className="flex justify-between mt-1.5">
-                <span className="text-xs text-gray-500">{scored[0]?.date?.slice(5)}</span>
-                <span className="text-xs text-gray-500">{scored[scored.length - 1]?.date?.slice(5)}</span>
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* ── Topik Tracker ── */}
-        {(() => {
-          const doneSessions = (allSessions ?? []).filter(s => s.status === "DONE");
-          const topics = [...new Set(doneSessions.map(s => s.topic).filter(Boolean) as string[])];
-          if (topics.length === 0) return null;
-          return (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3 space-y-4">
-              <div>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Topik Pernah Dibahas ({topics.length})</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {topics.slice(0, 20).map((t) => (
-                    <span key={t} className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium border border-blue-100">{t}</span>
-                  ))}
-                  {topics.length > 20 && <span className="text-xs text-gray-500">+{topics.length - 20} lagi</span>}
-                </div>
-              </div>
-            </div>
-          );
-        })()}
-
-        {historySessions.length === 0 ? (
-          <div className="text-center py-10 bg-white rounded-2xl border border-gray-100">
-            <p className="text-3xl mb-2">📚</p>
-            {historyMonth && (allSessions ?? []).length > 0 ? (
-              <>
-                <p className="text-gray-500 text-sm">Tidak ada sesi di {monthLabel(historyMonth)}.</p>
-                <button onClick={() => setHistoryMonth("")}
-                  className="mt-3 px-4 py-2 rounded-xl bg-gray-100 text-gray-600 text-sm font-semibold">
-                  Tampilkan Semua Bulan
-                </button>
-              </>
-            ) : (
-              <>
-                <p className="text-gray-500 text-sm">Belum ada sesi yang dicatat.</p>
-                <button onClick={() => navigate("/capture")}
-                  className="mt-3 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold">
-                  Catat Sesi Pertama
-                </button>
-              </>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {paginatedHistorySessions.map((s) => {
-              const eng      = s.engagement;
-              const photoUrl = photoUrls.get(s.id);
-              const sigUrl   = sigUrls.get(s.id);
-              return (
-                <div key={s.id} role="button" tabIndex={0}
-                  aria-label={`Buka detail sesi ${(s.subjects ?? []).join(", ") || "Sesi umum"}`}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDetailSession(s); } }}
-                  className="bg-white rounded-xl shadow-sm border border-gray-100 px-4 py-3 cursor-pointer active:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                  onClick={() => setDetailSession(s)}>
-                  <div className="flex items-start gap-2">
-                    {(photoUrl || sigUrl) && (
-                      <div className="flex flex-col gap-1 flex-shrink-0">
-                        {photoUrl && (
-                          <img src={photoUrl} alt="foto sesi" className="w-12 h-12 rounded-lg object-cover" />
-                        )}
-                        {sigUrl && (
-                          <div className="w-12 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center overflow-hidden">
-                            <img src={sigUrl} alt="TTD" className="max-w-full max-h-full object-contain" />
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1 flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-gray-800">
-                        {(s.subjects ?? []).join(", ") || "Sesi umum"}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {dayLabel(s.date).split(",")[1]?.trim() ?? s.date.slice(5)}
-                        {s.timeIn && s.timeOut
-                          ? ` · ${s.timeIn}–${s.timeOut}`
-                          : s.time ? ` · ${s.time}` : ""}
-                        {` · ${s.durationHours}j`}
-                        {s.mood ? ` · ${s.mood}` : ""}
-                      </p>
-                      {s.shortNote && <p className="text-xs text-gray-500 mt-1 italic">"{s.shortNote}"</p>}
-                      {((s.behaviorTags && s.behaviorTags.length > 0) || s.responseTag) && (
-                        <div className="flex flex-wrap gap-1 mt-1.5">
-                          {(s.behaviorTags ?? []).map((id) => {
-                            const t = getBehaviorTag(id);
-                            if (!t) return null;
-                            const color = t.valence === "positive" ? "bg-green-50 text-green-700" : t.valence === "negative" ? "bg-red-50 text-red-600" : "bg-gray-100 text-gray-500";
-                            return <span key={id} className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${color}`}>{t.icon} {t.label}</span>;
-                          })}
-                          {s.responseTag && (() => {
-                            const t = getResponseTag(s.responseTag);
-                            return t ? <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-blue-50 text-blue-700">{t.icon} {t.label}</span> : null;
-                          })()}
-                        </div>
-                      )}
-                      {s.needsWork && (
-                        <p className="text-xs text-orange-500 mt-1">⚠ {s.needsWork}</p>
-                      )}
-                    </div>
-                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                      <div className="flex items-center gap-1">
-                        {s.status === "DONE" && (
-                          <button onClick={(e) => { e.stopPropagation(); openEditNote(s); }}
-                            aria-label="Edit catatan sesi"
-                            className="text-gray-500 hover:text-blue-500 transition-colors text-xs p-1.5 -m-1.5 rounded-full hover:bg-gray-100">✏️</button>
-                        )}
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.status === "DONE" ? "bg-green-50 text-green-600" : s.status === "CANCELLED" ? "bg-red-50 text-red-500" : "bg-blue-50 text-blue-600"}`}>
-                          {s.status === "DONE" ? `${s.durationHours}j` : s.status}
-                        </span>
-                      </div>
-                      {eng && (() => {
-                        const { color, bg } = scoreLabel(eng.score);
-                        return (
-                          <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold" style={{ color, background: bg }}>
-                            {eng.score}/10
-                            {eng.playingPhone ? " 📱" : ""}
-                            {eng.drowsy ? " 😴" : ""}
-                          </span>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                  </div>
-                </div>
-              );
-            })}
-            <PaginationControls
-              page={safeHistoryPage}
-              total={historySessions.length}
-              onPageChange={setHistoryPage}
-              label="sesi"
-            />
-          </div>
-        )}
-      </div>
+      {/* ── RIWAYAT SESI (diektrak ke studentDetail/RiwayatSesi.tsx) ── */}
+      <RiwayatSesi
+        allSessions={allSessions ?? []}
+        paginatedHistorySessions={paginatedHistorySessions}
+        historySessions={historySessions}
+        historyMonth={historyMonth}
+        historyMonthOptions={historyMonthOptions}
+        setHistoryMonth={setHistoryMonth}
+        safeHistoryPage={safeHistoryPage}
+        setHistoryPage={setHistoryPage}
+        photoUrls={photoUrls}
+        sigUrls={sigUrls}
+        setDetailSession={setDetailSession}
+        openEditNote={openEditNote}
+        onCaptureFirst={() => navigate("/capture")}
+      />
 
       {/* ── JADWAL MENDATANG ── */}
       <UpcomingSchedule
@@ -816,232 +658,26 @@ export default function StudentDetail() {
         today={today}
         openEditSched={openEditSched}
       />
-      </>)}
-      {detailTab === "iaee" && (<> 
-
-      {/* ── IA / EE MILESTONE TRACKER ── */}
-      {(student.level === "IBDP" || student.curriculum === "IB DP" || student.curriculum === "IB MYP") && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-            <div>
-              <h2 className="font-semibold text-gray-700">IA / EE / PP Tracker</h2>
-              <p className="text-xs text-gray-500 mt-0.5">IA = Internal Assessment (DP) · EE = Extended Essay (DP) · PP = Personal Project (MYP)</p>
-            </div>
-            <button
-              onClick={() => { setShowIaEeForm((v) => !v); setIaeeSubject(""); setIaeeTitle(""); setIaeeDeadline(""); setIaeeNotes(""); }}
-              className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-semibold">
-              + Proyek
-            </button>
-          </div>
-
-          {/* Add project form */}
-          {showIaEeForm && (
-            <div className="px-4 py-3 border-b border-gray-100 space-y-2 bg-blue-50">
-              <div>
-                <select className="input" value={iaeeType} onChange={(e) => setIaeeType(e.target.value as IaEeType)}>
-                  <option value="IA">IA — Internal Assessment (per mapel DP)</option>
-                  <option value="EE">EE — Extended Essay (esai riset DP)</option>
-                  <option value="PP">PP — Personal Project (proyek pribadi MYP)</option>
-                </select>
-                <p className="text-xs text-blue-700 mt-1">
-                  {iaeeType === "IA" && "Internal Assessment: tugas resmi dari satu mapel DP, dinilai internal + moderasi IB."}
-                  {iaeeType === "EE" && "Extended Essay: esai riset mandiri ±4.000 kata dari salah satu mapel DP."}
-                  {iaeeType === "PP" && "Personal Project: proyek mandiri siswa MYP — tidak terikat satu mapel."}
-                </p>
-              </div>
-              <input className="input" placeholder={iaeeType === "PP" ? "Mapel (opsional untuk PP)" : "Mata pelajaran"} value={iaeeSubject}
-                onChange={(e) => setIaeeSubject(e.target.value)} />
-              <input className="input" placeholder={iaeeType === "PP" ? "Judul proyek / pertanyaan pemandu" : iaeeType === "EE" ? "Judul / research question" : "Judul / topik penelitian"} value={iaeeTitle}
-                onChange={(e) => setIaeeTitle(e.target.value)} />
-              <div className="flex gap-2">
-                <input className="input flex-1" type="date" value={iaeeDeadline}
-                  onChange={(e) => setIaeeDeadline(e.target.value)} placeholder="Deadline (opsional)" />
-              </div>
-              <textarea className="input text-sm" rows={2} placeholder="Catatan (opsional)" value={iaeeNotes}
-                onChange={(e) => setIaeeNotes(e.target.value)} />
-              <div className="flex gap-2">
-                <button onClick={() => setShowIaEeForm(false)}
-                  className="flex-1 py-2 rounded-xl bg-gray-100 text-gray-600 text-sm font-semibold">Batal</button>
-                <button
-                  disabled={iaeeSaving || !iaeeTitle || (iaeeType !== "PP" && !iaeeSubject)}
-                  onClick={async () => {
-                    if (!id) return;
-                    setIaeeSaving(true);
-                    try {
-                      await createIaEeProject({
-                        studentId: id, type: iaeeType,
-                        subject: iaeeType === "PP" ? (iaeeSubject.trim() || "Personal Project") : iaeeSubject,
-                        title: iaeeTitle, deadline: iaeeDeadline || undefined,
-                        milestones: [], notes: iaeeNotes || undefined,
-                      });
-                      setShowIaEeForm(false); setIaeeSubject(""); setIaeeTitle(""); setIaeeDeadline(""); setIaeeNotes("");
-                      msg("Proyek ditambahkan ✓");
-                    } catch (e) { msg("Gagal: " + (e as Error).message); }
-                    finally { setIaeeSaving(false); }
-                  }}
-                  className="flex-1 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold disabled:opacity-50">
-                  {iaeeSaving ? "Menyimpan..." : "Simpan"}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Project list */}
-          {(iaeeProjects ?? []).length === 0 && !showIaEeForm && (
-            <p className="text-gray-500 text-sm text-center py-6">Belum ada proyek IA/EE/PP.<br /><span className="text-xs text-gray-400">Tambahkan proyek untuk melacak milestone per tahap.</span></p>
-          )}
-          <div className="divide-y divide-gray-100">
-            {(iaeeProjects ?? []).map((proj: IaEeProject) => {
-              const done = proj.milestones.filter((m) => m.status === "done").length;
-              const total = proj.milestones.length;
-              const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-              const isExpanded = expandedIaEe === proj.id;
-              const daysLeft = proj.deadline
-                ? Math.ceil((new Date(proj.deadline).getTime() - todayMs) / 86400000)
-                : null;
-              return (
-                <div key={proj.id} className="px-4 py-3">
-                  <button className="w-full text-left" onClick={() => setExpandedIaEe(isExpanded ? null : proj.id)}>
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${proj.type === "IA" ? "bg-blue-100 text-blue-700" : proj.type === "EE" ? "bg-purple-100 text-purple-700" : "bg-emerald-100 text-emerald-700"}`}>
-                            {proj.type}
-                          </span>
-                          <span className="text-xs text-gray-500">{proj.subject}</span>
-                          {daysLeft !== null && (
-                            <span className={`text-xs font-semibold ${daysLeft < 0 ? "text-red-500" : daysLeft < 14 ? "text-orange-500" : "text-gray-500"}`}>
-                              {daysLeft < 0 ? `${Math.abs(daysLeft)}h terlambat` : `${daysLeft}h lagi`}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm font-semibold text-gray-800 mt-1 line-clamp-2">{proj.title}</p>
-                      </div>
-                      <span className="text-gray-500 flex-shrink-0">{isExpanded ? "▲" : "▼"}</span>
-                    </div>
-                    {total > 0 && (
-                      <div className="mt-2">
-                        <div className="flex justify-between text-xs text-gray-500 mb-1">
-                          <span>{done}/{total} milestone</span>
-                          <span>{pct}%</span>
-                        </div>
-                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${pct}%` }} />
-                        </div>
-                      </div>
-                    )}
-                  </button>
-
-                  {isExpanded && (
-                    <div className="mt-3 space-y-2">
-                      {proj.notes && <p className="text-xs text-gray-500 italic">{proj.notes}</p>}
-
-                      {/* Milestones */}
-                      {proj.milestones.map((m: IaEeMilestone) => (
-                        <div key={m.id} className="flex items-start gap-2 bg-gray-50 rounded-xl px-3 py-2">
-                          <button
-                            onClick={async () => {
-                              const next: IaEeMilestone["status"] =
-                                m.status === "pending" ? "in_progress" :
-                                m.status === "in_progress" ? "done" : "pending";
-                              await updateMilestone(proj.id, m.id, {
-                                status: next,
-                                completedAt: next === "done" ? new Date().toISOString() : undefined,
-                              });
-                            }}
-                            className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center text-xs transition-colors mt-0.5 ${
-                              m.status === "done" ? "bg-green-500 border-green-500 text-white" :
-                              m.status === "in_progress" ? "bg-amber-400 border-amber-400 text-white" :
-                              "border-gray-300 bg-white"
-                            }`}>
-                            {m.status === "done" ? "✓" : m.status === "in_progress" ? "…" : ""}
-                          </button>
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-medium ${m.status === "done" ? "line-through text-gray-500" : "text-gray-700"}`}>
-                              {m.title}
-                            </p>
-                            {m.dueAt && (
-                              <p className="text-xs text-gray-500 mt-0.5">Due: {m.dueAt}</p>
-                            )}
-                            {m.notes && <p className="text-xs text-gray-500 italic mt-0.5">{m.notes}</p>}
-                          </div>
-                          <button
-                            onClick={async () => {
-                              if (confirm(`Hapus milestone "${m.title}"?`)) await deleteMilestone(proj.id, m.id);
-                            }}
-                            className="text-gray-500 hover:text-red-400 p-1 flex-shrink-0">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                          </button>
-                        </div>
-                      ))}
-
-                      {/* Add milestone form */}
-                      {showMsForm === proj.id ? (
-                        <div className="space-y-2 bg-blue-50 rounded-xl px-3 py-2">
-                          <input className="input text-sm" placeholder="mis. Draft proposal, Bab 1, Revisi, Submit final" value={msTitle}
-                            onChange={(e) => setMsTitle(e.target.value)} autoFocus />
-                          <input className="input text-sm" type="date" value={msDue}
-                            onChange={(e) => setMsDue(e.target.value)} />
-                          <div className="flex gap-2">
-                            <button onClick={() => { setShowMsForm(null); setMsTitle(""); setMsDue(""); }}
-                              className="flex-1 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-xs font-semibold">Batal</button>
-                            <button
-                              disabled={!msTitle}
-                              onClick={async () => {
-                                if (!msTitle) return;
-                                await addMilestone(proj.id, {
-                                  id: crypto.randomUUID(), title: msTitle,
-                                  dueAt: msDue || undefined, status: "pending",
-                                });
-                                setShowMsForm(null); setMsTitle(""); setMsDue("");
-                              }}
-                              className="flex-1 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold disabled:opacity-50">
-                              + Tambah
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <button onClick={() => { setShowMsForm(proj.id); setMsTitle(""); setMsDue(""); }}
-                          className="w-full py-2 rounded-xl border border-dashed border-gray-300 text-xs text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-colors">
-                          + Milestone
-                        </button>
-                      )}
-
-                      {/* Delete project */}
-                      <button
-                        onClick={async () => {
-                          if (confirm(`Hapus proyek "${proj.title}"?`)) {
-                            await deleteIaEeProject(proj.id);
-                            setExpandedIaEe(null);
-                            msg("Proyek dihapus");
-                          }
-                        }}
-                        className="w-full py-1.5 rounded-xl text-xs text-red-400 hover:bg-red-50 transition-colors">
-                        🗑 Hapus Proyek
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+      </>
       )}
-      </>)}
-      {detailTab === "nilai" && (<>
+      {detailTab === "iaee" && (<>
 
-      {/* ── KESERIUSAN BELAJAR ── */}
-      <EngagementSummary
-        engSessions={engSessions}
-        avgEngScore={avgEngScore}
-        engTrend={engTrend}
-        recentEng={recentEng}
-        subjectEngStats={subjectEngStats}
-        subjectPage={subjectPage}
-        setSubjectPage={setSubjectPage}
-        student={student!}
-      />
+      {/* ── IA / EE / PP TRACKER (diekstrak ke studentDetail/IaEeTracker.tsx) ── */}
+      <IaEeTracker student={student!} projects={iaeeProjects ?? []} notify={msg} />
       </>)}
+      {detailTab === "nilai" && (
+        <NilaiRapor
+          engSessions={engSessions}
+          avgEngScore={avgEngScore}
+          engTrend={engTrend}
+          recentEng={recentEng}
+          subjectEngStats={subjectEngStats}
+          subjectPage={subjectPage}
+          setSubjectPage={setSubjectPage}
+          student={student!}
+          responseStats={responseStats}
+        />
+      )}
       {/* Modals — always render regardless of tab */}
 
       {/* ── EDIT SESSION NOTES MODAL ── */}
@@ -1367,6 +1003,13 @@ export default function StudentDetail() {
         handleDeleteSession={handleDeleteSession}
         openEditNote={openEditNote}
         openSettings={() => { setDetailSession(null); navigate("/settings"); }}
+        // Koreksi kondisi sesi (audit P2 #16): tanpa jalur ini, indikator yang
+        // salah tetap tersimpan selamanya dan tidak pernah bisa dibersihkan.
+        onUpdateSession={async (patch) => {
+          await updateSession(detailSession!.id, patch);
+          setDetailSession((prev) => (prev ? { ...prev, ...patch } : prev));
+          msg("Kondisi sesi diperbarui.");
+        }}
       />
 
       {/* Bantuan siklus tagihan */}

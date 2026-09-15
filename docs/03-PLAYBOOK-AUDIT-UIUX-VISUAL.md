@@ -35,7 +35,7 @@
    ```
 4. **Tanpa migrasi skema Dexie** — tidak sentuh schemaVersion / struktur tabel storage.
 5. **Tanpa hapus file** di luar daftar eksplisit (§3.4).
-6. Ragu / tidak verifiable → tulis TODO di `TODO.md`, jangan menebak.
+6. Ragu / tidak verifiable → catat di **daftar pekerjaan terbuka** [`README.md`](README.md) §4, atau buat dokumen tugas di [`kerja/`](kerja/) dengan format [`kerja/TASK-02-format-dokumen-tugas-ai.md`](kerja/TASK-02-format-dokumen-tugas-ai.md). Jangan menebak. (Dulu diarahkan ke `TODO.md` di akar repo — berkas itu sudah diarsipkan 2026-09-13.)
 7. Nomor baris acuan = state 2026-09-11 (v1.71.0). Verifikasi lokasi sebelum edit.
 8. Baca file terkait sebelum edit; verify hasil edit setelah.
 

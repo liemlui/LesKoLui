@@ -42,7 +42,7 @@ import PaginationControls from "../components/PaginationControls";
 import Breadcrumb from "../components/Breadcrumb";
 import EmptyState from "../components/EmptyState";
 import { clampPage, paginateItems } from "../lib/pagination";
-import { calcEngagementScore, scoreLabel, averageEngagement } from "../lib/engagement";
+import { scoreLabel, averageEngagement, sessionEngagementScore, engagementAverage } from "../lib/engagement";
 import { pickDirtyNarrativeSessions } from "../lib/aiIncremental";
 import type {
   ReportOptions, CustomTheme, Theme, LayoutCategory,
@@ -544,12 +544,18 @@ export default function MonthlyReportPage() {
   [reportSessions, subjectFilter]);
   const sessionsWithNarrative  = filteredSessions.filter((s) => Boolean(s.narrative?.trim() || s.shortNote?.trim())).length;
   const narrativeDirtyCount = useMemo(() => pickDirtyNarrativeSessions(reportSessions).dirty.length, [reportSessions]);
+  // Cakupan data kondisi (audit P3 #17): rata-rata skor WAJIB punya penyebut,
+  // supaya "7/10" tidak dibaca sebagai penilaian atas SEMUA sesi padahal hanya
+  // sebagian sesi yang mencatat kondisi. `sessionEngagementScore` mengembalikan
+  // undefined untuk sesi tanpa pengamatan (dulu menjadi "5/10" semu).
+  const engagementCoverage = useMemo(
+    () => engagementAverage(reportSessions),
+    [reportSessions],
+  );
   const engagementScores = useMemo(() => reportSessions
-    .map((s) => s.engagement?.score ?? (s.engagement ? calcEngagementScore(s.engagement) : undefined))
+    .map((s) => sessionEngagementScore(s))
     .filter((score): score is number => score != null), [reportSessions]);
-  const avgEngagement = useMemo(() => engagementScores.length > 0
-    ? Math.round(engagementScores.reduce((sum, score) => sum + score, 0) / engagementScores.length)
-    : undefined, [engagementScores]);
+  const avgEngagement = engagementCoverage.average;
   const engagementTrend = useMemo(() => {
     if (engagementScores.length < 2) return undefined;
     const split = Math.ceil(engagementScores.length / 2);
@@ -751,7 +757,7 @@ export default function MonthlyReportPage() {
       const sorted = [...reportSessions].sort((a, b) => a.date.localeCompare(b.date));
       const entries = await Promise.all(
         sorted.map(async (s) => {
-          const engScore = s.engagement?.score ?? (s.engagement ? calcEngagementScore(s.engagement) : undefined);
+          const engScore = sessionEngagementScore(s);
           const engLabel = engScore != null ? scoreLabel(engScore).text : undefined;
           const subject = sessionSubjectLabel(s.subjects);
           return {
@@ -1330,7 +1336,11 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                     </div>
                     <div className="bg-purple-50 rounded-xl py-2 text-center">
                       <p className="text-lg font-bold text-purple-700">{avgEngagement != null ? `${avgEngagement}/10` : "—"}</p>
-                      <p className="text-xs text-purple-500">Fokus rata²</p>
+                      {/* Penyebut wajib (audit P3 #17): tanpa ini "7/10" terbaca
+                          sebagai penilaian atas SEMUA sesi. */}
+                      <p className="text-xs text-purple-500">
+                        Fokus rata²{avgEngagement != null ? ` dari ${engagementCoverage.counted} sesi` : ""}
+                      </p>
                     </div>
                     <div className={`rounded-xl py-2 text-center ${reportReadiness === 4 ? "bg-green-50" : "bg-amber-50"}`}>
                       <p className={`text-base font-bold leading-tight ${reportReadiness === 4 ? "text-green-700" : "text-amber-700"}`}>

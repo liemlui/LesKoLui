@@ -1,6 +1,10 @@
-import type { Session, Settings } from "../../db/types";
+import { useEffect, useState } from "react";
+import type { Session, Settings, EngagementLevel } from "../../db/types";
 import { dayLabel, formatRupiah } from "../../lib/format";
 import { Z } from "../../lib/zIndex";
+import { ENGAGEMENT_LEVELS, scoreLabel, engagementScoreBasis, calcEngagementScore } from "../../lib/engagement";
+import { BEHAVIOR_TAGS, RESPONSE_TAGS, getResponseTag } from "../../lib/responseTaxonomy";
+import { MOODS } from "../../lib/moods";
 
 interface SessionDetailModalProps {
   detailSession: Session | null;
@@ -17,9 +21,33 @@ interface SessionDetailModalProps {
   handleDeleteSession: () => void;
   openEditNote: (s: Session) => void;
   openSettings: () => void;
+  /** Simpan koreksi kondisi sesi (audit P2 #16). Bila tidak diberikan, panel
+   *  koreksi tidak ditampilkan (mis. di layar yang tidak boleh menulis). */
+  onUpdateSession?: (patch: Partial<Session>) => Promise<void> | void;
 }
 
-/** Session Detail Modal — bottom sheet menampilkan detail satu sesi. */
+/** Daftar label indikator yang AKTIF — mencakup ke-12 indikator.
+ *  Sebelum audit P2 #16 modal ini hanya menampilkan 8, sehingga ⏰ Telat,
+ *  🚻 Sering ke toilet, 🦘 Gelisah, dan 🙈 Sibuk sendiri tidak pernah bisa
+ *  diperiksa ulang — padahal keempatnya ikut menentukan skor. */
+const FLAG_LABELS: ReadonlyArray<{ key: string; label: string; positive: boolean }> = [
+  { key: "prepared",       label: "✓ Siap belajar",       positive: true },
+  { key: "focused",        label: "✓ Fokus",              positive: true },
+  { key: "activeAsking",   label: "✓ Aktif bertanya",     positive: true },
+  { key: "quickLearner",   label: "✓ Cepat paham",        positive: true },
+  { key: "playingPhone",   label: "📱 Main HP",            positive: false },
+  { key: "drowsy",         label: "🌙 Mengantuk",          positive: false },
+  { key: "needsRepetition",label: "↩ Perlu diulang",      positive: false },
+  { key: "hwMissed",       label: "✗ PR tidak dikerjakan", positive: false },
+  { key: "late",           label: "⏰ Telat",              positive: false },
+  { key: "bathroomBreaks", label: "🚻 Sering ke toilet",   positive: false },
+  { key: "restless",       label: "🦘 Gelisah",            positive: false },
+  { key: "offTask",        label: "🙈 Sibuk sendiri",      positive: false },
+];
+
+const ALL_EDITABLE_FLAGS = FLAG_LABELS.map((f) => f.key);
+
+/** Session Detail Modal — bottom sheet detail satu sesi, termasuk koreksi kondisi. */
 export default function SessionDetailModal({
   detailSession,
   photoUrls, sigUrls,
@@ -27,13 +55,79 @@ export default function SessionDetailModal({
   showDeletePin, setShowDeletePin,
   deletePinInput, setDeletePinInput,
   deletePinError, setDeletePinError,
-  handleDeleteSession, openEditNote, openSettings,
+  handleDeleteSession, openEditNote, openSettings, onUpdateSession,
 }: SessionDetailModalProps) {
-  if (!detailSession) return null;
-  const s = detailSession;
+  const [editing, setEditing] = useState(false);
+  const [draftFlags, setDraftFlags] = useState<string[]>([]);
+  const [draftTags, setDraftTags] = useState<string[]>([]);
+  const [draftResponse, setDraftResponse] = useState<string | undefined>();
+  const [draftLevel, setDraftLevel] = useState<EngagementLevel | undefined>();
+  const [draftMood, setDraftMood] = useState<string | undefined>();
+  const [saving, setSaving] = useState(false);
+
+  const session = detailSession;
+  // Reset panel koreksi setiap kali modal dibuka untuk sesi lain.
+  useEffect(() => {
+    setEditing(false);
+    setSaving(false);
+  }, [session?.id]);
+
+  if (!session) return null;
+  const s = session;
   const photoUrl = photoUrls.get(s.id);
   const sigUrl   = sigUrls.get(s.id);
   const eng      = s.engagement;
+
+  const startEditing = () => {
+    setDraftFlags(ALL_EDITABLE_FLAGS.filter((k) => Boolean((eng as Record<string, unknown> | undefined)?.[k])));
+    setDraftTags(s.behaviorTags ?? []);
+    setDraftResponse(s.responseTag);
+    setDraftLevel(eng?.level);
+    setDraftMood(s.mood);
+    setEditing(true);
+  };
+
+  const toggleDraftFlag = (key: string) =>
+    setDraftFlags((prev) => (prev.includes(key) ? prev.filter((x) => x !== key) : [...prev, key]));
+  const toggleDraftTag = (id: string) =>
+    setDraftTags((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const saveCorrections = async () => {
+    if (!onUpdateSession) return;
+    setSaving(true);
+    try {
+      const flags = Object.fromEntries(ALL_EDITABLE_FLAGS.map((k) => [k, draftFlags.includes(k)]));
+      const behaviorValences = draftTags.length > 0
+        ? draftTags
+            .map((id) => BEHAVIOR_TAGS.find((t) => t.id === id)?.valence)
+            .filter(Boolean) as ("positive" | "neutral" | "negative")[]
+        : undefined;
+      const scored = { ...flags, behaviorValences, responseTagId: draftResponse };
+      const basis = engagementScoreBasis(scored);
+      // Pertahankan `level` yang sudah ada bila pengguna tidak menyentuhnya.
+      const nextEngagement = basis === "none"
+        ? { ...flags, level: draftLevel, scoreBasis: basis, score: 0 }
+        : {
+            ...flags,
+            level: draftLevel,
+            scoreBasis: basis,
+            score: calcEngagementScore(scored),
+          };
+      await onUpdateSession({
+        engagement: nextEngagement,
+        behaviorTags: draftTags.length > 0 ? draftTags : undefined,
+        responseTag: draftResponse,
+        mood: draftMood,
+      });
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const activeFlags = FLAG_LABELS.filter(
+    (f) => Boolean((eng as Record<string, unknown> | undefined)?.[f.key]),
+  );
 
   return (
     <div role="dialog" aria-modal="true" aria-label="Detail Sesi" className={`fixed inset-0 bg-black/50 ${Z.picker} flex items-end justify-center`} onClick={() => { setDetailSession(null); setShowDeletePin(false); setDeletePinInput(""); setDeletePinError(""); }}>
@@ -66,8 +160,16 @@ export default function SessionDetailModal({
             <span className={`text-xs px-3 py-1 rounded-full font-semibold ${s.status === "DONE" ? "bg-green-50 text-green-600" : s.status === "CANCELLED" ? "bg-red-50 text-red-500" : "bg-blue-50 text-blue-600"}`}>
               {s.status === "DONE" ? "✓ Selesai" : s.status === "CANCELLED" ? "✗ Dibatalkan" : "Terjadwal"}
             </span>
-            {s.mood && <span className="text-xs px-3 py-1 rounded-full bg-orange-50 text-orange-600 font-medium">Mood: {s.mood}</span>}
-            {eng && <span className="text-xs px-3 py-1 rounded-full bg-purple-50 text-purple-600 font-semibold">Engagement {eng.score}/10</span>}
+            {s.mood && <span className="text-xs px-3 py-1 rounded-full bg-orange-50 text-orange-600 font-medium">Suasana: {s.mood}</span>}
+            {eng?.level && (
+              <span className="text-xs px-3 py-1 rounded-full bg-slate-100 text-slate-700 font-medium">
+                {ENGAGEMENT_LEVELS.find((l) => l.value === eng.level)?.icon}{" "}
+                {ENGAGEMENT_LEVELS.find((l) => l.value === eng.level)?.label ?? eng.level}
+              </span>
+            )}
+            {eng && eng.scoreBasis !== "none" && (
+              <span className="text-xs px-3 py-1 rounded-full bg-purple-50 text-purple-600 font-semibold">Skor {eng.score}/10</span>
+            )}
           </div>
 
           {/* Catatan */}
@@ -91,6 +193,7 @@ export default function SessionDetailModal({
             <div>
               <p className="text-xs text-gray-500 font-medium mb-1">Topik</p>
               <p className="text-sm text-gray-700">{s.topic}</p>
+              {s.topicUnit && <p className="text-xs text-gray-500 mt-0.5">📚 {s.topicUnit}</p>}
             </div>
           )}
 
@@ -120,20 +223,177 @@ export default function SessionDetailModal({
             </div>
           )}
 
-          {/* Engagement detail */}
-          {eng && (
-            <div className="bg-purple-50 rounded-xl p-3 space-y-1">
-              <p className="text-xs text-purple-500 font-medium">Detail Engagement</p>
-              <div className="flex flex-wrap gap-2 mt-1">
-                {eng.prepared && <span className="text-xs px-2 py-0.5 rounded-full bg-white text-green-600">✓ Siap belajar</span>}
-                {eng.focused && <span className="text-xs px-2 py-0.5 rounded-full bg-white text-green-600">✓ Fokus</span>}
-                {eng.activeAsking && <span className="text-xs px-2 py-0.5 rounded-full bg-white text-green-600">✓ Aktif bertanya</span>}
-                {eng.quickLearner && <span className="text-xs px-2 py-0.5 rounded-full bg-white text-green-600">✓ Cepat paham</span>}
-                {eng.playingPhone && <span className="text-xs px-2 py-0.5 rounded-full bg-white text-orange-500">📱 Main HP</span>}
-                {eng.drowsy && <span className="text-xs px-2 py-0.5 rounded-full bg-white text-blue-400">😴 Ngantuk</span>}
-                {eng.needsRepetition && <span className="text-xs px-2 py-0.5 rounded-full bg-white text-yellow-600">↩ Perlu diulang</span>}
-                {eng.hwMissed && <span className="text-xs px-2 py-0.5 rounded-full bg-white text-red-500">✗ PR tidak dikerjakan</span>}
+          {/* ── Kondisi sesi: SEMUA indikator + tag (audit P2 #16) ── */}
+          {(eng || (s.behaviorTags && s.behaviorTags.length > 0) || s.responseTag) && (
+            <div className="bg-purple-50 rounded-xl p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs text-purple-500 font-medium">Kondisi &amp; observasi sesi</p>
+                {onUpdateSession && !editing && (
+                  <button type="button" onClick={startEditing}
+                    className="text-xs font-semibold text-purple-700 underline underline-offset-2 hover:text-purple-900">
+                    ✏️ Koreksi
+                  </button>
+                )}
               </div>
+
+              {!editing ? (
+                <>
+                  {activeFlags.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {activeFlags.map((f) => (
+                        <span key={f.key} className={`text-xs px-2 py-0.5 rounded-full bg-white ${f.positive ? "text-green-600" : "text-orange-600"}`}>
+                          {f.label}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-500">
+                      {eng?.scoreBasis === "none"
+                        ? "Tidak ada pengamatan kondisi pada sesi ini — skor tidak dihitung."
+                        : "Tidak ada indikator perilaku yang ditandai."}
+                    </p>
+                  )}
+                  {(s.behaviorTags ?? []).length > 0 && (
+                    <div>
+                      <p className="text-xs text-gray-500 font-medium mb-1">Observasi lanjutan</p>
+                      <div className="flex flex-wrap gap-1">
+                        {(s.behaviorTags ?? []).map((id) => {
+                          const t = BEHAVIOR_TAGS.find((x) => x.id === id);
+                          if (!t) return null;
+                          const color = t.valence === "positive" ? "bg-green-100 text-green-700"
+                            : t.valence === "negative" ? "bg-red-100 text-red-600" : "bg-gray-100 text-gray-600";
+                          return <span key={id} className={`text-xs px-2 py-0.5 rounded-full ${color}`}>{t.icon} {t.label}</span>;
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {s.responseTag && (() => {
+                    const t = getResponseTag(s.responseTag);
+                    return t ? (
+                      <div>
+                        <p className="text-xs text-gray-500 font-medium mb-1">Respons akademik</p>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-white text-blue-700">{t.icon} {t.label}</span>
+                      </div>
+                    ) : null;
+                  })()}
+                </>
+              ) : (
+                <div className="space-y-3">
+                  {/* Indikator */}
+                  <div>
+                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Indikator</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {FLAG_LABELS.map((f) => {
+                        const active = draftFlags.includes(f.key);
+                        return (
+                          <button key={f.key} type="button"
+                            aria-pressed={active}
+                            onClick={() => toggleDraftFlag(f.key)}
+                            className={`rounded-full border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                              active
+                                ? f.positive ? "border-green-600 bg-green-600 text-white" : "border-rose-600 bg-rose-600 text-white"
+                                : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"
+                            }`}>
+                            {f.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Observasi lanjutan */}
+                  <div>
+                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Observasi lanjutan</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {BEHAVIOR_TAGS.map((t) => {
+                        const active = draftTags.includes(t.id);
+                        return (
+                          <button key={t.id} type="button"
+                            aria-pressed={active}
+                            onClick={() => toggleDraftTag(t.id)}
+                            className={`rounded-full border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                              active ? "border-purple-600 bg-purple-600 text-white" : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"
+                            }`}>
+                            {t.icon} {t.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Respons akademik */}
+                  <div>
+                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Respons akademik</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {RESPONSE_TAGS.map((t) => {
+                        const active = draftResponse === t.id;
+                        return (
+                          <button key={t.id} type="button"
+                            aria-pressed={active}
+                            onClick={() => setDraftResponse(active ? undefined : t.id)}
+                            className={`rounded-full border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                              active ? "border-blue-600 bg-blue-600 text-white" : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"
+                            }`}>
+                            {t.icon} {t.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Kondisi umum + suasana */}
+                  <div className="grid gap-2">
+                    <div>
+                      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Kondisi les</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {ENGAGEMENT_LEVELS.map((opt) => (
+                          <button key={opt.value} type="button"
+                            aria-pressed={draftLevel === opt.value}
+                            onClick={() => setDraftLevel(draftLevel === opt.value ? undefined : opt.value)}
+                            className={`rounded-full border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                              draftLevel === opt.value ? opt.activeClass : opt.idleClass
+                            }`}>
+                            {opt.icon} {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Suasana hati</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {MOODS.map((m) => (
+                          <button key={m.v} type="button"
+                            aria-pressed={draftMood === m.v}
+                            onClick={() => setDraftMood(draftMood === m.v ? undefined : m.v)}
+                            className={`rounded-full border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                              draftMood === m.v ? "border-indigo-600 bg-indigo-600 text-white" : "border-gray-200 bg-white text-gray-600 hover:border-indigo-300"
+                            }`}>
+                            {m.icon} {m.v}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setEditing(false)} disabled={saving}
+                      className="flex-1 rounded-xl bg-gray-100 py-2 text-sm font-semibold text-gray-600 disabled:opacity-50">
+                      Batal
+                    </button>
+                    <button type="button" onClick={() => void saveCorrections()} disabled={saving}
+                      className="flex-1 rounded-xl bg-purple-600 py-2 text-sm font-semibold text-white disabled:opacity-50">
+                      {saving ? "Menyimpan…" : "Simpan koreksi"}
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Skor dihitung ulang dari koreksi ini. Bila semua pengamatan dikosongkan, skor menjadi
+                    0 dan sesi ini tidak lagi ikut rata-rata.
+                  </p>
+                  {eng?.score != null && !editing && (
+                    <p className="text-xs text-gray-500">Skor tersimpan saat ini: {scoreLabel(eng.score).text} ({eng.score}/10)</p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -160,7 +420,7 @@ export default function SessionDetailModal({
             <button
               onClick={(e) => { e.stopPropagation(); setDetailSession(null); openEditNote(s); }}
               className="w-full py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors">
-              ✏️ Edit Catatan Sesi
+              ✏️ Edit Catatan &amp; Nilai Sesi
             </button>
           )}
 

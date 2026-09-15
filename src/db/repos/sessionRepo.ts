@@ -116,6 +116,7 @@ export async function createSessionWithCloseoutDraft(
       durationHours: input.durationHours,
       shortNote: input.shortNote,
       topic: input.topic,
+      topicUnit: input.topicUnit,
     };
     await saveCloseoutDraft(draft, session, followUps);
     return { id, session };
@@ -130,6 +131,8 @@ export async function markSessionDone(
     shortNote: string;
     mood?: string;
     topic?: string;
+    /** Bab katalog untuk topik di atas (audit P1 #9). */
+    topicUnit?: string;
     needsWork?: string;
     predictedGrade?: string;
     situasiNote?: string;
@@ -174,6 +177,7 @@ export async function markSessionDoneWithCloseoutDraft(
       durationHours: saved.durationHours,
       shortNote: saved.shortNote,
       topic: saved.topic,
+      topicUnit: saved.topicUnit,
     };
     await saveCloseoutDraft(draft, session, followUps);
     return { id, session };

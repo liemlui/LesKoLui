@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calcEngagementScore, scoreLabel, scoreBarColor, semesterDateRange, semesterOptions, sessionEngagementScore, averageEngagement } from "../lib/engagement";
+import { calcEngagementScore, scoreLabel, scoreBarColor, semesterDateRange, semesterOptions, sessionEngagementScore, averageEngagement, engagementAverage, engagementScoreBasis, hasObservedSignals } from "../lib/engagement";
 import type { EngagementLog } from "../db/types";
 
 describe("calcEngagementScore", () => {
@@ -93,32 +93,75 @@ describe("calcEngagementScore", () => {
     expect(calcEngagementScore({ responseTagId: "can-do-procedurally" })).toBe(5);
   });
 
-  // ── New: mood ──
-  it("factors in mood", () => {
-    expect(calcEngagementScore({ mood: "Semangat" })).toBe(6);    // 5+1
-    expect(calcEngagementScore({ mood: "Kesulitan" })).toBe(4);   // 5-1
-    expect(calcEngagementScore({ mood: "Biasa" })).toBe(5);       // neutral
-    expect(calcEngagementScore({ mood: "Fokus" })).toBe(5);       // neutral
-    expect(calcEngagementScore({ mood: "Lelah" })).toBe(5);       // neutral
+  // ── Mood: TIDAK lagi memengaruhi skor (audit P2 #15) ──
+  it("mood tidak menggeser skor — suasana bukan perilaku", () => {
+    // Sebelum P2: "Semangat" +1 dan "Kesulitan" −1. Sesudah: semuanya netral,
+    // sehingga satu pengamatan tidak bisa terhitung dua kali (mood + tag).
+    expect(calcEngagementScore({ mood: "Semangat" })).toBe(5);
+    expect(calcEngagementScore({ mood: "Kesulitan" })).toBe(5);
+    expect(calcEngagementScore({ mood: "Biasa" })).toBe(5);
+    expect(calcEngagementScore({ prepared: true, mood: "Kesulitan" })).toBe(7);
+    expect(calcEngagementScore({ prepared: true, mood: "Semangat" })).toBe(7);
+    // Mood + tag perilaku tidak lagi menumpuk:
+    expect(calcEngagementScore({ behaviorValences: ["positive"], mood: "Semangat" })).toBe(6);
   });
 
   // ── Full combo ──
   it("combines all signals correctly", () => {
-    // Best case: good indicators + positive behavior + correct response + semangat
+    // Best case: good indicators + positive behavior + correct response
     expect(calcEngagementScore({
       prepared: true, focused: true,
       behaviorValences: ["positive", "positive"],
       responseTagId: "correct-independent",
       mood: "Semangat",
-    })).toBe(10); // 5+3+2+2+2+1 = 15 → clamp 10
+    })).toBe(10); // 5+3+2+2+2 = 14 → clamp 10
 
-    // Worst case: bad indicators + negative behavior + misconception + kesulitan
+    // Worst case: bad indicators + negative behavior + misconception
     expect(calcEngagementScore({
       drowsy: true, playingPhone: true,
       behaviorValences: ["negative", "negative"],
       responseTagId: "misconception",
       mood: "Kesulitan",
-    })).toBe(1); // 5-1-1-2-2-1 = -2 → clamp 1
+    })).toBe(1); // 5-1-1-2-2 = -1 → clamp 1
+  });
+});
+
+describe("engagementScoreBasis & hasObservedSignals (audit P2 #11)", () => {
+  it("mood/kondisi saja BUKAN pengamatan", () => {
+    expect(hasObservedSignals({ mood: "Fokus" })).toBe(false);
+    expect(engagementScoreBasis({ mood: "Fokus" })).toBe("none");
+  });
+
+  it("indikator inti saja = partial; ditambah observasi lanjutan = full", () => {
+    expect(engagementScoreBasis({ focused: true })).toBe("partial");
+    expect(engagementScoreBasis({ focused: true, responseTagId: "correct-independent" })).toBe("full");
+    expect(engagementScoreBasis({ behaviorValences: ["neutral"] })).toBe("full");
+  });
+
+  it("tanpa sinyal apa pun = none", () => {
+    expect(engagementScoreBasis({})).toBe("none");
+    expect(hasObservedSignals({})).toBe(false);
+  });
+});
+
+describe("engagementAverage — cakupan data (audit P3 #17)", () => {
+  it("menghitung rata-rata hanya dari sesi berdata dan melaporkan penyebutnya", () => {
+    const sessions = [
+      { engagement: { score: 6 } as EngagementLog },
+      { engagement: { score: 0, scoreBasis: "none" } as EngagementLog }, // tanpa pengamatan
+      { engagement: { score: 8 } as EngagementLog },
+      {},                                                                // tanpa engagement
+    ];
+    const result = engagementAverage(sessions);
+    expect(result.average).toBe(7);
+    expect(result.counted).toBe(2);
+    expect(result.total).toBe(4);
+    expect(result.noObservation).toBe(1);
+  });
+
+  it("sesi dengan basis none tidak pernah menjadi 5/10", () => {
+    expect(sessionEngagementScore({ engagement: { score: 0, scoreBasis: "none", mood: "Fokus" } as EngagementLog }))
+      .toBeUndefined();
   });
 });
 
