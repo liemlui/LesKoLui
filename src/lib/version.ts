@@ -11,6 +11,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.78.0",
+    date: "2026-09-30",
+    title: "Laporan final bisa dibuka kuncinya untuk diperbaiki",
+    items: [
+      "Kalau yang salah adalah laporannya (bukan tagihannya), laporan final kini bisa dikembalikan menjadi draft lewat tombol “Buka kunci laporan” di layar Laporan. Sebelumnya membatalkan tagihan saja tidak menolong: total final membeku, jadi tagihan berikutnya identik.",
+      "Buka kunci meminta PIN Keuangan. Laporan yang tagihannya sudah lunas atau nominalnya sudah diedit manual tidak bisa dibuka — angkanya sudah dipakai untuk uang yang benar-benar berpindah. Tagihan yang belum lunas dibatalkan dulu di Keuangan supaya jejak pemulihannya tetap ada.",
+      "Paket per pertemuan tetap dibuka lewat Keuangan (sesinya kembali ke antrean), dan laporan yang sudah punya laporan susulan tidak dibuka agar sesinya tidak terhitung dua kali.",
+      "Saat kunci dibuka, tanda “sudah dibagikan” dilepas supaya versi lama tidak terbaca sebagai versi yang sudah dikirim, dan tindakannya tercatat di Riwayat Aktivitas.",
+    ],
+  },
+  {
     version: "v1.77.0",
     date: "2026-09-30",
     title: "Tarif terkunci, tagihan bisa dipulihkan, total final dibekukan",

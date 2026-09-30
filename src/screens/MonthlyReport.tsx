@@ -8,7 +8,7 @@ import {
   getReportById, findReportByPeriod, listReportsByStudent, listConfirmedReportsByStudent,
   upsertReport, createReportForPeriod, discardReport, updateSession, saveSettings,
   getPaymentByReport, syncReportPayment, listPaymentsByStudent,
-  reportTotalsDrifted, frozenReportTotals,
+  reportTotalsDrifted, frozenReportTotals, unlockReport,
 } from "../db/repos";
 import { billingPolicyOf, reportStatus, reportDisplayStatus, type ReportStatus } from "../db/types";
 import {
@@ -31,6 +31,8 @@ import {
 } from "../lib/reportSessionScope";
 import { AiCostModal } from "../components/AiCostModal";
 import Modal from "../components/Modal";
+import ConfirmSheet from "../components/ConfirmSheet";
+import PinConfirmModal from "../components/PinConfirmModal";
 import { getTheme, THEMES } from "../template/themes";
 import { LAYOUTS, gradeDelta } from "../template/layouts";
 import { ReportRenderer } from "../template/ReportRenderer";
@@ -129,6 +131,10 @@ export default function MonthlyReportPage() {
   const [showNarrativesModal, setShowNarrativesModal] = useState(false);
   const [forceSummary,   setForceSummary]   = useState(false);
   const [forceNarratives, setForceNarratives] = useState(false);
+  // Buka kunci laporan final → draft (konfirmasi → PIN → aksi).
+  const [unlockConfirmOpen, setUnlockConfirmOpen] = useState(false);
+  const [unlockPinOpen, setUnlockPinOpen] = useState(false);
+  const [unlockBusy, setUnlockBusy] = useState(false);
   const [showBillingHelp,   setShowBillingHelp]   = useState(false);
   const [quoteText,        setQuoteText]        = useState("");
   const [reportMutationBusy, setReportMutationBusy] = useState(false);
@@ -1030,7 +1036,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
   const handleDiscard = async () => {
     if (!report) return;
     if (reportStatus(report) === "confirmed") {
-      setMessage("Gagal: Laporan yang sudah final tidak bisa dibatalkan sebagai draft.");
+      setMessage("Gagal: Laporan yang sudah final tidak bisa dibatalkan sebagai draft. Pakai “Buka kunci laporan” bila laporannya perlu diperbaiki.");
       return;
     }
     try {
@@ -1038,6 +1044,43 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
       if (editingReportId === report.id) leaveEditingReport();
       setMessage("Laporan draft dibatalkan.");
     } catch (e) { setMessage("Error: " + (e as Error).message); }
+  };
+
+  // ── Buka kunci laporan final (kasus: laporannya yang salah, bukan tagihannya) ──
+  // Membatalkan tagihan saja akan menghasilkan tagihan identik karena laporan
+  // final membekukan totalnya — jadi kuncinya harus bisa dibuka. Guard lengkap
+  // (tagihan lunas/manual, paket, laporan susulan, sudah dibagikan) ada di repo.
+  const askUnlockReport = () => {
+    if (!report) return;
+    if (!settings?.financialPin) {
+      setMessage("Gagal: Buat PIN Keuangan di Pengaturan dulu sebelum membuka kunci laporan.");
+      return;
+    }
+    setUnlockConfirmOpen(true);
+  };
+
+  const confirmUnlockReport = async () => {
+    if (!report) return;
+    setUnlockConfirmOpen(false);
+    setUnlockPinOpen(true);
+  };
+
+  const runUnlockReport = async () => {
+    if (!report) return;
+    setUnlockPinOpen(false);
+    setUnlockBusy(true);
+    try {
+      const result = await unlockReport(report.id, {
+        confirmShared: reportDisplayStatus(report) === "shared",
+      });
+      setMessage(result.wasShared
+        ? "Kunci laporan dibuka ✓ Laporan kembali draft dan tanda “sudah dibagikan” dilepas — perbaiki lalu finalkan lagi, dan kirim ulang versi barunya."
+        : "Kunci laporan dibuka ✓ Laporan kembali draft dan bisa diperbaiki.");
+    } catch (e) {
+      setMessage("Gagal: " + (e as Error).message);
+    } finally {
+      setUnlockBusy(false);
+    }
   };
 
   /** Buka laporan draft yang sudah ada — isi mode & periode sesuai draft tersebut. */
@@ -1402,8 +1445,9 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                         }) && (
                           <p className="mt-2 rounded-lg bg-white/70 px-2.5 py-1.5 text-xs font-medium leading-relaxed">
                             Total laporan final ini dibekukan di {formatRupiah(report.totalCost)}. Perubahan sesi
-                            setelah final tidak mengubah nominal yang sudah dikirim. Untuk memperbaiki, batalkan
-                            tagihannya dulu di Keuangan (lewat tagihan yang belum lunas) atau terbitkan laporan susulan.
+                            setelah final tidak mengubah nominal yang sudah dikirim. Bila yang salah justru
+                            laporannya, batalkan tagihannya di Keuangan (yang belum lunas) lalu pakai
+                            “Buka kunci laporan” di bawah; bila sesinya menyusul, terbitkan laporan susulan.
                           </p>
                         )}
                         {reportDisplayStatus(report) !== "shared" && (
@@ -1413,6 +1457,31 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                           >
                             Tandai Sudah Dibagikan
                           </button>
+                        )}
+                        {/* Laporan yang salah tidak bisa diperbaiki dengan membatalkan
+                            tagihan saja: laporan final membekukan totalnya, sehingga
+                            tagihan berikutnya identik. Kuncinya harus bisa dibuka. */}
+                        {report.billingMode === "session_count" ? (
+                          <p className="mt-2 text-xs leading-relaxed opacity-80">
+                            Paket per pertemuan dibuka lewat Keuangan → antrean “Tagihan per Pertemuan”
+                            (batalkan paketnya, sesinya kembali ke antrean, lalu terbitkan paket yang benar).
+                          </p>
+                        ) : (
+                          <div className="mt-2 space-y-1">
+                            <button
+                              type="button"
+                              onClick={askUnlockReport}
+                              disabled={unlockBusy}
+                              className="rounded-lg border border-amber-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-50 disabled:cursor-wait disabled:opacity-50"
+                            >
+                              {unlockBusy ? "Membuka kunci..." : "🔓 Buka kunci laporan (perbaiki)"}
+                            </button>
+                            <p className="text-xs leading-relaxed opacity-80">
+                              Membuka kunci mengembalikan laporan ini menjadi draft supaya sesi, periode, dan
+                              nominalnya bisa diperbaiki. Wajib PIN Keuangan, dan tagihan belum lunasnya harus
+                              dibatalkan dulu di Keuangan (lunas/diedit manual tidak bisa dibuka).
+                            </p>
+                          </div>
                         )}
                       </div>
                       <div className={`rounded-lg border px-3 py-2 text-sm ${payment?.status === "PAID"
@@ -2118,6 +2187,37 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
         onCancel={() => { setShowNarrativesModal(false); setForceNarratives(false); }}
         onConfirm={() => { setShowNarrativesModal(false); const f = forceNarratives; setForceNarratives(false); handleGenerateNarratives(f); }}
       />
+
+      {/* Buka kunci laporan final: konfirmasi → PIN Keuangan → aksi (D4). */}
+      <ConfirmSheet
+        open={unlockConfirmOpen}
+        title="Buka kunci laporan final ini?"
+        message={
+          `Laporan ${student?.name ?? "murid"} periode ${periodLabel(periodStart, periodEnd) || monthLabel(month)} `
+          + `(${formatRupiah(report?.totalCost ?? 0)}) kembali menjadi draft sehingga sesi, periode, dan nominalnya bisa diperbaiki.\n\n`
+          + "Perbaikannya: perbaiki lalu finalkan lagi, kemudian terbitkan tagihan baru dari Keuangan → Tagihan. "
+          + "Angka yang sudah dikirim ke orang tua tidak bisa ditarik — kirim ulang versi barunya."
+          + (report && reportDisplayStatus(report) === "shared"
+            ? "\n\nLaporan ini sudah ditandai dibagikan; tanda itu akan dilepas supaya tidak terbaca sebagai versi yang sudah dikirim."
+            : "")
+        }
+        confirmLabel="Buka kunci"
+        danger
+        busy={unlockBusy}
+        onCancel={() => setUnlockConfirmOpen(false)}
+        onConfirm={() => void confirmUnlockReport()}
+      />
+
+      {unlockPinOpen && settings?.financialPin && (
+        <PinConfirmModal
+          storedPin={settings.financialPin}
+          title="Buka kunci laporan final?"
+          description="Masukkan PIN Keuangan untuk membuka kunci laporan ini."
+          confirmLabel="Buka kunci"
+          onCancel={() => setUnlockPinOpen(false)}
+          onConfirm={() => void runUnlockReport()}
+        />
+      )}
     </div>
   );
 }

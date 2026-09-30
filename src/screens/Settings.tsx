@@ -120,6 +120,7 @@ const AUDIT_LABEL: Record<AuditAction, string> = {
   "session.no_show": "Tandai tidak hadir",
   "session.reschedule": "Jadwalkan ulang sesi",
   "session.reprice": "Ubah tarif sesi lama (retroaktif)",
+  "report.unlock": "Buka kunci laporan final",
   "student.delete": "Hapus murid",
   "payment.paid": "Tagihan ditandai lunas",
   "payment.unpaid": "Batal lunas",

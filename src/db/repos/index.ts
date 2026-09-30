@@ -48,9 +48,10 @@ export {
   getReport, getReportById, upsertReport, createReportForPeriod, listReportsByStudent, listAllReports,
   findReportByPeriod, listOverlappingReports, listConfirmedReportsByStudent,
   confirmReport, discardReport, reportPeriodOf,
+  unlockReport,
   frozenReportTotals, reportTotalsDrifted,
 } from "./reportRepo";
-export type { ReportWrite } from "./reportRepo";
+export type { ReportWrite, UnlockReportOptions, UnlockReportResult } from "./reportRepo";
 
 // Payments + Expenses
 export {

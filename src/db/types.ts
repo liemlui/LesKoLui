@@ -450,6 +450,7 @@ export type AuditAction =
   | "session.no_show"
   | "session.reschedule"
   | "session.reprice"
+  | "report.unlock"
   | "student.delete"
   | "payment.paid"
   | "payment.unpaid"

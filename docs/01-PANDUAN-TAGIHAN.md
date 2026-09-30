@@ -70,7 +70,27 @@ Aturan yang dipegang saat repricing:
 - **Draft** boleh dihitung ulang: total jam & biaya mengikuti sesi terbaru.
 - **Final** membekukan `totalJam`, `totalBiaya`, dan daftar sesinya (**D6**). Angka yang sudah dikirim ke orang tua tidak berubah hanya karena sesi dihitung ulang.
 - Kalau ada selisih, laporan final menampilkan pemberitahuan "Total laporan final ini dibekukan di Rp …".
-- **Jalur perbaikan laporan final** (bukan diam-diam): batalkan dulu tagihannya (kalau belum lunas) di **Keuangan → Tagihan** → perbaiki sesi → terbitkan ulang; atau terbitkan **laporan susulan** untuk sesi yang menyusul. Laporan final tidak bisa dikembalikan menjadi draft.
+- **Jalur perbaikan laporan final** (bukan diam-diam). Pilih sesuai jenis kesalahannya:
+  - **Yang salah tagihannya** (nominal) → rapikan nominalnya langsung di **Keuangan → Tagihan**.
+  - **Yang salah laporannya** (sesi/periodenya) → **batalkan dulu tagihannya** (kalau belum lunas) di **Keuangan → Tagihan**, lalu tekan **🔓 Buka kunci laporan** di layar **Laporan** → perbaiki sesi/periode → **finalkan lagi** → terbitkan tagihan baru. Membatalkan tagihan **tanpa** membuka kunci tidak menolong: laporan final membekukan totalnya, jadi tagihannya akan sama.
+  - **Sesinya menyusul setelah kirim** → terbitkan **laporan susulan**, jangan buka kunci.
+
+### Buka kunci laporan (mengembalikan final → draft)
+
+| Syarat | Keterangan |
+|---|---|
+| Laporan berstatus **final** | Draft tidak perlu dibuka; final legacy (tanpa field status) ikut dihitung final |
+| **PIN Keuangan** | Konfirmasi → PIN, sama seperti aksi destruktif lain |
+| **Tidak punya tagihan belum lunas** | Batalkan dulu di Keuangan supaya jejak pemulihannya tetap ada |
+
+Yang **tetap** ditolak, walaupun sudah menekan tombol:
+
+- tagihan laporan itu **sudah lunas** (uangnya sudah diterima) atau **nominalnya sudah diedit manual** — angkanya sudah dipakai;
+- laporan **paket per pertemuan** — buka kuncinya dari **Keuangan → Tagihan per Pertemuan** (sesi kembali ke antrean, lalu terbitkan paket yang benar);
+- laporan yang sudah punya **laporan susulan** — perbaiki lewat laporan susulan itu agar sesinya tidak terhitung dua kali;
+- laporan yang sudah ditandai **dibagikan** butuh konfirmasi tambahan. Saat kunci dibuka, tanda "sudah dibagikan" **dilepas** supaya versi lama tidak terbaca sebagai versi yang sudah dikirim.
+
+Setelah dibuka, laporan kembali menghitung ulang dari sesi terbaru (draft), jadi angka hasil perbaikan itulah yang dipakai saat difinalkan lagi. Semua pembukaan kunci tercatat di **Pengaturan → Riwayat Aktivitas** (`report.unlock`) beserta total dan status "sudah dibagikan" sebelumnya.
 
 ## 7. Membatalkan & memulihkan tagihan
 

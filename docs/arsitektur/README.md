@@ -14,7 +14,7 @@
 > ⚠️ **BACA SEBELUM MENGUTIP ANGKA DARI FOLDER INI.**
 > Seri ini menjelaskan **CARA** aplikasi dibangun, bukan **keadaan hari ini**. Beberapa berkas memuat
 > potret versi yang berbeda-beda (mis. `05` = potret v1.37.0, `06` = potret v1.71.1). Aplikasi berjalan
-> **v1.77.0**. Untuk keadaan terkini pakai: **kode sumber** + [`../../src/lib/version.ts`](../../src/lib/version.ts) (CHANGELOG)
+> **v1.78.0**. Untuk keadaan terkini pakai: **kode sumber** + [`../../src/lib/version.ts`](../../src/lib/version.ts) (CHANGELOG)
 > + [`../README.md`](../README.md) §5 (riwayat).
 >
 > **`03-capture-flow.md` sudah dipindahkan ke [`../arsip/03-capture-flow.md`](../arsip/03-capture-flow.md)**

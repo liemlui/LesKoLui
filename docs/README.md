@@ -4,13 +4,13 @@
 jenis: indeks
 status: aktif
 diperbarui: 2026-09-30
-versi_app: v1.77.0
-test: 599 lulus / 53 berkas
+versi_app: v1.78.0
+test: 609 lulus / 54 berkas
 baca_ini_kalau: kamu (manusia atau AI) perlu tahu dokumen mana yang harus dibuka
 jangan_baca_berurutan: pakai tabel §2
 ```
 
-> **Sekilas** · Jenis: **indeks dokumentasi (pintu masuk)** · Status: **aktif** · Diperbarui: 2026-09-30 (v1.77.0).
+> **Sekilas** · Jenis: **indeks dokumentasi (pintu masuk)** · Status: **aktif** · Diperbarui: 2026-09-30 (v1.78.0).
 > **Untuk siapa:** pemilik aplikasi (Ko Lui) dan agen AI yang merawat repo ini.
 > **Isi:** peta "mau X → buka Y" (§2) · aturan penamaan (§3) · **status pekerjaan (§4)** · riwayat rilis (§5) · aturan pemeliharaan (§6).
 > **Berkas lain tidak perlu dibaca berurutan.** Tabel §2 adalah router-nya.
@@ -144,6 +144,7 @@ Satu-satunya cara menutup pekerjaan §4.2 #4. Jalankan dengan data dev (fungsi `
 | 2026-09-13 | Dokumentasi ditata ulang: `docs/kerja/` untuk dokumen tugas AI, indeks jadi router, `TODO.md` + `03-capture-flow.md` diarsipkan | v1.75.1 |
 | 2026-09-15 | Ketahanan AI dan Settings diperkuat dengan tes; refactor Catat Sesi, detail murid, dan tagihan dilanjutkan | v1.76.0 |
 | 2026-09-30 | Tarif sesi lama dibekukan (retroaktif hanya lewat centang eksplisit + audit); tagihan bisa dibatalkan berjejak lalu dipulihkan dari perangkat ini; total laporan final dibekukan; jatuh tempo bisa diubah — semuanya di balik PIN Keuangan | v1.77.0 |
+| 2026-09-30 | Laporan final bisa **dibuka kuncinya** menjadi draft untuk diperbaiki (PIN-gated) — jalur yang hilang sebelumnya: membatalkan tagihan saja menghasilkan tagihan identik karena total final membeku; guard: tagihan lunas/manual, paket, laporan susulan | v1.78.0 |
 
 ---
 

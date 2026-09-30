@@ -155,6 +155,100 @@ export async function confirmReport(id: string): Promise<void> {
   await upsertReport({ ...report, status: "confirmed" as ReportStatus });
 }
 
+export interface UnlockReportOptions {
+  /** Wajib `true` bila laporan sudah ditandai dibagikan; UI menanyakannya lebih dulu. */
+  confirmShared?: boolean;
+}
+
+export interface UnlockReportResult {
+  /** Laporan ini pernah ditandai sudah dibagikan sebelum kuncinya dibuka. */
+  wasShared: boolean;
+}
+
+/**
+ * Buka kunci laporan final → kembali menjadi draft supaya cakupan sesi, periode,
+ * dan nominalnya bisa diperbaiki. Ini jalur untuk kasus **laporannya** yang salah,
+ * bukan tagihannya: membatalkan tagihan saja akan menghasilkan tagihan yang sama,
+ * karena laporan final membekukan totalnya.
+ *
+ * Urutan yang benar: batalkan dulu tagihannya di Keuangan (tagihan belum lunas),
+ * lalu buka kunci, perbaiki laporan, finalkan lagi, terbitkan tagihan baru.
+ * Laporan yang tagihannya sudah **lunas** atau nominalnya **diedit manual**
+ * ditolak: angkanya sudah dipakai untuk uang yang benar-benar berpindah.
+ *
+ * Seluruh guard diperiksa SEBELUM penulisan apa pun, dan pembukaan kunci berjalan
+ * dalam satu transaksi + meninggalkan entri audit `report.unlock`.
+ */
+export async function unlockReport(
+  reportId: string,
+  options: UnlockReportOptions = {},
+): Promise<UnlockReportResult> {
+  return db.transaction("rw", db.reports, db.payments, db.auditLog, async () => {
+    const report = await db.reports.get(reportId);
+    if (!report) throw new Error("Laporan tidak ditemukan");
+    if (reportStatus(report) !== "confirmed") {
+      throw new Error("Laporan ini belum final; tidak ada kunci yang perlu dibuka");
+    }
+    if (report.billingMode === "session_count") {
+      throw new Error(
+        "Laporan paket per pertemuan dibuka lewat Keuangan: batalkan tagihan paketnya di antrean Tagihan per Pertemuan, sesinya kembali ke antrean, lalu terbitkan paket yang benar",
+      );
+    }
+    const linked = await db.payments.where("reportId").equals(report.id).toArray();
+    if (linked.some((payment) => payment.status === "PAID")) {
+      throw new Error(
+        "Tidak bisa dibuka: tagihannya sudah lunas dan uangnya sudah diterima, jadi laporan ini tetap final",
+      );
+    }
+    if (linked.some((payment) => payment.source === "manual")) {
+      throw new Error(
+        "Tidak bisa dibuka: nominal tagihannya sudah diedit manual. Rapikan nominalnya dulu di Keuangan",
+      );
+    }
+    if (linked.length > 0) {
+      throw new Error(
+        `Tidak bisa dibuka: masih ada ${linked.length} tagihan belum lunas dari laporan ini. Batalkan dulu tagihannya di Keuangan → Tagihan, lalu buka kunci laporan ini`,
+      );
+    }
+    const siblings = await db.reports.where({ studentId: report.studentId }).toArray();
+    if (siblings.some((candidate) => candidate.supplementalForReportId === report.id)) {
+      throw new Error(
+        "Tidak bisa dibuka: sudah ada laporan susulan dari laporan ini. Perbaiki lewat laporan susulan itu supaya sesinya tidak terhitung dua kali",
+      );
+    }
+    const wasShared = Boolean(report.pdfGeneratedAt);
+    if (wasShared && options.confirmShared !== true) {
+      throw new Error(
+        "Laporan ini sudah ditandai dibagikan ke orang tua. Buka kunci tetap bisa, tetapi angka yang sudah dikirim tidak bisa ditarik — konfirmasi dulu",
+      );
+    }
+    await db.reports.update(report.id, {
+      status: "draft" as ReportStatus,
+      // Tanda "sudah dibagikan" dilepas: versi yang beredar tidak lagi sama
+      // dengan draft yang sedang diperbaiki. Jejaknya tetap ada di audit.
+      pdfGeneratedAt: undefined,
+    });
+    await db.auditLog.add({
+      id: crypto.randomUUID(),
+      action: "report.unlock",
+      entityType: "report",
+      entityId: report.id,
+      timestamp: timestamp(),
+      details: JSON.stringify({
+        previousStatus: "confirmed",
+        totalCost: report.totalCost,
+        totalHours: report.totalHours,
+        sessionCount: report.sessionIds.length,
+        periodStart: report.periodStart,
+        periodEnd: report.periodEnd,
+        wasShared,
+        sharedAt: report.pdfGeneratedAt ?? null,
+      }),
+    });
+    return { wasShared };
+  });
+}
+
 async function assertConfirmedScopeAvailable(
   report: MonthlyReport,
   existing?: MonthlyReport,
