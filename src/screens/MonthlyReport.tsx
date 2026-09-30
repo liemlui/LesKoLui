@@ -48,7 +48,7 @@ import { clampPage, paginateItems } from "../lib/pagination";
 import { scoreLabel, averageEngagement, sessionEngagementScore, engagementAverage } from "../lib/engagement";
 import { pickDirtyNarrativeSessions } from "../lib/aiIncremental";
 import type {
-  ReportOptions, CustomTheme, Theme, LayoutCategory,
+  ReportOptions, CustomTheme, Theme,
 } from "../template/types";
 import type { MonthlyReport, NextMonthPlan, Session } from "../db/types";
 import { db } from "../db/db";
@@ -662,13 +662,10 @@ export default function MonthlyReportPage() {
   // jangan tampilkan semua list, cukup acak saja"). Tombol "🎲 Acak" memilih
   // tema + layout untuk pengguna; galeri hanya dibuka bila benar-benar diminta.
   const [showThemeList, setShowThemeList] = useState(false);
-  // Filter galeri layout (kategori dari metadata tools layout) — semua layout
-  // tetap tersedia; filter hanya menyembunyikan. Menerapkan Hick's Law.
-  const [layoutCategory, setLayoutCategory] = useState<LayoutCategory | "">("");
-  const filteredLayouts = useMemo(() => {
-    if (!layoutCategory) return LAYOUTS;
-    return LAYOUTS.filter((l) => l.categories?.includes(layoutCategory));
-  }, [layoutCategory]);
+  // Daftar layout juga di balik tombol sendiri. Filter kategori
+  // (Classic/Modern/Visual/Analytic/Formal/Playful) DIHAPUS atas permintaan
+  // pemilik — kategori hanya menambah langkah memilih tanpa membantu.
+  const [showLayoutList, setShowLayoutList] = useState(false);
   // C-2: preview on-demand per kombinasi layout yang diklik (bukan render
   // seluruh galeri sekaligus). Preview memakai SAMPLE_REPORT_DATA — tanpa AI.
   const [previewLayoutId, setPreviewLayoutId] = useState<string | null>(null);
@@ -785,7 +782,7 @@ export default function MonthlyReportPage() {
     setCoverPage(false);
     setShowCustomBuilder(false);
     setShowThemeList(false);
-    setLayoutCategory("");
+    setShowLayoutList(false);
     setReportData(null);
   }, [reportScopeKey, invalidateAiRequests, setPrevTexts]);
 
@@ -1768,14 +1765,21 @@ export default function MonthlyReportPage() {
                     <span className="text-xs text-blue-600 font-semibold group-open:hidden">Ubah tema & layout ▸</span>
                     <span className="text-xs text-gray-400 font-semibold hidden group-open:inline">▾</span>
                   </summary>
-                  {/* Row 1: Random + Layout + Cover toggle */}
+                  {/* Row 1: Random + Pilih tema + Cover toggle */}
                   <div className="flex flex-wrap items-center gap-2">
                     <button className="btn btn-secondary text-sm py-1.5 px-2 flex-shrink-0 whitespace-nowrap"
                       onClick={handleRegenerate}>🎲 Acak</button>
                     <button className="btn btn-secondary text-sm py-1.5 px-2 flex-shrink-0 whitespace-nowrap"
                       onClick={() => setShowThemeList((v) => !v)}
-                      aria-expanded={showThemeList}>
-                      {showThemeList ? "🙈 Sembunyikan tema" : "🎨 Pilih tema sendiri"}
+                      aria-expanded={showThemeList}
+                      title="Tampilkan semua tema. Untuk memilih layout, buka tombol “Layout”.">
+                      {showThemeList ? "🙈 Sembunyikan tema" : "🎨 Pilih tema"}
+                    </button>
+                    <button className="btn btn-secondary text-sm py-1.5 px-2 flex-shrink-0 whitespace-nowrap"
+                      onClick={() => setShowLayoutList((v) => !v)}
+                      aria-expanded={showLayoutList}
+                      title="Tampilkan semua layout halaman laporan.">
+                      {showLayoutList ? "🙈 Sembunyikan layout" : "📐 Layout"}
                     </button>
                     {undoStack.length > 0 && (
                       <button className="btn btn-secondary text-sm py-1.5 px-2 flex-shrink-0"
@@ -1785,26 +1789,12 @@ export default function MonthlyReportPage() {
                           await upsertReport({ ...report, templateKey: { themeId: prev.themeId, layoutId: prev.layoutId } });
                         }}>↩ Undo</button>
                     )}
-                    <div className="min-w-0 basis-[140px] flex-1 space-y-2">
-                      {/* Filter kategori (semua layout tetap tersedia; filter hanya menyembunyikan) */}
-                      <div className="flex flex-wrap gap-1">
-                        {(["" as const, "classic", "visual", "analytic", "modern", "formal", "playful"] as const).map((cat) => (
-                          <button
-                            key={cat === "" ? "all" : cat}
-                            type="button"
-                            onClick={() => setLayoutCategory(cat)}
-                            aria-pressed={layoutCategory === cat}
-                            className={`rounded-full px-2 py-0.5 text-xs font-semibold transition-colors ${
-                              layoutCategory === cat ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                            }`}>
-                            {cat === "" ? "Semua" : cat.charAt(0).toUpperCase() + cat.slice(1)}
-                          </button>
-                        ))}
-                      </div>
-                      {/* Grid layout — ganti dropdown panjang. Tombol 👁 = preview
-                          on-demand dengan data contoh (C-2). */}
-                      <div className="flex flex-wrap gap-1">
-                        {filteredLayouts.map((l) => (
+                    {/* Daftar layout — TANPA filter kategori (Classic/Modern/Visual/
+                        Analytic/Formal/Playful dihapus): kategori hanya menambah
+                        langkah memilih tanpa membantu. */}
+                    {showLayoutList && (
+                      <div className="flex w-full flex-wrap gap-1">
+                        {LAYOUTS.map((l) => (
                           <span key={l.id} className="relative inline-flex">
                             <button
                               type="button"
@@ -1831,11 +1821,8 @@ export default function MonthlyReportPage() {
                             </button>
                           </span>
                         ))}
-                        {filteredLayouts.length === 0 && (
-                          <p className="text-xs text-gray-500">Tidak ada layout pada kategori ini.</p>
-                        )}
                       </div>
-                    </div>
+                    )}
                     <button onClick={() => setCoverPage((v) => !v)}
                       className={`text-sm py-1.5 px-2 rounded-lg border transition-colors whitespace-nowrap ${coverPage ? "bg-blue-600 text-white border-blue-600" : "bg-gray-50 text-gray-600 border-gray-200"}`}>
                       {coverPage ? "📄 Cover ✓" : "📄 Cover"}

@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.79.2",
+    date: "2026-10-01",
+    title: "Filter kategori layout dihapus — tinggal Pilih tema & Layout",
+    items: [
+      "Filter kategori layout (Classic, Visual, Analytic, Modern, Formal, Playful) dihapus dari panel desain. Kategori itu hanya menambah satu langkah memilih sebelum sampai ke layout yang diinginkan, dan sudah tidak dipakai setelah tema & warna diacak.",
+      "Panel desain kini punya tiga tombol sederhana: “🎲 Acak” (tema + layout dipilihkan), “🎨 Pilih tema” (menampilkan seluruh tema bila memang ingin memilih sendiri), dan “📐 Layout” (menampilkan seluruh layout beserta tombol pratinjau 👁). Semua layout tetap tersedia — hanya filternya yang hilang.",
+    ],
+  },
+  {
     version: "v1.79.1",
     date: "2026-10-01",
     title: "Catatan Guru & Rencana Depan kini benar-benar diisi tombol AI",
