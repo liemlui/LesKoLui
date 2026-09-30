@@ -200,7 +200,7 @@ describe("handleGenerateAll (satu tombol AI)", () => {
     // Ringkasan tetap satu panggilan kecil atas SELURUH sesi.
     expect(generateReportSummaryMock).toHaveBeenCalledTimes(1);
     expect((generateReportSummaryMock.mock.calls[0][0] as NarrativesInput).sessions).toHaveLength(19);
-    expect(messages.at(-1)).toBe("Isi AI selesai ✓ 19 narasi + ringkasan & rencana depan terisi");
+    expect(messages.at(-1)).toBe("Isi AI selesai ✓ 19 narasi + ringkasan, catatan guru & rencana depan terisi");
   });
 
   it("batch tengah yang gagal tidak menghapus batch yang sudah tersimpan", async () => {
@@ -225,7 +225,7 @@ describe("handleGenerateAll (satu tombol AI)", () => {
     expect(applyAiNarrativeBatchMock.mock.calls[1][1]).toHaveLength(3);
     expect(messages.at(-1)).toContain("11 narasi tersimpan");
     expect(messages.at(-1)).toContain("1 batch gagal (AI timeout di batch 2)");
-    expect(messages.at(-1)).toContain("ringkasan & rencana depan terisi");
+    expect(messages.at(-1)).toContain("ringkasan, catatan guru & rencana depan terisi");
   });
 
   it("tetap menulis ringkasan walau semua narasi sudah terbaru", async () => {
@@ -247,5 +247,61 @@ describe("handleGenerateAll (satu tombol AI)", () => {
       summaryHash: expect.any(Number),
     });
     expect(messages.at(-1)).toContain("sudah terbaru");
+  });
+
+  // Regresi: tombol "Isi Semua dengan AI" sempat TIDAK mengisi kolom
+  // "Catatan Guru" karena catatan guru hanya berasal dari panggilan narasi,
+  // sementara field laporan hanya ditulis dari panggilan ringkasan.
+  it("mengisi Catatan Guru dan Rencana Depan, bukan hanya ringkasan & kutipan", async () => {
+    const session = makeSession();
+    const report = makeReport();
+    const messages: string[] = [];
+    const hook = renderHook(makeDepsFor([session], report, messages));
+    generateNarrativesMock.mockImplementation(async (input: NarrativesInput) => ({
+      entries: input.sessions.map((s) => ({ id: s.id, narrative: "Narasi AI" })),
+      summary: "Ringkasan dari narasi",
+      teacherNote: "Catatan guru dari batch",
+      quote: "Kutipan dari batch",
+    }));
+    generateReportSummaryMock.mockResolvedValue({
+      summary: "Ringkasan periode",
+      teacherNote: "Kemajuan terbesar: aljabar; fokus berikutnya: soal cerita.",
+      quote: "Semangat, Murid!",
+      nextMonthPlan: { priorities: [{ target: "Selesaikan 10 soal cerita", subject: "Matematika" }], parentSupport: "Dampingi 15 menit/hari" },
+    });
+
+    await hook.handleGenerateAll(true);
+
+    expect(upsertReportMock).toHaveBeenCalledTimes(1);
+    const written = upsertReportMock.mock.calls[0][0] as MonthlyReport;
+    expect(written.teacherNote).toBe("Kemajuan terbesar: aljabar; fokus berikutnya: soal cerita.");
+    expect(written.summaryText).toBe("Ringkasan periode");
+    expect(written.quote).toBe("Semangat, Murid!");
+    expect(written.nextMonthPlan?.priorities[0]?.target).toBe("Selesaikan 10 soal cerita");
+    expect(written.nextMonthPlan?.parentSupport).toBe("Dampingi 15 menit/hari");
+    expect(messages.at(-1)).toContain("catatan guru");
+  });
+
+  it("memakai catatan guru & rencana dari batch penuh bila panggilan ringkasan gagal", async () => {
+    const session = makeSession();
+    const report = makeReport();
+    const messages: string[] = [];
+    const hook = renderHook(makeDepsFor([session], report, messages));
+    generateNarrativesMock.mockImplementation(async (input: NarrativesInput) => ({
+      entries: input.sessions.map((s) => ({ id: s.id, narrative: "Narasi AI" })),
+      summary: "Ringkasan dari narasi",
+      teacherNote: "Catatan guru dari batch penuh",
+      quote: "Kutipan dari batch penuh",
+      nextMonthPlan: { priorities: [{ target: "Latihan tiap hari", subject: "Matematika" }] },
+    }));
+    generateReportSummaryMock.mockRejectedValue(new Error("AI timeout"));
+
+    await hook.handleGenerateAll(true);
+
+    const written = upsertReportMock.mock.calls[0][0] as MonthlyReport;
+    expect(written.teacherNote).toBe("Catatan guru dari batch penuh");
+    expect(written.quote).toBe("Kutipan dari batch penuh");
+    expect(written.nextMonthPlan?.priorities[0]?.target).toBe("Latihan tiap hari");
+    expect(messages.at(-1)).toContain("catatan guru dari batch tetap disimpan");
   });
 });

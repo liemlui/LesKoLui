@@ -212,6 +212,11 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
       const prevNarratives: Array<{ id: string; narrative?: string }> = [];
       const overwritten = new Set<string>();
       let processed = 0;
+      // Field laporan yang hanya boleh dipercaya bila batch itu memuat SEMUA sesi
+      // (kalau sebagian, ringkasan/catatan guru akan menilai data sepotong).
+      let batchTeacherNote: string | undefined;
+      let batchQuote: string | undefined;
+      let batchPlan: ReturnType<typeof normaliseAiPlan>;
 
       // Narasi per batch — berurutan, satu panggilan AI per batch.
       for (const batch of batches) {
@@ -235,6 +240,14 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
           // Simpan batch ini sekarang juga — kegagalan batch lain tidak menghapus hasil ini.
           await applyAiNarrativeBatch(draft, updates, {});
           if (requestId !== aiRequestRef.current) return;
+          // Catatan guru/kutipan/rencana dari batch ini dipakai HANYA bila batch
+          // memuat seluruh sesi (batch tunggal penuh) — sama seperti perilaku
+          // lama yang menulis field laporan dari panggilan narasi penuh.
+          if (batch.length === selectedSessions.length) {
+            batchTeacherNote = out.teacherNote?.trim() || batchTeacherNote;
+            batchQuote = out.quote?.trim() || batchQuote;
+            batchPlan = normaliseAiPlan(out.nextMonthPlan) ?? batchPlan;
+          }
           for (const update of updates) {
             if (overwritten.has(update.id)) continue;
             overwritten.add(update.id);
@@ -249,24 +262,42 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
         processed += batch.length;
       }
 
-      // Satu panggilan ringkasan atas SELURUH sesi (bukan per batch).
+      // Satu panggilan ringkasan atas SELURUH sesi (bukan per batch) untuk
+      // ringkasan, CATATAN GURU, kutipan, dan rencana depan.
       setAiProgress({ done: targetSessions.length, total: targetSessions.length, step: "Menyusun ringkasan…" });
+      let summaryText: string | undefined;
+      let teacherNote: string | undefined;
+      let quote: string | undefined;
+      let plan: ReturnType<typeof normaliseAiPlan>;
       try {
         const out = await generateReportSummary(buildReportAiInput(student, period, selectedSessions, prevAvgEngagement));
         if (requestId !== aiRequestRef.current) return;
-        const aiPlan = normaliseAiPlan(out.nextMonthPlan);
-        await upsertReport({
-          ...draft,
-          summaryText: out.summary ?? "",
-          quote: out.quote,
-          nextMonthPlan: aiPlan ?? draft.nextMonthPlan,
-          summaryHash: reportSummaryFingerprint(draft, selectedSessions),
-        });
-        if (requestId !== aiRequestRef.current) return;
+        summaryText = out.summary ?? "";
+        teacherNote = out.teacherNote?.trim() || undefined;
+        quote = out.quote?.trim() || undefined;
+        plan = normaliseAiPlan(out.nextMonthPlan);
         summaryOk = true;
       } catch (e) {
         summaryError = (e as Error).message;
       }
+
+      // Tulis field laporan SEKALI saja — dengan cadangan dari batch penuh bila
+      // panggilan ringkasan gagal, supaya "Catatan Guru"/"Rencana Depan" tidak
+      // pernah kosong hanya karena satu panggilan gagal.
+      const finalTeacherNote = teacherNote ?? batchTeacherNote;
+      const finalQuote = quote ?? batchQuote;
+      const finalPlan = plan ?? batchPlan;
+      if (requestId !== aiRequestRef.current) return;
+      await upsertReport({
+        ...draft,
+        summaryText: summaryText?.trim() || draft.summaryText,
+        teacherNote: finalTeacherNote ?? draft.teacherNote,
+        quote: finalQuote ?? draft.quote,
+        nextMonthPlan: finalPlan ?? draft.nextMonthPlan,
+        ...(summaryOk ? { summaryHash: reportSummaryFingerprint(draft, selectedSessions) } : {}),
+      });
+      if (requestId !== aiRequestRef.current) return;
+      if (finalTeacherNote || finalQuote || finalPlan) setOpenPlan(true);
 
       if (narrativeSuccess === 0 && !summaryOk) {
         setMessage("Gagal: " + (firstError ?? summaryError ?? "tidak ada hasil AI yang bisa disimpan."));
@@ -275,13 +306,15 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
       // Undo penuh tetap bekerja lewat tombol "↩ Undo Hasil AI" yang sudah ada.
       setPrevTexts({ ...prevReport, narratives: prevNarratives });
       if (narrativeSuccess === 0 && batches.length === 0) {
-        setMessage(`Semua ${selectedSessions.length} narasi sudah terbaru ✓ Ringkasan & rencana depan terisi`);
+        setMessage(`Semua ${selectedSessions.length} narasi sudah terbaru ✓ Ringkasan, catatan guru & rencana depan terisi`);
       } else if (failedBatches === 0 && summaryOk) {
-        setMessage(`Isi AI selesai ✓ ${narrativeSuccess} narasi + ringkasan & rencana depan terisi`);
+        setMessage(`Isi AI selesai ✓ ${narrativeSuccess} narasi + ringkasan, catatan guru & rencana depan terisi`);
       } else {
         const parts = [`${narrativeSuccess} narasi tersimpan`];
         if (failedBatches > 0) parts.push(`${failedBatches} batch gagal (${firstError}) dan dilewati`);
-        parts.push(summaryOk ? "ringkasan & rencana depan terisi" : `ringkasan gagal (${summaryError})`);
+        parts.push(summaryOk
+          ? "ringkasan, catatan guru & rencana depan terisi"
+          : `ringkasan gagal (${summaryError})${batchTeacherNote ? " — catatan guru dari batch tetap disimpan" : ""}`);
         setMessage(`Isi AI sebagian ✓ ${parts.join(" · ")}`);
       }
       if (narrativeSuccess > 0) setOpenNarasi(true);

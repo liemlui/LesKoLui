@@ -11,6 +11,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.79.1",
+    date: "2026-10-01",
+    title: "Catatan Guru & Rencana Depan kini benar-benar diisi tombol AI",
+    items: [
+      "Tombol “🤖 Isi Semua dengan AI” sebelumnya mengisi narasi tiap sesi, ringkasan, dan kutipan, tetapi TIDAK mengisi kolom “Catatan Guru” dan “Rencana Berikutnya”: catatan guru hanya dihasilkan oleh panggilan narasi, sementara field laporan hanya ditulis dari panggilan ringkasan — jadi hasilnya terbuang. Sekarang satu panggilan ringkasan diminta mengisi ringkasan + CATATAN GURU + kutipan + rencana depan, lalu semuanya ditulis ke laporan.",
+      "Bila panggilan ringkasan gagal (mis. timeout) padahal narasi berhasil, catatan guru/kutipan/rencana depan dari batch yang memuat seluruh sesi tetap dipakai — jadi kolom itu tidak lagi kosong hanya karena satu panggilan gagal. Pesan hasil menyebutkan bagian mana yang terisi.",
+      "Teks bantuan dan modal biaya AI diperbarui: “ringkasan, catatan guru, kutipan & rencana depan”.",
+    ],
+  },
+  {
     version: "v1.79.0",
     date: "2026-10-01",
     title: "Laporan lebih hemat halaman, satu tombol AI, dan riwayat yang bisa dibuka",

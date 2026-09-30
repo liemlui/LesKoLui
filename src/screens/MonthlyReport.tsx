@@ -1723,7 +1723,7 @@ export default function MonthlyReportPage() {
                   {report && settings?.ai?.enabled && settings.ai.apiKey && (
                     <button className="w-full btn text-sm bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
                       onClick={() => setShowNarrativesModal(true)} disabled={aiLoading || !availability.ok}
-                      title="AI mengisi semua isian: narasi tiap sesi (per batch kecil) + ringkasan, kutipan & rencana depan">
+                      title="AI mengisi semua isian: narasi tiap sesi (per batch kecil) + ringkasan, catatan guru, kutipan & rencana depan">
                       {aiLoading ? `⏳ AI ${aiProgress?.step ?? "…"}` : "🤖 Isi Semua dengan AI"}
                     </button>
                   )}
@@ -2188,7 +2188,7 @@ export default function MonthlyReportPage() {
                           </button>
                           {settings?.ai?.enabled && settings.ai.apiKey && (
                             <p className="pt-1 text-xs text-gray-500">
-                              Ringkasan & rencana depan ikut diisi oleh tombol <strong>🤖 Isi Semua dengan AI</strong> di panel atas.
+                              Ringkasan, catatan guru & rencana depan ikut diisi oleh tombol <strong>🤖 Isi Semua dengan AI</strong> di panel atas.
                             </p>
                           )}
                         </>
@@ -2260,7 +2260,7 @@ export default function MonthlyReportPage() {
         open={showNarrativesModal}
         title="🤖 Isi Semua dengan AI"
         estimatedIDR={estimateNarrativesCost(forceNarratives ? reportSessions.length : narrativeDirtyCount) + estimateReportSummaryCost(reportSessions.length)}
-        description={`Narasi ${forceNarratives ? reportSessions.length : narrativeDirtyCount} sesi ditulis dalam batch kecil (maks 8 sesi per panggilan) supaya laporan panjang tidak lagi gagal karena batas token, lalu satu panggilan ringkasan mengisi ringkasan, kutipan & rencana depan untuk ${student?.name ?? "murid"}.${!forceNarratives && narrativeDirtyCount === 0 ? " Semua narasi sudah terbaru — hanya ringkasan yang diisi." : ""}`}
+        description={`Narasi ${forceNarratives ? reportSessions.length : narrativeDirtyCount} sesi ditulis dalam batch kecil (maks 8 sesi per panggilan) supaya laporan panjang tidak lagi gagal karena batas token, lalu satu panggilan ringkasan mengisi ringkasan, catatan guru, kutipan & rencana depan untuk ${student?.name ?? "murid"}.${!forceNarratives && narrativeDirtyCount === 0 ? " Semua narasi sudah terbaru — ringkasan, catatan guru & rencana depan tetap diisi." : ""}`}
         dataSent="Nama dan level murid, periode laporan, serta ID, tanggal, mapel dan catatan sesi yang dipilih. Bila tersedia: mood, topik, area perhatian, prediksi dan nilai akhir, refleksi nilai, skor engagement, label perilaku dan respons, serta rata-rata engagement periode sebelumnya."
         extraContent={
           <label className="flex items-start gap-2 mt-3 text-xs text-gray-600 cursor-pointer select-none">

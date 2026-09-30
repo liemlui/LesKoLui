@@ -75,9 +75,10 @@ export function validateAiNarratives(value: unknown, requestedIds: readonly stri
 export function validateAiReportSummary(value: unknown) {
   const source = object(value, "root");
   string(source.summary, "summary");
+  string(source.teacherNote, "teacherNote", false);
   string(source.quote, "quote", false);
   plan(source.nextMonthPlan);
-  return value as { summary: string; quote?: string; nextMonthPlan?: unknown };
+  return value as { summary: string; teacherNote?: string; quote?: string; nextMonthPlan?: unknown };
 }
 
 export function validateAiDraftNote(value: unknown) {

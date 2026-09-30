@@ -4,13 +4,13 @@
 jenis: indeks
 status: aktif
 diperbarui: 2026-10-01
-versi_app: v1.79.0
-test: 632 lulus / 54 berkas
+versi_app: v1.79.1
+test: 634 lulus / 54 berkas
 baca_ini_kalau: kamu (manusia atau AI) perlu tahu dokumen mana yang harus dibuka
 jangan_baca_berurutan: pakai tabel §2
 ```
 
-> **Sekilas** · Jenis: **indeks dokumentasi (pintu masuk)** · Status: **aktif** · Diperbarui: 2026-10-01 (v1.79.0).
+> **Sekilas** · Jenis: **indeks dokumentasi (pintu masuk)** · Status: **aktif** · Diperbarui: 2026-10-01 (v1.79.1).
 > **Untuk siapa:** pemilik aplikasi (Ko Lui) dan agen AI yang merawat repo ini.
 > **Isi:** peta "mau X → buka Y" (§2) · aturan penamaan (§3) · **status pekerjaan (§4)** · riwayat rilis (§5) · aturan pemeliharaan (§6).
 > **Berkas lain tidak perlu dibaca berurutan.** Tabel §2 adalah router-nya.
@@ -147,6 +147,7 @@ Satu-satunya cara menutup pekerjaan §4.2 #4. Jalankan dengan data dev (fungsi `
 | 2026-09-30 | Laporan final bisa **dibuka kuncinya** menjadi draft untuk diperbaiki (PIN-gated) — jalur yang hilang sebelumnya: membatalkan tagihan saja menghasilkan tagihan identik karena total final membeku; guard: tagihan lunas/manual, paket, laporan susulan | v1.78.0 |
 | 2026-10-01 | Foto sesi mengalir di dalam teks (7 layout), pilihan rasio 3:4 dihapus (semua tinggi otomatis), satu tombol **🤖 Isi Semua dengan AI** dengan narasi berbatch (anti-gagal konteks terlalu besar), info terduplikasi di laporan dihapus (chip topik/perhatian), tema & warna diacak (galeri disembunyikan, mode Bandingkan dihapus), menu Laporan bisa membuka riwayat laporan, aksi penagihan jadi satu tombol, tombol kirim laporan+tagihan & WA massal dihapus, entri pemulihan tagihan bisa dihapus, **foto sesi >12 bulan diperkecil otomatis** (data lama tidak membengkak) | v1.79.0 |
 | 2026-10-01 | **Kunci periode laporan jadi per SESI, bukan kalender** (memperbaiki laporan murid yang ditolak karena “tanggal 1 September sudah direkap” padahal rekap sebelumnya bukan September); daftar periode terkunci bisa dibuka di layar Laporan; rentang sesi + tombol “Sesuaikan tanggal”; **titik pemulihan tagihan bisa dipilih** (termasuk kembali ke titik lama setelah salah pulihkan); restore file/Drive menampilkan tahapan + tombol cek file + pesan gagal yang jelas; CSP font tema diperbaiki | v1.79.0 |
+| 2026-10-01 | **Perbaikan tombol “Isi Semua dengan AI”**: kolom **Catatan Guru** & **Rencana Berikutnya** tidak terisi karena hanya dihasilkan panggilan narasi sementara field laporan ditulis dari panggilan ringkasan — sekarang satu panggilan ringkasan mengisi ringkasan + catatan guru + kutipan + rencana depan, dengan cadangan dari batch penuh bila panggilan itu gagal | v1.79.1 |
 
 ---
 
