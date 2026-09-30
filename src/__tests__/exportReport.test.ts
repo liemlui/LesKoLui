@@ -24,12 +24,21 @@ describe("detectOverflow", () => {
       fakeNode("report-page-1", 500, 480), // +20 → dilaporkan
       fakeNode("report-page-2", 300, 300), // muat pas
       fakeNode(COVER_PAGE_ID, 600, 500),   // cover → dikecualikan
-      fakeNode("report-page-3", 700, 500, true), // .report-page-grow → dikecualikan
-      fakeNode("report-page-4", 300, 297), // +3 <= 4 → aman
+      fakeNode("report-page-3", 300, 297), // +3 <= 4 → aman
     ]);
 
     const issues = detectOverflow(root);
     expect(issues).toEqual([{ pageId: "report-page-1", overflowPx: 20 }]);
+  });
+
+  // Halaman laporan kini selalu bertinggi otomatis (pilihan rasio 3:4 dihapus),
+  // jadi kelas warisan `.report-page-grow` TIDAK lagi menjadi pengecualian:
+  // halaman yang benar-benar meluap tetap dilaporkan sebagai jaring pengaman.
+  it("melaporkan halaman meluap meski masih membawa kelas warisan report-page-grow", () => {
+    const root = fakeRoot([
+      fakeNode("report-page-1", 700, 500, true),
+    ]);
+    expect(detectOverflow(root)).toEqual([{ pageId: "report-page-1", overflowPx: 200 }]);
   });
 
   it("mengembalikan array kosong ketika semua halaman muat", () => {

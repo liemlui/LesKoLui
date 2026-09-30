@@ -11,8 +11,7 @@ const F = {
   caveat: "'Caveat', cursive",
 };
 
-export const THEMES: Theme[] = [
-  { id:"winter",   name:"Winter Blue",     bg:"linear-gradient(175deg,#d7eefb,#c3e2f7)", ink:"#2b4a68", muted:"#536c88", accent:"#3f7fd0", palette:["#4f9d4f","#e0892f","#d9605f","#7a74c4"], fontDisplay:F.fredoka, fontBody:F.nunito, header:"bubble", label:"rounded", photo:"round", deco:"snow", headerText:"ABSENSI" },
+export const THEMES: Theme[] = [  { id:"winter",   name:"Winter Blue",     bg:"linear-gradient(175deg,#d7eefb,#c3e2f7)", ink:"#2b4a68", muted:"#536c88", accent:"#3f7fd0", palette:["#4f9d4f","#e0892f","#d9605f","#7a74c4"], fontDisplay:F.fredoka, fontBody:F.nunito, header:"bubble", label:"rounded", photo:"round", deco:"snow", headerText:"ABSENSI" },
   { id:"navy",     name:"Navy Gold",       bg:"linear-gradient(180deg,#1d3a5d,#15314f)", ink:"#e8f0f8", muted:"#9bb4cc", accent:"#e7b24a", palette:["#e7b24a","#d9a23c","#e7b24a","#d9a23c"], fontDisplay:F.pacifico, fontBody:F.poppins, header:"script", label:"flag", photo:"round", deco:"sparkle", headerText:"ABSEN" },
   { id:"tropis",   name:"Tropis",          bg:"linear-gradient(175deg,#cfeafa,#bfe6e0)", ink:"#1f5a55", muted:"#416f6a", accent:"#2f9488", palette:["#2f9488","#e0892f","#3f7fd0","#d9605f"], fontDisplay:F.baloo, fontBody:F.nunito, header:"bubble", label:"pill", photo:"circle", deco:"leaf", headerText:"ABSENSI" },
   { id:"sakura",   name:"Sakura Pastel",   bg:"linear-gradient(175deg,#ffe4ef,#ffd0e2)", ink:"#7a3a55", muted:"#8b5d72", accent:"#e86a93", palette:["#e86a93","#e0892f","#7a74c4","#3f9488"], fontDisplay:F.fredoka, fontBody:F.nunito, header:"script", label:"pill", photo:"circle", deco:"petal", headerText:"ABSENSI" },
@@ -52,6 +51,46 @@ export const THEMES: Theme[] = [
   { id:"executive", name:"Executive",       bg:"#ffffff", ink:"#1f2937", muted:"#6b7280", accent:"#2563eb", palette:["#2563eb","#0d9488","#d97706","#be123c"], fontDisplay:F.poppins, fontBody:F.nunito, header:"minimal", label:"underline", photo:"frame", deco:"none", headerText:"LAPORAN" },
   { id:"consultant",name:"Consultant Navy",  bg:"linear-gradient(180deg,#0f172a,#1e293b)", ink:"#e2e8f0", muted:"#94a3b8", accent:"#38bdf8", palette:["#38bdf8","#34d399","#fbbf24","#f472b6"], fontDisplay:F.poppins, fontBody:F.poppins, header:"minimal", label:"underline", photo:"shadow", deco:"none", headerText:"LAPORAN" },
 ];
+
+/**
+ * Acak urutan warna aksen tiap tema (keputusan pemilik: "mending acak color").
+ *
+ * Setiap halaman laporan mewarnai label/chip/kartu sesi dari `palette` secara
+ * berurutan. Urutan tetap membuat sesi ke-1 selalu kuning, ke-2 selalu merah,
+ * dst. sehingga laporan terlihat seragam. Urutan diacak SEKALI di sini dengan
+ * benih tetap — hasilnya bervariasi antar halaman/tema tetapi tetap stabil
+ * (tidak berubah setiap render, sehingga laporan & ekspor tidak "berkedip").
+ */
+function shufflePalette<T>(items: readonly T[], seed: number): T[] {
+  const out = [...items];
+  let state = seed >>> 0;
+  const next = () => {
+    // xorshift32 — cukup untuk mengocok 4 warna, tanpa dependensi baru.
+    state ^= state << 13; state >>>= 0;
+    state ^= state >> 17;
+    state ^= state << 5;  state >>>= 0;
+    return state / 0xffffffff;
+  };
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(next() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/** Benih tetap per tema dari string id-nya — deterministik, bukan acak tiap muat. */
+function seedOf(id: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < id.length; i++) {
+    hash ^= id.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+for (const theme of THEMES) {
+  theme.palette = shufflePalette(theme.palette, seedOf(theme.id));
+}
 
 export const THEME_IDS = THEMES.map((t) => t.id);
 export function getTheme(id: string): Theme {

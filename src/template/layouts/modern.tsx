@@ -2,7 +2,7 @@ import React from "react";
 import type { Layout } from "../types";
 import { Deco } from "../deco";
 import {
-  HeaderEl, LabelEl, PhotoEl, NarrEl, SessionMeta,
+  HeaderEl, LabelEl, PhotoEl, FloatPhoto, NarrEl, SessionMeta,
   SummaryEl, Sparkline, EngagementTrend, EMPTY_SUBJECT,
   entryDateShort, entrySubject, entrySubjectShort,
   entryNarrative, truncateText,
@@ -29,14 +29,11 @@ export const milestone: Layout = {
               </div>
               <div style={{ flex: 1, paddingBottom: i < d.entries.length - 1 ? 0 : 0 }}>
                 <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
-                <div style={{ marginTop: 6, background: c + "0a", borderRadius: 12, padding: "10px 12px", display: "flex", gap: 10, alignItems: "flex-start" }}>
-                  <div style={{ width: 64, height: 64, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
-                    <PhotoEl t={t} url={e.photoUrl} color={c} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <NarrEl t={t}>{e.narrative}</NarrEl>
-                    <SessionMeta e={e} t={t} />
-                  </div>
+                <div style={{ marginTop: 6, background: c + "0a", borderRadius: 12, padding: "10px 12px" }}>
+                  <FloatPhoto t={t} url={e.photoUrl} color={c} width={64} height={64} />
+                  <NarrEl t={t}>{e.narrative}</NarrEl>
+                  <SessionMeta e={e} t={t} />
+                  <div style={{ clear: "both" }} />
                 </div>
               </div>
             </div>
@@ -58,19 +55,16 @@ export const split: Layout = {
       {d.entries.map((e, i) => {
         const c = t.palette[i % t.palette.length];
         return (
-          <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16, position: "relative", zIndex: 2, background: c + "0a", borderRadius: 14, padding: 12, alignItems: "start" }}>
-            {/* Left: Photo + Engagement */}
-            <div>
-              <div style={{ height: 120, borderRadius: 10, overflow: "hidden", marginBottom: 6 }}>
-                <PhotoEl t={t} url={e.photoUrl} color={c} />
-              </div>
-            </div>
-            {/* Right: Label + Narrative */}
-            <div>
-              <LabelEl t={t} c={c}>{e.date}</LabelEl>
+          <div key={i} style={{ marginBottom: 16, position: "relative", zIndex: 2, background: c + "0a", borderRadius: 14, padding: 12 }}>
+            <LabelEl t={t} c={c}>{e.date}</LabelEl>
+            {/* Dulu grid 1fr/1fr: separuh halaman dipakai kolom foto sehingga
+                narasi sempit dan sisa ruang di bawah foto terbuang. */}
+            <div style={{ marginTop: 6 }}>
+              <FloatPhoto t={t} url={e.photoUrl} color={c} width={118} height={94} />
               <p style={{ fontSize: 10, fontWeight: 600, color: t.muted, margin: "4px 0" }}>{e.subject}</p>
               <NarrEl t={t}>{e.narrative}</NarrEl>
               <SessionMeta e={e} t={t} />
+              <div style={{ clear: "both" }} />
             </div>
           </div>
         );
@@ -101,14 +95,11 @@ export const journal: Layout = {
               <span style={{ fontSize: 10, fontWeight: 700, color: c, background: c + "18", padding: "2px 8px", borderRadius: 999 }}>
                 {e.subject}
               </span>
-              <div style={{ display: "flex", gap: 10, marginTop: 6, alignItems: "flex-start" }}>
-                <div style={{ width: 64, height: 64, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
-                  <PhotoEl t={t} url={e.photoUrl} color={c} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontFamily: t.fontBody, fontSize: 14, lineHeight: 1.5, color: t.ink, margin: 0 }}>{e.narrative}</p>
-                  <SessionMeta e={e} t={t} />
-                </div>
+              <div style={{ marginTop: 6 }}>
+                <FloatPhoto t={t} url={e.photoUrl} color={c} width={64} height={64} />
+                <p style={{ fontFamily: t.fontBody, fontSize: 14, lineHeight: 1.5, color: t.ink, margin: 0 }}>{e.narrative}</p>
+                <SessionMeta e={e} t={t} />
+                <div style={{ clear: "both" }} />
               </div>
             </div>
           </div>

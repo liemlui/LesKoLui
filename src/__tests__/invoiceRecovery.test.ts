@@ -10,8 +10,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "../db/db";
 import {
   cancelReportInvoice, cancelSessionCountInvoice, createManualPayment, createSessionCountInvoice,
-  deleteManualPayment, listInvoiceCancellations, listSessionCountBillingProgress,
-  restoreCancelledInvoice, syncReportPayment, updatePaymentDueAt, upsertReport, updateStudent,
+  decodeInvoiceCancelSnapshot,
+  deleteManualPayment, discardInvoiceCancellation, listInvoiceCancellations, listInvoiceSnapshotPoints,
+  listSessionCountBillingProgress, restoreCancelledInvoice, syncReportPayment, updatePaymentAmountById,
+  updatePaymentDueAt, upsertReport, updateStudent,
 } from "../db/repos";
 import { frozenReportTotals, reportTotalsDrifted } from "../db/repos/reportRepo";
 import type { MonthlyReport, Session, Student } from "../db/types";
@@ -171,22 +173,33 @@ describe("pemulihan paket (L2)", () => {
     expect(await db.auditLog.count()).toBe(2);
   });
 
-  it("pemulihan ditolak tanpa menimpa bila tagihan dengan ID sama sudah berbeda (G9)", async () => {
+  it("kembali ke titik yang lebih tua menimpa keadaan sekarang (salah pulihkan → pilih titik lain)", async () => {
     const { studentId } = await seedPackageStudent();
     const issued = await createSessionCountInvoice(studentId);
     await cancelSessionCountInvoice(issued.paymentId);
     const [cancellation] = await listInvoiceCancellations();
 
-    // Baris lain memakai ID yang sama dengan nilai berbeda (mis. hasil impor).
+    // Keadaan "berbeda" yang harus ditimpa, bukan ditolak: inilah jalur
+    // "salah pulihkan lalu pilih titik lain". Guard G1–G8 (sesi, siklus murid,
+    // laporan pengganti) tetap berlaku dan diperiksa lebih dulu.
     await db.payments.add({
       id: issued.paymentId, studentId, month: "2026-01", totalCost: 99_000,
       status: "UNPAID", source: "manual",
     });
 
     await expect(restoreCancelledInvoice(cancellation.snapshotId))
-      .rejects.toThrow("sudah ada dengan data berbeda");
-    await expect(db.payments.get(issued.paymentId)).resolves.toMatchObject({ totalCost: 99_000 });
-    await expect(db.reports.get(issued.reportId)).resolves.toBeUndefined();
+      .resolves.toEqual({ status: "restored", kind: "package" });
+    // Tagihan kembali persis ke snapshot (nominal aslinya), bukan nilai pengganti.
+    const restored = (await db.payments.get(issued.paymentId))!;
+    const snapshotPayment = decodeInvoiceCancelSnapshot(
+      (await db.auditLog.get(cancellation.snapshotId))!,
+    )!.payment;
+    expect(restored.totalCost).toBe(snapshotPayment.totalCost);
+    expect(restored.totalCost).not.toBe(99_000);
+    expect(restored.month).toBe(snapshotPayment.month);
+    await expect(db.reports.get(issued.reportId)).resolves.toBeDefined();
+    const restoreRows = (await db.auditLog.toArray()).filter((entry) => entry.action === "payment.restore");
+    expect(restoreRows).toHaveLength(1);
   });
 
   it("pemulihan ditolak bila siklus murid berubah setelah pembatalan (G8)", async () => {
@@ -269,6 +282,182 @@ describe("pemulihan paket (L2)", () => {
 
     expect(await listInvoiceCancellations()).toHaveLength(0);
     await expect(restoreCancelledInvoice("rusak")).rejects.toThrow("tidak dapat dibaca");
+  });
+});
+
+describe("buang salinan pemulihan (discard)", () => {
+  /** Satu tagihan manual dibatalkan → satu entri pemulihan yang bisa dibuang. */
+  async function seedCancelledManual(id: string, totalCost = 250_000): Promise<{ paymentId: string }> {
+    await db.students.add(student(id, "manual", undefined));
+    const paymentId = await createManualPayment({
+      studentId: id, month: "2026-04", totalCost, status: "UNPAID",
+    });
+    await deleteManualPayment(paymentId);
+    return { paymentId };
+  }
+
+  it("menghapus entri dari daftar, tidak memulihkan tagihan, dan mencatat payment.discard", async () => {
+    const { paymentId } = await seedCancelledManual("disc");
+    const [cancellation] = await listInvoiceCancellations();
+    expect(cancellation).toMatchObject({ kind: "manual", paymentId, totalCost: 250_000 });
+
+    await discardInvoiceCancellation(cancellation.snapshotId);
+
+    expect(await listInvoiceCancellations()).toHaveLength(0);
+    // Tagihan TIDAK kembali: hanya salinan pemulihannya yang hilang.
+    expect(await db.payments.get(paymentId)).toBeUndefined();
+    const audits = await db.auditLog.toArray();
+    expect(audits.map((entry) => entry.action)).toEqual(["payment.discard"]);
+    expect(audits[0]).toMatchObject({ entityType: "payment", entityId: paymentId });
+    expect(JSON.parse(audits[0].details ?? "{}"))
+      .toEqual({ snapshotId: cancellation.snapshotId, kind: "manual" });
+    // Snapshot sudah tidak ada, jadi pemulihan pun tidak mungkin lagi.
+    await expect(restoreCancelledInvoice(cancellation.snapshotId))
+      .rejects.toThrow("Snapshot pembatalan tidak ditemukan di perangkat ini");
+  });
+
+  it("membuang snapshot paket membiarkan sesi & murid apa adanya", async () => {
+    await db.students.add(student("disc-pkg", "session_count", 2));
+    await db.sessions.bulkAdd([
+      session("disc-pkg-1", "disc-pkg", "2026-01-01"),
+      session("disc-pkg-2", "disc-pkg", "2026-01-02"),
+    ]);
+    const issued = await createSessionCountInvoice("disc-pkg");
+    await cancelSessionCountInvoice(issued.paymentId);
+    const [cancellation] = await listInvoiceCancellations();
+    const studentBefore = (await db.students.get("disc-pkg"))!;
+
+    await discardInvoiceCancellation(cancellation.snapshotId);
+
+    expect(await listInvoiceCancellations()).toHaveLength(0);
+    expect(await db.payments.get(issued.paymentId)).toBeUndefined();
+    expect(await db.reports.get(issued.reportId)).toBeUndefined();
+    expect(await db.students.get("disc-pkg")).toEqual(studentBefore);
+    expect((await db.sessions.bulkGet(["disc-pkg-1", "disc-pkg-2"])).filter(Boolean)).toHaveLength(2);
+  });
+
+  it("menolak entri yang tidak ada dan entri yang bukan snapshot pembatalan", async () => {
+    await db.auditLog.add({
+      id: "bukan-snapshot", action: "payment.paid", entityType: "payment",
+      entityId: "p", timestamp: "2026-01-01T00:00:00.000Z",
+    });
+
+    await expect(discardInvoiceCancellation("tidak-ada"))
+      .rejects.toThrow("Snapshot pembatalan tidak ditemukan");
+    await expect(discardInvoiceCancellation("bukan-snapshot"))
+      .rejects.toThrow("Entri ini bukan snapshot pembatalan");
+    // Tidak ada entri yang terhapus atau tertulis.
+    expect(await db.auditLog.count()).toBe(1);
+  });
+
+  it("menolak snapshot yang sudah dipulihkan dan menyisakan jejak pemulihannya", async () => {
+    const { paymentId } = await seedCancelledManual("disc-restored", 100_000);
+    const [cancellation] = await listInvoiceCancellations();
+    await restoreCancelledInvoice(cancellation.snapshotId);
+
+    await expect(discardInvoiceCancellation(cancellation.snapshotId))
+      .rejects.toThrow("Tagihan ini sudah dipulihkan");
+    await expect(db.payments.get(paymentId)).resolves.toBeDefined();
+    expect(await db.auditLog.get(cancellation.snapshotId)).toBeDefined();
+    expect((await db.auditLog.toArray()).map((entry) => entry.action).sort())
+      .toEqual(["payment.cancel", "payment.restore"]);
+  });
+
+  it("snapshot lama dengan id sama yang ditambahkan ulang tidak menghidupkan barisnya", async () => {
+    await seedCancelledManual("disc-stale", 175_000);
+    const [cancellation] = await listInvoiceCancellations();
+    const stale = (await db.auditLog.get(cancellation.snapshotId))!;
+
+    await discardInvoiceCancellation(cancellation.snapshotId);
+    // Snapshot "stale" (mis. sisa impor/backup lama) memakai id yang sama.
+    await db.auditLog.add(stale);
+
+    expect(await listInvoiceCancellations()).toHaveLength(0);
+  });
+});
+
+describe("titik pemulihan (timeline)", () => {
+  /** Batalkan lagi tagihan manual yang SUDAH ada ⇒ satu titik pemulihan baru. */
+  async function cancelExisting(paymentId: string): Promise<string> {
+    await deleteManualPayment(paymentId);
+    const [cancellation] = await listInvoiceCancellations();
+    return cancellation.snapshotId;
+  }
+
+  /**
+   * Tagihan manual: buat → hapus, jadi satu titik pemulihan untuk `paymentId`
+   * yang sama. Dipakai berulang agar satu tagihan bisa punya beberapa titik.
+   */
+  async function cancelManual(id: string, totalCost = 250_000): Promise<{ paymentId: string; snapshotId: string }> {
+    await db.students.put(student(id, "manual", undefined));
+    const paymentId = await createManualPayment({
+      studentId: id, month: "2026-04", totalCost, status: "UNPAID",
+    });
+    return { paymentId, snapshotId: await cancelExisting(paymentId) };
+  }
+
+  it("batal → pulihkan → batal lagi menyisakan DUA titik: yang lama terpakai, yang baru belum", async () => {
+    const first = await cancelManual("tl");
+    await restoreCancelledInvoice(first.snapshotId);
+    // Tagihan yang sama dibatalkan lagi — inilah titik pemulihan yang baru.
+    const secondSnapshotId = await cancelExisting(first.paymentId);
+    const second = { paymentId: first.paymentId, snapshotId: secondSnapshotId };
+    expect(second.snapshotId).not.toBe(first.snapshotId);
+
+    const points = await listInvoiceSnapshotPoints(first.paymentId);
+    // lama → baru, dan titiknya BUKAN snapshot yang masih ditawarkan saja.
+    expect(points.map((point) => point.snapshotId)).toEqual([first.snapshotId, second.snapshotId]);
+    expect(points[0]).toMatchObject({
+      kind: "manual", month: "2026-04", totalCost: 250_000, sessionCount: 0, spent: true,
+    });
+    expect(points[0].restoredAt).toBeTruthy();
+    expect(points[0].discardedAt).toBeUndefined();
+    expect(points[1]).toMatchObject({
+      kind: "manual", month: "2026-04", totalCost: 250_000, sessionCount: 0, spent: false,
+    });
+    expect(points[1].restoredAt).toBeUndefined();
+    expect(points[1].discardedAt).toBeUndefined();
+    expect(points[1].cancelAt >= points[0].cancelAt).toBe(true);
+
+    // Daftar "bisa dipulihkan" tetap hanya berisi titik yang belum terpakai.
+    const restorable = await listInvoiceCancellations();
+    expect(restorable.map((entry) => entry.snapshotId)).toEqual([second.snapshotId]);
+  });
+
+  it("titik yang salinannya dibuang punya discardedAt dan spent: true", async () => {
+    const { paymentId, snapshotId } = await cancelManual("tl-disc", 175_000);
+    await discardInvoiceCancellation(snapshotId);
+
+    const points = await listInvoiceSnapshotPoints(paymentId);
+    expect(points).toHaveLength(1);
+    expect(points[0]).toMatchObject({ snapshotId, kind: "manual", spent: true });
+    expect(points[0].discardedAt).toBeTruthy();
+    expect(points[0].restoredAt).toBeUndefined();
+    // Snapshot-nya ikut terhapus saat dibuang, jadi rinciannya tidak tersimpan
+    // lagi — titiknya tetap tampil sebagai riwayat, bukan sebagai tawaran.
+    expect(points[0]).toMatchObject({ month: "", sessionCount: 0, totalCost: 0 });
+    expect(await listInvoiceCancellations()).toHaveLength(0);
+  });
+
+  it("paymentId yang tidak dikenal tidak punya satu pun titik pemulihan", async () => {
+    await cancelManual("tl-none");
+    await expect(listInvoiceSnapshotPoints("tidak-ada")).resolves.toEqual([]);
+  });
+
+  it("titik yang sudah dipulihkan bisa dipakai lagi sebagai jalan kembali (bukan ditolak)", async () => {
+    const { paymentId, snapshotId } = await cancelManual("tl-used", 120_000);
+    await restoreCancelledInvoice(snapshotId);
+
+    // Tagihan sudah persis seperti semula ⇒ pemulihan ulang idempoten (tidak
+    // menulis jejak pemulihan kedua).
+    await expect(restoreCancelledInvoice(snapshotId)).resolves.toEqual({ status: "noop", kind: "manual" });
+    // Begitu isinya berubah, titik lama tetap BISA dipakai untuk kembali ke
+    // keadaan pada titik itu — inilah yang diminta pemilik ("mau saya restore
+    // di tanggal berapa berapa").
+    await updatePaymentAmountById(paymentId, 200_000);
+    await expect(restoreCancelledInvoice(snapshotId)).resolves.toEqual({ status: "restored", kind: "manual" });
+    expect((await db.payments.get(paymentId))!.totalCost).toBe(120_000);
+    expect((await db.auditLog.toArray()).filter((entry) => entry.action === "payment.restore")).toHaveLength(2);
   });
 });
 

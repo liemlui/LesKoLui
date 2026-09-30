@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useRef, useState } from "react";
-import { generateReportSummary, generateNarratives } from "../../lib/aiClient";
+import { chunkSessionsForAi, generateReportSummary, generateNarratives } from "../../lib/aiClient";
 import { buildReportAiInput } from "../../lib/reportSessionScope";
 import { pickDirtyNarrativeSessions, reportSummaryFingerprint, sessionAiFingerprint } from "../../lib/aiIncremental";
 import { normaliseAiPlan, cleanText, buildSessionNarrative, sessionSubjectLabel } from "./helpers";
@@ -32,6 +32,8 @@ export interface ReportGenerationDeps {
 
 export function useReportGeneration(deps: ReportGenerationDeps) {
   const [aiLoading, setAiLoading] = useState(false);
+  /** Progres tombol "Isi Semua dengan AI" — batch narasi yang sedang diproses. */
+  const [aiProgress, setAiProgress] = useState<{ done: number; total: number; step: string } | null>(null);
   const aiRequestRef = useRef(0);
   const [prevTexts, setPrevTexts] = useState<{
     summaryText: string;
@@ -46,6 +48,7 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
   const invalidateAiRequests = useCallback(() => {
     aiRequestRef.current += 1;
     setAiLoading(false);
+    setAiProgress(null);
   }, []);
 
   const handlePolish = async (force = false) => {
@@ -166,6 +169,133 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
       if (requestId === aiRequestRef.current) setAiLoading(false);
     }
   };
+  /** SATU tombol AI: isi semua isian laporan.
+   *  - Narasi sesi dikirim per batch kecil (maks 8 sesi / ~12rb karakter) dan
+   *    diproses BERURUTAN, supaya konteks tiap panggilan tetap kecil dan tidak
+   *    lagi gagal dengan "Respons AI terpotong karena batas token".
+   *  - Batch yang sukses langsung disimpan; batch yang gagal dilewati tanpa
+   *    membatalkan batch lain.
+   *  - Terakhir SATU panggilan ringkasan memakai seluruh sesi (konteks kecil,
+   *    tanpa narasi per sesi) untuk summary, kutipan, dan rencana depan. */
+  const handleGenerateAll = async (force = false) => {
+    const { student, reportSessions, prevAvgEngagement, periodStart, periodEnd, month, ensureReport, setMessage, setOpenNarasi, setOpenTeks, setOpenPlan } = deps;
+    if (!student || reportSessions.length === 0) return;
+    if (!navigator.onLine) { setMessage("Offline."); return; }
+    const requestId = ++aiRequestRef.current;
+    const selectedSessions = reportSessions;
+    const { dirty } = pickDirtyNarrativeSessions(selectedSessions);
+    const targetSessions = force ? selectedSessions : dirty;
+    const batches = chunkSessionsForAi(targetSessions);
+    setAiLoading(true);
+    setAiProgress({
+      done: 0,
+      total: targetSessions.length,
+      step: targetSessions.length === 0 ? "Menyusun ringkasan…" : `Narasi 0/${targetSessions.length} sesi…`,
+    });
+    let narrativeSuccess = 0;
+    let failedBatches = 0;
+    let firstError: string | undefined;
+    let summaryError: string | undefined;
+    let summaryOk = false;
+    try {
+      const draft = await ensureReport();
+      if (!draft || requestId !== aiRequestRef.current) return;
+      // Snapshot untuk Undo — diambil SEBELUM ada field yang ditimpa.
+      const prevReport = {
+        summaryText: draft.summaryText,
+        teacherNote: draft.teacherNote,
+        quote: draft.quote,
+        nextMonthPlan: draft.nextMonthPlan,
+      };
+      const period = periodLabel(periodStart, periodEnd) || monthLabel(month);
+      const sourceById = new Map(selectedSessions.map((s) => [s.id, s]));
+      const prevNarratives: Array<{ id: string; narrative?: string }> = [];
+      const overwritten = new Set<string>();
+      let processed = 0;
+
+      // Narasi per batch — berurutan, satu panggilan AI per batch.
+      for (const batch of batches) {
+        if (requestId !== aiRequestRef.current) return;
+        setAiProgress({ done: processed, total: targetSessions.length, step: `Narasi ${processed}/${targetSessions.length} sesi…` });
+        try {
+          const out = await generateNarratives(buildReportAiInput(student, period, batch, prevAvgEngagement));
+          if (requestId !== aiRequestRef.current) return;
+          const validIds = new Set(batch.map((s) => s.id));
+          const updates: Array<{ id: string; narrative: string; aiNarrativeHash: number }> = [];
+          for (const entry of out.entries ?? []) {
+            if (!validIds.has(entry.id) || !entry.narrative?.trim()) continue;
+            const source = sourceById.get(entry.id);
+            if (!source) continue;
+            updates.push({
+              id: entry.id,
+              narrative: entry.narrative.trim(),
+              aiNarrativeHash: sessionAiFingerprint(source),
+            });
+          }
+          // Simpan batch ini sekarang juga — kegagalan batch lain tidak menghapus hasil ini.
+          await applyAiNarrativeBatch(draft, updates, {});
+          if (requestId !== aiRequestRef.current) return;
+          for (const update of updates) {
+            if (overwritten.has(update.id)) continue;
+            overwritten.add(update.id);
+            prevNarratives.push({ id: update.id, narrative: sourceById.get(update.id)?.narrative });
+          }
+          narrativeSuccess += updates.length;
+        } catch (e) {
+          // Batch gagal tidak membatalkan sisanya — catat error pertama lalu lanjut.
+          failedBatches += 1;
+          if (!firstError) firstError = (e as Error).message;
+        }
+        processed += batch.length;
+      }
+
+      // Satu panggilan ringkasan atas SELURUH sesi (bukan per batch).
+      setAiProgress({ done: targetSessions.length, total: targetSessions.length, step: "Menyusun ringkasan…" });
+      try {
+        const out = await generateReportSummary(buildReportAiInput(student, period, selectedSessions, prevAvgEngagement));
+        if (requestId !== aiRequestRef.current) return;
+        const aiPlan = normaliseAiPlan(out.nextMonthPlan);
+        await upsertReport({
+          ...draft,
+          summaryText: out.summary ?? "",
+          quote: out.quote,
+          nextMonthPlan: aiPlan ?? draft.nextMonthPlan,
+          summaryHash: reportSummaryFingerprint(draft, selectedSessions),
+        });
+        if (requestId !== aiRequestRef.current) return;
+        summaryOk = true;
+      } catch (e) {
+        summaryError = (e as Error).message;
+      }
+
+      if (narrativeSuccess === 0 && !summaryOk) {
+        setMessage("Gagal: " + (firstError ?? summaryError ?? "tidak ada hasil AI yang bisa disimpan."));
+        return;
+      }
+      // Undo penuh tetap bekerja lewat tombol "↩ Undo Hasil AI" yang sudah ada.
+      setPrevTexts({ ...prevReport, narratives: prevNarratives });
+      if (narrativeSuccess === 0 && batches.length === 0) {
+        setMessage(`Semua ${selectedSessions.length} narasi sudah terbaru ✓ Ringkasan & rencana depan terisi`);
+      } else if (failedBatches === 0 && summaryOk) {
+        setMessage(`Isi AI selesai ✓ ${narrativeSuccess} narasi + ringkasan & rencana depan terisi`);
+      } else {
+        const parts = [`${narrativeSuccess} narasi tersimpan`];
+        if (failedBatches > 0) parts.push(`${failedBatches} batch gagal (${firstError}) dan dilewati`);
+        parts.push(summaryOk ? "ringkasan & rencana depan terisi" : `ringkasan gagal (${summaryError})`);
+        setMessage(`Isi AI sebagian ✓ ${parts.join(" · ")}`);
+      }
+      if (narrativeSuccess > 0) setOpenNarasi(true);
+      if (summaryOk) { setOpenTeks(true); setOpenPlan(true); }
+    } catch (e) {
+      if (requestId === aiRequestRef.current) setMessage("Gagal: " + (e as Error).message);
+    } finally {
+      if (requestId === aiRequestRef.current) {
+        setAiLoading(false);
+        setAiProgress(null);
+      }
+    }
+  };
+
   /** Generate narasi sesi GRATIS dari data yang sudah ada (tanpa AI). */
   const handleGenerateLocalNarratives = async () => {
     const { report, reportSessions, setMessage, setOpenNarasi } = deps;
@@ -221,11 +351,13 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
 
   return {
     aiLoading,
+    aiProgress,
     prevTexts,
     setPrevTexts,
     invalidateAiRequests,
     handlePolish,
     handleGenerateNarratives,
+    handleGenerateAll,
     handleGenerateLocalNarratives,
     handleGenerateLocalTexts,
   };

@@ -15,10 +15,10 @@
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  cancelReportInvoice, deleteManualPayment, listInvoiceCancellations,
-  restoreCancelledInvoice, updatePaymentDueAt,
+  cancelReportInvoice, deleteManualPayment, discardInvoiceCancellation, listInvoiceCancellations,
+  listInvoiceSnapshotPoints, restoreCancelledInvoice, updatePaymentDueAt,
 } from "../../db/repos";
-import type { InvoiceCancellation } from "../../db/repos";
+import type { InvoiceCancellation, InvoiceSnapshotPoint } from "../../db/repos";
 import type { Payment } from "../../db/types";
 import { formatRupiah, monthLabel } from "../../lib/format";
 
@@ -57,11 +57,40 @@ export function invoiceKindLabel(kind: InvoiceCancellation["kind"]): string {
   return KIND_LABEL[kind];
 }
 
+/**
+ * "3 Okt 2026, 14.05" — penanda tanggal+jam satu titik pemulihan.
+ *
+ * Bila tanggalnya tidak bisa dibaca, string aslinya dikembalikan apa adanya
+ * supaya pesan konfirmasi tidak pernah berbunyi "Invalid Date"
+ * (`toLocaleString` tidak melempar untuk tanggal rusak).
+ */
+export function snapshotMomentLabel(iso: string): string {
+  const time = new Date(iso).getTime();
+  if (!Number.isFinite(time)) return iso;
+  return new Date(time).toLocaleString("id-ID", {
+    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+  });
+}
+
 export function useInvoiceRecovery({ setMessage, setConfirmState, pinAvailable }: UseInvoiceRecoveryArgs) {
   /** Snapshot pembatalan yang masih bisa dipulihkan (lokal per perangkat). */
   const cancellations = useLiveQuery(() => listInvoiceCancellations(), []);
   const [busyKeys, setBusyKeys] = useState<Record<string, boolean>>({});
   const [pinAction, setPinAction] = useState<PinAction | null>(null);
+  /**
+   * Tagihan yang riwayat titik pemulihannya sedang dibuka (pemilih "mau saya
+   * pulihkan di tanggal berapa"). `null` = pemilih tertutup.
+   */
+  const [snapshotPaymentId, setSnapshotPaymentId] = useState<string | null>(null);
+  /**
+   * SEMUA titik pemulihan tagihan itu (lama → baru) — termasuk yang sudah
+   * dipulihkan atau dibuang, supaya pemilik bisa kembali ke titik yang lebih
+   * awal setelah salah memulihkan. `undefined` = masih dimuat.
+   */
+  const snapshotPoints = useLiveQuery(
+    () => (snapshotPaymentId ? listInvoiceSnapshotPoints(snapshotPaymentId) : []),
+    [snapshotPaymentId],
+  );
 
   const setBusy = (key: string, value: boolean) => {
     setBusyKeys((current) => {
@@ -180,6 +209,69 @@ export function useInvoiceRecovery({ setMessage, setConfirmState, pinAvailable }
     });
   };
 
+  /**
+   * Buka riwayat titik pemulihan satu tagihan (READ-ONLY): pemilik memilih
+   * sendiri titik waktu mana yang mau dipulihkan.
+   */
+  const openSnapshotHistory = (paymentId: string) => setSnapshotPaymentId(paymentId);
+  const closeSnapshotHistory = () => setSnapshotPaymentId(null);
+
+  /**
+   * Pulihkan tagihan ke SATU titik waktu tertentu dari riwayatnya — bukan
+   * sekadar "yang terakhir dibatalkan".
+   *
+   * Titik yang sudah pernah dipulihkan TETAP bisa dipilih: justru itulah jalan
+   * kembali ketika pemulihan sebelumnya salah ("mau saya restore di tanggal
+   * berapa berapa"). Yang benar-benar hilang hanyalah titik yang salinannya
+   * sudah DIHAPUS (`discardedAt`) — rinciannya sudah tidak tersimpan.
+   */
+  const askRestoreSnapshot = (point: InvoiceSnapshotPoint, studentName: string) => {
+    const moment = snapshotMomentLabel(point.cancelAt);
+    const kembali = point.restoredAt
+      ? `\nTitik ini pernah dipulihkan ${snapshotMomentLabel(point.restoredAt)}; memilihnya lagi akan mengembalikan tagihan ke keadaan ${moment} dan menimpa perubahan sesudahnya.`
+      : "";
+    askWithPin({
+      key: `restore-${point.snapshotId}`,
+      confirmTitle: "Pulihkan tagihan ke titik ini?",
+      confirmMessage:
+        `Pulihkan ${KIND_LABEL[point.kind].toLowerCase()} ${studentName} persis seperti keadaannya pada ${moment} `
+        + `(${formatRupiah(point.totalCost)}, ${monthLabel(point.month)}, ${point.sessionCount} sesi)?\n`
+        + `Tagihan, laporan, dan siklus murid dikembalikan seperti pada ${moment} — `
+        + "perubahan yang terjadi sesudah tanggal itu tidak ikut kembali."
+        + kembali,
+      confirmLabel: "Pulihkan",
+      action: async () => {
+        const result = await restoreCancelledInvoice(point.snapshotId);
+        if (result.status === "noop") {
+          throw new Error(`tagihan ini sudah berada persis seperti pada ${moment}`);
+        }
+      },
+      success: `Tagihan ${studentName} dipulihkan ke keadaan ${moment} ✓`,
+      warning: "Pemulihan ditolak bila sesi, laporan, atau siklus murid sudah berubah setelah pembatalan.",
+    });
+  };
+
+  /**
+   * Buang salinan pemulihan tagihan yang dibatalkan (daftar ini tidak boleh
+   * menumpuk selamanya). Tagihan yang sudah dibatalkan TIDAK kembali.
+   */
+  const askDiscardCancellation = (cancellation: InvoiceCancellation, studentName: string) => {
+    askWithPin({
+      key: `discard-${cancellation.snapshotId}`,
+      confirmTitle: "Hapus entri pemulihan ini?",
+      confirmMessage:
+        `Hapus salinan pemulihan ${KIND_LABEL[cancellation.kind].toLowerCase()} ${studentName} `
+        + `(${formatRupiah(cancellation.totalCost)}, ${monthLabel(cancellation.month)}) dari daftar ini?\n`
+        + "Salinan pemulihannya dihapus permanen: tagihan TIDAK kembali dan titik ini tidak bisa "
+        + "dipulihkan lagi, termasuk bila suatu saat Anda ingin kembali ke keadaan pada tanggal itu. "
+        + "Hanya salinan pemulihannya yang hilang, bukan tagihannya.",
+      confirmLabel: "Hapus",
+      action: () => discardInvoiceCancellation(cancellation.snapshotId),
+      success: `Salinan pemulihan ${studentName} dihapus ✓`,
+      warning: "Setelah dihapus, File Backup adalah satu-satunya salinan permanen.",
+    });
+  };
+
   /** Ubah jatuh tempo tagihan yang belum lunas (D5). */
   const askUpdateDueAt = (invoice: Payment, studentName: string, dueAt: string) => {
     askWithPin({
@@ -196,6 +288,10 @@ export function useInvoiceRecovery({ setMessage, setConfirmState, pinAvailable }
 
   return {
     cancellations,
+    snapshotPoints,
+    snapshotPaymentId,
+    openSnapshotHistory,
+    closeSnapshotHistory,
     busyKeys,
     pinAction,
     cancelPinAction: () => setPinAction(null),
@@ -203,6 +299,8 @@ export function useInvoiceRecovery({ setMessage, setConfirmState, pinAvailable }
     askCancelReportInvoice,
     askDeleteManualPayment,
     askRestoreCancellation,
+    askRestoreSnapshot,
+    askDiscardCancellation,
     askUpdateDueAt,
   };
 }

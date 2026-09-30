@@ -1,7 +1,7 @@
 import type { Layout } from "../types";
 import { Deco } from "../deco";
 import {
-  HeaderEl, LabelEl, PhotoEl, NarrEl, SessionMeta,
+  HeaderEl, LabelEl, PhotoEl, FloatPhoto, NarrEl, SessionMeta,
   SummaryEl, EngagementTrend, GradeComparisonTable, onColor, entryDateShort,
 } from "./helpers";
 
@@ -35,18 +35,16 @@ export const dashboard: Layout = {
       {d.entries.map((e, i) => {
         const c = t.palette[i % t.palette.length];
         return (
-          <div key={i} style={{ display: "flex", gap: 10, marginBottom: 12, position: "relative", zIndex: 2, alignItems: "center" }}>
-            <div style={{ width: 64, height: 64, borderRadius: 10, overflow: "hidden", flexShrink: 0 }}>
-              <PhotoEl t={t} url={e.photoUrl} color={c} />
+          <div key={i} style={{ marginBottom: 12, position: "relative", zIndex: 2 }}>
+            {/* Foto mengalir di dalam teks agar tidak ada kolom foto yang menyisakan ruang kosong. */}
+            <FloatPhoto t={t} url={e.photoUrl} color={c} width={64} height={64} />
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: c, fontFamily: t.fontDisplay }}>{e.date}</span>
+              <span style={{ fontSize: 10, background: c + "20", color: c, padding: "1px 6px", borderRadius: 999, fontWeight: 600 }}>{e.subject.split(",")[0]}</span>
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: c, fontFamily: t.fontDisplay }}>{e.date}</span>
-                <span style={{ fontSize: 10, background: c + "20", color: c, padding: "1px 6px", borderRadius: 999, fontWeight: 600 }}>{e.subject.split(",")[0]}</span>
-              </div>
-              <p style={{ fontFamily: t.fontBody, fontSize: 11, lineHeight: 1.4, color: t.ink, margin: "2px 0 0" }}>{e.narrative}</p>
-              <SessionMeta e={e} t={t} />
-            </div>
+            <p style={{ fontFamily: t.fontBody, fontSize: 11, lineHeight: 1.4, color: t.ink, margin: "2px 0 0" }}>{e.narrative}</p>
+            <SessionMeta e={e} t={t} />
+            <div style={{ clear: "both" }} />
           </div>
         );
       })}

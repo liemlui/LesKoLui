@@ -158,18 +158,12 @@ describe("report layouts", () => {
     expect(html).toContain(">10</p>"); // Sesi = totalSessions, bukan 3 entri halaman ini
   });
 
-  it("ReportRenderer applies 3:4 ratio class by default (WhatsApp-friendly)", () => {
+  it("ReportRenderer tidak lagi memberi kelas rasio tetap (tinggi otomatis)", () => {
     const html = renderToStaticMarkup(
       <ReportRenderer data={data} theme={THEMES[0]} layoutId="cards" />
     );
-    expect(html).toContain('class="report-ratio-3-4"');
-  });
-
-  it("ReportRenderer omits ratio class when pageRatio is auto (PDF)", () => {
-    const html = renderToStaticMarkup(
-      <ReportRenderer data={data} theme={THEMES[0]} layoutId="cards" options={{ pageRatio: "auto" }} />
-    );
     expect(html).not.toContain("report-ratio-3-4");
+    expect(html).toContain("data-report-page");
   });
 
   it("ReportRenderer respects entriesPerPage override", () => {
@@ -190,9 +184,8 @@ describe("report layouts", () => {
     expect(html.match(/data-report-page/g)?.length).toBe(3);
   });
 
-  it("setiap layout punya metadata kompatibilitas (rasio & kategori)", () => {
+  it("setiap layout punya metadata kompatibilitas (kategori & narasi)", () => {
     for (const layout of LAYOUTS) {
-      expect(layout.supportedRatios && layout.supportedRatios.length > 0, `${layout.id} supportedRatios`).toBeTruthy();
       expect(layout.categories && layout.categories.length > 0, `${layout.id} categories`).toBeTruthy();
       expect(typeof layout.supportsLongNarrative, `${layout.id} supportsLongNarrative`).toBe("boolean");
     }
@@ -200,15 +193,13 @@ describe("report layouts", () => {
     expect(LAYOUTS.map((l) => l.id)).not.toContain("cover");
   });
 
-  it("merender semua layout via ReportRenderer untuk rasio 3:4 dan auto tanpa crash", () => {
+  it("merender semua layout via ReportRenderer tanpa crash", () => {
     for (const layout of LAYOUTS) {
-      for (const pageRatio of ["3:4", "auto"] as const) {
-        const html = renderToStaticMarkup(
-          <ReportRenderer data={multiData} theme={THEMES[0]} layoutId={layout.id} options={{ pageRatio }} />
-        );
-        expect(typeof html, `${layout.id}@${pageRatio}`).toBe("string");
-        expect(html.match(/data-report-page/g)?.length ?? 0, `${layout.id}@${pageRatio} harus punya ≥1 halaman`).toBeGreaterThan(0);
-      }
+      const html = renderToStaticMarkup(
+        <ReportRenderer data={multiData} theme={THEMES[0]} layoutId={layout.id} />
+      );
+      expect(typeof html, layout.id).toBe("string");
+      expect(html.match(/data-report-page/g)?.length ?? 0, `${layout.id} harus punya ≥1 halaman`).toBeGreaterThan(0);
     }
   });
 
@@ -228,7 +219,7 @@ describe("report layouts", () => {
   it("semua layout merender SAMPLE_REPORT_DATA tanpa crash / NaN (bahan thumbnail galeri)", () => {
     for (const layout of LAYOUTS) {
       const html = renderToStaticMarkup(
-        <ReportRenderer data={SAMPLE_REPORT_DATA} theme={THEMES[0]} layoutId={layout.id} options={{ pageRatio: "3:4" }} />
+        <ReportRenderer data={SAMPLE_REPORT_DATA} theme={THEMES[0]} layoutId={layout.id} />
       );
       expect(html.match(/data-report-page/g)?.length ?? 0, `${layout.id} harus punya ≥1 halaman`).toBeGreaterThan(0);
       expect(html, `${layout.id} tidak boleh merender NaN`).not.toContain("NaN");

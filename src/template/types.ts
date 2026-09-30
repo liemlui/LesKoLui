@@ -90,11 +90,9 @@ export interface Layout {
   id: string;
   name: string;
   maxEntriesPerPage: number;
-  /** Rasio halaman export yang dijamin aman untuk layout ini. Kosong = semua rasio diizinkan. */
-  supportedRatios?: ("3:4" | "auto")[];
   /** Jumlah foto per sesi yang disarankan agar layout tidak tampak kosong/penuh. */
   recommendedPhotoCount?: { min?: number; max?: number };
-  /** Apakah layout tahan narasi panjang tanpa mengorbankan rasio tetap 3:4. */
+  /** Apakah layout tahan narasi panjang tanpa mengorbankan kepadatan halaman. */
   supportsLongNarrative?: boolean;
   /** Kategori untuk filter galeri template (mengurangi beban pilihan — Hick's Law). */
   categories?: LayoutCategory[];
@@ -108,12 +106,11 @@ export interface ReportOptions {
   coverPage?: boolean;
   showEngagement?: boolean;
   showGallery?: boolean;
-  /** Override jumlah sesi per halaman (default mengikuti layout). */
-  entriesPerPage?: number;
   /**
-   * Rasio aspek halaman export. "3:4" (default) memberi halaman rasio tetap
-   * potret agar gambar tidak terlalu tinggi dan terpotong di WhatsApp.
-   * "auto" mempertahankan tinggi alami (dipakai PDF).
+   * Jumlah sesi per halaman (default mengikuti layout).
+   *
+   * Tinggi halaman SELALU otomatis: pilihan rasio 3:4/Auto dihapus agar laporan
+   * tidak lagi memotong narasi atau menyisakan kotak kosong.
    */
-  pageRatio?: "3:4" | "auto";
+  entriesPerPage?: number;
 }

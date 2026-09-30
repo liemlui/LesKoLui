@@ -203,6 +203,81 @@ describe("report session scope", () => {
     )?.id).toBe("existing");
   });
 
+  it("mengunci lewat SESI: laporan berentang lebar tidak memblokir bulan yang sesinya belum direkap", () => {
+    // Kasus nyata: laporan lama 1 Agu – 30 Sep menyimpan sesi Agustus saja.
+    // Memilih September (sesi September belum pernah direkap) TIDAK boleh
+    // diblokir hanya karena rentang tanggalnya bertumpuk.
+    const wideReport = {
+      id: "aug-sep",
+      periodStart: "2026-08-01",
+      periodEnd: "2026-09-30",
+      sessionIds: ["aug-1", "aug-2"],
+    };
+    const septemberWindow = new Set(["sep-1", "sep-2"]);
+
+    expect(findBlockingReportOverlap(
+      [wideReport],
+      "2026-09-01",
+      "2026-09-30",
+      undefined,
+      ["sep-1", "sep-2"],
+      septemberWindow,
+    )).toBeUndefined();
+
+    // Bulan yang sesinya MEMANG sudah diklaim tetap diblokir.
+    const augustWindow = new Set(["aug-1"]);
+    expect(findBlockingReportOverlap(
+      [wideReport],
+      "2026-08-01",
+      "2026-08-31",
+      undefined,
+      ["aug-1"],
+      augustWindow,
+    )?.id).toBe("aug-sep");
+  });
+
+  it("laporan warisan tanpa id sesi tetap mengunci lewat kalender", () => {
+    const legacy = { id: "legacy", periodStart: "2026-06-01", periodEnd: "2026-06-30" };
+    expect(findBlockingReportOverlap(
+      [legacy],
+      "2026-06-15",
+      "2026-07-15",
+      undefined,
+      [],
+      new Set(["other-session"]),
+    )?.id).toBe("legacy");
+  });
+
+  it("kasus Marcia: laporan lama berakhir 30 Sep hanya memakai sesi Agustus, September tetap bisa direkap", () => {
+    // Data nyata (ekspor 30 Sep 2026): sesi Marcia = 27 Jul, 7/11/17/21/25 Agu,
+    // lalu 1/8/14/22 Sep. Laporan Agustus dibuat dengan periode kalender
+    // 1 Agu – 30 Sep sehingga dulu memblokir September.
+    const marcia = [
+      { id: "jul-27", periodStart: "2026-07-27", periodEnd: "2026-08-25", sessionIds: ["jul-27", "agu-07", "agu-11", "agu-17", "agu-21", "agu-25"] },
+    ];
+    const septemberWindow = new Set(["sep-01", "sep-08", "sep-14", "sep-22"]);
+
+    expect(findBlockingReportOverlap(
+      marcia,
+      "2026-09-01",
+      "2026-09-30",
+      undefined,
+      ["sep-01", "sep-08", "sep-14", "sep-22"],
+      septemberWindow,
+    )).toBeUndefined();
+
+    // Sesi Agustus yang sudah masuk laporan itu tetap tidak bisa diklaim ulang.
+    const augustWindow = new Set(["agu-25"]);
+    expect(findBlockingReportOverlap(
+      marcia,
+      "2026-08-01",
+      "2026-08-31",
+      undefined,
+      ["agu-25"],
+      augustWindow,
+    )?.id).toBe("jul-27");
+  });
+
   it("treats package overlap by selected session ids instead of calendar dates", () => {
     const packageReport = {
       id: "package",

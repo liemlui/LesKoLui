@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  analyzeStudent, draftShortNote, draftStudyNote, generateFinancialInsights,
-  generateNarratives, generateReportSummary, polishWhatsApp,
+  AI_BATCH_MAX_SESSIONS, analyzeStudent, chunkSessionsForAi, draftShortNote, draftStudyNote,
+  generateFinancialInsights, generateNarratives, generateReportSummary, polishWhatsApp,
   type AiInput, type FinancialInsightInput,
 } from "../lib/aiClient";
 
@@ -182,6 +182,49 @@ describe("DeepSeek request contract", () => {
     getSettingsMock.mockResolvedValue({ ai: { enabled, apiKey, model: "deepseek-chat" } });
     await expect(generateReportSummary(reportInput)).rejects.toThrow(error);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("chunkSessionsForAi", () => {
+  function sessions(count: number, noteLength = 10) {
+    return Array.from({ length: count }, (_, index) => ({
+      id: `session-${index + 1}`,
+      shortNote: `${index + 1}`.padEnd(noteLength, "x"),
+    }));
+  }
+
+  it("membagi sesi mengikuti batas maksimal sesi per batch", () => {
+    const input = sessions(19);
+    const batches = chunkSessionsForAi(input);
+
+    expect(AI_BATCH_MAX_SESSIONS).toBe(8);
+    expect(batches.map((batch) => batch.length)).toEqual([8, 8, 3]);
+    expect(batches.every((batch) => batch.length <= AI_BATCH_MAX_SESSIONS)).toBe(true);
+    expect(batches.flat()).toEqual(input);
+  });
+
+  it("menghormati anggaran karakter dan tetap mengirim minimal 1 sesi per batch", () => {
+    const input = sessions(4);
+    const sizeOfOne = JSON.stringify(input[0]).length;
+    const batches = chunkSessionsForAi(input, Math.floor(sizeOfOne * 1.5));
+
+    expect(batches).toHaveLength(4);
+    expect(batches.every((batch) => batch.length === 1)).toBe(true);
+    expect(batches.map((batch) => batch[0].id)).toEqual(input.map((s) => s.id));
+  });
+
+  it("sesi raksasa tetap terkirim sendirian, tidak digabung atau dibuang", () => {
+    const huge = { id: "huge", shortNote: "x".repeat(50_000) };
+    const batches = chunkSessionsForAi([
+      { id: "a", shortNote: "catatan pendek" }, huge, { id: "b", shortNote: "catatan pendek" },
+    ], 1_000);
+
+    expect(batches.flat().map((s) => s.id)).toEqual(["a", "huge", "b"]);
+    expect(batches.some((batch) => batch.length === 1 && batch[0].id === "huge")).toBe(true);
+  });
+
+  it("array kosong menghasilkan nol batch", () => {
+    expect(chunkSessionsForAi([])).toEqual([]);
   });
 });
 

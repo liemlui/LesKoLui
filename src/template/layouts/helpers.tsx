@@ -345,6 +345,43 @@ export function PhotoEl({ t, url, color }: { t: Theme; url?: string; color: stri
   return wrap({ borderRadius: 12, overflow: "hidden" });
 }
 
+/**
+ * Foto sesi yang MENGALIR di dalam teks (float), bukan kolom foto tersendiri.
+ *
+ * Kolom foto selebar tetap memaksa narasi hanya memakai sisa lebar halaman;
+ * halaman jadi lebih tinggi dan ruang di bawah foto ikut terbuang. Dengan float,
+ * teks mengisi ruang di samping lalu melanjutkan penuh di bawah foto — hemat
+ * halaman tanpa memotong narasi.
+ *
+ * Kontainer pemanggil JANGAN memakai `display: flex` (float tidak berlaku) dan
+ * harus diakhiri `clear: both` agar kartu berikutnya tidak tertimpa.
+ */
+export function FloatPhoto({ t, url, color, width = 116, side = "left", height = 92, style }: {
+  t: Theme;
+  url?: string;
+  color: string;
+  /** Lebar foto dalam px (56–140). */
+  width?: number;
+  side?: "left" | "right";
+  height?: number;
+  /** Gaya tambahan pembungkus float (mis. transform untuk tema scrapbook). */
+  style?: React.CSSProperties;
+}) {
+  return (
+    <div style={{
+      float: side,
+      width,
+      height,
+      marginRight: side === "left" ? 10 : 0,
+      marginLeft: side === "right" ? 10 : 0,
+      marginBottom: 6,
+      ...style,
+    }}>
+      <PhotoEl t={t} url={url} color={color} />
+    </div>
+  );
+}
+
 export function NarrEl({ t, children }: { t: Theme; children?: string }) {
   return (
     <p style={{ fontFamily: t.fontBody, fontSize: 12.5, lineHeight: 1.55, color: t.ink, margin: 0 }}>
@@ -493,17 +530,18 @@ export function GradeComparisonTable({ rows, t }: { rows?: GradeComparisonRow[];
  */
 export function SessionMeta({ e, t }: { e: ReportEntry; t: Theme }) {
   const timeText = [clean(e.timeLabel), clean(e.durationLabel)].filter(Boolean).join(" · ");
-  const hasAny = clean(e.mood) || clean(e.engagementLabel) || clean(e.topic) || timeText ||
-    clean(e.predictedGrade) || clean(e.actualGrade) || clean(e.needsWork) || Boolean(e.signatureUrl);
+  // Topik & area perhatian SENGAJA tidak lagi jadi chip: keduanya sudah ikut
+  // tercetak di dalam narasi sesi ("Topik yang dibahas: …", "Area perhatian: …"),
+  // sehingga menampilkannya lagi membuat laporan terasa diulang-ulang.
+  const hasAny = clean(e.mood) || clean(e.engagementLabel) || timeText ||
+    clean(e.predictedGrade) || clean(e.actualGrade) || Boolean(e.signatureUrl);
   if (!hasAny) return null;
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center", marginTop: 6 }}>
       <MoodBadge mood={e.mood} t={t} />
       <FocusBadge label={e.engagementLabel} t={t} />
-      {clean(e.topic) && <MetaChip t={t} tone="accent" icon="📌">Topik: {clean(e.topic)}</MetaChip>}
       {timeText && <MetaChip t={t} icon="🕐">{timeText}</MetaChip>}
       <GradeChip e={e} t={t} />
-      {clean(e.needsWork) && <MetaChip t={t} tone="warn" icon="✏️">Perlu perhatian: {clean(e.needsWork)}</MetaChip>}
       {e.signatureUrl && (
         <span title="Tanda tangan murid" style={{ display: "inline-flex", alignItems: "center", gap: 4, marginLeft: 2 }}>
           <img src={e.signatureUrl} alt="TTD murid" style={{ height: 22, maxWidth: 80, objectFit: "contain", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, padding: 2 }} />

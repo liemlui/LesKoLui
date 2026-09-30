@@ -61,7 +61,23 @@ export type ImportBackupOptions = {
    * membatalkan restore; true untuk melanjutkan.
    */
   onValidationWarnings?: (warnings: ValidationWarning[]) => Promise<boolean> | boolean;
+  /**
+   * Tahapan restore yang bisa ditampilkan ke pengguna.
+   *
+   * Restore file 10 MB+ bisa memakan puluhan detik (dekripsi PBKDF2 600k
+   * iterasi + decode ribuan foto). Tanpa umpan balik, tutor mengira aplikasi
+   * menggantung lalu menutup halaman — dan itu terlihat seperti "restore tidak
+   * jalan" padahal prosesnya masih berjalan.
+   */
+  onProgress?: (step: ImportProgressStep) => void;
 };
+
+export type ImportProgressStep =
+  | "decrypt"
+  | "decode-media"
+  | "validate"
+  | "pre-restore-backup"
+  | "write";
 
 export type ImportBackupResult = {
   restored: BackupSummary;
@@ -406,8 +422,14 @@ async function buildBackup(passphrase: string): Promise<{ blob: Blob; summary: B
   };
 }
 
-async function prepareBackupImport(file: Blob, passphrase: string): Promise<{ parsed: ParsedBackup; decoded: BackupData; warnings: ValidationWarning[] }> {
+async function prepareBackupImport(
+  file: Blob,
+  passphrase: string,
+  onProgress?: (step: ImportProgressStep) => void,
+): Promise<{ parsed: ParsedBackup; decoded: BackupData; warnings: ValidationWarning[] }> {
+  onProgress?.("decrypt");
   const parsed = parseBackupDump(await decryptJson(file, passphrase));
+  onProgress?.("decode-media");
   const decoded = {} as BackupData;
   for (const table of BACKUP_TABLES) decoded[table] = await decodeRows(parsed.data[table]);
 
@@ -421,6 +443,7 @@ async function prepareBackupImport(file: Blob, passphrase: string): Promise<{ pa
   if (decoded.settings.length === 1) decoded.settings[0].lastBackupAt = parsed.exportedAt;
 
   // Validasi data dan relasi setelah migrasi dan decode.
+  onProgress?.("validate");
   const validation = validateBackupData(decoded, parsed.databaseVersion);
   if (!validation.valid) {
     const messages = validation.errors.map((e) => e.message).join("; ");
@@ -448,7 +471,7 @@ export async function importBackup(
   // Dekripsi, validasi bentuk, decode media, dan validasi data selesai sebelum
   // data saat ini disentuh. File corrupt, versi tak didukung, atau data tidak
   // valid tidak bisa menghapus data.
-  const { parsed, decoded, warnings } = await prepareBackupImport(file, passphrase);
+  const { parsed, decoded, warnings } = await prepareBackupImport(file, passphrase, options.onProgress);
 
   // Tanyakan pengguna untuk peringatan validasi sebelum melanjutkan.
   if (warnings.length > 0 && options.onValidationWarnings) {
@@ -462,6 +485,7 @@ export async function importBackup(
   // memungkinkan UI memakai penyimpanan yang lebih eksplisit bila tersedia.
   let preRestore: { blob: Blob; summary: BackupSummary };
   try {
+    options.onProgress?.("pre-restore-backup");
     preRestore = await buildBackup(passphrase);
     const filename = `leskolui-pre-restore-${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.jles`;
     if (options.onPreRestoreBackup) await options.onPreRestoreBackup({ ...preRestore, filename });
@@ -472,6 +496,7 @@ export async function importBackup(
 
   // clear + bulkAdd berada dalam satu transaksi. Bila salah satu operasi gagal,
   // IndexedDB membatalkan seluruh perubahan dan data lama tetap ada.
+  options.onProgress?.("write");
   const tables = [...BACKUP_TABLES.map((table) => backupDb[table]), db.captureDrafts];
   await db.transaction("rw", tables, async () => {
     for (const table of BACKUP_TABLES) {

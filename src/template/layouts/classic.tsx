@@ -1,7 +1,7 @@
 import type { Layout } from "../types";
 import { Deco } from "../deco";
 import {
-  HeaderEl, LabelEl, PhotoEl, NarrEl, SessionMeta,
+  HeaderEl, LabelEl, PhotoEl, FloatPhoto, NarrEl, SessionMeta,
   SummaryEl, onColor,
 } from "./helpers";
 
@@ -14,16 +14,15 @@ export const cards: Layout = {
       {d.entries.map((e, i) => {
         const c = t.palette[i % t.palette.length];
         const right = i % 2 === 1;
-        const photoBox = <div style={{ height: 92, width: "100%" }}><PhotoEl t={t} url={e.photoUrl} color={c}/></div>;
         return (
           <div key={i} style={{ position: "relative", zIndex: 2, marginBottom: 16 }}>
             <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
-            <div style={{ display: "grid", gridTemplateColumns: right ? "1fr 118px" : "118px 1fr", gap: 11, marginTop: 9, alignItems: "start" }}>
-              {right ? (
-                <><div><NarrEl t={t}>{e.narrative}</NarrEl><SessionMeta e={e} t={t} /></div>{photoBox}</>
-              ) : (
-                <>{photoBox}<div><NarrEl t={t}>{e.narrative}</NarrEl><SessionMeta e={e} t={t} /></div></>
-              )}
+            {/* Foto mengalir di dalam teks (bukan kolom 118px) → halaman lebih hemat. */}
+            <div style={{ marginTop: 9 }}>
+              <FloatPhoto t={t} url={e.photoUrl} color={c} width={112} height={88} side={right ? "right" : "left"} />
+              <NarrEl t={t}>{e.narrative}</NarrEl>
+              <SessionMeta e={e} t={t} />
+              <div style={{ clear: "both" }} />
             </div>
           </div>
         );
@@ -46,9 +45,11 @@ export const timeline: Layout = {
             <div key={i} style={{ marginBottom: 16, position: "relative" }}>
               <div style={{ position: "absolute", left: -31, top: 4, width: 14, height: 14, borderRadius: "50%", background: c, border: `2px solid ${t.bg.includes("gradient") ? "#fff" : t.bg}` }} />
               <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
-              <div style={{ display: "grid", gridTemplateColumns: "112px 1fr", gap: 11, marginTop: 9, alignItems: "start" }}>
-                <div style={{ height: 88 }}><PhotoEl t={t} url={e.photoUrl} color={c} /></div>
-                <div><NarrEl t={t}>{e.narrative}</NarrEl><SessionMeta e={e} t={t} /></div>
+              <div style={{ marginTop: 9 }}>
+                <FloatPhoto t={t} url={e.photoUrl} color={c} width={106} height={84} />
+                <NarrEl t={t}>{e.narrative}</NarrEl>
+                <SessionMeta e={e} t={t} />
+                <div style={{ clear: "both" }} />
               </div>
             </div>
           );
@@ -70,26 +71,14 @@ export const scrapbook: Layout = {
         const rot = ((i % 5) - 2) * 1.1;
         return (
           <div key={i} style={{ position: "relative", zIndex: 2, marginBottom: 18 }}>
-            <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-              <div style={{ flexShrink: 0, transform: `rotate(${rot}deg)`, width: 116 }}>
-                <div style={{
-                  background: "#fff", padding: 4, paddingBottom: 14, boxShadow: "0 2px 8px rgba(0,0,0,.12)",
-                  borderRadius: 1, position: "relative",
-                }}>
-                  <div style={{ position: "absolute", top: -4, left: "40%", width: 20, height: 10, background: "#ccc", borderRadius: 1, opacity: 0.6 }} />
-                  <div style={{ width: "100%", aspectRatio: "1/1", overflow: "hidden", borderRadius: 1 }}>
-                    <PhotoEl t={t} url={e.photoUrl} color={c} />
-                  </div>
-                </div>
-              </div>
-              <div style={{ flex: 1 }}>
-                <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
-                <div style={{ marginTop: 6, background: t.ink + "08", padding: "8px 10px", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,.06)" }}>
-                  <NarrEl t={t}>{e.narrative}</NarrEl>
-                  <SessionMeta e={e} t={t} />
-                </div>
-              </div>
+            {/* Polaroid tetap miring, tetapi teks kini mengalir di sampingnya. */}
+            <FloatPhoto t={t} url={e.photoUrl} color={c} width={112} height={88} style={{ transform: `rotate(${rot}deg)` }} />
+            <LabelEl t={t} c={c}>{e.date} — {e.subject}</LabelEl>
+            <div style={{ marginTop: 6, background: t.ink + "08", padding: "8px 10px", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,.06)" }}>
+              <NarrEl t={t}>{e.narrative}</NarrEl>
+              <SessionMeta e={e} t={t} />
             </div>
+            <div style={{ clear: "both" }} />
           </div>
         );
       })}

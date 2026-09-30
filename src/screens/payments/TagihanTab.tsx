@@ -3,8 +3,9 @@ import { useLiveQuery } from "dexie-react-hooks";
 import {
   createManualPayment, syncReportPayment,
   markPaymentTransferredById, markPaymentUnpaidById, updatePaymentAmountById,
-  listAllBillableSessions,
+  listAllBillableSessions, listInvoiceSnapshotPoints,
 } from "../../db/repos";
+import type { InvoiceCancellation } from "../../db/repos";
 import type { Payment, Student, Settings, Session, MonthlyReport } from "../../db/types";
 import { formatRupiah, todayWIB, periodLabel, monthLabel } from "../../lib/format";
 import Modal from "../../components/Modal";
@@ -20,7 +21,7 @@ import { ITEMS_PER_PDF_PAGE } from "../../lib/invoicePresentation";
 import { useSessionCountBilling } from "./useSessionCountBilling";
 import type { ConfirmState } from "./useSessionCountBilling";
 import { useInvoiceFilters } from "./useInvoiceFilters";
-import { useInvoiceRecovery, invoiceKindLabel, RECOVERY_LIMITS_HINT } from "./useInvoiceRecovery";
+import { useInvoiceRecovery, invoiceKindLabel, RECOVERY_LIMITS_HINT, snapshotMomentLabel } from "./useInvoiceRecovery";
 
 import { useInvoiceExports } from "./useInvoiceExports";
 import InvoiceRow from "./InvoiceRow";
@@ -70,7 +71,6 @@ export default function TagihanTab({
   const [showManual, setShowManual] = useState(false);
   const [showBillingHelp, setShowBillingHelp] = useState(false);
   const [reportInvoiceBusy, setReportInvoiceBusy] = useState<Record<string, boolean>>({});
-  const [showWaAll, setShowWaAll] = useState(false);
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const [agingFilter, setAgingFilter] = useState<AgeBucket | "all">("all");
   /**
@@ -127,7 +127,6 @@ export default function TagihanTab({
   const {
     invoiceStatusFilter, setInvoiceStatusFilter, invoiceOriginFilter, setInvoiceOriginFilter,
     filteredBillRows, readyReportRows, showReadySections, showIssuedList,
-    waAllRows,
   } = invoice;
   const {
     sessionCountBillingProgress, needsActionCount,
@@ -168,6 +167,30 @@ export default function TagihanTab({
     }
     return rows;
   }, [agingFilter, filteredBillRows, invoiceStatusFilter]);
+
+  // ── Riwayat titik pemulihan (R1 timeline: "pulihkan ke tanggal berapa") ──
+  /** Nama murid yang riwayatnya sedang dibuka — hanya untuk label modal. */
+  const [historyStudentName, setHistoryStudentName] = useState("murid");
+  /**
+   * Jumlah titik pemulihan tiap tagihan yang dibatalkan, hanya untuk label
+   * tombol "Riwayat pemulihan (N)". Titik-titiknya sendiri baru dimuat saat
+   * pemilih dibuka lewat `recovery.openSnapshotHistory`.
+   */
+  const cancelledPaymentIds = useMemo(
+    () => [...new Set((recovery.cancellations ?? []).map((item) => item.paymentId))],
+    [recovery.cancellations],
+  );
+  const snapshotPointCounts = useLiveQuery(async () => {
+    const counts = await Promise.all(cancelledPaymentIds.map(
+      async (paymentId) => [paymentId, (await listInvoiceSnapshotPoints(paymentId)).length] as const,
+    ));
+    return new Map(counts);
+  }, [cancelledPaymentIds]);
+  /** Buka pemilih titik pemulihan satu tagihan yang sudah dibatalkan. */
+  const openSnapshotHistory = (cancellation: InvoiceCancellation) => {
+    setHistoryStudentName(studentMap.get(cancellation.studentId)?.name ?? "Murid dihapus");
+    recovery.openSnapshotHistory(cancellation.paymentId);
+  };
   const exports = useInvoiceExports({
     studentMap,
     filteredBillRows: visibleBillRows,
@@ -588,12 +611,6 @@ export default function TagihanTab({
             <p className="text-xs text-gray-500 mt-0.5">Ketuk satu tagihan untuk mengubah nominal, mencatat pembayaran, mengirim WA, atau mengunduh invoice.</p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <button
-              onClick={() => setShowWaAll(true)}
-              className="rounded-lg bg-green-500 px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-green-600"
-            >
-              Kirim WA massal
-            </button>
             <span className="text-xs font-semibold text-gray-500 bg-gray-100 rounded-full px-2 py-1">{filteredBillRows.length}/{allPayments.length}</span>
           </div>
         </div>
@@ -691,6 +708,7 @@ export default function TagihanTab({
             {(recovery.cancellations ?? []).map((cancellation) => {
               const studentName = studentMap.get(cancellation.studentId)?.name ?? "Murid dihapus";
               const busy = Boolean(recovery.busyKeys[`restore-${cancellation.snapshotId}`]);
+              const discarding = Boolean(recovery.busyKeys[`discard-${cancellation.snapshotId}`]);
               return (
                 <article key={cancellation.snapshotId} className="rounded-xl border border-amber-100 bg-white p-3">
                   <div className="flex items-start justify-between gap-3">
@@ -702,13 +720,35 @@ export default function TagihanTab({
                     </div>
                     <span className="shrink-0 text-sm font-bold text-gray-800">{formatRupiah(cancellation.totalCost)}</span>
                   </div>
+                  <div className="mt-3 flex items-stretch gap-2">
+                    <button
+                      type="button"
+                      disabled={busy || discarding}
+                      onClick={() => recovery.askRestoreCancellation(cancellation, studentName)}
+                      className="flex-1 rounded-lg border border-amber-300 py-2 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-50 disabled:cursor-wait disabled:opacity-50"
+                    >
+                      {busy ? "Memulihkan..." : "Pulihkan tagihan"}
+                    </button>
+                    {/* Sekunder: hanya membuang salinan pemulihannya, tagihan tetap dibatalkan. */}
+                    <button
+                      type="button"
+                      disabled={busy || discarding}
+                      aria-label={`Hapus entri pemulihan tagihan ${studentName}`}
+                      onClick={() => recovery.askDiscardCancellation(cancellation, studentName)}
+                      className="shrink-0 rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:cursor-wait disabled:opacity-50"
+                    >
+                      {discarding ? "Menghapus..." : "Hapus"}
+                    </button>
+                  </div>
+                  {/* Sekunder: pemilih titik waktu — semua titik pemulihan tagihan ini. */}
                   <button
                     type="button"
-                    disabled={busy}
-                    onClick={() => recovery.askRestoreCancellation(cancellation, studentName)}
-                    className="mt-3 w-full rounded-lg border border-amber-300 py-2 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-50 disabled:cursor-wait disabled:opacity-50"
+                    disabled={busy || discarding}
+                    aria-label={`Riwayat pemulihan tagihan ${studentName}`}
+                    onClick={() => openSnapshotHistory(cancellation)}
+                    className="mt-2 w-full rounded-lg border border-amber-200 py-2 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 disabled:cursor-wait disabled:opacity-50"
                   >
-                    {busy ? "Memulihkan..." : "Pulihkan tagihan"}
+                    Riwayat pemulihan ({snapshotPointCounts?.get(cancellation.paymentId) ?? 1})
                   </button>
                 </article>
               );
@@ -750,11 +790,6 @@ export default function TagihanTab({
             setInvoiceTarget(null);
             if (payment.reportId) navigate(`/report?reportId=${encodeURIComponent(payment.reportId)}`);
             else navigate(`/report?studentId=${encodeURIComponent(payment.studentId)}`);
-          }}
-          onSendWithReport={() => {
-            const s = invoiceTarget.student;
-            setInvoiceTarget(null);
-            navigate(`/report?studentId=${encodeURIComponent(s.id)}`);
           }}
           onClose={() => setInvoiceTarget(null)}
         />
@@ -817,40 +852,98 @@ export default function TagihanTab({
         </Modal>
       )}
 
-      {/* Modal kirim tagihan WhatsApp massal */}
-      {showWaAll && (
-        <Modal onClose={() => setShowWaAll(false)} ariaLabel="Kirim tagihan via WhatsApp" showCloseButton={false}
-          panelClassName="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl outline-none">
+      {/* ── Pemilih titik pemulihan (R1 timeline): pilih tanggal mana yang dipulihkan ── */}
+      {recovery.snapshotPaymentId !== null && (
+        <Modal
+          onClose={recovery.closeSnapshotHistory}
+          ariaLabel={`Riwayat pemulihan tagihan ${historyStudentName}`}
+          showCloseButton={false}
+          panelClassName="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl outline-none"
+        >
           <div className="flex items-start justify-between border-b border-gray-100 px-5 py-4">
             <div>
-              <h2 className="text-lg font-bold text-gray-800">Kirim tagihan via WhatsApp</h2>
-              <p className="mt-0.5 text-xs text-gray-600">Semua tagihan belum lunas yang punya nomor HP — ketuk untuk membuka WhatsApp.</p>
+              <h2 className="text-lg font-bold text-gray-800">Riwayat pemulihan</h2>
+              <p className="mt-0.5 text-xs text-gray-600">
+                Tagihan {historyStudentName} — pilih satu titik waktu untuk dipulihkan persis seperti keadaannya saat itu.
+              </p>
             </div>
-            <button onClick={() => setShowWaAll(false)} aria-label="Tutup"
+            <button onClick={recovery.closeSnapshotHistory} aria-label="Tutup"
               className="text-xl leading-none text-gray-500 hover:text-gray-700">✕</button>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-5 py-4">
-            {waAllRows.length === 0 ? (
-              <p className="py-8 text-center text-sm text-gray-500">Belum ada tagihan belum lunas dengan nomor HP.</p>
+          <div className="space-y-3 overflow-y-auto px-5 py-4">
+            <p className="text-xs leading-relaxed text-amber-800">{RECOVERY_LIMITS_HINT}</p>
+            {recovery.snapshotPoints === undefined ? (
+              <p className="text-sm text-gray-500">Memuat riwayat pemulihan…</p>
+            ) : recovery.snapshotPoints.length === 0 ? (
+              <p className="text-sm text-gray-500">Belum ada titik pemulihan untuk tagihan ini di perangkat ini.</p>
             ) : (
-              <div className="space-y-2">
-                {waAllRows.map((row) => (
-                  <a key={row.payment.id} href={row.url} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 px-3 py-2.5 transition-colors hover:bg-green-50">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-gray-700">{row.label}</p>
-                      <p className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">💬 WhatsApp</p>
-                    </div>
-                    <span className="flex-shrink-0 text-sm font-semibold text-amber-700">{formatRupiah(row.payment.totalCost)}</span>
-                  </a>
-                ))}
-              </div>
+              <ol className="space-y-2">
+                {[...recovery.snapshotPoints]
+                  .sort((a, b) => b.cancelAt.localeCompare(a.cancelAt))
+                  .map((point, index) => {
+                    const pointBusy = Boolean(recovery.busyKeys[`restore-${point.snapshotId}`]);
+                    const hasDetails = point.month !== "";
+                    // Hanya titik yang salinannya SUDAH DIHAPUS yang tidak bisa
+                    // dipakai lagi. Titik yang pernah dipulihkan tetap bisa
+                    // dipilih → inilah jalan kembali kalau pemulihan sebelumnya
+                    // salah. `spent` hanya jadi penanda riwayat.
+                    const unavailable = Boolean(point.discardedAt);
+                    const reason = point.discardedAt
+                      ? `salinan sudah dihapus ${snapshotMomentLabel(point.discardedAt)}`
+                      : undefined;
+                    return (
+                      <li key={point.snapshotId} className="rounded-xl border border-gray-100 bg-white p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-gray-800">
+                              Dibatalkan {snapshotMomentLabel(point.cancelAt)}
+                              {index === 0 && (
+                                <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">
+                                  terbaru
+                                </span>
+                              )}
+                            </p>
+                            <p className="mt-0.5 text-xs text-gray-500">
+                              {invoiceKindLabel(point.kind)} · {hasDetails
+                                ? `${monthLabel(point.month)} · ${point.sessionCount} sesi`
+                                : "rincian nominal sudah tidak tersimpan"}
+                            </p>
+                            {!unavailable && !point.restoredAt && (
+                              <p className="mt-1 text-[11px] font-semibold text-emerald-700">Masih bisa dipulihkan</p>
+                            )}
+                            {point.restoredAt && (
+                              <p className="mt-1 text-[11px] font-semibold text-indigo-700">
+                                Pernah dipulihkan {snapshotMomentLabel(point.restoredAt)} — bisa dipilih lagi untuk kembali ke titik ini
+                              </p>
+                            )}
+                          </div>
+                          {hasDetails && (
+                            <span className="shrink-0 text-sm font-bold text-gray-800">{formatRupiah(point.totalCost)}</span>
+                          )}
+                        </div>
+                        <div className="mt-2">
+                          <button
+                            type="button"
+                            disabled={unavailable || pointBusy}
+                            onClick={() => recovery.askRestoreSnapshot(point, historyStudentName)}
+                            className="w-full rounded-lg border border-amber-300 py-2 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400"
+                          >
+                            {pointBusy ? "Memulihkan..." : point.restoredAt ? "Kembalikan ke titik ini" : "Pulihkan titik ini"}
+                          </button>
+                          {reason && (
+                            <p className="mt-1.5 text-[11px] text-gray-500">Tidak bisa dipulihkan: {reason}.</p>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+              </ol>
             )}
           </div>
 
           <div className="border-t border-gray-100 px-5 py-3">
-            <button onClick={() => setShowWaAll(false)}
+            <button onClick={recovery.closeSnapshotHistory}
               className="w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-bold text-white transition-colors hover:bg-indigo-700">
               Tutup
             </button>

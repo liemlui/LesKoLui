@@ -11,6 +11,38 @@ export async function compressPhoto(file: File): Promise<Blob> {
   });
 }
 
+/** Ukuran maksimum foto sesi lama setelah diperkecil (px, sisi terpanjang). */
+export const SHRUNK_PHOTO_MAX_PX = 360;
+/** Ukuran file maksimum foto sesi lama setelah diperkecil (MB). */
+export const SHRUNK_PHOTO_MAX_MB = 0.05;
+
+/**
+ * Perkecil Blob foto lama tanpa memotong isinya (tanpa crop, tanpa stempel ulang).
+ *
+ * Dipakai perawatan penyimpanan otomatis: foto sesi >12 bulan diturunkan
+ * resolusinya supaya backup tidak membengkak tiap tahun, tetapi tanggal yang
+ * sudah tercetak di foto tetap ikut karena gambar tidak di-crop.
+ * Mengembalikan `undefined` bila Blob tidak bisa dibaca atau hasilnya tidak
+ * lebih kecil — pemanggil tidak boleh menimpa foto dengan versi yang lebih besar.
+ */
+export async function shrinkPhotoBlob(blob: Blob): Promise<Blob | undefined> {
+  try {
+    const shrunken = await imageCompression(
+      new File([blob], "foto-sesi.jpg", { type: blob.type || "image/jpeg" }),
+      {
+        maxWidthOrHeight: SHRUNK_PHOTO_MAX_PX,
+        maxSizeMB: SHRUNK_PHOTO_MAX_MB,
+        useWebWorker: true,
+        fileType: "image/jpeg",
+        initialQuality: 0.6,
+      },
+    );
+    return shrunken.size < blob.size ? shrunken : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 const ID_MONTHS = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
 
 /**

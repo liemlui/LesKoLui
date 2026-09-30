@@ -212,6 +212,65 @@ describe("pruneSessionPhotosBefore", () => {
   });
 });
 
+// ── Photo shrink (hemat penyimpanan, foto TIDAK dihapus) ───────────
+
+describe("shrinkSessionPhotosBefore", () => {
+  async function seedSession(id: string, date: string, bytes: number) {
+    const photo = new Blob([new Uint8Array(bytes)], { type: "image/jpeg" });
+    await db.sessions.add({
+      id, studentId: "s", date, durationHours: 1, subjects: [], shortNote: "tetap ada",
+      status: "DONE", rateSnapshot: 0, cost: 0, createdAt: "", updatedAt: "", photo,
+    });
+    return photo;
+  }
+
+  it("menimpa foto lama dengan versi lebih kecil tanpa menghapusnya", async () => {
+    const { shrinkSessionPhotosBefore } = await import("../db/repos");
+    await seedSession("shrink-old", "2020-03-03", 400);
+    await seedSession("shrink-new", "2030-03-03", 400);
+
+    const result = await shrinkSessionPhotosBefore("2025-01-01", async () => new Blob([new Uint8Array(100)], { type: "image/jpeg" }));
+
+    expect(result.shrunk).toBe(1);
+    expect(result.savedBytes).toBe(300);
+    const old = await db.sessions.get("shrink-old");
+    expect(old?.photo).toBeInstanceOf(Blob);
+    expect(old?.photo?.size).toBe(100);      // tetap ada, hanya lebih kecil
+    expect(old?.shortNote).toBe("tetap ada");
+    const recent = await db.sessions.get("shrink-new");
+    expect(recent?.photo?.size).toBe(400);   // sesi baru tidak disentuh
+  });
+
+  it("mempertahankan foto asli bila hasil perkecilan tidak lebih kecil", async () => {
+    const { shrinkSessionPhotosBefore } = await import("../db/repos");
+    await seedSession("shrink-skip", "2018-01-01", 50);
+
+    const result = await shrinkSessionPhotosBefore("2025-01-01", async () => new Blob([new Uint8Array(80)], { type: "image/jpeg" }));
+
+    expect(result.shrunk).toBe(0);
+    expect(result.skipped).toBe(1);
+    expect((await db.sessions.get("shrink-skip"))?.photo?.size).toBe(50);
+  });
+
+  it("melewati foto yang gagal diproses dan mencatat photos.shrink saat berhasil", async () => {
+    const { shrinkSessionPhotosBefore, listAuditLog } = await import("../db/repos");
+    await seedSession("shrink-err", "2017-01-01", 400);
+    const failed = await shrinkSessionPhotosBefore("2025-01-01", async () => undefined);
+    expect(failed).toMatchObject({ shrunk: 0, skipped: 1 });
+    expect((await db.sessions.get("shrink-err"))?.photo?.size).toBe(400);
+
+    await shrinkSessionPhotosBefore("2025-01-01", async () => new Blob([new Uint8Array(10)], { type: "image/jpeg" }));
+    const log = await listAuditLog(10);
+    expect(log.some((e) => e.action === "photos.shrink")).toBe(true);
+  });
+
+  it("photoMaintenanceCutoff menghitung 12 bulan ke belakang", async () => {
+    const { photoMaintenanceCutoff } = await import("../db/repos");
+    expect(photoMaintenanceCutoff(12, new Date("2026-10-01T00:00:00.000Z"))).toBe("2025-10-01");
+    expect(photoMaintenanceCutoff(6, new Date("2026-10-01T00:00:00.000Z"))).toBe("2026-04-01");
+  });
+});
+
 // ── initSettings idempotency (race-safe) ───────────────────────────
 
 describe("initSettings", () => {

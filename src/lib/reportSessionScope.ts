@@ -80,6 +80,36 @@ export interface EditedReportOverlapContext {
   supplementalForReportId?: string;
 }
 
+/**
+ * Sesi yang BENAR-BENAR ada di dalam jendela tanggal yang sedang dipilih.
+ *
+ * Kunci periode harus mengikuti SESI, bukan kalender: laporan lama dengan
+ * rentang lebar (mis. 1 Agu – 30 Sep) tidak boleh memblokir September yang
+ * sesinya sama sekali belum pernah direkap. Selama tidak ada satu pun id sesi
+ * yang dibagi, tumpang-tindih kalender murni adalah artefak rentang tanggal —
+ * bukan rekap ganda (laporan arsip karena itu dicatat PER SESI pada
+ * `session_count`, dan pola itulah yang diterapkan ke semua mode).
+ */
+export type SessionWindow = ReadonlySet<string>;
+
+/**
+ * Apakah `report` benar-benar mengklaim sesi di dalam jendela ini?
+ *
+ * - Ada id sesi yang beririsan → YA (rekap ganda sungguhan) → blokir.
+ * - Laporan tidak menyimpan id sesi sama sekali (warisan lama) → jatuh ke
+ *   perbandingan kalender supaya laporan jadul tetap mengunci tanggalnya
+ *   hingga tutor memutuskan sendiri (buka kunci / hapus).
+ */
+function claimsSessionsInWindow<T extends ReportPeriodCandidate>(
+  report: T,
+  window?: SessionWindow,
+): boolean | undefined {
+  if (!window) return undefined;
+  const ids = report.sessionIds;
+  if (!ids || ids.length === 0) return undefined;
+  return ids.some((id) => window.has(id));
+}
+
 /** A parent and its supplemental children may overlap in either edit direction.
  * Unrelated ordinary reports use calendar ranges; package reports use session ids. */
 export function findBlockingReportOverlap<T extends ReportPeriodCandidate>(
@@ -88,6 +118,8 @@ export function findBlockingReportOverlap<T extends ReportPeriodCandidate>(
   end: string,
   editedReport?: EditedReportOverlapContext,
   selectedSessionIds: readonly string[] = [],
+  /** Sesi yang ada di jendela [start, end] — kunci periode jadi per sesi. */
+  sessionWindow?: SessionWindow,
 ): T | undefined {
   const excludedIds = new Set([
     editedReport?.id,
@@ -107,7 +139,11 @@ export function findBlockingReportOverlap<T extends ReportPeriodCandidate>(
     if (report.billingMode === "session_count") {
       return report.sessionIds?.some((id) => selectedIds.has(id)) ?? false;
     }
-    return report.periodStart <= end && report.periodEnd >= start;
+    // Kalender hanya menyatakan BENTURAN TANGGAL; yang menentukan rekap ganda
+    // adalah sesi yang benar-benar diklaim kedua laporan.
+    if (!(report.periodStart <= end && report.periodEnd >= start)) return false;
+    const claims = claimsSessionsInWindow(report, sessionWindow);
+    return claims ?? true;
   });
 }
 

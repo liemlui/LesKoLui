@@ -458,13 +458,17 @@ export type AuditAction =
   | "payment.due"
   | "payment.cancel"
   | "payment.restore"
+  /** Salinan pemulihan tagihan dibuang (tidak bisa dipulihkan lagi). */
+  | "payment.discard"
   | "expense.create"
   | "expense.update"
   | "expense.delete"
   | "month.close"
   | "data.reset"
   | "data.restore"
-  | "photos.prune";
+  | "photos.prune"
+  /** Foto sesi lama diperkecil (tidak dihapus) untuk menghemat penyimpanan. */
+  | "photos.shrink";
 
 export interface AuditEntry {
   id: string;
@@ -521,4 +525,9 @@ export interface Settings {
   bankAccounts?: { bca?: string; cimb?: string; bri?: string; mandiri?: string; bsi?: string; ewallet?: string; accountName?: string };
   driveBackup?: { fileId: string; backupAt: string };
   lastBackupAt?: string; // waktu backup terakhir (File atau Drive) — ISO string
+  /**
+   * Waktu terakhir foto sesi lama diperkecil otomatis (ISO string).
+   * Dipakai agar perawatan penyimpanan berjalan sendiri tanpa tombol manual.
+   */
+  lastPhotoShrinkAt?: string;
 }

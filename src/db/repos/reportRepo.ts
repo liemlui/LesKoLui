@@ -346,6 +346,12 @@ async function assertConfirmedScopeAvailable(
     .filter((candidate) => reportStatus(candidate) === "confirmed")
     .toArray();
   const protectedReportIds = protectedInvoiceReportIds(candidates, payments);
+  // Kunci periode mengikuti SESI, bukan kalender: laporan lama berentang lebar
+  // (mis. 1 Agu – 30 Sep) tidak boleh memblokir September yang sesinya belum
+  // pernah direkap. Sesi yang sudah diklaim tetap tidak bisa diklaim dua kali,
+  // jadi anti-rekap-ganda justru jadi lebih tepat. Laporan warisan tanpa id
+  // sesi tetap diblokir lewat kalender agar tidak ada klaim diam-diam.
+  const windowReportIds = new Set(report.sessionIds);
   const overlap = candidates.find((candidate) => {
     if (candidate.id === report.id) return false;
     // Parent ↔ child edits are one accounting family. Siblings remain blocked.
@@ -359,7 +365,9 @@ async function assertConfirmedScopeAvailable(
       return sessionScopesOverlap(candidate.sessionIds, report.sessionIds);
     }
     const period = reportPeriodOf(candidate);
-    return period.periodStart <= report.periodEnd && period.periodEnd >= report.periodStart;
+    if (!(period.periodStart <= report.periodEnd && period.periodEnd >= report.periodStart)) return false;
+    if (candidate.sessionIds.length === 0) return true;
+    return candidate.sessionIds.some((id) => windowReportIds.has(id));
   });
   if (overlap) {
     throw new Error("Periode laporan bertumpuk dengan laporan sah lain");

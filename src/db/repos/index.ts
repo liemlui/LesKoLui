@@ -40,8 +40,9 @@ export {
   recentShortNotes,
   getLastDoneSession, getRecentDoneSessions,
   countSessionPhotos, pruneSessionPhotosBefore,
+  shrinkSessionPhotosBefore, photoMaintenanceCutoff,
 } from "./sessionRepo";
-export type { CancelMode, EditMode } from "./sessionRepo";
+export type { CancelMode, EditMode, PhotoShrinkResult } from "./sessionRepo";
 
 // Reports
 export {
@@ -62,7 +63,8 @@ export {
   listSessionCountBillingProgress, createSessionCountInvoice,
   cancelSessionCountInvoice, getCashSummary,
   cancelReportInvoice, deleteManualPayment, updatePaymentDueAt,
-  listInvoiceCancellations, restoreCancelledInvoice,
+  listInvoiceCancellations, restoreCancelledInvoice, discardInvoiceCancellation,
+  listInvoiceSnapshotPoints,
   encodeInvoiceCancelSnapshot, decodeInvoiceCancelSnapshot,
   createExpense, updateExpense, listExpenses, deleteExpense,
   getMonthlyIncomeVsExpense,
@@ -74,6 +76,7 @@ export type {
   SessionCountInvoiceResult,
   CreateSessionCountInvoiceOptions,
   InvoiceCancellation,
+  InvoiceSnapshotPoint,
   InvoiceRestoreResult,
   InvoiceRestoreStatus,
 } from "./paymentRepo";

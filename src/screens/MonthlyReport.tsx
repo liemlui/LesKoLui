@@ -1,11 +1,12 @@
 import Skeleton from "../components/Skeleton";
 import { useState, useMemo, useEffect, useRef, type ReactNode } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   listStudents, getStudent, getSettings,
   listSessionsByStudentRange, listBillableSessionsByStudentRange,
   getReportById, findReportByPeriod, listReportsByStudent, listConfirmedReportsByStudent,
+  listAllReports,
   upsertReport, createReportForPeriod, discardReport, updateSession, saveSettings,
   getPaymentByReport, syncReportPayment, listPaymentsByStudent,
   reportTotalsDrifted, frozenReportTotals, unlockReport,
@@ -37,9 +38,8 @@ import { getTheme, THEMES } from "../template/themes";
 import { LAYOUTS, gradeDelta } from "../template/layouts";
 import { ReportRenderer } from "../template/ReportRenderer";
 import { dayLabel, monthLabel, todayWIB, monthOf, periodLabel, formatRupiah } from "../lib/format";
-import { useReportExport, shareReportWithInvoice } from "./monthlyReport/useReportExport";
+import { useReportExport } from "./monthlyReport/useReportExport";
 import { useReportGeneration } from "./monthlyReport/useReportGeneration";
-import { buildBillingMessage } from "../lib/waBilling";
 import { blobToDataUrl } from "../lib/imageUtils";
 import PaginationControls from "../components/PaginationControls";
 import Breadcrumb from "../components/Breadcrumb";
@@ -101,6 +101,7 @@ function ScaledPreview({ children, scale = 0.5 }: { children: ReactNode; scale?:
  * @route /report/:studentId/:month
  */
 export default function MonthlyReportPage() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const students = useLiveQuery(() => listStudents(true), []);
   const settings = useLiveQuery(() => getSettings(), []);
@@ -127,9 +128,7 @@ export default function MonthlyReportPage() {
   const [editingTeacherNote, setEditingTeacherNote] = useState(false);
   const [teacherNoteText,    setTeacherNoteText]    = useState("");
   const [editingQuote,     setEditingQuote]     = useState(false);
-  const [showPolishModal,  setShowPolishModal]  = useState(false);
   const [showNarrativesModal, setShowNarrativesModal] = useState(false);
-  const [forceSummary,   setForceSummary]   = useState(false);
   const [forceNarratives, setForceNarratives] = useState(false);
   // Buka kunci laporan final → draft (konfirmasi → PIN → aksi).
   const [unlockConfirmOpen, setUnlockConfirmOpen] = useState(false);
@@ -236,9 +235,34 @@ export default function MonthlyReportPage() {
     setSnapshotLocked(true);
   }, [reportIdParam, editingReportId]);
 
+  // Daftar laporan tersimpan: dibuka → memuat SEMUA laporan (semua murid) dan
+  // mengurutkan yang terbaru. Tanpa ini menu Laporan tidak bisa dipakai untuk
+  // membuka laporan yang sudah pernah dibuat (keputusan pemilik 2026-10-01).
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyExpanded, setHistoryExpanded] = useState(false);
+  const [historyStudentId, setHistoryStudentId] = useState("");
+
   // Semua laporan murid — untuk daftar draft yang belum disahkan.
   const allReports = useLiveQuery(() => (studentId ? listReportsByStudent(studentId) : []), [studentId]);
   const drafts = useMemo(() => (allReports ?? []).filter((r) => reportStatus(r) === "draft"), [allReports]);
+  // Riwayat laporan lintas murid — hanya dimuat saat panel riwayat dibuka.
+  // Tanpa ini menu Laporan tidak bisa dipakai untuk membuka laporan yang sudah
+  // pernah dibuat (keputusan pemilik 2026-10-01).
+  const everyReport = useLiveQuery(
+    () => (historyOpen ? listAllReports() : []),
+    [historyOpen],
+  );
+  const reportHistory = useMemo(() => {
+    const rows = [...(everyReport ?? [])];
+    rows.sort((a, b) => (b.periodStart ?? "").localeCompare(a.periodStart ?? "")
+      || (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
+    return rows;
+  }, [everyReport]);
+  const reportHistoryFiltered = useMemo(
+    () => reportHistory.filter((r) => !historyStudentId || r.studentId === historyStudentId),
+    [reportHistory, historyStudentId],
+  );
+  const historyVisible = historyExpanded ? reportHistoryFiltered : reportHistoryFiltered.slice(0, 6);
   // Hanya laporan yang sudah SAH yang mengunci tanggal (overlap guard).
   const confirmedReports = useLiveQuery(() => (studentId ? listConfirmedReportsByStudent(studentId) : []), [studentId]);
   const studentPayments = useLiveQuery(
@@ -342,9 +366,16 @@ export default function MonthlyReportPage() {
     return new Set(otherConfirmedReports.flatMap((candidate) => candidate.sessionIds));
   }, [sessionCountPackage, confirmedReports, blockingConfirmedReports, studentPayments, scopeReport]);
 
+  // Sesi yang benar-benar ADA di jendela tanggal terpilih — dasar kunci periode
+  // per sesi. Untuk mode "jumlah"/paket cakupannya adalah snapshot terpilih
+  // sendiri, sehingga kunci tetap berbasis id sesi.
+  const sessionWindowIds = useMemo(
+    () => new Set((sessions ?? []).map((session) => session.id)),
+    [sessions],
+  );
+
   // Periode rekap efektif + sesi yang masuk laporan.
-  const { periodStart, periodEnd, reportSessions } = useMemo(() => {
-    if (!studentId) return { periodStart: "", periodEnd: "", reportSessions: [] as Session[] };
+  const { periodStart, periodEnd, reportSessions } = useMemo(() => {    if (!studentId) return { periodStart: "", periodEnd: "", reportSessions: [] as Session[] };
     if (editingReport && useStoredEditingSnapshot) {
       return {
         periodStart: editingReport.periodStart,
@@ -383,7 +414,8 @@ export default function MonthlyReportPage() {
   ]);
 
   // Laporan identik periode = laporan yang sama (basis edit); periode lain yang
-  // bertumpuk atau bulan yang sudah tutup buku → periode TIDAK bisa digenerate.
+  // mengklaim SESI yang sama → periode TIDAK bisa digenerate. Tumpang-tindih
+  // tanggal saja tidak lagi memblokir (kunci periode mengikuti sesi).
   const reportSessionIds = useMemo(
     () => reportSessions.map((session) => session.id),
     [reportSessions],
@@ -440,12 +472,27 @@ export default function MonthlyReportPage() {
       && (!useStoredEditingSnapshot || editingReportSessionsReady)
     ));
 
-  const availability = useMemo(() => {
+  const availability = useMemo<{ ok: boolean; reason: string; blockingReportId?: string }>(() => {
     if (!studentId || !periodStart || !periodEnd) return { ok: false, reason: "" };
     if (invalidReportLink) return { ok: false, reason: "Tautan laporan tidak ditemukan." };
     if (!reportScopeDataReady) return { ok: false, reason: "Data laporan masih dimuat." };
     if (mode === "range" && rangeStart > rangeEnd) {
       return { ok: false, reason: "Tanggal awal harus lebih dulu dari tanggal akhir." };
+    }
+    // Laporan yang tagihannya sudah lunas / diedit manual membekukan snapshotnya
+    // (D6). Menggeser tanggalnya berarti tanggal tercetak di laporan tidak lagi
+    // cocok dengan sesi yang sudah ditagih — jadi perubahan rentang ditolak
+    // dengan jalur perbaikannya, bukan diam-diam diabaikan.
+    if (
+      report
+      && reportStatus(report) === "confirmed"
+      && scopeHasProtectedInvoice
+      && (periodStart !== report.periodStart || periodEnd !== report.periodEnd)
+    ) {
+      return {
+        ok: false,
+        reason: "Rentang tanggal laporan ini terkunci karena tagihannya sudah lunas atau nominalnya diedit manual. Batalkan tagihan itu di Keuangan (belum lunas), atau buka kunci laporan lewat tombol di bawah, sebelum menggeser tanggal.",
+      };
     }
     // Paket (session_count) beridentitas per-snapshot sesi, bukan rentang tanggal,
     // sehingga cek tumpang-tindih kalender dan bulan tertutup dilewati. Laporan
@@ -502,15 +549,20 @@ export default function MonthlyReportPage() {
         supplementalForReportId: report.supplementalForReportId,
       } : undefined,
       reportSessionIds,
+      // Kunci periode mengikuti sesi: laporan lama berentang lebar tidak lagi
+      // memblokir bulan yang sesinya belum pernah direkap (keluhan Marcia:
+      // "tanggal 1 September sudah direkap" padahal rekap itu bukan September).
+      sessionWindowIds,
     );
     if (overlap) {
       return {
         ok: false,
-        reason: `Tanggal ${dayLabel(overlap.periodStart)} s/d ${dayLabel(overlap.periodEnd)} sudah pernah direkap (laporan ${periodLabel(overlap.periodStart, overlap.periodEnd)}). Pilih periode lain.`,
+        reason: `Sesi di periode ini sudah pernah direkap oleh laporan ${periodLabel(overlap.periodStart, overlap.periodEnd)} (dibuat ${dayLabel(overlap.createdAt.slice(0, 10))}). Buka laporan itu di “📚 Laporan tersimpan” untuk melihat/memperbaikinya, atau pilih periode lain.`,
+        blockingReportId: overlap.id,
       };
     }
     return { ok: true, reason: "" };
-  }, [studentId, periodStart, periodEnd, invalidReportLink, reportScopeDataReady, blockingConfirmedReports, report, mode, rangeStart, rangeEnd, reportSessions.length, reportSessionIds, reportTargetCount, student]);
+  }, [studentId, periodStart, periodEnd, invalidReportLink, reportScopeDataReady, blockingConfirmedReports, report, mode, rangeStart, rangeEnd, reportSessions.length, reportSessionIds, reportTargetCount, student, sessionWindowIds, scopeHasProtectedInvoice]);
 
   const totalHours = useMemo(() => reportSessions.reduce((s, x) => s + x.durationHours, 0), [reportSessions]);
   const totalCost  = useMemo(() => reportSessions.reduce((s, x) => s + x.cost, 0), [reportSessions]);
@@ -601,13 +653,15 @@ export default function MonthlyReportPage() {
 
   // ── Undo stack for theme/layout changes ─────────────────────────────
   const [undoStack, setUndoStack] = useState<Array<{ themeId: string; layoutId: string }>>([]);
-  const [showCompare, setShowCompare] = useState(false);
-  const [compareThemeId, setCompareThemeId] = useState<string | null>(null);
   const [coverPage, setCoverPage] = useState(false);
   const [showCustomBuilder, setShowCustomBuilder] = useState(false);
   // Toolbar desain di-state (bukan open={false} statis) agar tetap terbuka
   // saat pratinjau di-remount setelah ganti tema/layout.
   const [designOpen, setDesignOpen] = useState(false);
+  // Daftar tema lengkap disembunyikan (keputusan pemilik: "Saat memilih tema,
+  // jangan tampilkan semua list, cukup acak saja"). Tombol "🎲 Acak" memilih
+  // tema + layout untuk pengguna; galeri hanya dibuka bila benar-benar diminta.
+  const [showThemeList, setShowThemeList] = useState(false);
   // Filter galeri layout (kategori dari metadata tools layout) — semua layout
   // tetap tersedia; filter hanya menyembunyikan. Menerapkan Hick's Law.
   const [layoutCategory, setLayoutCategory] = useState<LayoutCategory | "">("");
@@ -618,14 +672,11 @@ export default function MonthlyReportPage() {
   // C-2: preview on-demand per kombinasi layout yang diklik (bukan render
   // seluruh galeri sekaligus). Preview memakai SAMPLE_REPORT_DATA — tanpa AI.
   const [previewLayoutId, setPreviewLayoutId] = useState<string | null>(null);
-  // Kontrol export: jumlah sesi per halaman + rasio halaman.
-  // Default 3:4 potret agar gambar tidak terlalu tinggi di WhatsApp.
-  // Sesi per halaman = target awal; entri otomatis dipindah ke halaman
-  // berikutnya bila catatan panjang melebihi kotak 3:4 (tidak terpotong).
+  // Kontrol export: cukup jumlah sesi per halaman. Tinggi halaman selalu
+  // otomatis (pilihan rasio 3:4/Auto dihapus atas permintaan pemilik).
   const [entriesPerPage, setEntriesPerPage] = useState(3);
-  const [pageRatio, setPageRatio] = useState<"3:4" | "auto">("3:4");
 
-  const reportOptions: ReportOptions = { coverPage, showEngagement: true, entriesPerPage, pageRatio };
+  const reportOptions: ReportOptions = { coverPage, showEngagement: true, entriesPerPage };
 
   // ReportData — async photo normalization + engagement
   const [reportData, setReportData] = useState<import("../template/types").ReportData | null>(null);
@@ -637,8 +688,6 @@ export default function MonthlyReportPage() {
     reportData,
     periodLabel: periodLabel(periodStart, periodEnd) || monthLabel(month),
     setMessage,
-    pageRatio,
-    setPageRatio,
   });
 
   // Pastikan laporan untuk scope saat ini sudah ada sebelum AI menulis.
@@ -690,8 +739,8 @@ export default function MonthlyReportPage() {
 
   // Generasi AI (narasi/ringkasan + fallback gratis) — di-extract ke hook tersendiri.
   const {
-    aiLoading, prevTexts, setPrevTexts, invalidateAiRequests,
-    handlePolish, handleGenerateNarratives,
+    aiLoading, aiProgress, prevTexts, setPrevTexts, invalidateAiRequests,
+    handleGenerateAll,
     handleGenerateLocalNarratives, handleGenerateLocalTexts,
   } = useReportGeneration({
     student,
@@ -717,7 +766,6 @@ export default function MonthlyReportPage() {
     invalidateAiRequests();
     setMessage("");
     setPrevTexts(null);
-    setShowPolishModal(false);
     setShowNarrativesModal(false);
     setEditingNarrative(null);
     setEditText("");
@@ -734,10 +782,9 @@ export default function MonthlyReportPage() {
     setOpenTeks(false);
     setOpenPlan(false);
     setUndoStack([]);
-    setShowCompare(false);
-    setCompareThemeId(null);
     setCoverPage(false);
     setShowCustomBuilder(false);
+    setShowThemeList(false);
     setLayoutCategory("");
     setReportData(null);
   }, [reportScopeKey, invalidateAiRequests, setPrevTexts]);
@@ -1001,37 +1048,16 @@ export default function MonthlyReportPage() {
     }
   };
 
-const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
-
-  const handleShareReportWithInvoice = async () => {
-    if (!student || !report || !payment || !settings || shareWithInvoiceBusy) return;
-    setShareWithInvoiceBusy(true);
-    const periodLbl = periodLabel(periodStart, periodEnd) || monthLabel(month);
-    const buildWaText = (_tone: "normal" | "gentle" | "firm") => {
-      const sessionsForMsg: Session[] = reportSessions;
-      return buildBillingMessage({
-        student,
-        sessions: sessionsForMsg,
-        month: report.month,
-        settings,
-        amountOverride: payment.totalCost,
-        period: { start: periodStart, end: periodEnd },
-        periodLabelText: periodLbl,
-        tone: _tone,
-      }).text;
-    };
-    await shareReportWithInvoice({
-      student,
-      report,
-      payment,
-      periodLabel: periodLbl,
-      buildWaText,
-      exportRoot: reportExportRef.current ?? document,
-      setMessage,
-    });
-    setShareWithInvoiceBusy(false);
+  // SATU aksi penagihan saja (keputusan pemilik: "ada Lihat tagihan dan Buka
+  // Penagihan dan kirim laporan + penagihan. Hal yang sama, lebih baik 1 saja").
+  // Mengirim laporan + tagihan ke orang tua kini hanya ada di Ringkasan Keuangan.
+  const handleOpenBilling = () => {
+    if (!student) return;
+    if (payment) { navigate(billingHref); return; }
+    if (invoiceBusy) return;
+    void handleCreateInvoiceFromReport();
   };
-  
+
 
   const handleDiscard = async () => {
     if (!report) return;
@@ -1173,6 +1199,86 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
           </div>
         )}
 
+        {/* ── RIWAYAT LAPORAN (menu Laporan harus bisa membuka laporan lama) ── */}
+        <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <button
+            className="w-full flex items-center justify-between gap-2 p-4 text-left"
+            aria-expanded={historyOpen}
+            onClick={() => setHistoryOpen((v) => !v)}>
+            <div>
+              <p className="font-semibold text-gray-800 text-sm">📚 Laporan tersimpan</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Buka lagi laporan yang sudah pernah dibuat — draft maupun yang sudah final.
+              </p>
+            </div>
+            <span className="text-gray-500 text-sm">{historyOpen ? "▲" : "▼"}</span>
+          </button>
+          {historyOpen && (
+            <div className="border-t border-gray-100 p-4 space-y-2">
+              {reportHistory.length === 0 ? (
+                <EmptyState
+                  message="Belum ada laporan tersimpan"
+                  description="Pilih murid dan periode di bawah, lalu buat laporan pertama."
+                  icon="🗂️"
+                />
+              ) : (
+                <>
+                  <select
+                    className="input text-sm"
+                    aria-label="Saring riwayat laporan menurut murid"
+                    value={historyStudentId}
+                    onChange={(e) => setHistoryStudentId(e.target.value)}>
+                    <option value="">Semua murid</option>
+                    {studentOptions.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                  <ul className="divide-y divide-gray-100">
+                    {historyVisible.map((r) => {
+                      const owner = studentOptions.find((s) => s.id === r.studentId);
+                      const status = reportStatus(r);
+                      const isCurrent = report?.id === r.id;
+                      return (
+                        <li key={r.id} className="flex items-center justify-between gap-2 py-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-gray-800">
+                              {owner?.name ?? "Murid dihapus"}
+                              {isCurrent && <span className="ml-1 text-xs text-blue-600">• sedang dibuka</span>}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {periodLabel(r.periodStart, r.periodEnd) || monthLabel(r.month)}
+                              {" · "}
+                              {status === "confirmed" ? "Final" : "Draft"}
+                              {" · "}{formatRupiah(r.totalCost)}
+                            </p>
+                            {/* Rentang penuh + jumlah sesi apa adanya: di sinilah
+                                terlihat kalau sebuah laporan diam-diam mengunci
+                                rentang yang lebih lebar daripada sesinya. */}
+                            <p className="text-[11px] text-gray-400">
+                              {r.periodStart} → {r.periodEnd} · {r.sessionIds.length} sesi
+                              {r.createdAt ? ` · dibuat ${dayLabel(r.createdAt.slice(0, 10))}` : ""}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => { setStudentId(r.studentId); jumpToDraft(r); }}
+                            className="shrink-0 rounded-lg bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100">
+                            Buka
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  {reportHistoryFiltered.length > 6 && (
+                    <button
+                      onClick={() => setHistoryExpanded((v) => !v)}
+                      className="w-full rounded-lg bg-gray-50 py-2 text-xs font-semibold text-gray-600 transition-colors hover:bg-gray-100">
+                      {historyExpanded ? "Tampilkan lebih sedikit" : `Tampilkan semua ${reportHistoryFiltered.length} laporan`}
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </section>
+
         {/* ── LAPORAN MURID ── */}
         <div className="space-y-3">
 
@@ -1258,6 +1364,30 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                         beginControlScopeChange();
                         setMonth(e.target.value);
                       }} />
+                      {/* Rentang terpakai diperlihatkan apa adanya (sesi pertama →
+                          sesi terakhir), supaya tutor tidak menebak-nebak tanggal
+                          yang benar-benar masuk laporan. */}
+                      {studentId && (sessions?.length ?? 0) > 0 && (
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <p className="text-xs text-gray-500">
+                            Sesi bulan ini: {dayLabel(sessions![0].date)}
+                            {sessions!.length > 1 ? ` → ${dayLabel(sessions![sessions!.length - 1].date)}` : ""}
+                            {` · ${sessions!.length} sesi`}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              beginControlScopeChange();
+                              setRangeStart(sessions![0].date);
+                              setRangeEnd(sessions![sessions!.length - 1].date);
+                              setMode("range");
+                            }}
+                            title="Pindah ke Rentang Tanggal dengan tanggal sesi pertama & terakhir terisi"
+                            className="rounded-md bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600 transition-colors hover:bg-gray-200">
+                            Sesuaikan tanggal
+                          </button>
+                        </div>
+                      )}
                     </>
                   )}
                   {mode === "jumlah" && (
@@ -1319,6 +1449,38 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                 </p>
               )}
 
+              {/* Periode yang sudah terkunci — daftar terbuka, bukan hanya keluhan
+                  saat tombol ditekan. Tutor bisa melihat sendiri rentang mana yang
+                  sudah direkap sebelum memilih periode. */}
+              {studentId && (confirmedReports?.length ?? 0) > 0 && (
+                <details className="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5">
+                  <summary className="cursor-pointer select-none text-xs font-semibold text-gray-600">
+                    🔒 {confirmedReports!.length} periode sudah direkap (final) — lihat rentangnya
+                  </summary>
+                  <ul className="mt-1.5 space-y-1">
+                    {[...confirmedReports!]
+                      .sort((a, b) => (b.periodStart ?? "").localeCompare(a.periodStart ?? ""))
+                      .map((locked) => (
+                        <li key={locked.id} className="flex flex-wrap items-baseline justify-between gap-x-2 text-xs text-gray-600">
+                          <span>
+                            {periodLabel(locked.periodStart, locked.periodEnd)}
+                            <span className="text-gray-400"> · {locked.sessionIds.length} sesi</span>
+                          </span>
+                          <Link
+                            to={`/report?reportId=${encodeURIComponent(locked.id)}`}
+                            className="font-semibold text-blue-700 hover:underline">
+                            Buka
+                          </Link>
+                        </li>
+                      ))}
+                  </ul>
+                  <p className="mt-1.5 text-[11px] leading-relaxed text-gray-500">
+                    Yang dikunci adalah <b>sesinya</b>, bukan tanggalnya: sesi yang sudah masuk laporan final
+                    tidak bisa direkap dua kali, tetapi tanggal di luar sesi itu tetap bebas dipakai.
+                  </p>
+                </details>
+              )}
+
               {uniqueSubjects.length > 1 && studentId && (
                 <div className="flex flex-wrap gap-1.5">
                   <button
@@ -1362,12 +1524,19 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                       ? "✓ Laporan ini dapat diperbarui."
                       : mode === "jumlah"
                         ? "✓ Paket tersedia — seluruh pertemuan belum pernah ditagih."
-                        : "✓ Periode tersedia — tanggal belum pernah direkap dan belum tutup buku."}
+                        : "✓ Periode tersedia — sesi di periode ini belum pernah direkap."}
                   </p>
                 ) : (
-                  <p className="text-xs text-red-700 bg-red-50 border border-red-100 rounded-lg px-2.5 py-1.5">
-                    ⛔ {availability.reason}
-                  </p>
+                  <div className="rounded-lg border border-red-100 bg-red-50 px-2.5 py-1.5 space-y-1.5">
+                    <p className="text-xs text-red-700">⛔ {availability.reason}</p>
+                    {availability.blockingReportId && (
+                      <Link
+                        to={`/report?reportId=${encodeURIComponent(availability.blockingReportId)}`}
+                        className="inline-flex rounded-lg bg-white px-2.5 py-1.5 text-xs font-semibold text-red-800 ring-1 ring-red-200 hover:bg-red-100">
+                        📄 Buka laporan yang memblokir →
+                      </Link>
+                    )}
+                  </div>
                 )
               )}
               {protectedNewSessionCount > 0 && (
@@ -1502,37 +1671,21 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                           </div>
                         </div>
                         <div className="mt-2 flex flex-wrap gap-2">
-                          {payment ? (
-                            <Link
-                              to={billingHref}
-                              className="inline-flex rounded-lg bg-white px-2.5 py-1.5 text-xs font-semibold shadow-sm ring-1 ring-black/5 hover:bg-gray-50"
-                            >
-                              Lihat Tagihan →
-                            </Link>
-                          ) : (
-                            <button
-                              onClick={handleCreateInvoiceFromReport}
-                              disabled={invoiceBusy}
-                              className="inline-flex rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-                            >
-                              {invoiceBusy ? "Membuat..." : "Buat Tagihan dari Sesi Ini"}
-                            </button>
-                          )}
-                          <Link
-                            to={billingHref}
-                            className="inline-flex rounded-lg bg-white px-2.5 py-1.5 text-xs font-semibold shadow-sm ring-1 ring-black/5 hover:bg-gray-50"
+                          {/* Satu tombol penagihan: buka tagihannya bila sudah ada,
+                              atau terbitkan dulu bila belum. Tidak ada lagi
+                              "Lihat Tagihan" + "Buka Penagihan" yang menuju
+                              halaman yang sama, dan tidak ada kirim WA ganda. */}
+                          <button
+                            onClick={handleOpenBilling}
+                            disabled={invoiceBusy}
+                            className="inline-flex rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                           >
-                            Buka Penagihan →
-                          </Link>
-                          {payment && (
-                            <button
-                              onClick={handleShareReportWithInvoice}
-                              disabled={shareWithInvoiceBusy}
-                              className="inline-flex rounded-lg bg-green-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50"
-                            >
-                              {shareWithInvoiceBusy ? "Mengirim..." : "📤 Kirim Laporan + Tagihan"}
-                            </button>
-                          )}
+                            {payment
+                              ? "Buka Penagihan →"
+                              : invoiceBusy
+                                ? "Membuat..."
+                                : "Buat Tagihan dari Sesi Ini"}
+                          </button>
                         </div>
                         {olderUnpaidPayments.length > 0 && (
                           <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-medium leading-relaxed text-amber-800">
@@ -1568,18 +1721,11 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                     </button>
                   )}
                   {report && settings?.ai?.enabled && settings.ai.apiKey && (
-                    <div className="flex gap-2">
-                      <button className="flex-1 btn text-sm bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
-                        onClick={() => setShowNarrativesModal(true)} disabled={aiLoading || !availability.ok}
-                        title="Perkuat narasi 40–60 kata per sesi dengan AI (hanya sesi yang berubah)">
-                        {aiLoading ? "⏳ AI..." : narrativeDirtyCount === 0 ? "📖 Perkuat Narasi AI" : `📖 Perkuat Narasi AI (${narrativeDirtyCount})`}
-                      </button>
-                      <button className="flex-1 btn text-sm bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 disabled:opacity-50"
-                        onClick={() => setShowPolishModal(true)} disabled={aiLoading || !availability.ok}
-                        title="Perkuat ringkasan periode + kutipan dengan AI (lebih murah)">
-                        {aiLoading ? "⏳ AI..." : "✨ Perkuat Teks AI"}
-                      </button>
-                    </div>
+                    <button className="w-full btn text-sm bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
+                      onClick={() => setShowNarrativesModal(true)} disabled={aiLoading || !availability.ok}
+                      title="AI mengisi semua isian: narasi tiap sesi (per batch kecil) + ringkasan, kutipan & rencana depan">
+                      {aiLoading ? `⏳ AI ${aiProgress?.step ?? "…"}` : "🤖 Isi Semua dengan AI"}
+                    </button>
                   )}
 
                   {/* Kesiapan laporan, bukan hanya jumlah narasi. */}
@@ -1626,6 +1772,11 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                   <div className="flex flex-wrap items-center gap-2">
                     <button className="btn btn-secondary text-sm py-1.5 px-2 flex-shrink-0 whitespace-nowrap"
                       onClick={handleRegenerate}>🎲 Acak</button>
+                    <button className="btn btn-secondary text-sm py-1.5 px-2 flex-shrink-0 whitespace-nowrap"
+                      onClick={() => setShowThemeList((v) => !v)}
+                      aria-expanded={showThemeList}>
+                      {showThemeList ? "🙈 Sembunyikan tema" : "🎨 Pilih tema sendiri"}
+                    </button>
                     {undoStack.length > 0 && (
                       <button className="btn btn-secondary text-sm py-1.5 px-2 flex-shrink-0"
                         onClick={async () => {
@@ -1691,66 +1842,47 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                     </button>
                   </div>
 
-                  {/* Row 2: Compare + Custom Theme Builder */}
+                  {/* Row 2: Custom Theme Builder (mode "Bandingkan" dihapus —
+                      pemilik hanya memilih satu tema yang sesuai). */}
                   <div className="flex gap-2">
-                    <button className="btn btn-secondary text-xs py-1 px-2 flex-1"
-                      onClick={() => { setShowCompare((v) => !v); setCompareThemeId(null); }}>
-                      {showCompare ? "❌ Tutup" : "🔍 Bandingkan"}
-                    </button>
                     <button className="btn btn-secondary text-xs py-1 px-2 flex-1"
                       onClick={() => setShowCustomBuilder((v) => !v)}>
                       {showCustomBuilder ? "❌ Tutup" : "🎨 Custom Theme"}
                     </button>
                   </div>
 
-                  {/* Thumbnail grid */}
-                  <div className="grid grid-cols-6 gap-1.5 max-h-[200px] overflow-y-auto">
-                    {allThemes.map((t) => {
-                      const isActive = report.templateKey.themeId === t.id;
-                      const isCompare = compareThemeId === t.id;
-                      const bgColor = t.bg.includes("gradient") ? t.accent : t.bg;
-                      return (
-                        <button key={t.id} title={t.name}
-                          onClick={async () => {
-                            if (showCompare) { setCompareThemeId(t.id); return; }
-                            setUndoStack((s) => [...s, { themeId: report.templateKey.themeId, layoutId: report.templateKey.layoutId }]);
-                            await upsertReport({ ...report, templateKey: { ...report.templateKey, themeId: t.id } });
-                          }}
-                          className={`rounded-lg border-2 transition-all overflow-hidden ${isActive ? "border-gray-800 ring-2 ring-offset-1 ring-blue-400" : isCompare ? "border-dashed border-blue-400" : "border-gray-200 hover:border-gray-400"}`}>
-                          <div style={{ background: bgColor, height: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <span style={{ fontFamily: t.fontDisplay, fontSize: 10, color: t.ink, fontWeight: 700, lineHeight: 1, textAlign: "center", padding: "0 2px" }}>
-                              {t.headerText.slice(0, 4)}
-                            </span>
-                          </div>
-                          <div style={{ padding: "2px 3px", fontSize: 10, color: "#6b7280", textAlign: "center", background: "#fff" }}>
-                            {t.name.length > 10 ? t.name.slice(0, 9) + "…" : t.name}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    {allThemes.find((t) => t.id === report.templateKey.themeId)?.name ?? "—"}
-                    {showCompare && " • Klik tema untuk bandingkan, klik lagi untuk pilih"}
-                  </p>
-
-                {/* Comparison mode */}
-                {showCompare && compareThemeId && (
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <p className="text-xs text-gray-500 text-center mb-1">Current: {allThemes.find((t) => t.id === report.templateKey.themeId)?.name}</p>
-                      <div className="scale-[0.6] origin-top-left" style={{ width: "167%" }}>
-                        <ReportRenderer data={reportData} theme={theme} layoutId={report.templateKey.layoutId} options={reportOptions} />
+                  {/* Daftar tema TIDAK ditampilkan otomatis: tema diacak oleh
+                      tombol 🎲 Acak. Galeri hanya dibuka bila diminta. */}
+                  {showThemeList && (
+                    <>
+                      <div className="grid grid-cols-6 gap-1.5 max-h-[200px] overflow-y-auto">
+                        {allThemes.map((t) => {
+                          const isActive = report.templateKey.themeId === t.id;
+                          const bgColor = t.bg.includes("gradient") ? t.accent : t.bg;
+                          return (
+                            <button key={t.id} title={t.name}
+                              onClick={async () => {
+                                setUndoStack((s) => [...s, { themeId: report.templateKey.themeId, layoutId: report.templateKey.layoutId }]);
+                                await upsertReport({ ...report, templateKey: { ...report.templateKey, themeId: t.id } });
+                              }}
+                              className={`rounded-lg border-2 transition-all overflow-hidden ${isActive ? "border-gray-800 ring-2 ring-offset-1 ring-blue-400" : "border-gray-200 hover:border-gray-400"}`}>
+                              <div style={{ background: bgColor, height: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                <span style={{ fontFamily: t.fontDisplay, fontSize: 10, color: t.ink, fontWeight: 700, lineHeight: 1, textAlign: "center", padding: "0 2px" }}>
+                                  {t.headerText.slice(0, 4)}
+                                </span>
+                              </div>
+                              <div style={{ padding: "2px 3px", fontSize: 10, color: "#6b7280", textAlign: "center", background: "#fff" }}>
+                                {t.name.length > 10 ? t.name.slice(0, 9) + "…" : t.name}
+                              </div>
+                            </button>
+                          );
+                        })}
                       </div>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 text-center mb-1">Compare: {allThemes.find((t) => t.id === compareThemeId)?.name}</p>
-                      <div className="scale-[0.6] origin-top-left" style={{ width: "167%" }}>
-                        <ReportRenderer data={reportData} theme={allThemes.find((t) => t.id === compareThemeId) ?? getTheme(compareThemeId)} layoutId={report.templateKey.layoutId} options={reportOptions} />
-                      </div>
-                    </div>
-                  </div>
-                )}
+                      <p className="text-xs text-gray-500">
+                        {allThemes.find((t) => t.id === report.templateKey.themeId)?.name ?? "—"}
+                      </p>
+                    </>
+                  )}
 
                 {/* Custom Theme Builder */}
                 {showCustomBuilder && (
@@ -1803,7 +1935,6 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                             data={SAMPLE_REPORT_DATA}
                             theme={theme}
                             layoutId={previewLayoutId}
-                            options={{ pageRatio: "3:4" }}
                           />
                         </ScaledPreview>
                       </div>
@@ -1820,7 +1951,8 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                   <ReportRenderer data={reportData} theme={theme} layoutId={report.templateKey.layoutId} options={reportOptions} />
                 </div>
 
-                {/* Kontrol export: jumlah sesi per halaman + rasio halaman */}
+                {/* Kontrol export: cukup jumlah sesi per halaman — tinggi halaman
+                    selalu otomatis, jadi tidak ada lagi pilihan rasio. */}
                 <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-2.5">
                   <div className="flex items-center justify-between gap-2">
                     <label className="text-xs font-semibold text-gray-600">Sesi per halaman</label>
@@ -1834,27 +1966,8 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                       ))}
                     </div>
                   </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <label className="text-xs font-semibold text-gray-600">Rasio halaman</label>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => setPageRatio("3:4")}
-                        className={`text-xs font-semibold rounded-lg px-2.5 py-1 transition-colors ${pageRatio === "3:4" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
-                        title="Rasio 3:4 potret — ramah WhatsApp, tidak terpotong">
-                        3:4
-                      </button>
-                      <button
-                        onClick={() => setPageRatio("auto")}
-                        className={`text-xs font-semibold rounded-lg px-2.5 py-1 transition-colors ${pageRatio === "auto" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
-                        title="Tinggi otomatis — dipakai PDF">
-                        Auto
-                      </button>
-                    </div>
-                  </div>
                   <p className="text-xs text-gray-500">
-                    {pageRatio === "3:4"
-                      ? "Rasio 3:4 membuat gambar tidak terlalu tinggi sehingga tidak terpotong saat dikirim ke WhatsApp. Sesi otomatis dipindah ke halaman berikutnya bila catatan panjang."
-                      : "Tinggi otomatis mengikuti isi halaman (cocok untuk PDF)."}
+                    Tinggi halaman mengikuti isi (tidak ada pilihan rasio). Sesi otomatis dipindah ke halaman berikutnya bila catatan panjang.
                   </p>
                 </div>
 
@@ -2074,11 +2187,9 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                             {hasPlan ? "✏️ Edit Rencana" : "＋ Susun Rencana"}
                           </button>
                           {settings?.ai?.enabled && settings.ai.apiKey && (
-                            <button className="btn w-full text-sm bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 disabled:opacity-50"
-                              onClick={() => setShowPolishModal(true)} disabled={aiLoading || !availability.ok}
-                              title="AI akan buatkan ringkasan + kutipan + rencana depan">
-                              {aiLoading ? "⏳ AI..." : "🤖 Generate AI"}
-                            </button>
+                            <p className="pt-1 text-xs text-gray-500">
+                              Ringkasan & rencana depan ikut diisi oleh tombol <strong>🤖 Isi Semua dengan AI</strong> di panel atas.
+                            </p>
                           )}
                         </>
                       )}
@@ -2144,39 +2255,13 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
         </Modal>
       )}
 
-      {/* Ringkasan AI cost modal */}
-      <AiCostModal
-        open={showPolishModal}
-        title="✨ Ringkasan AI — Ringkasan, Kutipan & Rencana Depan"
-        estimatedIDR={estimateReportSummaryCost(reportSessions.length)}
-        description={`${reportSessions.length} sesi · ringkasan periode + kutipan + rencana depan untuk ${student?.name ?? "murid"}. Bila tidak ada perubahan sesi, akan dilewati otomatis.`}
-        dataSent="Nama dan level murid, periode laporan, serta ID, tanggal, mapel dan catatan sesi yang dipilih. Bila tersedia: mood, topik, area perhatian, prediksi dan nilai akhir, refleksi nilai, skor engagement, label perilaku dan respons, serta rata-rata engagement periode sebelumnya."
-        extraContent={
-          <label className="flex items-start gap-2 mt-3 text-xs text-gray-600 cursor-pointer select-none">
-            <input type="checkbox" checked={forceSummary} onChange={(e) => setForceSummary(e.target.checked)}
-              className="mt-0.5 h-4 w-4 accent-indigo-600" />
-            <span>Tulis ulang paksa ringkasan (abaikan hemat token)</span>
-          </label>
-        }
-        onCancel={() => { setShowPolishModal(false); setForceSummary(false); }}
-        onConfirm={() => { setShowPolishModal(false); const f = forceSummary; setForceSummary(false); handlePolish(f); }}
-      />
-
-      {/* Narasi AI cost modal */}
+      {/* Isi Semua dengan AI cost modal — satu-satunya tombol AI di halaman ini */}
       <AiCostModal
         open={showNarrativesModal}
-        title={forceNarratives
-          ? "Narasi AI — Tulis Ulang Semua Sesi"
-          : narrativeDirtyCount === 0
-            ? "Narasi AI — Semua Sudah Terbaru"
-            : `Narasi AI — ${narrativeDirtyCount} Sesi Berubah`}
-        estimatedIDR={!forceNarratives && narrativeDirtyCount === 0 ? 0 : estimateNarrativesCost(forceNarratives ? reportSessions.length : narrativeDirtyCount)}
-        description={forceNarratives || (narrativeDirtyCount > 0 && narrativeDirtyCount === reportSessions.length)
-          ? `Perluas shortNote jadi narasi 40–60 kata untuk SEMUA ${reportSessions.length} sesi + ringkasan, catatan guru, kutipan & rencana depan.`
-          : narrativeDirtyCount === 0
-            ? "Semua narasi sudah terbaru. Tidak ada data dikirim atau biaya AI, kecuali kamu memilih tulis ulang paksa."
-            : `${narrativeDirtyCount} dari ${reportSessions.length} sesi akan dikirim ulang · ${reportSessions.length - narrativeDirtyCount} narasi lain (termasuk edit manual tutor) dipertahankan. Ringkasan tidak diubah.`}
-        dataSent={forceNarratives || narrativeDirtyCount > 0 ? "Nama dan level murid, periode laporan, serta ID, tanggal, mapel dan catatan sesi yang akan dibuat ulang. Bila tersedia: mood, topik, area perhatian, prediksi dan nilai akhir, refleksi nilai, skor engagement, label perilaku dan respons, serta rata-rata engagement periode sebelumnya." : undefined}
+        title="🤖 Isi Semua dengan AI"
+        estimatedIDR={estimateNarrativesCost(forceNarratives ? reportSessions.length : narrativeDirtyCount) + estimateReportSummaryCost(reportSessions.length)}
+        description={`Narasi ${forceNarratives ? reportSessions.length : narrativeDirtyCount} sesi ditulis dalam batch kecil (maks 8 sesi per panggilan) supaya laporan panjang tidak lagi gagal karena batas token, lalu satu panggilan ringkasan mengisi ringkasan, kutipan & rencana depan untuk ${student?.name ?? "murid"}.${!forceNarratives && narrativeDirtyCount === 0 ? " Semua narasi sudah terbaru — hanya ringkasan yang diisi." : ""}`}
+        dataSent="Nama dan level murid, periode laporan, serta ID, tanggal, mapel dan catatan sesi yang dipilih. Bila tersedia: mood, topik, area perhatian, prediksi dan nilai akhir, refleksi nilai, skor engagement, label perilaku dan respons, serta rata-rata engagement periode sebelumnya."
         extraContent={
           <label className="flex items-start gap-2 mt-3 text-xs text-gray-600 cursor-pointer select-none">
             <input type="checkbox" checked={forceNarratives} onChange={(e) => setForceNarratives(e.target.checked)}
@@ -2185,7 +2270,7 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
           </label>
         }
         onCancel={() => { setShowNarrativesModal(false); setForceNarratives(false); }}
-        onConfirm={() => { setShowNarrativesModal(false); const f = forceNarratives; setForceNarratives(false); handleGenerateNarratives(f); }}
+        onConfirm={() => { setShowNarrativesModal(false); const f = forceNarratives; setForceNarratives(false); handleGenerateAll(f); }}
       />
 
       {/* Buka kunci laporan final: konfirmasi → PIN Keuangan → aksi (D4). */}

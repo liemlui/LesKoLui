@@ -20,15 +20,18 @@ export interface OverflowIssue {
 }
 
 /**
- * Deteksi halaman laporan yang isinya melebihi tinggi kotak rasio tetap (3:4).
- * Halaman yang sengaja dibiarkan tumbuh (`.report-page-grow`) dan cover tidak
- * dianggap error. Toleransi >4px menyerap selisih rounding/antialiasing pada export.
+ * Deteksi halaman laporan yang isinya terpotong.
+ *
+ * Sejak pemilih rasio 3:4 dihapus, halaman selalu bertinggi otomatis sehingga
+ * `scrollHeight` tidak lagi melebihi `clientHeight` — fungsi ini dipertahankan
+ * sebagai jaring pengaman (mis. tema kustom yang memberi tinggi tetap) dan
+ * mengembalikan array kosong pada keadaan normal.
  */
 export function detectOverflow(root: ParentNode = document): OverflowIssue[] {
   const issues: OverflowIssue[] = [];
   const nodes = root.querySelectorAll<HTMLElement>("[data-report-page]");
   nodes.forEach((el) => {
-    if (el.classList.contains("report-page-grow") || el.id === COVER_PAGE_ID) return;
+    if (el.id === COVER_PAGE_ID) return;
     const overflowPx = el.scrollHeight - el.clientHeight;
     if (overflowPx > 4) issues.push({ pageId: el.id || "(halaman tanpa id)", overflowPx });
   });
@@ -72,14 +75,12 @@ async function rasterizePages(
   if (nodes.length === 0) throw new Error("Buat laporan terlebih dahulu, lalu scroll ke bagian Pratinjau.");
   await Promise.all(nodes.map(waitForImages));
 
-  // Jaring pengaman pre-flight: halaman yang benar-benar meluap (bukan
-  // `.report-page-grow`, bukan cover) ketahuan sebelum raster agar hasil export
-  // tidak terpotong diam-diam. Halaman auto untuk PDF tidak memicu ini karena
-  // tanpa kotak tetap tinggi klien selalu menyamai tinggi isi.
+  // Jaring pengaman pre-flight: halaman yang benar-benar meluap (bukan cover)
+  // ketahuan sebelum raster agar hasil export tidak terpotong diam-diam.
   const overflow = detectOverflow(root);
   if (overflow.length > 0) {
     const detail = overflow.map((o) => `${o.pageId} (+${o.overflowPx}px)`).join(", ");
-    throw new Error(`Konten melebihi halaman export (${detail}). Kurangi sesi per halaman, pilih layout lain, atau pakai rasio Auto.`);
+    throw new Error(`Konten melebihi halaman export (${detail}). Kurangi sesi per halaman atau pilih layout lain.`);
   }
 
   const out: { dataUrl: string; w: number; h: number }[] = [];
@@ -104,10 +105,9 @@ async function rasterizePages(
     if (root === document) node.scrollIntoView({ block: "nearest" });
     await new Promise((r) => requestAnimationFrame(() => r(null)));
     const pixelRatio = exportPixelRatio(node);
-    // JANGAN paksa overflow:visible — biarkan CSS mengontrol. Rasio 3:4
-    // memakai overflow:hidden agar konten terpotong sesuai rasio (tidak
-    // menghasilkan gambar terlalu tinggi yang terpotong di WhatsApp).
-    // PDF (rasio auto) tanpa overflow:hidden tetap menampilkan konten penuh.
+    // Halaman bertinggi otomatis: rasterisasi memakai geometri halaman apa
+    // adanya sehingga tidak ada konten yang dipotong (tidak ada lagi rasio
+    // tetap dengan overflow:hidden).
     const dataUrl = format === "png"
       ? await toPng(node, { pixelRatio, cacheBust: false, ...fontOpts })
       : await toJpeg(node, { pixelRatio, quality: 0.94, cacheBust: false, ...fontOpts });

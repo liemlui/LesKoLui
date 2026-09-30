@@ -29,6 +29,56 @@ export async function pruneSessionPhotosBefore(beforeDate: string): Promise<numb
   return pruned;
 }
 
+export interface PhotoShrinkResult {
+  /** Jumlah foto yang berhasil diperkecil dan ditimpa. */
+  shrunk: number;
+  /** Foto yang dilewati karena gagal dibaca atau hasilnya tidak lebih kecil. */
+  skipped: number;
+  /** Perkiraan byte yang dihemat (selisih ukuran sebelum − sesudah). */
+  savedBytes: number;
+}
+
+/**
+ * Perkecil foto sesi lama TANPA menghapusnya (perawatan penyimpanan otomatis).
+ *
+ * Foto sesi sebelum `beforeDate` (default: 12 bulan) diturunkan resolusinya
+ * memakai `shrinkPhotoBlob`. Sesi & narasinya tidak disentuh; bila satu foto
+ * gagal diproses, foto itu dibiarkan apa adanya. Bila Blob baru tidak lebih
+ * kecil, foto lama dipertahankan sehingga perawatan ini tidak pernah membuat
+ * data memburuk. Hasilnya dicatat sebagai `photos.shrink` di Riwayat Aktivitas.
+ */
+export async function shrinkSessionPhotosBefore(
+  beforeDate: string,
+  shrink: (blob: Blob) => Promise<Blob | undefined>,
+): Promise<PhotoShrinkResult> {
+  const result: PhotoShrinkResult = { shrunk: 0, skipped: 0, savedBytes: 0 };
+  const candidates = await db.sessions.where("date").below(beforeDate).toArray();
+
+  for (const session of candidates) {
+    if (!session.photo) continue;
+    const shrunken = await shrink(session.photo);
+    if (!shrunken) { result.skipped++; continue; }
+    const saved = session.photo.size - shrunken.size;
+    if (saved <= 0) { result.skipped++; continue; }
+    await db.sessions.update(session.id, { photo: shrunken, updatedAt: timestamp() });
+    result.shrunk++;
+    result.savedBytes += saved;
+  }
+
+  if (result.shrunk > 0) {
+    const kb = Math.round(result.savedBytes / 1024);
+    await logAudit("photos.shrink", "data", undefined, `${result.shrunk} foto sesi < ${beforeDate} diperkecil (hemat ±${kb} KB)`);
+  }
+  return result;
+}
+
+/** Tanggal "YYYY-MM-DD" untuk `months` bulan sebelum hari ini (kalender lokal). */
+export function photoMaintenanceCutoff(months = 12, from = new Date()): string {
+  const d = new Date(from.getTime());
+  d.setMonth(d.getMonth() - months);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 // ── Session CRUD ───────────────────────────────────────────────────
 
 // ── Pricing ─────────────────────────────────────────────────────────

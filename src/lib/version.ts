@@ -11,6 +11,30 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.79.0",
+    date: "2026-10-01",
+    title: "Laporan lebih hemat halaman, satu tombol AI, dan riwayat yang bisa dibuka",
+    items: [
+      "Foto sesi kini MENGALIR di dalam teks (teks mengisi ruang di samping foto lalu melanjutkan penuh di bawahnya) pada layout Kartu, Timeline, Scrapbook, Dua Sisi, Capaian, Jurnal, dan Dashboard. Sebelumnya foto memakai kolom selebar tetap sehingga narasi sempit dan ruang di bawah foto terbuang — halaman jadi lebih panjang dari yang perlu.",
+      "Pilihan rasio halaman (3:4 / Auto) dihapus; semua halaman laporan bertinggi otomatis. Yang tinggal hanya berapa sesi per halaman, jadi tidak ada lagi kotak potret yang memotong narasi atau menyisakan area kosong.",
+      "Satu tombol “🤖 Isi Semua dengan AI” menggantikan tiga tombol AI (Perkuat Narasi, Perkuat Teks, Generate AI). Narasi sesi ditulis dalam batch kecil (maks 8 sesi per panggilan) supaya laporan panjang tidak lagi gagal karena konteks terlalu besar, lalu satu panggilan ringkasan mengisi ringkasan, kutipan, dan rencana berikutnya. Bila satu batch gagal, batch lain yang sudah jadi tetap tersimpan.",
+      "Informasi tidak lagi diulang: chip “Topik” dan “Perlu perhatian” dihapus dari blok meta sesi karena keduanya sudah tercetak di dalam narasi sesi. Satu informasi, satu tempat.",
+      "Daftar tema tidak lagi memenuhi layar: tema & layout diacak lewat tombol “🎲 Acak”, dan warna aksen tiap tema ikut diacak. Galeri tema hanya muncul bila diminta lewat “🎨 Pilih tema sendiri”. Mode “Bandingkan” dihapus karena pilihannya hanya satu.",
+      "Menu Laporan kini bisa membuka laporan yang sudah pernah dibuat: panel “📚 Laporan tersimpan” memuat semua laporan (draft & final, semua murid, terbaru dulu) lengkap dengan penyaring murid dan tombol Buka.",
+      "Aksi penagihan dirapikan: di kartu laporan hanya ada SATU tombol (menerbitkan tagihan bila belum ada, atau membuka penagihan bila sudah ada) — “Lihat Tagihan” dan “Buka Penagihan” yang menuju halaman sama dihapus, begitu juga tombol “Kirim Laporan + Tagihan” yang sama-sama ada di modal invoice.",
+      "Entri “Tagihan dibatalkan — bisa dipulihkan” kini bisa DIHAPUS, bukan hanya dipulihkan, supaya daftar pemulihan tidak menumpuk selamanya. Penghapusan wajib PIN Keuangan dan tercatat di Riwayat Aktivitas sebagai “Hapus salinan pemulihan tagihan”.",
+      "Fitur “Kirim WA massal” di Keuangan dihapus karena tidak pernah dipakai.",
+      "Fitur “Kirim Laporan + Tagihan” ikut dihapus (sebelumnya ada di layar Laporan dan modal invoice). Tutornya cukup mengunduh JPG/PDF dari layar Laporan lalu mengirimnya sendiri — satu tombol untuk satu pekerjaan.",
+      "Data lama tidak lagi membengkak tanpa batas: foto sesi lebih tua dari 12 bulan DIPERKECIL otomatis (resolusi turun, foto tetap ada — tidak dihapus) paling sering sekali per 30 hari, dan hasilnya terlihat di Riwayat Aktivitas. Teks sesi nyaris tidak tumbuh (satu tahun catatan ≈ 20 KB), jadi foto memang satu-satunya bagian yang berat. Di Pengaturan tersedia tombol manual: “Perkecil foto (tanpa menghapus)” untuk sesi >6 bulan, atau hapus permanen bila memang ingin.",
+      "Kunci periode laporan kini mengikuti SESI, bukan tanggal kalender. Dulu sebuah laporan lama berentang lebar (mis. 1 Agustus – 30 September) membuat bulan September selalu dianggap “sudah direkap” walau tidak ada satu sesi September pun di dalamnya — inilah yang membuat laporan baru ditolak dengan pesan “tanggal 1 September sudah pernah direkap”. Sekarang periode hanya diblokir bila ada SESI yang benar-benar diklaim dua kali, dan pesannya menyebut laporan mana yang memblokir beserta tombol untuk membukanya.",
+      "Rentang tanggal sesi kini terlihat apa adanya di panel periode (sesi pertama → sesi terakhir + jumlah sesi) dengan tombol “Sesuaikan tanggal” yang langsung mengisi Rentang Tanggal dari sesi pertama sampai terakhir, jadi tanggal yang masuk laporan tidak perlu ditebak. Riwayat laporan juga menampilkan rentang penuh + jumlah sesi + tanggal dibuat, supaya kelihatan kalau ada laporan yang mengunci rentang terlalu lebar. Menggeser tanggal laporan yang tagihannya sudah lunas/diedit manual tetap ditolak dengan jalur perbaikannya (D6).",
+      "Daftar periode yang sudah dikunci kini bisa dibuka di layar Laporan (tanpa menekan tombol apa pun): setiap laporan final menampilkan rentang tanggal, jumlah sesi, dan tombol Buka — jadi tidak perlu menebak lagi kenapa sebuah bulan dianggap sudah direkap.",
+      "Restore tagihan kini punya PILIHAN TITIK WAKTU, bukan hanya satu tombol: riwayat pemulihan tiap tagihan menampilkan tanggal-tanggal pembatalannya, dan Anda bisa memulihkan ke titik mana pun — termasuk kembali ke titik lama setelah salah memulihkan. Titik yang salinannya sudah dihapus (opsi Hapus) memang tidak bisa dipakai lagi, dan peringatan hapus kini menyebutkan itu.",
+      "Restore dari file/Drive kini memberi tahu tahapannya (mendekripsi → menyiapkan foto → memeriksa data → menulis) supaya tidak terlihat menggantung, tersedia tombol “Cek file ini bisa dibuka” untuk memastikan file & Kata Sandi Enkripsi cocok sebelum menimpa data, dan pesan kegagalannya menyebut sebabnya (kata sandi salah / file rusak / data tidak valid) alih-alih gagal diam-diam.",
+      "Font tema laporan tidak lagi diblokir kebijakan keamanan (CSP) — huruf pada hasil ekspor JPG/PDF kembali sesuai tema, bukan font bawaan sistem.",
+    ],
+  },
+  {
     version: "v1.78.0",
     date: "2026-09-30",
     title: "Laporan final bisa dibuka kuncinya untuk diperbaiki",

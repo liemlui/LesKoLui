@@ -2,7 +2,7 @@
 
 import { db } from "../db";
 import type {
-  AuditEntry, Expense, ExpenseCategory, IaEeMilestone, InvoiceCancelKind,
+  AuditAction, AuditEntry, Expense, ExpenseCategory, IaEeMilestone, InvoiceCancelKind,
   InvoiceCancelSnapshot, MonthlyReport, Payment, Session, Student, StudentBillingSnapshot,
 } from "../types";
 import { billingPolicyOf, reportStatus } from "../types";
@@ -655,26 +655,41 @@ export interface InvoiceCancellation {
 }
 
 /**
+ * Aksi audit "salinan pemulihan dibuang" (R1) — salah satu anggota `AuditAction`
+ * di `src/db/types.ts`, jadi tidak ada cast dan penampil riwayat aktivitas
+ * menampilkannya dengan labelnya sendiri.
+ */
+const PAYMENT_DISCARD_ACTION: AuditAction = "payment.discard";
+
+/**
  * Pembatalan yang masih bisa dipulihkan di perangkat ini (baru → lama).
- * Entri yang sudah dipulihkan (ada `payment.restore` dengan `snapshotId` sama)
- * atau snapshotnya rusak tidak ditawarkan — sehingga aksi "Pulihkan" tidak
- * pernah muncul untuk snapshot yang sudah hilang.
+ * Entri yang sudah dipulihkan (ada `payment.restore` dengan `snapshotId` sama),
+ * yang salinan pemulihannya sudah dibuang (ada `payment.discard` dengan
+ * `snapshotId` sama), atau snapshotnya rusak tidak ditawarkan — sehingga aksi
+ * "Pulihkan" tidak pernah muncul untuk snapshot yang sudah hilang.
  */
 export async function listInvoiceCancellations(): Promise<InvoiceCancellation[]> {
   const entries = await db.auditLog.where("entityType").equals("payment").toArray();
   const restoredSnapshotIds = new Set<string>();
+  const discardedSnapshotIds = new Set<string>();
   for (const entry of entries) {
-    if (entry.action !== "payment.restore" || !entry.details) continue;
+    if (!entry.details) continue;
+    const isRestore = entry.action === "payment.restore";
+    const isDiscard = entry.action === PAYMENT_DISCARD_ACTION;
+    if (!isRestore && !isDiscard) continue;
     try {
       const parsed = JSON.parse(entry.details) as { snapshotId?: string };
-      if (parsed?.snapshotId) restoredSnapshotIds.add(parsed.snapshotId);
+      if (!parsed?.snapshotId) continue;
+      if (isRestore) restoredSnapshotIds.add(parsed.snapshotId);
+      else discardedSnapshotIds.add(parsed.snapshotId);
     } catch {
       // entri lama tanpa JSON yang bisa dibaca — abaikan
     }
   }
   return entries
     .flatMap((entry): InvoiceCancellation[] => {
-      if (entry.action !== "payment.cancel" || restoredSnapshotIds.has(entry.id)) return [];
+      if (entry.action !== "payment.cancel") return [];
+      if (restoredSnapshotIds.has(entry.id) || discardedSnapshotIds.has(entry.id)) return [];
       const snapshot = decodeInvoiceCancelSnapshot(entry);
       if (!snapshot) return [];
       return [{
@@ -692,8 +707,128 @@ export async function listInvoiceCancellations(): Promise<InvoiceCancellation[]>
     .sort((a, b) => b.cancelledAt.localeCompare(a.cancelledAt));
 }
 
+function isInvoiceCancelKind(value: unknown): value is InvoiceCancelKind {
+  return value === "package" || value === "report" || value === "manual";
+}
+
+/** `snapshotId` + `kind` dari `details` entri `payment.restore`/`payment.discard`. */
+function parseSnapshotRef(details: string | undefined): { snapshotId?: string; kind?: InvoiceCancelKind } {
+  if (!details) return {};
+  try {
+    const parsed = JSON.parse(details) as { snapshotId?: unknown; kind?: unknown };
+    return {
+      snapshotId: typeof parsed?.snapshotId === "string" ? parsed.snapshotId : undefined,
+      kind: isInvoiceCancelKind(parsed?.kind) ? parsed.kind : undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Satu titik pemulihan dalam riwayat sebuah tagihan (R1 timeline).
+ *
+ * `restoredAt`/`discardedAt` diisi dari entri `payment.restore`/`payment.discard`
+ * yang menunjuk `snapshotId` ini; `spent` merangkum keduanya: salinan pemulihan
+ * yang sudah terpakai (dipulihkan) atau sudah dibuang hanya boleh DILIHAT.
+ */
+export interface InvoiceSnapshotPoint {
+  snapshotId: string;
+  kind: InvoiceCancelKind;
+  cancelAt: string;
+  restoredAt?: string;
+  discardedAt?: string;
+  sessionCount: number;
+  totalCost: number;
+  month: string;
+  /** true bila salinan pemulihan sudah dipakai (dipulihkan) atau dibuang. */
+  spent: boolean;
+}
+
+/**
+ * Riwayat titik pemulihan SATU tagihan, dari yang paling lama ke yang paling
+ * baru — dasar pemilih "pulihkan ke tanggal berapa".
+ *
+ * Berbeda dari `listInvoiceCancellations()` yang hanya menawarkan salinan yang
+ * MASIH bisa dipakai, fungsi ini sengaja ikut menampilkan titik yang sudah
+ * dipulihkan atau dibuang: setelah salah memulihkan, pemilik perlu melihat titik
+ * sebelumnya untuk bisa kembali ke keadaan yang lebih awal. Karena itu fungsi ini
+ * READ-ONLY — ia tidak menulis apa pun dan tidak pernah menghapus jejak.
+ *
+ * Titik yang salinan pemulihannya sudah DIBUANG sudah tidak punya baris
+ * `payment.cancel` (entri itu dihapus saat dibuang), jadi titiknya
+ * direkonstruksi dari entri `payment.discard` (entityId = id tagihan) dengan
+ * `discardedAt` + `spent: true`; nominal, bulan, dan jumlah sesinya sudah tidak
+ * tersimpan lagi sehingga bernilai 0/kosong.
+ */
+export async function listInvoiceSnapshotPoints(paymentId: string): Promise<InvoiceSnapshotPoint[]> {
+  const entries = await db.auditLog.where("entityType").equals("payment").toArray();
+
+  const restoredAt = new Map<string, string>();
+  const discardedAt = new Map<string, string>();
+  for (const entry of entries) {
+    if (entry.action !== "payment.restore" && entry.action !== PAYMENT_DISCARD_ACTION) continue;
+    const { snapshotId } = parseSnapshotRef(entry.details);
+    if (!snapshotId) continue;
+    const target = entry.action === "payment.restore" ? restoredAt : discardedAt;
+    // Jejak PERTAMA yang menang: satu snapshot hanya pernah dipulihkan atau
+    // dibuang sekali, jadi urutannya tidak pernah ambigu.
+    if (!target.has(snapshotId)) target.set(snapshotId, entry.timestamp);
+  }
+
+  const points: InvoiceSnapshotPoint[] = [];
+  const known = new Set<string>();
+  for (const entry of entries) {
+    if (entry.action !== "payment.cancel") continue;
+    const snapshot = decodeInvoiceCancelSnapshot(entry);
+    if (!snapshot || snapshot.payment.id !== paymentId) continue;
+    known.add(entry.id);
+    const restored = restoredAt.get(entry.id);
+    const discarded = discardedAt.get(entry.id);
+    points.push({
+      snapshotId: entry.id,
+      kind: snapshot.kind,
+      cancelAt: entry.timestamp,
+      restoredAt: restored,
+      discardedAt: discarded,
+      sessionCount: snapshot.sessionIds.length,
+      totalCost: snapshot.payment.totalCost,
+      month: snapshot.payment.month,
+      spent: Boolean(restored || discarded),
+    });
+  }
+
+  for (const entry of entries) {
+    if (entry.action !== PAYMENT_DISCARD_ACTION || entry.entityId !== paymentId) continue;
+    const { snapshotId, kind } = parseSnapshotRef(entry.details);
+    if (!snapshotId || !kind || known.has(snapshotId)) continue;
+    known.add(snapshotId);
+    points.push({
+      snapshotId,
+      kind,
+      // Tanggal pembatalan aslinya ikut terhapus bersama snapshotnya; waktu
+      // salinan itu dibuang adalah penanda waktu terbaik yang masih tersimpan.
+      cancelAt: entry.timestamp,
+      discardedAt: entry.timestamp,
+      sessionCount: 0,
+      totalCost: 0,
+      month: "",
+      spent: true,
+    });
+  }
+
+  return points.sort((a, b) => a.cancelAt.localeCompare(b.cancelAt));
+}
+
 /**
  * Pulihkan satu pembatalan dari snapshot audit (R1).
+ *
+ * Pemulihan MEMAKAI HABIS salinan pemulihan itu (jejak `payment.restore`
+ * menandainya `spent`): ia memulihkan keadaan tagihan PERSIS seperti saat
+ * dibatalkan. Karena itu titik pemulihan berikutnya — yaitu "titik waktu"
+ * pertama yang tersedia saat tagihan dibatalkan lagi — ditambahkan pada
+ * pembatalan berikutnya, dan itulah yang membuat riwayat di
+ * `listInvoiceSnapshotPoints()` tumbuh dari waktu ke waktu.
  *
  * Seluruh guard G1–G9 diperiksa SEBELUM penulisan apa pun, dan pemulihan
  * berjalan dalam satu transaksi: bila ada satu pemeriksaan gagal, tidak ada
@@ -784,8 +919,7 @@ export async function restoreCancelledInvoice(snapshotId: string): Promise<Invoi
     }
 
     if (existingPayment) {
-      // G9 — idempoten bila SELURUH record pasangan identik; selain itu tolak
-      // tanpa menimpa apa pun.
+      // G9 — idempoten bila SELURUH record pasangan identik.
       const paymentIdentical = sameRecord(payment, existingPayment);
       const reportIdentical = kind === "package"
         ? Boolean(report) && Boolean(currentReport) && sameRecord(report!, currentReport!)
@@ -799,7 +933,28 @@ export async function restoreCancelledInvoice(snapshotId: string): Promise<Invoi
       if (paymentIdentical && reportIdentical && studentIdentical) {
         return { status: "noop", kind };
       }
-      throw new Error("Tidak dapat dipulihkan: tagihan dengan ID ini sudah ada dengan data berbeda");
+      // Keadaan tagihan BERBEDA dari titik ini → kembalikan ke titik tersebut.
+      // Inilah jalur "salah pulihkan lalu pilih titik lain": tagihan yang sudah
+      // dipulihkan ke titik B bisa diarahkan lagi ke titik A yang lebih tua,
+      // karena setiap titik menyimpan salinan tagihan apa adanya.
+      await db.payments.put(payment);
+      if (kind === "package") {
+        await db.reports.put(report!);
+        await db.students.update(payment.studentId, {
+          billingPolicy: snapshot.studentBeforeCancel?.billingPolicy,
+          billingSessionCount: snapshot.studentBeforeCancel?.billingSessionCount,
+          pendingBillingPolicy: snapshot.studentBeforeCancel?.pendingBillingPolicy,
+        });
+      }
+      await db.auditLog.add({
+        id: crypto.randomUUID(),
+        action: "payment.restore" as const,
+        entityType: "payment",
+        entityId: payment.id,
+        timestamp: timestamp(),
+        details: JSON.stringify({ snapshotId, kind, replacedDifferentState: true }),
+      });
+      return { status: "restored", kind };
     }
 
     await db.payments.put(payment);
@@ -820,6 +975,48 @@ export async function restoreCancelledInvoice(snapshotId: string): Promise<Invoi
       details: JSON.stringify({ snapshotId, kind }),
     });
     return { status: "restored", kind };
+  });
+}
+
+/**
+ * Buang salinan pemulihan satu pembatalan (R1) tanpa memulihkan tagihannya.
+ *
+ * Dipakai agar daftar "Tagihan dibatalkan — bisa dipulihkan" tidak menumpuk
+ * selamanya. Snapshot dihapus dari auditLog — itulah yang membuat entrinya
+ * hilang dari `listInvoiceCancellations()` — lalu satu entri `payment.discard`
+ * ditulis supaya riwayat aktivitas tetap mencatat bahwa salinan itu dibuang.
+ *
+ * Aksi ini permanen dan TIDAK mengembalikan tagihan: hanya salinan
+ * pemulihannya yang hilang. Snapshot yang sudah dipulihkan ditolak, karena
+ * jejaknya masih menerangkan pemulihan yang sudah terjadi.
+ */
+export async function discardInvoiceCancellation(snapshotId: string): Promise<void> {
+  await db.transaction("rw", db.auditLog, async () => {
+    const entry = await db.auditLog.get(snapshotId);
+    if (!entry) throw new Error("Snapshot pembatalan tidak ditemukan");
+    if (entry.action !== "payment.cancel") throw new Error("Entri ini bukan snapshot pembatalan");
+
+    const related = await db.auditLog.where("entityType").equals("payment").toArray();
+    const alreadyRestored = related.some((other) => {
+      if (other.action !== "payment.restore" || !other.details) return false;
+      try {
+        return (JSON.parse(other.details) as { snapshotId?: string })?.snapshotId === snapshotId;
+      } catch {
+        return false;
+      }
+    });
+    if (alreadyRestored) throw new Error("Tagihan ini sudah dipulihkan");
+
+    const snapshot = decodeInvoiceCancelSnapshot(entry);
+    await db.auditLog.delete(snapshotId);
+    await db.auditLog.add({
+      id: crypto.randomUUID(),
+      action: PAYMENT_DISCARD_ACTION,
+      entityType: "payment",
+      entityId: snapshot?.payment.id,
+      timestamp: timestamp(),
+      details: JSON.stringify({ snapshotId, kind: snapshot?.kind }),
+    });
   });
 }
 

@@ -140,6 +140,16 @@ function Layout() {
       const days = Math.floor((Date.now() - lastMs) / 86400000);
       if (days >= STALE_BACKUP_DAYS) setStaleBackup({ days });
     })().catch((e: unknown) => { console.warn("auto-backup/silent relay failed:", e); });
+
+    // Perawatan penyimpanan: foto sesi >12 bulan diperkecil (BUKAN dihapus)
+    // supaya backup tidak membengkak tiap tahun. Senyap, maksimal 1×/30 hari.
+    void (async () => {
+      try {
+        const { runPhotoShrinkIfDue } = await import("./lib/photoMaintenance");
+        const r = await runPhotoShrinkIfDue();
+        if (r.ran && r.shrunk > 0) setFlash(`${r.shrunk} foto lama diperkecil · hemat ±${r.savedKB} KB ✓`);
+      } catch (e) { console.warn("photo shrink failed:", e); }
+    })();
   }, [checkAutoBackup]);
 
   // Ukur tinggi banner atas yang mengambang → `.app-shell` memberi ruang

@@ -2,10 +2,11 @@ import { useState, useEffect, useRef, useMemo, useId, createContext, useContext 
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   getSettings, saveSettings, logAudit, listAuditLog,
-  countSessionPhotos, pruneSessionPhotosBefore,
+  countSessionPhotos, pruneSessionPhotosBefore, shrinkSessionPhotosBefore,
 } from "../db/repos";
+import { shrinkPhotoBlob } from "../lib/foto";
 import { db } from "../db/db";
-import { exportBackup, importBackup, inspectBackup } from "../lib/backup";
+import { exportBackup, importBackup, inspectBackup, type ImportProgressStep } from "../lib/backup";
 import { isDriveConfigured, uploadBackupToDrive, downloadBackupFromDrive, findDriveBackup, testRelay } from "../lib/driveBackup";
 import { exportDataCsvBlob } from "../lib/exportData";
 import { hashPin, verifyPin } from "../lib/crypto";
@@ -79,7 +80,9 @@ function StorageUsage() {
   );
 }
 
-// M-5: hapus foto sesi lama untuk membebaskan storage (data sesi tetap utuh).
+// M-5: hemat penyimpanan foto sesi lama (data sesi tetap utuh).
+// Dua pilihan: PERKECIL (foto tetap ada, resolusinya turun) atau HAPUS.
+// Perkecilan juga berjalan otomatis 1×/30 hari untuk foto >12 bulan.
 function PhotoMaintenance({ onToast }: { onToast: (m: string) => void }) {
   const cutoff = useMemo(() => {
     const d = new Date();
@@ -93,11 +96,12 @@ function PhotoMaintenance({ onToast }: { onToast: (m: string) => void }) {
     <div className="bg-amber-50 rounded-xl p-3 space-y-2">
       <p className="text-xs font-semibold text-amber-700">🖼️ Foto sesi lama</p>
       <p className="text-xs text-amber-600">
-        {oldCount} foto dari sesi &gt; 6 bulan lalu. Hapus untuk membebaskan penyimpanan — catatan &amp; tanda tangan sesi tetap aman.
+        {oldCount} foto dari sesi &gt; 6 bulan lalu. Foto &gt; 12 bulan diperkecil
+        otomatis (tetap ada, resolusinya turun) agar backup tidak membengkak —
+        catatan &amp; tanda tangan sesi tidak pernah diubah.
       </p>
       <button disabled={busy}
         onClick={async () => {
-          if (!confirm(`Hapus ${oldCount} foto sesi lebih lama dari 6 bulan? Hanya foto yang dihapus; data sesi tetap tersimpan.`)) return;
           setBusy(true);
           try {
             const n = await pruneSessionPhotosBefore(cutoff);
@@ -109,9 +113,38 @@ function PhotoMaintenance({ onToast }: { onToast: (m: string) => void }) {
         className="w-full py-2 rounded-xl bg-amber-500 text-white text-sm font-medium disabled:opacity-60">
         {busy ? "Menghapus..." : `Hapus ${oldCount} foto lama`}
       </button>
+      <button disabled={busy}
+        onClick={async () => {
+          if (!confirm(`Perkecil ${oldCount} foto sesi lebih lama dari 6 bulan? Foto tetap ada, hanya resolusinya yang turun.`)) return;
+          setBusy(true);
+          try {
+            const r = await shrinkSessionPhotosBefore(cutoff, shrinkPhotoBlob);
+            onToast(r.shrunk > 0
+              ? `${r.shrunk} foto diperkecil · hemat ±${Math.round(r.savedBytes / 1024)} KB ✓`
+              : "Tidak ada foto yang bisa diperkecil lagi ✓");
+          } catch (e) {
+            onToast("Gagal perkecil foto: " + ((e as Error).message || "coba lagi"));
+          } finally { setBusy(false); }
+        }}
+        className="w-full py-2 rounded-xl border border-amber-300 bg-white text-amber-800 text-sm font-medium disabled:opacity-60">
+        Perkecil foto (tanpa menghapus)
+      </button>
     </div>
   );
 }
+
+/**
+ * Kalimat tahap restore. Restore file 10 MB+ bisa butuh puluhan detik; tanpa
+ * kalimat ini layar tampak menggantung sehingga tutor menutup halaman di tengah
+ * proses dan menganggap restore-nya gagal.
+ */
+const RESTORE_STEP_LABEL: Record<ImportProgressStep, string> = {
+  "decrypt": "Mendekripsi backup (memakai Kata Sandi Enkripsi)...",
+  "decode-media": "Membaca & menyiapkan foto/tanda tangan...",
+  "validate": "Memeriksa keutuhan data...",
+  "pre-restore-backup": "Membuat cadangan data lama (pre-restore)...",
+  "write": "Menulis data ke perangkat...",
+};
 
 // L-1: penampil riwayat aktivitas penting (lokal per perangkat).
 const AUDIT_LABEL: Record<AuditAction, string> = {
@@ -128,6 +161,7 @@ const AUDIT_LABEL: Record<AuditAction, string> = {
   "payment.due": "Ubah jatuh tempo tagihan",
   "payment.cancel": "Batalkan tagihan",
   "payment.restore": "Pulihkan tagihan yang dibatalkan",
+  "payment.discard": "Hapus salinan pemulihan tagihan",
   "expense.create": "Catat pengeluaran",
   "expense.update": "Ubah pengeluaran",
   "expense.delete": "Hapus pengeluaran",
@@ -135,6 +169,7 @@ const AUDIT_LABEL: Record<AuditAction, string> = {
   "data.reset": "Reset semua data",
   "data.restore": "Restore data",
   "photos.prune": "Hapus foto lama",
+  "photos.shrink": "Perkecil foto lama",
 };
 
 /** Kunci tanggal lokal "YYYY-MM-DD" — bukan UTC, supaya grup hari tidak bergeser. */
@@ -262,6 +297,8 @@ export default function SettingsPage() {
   const [pinError,    setPinError]    = useState("");
   const [pinRecoveryBusy, setPinRecoveryBusy] = useState(false);
   const [pinAction,   setPinAction]   = useState<"exportBackup" | "restore" | "resetAll" | "driveBackup" | "driveRestore" | "exportCsv" | null>(null);
+  /** Tahap restore yang sedang berjalan — ditampilkan agar layar tidak "diam". */
+  const [restoreProgress, setRestoreProgress] = useState("");
   const [verifying,   setVerifying]   = useState(false);
   const [relaySecret, setRelaySecret] = useState(() => { try { return localStorage.getItem("leskolui_relay_secret") || ""; } catch { return ""; } });
   const [relayBusy,   setRelayBusy]   = useState(false);
@@ -433,12 +470,21 @@ export default function SettingsPage() {
   const doRestore = async () => {
     const file = restoreRef.current?.files?.[0];
     if (!file || !backupPass) { toastCtx.info("Pilih file dan masukkan kata sandi!"); return; }
-    await importBackup(file, backupPass, {
-      onValidationWarnings: async (warnings) => {
-        const summary = warnings.map((w) => `- ${w.table}.${w.rowId}.${w.field}: ${w.message}`).join("\n");
-        return confirm(`Backup memiliki ${warnings.length} peringatan validasi:\n\n${summary}\n\nLanjutkan restore?`);
-      },
-    });
+    // Kabari tutor bahwa proses ini memang panjang (dekripsi + decode ribuan
+    // foto bisa puluhan detik). Tanpa ini, layar yang "diam" terbaca sebagai
+    // gagal — lalu halaman ditutup di tengah proses.
+    setRestoreProgress("Membaca & mendekripsi backup...");
+    try {
+      await importBackup(file, backupPass, {
+        onProgress: (step) => setRestoreProgress(RESTORE_STEP_LABEL[step]),
+        onValidationWarnings: async (warnings) => {
+          const summary = warnings.map((w) => `- ${w.table}.${w.rowId}.${w.field}: ${w.message}`).join("\n");
+          return confirm(`Backup memiliki ${warnings.length} peringatan validasi:\n\n${summary}\n\nLanjutkan restore?`);
+        },
+      });
+    } finally {
+      setRestoreProgress("");
+    }
     await logAudit("data.restore", "data", undefined, "dari file");
     toastCtx.info("Restore berhasil! Memuat ulang... ✓");
     setTimeout(() => location.reload(), 1500);
@@ -467,12 +513,18 @@ export default function SettingsPage() {
       fileId = found.id;
     }
     const blob = await downloadBackupFromDrive(fileId);
-    await importBackup(blob, backupPass, {
-      onValidationWarnings: async (warnings) => {
-        const summary = warnings.map((w) => `- ${w.table}.${w.rowId}.${w.field}: ${w.message}`).join("\n");
-        return confirm(`Backup memiliki ${warnings.length} peringatan validasi:\n\n${summary}\n\nLanjutkan restore?`);
-      },
-    });
+    setRestoreProgress(RESTORE_STEP_LABEL.decrypt);
+    try {
+      await importBackup(blob, backupPass, {
+        onProgress: (step) => setRestoreProgress(RESTORE_STEP_LABEL[step]),
+        onValidationWarnings: async (warnings) => {
+          const summary = warnings.map((w) => `- ${w.table}.${w.rowId}.${w.field}: ${w.message}`).join("\n");
+          return confirm(`Backup memiliki ${warnings.length} peringatan validasi:\n\n${summary}\n\nLanjutkan restore?`);
+        },
+      });
+    } finally {
+      setRestoreProgress("");
+    }
     await logAudit("data.restore", "data", undefined, "dari Google Drive");
     toastCtx.info("Restore dari Drive berhasil! Memuat ulang... ✓");
     setTimeout(() => location.reload(), 1500);
@@ -956,6 +1008,36 @@ export default function SettingsPage() {
                 }}>
                 ♻️ Restore dari File
               </button>
+              {/* Pratinjau file tanpa menyentuh data: menjawab "file-nya atau
+                  kata sandinya yang salah?" sebelum tutor menekan Restore. */}
+              <button
+                disabled={restoreProgress !== ""}
+                className="w-full py-2 rounded-xl bg-white text-blue-700 text-sm font-medium border border-blue-200 hover:bg-blue-50 transition-colors disabled:opacity-60"
+                onClick={async () => {
+                  const file = restoreRef.current?.files?.[0];
+                  if (!file) { toastCtx.info("Pilih file .jles dulu!"); return; }
+                  if (!backupPass) { toastCtx.info("Isi Kata Sandi Enkripsi dulu!"); return; }
+                  setRestoreProgress(RESTORE_STEP_LABEL.decrypt);
+                  try {
+                    const summary = await inspectBackup(file, backupPass);
+                    const counts = summary.tableCounts;
+                    toastCtx.info(`File terbaca ✓ ${counts.students} murid · ${counts.sessions} sesi · ${counts.reports} laporan · ${counts.payments} tagihan (${new Date(summary.exportedAt).toLocaleDateString("id-ID", { dateStyle: "medium" })})`);
+                  } catch (e) {
+                    toastCtx.info("File tidak bisa dibaca: " + ((e as Error).message || "kata sandi salah / file rusak"));
+                  } finally {
+                    setRestoreProgress("");
+                  }
+                }}>
+                🔍 Cek file ini bisa dibuka
+              </button>
+              {restoreProgress && (
+                <p role="status" aria-live="polite" className="rounded-lg bg-blue-100 px-2.5 py-2 text-xs font-medium text-blue-800">
+                  ⏳ {restoreProgress} Jangan tutup halaman ini.
+                </p>
+              )}
+              <p className="text-xs text-blue-700">
+                <b>Kata Sandi Enkripsi</b> (di kolom atas), bukan PIN Keuangan, yang membuka file ini.
+              </p>
             </div>
           </div>
 

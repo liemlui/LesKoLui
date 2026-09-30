@@ -87,14 +87,18 @@ function sanitize(s: string): string {
     .replace(/\x00/g, "");
 }
 
-// 30-second timeout for AI requests
+// 30-second default timeout for AI requests (caller bisa minta lebih panjang)
 const AI_TIMEOUT_MS = 30_000;
+
+/** Timeout khusus narasi — 1 batch (maks 8 sesi) memang butuh waktu lebih lama. */
+const AI_NARRATIVES_TIMEOUT_MS = 90_000;
 
 async function callAI<T>(
   systemPrompt: string,
   userContent: string,
   parse: (value: unknown) => T,
   maxTokens = 500,
+  timeoutMs = AI_TIMEOUT_MS,
 ): Promise<T> {
   const s = await getSettings();
   if (!s.ai.enabled) throw new Error("AI belum diaktifkan di Pengaturan.");
@@ -118,7 +122,7 @@ async function callAI<T>(
 
   // Timeout agar panggilan tidak menggantung dan membengkakkan biaya
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(new DOMException("Request timed out", "TimeoutError")), AI_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(new DOMException("Request timed out", "TimeoutError")), timeoutMs);
 
   try {
     const res = await fetch(DEEPSEEK_CHAT_URL, {
@@ -222,7 +226,53 @@ function buildReportPayload(input: AiInput) {
 }
 
 export async function generateNarratives(input: AiInput): Promise<AiOutput> {
-  return callAI(SYSTEM_PROMPT_NARRATIVES, JSON.stringify(buildReportPayload(input)), (value) => validateAiNarratives(value, input.sessions.map((s) => s.id)) as AiOutput, Math.min(4000, 700 + input.sessions.length * 110));
+  return callAI(SYSTEM_PROMPT_NARRATIVES, JSON.stringify(buildReportPayload(input)), (value) => validateAiNarratives(value, input.sessions.map((s) => s.id)) as AiOutput, Math.min(4000, 700 + input.sessions.length * 110), AI_NARRATIVES_TIMEOUT_MS);
+}
+
+// ── 1a. Pemecahan sesi jadi batch kecil ─────────────────────────────────────
+
+/** Batas jumlah sesi per panggilan AI — selain anggaran karakter, agar konteks
+ *  tiap panggilan tetap kecil dan tidak kena "Respons AI terpotong karena batas token". */
+export const AI_BATCH_MAX_SESSIONS = 8;
+
+/** Perkiraan ukuran payload satu sesi (dipakai hanya untuk anggaran batch). */
+function estimatedSessionChars(session: { shortNote: string }): number {
+  try {
+    const size = JSON.stringify(session)?.length ?? 0;
+    return size > 0 ? size : session.shortNote?.length ?? 0;
+  } catch {
+    return session.shortNote?.length ?? 0;
+  }
+}
+
+/**
+ * Pecah daftar sesi menjadi beberapa batch kecil sebelum dikirim ke AI.
+ * Sesi ditambahkan terus sampai menambah satu sesi lagi akan melewati anggaran
+ * karakter `maxCharsPerBatch` ATAU batas `AI_BATCH_MAX_SESSIONS`. Setiap batch
+ * selalu berisi minimal 1 sesi — sesi raksasa tetap terkirim sendirian, bukan
+ * dibuang atau digabung sampai melewati batas.
+ */
+export function chunkSessionsForAi<T extends { shortNote: string }>(
+  sessions: readonly T[],
+  maxCharsPerBatch = 12_000,
+): T[][] {
+  const batches: T[][] = [];
+  let batch: T[] = [];
+  let usedChars = 0;
+  for (const session of sessions) {
+    const size = estimatedSessionChars(session);
+    const wouldOverflow = batch.length > 0
+      && (batch.length >= AI_BATCH_MAX_SESSIONS || usedChars + size > maxCharsPerBatch);
+    if (wouldOverflow) {
+      batches.push(batch);
+      batch = [];
+      usedChars = 0;
+    }
+    batch.push(session);
+    usedChars += size;
+  }
+  if (batch.length > 0) batches.push(batch);
+  return batches;
 }
 
 // ── 1b. Ringkasan periode (summary + quote only, no per-session narratives) ──
