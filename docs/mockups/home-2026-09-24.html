@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — Home (revisi 3): tanpa uang · Les Ko Lui</title>
+<link rel="stylesheet" href="_shared.css" />
+</head>
+<body>
+
+<div class="stage-head">
+  <h1>Mockup <em>Home</em> — revisi 3: <strong>tanpa uang sama sekali</strong></h1>
+  <p>Revisi ini menuruti tiga koreksimu: (1) aksi sesi terlewat = <b>Catat / Batal les / Tidak hadir</b>, bukan "Jadwalkan ulang" sebagai pilihan utama; (2) <b>tidak ada angka uang di Home</b>; (3) kalender hampir tidak berubah.</p>
+  <p>Empat layar: <b>hari biasa</b> · <b>sesi terlewat</b> (aksi yang benar) · <b>uang terkunci</b> · <b>gerbang PIN</b>.</p>
+  <div class="nav-links">
+    <a class="on" href="home-2026-09-24.html">Home (revisi 3)</a>
+    <a href="uang-2026-09-24.html">Uang</a>
+    <a href="hari-2026-09-24.html">DayView + zoom</a>
+  </div>
+</div>
+
+<div class="stage">
+
+  <!-- ═══════════ ① HARI BIASA — TANPA UANG ═══════════ -->
+  <div class="wrap">
+    <div class="phone"><div class="screen">
+      <div class="statusbar"><span>9.41</span><span class="icons">▮▮▮ ᯤ ▰</span></div>
+
+      <div class="head">
+        <div class="head-row">
+          <h2>Hari Ini</h2>
+          <span class="date">Rabu, 24 Sep</span>
+        </div>
+        <p class="sub"><b>2 sesi</b> tersisa · 1 sudah dicatat · tidak ada yang tertunda</p>
+      </div>
+
+      <div class="body">
+
+        <div class="sect">Jadwal hari ini <span class="count">2 tersisa</span></div>
+        <div class="card sched">
+          <div class="slot past">
+            <div class="slot-time"><div class="t">08:00</div><div class="d">1j</div></div>
+            <div class="slot-main">
+              <div class="slot-name"><span class="dot" style="background:#f59e0b"></span>Budi</div>
+              <div class="slot-meta">Matematika · Trigonometri</div>
+            </div>
+            <span class="tick">✓ Tercatat</span>
+            <button class="btn btn-ghost btn-sm">Lihat</button>
+          </div>
+
+          <div class="slot">
+            <div class="slot-time"><div class="t">15:30</div><div class="d">1,5j</div></div>
+            <div class="slot-main">
+              <div class="slot-name"><span class="dot" style="background:#3b82f6"></span>Sari</div>
+              <div class="slot-meta">Fisika · Gelombang</div>
+            </div>
+            <button class="btn btn-primary btn-sm">Catat</button>
+          </div>
+
+          <div class="slot">
+            <div class="slot-time"><div class="t">19:00</div><div class="d">1j</div></div>
+            <div class="slot-main">
+              <div class="slot-name"><span class="dot" style="background:#10b981"></span>Rina</div>
+              <div class="slot-meta">Kimia · Stoikiometri</div>
+            </div>
+            <button class="btn btn-ghost btn-sm">Nanti</button>
+          </div>
+        </div>
+
+        <div class="sect">Perlu keputusan <span class="count">Maks 3</span></div>
+        <div class="card brief">
+          <div class="b-top">
+            <div class="b-ico ico-amber">⚠</div>
+            <div class="b-main">
+              <div class="b-title">Sesi Rina kemarin belum dicatat</div>
+              <div class="b-why">Jadwal <b>23 Sep 19.00</b> sudah lewat 1 hari. Tentukan: lesnya terjadi, atau tidak.</div>
+            </div>
+          </div>
+          <div class="b-acts">
+            <button class="btn btn-primary btn-sm">Catat</button>
+            <button class="btn btn-red btn-sm">Batal les</button>
+            <button class="btn btn-amber btn-sm">Tidak hadir</button>
+            <button class="btn btn-quiet btn-sm more">⋯</button>
+          </div>
+        </div>
+
+        <div class="sect">Jadwal</div>
+        <div class="seg">
+          <button>Hari</button>
+          <button>Minggu</button>
+          <button class="on">Bulan</button>
+        </div>
+
+        <div class="card cal">
+          <div class="cal-head">
+            <div class="m">September 2026</div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <button class="today-chip">Hari ini</button>
+              <div class="nav-btns"><button>‹</button><button>›</button></div>
+            </div>
+          </div>
+          <div class="dow"><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span><span>Min</span></div>
+          <div class="grid">
+            <div class="cell dim"><span class="n">31</span></div>
+            <div class="cell"><span class="n">1</span></div>
+            <div class="cell has"><span class="n">2</span><div class="bars"><i style="background:#f59e0b"></i><i style="background:#3b82f6"></i></div></div>
+            <div class="cell"><span class="n">3</span></div>
+            <div class="cell has"><span class="n">4</span><div class="bars"><i style="background:#10b981"></i></div></div>
+            <div class="cell dim"><span class="n">5</span></div>
+            <div class="cell dim"><span class="n">6</span></div>
+            <div class="cell"><span class="n">7</span></div>
+            <div class="cell has"><span class="n">8</span><div class="bars"><i style="background:#f59e0b"></i><i style="background:#8b5cf6"></i></div></div>
+            <div class="cell has"><span class="n">9</span><div class="bars"><i style="background:#3b82f6"></i></div></div>
+            <div class="cell"><span class="n">10</span></div>
+            <div class="cell has"><span class="n">11</span><div class="bars"><i style="background:#10b981"></i><i style="background:#f59e0b"></i></div></div>
+            <div class="cell dim"><span class="n">12</span></div>
+            <div class="cell dim"><span class="n">13</span></div>
+            <div class="cell"><span class="n">14</span></div>
+            <div class="cell has"><span class="n">15</span><div class="bars"><i style="background:#3b82f6"></i></div></div>
+            <div class="cell has"><span class="n">16</span><div class="bars"><i style="background:#8b5cf6"></i></div></div>
+            <div class="cell"><span class="n">17</span></div>
+            <div class="cell has"><span class="n">18</span><div class="bars"><i style="background:#f59e0b"></i><i style="background:#10b981"></i></div></div>
+            <div class="cell dim"><span class="n">19</span></div>
+            <div class="cell dim"><span class="n">20</span></div>
+            <div class="cell"><span class="n">21</span></div>
+            <div class="cell has"><span class="n">22</span><div class="bars"><i style="background:#3b82f6"></i><i style="background:#8b5cf6"></i></div></div>
+            <div class="cell has" style="outline:1.5px dashed #fca5a5;outline-offset:-1.5px"><span class="n">23</span><div class="bars"><i style="background:#ef4444"></i></div></div>
+            <div class="cell today has"><span class="n">24</span><div class="bars"><i style="background:#fff"></i><i style="background:#fff"></i></div></div>
+            <div class="cell"><span class="n">25</span></div>
+            <div class="cell dim"><span class="n">26</span></div>
+            <div class="cell dim"><span class="n">27</span></div>
+            <div class="cell has"><span class="n">28</span><div class="bars"><i style="background:#f59e0b"></i></div></div>
+            <div class="cell has"><span class="n">29</span><div class="bars"><i style="background:#3b82f6"></i></div></div>
+            <div class="cell"><span class="n">30</span></div>
+            <div class="cell dim"><span class="n">1</span></div>
+            <div class="cell dim"><span class="n">2</span></div>
+            <div class="cell dim"><span class="n">3</span></div>
+            <div class="cell dim"><span class="n">4</span></div>
+          </div>
+          <div class="legend">
+            <span><i class="dot" style="background:#ef4444;margin:0"></i> terlewat</span>
+            <span><i class="dot" style="background:#3b82f6;margin:0"></i> terjadwal</span>
+            <span><i class="dot" style="background:#10b981;margin:0"></i> tercatat</span>
+          </div>
+        </div>
+
+        <div class="sect">Perlu diketahui <span class="count">Dipilih otomatis</span></div>
+        <div class="card stats">
+          <div class="stat">
+            <div class="k">Sesi minggu ini<div class="hint">7 dari target 10</div></div>
+            <div class="v">7</div>
+            <span class="delta up">+2</span>
+          </div>
+          <div class="stat">
+            <div class="k">Kehadiran Rina<div class="hint">4 batal dari 11 sesi</div></div>
+            <div class="v down">64%</div>
+            <span class="delta down">turun</span>
+          </div>
+          <div class="stat">
+            <div class="k">Laporan Agustus belum dikirim<div class="hint">Budi &amp; Sari</div></div>
+            <div class="v">2</div>
+            <button class="btn btn-ghost btn-sm">Kirim</button>
+          </div>
+        </div>
+
+        <div class="lockrow">
+          <span class="ic">🔒</span>
+          <span class="tx"><b>Uang disembunyikan</b>Tagihan, tarif, dan pengeluaran ada di tab Uang — perlu PIN.</span>
+          <button class="btn btn-ghost btn-sm">Buka</button>
+        </div>
+
+      </div>
+
+      <button class="fab" style="bottom:96px">+</button>
+      <div class="fab-label" style="bottom:110px">Catat sesi</div>
+
+      <div class="nav">
+        <div class="nav-item active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><path d="M9 21v-9h6v9"/></svg>
+          Hari Ini
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7"/></svg>
+          Murid
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h13A2.5 2.5 0 0 1 21 7.5v9A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-9Z"/><path d="M3 10h18"/><path d="M16 15.5h.01"/></svg>
+          Uang
+        </div>
+      </div>
+    </div></div>
+    <div class="caption">① Hari biasa — tidak ada satu pun nominal uang</div>
+    <div class="caption">Baris brief berbunyi "tentukan: lesnya terjadi, atau tidak" — bukan nominal</div>
+  </div>
+
+  <!-- ═══════════ ② HARI DENGAN SESI TERLEWAT ═══════════ -->
+  <div class="wrap">
+    <div class="phone"><div class="screen">
+      <div class="statusbar"><span>9.41</span><span class="icons">▮▮▮ ᯤ ▰</span></div>
+
+      <div class="head">
+        <div class="head-row">
+          <h2>Hari Ini</h2>
+          <span class="date">Senin, 29 Sep</span>
+        </div>
+        <p class="sub"><b>4 sesi</b> · <b>3 hal</b> perlu keputusanmu</p>
+      </div>
+
+      <div class="body">
+
+        <div class="sect">Perlu keputusan <span class="count">3 dari 3</span></div>
+
+        <div class="card brief">
+          <div class="b-top">
+            <div class="b-ico ico-red">⏰</div>
+            <div class="b-main">
+              <div class="b-title">2 sesi minggu lalu belum ditentukan</div>
+              <div class="b-why">Budi <b>25 Sep</b> dan Rina <b>26 Sep</b>. Selama belum ditentukan, keduanya masih dihitung sebagai jadwal aktif.</div>
+            </div>
+          </div>
+          <div class="b-acts">
+            <button class="btn btn-primary btn-sm">Catat</button>
+            <button class="btn btn-red btn-sm">Batal les</button>
+            <button class="btn btn-amber btn-sm">Tidak hadir</button>
+            <button class="btn btn-quiet btn-sm more">⋯</button>
+          </div>
+        </div>
+
+        <div class="card brief">
+          <div class="b-top">
+            <div class="b-ico ico-violet">📄</div>
+            <div class="b-main">
+              <div class="b-title">Waktunya tutup bulan September</div>
+              <div class="b-why">34 sesi siap diringkas jadi laporan untuk <b>5 murid</b>.</div>
+            </div>
+          </div>
+          <div class="b-acts">
+            <button class="btn btn-primary btn-sm">Tutup bulan</button>
+            <button class="btn btn-quiet btn-sm">Nanti</button>
+          </div>
+        </div>
+
+        <div class="card brief">
+          <div class="b-top">
+            <div class="b-ico ico-amber">📉</div>
+            <div class="b-main">
+              <div class="b-title">Kehadiran Rina turun</div>
+              <div class="b-why">4 batal dari 11 sesi bulan ini. Tiga di antaranya sesi <b>jam 19.00</b>.</div>
+            </div>
+          </div>
+          <div class="b-acts">
+            <button class="btn btn-ghost btn-sm">Lihat riwayat</button>
+            <button class="btn btn-quiet btn-sm more">⋯</button>
+          </div>
+        </div>
+
+        <div class="sect">Jadwal hari ini <span class="count">4 sesi</span></div>
+        <div class="card sched">
+          <div class="slot">
+            <div class="slot-time"><div class="t">08:00</div><div class="d">1j</div></div>
+            <div class="slot-main"><div class="slot-name"><span class="dot" style="background:#f59e0b"></span>Budi</div><div class="slot-meta">Matematika</div></div>
+            <button class="btn btn-primary btn-sm">Catat</button>
+          </div>
+          <div class="slot">
+            <div class="slot-time"><div class="t">10:30</div><div class="d">1j</div></div>
+            <div class="slot-main"><div class="slot-name"><span class="dot" style="background:#8b5cf6"></span>Dewi</div><div class="slot-meta">B. Inggris · Writing</div></div>
+            <button class="btn btn-ghost btn-sm">Nanti</button>
+          </div>
+          <div class="slot">
+            <div class="slot-time"><div class="t">15:30</div><div class="d">1,5j</div></div>
+            <div class="slot-main"><div class="slot-name"><span class="dot" style="background:#3b82f6"></span>Sari</div><div class="slot-meta">Fisika · Gelombang</div></div>
+            <button class="btn btn-ghost btn-sm">Nanti</button>
+          </div>
+          <div class="slot">
+            <div class="slot-time"><div class="t">19:00</div><div class="d">1j</div></div>
+            <div class="slot-main"><div class="slot-name"><span class="dot" style="background:#10b981"></span>Rina</div><div class="slot-meta">Kimia · Stoikiometri</div></div>
+            <button class="btn btn-ghost btn-sm">Nanti</button>
+          </div>
+        </div>
+
+      </div>
+
+      <button class="fab" style="bottom:96px">+<span class="badge">3</span></button>
+      <div class="fab-label" style="bottom:110px">Tutup bulan September</div>
+
+      <div class="nav">
+        <div class="nav-item active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><path d="M9 21v-9h6v9"/></svg>
+          Hari Ini
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7"/></svg>
+          Murid
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h13A2.5 2.5 0 0 1 21 7.5v9A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-9Z"/><path d="M3 10h18"/><path d="M16 15.5h.01"/></svg>
+          Uang
+        </div>
+      </div>
+    </div></div>
+    <div class="caption">② Sesi terlewat — satu kartu, tiga kemungkinan nyata</div>
+    <div class="caption"><b>Catat</b> = lesnya terjadi · <b>Batal les</b> = tidak terjadi · <b>Tidak hadir</b> = tidak hadir, menyangkut tagihan</div>
+  </div>
+
+  <!-- ═══════════ ③ UANG TERKUNCI (di Home) ═══════════ -->
+  <div class="wrap">
+    <div class="phone"><div class="screen">
+      <div class="statusbar"><span>9.41</span><span class="icons">▮▮▮ ᯤ ▰</span></div>
+
+      <div class="head">
+        <div class="head-row">
+          <h2>Hari Ini</h2>
+          <span class="date">Rabu, 24 Sep</span>
+        </div>
+        <p class="sub"><b>2 sesi</b> tersisa · 1 sudah dicatat</p>
+      </div>
+
+      <div class="body">
+
+        <div class="sect">Perlu keputusan</div>
+        <div class="card brief">
+          <div class="b-top">
+            <div class="b-ico ico-amber">⚠</div>
+            <div class="b-main">
+              <div class="b-title">Sesi Rina kemarin belum dicatat</div>
+              <div class="b-why">Jadwal <b>23 Sep 19.00</b> sudah lewat 1 hari. Tentukan: lesnya terjadi, atau tidak.</div>
+            </div>
+          </div>
+          <div class="b-acts">
+            <button class="btn btn-primary btn-sm">Catat</button>
+            <button class="btn btn-red btn-sm">Batal les</button>
+            <button class="btn btn-amber btn-sm">Tidak hadir</button>
+          </div>
+        </div>
+
+        <div class="sect">Ringkasan <span class="count">🔒 terkunci</span></div>
+
+        <div class="card stats">
+          <div class="stat">
+            <div class="k">Belum ditagih<div class="hint">Butuh PIN untuk melihat</div></div>
+            <div class="v masked">Rp ••••••</div>
+          </div>
+          <div class="stat">
+            <div class="k">Masuk bulan ini</div>
+            <div class="v masked">Rp ••••••</div>
+          </div>
+          <div class="stat">
+            <div class="k">Pengeluaran bulan ini</div>
+            <div class="v masked">Rp ••••••</div>
+          </div>
+        </div>
+
+        <div class="lockrow">
+          <span class="ic">🔒</span>
+          <span class="tx"><b>Angka uang disembunyikan</b>Buka dengan PIN untuk melihat tagihan, tarif, dan pengeluaran.</span>
+          <button class="btn btn-primary btn-sm">Buka</button>
+        </div>
+
+        <div class="sect">Jadwal</div>
+        <div class="seg">
+          <button>Hari</button>
+          <button>Minggu</button>
+          <button class="on">Bulan</button>
+        </div>
+        <div class="card cal">
+          <div class="cal-head">
+            <div class="m">September 2026</div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <button class="today-chip">Hari ini</button>
+              <div class="nav-btns"><button>‹</button><button>›</button></div>
+            </div>
+          </div>
+          <div class="dow"><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span><span>Min</span></div>
+          <div class="grid">
+            <div class="cell dim"><span class="n">31</span></div>
+            <div class="cell"><span class="n">1</span></div>
+            <div class="cell has"><span class="n">2</span><div class="bars"><i style="background:#f59e0b"></i><i style="background:#3b82f6"></i></div></div>
+            <div class="cell"><span class="n">3</span></div>
+            <div class="cell has"><span class="n">4</span><div class="bars"><i style="background:#10b981"></i></div></div>
+            <div class="cell dim"><span class="n">5</span></div>
+            <div class="cell dim"><span class="n">6</span></div>
+            <div class="cell"><span class="n">7</span></div>
+            <div class="cell has"><span class="n">8</span><div class="bars"><i style="background:#f59e0b"></i><i style="background:#8b5cf6"></i></div></div>
+            <div class="cell has"><span class="n">9</span><div class="bars"><i style="background:#3b82f6"></i></div></div>
+            <div class="cell"><span class="n">10</span></div>
+            <div class="cell has"><span class="n">11</span><div class="bars"><i style="background:#10b981"></i><i style="background:#f59e0b"></i></div></div>
+            <div class="cell dim"><span class="n">12</span></div>
+            <div class="cell dim"><span class="n">13</span></div>
+            <div class="cell"><span class="n">14</span></div>
+            <div class="cell has"><span class="n">15</span><div class="bars"><i style="background:#3b82f6"></i></div></div>
+            <div class="cell has"><span class="n">16</span><div class="bars"><i style="background:#8b5cf6"></i></div></div>
+            <div class="cell"><span class="n">17</span></div>
+            <div class="cell has"><span class="n">18</span><div class="bars"><i style="background:#f59e0b"></i><i style="background:#10b981"></i></div></div>
+            <div class="cell dim"><span class="n">19</span></div>
+            <div class="cell dim"><span class="n">20</span></div>
+            <div class="cell"><span class="n">21</span></div>
+            <div class="cell has"><span class="n">22</span><div class="bars"><i style="background:#3b82f6"></i><i style="background:#8b5cf6"></i></div></div>
+            <div class="cell has" style="outline:1.5px dashed #fca5a5;outline-offset:-1.5px"><span class="n">23</span><div class="bars"><i style="background:#ef4444"></i></div></div>
+            <div class="cell today has"><span class="n">24</span><div class="bars"><i style="background:#fff"></i><i style="background:#fff"></i></div></div>
+            <div class="cell"><span class="n">25</span></div>
+            <div class="cell dim"><span class="n">26</span></div>
+            <div class="cell dim"><span class="n">27</span></div>
+            <div class="cell has"><span class="n">28</span><div class="bars"><i style="background:#f59e0b"></i></div></div>
+          </div>
+        </div>
+
+      </div>
+
+      <button class="fab" style="bottom:96px">+</button>
+      <div class="fab-label" style="bottom:110px">Catat sesi</div>
+
+      <div class="nav">
+        <div class="nav-item active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><path d="M9 21v-9h6v9"/></svg>
+          Hari Ini
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7"/></svg>
+          Murid
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h13A2.5 2.5 0 0 1 21 7.5v9A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-9Z"/><path d="M3 10h18"/><path d="M16 15.5h.01"/></svg>
+          Uang
+        </div>
+      </div>
+    </div></div>
+    <div class="caption">③ Kalau kamu memilih tetap menampilkan barisnya</div>
+    <div class="caption">Bentuknya <b>Rp ••••••</b> + ikon 🔒 — kamu tahu ada angkanya, tanpa melihatnya</div>
+  </div>
+
+  <!-- ═══════════ ④ GERBANG PIN ═══════════ -->
+  <div class="wrap">
+    <div class="phone"><div class="screen">
+      <div class="statusbar"><span>9.41</span><span class="icons">▮▮▮ ᯤ ▰</span></div>
+
+      <div class="head">
+        <div class="head-row">
+          <h2>Uang</h2>
+          <span class="date">🔒 Terkunci</span>
+        </div>
+      </div>
+
+      <div class="pin-wrap">
+        <div class="pin-lock">🔒</div>
+        <h3>Masukkan PIN Keuangan</h3>
+        <p>Tagihan, tarif murid, dan pengeluaran tertutup. Buka sekali, berlaku selama aplikasi terbuka.</p>
+
+        <div class="dots"><i class="f"></i><i class="f"></i><i class="f"></i><i></i><i></i><i></i></div>
+
+        <div class="keypad">
+          <button>1</button><button>2</button><button>3</button>
+          <button>4</button><button>5</button><button>6</button>
+          <button>7</button><button>8</button><button>9</button>
+          <button style="font-size:14px">Lupa</button><button>0</button><button style="font-size:16px">⌫</button>
+        </div>
+
+        <p class="pin-note">PIN disimpan sebagai hash PBKDF2 + salt acak, sama seperti sekarang. Lupa PIN? Pulihkan lewat pertanyaan keamanan.</p>
+        <button class="btn btn-ghost">Batal</button>
+      </div>
+
+      <div class="nav">
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><path d="M9 21v-9h6v9"/></svg>
+          Hari Ini
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7"/></svg>
+          Murid
+        </div>
+        <div class="nav-item active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h13A2.5 2.5 0 0 1 21 7.5v9A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-9Z"/><path d="M3 10h18"/><path d="M16 15.5h.01"/></svg>
+          Uang
+        </div>
+      </div>
+    </div></div>
+    <div class="caption">④ Gerbang PIN — bentuk penuh saat membuka tab Uang</div>
+    <div class="caption">Sekarang gerbang ini <b>hanya</b> ada di <code>/payments</code>; 5 layar lain bocor</div>
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -9,6 +9,7 @@ import {
   listIaEeProjects,
   deleteSession, updateSession,
   getStudyNote, saveStudyNote,
+  countUnbilledBillableSessions,
 } from "../db/repos";
 import { verifyPin } from "../lib/crypto";
 import { getPinLockoutDelay, recordPinFailure, resetPinLockout } from "../lib/pinLockout";
@@ -60,6 +61,9 @@ export default function StudentDetail() {
   const settings      = useLiveQuery(() => getSettings(), []);
   const studyNote      = useLiveQuery(() => (id ? getStudyNote(id) : undefined), [id]);
   const iaeeProjects  = useLiveQuery(() => (id ? listIaEeProjects(id) : []), [id]);
+  // Sesi lama yang belum ditagih — menentukan apakah pilihan retroaktif perlu
+  // ditawarkan pada edit tarif inline. Tarif historis beku secara default (D1(c)).
+  const unbilledCount = useLiveQuery(() => (id ? countUnbilledBillableSessions(id) : 0), [id]);
 
   // Edit scheduled session modal
   const [editTarget,     setEditTarget]     = useState<Session | null>(null);
@@ -102,6 +106,8 @@ export default function StudentDetail() {
   const [showRateEdit,  setShowRateEdit]  = useState(false);
   const [newRate,       setNewRate]       = useState(0);
   const [rateSaving,    setRateSaving]    = useState(false);
+  /** D1(c): retroaktif HANYA setelah tutor mencentang, tidak pernah otomatis. */
+  const [repriceUnbilledSessions, setRepriceUnbilledSessions] = useState(false);
 
   const handleDeleteSession = async () => {
     if (!detailSession) return;
@@ -135,8 +141,16 @@ export default function StudentDetail() {
 
   const handleSaveRate = async () => {
     if (!id || !isValidCurrencyAmount(newRate, MAX_HOURLY_RATE)) { msg(`Tarif harus 1 sampai ${formatRupiah(MAX_HOURLY_RATE)}.`); return; }
+    const rateChanged = newRate !== student?.hourlyRate;
+    const applyRetroactive = repriceUnbilledSessions && rateChanged;
     setRateSaving(true);
-    try { await updateStudent(id, { hourlyRate: newRate }); msg("Tarif diperbarui ✓"); setShowRateEdit(false); setRateUnlocked(false); }
+    try {
+      // D1(c): tanpa centang, sesi lama tidak tersentuh — hanya sesi berikutnya
+      // yang memakai tarif baru.
+      await updateStudent(id, { hourlyRate: newRate }, { repriceUnbilledSessions: applyRetroactive });
+      msg(applyRetroactive ? "Tarif & sesi lama diperbarui ✓" : "Tarif diperbarui ✓");
+      setShowRateEdit(false); setRateUnlocked(false); setRepriceUnbilledSessions(false);
+    }
     catch (e) { msg("Gagal: " + (e as Error).message); }
     finally { setRateSaving(false); }
   };
@@ -538,16 +552,33 @@ export default function StudentDetail() {
           <span className="text-gray-500 w-28 flex-shrink-0">Tarif les</span>
           {rateUnlocked ? (
             showRateEdit ? (
-              <div className="flex items-center gap-2 flex-1">
-                <input type="number" className="input text-sm py-1.5 flex-1" value={newRate || ""}
-                  onChange={(e) => setNewRate(clampCurrencyAmount(Number(e.target.value), MAX_HOURLY_RATE))}
-                  placeholder={studentBillingPolicy === "session_count" ? "IDR/pertemuan" : "IDR/jam"} />
-                <button onClick={handleSaveRate} disabled={rateSaving}
-                  className="text-xs bg-blue-600 text-white px-2 py-1.5 rounded-lg font-semibold">
-                  {rateSaving ? "..." : "Simpan"}
-                </button>
-                <button onClick={() => { setShowRateEdit(false); }}
-                  className="text-xs text-gray-500 px-1.5 py-1.5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+              <div className="flex flex-1 flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <input type="number" className="input text-sm py-1.5 flex-1" value={newRate || ""}
+                    onChange={(e) => setNewRate(clampCurrencyAmount(Number(e.target.value), MAX_HOURLY_RATE))}
+                    placeholder={studentBillingPolicy === "session_count" ? "IDR/pertemuan" : "IDR/jam"} />
+                  <button onClick={handleSaveRate} disabled={rateSaving}
+                    className="text-xs bg-blue-600 text-white px-2 py-1.5 rounded-lg font-semibold">
+                    {rateSaving ? "..." : "Simpan"}
+                  </button>
+                  <button onClick={() => { setShowRateEdit(false); setRepriceUnbilledSessions(false); }}
+                    className="text-xs text-gray-500 px-1.5 py-1.5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                </div>
+                {newRate !== student.hourlyRate && (unbilledCount ?? 0) > 0 && (
+                  <label className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs leading-relaxed text-amber-900">
+                    <input
+                      type="checkbox"
+                      checked={repriceUnbilledSessions}
+                      onChange={(event) => setRepriceUnbilledSessions(event.target.checked)}
+                      className="mt-0.5 h-4 w-4 flex-none accent-amber-600"
+                    />
+                    <span>
+                      Terapkan tarif baru ke {unbilledCount} sesi lama yang belum ditagih (retroaktif).
+                      Tanpa centang ini, sesi lama tetap memakai tarif historisnya dan hanya sesi
+                      berikutnya yang memakai tarif baru. Tindakan retroaktif tercatat di Riwayat Aktivitas.
+                    </span>
+                  </label>
+                )}
               </div>
             ) : (
               <div className="flex items-center gap-2 flex-1">

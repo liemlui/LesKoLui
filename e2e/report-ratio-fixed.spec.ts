@@ -53,16 +53,20 @@ test("rasio 3:4: catatan sesi panjang tidak terpotong (semua halaman muat)", asy
   await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).click();
   await expect(page.locator("[data-report-page]").first()).toBeVisible({ timeout: 10_000 });
 
-  // Tunggu rebalance selesai: ukuran halaman stabil antar dua pengukuran.
-  let last: number[] = [];
+  // Tunggu rebalance selesai. Stabilitas ukuran saja tidak cukup: setelah font
+  // tema selesai dimuat, ReportRenderer mengukur ulang dan sempat menandai
+  // banyak halaman `report-page-grow` sebelum paginasi menetapkan kotak 3:4.
+  // Jadi tunggu sampai tanda grow/3:4 DAN tinggi halaman stabil, dan pastikan
+  // sudah ada halaman non-grow sebelum lanjut ke asersi.
+  let lastSignature = "";
   for (let attempt = 0; attempt < 40; attempt++) {
     await page.waitForTimeout(400);
-    const now = await page.evaluate(() => {
-      const pages = Array.from(document.querySelectorAll<HTMLElement>("[data-report-export-root] [data-report-page]"));
-      return pages.map((p) => p.scrollHeight - Math.round(p.offsetWidth * 4 / 3));
-    });
-    if (JSON.stringify(now) === JSON.stringify(last)) break;
-    last = now;
+    const signature = await page.evaluate(() => Array.from(
+      document.querySelectorAll<HTMLElement>("[data-report-export-root] [data-report-page]"),
+    ).map((p) => `${p.id}:${p.classList.contains("report-page-grow") ? "grow" : "fixed"}:${p.scrollHeight}`).join("|"));
+    const settled = signature === lastSignature && signature.includes(":fixed:");
+    lastSignature = signature;
+    if (settled) break;
   }
 
   const pages = await page.evaluate(() => {

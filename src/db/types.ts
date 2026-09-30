@@ -449,10 +449,14 @@ export type AuditAction =
   | "session.cancel"
   | "session.no_show"
   | "session.reschedule"
+  | "session.reprice"
   | "student.delete"
   | "payment.paid"
   | "payment.unpaid"
   | "payment.amount"
+  | "payment.due"
+  | "payment.cancel"
+  | "payment.restore"
   | "expense.create"
   | "expense.update"
   | "expense.delete"
@@ -468,6 +472,37 @@ export interface AuditEntry {
   entityId?: string;
   timestamp: string;      // ISO
   details?: string;       // ringkasan untuk dibaca manusia
+}
+
+// ── Snapshot pembatalan tagihan (R1 — pemulihan lokal per perangkat) ────────
+// Disimpan sebagai `details` JSON pada entri auditLog `payment.cancel`. IndexedDB
+// tidak punya tabel baru (skema Dexie tetap v15) dan auditLog sengaja TIDAK ikut
+// backup/restore ("Hapus Semua Data" menghapusnya), sehingga pemulihan ini hanya
+// berlaku di perangkat ini — bukan pengganti backup.
+
+/** Jenis invoice yang dibatalkan; menentukan guard pemulihan yang berlaku. */
+export type InvoiceCancelKind = "package" | "report" | "manual";
+
+/** Tiga field murid yang ikut berubah saat paket dibatalkan (P7). */
+export interface StudentBillingSnapshot {
+  billingPolicy?: BillingPolicy;
+  billingSessionCount?: number;
+  pendingBillingPolicy?: Exclude<BillingPolicy, "session_count">;
+}
+
+export interface InvoiceCancelSnapshot {
+  version: 1;
+  kind: InvoiceCancelKind;
+  /** Baris tagihan apa adanya — dipulihkan dengan ID & nilai yang sama. */
+  payment: Payment;
+  /** Laporan paket yang ikut dihapus (khusus `kind: "package"`). */
+  report?: MonthlyReport;
+  /** Sesi yang dicakup invoice — dipakai guard G1/G6. */
+  sessionIds: string[];
+  /** Siklus murid sesaat sebelum pembatalan (yang dipulihkan). */
+  studentBeforeCancel?: StudentBillingSnapshot;
+  /** Siklus murid sesudah pembatalan — guard G8 membandingkan keadaan ini. */
+  studentAfterCancel?: StudentBillingSnapshot;
 }
 
 export interface Settings {

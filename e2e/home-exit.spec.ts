@@ -22,6 +22,12 @@ test("tombol keluar di Pengaturan membuka konfirmasi tanpa memakai navigasi back
   if (await changelog.isVisible({ timeout: 1500 }).catch(() => false)) await changelog.click();
   await dismissWarning.click({ timeout: 5000 }).catch(() => undefined);
 
+  // Bagian Pengaturan berupa accordion dan tertutup secara default, jadi header
+  // "Aplikasi (PWA)" harus dibuka dulu sebelum tombolnya bisa diklik.
+  const appSection = page.getByRole("button", { name: /Aplikasi \(PWA\)/ });
+  await appSection.click();
+  await expect(appSection).toHaveAttribute("aria-expanded", "true");
+
   await expect(page.getByRole("button", { name: "Keluar Aplikasi" })).toBeVisible();
   await page.getByRole("button", { name: "Keluar Aplikasi" }).click();
   await expect(page.getByRole("heading", { name: "Keluar dari Les Ko Lui?" })).toBeVisible();

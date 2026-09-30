@@ -78,14 +78,27 @@ test("menerbitkan, melihat, dan membatalkan invoice tepat N", async ({ page }) =
     };
   }));
   await unlockFinance(page);
+  // Filter tahap default adalah "Belum dibayar", sedangkan "Tagihan per
+  // Pertemuan" (beserta antrean paket) hanya tampil pada tahap "Siap ditagih"
+  // atau "Tampilkan semua langkah". Semua langkah dibuka sekaligus supaya daftar
+  // invoice yang sudah terbit tetap terlihat saat pembatalan diuji di bawah.
+  await page.getByRole("button", { name: "Tampilkan semua langkah", exact: true }).click();
   await expect(page.getByText("Tagihan per Pertemuan", { exact: true })).toBeVisible({ timeout: 30_000 });
-  const queueCard = page.locator("article", { hasText: "Citra Dewanti" });
+  // Antrean paket ada di region "Tagihan per Pertemuan". Lingkup region dipakai
+  // karena panel pemulihan "Tagihan dibatalkan" juga memakai <article> dan ikut
+  // memuat nama murid setelah tagihan dibatalkan.
+  const queueCard = page.getByRole("region", { name: "Tagihan per Pertemuan" })
+    .locator("article", { hasText: "Citra Dewanti" });
   await expect(queueCard).toContainText("Paket siap");
   await expect(queueCard.getByRole("progressbar")).toHaveAttribute("aria-valuemax", "2");
   await queueCard.getByRole("button", { name: /Terbitkan paket 2 pertemuan untuk Citra Dewanti/i }).click();
   await page.getByRole("dialog", { name: "Terbitkan Tagihan Paket" }).getByRole("button", { name: "Terbitkan", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("berhasil diterbitkan");
-  await expect(page.getByText("Paket 2 Pertemuan", { exact: true })).toBeVisible();
+  // Baris invoice yang baru terbit: nama aksesibelnya memuat asal "Paket" dan
+  // cakupan "2 pertemuan". Chip "Paket 2 pertemuan" sendiri baru dirender di
+  // dalam baris setelah baris dibuka (lihat InvoiceRow).
+  const invoiceRow = page.locator("li", { hasText: "Citra Dewanti" }).first();
+  await expect(invoiceRow.getByRole("button", { name: /Paket 2 pertemuan/i })).toBeVisible();
 
   await page.setViewportSize({ width: 320, height: 740 });
   await expect(page.getByText("Tagihan per Pertemuan", { exact: true })).toBeVisible();
@@ -97,10 +110,10 @@ test("menerbitkan, melihat, dan membatalkan invoice tepat N", async ({ page }) =
   expect(metrics.body).toBeLessThanOrEqual(metrics.viewport);
   expect(metrics.root).toBeLessThanOrEqual(metrics.viewport);
 
-  const invoiceRow = page.locator("div.rounded-lg", { hasText: "Citra Dewanti" })
-    .filter({ has: page.getByRole("button", { name: "📄 Invoice" }) })
-    .first();
-  await invoiceRow.getByRole("button", { name: "📄 Invoice" }).click();
+  // Aksi baris (unduh invoice, batalkan) baru muncul setelah baris dibuka —
+  // dulu ada tombol pintas "📄 Invoice".
+  await invoiceRow.getByRole("button", { name: /Citra Dewanti/ }).click();
+  await invoiceRow.getByRole("button", { name: "Unduh invoice PDF" }).click();
   await expect(page.getByRole("dialog", { name: "Invoice Profesional" })).toBeVisible();
   const invoiceMetrics = await page.evaluate(() => ({
     viewport: document.documentElement.clientWidth,
@@ -111,8 +124,13 @@ test("menerbitkan, melihat, dan membatalkan invoice tepat N", async ({ page }) =
   expect(invoiceMetrics.root).toBeLessThanOrEqual(invoiceMetrics.viewport);
   await page.getByRole("button", { name: "Tutup", exact: true }).click();
 
-  await invoiceRow.getByRole("button", { name: "Batalkan Tagihan Paket" }).click();
+  await invoiceRow.getByRole("button", { name: "Batalkan tagihan paket", exact: true }).click();
   await page.getByRole("dialog", { name: "Batalkan tagihan paket?" }).getByRole("button", { name: "Batalkan", exact: true }).click();
+  // D4 (TASK-10): pembatalan tagihan wajib PIN Keuangan. Sheet konfirmasi sudah
+  // tertutup pada titik ini, sehingga dialog dengan judul sama adalah modal PIN.
+  const pinDialog = page.getByRole("dialog", { name: "Batalkan tagihan paket?" });
+  await pinDialog.getByPlaceholder("PIN", { exact: true }).fill("123456");
+  await pinDialog.getByRole("button", { name: "Batalkan", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("dikembalikan ke antrean");
   await expect(queueCard).toContainText("Paket siap");
   expect(errors).toEqual([]);

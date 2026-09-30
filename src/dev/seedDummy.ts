@@ -100,6 +100,32 @@ async function addRichDone(studentId: string, subjects: string[], rows: RichS[])
   }
 }
 
+/**
+ * Baris tagihan bulanan legacy untuk satu murid/bulan — pengganti alur "Tutup
+ * Bulan" yang sudah dihapus. Nominalnya dijumlahkan dari sesi DONE bulan itu,
+ * persis seperti hasil alur lama, dan `source: "auto"` dipertahankan supaya
+ * asal tagihannya tetap terbaca "Bulanan" (bukan "Manual").
+ *
+ * Ditulis langsung ke `db.payments` karena `upsertPayment` menormalkan tagihan
+ * tanpa laporan menjadi `source: "manual"` — bentuk yang berbeda dari data
+ * historis yang ingin ditiru demo ini. Tanpa baris ini `markPaymentTransferred`
+ * dan `updatePaymentAmount` melempar "Payment not found", sehingga seed berhenti
+ * sebelum log selesai dan e2e `finance.spec.ts` kehabisan waktu menunggu seed.
+ */
+async function addLegacyMonthlyInvoice(studentId: string, month: string): Promise<void> {
+  const done = (await listSessionsByStudentMonth(studentId, month)).filter((row) => row.status === "DONE");
+  const totalCost = done.reduce((sum, row) => sum + row.cost, 0);
+  if (totalCost <= 0) return;
+  await db.payments.add({
+    id: crypto.randomUUID(),
+    studentId,
+    month,
+    totalCost,
+    status: "UNPAID",
+    source: "auto",
+  });
+}
+
 let _seeding = false;
 
 export async function seedDummyData(force = false): Promise<void> {
@@ -287,7 +313,14 @@ async function seedInner(force: boolean): Promise<void> {
   await scheduleSession({ studentId: bella, date: "2026-07-09", time: "15:00", durationHours: 1.5 });
   await scheduleSession({ studentId: dewi,  date: "2026-07-14", time: "13:00", durationHours: 2 });
 
-  // ── Status transfer (untuk Realisasi & Piutang) ──
+  // ── Tagihan bulanan + status transfer (untuk Realisasi & Piutang) ──
+  // Baris tagihannya dulu dibuat alur "Tutup Bulan" yang sudah dihapus, jadi
+  // dibuat eksplisit di sini sebelum ditandai transfer/diskon di bawah.
+  await addLegacyMonthlyInvoice(andi,  "2026-03");
+  await addLegacyMonthlyInvoice(bella, "2026-03");
+  await addLegacyMonthlyInvoice(andi,  "2026-04");
+  await addLegacyMonthlyInvoice(bella, "2026-04");
+
   await markPaymentTransferred(andi,  "2026-03", "transfer", "2026-03-29");
   await markPaymentTransferred(bella, "2026-03", "transfer", "2026-03-30");
 
@@ -295,7 +328,8 @@ async function seedInner(force: boolean): Promise<void> {
   await markPaymentTransferred(andi,  "2026-04", "transfer", "2026-04-29");
 
   // Citra memakai paket per 2 pertemuan, sehingga tidak memiliki baris tagihan
-  // Tutup Bulan. Tujuh sesinya sengaja dibiarkan di antrean paket untuk demo.
+  // bulanan (lihat `addLegacyMonthlyInvoice`). Tujuh sesinya sengaja dibiarkan
+  // di antrean paket untuk demo.
   // Juni sengaja dibiarkan terbuka agar bisa dites manual.
 
   // ── Pengeluaran ──

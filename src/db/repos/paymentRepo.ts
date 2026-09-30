@@ -1,14 +1,17 @@
 // ── Payments + Expenses Repository ──────────────────────────────────
 
 import { db } from "../db";
-import type { Payment, Expense, ExpenseCategory, IaEeMilestone, MonthlyReport, Session } from "../types";
+import type {
+  AuditEntry, Expense, ExpenseCategory, IaEeMilestone, InvoiceCancelKind,
+  InvoiceCancelSnapshot, MonthlyReport, Payment, Session, Student, StudentBillingSnapshot,
+} from "../types";
 import { billingPolicyOf, reportStatus } from "../types";
 import { timestamp, monthRange, packageCoveredSessionIds } from "./helpers";
 import { dateInWIB, todayWIB } from "../../lib/format";
 import { logAudit } from "./auditRepo";
 import { compareSessionsChronologically, isBillableSession } from "./sessionRepo";
 import { isValidCurrencyAmount } from "../../lib/money";
-import { defaultInvoiceDueAt, invoiceDueAt } from "../../lib/finance";
+import { defaultInvoiceDueAt, invoiceDueAt, isValidYmd } from "../../lib/finance";
 
 // Re-export types for convenience
 export type { ExpenseCategory, IaEeMilestone };
@@ -476,9 +479,100 @@ export function createSessionCountInvoice(
   return operation;
 }
 
-/** Cancel one mutable package invoice and return its sessions to the queue. */
+// ── Snapshot & pemulihan pembatalan tagihan (R1) ────────────────────
+// Snapshot ditulis sebagai entri `auditLog` DI DALAM transaksi pembatalan.
+// `auditLog` bersifat lokal per perangkat dan sengaja TIDAK ikut
+// backup/restore ("Hapus Semua Data" menghapusnya), jadi pemulihan ini hanya
+// berlaku di perangkat ini — BUKAN pengganti Backup ke File.
+
+function billingSnapshotOf(student: Student): StudentBillingSnapshot {
+  return {
+    billingPolicy: student.billingPolicy,
+    billingSessionCount: student.billingSessionCount,
+    pendingBillingPolicy: student.pendingBillingPolicy,
+  };
+}
+
+/** Bandingkan tiga field siklus murid dengan toleransi `missing === undefined`. */
+function sameBillingSnapshot(
+  snapshot: StudentBillingSnapshot | undefined,
+  current: StudentBillingSnapshot | undefined,
+): boolean {
+  return sameStoredValue(snapshot?.billingPolicy, current?.billingPolicy)
+    && sameStoredValue(snapshot?.billingSessionCount, current?.billingSessionCount)
+    && sameStoredValue(snapshot?.pendingBillingPolicy, current?.pendingBillingPolicy);
+}
+
+/**
+ * Perbandingan nilai yang benar-benar tersimpan. `undefined` dan properti yang
+ * tidak ada dianggap sama (IndexedDB/JSON sama-sama boleh menghilangkannya),
+ * dan array/objek dibandingkan isinya — bukan referensinya.
+ */
+function sameStoredValue(a: unknown, b: unknown): boolean {
+  const left = a ?? undefined;
+  const right = b ?? undefined;
+  if (left === right) return true;
+  if (Array.isArray(left) || Array.isArray(right)) {
+    if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) return false;
+    return left.every((item, index) => sameStoredValue(item, right[index]));
+  }
+  if (left && right && typeof left === "object" && typeof right === "object") {
+    const leftRecord = left as Record<string, unknown>;
+    const rightRecord = right as Record<string, unknown>;
+    const keys = new Set([...Object.keys(leftRecord), ...Object.keys(rightRecord)]);
+    for (const key of keys) {
+      if (!sameStoredValue(leftRecord[key], rightRecord[key])) return false;
+    }
+    return true;
+  }
+  return false;
+}
+
+/** Perbandingan penuh seluruh field record — dipakai guard G9 (idempoten). */
+function sameRecord(a: object, b: object): boolean {
+  return sameStoredValue(a, b);
+}
+
+function sameInvoiceSessionIds(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length !== b.length) return false;
+  const ids = new Set(a);
+  return b.every((id) => ids.has(id));
+}
+
+function sessionScopesOverlap(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length === 0 || b.length === 0) return false;
+  const ids = new Set(a);
+  return b.some((id) => ids.has(id));
+}
+
+export function encodeInvoiceCancelSnapshot(snapshot: InvoiceCancelSnapshot): string {
+  return JSON.stringify(snapshot);
+}
+
+/** Baca snapshot dari entri audit; entri rusak/asing dianggap tidak ada. */
+export function decodeInvoiceCancelSnapshot(entry: AuditEntry): InvoiceCancelSnapshot | undefined {
+  if (entry.action !== "payment.cancel" || !entry.details) return undefined;
+  try {
+    const parsed = JSON.parse(entry.details) as InvoiceCancelSnapshot;
+    if (parsed?.version !== 1) return undefined;
+    if (!parsed.payment || typeof parsed.payment.id !== "string") return undefined;
+    if (parsed.kind !== "package" && parsed.kind !== "report" && parsed.kind !== "manual") return undefined;
+    if (!Array.isArray(parsed.sessionIds)) return undefined;
+    return parsed;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Cancel one mutable package invoice and return its sessions to the queue.
+ *
+ * Snapshot (R1) ditulis di dalam transaksi yang sama: kegagalan menulis
+ * snapshot membatalkan seluruh pembatalan, sehingga tidak pernah ada
+ * pembatalan tanpa jejak pemulihan.
+ */
 export async function cancelSessionCountInvoice(paymentId: string): Promise<void> {
-  await db.transaction("rw", db.students, db.reports, db.payments, async () => {
+  await db.transaction("rw", db.students, db.reports, db.payments, db.auditLog, async () => {
     const payment = await db.payments.get(paymentId);
     if (!payment) throw new Error("Tagihan tidak ditemukan");
     if (!payment.reportId) throw new Error("Tagihan bukan tagihan paket");
@@ -489,8 +583,6 @@ export async function cancelSessionCountInvoice(paymentId: string): Promise<void
     if (payment.status !== "UNPAID" || payment.source !== "auto") {
       throw new Error("Tagihan paket yang lunas atau diedit manual tidak dapat dibatalkan");
     }
-    await db.payments.delete(payment.id);
-    await db.reports.delete(report.id);
     const student = await db.students.get(report.studentId);
     // Hanya kembalikan kebijakan murid bila paket ini benar-benar berasal dari
     // antrean billing. Laporan paket legacy yang dibuat lewat mode "Jumlah"
@@ -499,17 +591,345 @@ export async function cancelSessionCountInvoice(paymentId: string): Promise<void
       || report.finalBillingBatch === true
       || report.billingPolicyTransitionTarget !== undefined
       || report.billingPolicyAfterBatch !== undefined;
-    if (student && billingPolicyOf(student) !== "session_count" && issuedFromBilling) {
-      const currentPolicy = billingPolicyOf(student);
-      const currentQuota = validSessionCount(student.billingSessionCount)
-        ? student.billingSessionCount
-        : undefined;
+    const restoresPolicy = Boolean(student) && billingPolicyOf(student!) !== "session_count" && issuedFromBilling;
+    // Nilai sesudah-pembatalan dihitung SEBELUM menulis, agar guard G8 saat
+    // pemulihan membandingkan keadaan yang benar-benar ditulis di sini.
+    const studentAfterCancel: StudentBillingSnapshot | undefined = restoresPolicy
+      ? {
+          billingPolicy: "session_count",
+          billingSessionCount: validSessionCount(student!.billingSessionCount)
+            ? student!.billingSessionCount
+            : report.billingTargetSessionCount ?? report.billingSessionCount,
+          pendingBillingPolicy: billingPolicyOf(student!) === "session_count"
+            ? undefined
+            : billingPolicyOf(student!) as "monthly" | "manual",
+        }
+      : student ? billingSnapshotOf(student) : undefined;
+
+    await db.auditLog.add({
+      id: crypto.randomUUID(),
+      action: "payment.cancel",
+      entityType: "payment",
+      entityId: payment.id,
+      timestamp: timestamp(),
+      details: encodeInvoiceCancelSnapshot({
+        version: 1,
+        kind: "package",
+        payment,
+        report,
+        sessionIds: report.sessionIds,
+        studentBeforeCancel: student ? billingSnapshotOf(student) : undefined,
+        studentAfterCancel,
+      }),
+    });
+
+    await db.payments.delete(payment.id);
+    await db.reports.delete(report.id);
+    if (restoresPolicy) {
       await db.students.update(report.studentId, {
         billingPolicy: "session_count",
-        billingSessionCount: currentQuota ?? report.billingTargetSessionCount ?? report.billingSessionCount,
-        pendingBillingPolicy: currentPolicy === "session_count" ? undefined : currentPolicy,
+        billingSessionCount: studentAfterCancel!.billingSessionCount,
+        pendingBillingPolicy: studentAfterCancel!.pendingBillingPolicy,
       });
     }
+  });
+}
+
+export type InvoiceRestoreStatus = "restored" | "noop";
+
+export interface InvoiceRestoreResult {
+  status: InvoiceRestoreStatus;
+  kind: InvoiceCancelKind;
+}
+
+export interface InvoiceCancellation {
+  snapshotId: string;
+  kind: InvoiceCancelKind;
+  paymentId: string;
+  studentId: string;
+  month: string;
+  totalCost: number;
+  reportId?: string;
+  sessionCount: number;
+  cancelledAt: string;
+}
+
+/**
+ * Pembatalan yang masih bisa dipulihkan di perangkat ini (baru → lama).
+ * Entri yang sudah dipulihkan (ada `payment.restore` dengan `snapshotId` sama)
+ * atau snapshotnya rusak tidak ditawarkan — sehingga aksi "Pulihkan" tidak
+ * pernah muncul untuk snapshot yang sudah hilang.
+ */
+export async function listInvoiceCancellations(): Promise<InvoiceCancellation[]> {
+  const entries = await db.auditLog.where("entityType").equals("payment").toArray();
+  const restoredSnapshotIds = new Set<string>();
+  for (const entry of entries) {
+    if (entry.action !== "payment.restore" || !entry.details) continue;
+    try {
+      const parsed = JSON.parse(entry.details) as { snapshotId?: string };
+      if (parsed?.snapshotId) restoredSnapshotIds.add(parsed.snapshotId);
+    } catch {
+      // entri lama tanpa JSON yang bisa dibaca — abaikan
+    }
+  }
+  return entries
+    .flatMap((entry): InvoiceCancellation[] => {
+      if (entry.action !== "payment.cancel" || restoredSnapshotIds.has(entry.id)) return [];
+      const snapshot = decodeInvoiceCancelSnapshot(entry);
+      if (!snapshot) return [];
+      return [{
+        snapshotId: entry.id,
+        kind: snapshot.kind,
+        paymentId: snapshot.payment.id,
+        studentId: snapshot.payment.studentId,
+        month: snapshot.payment.month,
+        totalCost: snapshot.payment.totalCost,
+        reportId: snapshot.payment.reportId,
+        sessionCount: snapshot.sessionIds.length,
+        cancelledAt: entry.timestamp,
+      }];
+    })
+    .sort((a, b) => b.cancelledAt.localeCompare(a.cancelledAt));
+}
+
+/**
+ * Pulihkan satu pembatalan dari snapshot audit (R1).
+ *
+ * Seluruh guard G1–G9 diperiksa SEBELUM penulisan apa pun, dan pemulihan
+ * berjalan dalam satu transaksi: bila ada satu pemeriksaan gagal, tidak ada
+ * record yang dipulihkan sebagian.
+ */
+export async function restoreCancelledInvoice(snapshotId: string): Promise<InvoiceRestoreResult> {
+  return db.transaction("rw", db.students, db.reports, db.payments, db.auditLog, db.sessions, async () => {
+    // G0 — baca langsung lewat id, bukan daftar 50 entri terakhir.
+    const entry = await db.auditLog.get(snapshotId);
+    if (!entry) throw new Error("Snapshot pembatalan tidak ditemukan di perangkat ini");
+    const snapshot = decodeInvoiceCancelSnapshot(entry);
+    if (!snapshot) throw new Error("Snapshot pembatalan tidak dapat dibaca");
+    const { payment, report, sessionIds, kind } = snapshot;
+
+    // G6 — sesi yang dicakup harus masih ada.
+    if (sessionIds.length > 0) {
+      const rows = await db.sessions.bulkGet(sessionIds);
+      const missing = rows.filter((row) => !row).length;
+      if (missing > 0) {
+        throw new Error(`Tidak dapat dipulihkan: ${missing} sesi pada tagihan ini sudah tidak ada`);
+      }
+    }
+
+    const existingPayment = await db.payments.get(payment.id);
+    const currentReport = report ? await db.reports.get(report.id) : undefined;
+    let currentStudent: Student | undefined;
+
+    if (kind === "package") {
+      // G7 — murid yang wajib dipulihkan harus masih ada.
+      currentStudent = await db.students.get(payment.studentId);
+      if (!currentStudent) throw new Error("Tidak dapat dipulihkan: murid tagihan ini sudah dihapus");
+      // G8 — siklus murid tidak boleh berubah setelah pembatalan.
+      if (!sameBillingSnapshot(snapshot.studentAfterCancel, billingSnapshotOf(currentStudent))) {
+        throw new Error("Tidak dapat dipulihkan: siklus tagihan murid sudah berubah setelah pembatalan");
+      }
+      // Laporan paket sudah dihapus saat pembatalan. Bila ada laporan dengan ID
+      // yang sama tetapi isinya BEDA, jangan ditimpa — itu bukan undo idempoten.
+      if (currentReport && !sameRecord(report!, currentReport)) {
+        throw new Error("Tidak dapat dipulihkan: laporan paket untuk ID ini sudah ada dengan data berbeda");
+      }
+      // G2 — paket pengganti dengan himpunan sesi identik (selain laporan ini).
+      const identical = await db.reports
+        .where({ studentId: payment.studentId })
+        .filter((candidate) => candidate.id !== report!.id
+          && sameInvoiceSessionIds(candidate.sessionIds, sessionIds))
+        .first();
+      if (identical) {
+        throw new Error("Tidak dapat dipulihkan: paket pengganti untuk sesi yang sama sudah diterbitkan");
+      }
+    }
+
+    if (kind === "report") {
+      // G4 — laporan snapshot harus ada dan cakupannya tidak berubah.
+      if (!currentReport) throw new Error("Tidak dapat dipulihkan: laporan tagihan ini sudah tidak ada");
+      if (!sameInvoiceSessionIds(currentReport.sessionIds, sessionIds)) {
+        throw new Error("Tidak dapat dipulihkan: cakupan sesi laporan sudah berubah");
+      }
+      // G3 — sudah ada invoice lain untuk laporan yang sama.
+      const sibling = (await db.payments.where("reportId").equals(report!.id).toArray())
+        .find((candidate) => candidate.id !== payment.id);
+      if (sibling) throw new Error("Tidak dapat dipulihkan: laporan ini sudah punya tagihan lain");
+    }
+
+    if (kind === "manual") {
+      // G5 — tagihan tanpa laporan lain pada murid+bulan yang sama.
+      const duplicate = (await db.payments
+        .where("[studentId+month]").equals([payment.studentId, payment.month])
+        .toArray())
+        .find((candidate) => candidate.id !== payment.id && !candidate.reportId);
+      if (duplicate) {
+        throw new Error("Tidak dapat dipulihkan: sudah ada tagihan manual lain untuk murid dan bulan ini");
+      }
+    }
+
+    // G1 — report LAIN (bukan report milik invoice yang sedang dipulihkan) yang
+    // mencakup sesi snapshot. Report milik invoice sendiri tetap sah memiliki
+    // sesi itu (laporan periode tetap `confirmed`; laporan paket ikut dipulihkan),
+    // jadi ia memang harus dikecualikan; report lain yang tumpang tindih tetap
+    // menolak, karena sesi itu sudah diklaim ringkasan lain.
+    if (kind !== "manual" && sessionIds.length > 0) {
+      const ownReportId = report?.id;
+      const overlapping = (await db.reports.where({ studentId: payment.studentId }).toArray())
+        .find((candidate) => candidate.id !== ownReportId
+          && sessionScopesOverlap(candidate.sessionIds, sessionIds));
+      if (overlapping) {
+        throw new Error("Tidak dapat dipulihkan: sesi tagihan ini sudah tercakup laporan lain");
+      }
+    }
+
+    if (existingPayment) {
+      // G9 — idempoten bila SELURUH record pasangan identik; selain itu tolak
+      // tanpa menimpa apa pun.
+      const paymentIdentical = sameRecord(payment, existingPayment);
+      const reportIdentical = kind === "package"
+        ? Boolean(report) && Boolean(currentReport) && sameRecord(report!, currentReport!)
+        : true;
+      const studentIdentical = kind === "package"
+        ? sameBillingSnapshot(
+            snapshot.studentBeforeCancel,
+            currentStudent ? billingSnapshotOf(currentStudent) : undefined,
+          )
+        : true;
+      if (paymentIdentical && reportIdentical && studentIdentical) {
+        return { status: "noop", kind };
+      }
+      throw new Error("Tidak dapat dipulihkan: tagihan dengan ID ini sudah ada dengan data berbeda");
+    }
+
+    await db.payments.put(payment);
+    if (kind === "package") {
+      await db.reports.put(report!);
+      await db.students.update(payment.studentId, {
+        billingPolicy: snapshot.studentBeforeCancel?.billingPolicy,
+        billingSessionCount: snapshot.studentBeforeCancel?.billingSessionCount,
+        pendingBillingPolicy: snapshot.studentBeforeCancel?.pendingBillingPolicy,
+      });
+    }
+    await db.auditLog.add({
+      id: crypto.randomUUID(),
+      action: "payment.restore",
+      entityType: "payment",
+      entityId: payment.id,
+      timestamp: timestamp(),
+      details: JSON.stringify({ snapshotId, kind }),
+    });
+    return { status: "restored", kind };
+  });
+}
+
+/**
+ * Batalkan invoice yang terbit dari laporan periode (L3).
+ *
+ * D3: hanya laporan dengan status final EKSPLISIT (`status === "confirmed"`)
+ * yang boleh dilepas. Laporan legacy tanpa `status` ditolak — setelah invoice
+ * hilang, `reportIdsWithInvoice` tidak lagi memuatnya sehingga cakupan paket
+ * bisa lepas diam-diam.
+ *
+ * Laporannya TIDAK dihapus: laporan tetap final, hanya tagihannya yang hilang
+ * dan barisnya kembali ke "Siap ditagih".
+ */
+export async function cancelReportInvoice(paymentId: string): Promise<void> {
+  await db.transaction("rw", db.payments, db.reports, db.auditLog, async () => {
+    const payment = await db.payments.get(paymentId);
+    if (!payment) throw new Error("Tagihan tidak ditemukan");
+    if (!payment.reportId) throw new Error("Tagihan ini tidak terbit dari laporan");
+    const report = await db.reports.get(payment.reportId);
+    if (!report) throw new Error("Laporan tagihan ini tidak ditemukan");
+    if (report.billingMode === "session_count") {
+      throw new Error("Tagihan paket dibatalkan lewat antrean paket di Keuangan");
+    }
+    if (report.status !== "confirmed") {
+      throw new Error("Laporan belum berstatus final eksplisit; invoice laporan lama tidak dapat dibatalkan");
+    }
+    if (payment.status !== "UNPAID" || payment.source !== "auto") {
+      throw new Error("Tagihan yang lunas atau diedit manual tidak dapat dibatalkan");
+    }
+    const linked = await db.payments.where("reportId").equals(report.id).toArray();
+    if (linked.length > 1) {
+      throw new Error("Ada lebih dari satu tagihan untuk laporan ini; rapikan dulu di Keuangan");
+    }
+    await db.auditLog.add({
+      id: crypto.randomUUID(),
+      action: "payment.cancel",
+      entityType: "payment",
+      entityId: payment.id,
+      timestamp: timestamp(),
+      details: encodeInvoiceCancelSnapshot({
+        version: 1,
+        kind: "report",
+        payment,
+        report,
+        sessionIds: report.sessionIds,
+      }),
+    });
+    await db.payments.delete(payment.id);
+  });
+}
+
+/**
+ * Hapus tagihan manual (tanpa laporan) yang belum dibayar (L4).
+ *
+ * Snapshot wajib: tanpanya satu tagihan manual hilang permanen tanpa cara
+ * dipulihkan. Pelanggaran duplikat murid+bulan baru diperiksa saat pemulihan
+ * (G5), bukan saat menghapus.
+ */
+export async function deleteManualPayment(paymentId: string): Promise<void> {
+  await db.transaction("rw", db.payments, db.auditLog, async () => {
+    const payment = await db.payments.get(paymentId);
+    if (!payment) throw new Error("Tagihan tidak ditemukan");
+    if (payment.reportId) throw new Error("Tagihan ini terbit dari laporan, bukan tagihan manual");
+    if (payment.source !== "manual") throw new Error("Hanya tagihan manual yang dapat dihapus");
+    if (payment.status !== "UNPAID") throw new Error("Tagihan yang sudah lunas tidak dapat dihapus");
+    await db.auditLog.add({
+      id: crypto.randomUUID(),
+      action: "payment.cancel",
+      entityType: "payment",
+      entityId: payment.id,
+      timestamp: timestamp(),
+      details: encodeInvoiceCancelSnapshot({
+        version: 1,
+        kind: "manual",
+        payment,
+        sessionIds: [],
+      }),
+    });
+    await db.payments.delete(payment.id);
+  });
+}
+
+/**
+ * Ubah jatuh tempo tagihan (L5 / D5).
+ *
+ * Hanya `UNPAID` dan tanggal `YYYY-MM-DD` yang benar-benar valid (termasuk
+ * 31 Februari ditolak). Tidak ada field lain yang disentuh — nominal, status,
+ * pembayaran, laporan, dan sesi tidak ikut berubah, sehingga Σ rekap tetap.
+ */
+export async function updatePaymentDueAt(paymentId: string, dueAt: string): Promise<void> {
+  if (!isValidYmd(dueAt)) throw new Error("Tanggal jatuh tempo tidak valid");
+  await db.transaction("rw", db.payments, db.auditLog, async () => {
+    const payment = await db.payments.get(paymentId);
+    if (!payment) throw new Error("Tagihan tidak ditemukan");
+    if (payment.status !== "UNPAID") {
+      throw new Error("Jatuh tempo hanya dapat diubah untuk tagihan yang belum dibayar");
+    }
+    const previous = invoiceDueAt(payment) ?? "—";
+    await db.payments.update(paymentId, { dueAt });
+    // Audit di dalam transaksi: aging dan nada pesan WA ikut berubah, jadi
+    // perubahan ini tidak boleh terjadi tanpa jejak.
+    await db.auditLog.add({
+      id: crypto.randomUUID(),
+      action: "payment.due",
+      entityType: "payment",
+      entityId: paymentId,
+      timestamp: timestamp(),
+      details: `${payment.month}: ${previous} → ${dueAt}`,
+    });
   });
 }
 

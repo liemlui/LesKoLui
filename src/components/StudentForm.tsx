@@ -1,7 +1,7 @@
 import Skeleton from "./Skeleton";
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { getSettings } from "../db/repos";
+import { getSettings, countUnbilledBillableSessions } from "../db/repos";
 import type { StudentBillingUpdateOptions } from "../db/repos";
 import { todayWIB } from "../lib/format";
 import { toggleArrayItem } from "../lib/arrays";
@@ -79,9 +79,23 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
   const [billingSessionCountError, setBillingSessionCountError] = useState("");
   const [includeExistingUnbilledInPackage, setIncludeExistingUnbilledInPackage] = useState(false);
   const [cancelPendingTransition, setCancelPendingTransition] = useState(false);
+  /** D1(c): retroaktif HANYA setelah tutor mencentang, tidak pernah otomatis. */
+  const [repriceUnbilledSessions, setRepriceUnbilledSessions] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [active,  setActive]  = useState(initial?.active ?? true);
   const [notes,   setNotes]   = useState(initial?.notes ?? "");
+
+  // Jumlah sesi yang belum ditagih — menentukan apakah pilihan retroaktif perlu
+  // ditawarkan. Tarif historis dibekukan secara default (D1(c)).
+  const unbilledCount = useLiveQuery(
+    () => (initial ? countUnbilledBillableSessions(initial.id) : 0),
+    [initial?.id],
+  );
+
+  // Tarif benar-benar berubah? Pilihan retroaktif hanya muncul bila ada sesi
+  // lama yang belum ditagih dan nilainya berbeda dari tarif murid saat ini.
+  const rateChanged = Boolean(initial) && hourlyRate !== initial!.hourlyRate;
+  const showRepriceChoice = rateChanged && (unbilledCount ?? 0) > 0;
 
   if (!settings) return <Skeleton variant="card" lines={4} className="p-4" />;
 
@@ -157,6 +171,8 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
           Boolean(initial)
           && billingPolicyOf(initial!) === "session_count"
           && billingPolicy !== "session_count",
+        // D1(c): tanpa centang, tarif sesi lama tidak tersentuh.
+        repriceUnbilledSessions: rateChanged && repriceUnbilledSessions,
       });
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "Profil murid gagal disimpan.");
@@ -346,6 +362,21 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
         </div>
         {settings?.defaultRate && hourlyRate === settings.defaultRate && (
           <p className="text-xs text-orange-500">Menggunakan tarif default dari Pengaturan</p>
+        )}
+        {showRepriceChoice && (
+          <label className="mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-xs leading-relaxed text-amber-900">
+            <input
+              type="checkbox"
+              checked={repriceUnbilledSessions}
+              onChange={(event) => setRepriceUnbilledSessions(event.target.checked)}
+              className="mt-0.5 h-4 w-4 flex-none accent-amber-600"
+            />
+            <span>
+              Terapkan tarif baru ke {unbilledCount} sesi lama yang belum ditagih (retroaktif).
+              Tanpa centang ini, sesi lama tetap memakai tarif historisnya dan hanya sesi
+              berikutnya yang memakai tarif baru. Tindakan retroaktif tercatat di Riwayat Aktivitas.
+            </span>
+          </label>
         )}
       </div>
 

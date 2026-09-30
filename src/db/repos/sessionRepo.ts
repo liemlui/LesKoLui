@@ -33,8 +33,9 @@ export async function pruneSessionPhotosBefore(beforeDate: string): Promise<numb
 
 // ── Pricing ─────────────────────────────────────────────────────────
 // Per-meeting billing (session_count) charges a flat rate per meeting;
-// everyone else charges by duration (rate × hours).
-function sessionCost(rate: number, durationHours: number, perSession: boolean): number {
+// everyone else charges by duration (rate × hours). Satu-satunya rumus harga
+// sesi — dipakai juga oleh `studentRepo` saat repricing eksplisit (TASK-10 L1).
+export function sessionCost(rate: number, durationHours: number, perSession: boolean): number {
   return perSession ? Math.round(rate) : Math.round(durationHours * rate);
 }
 
@@ -682,6 +683,10 @@ export async function updateSeriesSessions(
       const finalPatch: Partial<Session> = { ...patch, updatedAt: now };
       if (patch.durationHours !== undefined) {
         finalPatch.cost = sessionCost(s.rateSnapshot, patch.durationHours, perSession);
+        // Konsisten dengan `updateSession` (TASK-10 L1, W3): durasi berubah tanpa
+        // nominal manual yang eksplisit → override lama dilepas, sehingga `cost`
+        // dan `costOverride` tidak saling bertentangan.
+        finalPatch.costOverride = undefined;
       }
       await db.sessions.update(s.id, finalPatch);
     }

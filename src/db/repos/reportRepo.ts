@@ -45,6 +45,37 @@ export function reportPeriodOf(report: { month: string; periodStart?: string; pe
   return { periodStart: `${report.month}-01`, periodEnd: `${report.month}-${String(lastDay).padStart(2, "0")}` };
 }
 
+type ReportTotals = Pick<MonthlyReport, "sessionIds" | "totalHours" | "totalCost">;
+
+/**
+ * D6 — laporan yang sudah FINAL membekukan `sessionIds`/`totalHours`/`totalCost`.
+ * Angka yang sudah dikirim ke orang tua tidak boleh berubah hanya karena sesi
+ * dihitung ulang saat laporan dibuka atau profil murid disimpan. Draft tetap
+ * boleh dihitung ulang, dan pembekuan berlaku tepat pada saat difinalkan.
+ *
+ * Jalur perbaikan yang sah untuk laporan final (tercatat, bukan diam-diam):
+ * batalkan invoice yang belum lunas lewat Keuangan → perbaiki sesi →
+ * terbitkan ulang; atau terbitkan laporan susulan untuk sesi yang menyusul.
+ */
+export function frozenReportTotals(
+  existing: Pick<MonthlyReport, "status" | "sessionIds" | "totalHours" | "totalCost">,
+  next: ReportTotals,
+): ReportTotals {
+  if (reportStatus(existing) !== "confirmed") return next;
+  return { sessionIds: existing.sessionIds, totalHours: existing.totalHours, totalCost: existing.totalCost };
+}
+
+/** True bila hasil hitung ulang menyimpang dari total final yang sudah beku. */
+export function reportTotalsDrifted(
+  frozen: Pick<MonthlyReport, "sessionIds" | "totalHours" | "totalCost">,
+  live: ReportTotals,
+): boolean {
+  if (frozen.totalHours !== live.totalHours || frozen.totalCost !== live.totalCost) return true;
+  if (frozen.sessionIds.length !== live.sessionIds.length) return true;
+  const ids = new Set(frozen.sessionIds);
+  return live.sessionIds.some((id) => !ids.has(id));
+}
+
 export async function getReport(
   studentId: string, month: string
 ): Promise<MonthlyReport | undefined> {

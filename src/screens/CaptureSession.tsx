@@ -16,9 +16,7 @@ import { todayWIB, dayLabel } from "../lib/format";
 import { toggleArrayItem } from "../lib/arrays";
 import { ENGAGEMENT_LEVELS, scoreBasisLabel } from "../lib/engagement";
 import { IB_MYP_SUBJECTS, IB_DP_GROUPS, getSubjectGroups, CURRICULUM_META } from "../lib/ibSubjects";
-import { searchTopicsExpanded, browseTopicsForSubjects } from "../lib/ibTopics";
-import type { TopicSearchResponse } from "../lib/ibTopics";
-import { SESSION_TYPE_OPTIONS, generateNote, generateEngagementNarrative } from "../lib/sessionTemplates";
+import { generateNote, generateEngagementNarrative } from "../lib/sessionTemplates";
 import { BEHAVIOR_TAGS, RESPONSE_TAGS } from "../lib/responseTaxonomy";
 import type { SessionType } from "../lib/sessionTemplates";
 import { MIN_DURATION } from "../db/types";
@@ -26,7 +24,6 @@ import { estimatePolishWACost } from "../lib/aiClient";
 import { AiCostModal } from "../components/AiCostModal";
 import { SimpleMarkdown } from "../components/SimpleMarkdown";
 import Breadcrumb from "../components/Breadcrumb";
-import PaginationControls from "../components/PaginationControls";
 import { clampPage, paginateItems } from "../lib/pagination";
 import { scheduleCaptureMismatch } from "../lib/scheduleCapture";
 import type { ScheduleCaptureLock } from "../lib/scheduleCapture";
@@ -37,15 +34,17 @@ import AiCostConfirmModal from "./captureSession/AiCostConfirmModal";
 import AiTagTooltip from "./captureSession/AiTagTooltip";
 import useAiFill from "./captureSession/useAiFill";
 import CloseOutSheet from "./captureSession/CloseOutSheet";
+import ScheduleStep from "./captureSession/ScheduleStep";
+import useTopicSelection from "./captureSession/useTopicSelection";
 import type { CaptureDraft, CaptureDraftForm } from "../db/types";
 import { MOODS } from "../lib/moods";
 import {
-  DURATIONS, SITUASI_CHIPS, ENGAGEMENT_FLAG_META, STEP_META, TASK_BAR_H, isValidStep,
+  SITUASI_CHIPS, ENGAGEMENT_FLAG_META, STEP_META, TASK_BAR_H, isValidStep,
 } from "./captureSession/constants";
 import type { StepMeta, StepNum } from "./captureSession/constants";
 import {
-  buildWaMessage, topicLevelHint, draftStamp, mergeTopics, splitTopics,
-  mergeTopicUnits, recentTopics, appendSituasi, hasSituasi,
+  buildWaMessage, topicLevelHint, draftStamp, splitTopics,
+  appendSituasi, hasSituasi,
 } from "./captureSession/helpers";
 
 /** Ikon per langkah ditempelkan di sini (bukan di `constants.ts`) supaya berkas
@@ -92,6 +91,16 @@ export default function CaptureSession() {
   const [studentId,      setStudentId]      = useState(() => searchParams.get("studentId") ?? "");
   const [subjects,       setSubjects]        = useState<string[]>([]);
   const { currentStudent, studentSubjects, briefLastSession, briefFollowUps, studentRecentSessions } = useStudentBrief(studentId);
+  const {
+    topics, setTopics, topicUnits, setTopicUnits, topicSearch, setTopicSearch,
+    setTopicResponse, topicAllowOffLevel, setTopicAllowOffLevel,
+    topicResults, topicMeta, topicOffLevel, topic, runTopicSearch,
+    showBrowse, setShowBrowse, openUnit, setOpenUnit, browseSubjects, browseGroups,
+    topicUnit, recentTopicChips, addTopic, addTopicsFromInput, removeTopic,
+  } = useTopicSelection({
+    subjects, studentSubjects, student: currentStudent,
+    recentSessions: studentRecentSessions,
+  });
   const [showIBPicker,   setShowIBPicker]    = useState(false);
   const [ibTab,          setIbTab]           = useState<"MYP" | "DP">("MYP");
   const [ibCustom,       setIbCustom]        = useState("");
@@ -103,10 +112,6 @@ export default function CaptureSession() {
   const [showSigPad,     setShowSigPad]      = useState(false);
   const [duration,       setDuration]        = useState(MIN_DURATION);
   const [predictedGrade, setPredictedGrade]  = useState("");
-  const [topics,         setTopics]          = useState<string[]>([]);
-  /** Bab katalog untuk tiap topik terpilih (audit P1 #9). Topik yang diketik
-   *  bebas tidak punya entri di sini → `topicUnit` tersimpan kosong. */
-  const [topicUnits,     setTopicUnits]      = useState<Record<string, string>>({});
   const [needsWork,      setNeedsWork]       = useState("");
   const [sessionDate,    setSessionDate]     = useState(today);
   const [saving,         setSaving]          = useState(false);
@@ -139,80 +144,11 @@ export default function CaptureSession() {
   } = engFlags;
   /** Indikator di luar 6 terdepan (audit P2 #13). */
   const [showMoreFlags, setShowMoreFlags] = useState(false);
-  // Situasi humanis hari ini (opsional) — konteks, bukan perilaku.
 
-  // Topic search
-  //
-  // Sejak audit P0 memakai `searchTopicsExpanded` yang melaporkan META, bukan
-  // hanya hasil: apakah hasil berada di level kurikulum murid (`inLevel`) dan
-  // level apa saja yang punya hasil (`otherLevels`). Tanpa meta, hasil level
-  // kurikulum lain tampil seolah normal — itulah cacat T-03.
-  const [topicSearch,    setTopicSearch]    = useState("");
-  const [topicResponse,  setTopicResponse]  = useState<TopicSearchResponse | null>(null);
-  /** Pengguna sudah menekan "cari di level lain" untuk kueri yang sedang tampil. */
-  const [topicAllowOffLevel, setTopicAllowOffLevel] = useState(false);
-  const topicResults = topicResponse?.results ?? [];
-  const topicMeta    = topicResponse?.meta;
-  const topicOffLevel = Boolean(topicMeta?.offLevelFallback);
-  // Topik bisa lebih dari satu: gabungan topik yang sudah dipilih (chips) +
-  // teks pencarian yang belum di-commit, dipisah dengan "; " (lihat `mergeTopics`
-  // — aturan itu tinggal di `helpers.ts` supaya penyimpanan & pemulihan draf
-  // tidak pernah berbeda tafsir).
-  const topic = useMemo(() => mergeTopics(topics, topicSearch), [topics, topicSearch]);
-  // Kalau mapel terpilih lebih dari satu, jangan bias pencarian ke satu mapel saja.
-  const topicSearchSubject = subjects.length >= 2 ? undefined : subjects[0] ?? studentSubjects[0];
-
-  const topicSearchOptions = {
-    subject: topicSearchSubject,
-    grade: currentStudent?.grade,
-    curriculum: currentStudent?.curriculum,
-  };
-  /** Satu pintu masuk pencarian topik: selalu segarkan hasil + metanya. */
-  const runTopicSearch = (q: string) => {
-    setTopicSearch(q);
-    setTopicAllowOffLevel(false);
-    setTopicResponse(q.trim() ? searchTopicsExpanded(q, topicSearchOptions) : null);
-  };
-
-  // ── Pilih topik dari daftar bab (audit P1 #7) ──────────────────────────────
-  //
-  // Kotak pencarian menuntut tutor sudah tahu kata kuncinya; `browseTopics…`
-  // memberi daftar untuk DIBACA. Fungsi itu sudah ada di lib sejak lama tetapi
-  // tidak pernah dipanggil — inilah pemanggilnya.
-  //
-  // Isi daftar dihitung "atas permintaan" (saat panel dibuka), bukan setiap
-  // render: `browseTopicsForSubjects` menyaring seluruh 1.538 topik.
-  const browseSubjects = subjects.length > 0 ? subjects : studentSubjects;
-  const [showBrowse, setShowBrowse] = useState(false);
-  const [openUnit,   setOpenUnit]   = useState<string | null>(null);
-  const browseGroups = useMemo(
-    () => (showBrowse && browseSubjects.length > 0
-      ? browseTopicsForSubjects(browseSubjects, currentStudent?.grade, currentStudent?.curriculum)
-      : []),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [showBrowse, browseSubjects.join("\u0000"), currentStudent?.grade, currentStudent?.curriculum],
-  );
-
-  /** Bab untuk tiap topik terpilih — gabungan bab unik, urut kemunculan. */
-  const topicUnit = useMemo(
-    () => mergeTopicUnits(topics, topicUnits),
-    [topics, topicUnits],
-  );
-
-  // ── "Topik sesi lalu" murid ini (audit P1 #8) ──────────────────────────────
-  //
-  // 90% sesi membahas topik yang berdekatan dengan sesi sebelumnya; satu ketukan
-  // jauh lebih cepat daripada mengingat dan mengetik ulang.
-  const recentTopicChips = useMemo(
-    () => recentTopics(studentRecentSessions ?? [], 6),
-    [studentRecentSessions],
-  );
-
-  // Behavior & response taxonomy tags
-
-  // Skor keterlibatan dihitung + disimpan bila ada sinyal APAPUN: flag inti,
-  // tag perilaku, respons akademik, atau mood. Jangan hanya engTouched — kalau
-  // tutor hanya mencatat mood/tag, engagement (dan skornya) tetap harus tersimpan.
+  // ── Topik sesi (pencarian, daftar bab, chip topik lalu) ────────────────────
+  // Seluruh state & aksinya tinggal di `useTopicSelection` — termasuk alasan
+  // meta pencarian (cacat T-03), daftar bab (audit P1 #7), dan chip "topik sesi
+  // lalu" (audit P1 #8). Draf tetap dimiliki layar ini.
 
   // Conflict warning
   const [conflictWarn, setConflictWarn] = useState<string[]>([]);
@@ -410,44 +346,6 @@ export default function CaptureSession() {
 
   const toggleSubject = (s: string) => setSubjects((prev) => toggleArrayItem(prev, s));
 
-  /**
-   * Tambah satu topik. `unit` diisi bila topik dipilih dari daftar bab katalog
-   * (audit P1 #9) — topik yang diketik bebas tidak punya bab.
-   */
-  const addTopic = (raw: string, unit?: string) => {
-    const clean = raw.trim();
-    if (!clean) return;
-    setTopics((prev) => (prev.includes(clean) ? prev : [...prev, clean]));
-    if (unit) setTopicUnits((prev) => (prev[clean] ? prev : { ...prev, [clean]: unit }));
-    setTopicSearch("");
-    setTopicResponse(null);
-    setTopicAllowOffLevel(false);
-  };
-
-  /** Tambah semua bagian dari input (pisahkan dengan ";") sebagai topik. */
-  const addTopicsFromInput = () => {
-    const parts = topicSearch.split(";").map((p) => p.trim()).filter(Boolean);
-    if (parts.length === 0) return;
-    setTopics((prev) => {
-      const next = [...prev];
-      for (const p of parts) if (!next.includes(p)) next.push(p);
-      return next;
-    });
-    setTopicSearch("");
-    setTopicResponse(null);
-    setTopicAllowOffLevel(false);
-  };
-
-  const removeTopic = (t: string) => {
-    setTopics((prev) => prev.filter((x) => x !== t));
-    setTopicUnits((prev) => {
-      if (!(t in prev)) return prev;
-      const next = { ...prev };
-      delete next[t];
-      return next;
-    });
-  };
-
   const resetForm = () => {
     setSubjects([]); setShowIBPicker(false); setIbCustom("");
     setShortNote(""); setPhoto(undefined);
@@ -484,6 +382,10 @@ export default function CaptureSession() {
      * Data kondisi sesi (audit P2 #11/#12/#15).
      *
      * Perubahan dari versi sebelumnya:
+     *  - disimpan bila ada sinyal APAPUN (`hasEngagementInput`: flag inti, tag
+     *    perilaku, respons akademik, atau kondisi umum) — **jangan** kembali
+     *    memakai `engTouched` saja, karena tutor yang hanya mencatat mood/tag
+     *    tetap harus punya engagement tersimpan;
      *  - `level` (kondisi umum) ikut disimpan — eksplisit, tanpa mengklaim
      *    indikator apa pun;
      *  - `scoreBasis` mencatat seberapa lengkap dasar skornya;
@@ -971,132 +873,33 @@ export default function CaptureSession() {
           STEP 1: JADWAL — Murid, Tanggal, Durasi
           ══════════════════════════════════════════ */}
       {currentStep === 1 && (
-        <div className="px-4 space-y-4">
-
-          {/* Mode jadwal — jelaskan bahwa layar ini menyelesaikan jadwal, bukan
-              membuat sesi baru, dan mengapa murid/tanggal tidak bisa diubah. */}
-          {scheduleId && (
-            <div className="rounded-xl border border-blue-200 bg-blue-50 p-3.5">
-              <p className="text-xs font-bold text-blue-700 uppercase tracking-wide">🗓️ Menyelesaikan jadwal</p>
-              <p className="mt-1 text-sm font-bold text-blue-900">
-                {currentStudent?.name ?? "Murid jadwal"}
-                <span className="font-semibold text-blue-700"> · {dayLabel(sessionDate)} · {duration} jam</span>
-              </p>
-              <p className="mt-1 text-xs text-blue-700">
-                Murid dan tanggal mengikuti jadwal ini. Salah jadwal?{" "}
-                <button type="button" onClick={() => navigate("/capture")}
-                  className="font-semibold underline hover:text-blue-900">Catat sesi baru</button>.
-              </p>
-            </div>
-          )}
-
-          {/* Murid */}
-          <div>
-            <label htmlFor="cs-murid" className="label">👤 Murid <span className="text-red-400">*</span></label>
-            <select id="cs-murid" className="input disabled:bg-gray-100 disabled:text-gray-500"
-              value={studentId} disabled={Boolean(scheduleId)}
-              aria-describedby={scheduleId ? "cs-murid-hint" : undefined}
-              onChange={(e) => setStudentId(e.target.value)}>
-              <option value="">Pilih murid...</option>
-              {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-            {scheduleId && (
-              <p id="cs-murid-hint" className="text-xs text-gray-500 mt-1">
-                Terkunci karena sesi ini menyelesaikan jadwal yang sudah ada.
-              </p>
-            )}
-          </div>
-
-          {/* Tanggal */}
-          <div>
-            <label htmlFor="cs-tanggal" className="label">📅 Tanggal Sesi</label>
-            <input id="cs-tanggal" className="input disabled:bg-gray-100 disabled:text-gray-500" type="date" value={sessionDate}
-              max={today} disabled={Boolean(scheduleId)}
-              aria-describedby={scheduleId ? "cs-tanggal-hint" : undefined}
-              onChange={(e) => setSessionDate(e.target.value)} />
-            {scheduleId ? (
-              <p id="cs-tanggal-hint" className="text-xs text-gray-500 mt-1">
-                Tanggal terkunci mengikuti jadwal.
-              </p>
-            ) : sessionDate !== today && (
-              <p className="text-xs text-orange-600 mt-1">⏪ Merekam sesi masa lalu</p>
-            )}
-          </div>
-
-          {/* Durasi */}
-          <div>
-            <label className="label">⏱️ Durasi</label>
-            <div className="relative">
-              <div className="flex gap-2 overflow-x-auto pb-1 pr-8 snap-x">
-                {DURATIONS.map((d) => (
-                  <button key={d} type="button"
-                    className={`snap-start flex-shrink-0 px-3 py-2 rounded-xl text-sm font-semibold border transition-colors ${
-                      duration === d ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200"}`}
-                    onClick={() => setDuration(d)}>{d}j</button>
-                ))}
-              </div>
-              {/* Penanda masih ada pilihan di kanan (audit C-14) */}
-              <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent" aria-hidden="true" />
-            </div>
-          </div>
-
-          {/* Tipe sesi */}
-          <div>
-            <label className="label">🗂️ Tipe Sesi <span className="text-gray-500 font-normal text-xs">(opsional)</span></label>
-            <div className="flex flex-wrap gap-2 mt-1">
-              {SESSION_TYPE_OPTIONS.map((opt) => (
-                <button key={opt.value} type="button"
-                  onClick={() => {
-                    const newType = sessionType === opt.value ? undefined : opt.value;
-                    setSessionType(newType);
-                    if (newType && !shortNote.trim()) {
-                      setShortNote(generateNote(newType, subjects[0] ?? studentSubjects[0], topic));
-                    }
-                  }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                    sessionType === opt.value ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"}`}>
-                  <span>{opt.icon}</span> {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Conflict warning */}
-          {conflictWarn.length > 0 && (
-            <div className="bg-orange-50 border border-orange-200 rounded-xl p-3">
-              <p className="text-sm font-semibold text-orange-700">⚠️ Perhatian</p>
-              <p className="text-xs text-orange-600 mt-0.5">
-                Tanggal ini sudah ada sesi DONE untuk murid lain ({conflictWarn.length} sesi). Pastikan jadwal tidak bentrok.
-              </p>
-            </div>
-          )}
-
-          {/* Brief persiapan */}
-          {studentId && (briefLastSession || briefFollowUps.length > 0) && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 space-y-2.5">
-              <p className="text-xs font-bold text-amber-700 uppercase tracking-wide">📋 Persiapan Sesi</p>
-              {briefLastSession && (
-                <div className="space-y-0.5">
-                  <p className="text-xs font-semibold text-amber-600">
-                    Sesi terakhir — {dayLabel(briefLastSession.date).split(",")[1]?.trim() ?? briefLastSession.date.slice(5)}
-                    {briefLastSession.subjects.length > 0 && ` (${briefLastSession.subjects.join(", ")})`}
-                  </p>
-                  <p className="text-xs text-gray-600 leading-relaxed">"{briefLastSession.shortNote}"</p>
-                  {briefLastSession.topic && <p className="text-xs text-gray-500">💡 Topik: {briefLastSession.topic}</p>}
-                </div>
-              )}
-              {briefFollowUps.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-blue-600 mb-1">🔁 Lanjutkan dari sesi lalu:</p>
-                  {paginatedBriefFollowUps.map((f) => <p key={f.id} className="text-xs text-gray-600">• {f.text}</p>)}
-                  <PaginationControls page={safeBriefFollowPage} total={briefFollowUps.length} onPageChange={setBriefFollowPage} label="follow-up" />
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        <ScheduleStep
+          scheduleId={scheduleId}
+          student={currentStudent}
+          studentId={studentId}
+          students={students}
+          sessionDate={sessionDate}
+          today={today}
+          duration={duration}
+          sessionType={sessionType}
+          conflictCount={conflictWarn.length}
+          lastSession={briefLastSession}
+          followUps={briefFollowUps}
+          paginatedFollowUps={paginatedBriefFollowUps}
+          followUpPage={safeBriefFollowPage}
+          onNavigateToNewCapture={() => navigate("/capture")}
+          onStudentChange={setStudentId}
+          onSessionDateChange={setSessionDate}
+          onDurationChange={setDuration}
+          onSessionTypeChange={(newType) => {
+            setSessionType(newType);
+            if (newType && !shortNote.trim()) {
+              setShortNote(generateNote(newType, subjects[0] ?? studentSubjects[0], topic));
+            }
+          }}
+          onFollowUpPageChange={setBriefFollowPage}
+        />
       )}
-
       {/* ══════════════════════════════════════════
           STEP 2: MATERI — Mapel & Topik
           ══════════════════════════════════════════ */}

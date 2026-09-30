@@ -12,9 +12,10 @@ const __dirname = path.dirname(__filename);
 const OUT_ROOT = path.resolve(__dirname, "screenshots", "audit");
 let OUT: string;
 
-test.beforeEach(async (_fixtures, testInfo) => {
-  void _fixtures;
-  OUT = path.join(OUT_ROOT, testInfo.project.name);
+// Tanpa fixture: `test.info()` dipakai supaya parameter pertama tidak perlu
+// pola destructuring kosong (Playwright menolak parameter biasa).
+test.beforeEach(() => {
+  OUT = path.join(OUT_ROOT, test.info().project.name);
   fs.mkdirSync(OUT, { recursive: true });
 });
 

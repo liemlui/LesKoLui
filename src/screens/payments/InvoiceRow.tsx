@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { MonthlyReport, Payment, Session, Settings, Student } from "../../db/types";
 import { reportDisplayStatus } from "../../db/types";
 import { formatRupiah, monthLabel, periodLabel } from "../../lib/format";
@@ -24,6 +25,15 @@ interface InvoiceRowProps {
   onOpenReport: () => void;
   onOpenInvoice: () => void;
   onCancelPackage: () => void;
+  /** TASK-10 L7 — aksi pembatalan/pemulihan/jatuh tempo (PIN-gated di induk). */
+  recovery?: {
+    /** Tagihan belum lunas yang boleh dibatalkan/dihapus lewat jalur ini. */
+    cancelLabel: string | null;
+    cancelBusy: boolean;
+    onCancel: () => void;
+    dueAtSaving: boolean;
+    onSaveDueAt: (dueAt: string) => void;
+  };
 }
 
 const REPORT_DISPLAY_STATUS_LABEL: Record<ReturnType<typeof reportDisplayStatus>, string> = {
@@ -37,8 +47,12 @@ const REPORT_DISPLAY_STATUS_CLASS: Record<ReturnType<typeof reportDisplayStatus>
 export default function InvoiceRow({
   invoice, report, student, sessions, settings, expanded, amount, cancelBusy,
   onOpen, onAmountChange, onAmountSave, onTogglePaid, onOpenReport, onOpenInvoice, onCancelPackage,
+  recovery,
 }: InvoiceRowProps) {
   const paid = invoice.status === "PAID";
+  const dueAt = invoiceDueAt(invoice) ?? "";
+  const [dueAtDraft, setDueAtDraft] = useState(dueAt);
+  useEffect(() => { setDueAtDraft(dueAt); }, [dueAt]);
   const periodLbl = invoice.periodStart && invoice.periodEnd ? periodLabel(invoice.periodStart, invoice.periodEnd) : "";
   const totalHours = sessions.reduce((sum, session) => sum + session.durationHours, 0);
   const origin = invoiceOriginOf(invoice, report);
@@ -88,6 +102,31 @@ export default function InvoiceRow({
           <p>Periode pertemuan: <strong>{periodLbl || "Tanpa sesi"}</strong></p><p>Bulan tagihan: <strong>{monthLabel(invoice.month)}</strong></p><p>Jatuh tempo: <strong>{invoiceDueAt(invoice) ?? "—"}</strong></p>
         </div>
         <div className="flex items-center gap-2"><label htmlFor={`amount-${invoice.id}`} className="text-xs text-gray-500">Rp</label><input id={`amount-${invoice.id}`} aria-label={`Nominal tagihan ${student?.name ?? "murid"}`} className="input flex-1 py-1.5 text-sm" inputMode="numeric" value={amount} disabled={paid} onChange={(event) => onAmountChange(event.target.value)} onBlur={onAmountSave} /></div>
+        {!paid && recovery && (
+          <div className="space-y-1.5 rounded-lg bg-white px-2.5 py-2">
+            <label htmlFor={`due-${invoice.id}`} className="block text-xs font-semibold text-gray-600">Jatuh tempo</label>
+            <div className="flex items-center gap-2">
+              <input
+                id={`due-${invoice.id}`}
+                type="date"
+                value={dueAtDraft}
+                onChange={(event) => setDueAtDraft(event.target.value)}
+                className="input flex-1 py-1.5 text-sm"
+              />
+              <button
+                type="button"
+                disabled={recovery.dueAtSaving || dueAtDraft.length !== 10 || dueAtDraft === dueAt}
+                onClick={() => recovery.onSaveDueAt(dueAtDraft)}
+                className="rounded-lg border border-indigo-200 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {recovery.dueAtSaving ? "Menyimpan..." : "Ubah jatuh tempo"}
+              </button>
+            </div>
+            <p className="text-xs leading-relaxed text-gray-500">
+              Hanya untuk tagihan belum dibayar. Mengubah jatuh tempo memengaruhi umur piutang dan nada pesan WA, bukan nominalnya.
+            </p>
+          </div>
+        )}
         <div className="flex flex-wrap gap-2">
           {phone && !paid && <a href={`https://wa.me/${phone}?text=${encodeURIComponent(waText)}`} target="_blank" rel="noopener noreferrer" className="min-w-[120px] flex-1 rounded-lg bg-green-500 py-2 text-center text-xs font-semibold text-white transition-colors hover:bg-green-600">Kirim tagihan via WA</a>}
           <button onClick={onTogglePaid} className={`min-w-[120px] flex-1 rounded-lg py-2 text-xs transition-colors ${paid ? "border border-gray-200 text-gray-600 font-medium hover:bg-gray-50" : "bg-blue-600 text-white font-semibold hover:bg-blue-700"}`}>{paid ? "Batalkan pelunasan" : "Tandai sudah dibayar"}</button>
@@ -96,6 +135,16 @@ export default function InvoiceRow({
           {student && <button onClick={onOpenReport} className="min-w-[88px] flex-1 rounded-lg border border-blue-200 py-1.5 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50">{report ? "Buka laporan" : "Lengkapi laporan"}</button>}
           {student && <button onClick={onOpenInvoice} className="min-w-[88px] flex-1 rounded-lg border border-gray-200 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50">Unduh invoice PDF</button>}
           {report?.billingMode === "session_count" && !paid && invoice.source !== "manual" && <button type="button" disabled={cancelBusy} onClick={onCancelPackage} className="min-w-[128px] flex-1 rounded-lg border border-red-200 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:cursor-wait disabled:opacity-50">{cancelBusy ? "Membatalkan..." : report.finalBillingBatch ? "Batalkan tagihan penutup" : "Batalkan tagihan paket"}</button>}
+          {recovery?.cancelLabel && (
+            <button
+              type="button"
+              disabled={recovery.cancelBusy}
+              onClick={recovery.onCancel}
+              className="min-w-[128px] flex-1 rounded-lg border border-red-200 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:cursor-wait disabled:opacity-50"
+            >
+              {recovery.cancelBusy ? "Memproses..." : recovery.cancelLabel}
+            </button>
+          )}
         </div>
       </div>}
     </li>

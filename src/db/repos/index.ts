@@ -16,6 +16,7 @@ export type { AiNarrativeUpdate } from "./aiRepo";
 
 // Students + Rapor Grades
 export { listStudents, getStudent, createStudent, updateStudent, deleteStudent } from "./studentRepo";
+export { listUnbilledBillableSessions, countUnbilledBillableSessions } from "./studentRepo";
 export { listRaporGrades, upsertRaporGrade, deleteRaporGrade } from "./studentRepo";
 export type { StudentBillingUpdateOptions } from "./studentRepo";
 
@@ -47,6 +48,7 @@ export {
   getReport, getReportById, upsertReport, createReportForPeriod, listReportsByStudent, listAllReports,
   findReportByPeriod, listOverlappingReports, listConfirmedReportsByStudent,
   confirmReport, discardReport, reportPeriodOf,
+  frozenReportTotals, reportTotalsDrifted,
 } from "./reportRepo";
 export type { ReportWrite } from "./reportRepo";
 
@@ -58,6 +60,9 @@ export {
   markPaymentTransferredById, markPaymentUnpaidById, updatePaymentAmountById,
   listSessionCountBillingProgress, createSessionCountInvoice,
   cancelSessionCountInvoice, getCashSummary,
+  cancelReportInvoice, deleteManualPayment, updatePaymentDueAt,
+  listInvoiceCancellations, restoreCancelledInvoice,
+  encodeInvoiceCancelSnapshot, decodeInvoiceCancelSnapshot,
   createExpense, updateExpense, listExpenses, deleteExpense,
   getMonthlyIncomeVsExpense,
 } from "./paymentRepo";
@@ -67,6 +72,9 @@ export type {
   SessionCountBillingProgress,
   SessionCountInvoiceResult,
   CreateSessionCountInvoiceOptions,
+  InvoiceCancellation,
+  InvoiceRestoreResult,
+  InvoiceRestoreStatus,
 } from "./paymentRepo";
 export type { ExpenseCategory } from "./paymentRepo";
 

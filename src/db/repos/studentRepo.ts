@@ -3,7 +3,7 @@
 import { db } from "../db";
 import type { Student, Session } from "../types";
 import { billingPolicyOf } from "../types";
-import { isBillableSession } from "./sessionRepo";
+import { isBillableSession, sessionCost } from "./sessionRepo";
 import { logAudit } from "./auditRepo";
 import { packageCoveredSessionIds } from "./helpers";
 
@@ -28,9 +28,15 @@ export async function createStudent(input: Omit<Student, "id">): Promise<string>
 export interface StudentBillingUpdateOptions {
   includeExistingUnbilledInPackage?: boolean;
   deferSessionCountPolicyChange?: boolean;
+  /**
+   * D1(c) — tarif historis dibekukan secara default. Set `true` HANYA setelah
+   * tutor menyetujui secara eksplisit bahwa sesi yang belum ditagih ikut memakai
+   * tarif baru. Tanpa flag ini, edit tarif tidak pernah menyentuh sesi lama.
+   */
+  repriceUnbilledSessions?: boolean;
 }
 
-async function listUnbilledBillableSessions(studentId: string): Promise<Session[]> {
+export async function listUnbilledBillableSessions(studentId: string): Promise<Session[]> {
   const [sessions, reports, payments] = await Promise.all([
     db.sessions.where({ studentId }).toArray(),
     db.reports.where({ studentId }).toArray(),
@@ -40,8 +46,50 @@ async function listUnbilledBillableSessions(studentId: string): Promise<Session[
   return sessions.filter((session) => isBillableSession(session) && !coveredIds.has(session.id));
 }
 
-async function countUnbilledBillableSessions(studentId: string): Promise<number> {
+export async function countUnbilledBillableSessions(studentId: string): Promise<number> {
   return (await listUnbilledBillableSessions(studentId)).length;
+}
+
+interface RepriceOutcome {
+  count: number;
+  sessionIds: string[];
+  rateFromHistogram: Record<string, number>;
+}
+
+/**
+ * D1(c) — satu-satunya jalur yang boleh menulis `rateSnapshot`/`cost`/`updatedAt`
+ * sesi lama. Selalu dipanggil di dalam transaksi dan hanya setelah persetujuan
+ * eksplisit tutor (centang retroaktif atau peralihan siklus ke paket).
+ *
+ * Aturan yang dipegang:
+ * - sesi ber-`costOverride` dilewati: harga yang sudah disepakati manual tidak
+ *   boleh ditebak ulang (sifat W8 lama menghapusnya tanpa pesan);
+ * - sesi yang tarifnya sudah sama TIDAK ditulis sama sekali, sehingga `updatedAt`
+ *   tidak melompat hanya karena profil murid disimpan;
+ * - sesi yang sudah tercakup paket/invoice tidak pernah muncul di daftar ini.
+ *
+ * Audit ditulis oleh pemanggil sebagai SATU entri per batch berisi histogram
+ * tarif lama, karena sesi terdampak bisa berangkat dari tarif yang berbeda-beda.
+ */
+async function repriceUnbilledSessions(
+  studentId: string,
+  rate: number,
+  perSession: boolean,
+): Promise<RepriceOutcome> {
+  const unbilled = await listUnbilledBillableSessions(studentId);
+  const now = timestamp();
+  const sessionIds: string[] = [];
+  const rateFromHistogram: Record<string, number> = {};
+  for (const session of unbilled) {
+    if (session.costOverride != null) continue;
+    const nextCost = sessionCost(rate, session.durationHours, perSession);
+    if (session.rateSnapshot === rate && session.cost === nextCost) continue;
+    const previousRate = String(session.rateSnapshot);
+    rateFromHistogram[previousRate] = (rateFromHistogram[previousRate] ?? 0) + 1;
+    sessionIds.push(session.id);
+    await db.sessions.update(session.id, { rateSnapshot: rate, cost: nextCost, updatedAt: now });
+  }
+  return { count: sessionIds.length, sessionIds, rateFromHistogram };
 }
 
 export async function updateStudent(
@@ -49,7 +97,7 @@ export async function updateStudent(
   patch: Partial<Student>,
   options: StudentBillingUpdateOptions = {},
 ): Promise<void> {
-  await db.transaction("rw", db.students, db.sessions, db.reports, db.payments, async () => {
+  await db.transaction("rw", db.students, db.sessions, db.reports, db.payments, db.auditLog, async () => {
     const existing = await db.students.get(id);
     if (!existing) return;
     const fromPolicy = billingPolicyOf(existing);
@@ -73,19 +121,32 @@ export async function updateStudent(
         throw new Error("Ada sesi lama yang belum ditagih; konfirmasi agar sesi tersebut masuk antrean paket");
       }
     }
-    // Per-meeting (session_count) billing: re-price any existing unbilled
-    // sessions to a flat per-meeting rate. Runs on policy switch and whenever a
-    // session_count student is re-saved, so existing sessions can be corrected
-    // in place (idempotent — cost always lands on the current per-meeting rate).
-    if (toPolicy === "session_count") {
-      const unbilled = await listUnbilledBillableSessions(id);
-      const newRate = patch.hourlyRate ?? existing.hourlyRate;
-      const now = timestamp();
-      for (const session of unbilled) {
-        await db.sessions.update(session.id, {
-          rateSnapshot: newRate,
-          cost: Math.round(newRate),
-          updatedAt: now,
+    // ── D1(c): tarif historis dibekukan ───────────────────────────────────
+    // Dua jalur eksplisit yang boleh menulis ulang tarif sesi lama:
+    //   (i) peralihan siklus ke paket dengan centang `includeExistingUnbilledInPackage`;
+    //   (ii) konfirmasi perubahan tarif (`repriceUnbilledSessions`).
+    // Di luar itu, menyimpan profil murid TIDAK menyentuh `rateSnapshot`, `cost`,
+    // maupun `updatedAt` sesi mana pun (gejala W8 lama).
+    const approvedReprice = options.repriceUnbilledSessions === true
+      || (options.includeExistingUnbilledInPackage === true && fromPolicy !== toPolicy);
+    if (approvedReprice) {
+      const rateTo = patch.hourlyRate ?? existing.hourlyRate;
+      const outcome = await repriceUnbilledSessions(id, rateTo, toPolicy === "session_count");
+      if (outcome.count > 0) {
+        // Audit di dalam transaksi: repricing tanpa jejak tidak boleh terjadi.
+        await db.auditLog.add({
+          id: crypto.randomUUID(),
+          action: "session.reprice",
+          entityType: "student",
+          entityId: id,
+          timestamp: timestamp(),
+          details: JSON.stringify({
+            rateTo,
+            perSession: toPolicy === "session_count",
+            count: outcome.count,
+            sessionIds: outcome.sessionIds,
+            rateFromHistogram: outcome.rateFromHistogram,
+          }),
         });
       }
     }

@@ -11,6 +11,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.77.0",
+    date: "2026-09-30",
+    title: "Tarif terkunci, tagihan bisa dipulihkan, total final dibekukan",
+    items: [
+      "Tarif sesi lama kini dibekukan: menyimpan profil murid atau membuka rekap tidak lagi mengubah tarif sesi yang sudah tercatat. Tarif baru berlaku untuk sesi berikutnya, kecuali tutor mencentang retroaktif secara eksplisit — dan setiap tindakan retroaktif tercatat di Riwayat Aktivitas.",
+      "Pembatalan tagihan kini berjejak: tagihan paket, invoice laporan, dan tagihan manual yang belum lunas menyimpan salinan sebelum dihapus, sehingga bisa dipulihkan dari Keuangan dengan ID dan nilai yang sama. Salinan itu hanya ada di perangkat ini dan tidak ikut Backup ke File.",
+      "Total laporan yang sudah final tidak lagi berubah diam-diam saat sesi dihitung ulang; bila ada selisih, laporan memberi tahu angkanya beserta jalur perbaikannya.",
+      "Jatuh tempo tagihan yang belum dibayar bisa diubah, dan semua aksi pembatalan, pemulihan, serta perubahan jatuh tempo wajib PIN Keuangan.",
+    ],
+  },
+  {
     version: "v1.76.0",
     date: "2026-09-15",
     title: "Ketahanan AI dan refactor layar besar",

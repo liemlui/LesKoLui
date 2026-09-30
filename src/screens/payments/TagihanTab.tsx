@@ -6,7 +6,7 @@ import {
   listAllBillableSessions,
 } from "../../db/repos";
 import type { Payment, Student, Settings, Session, MonthlyReport } from "../../db/types";
-import { formatRupiah, todayWIB, periodLabel } from "../../lib/format";
+import { formatRupiah, todayWIB, periodLabel, monthLabel } from "../../lib/format";
 import Modal from "../../components/Modal";
 import { MAX_PAYMENT_AMOUNT, isValidCurrencyAmount, parseCurrencyDigits } from "../../lib/money";
 import { invoiceAgeDays, ageBucket, AGE_BUCKET_LABEL, type AgeBucket } from "../../lib/finance";
@@ -14,11 +14,14 @@ import { db } from "../../db/db";
 import ActivityRing from "../../components/dashboard/ActivityRing";
 import { ProgressBar } from "../../components/charts";
 import ConfirmSheet from "../../components/ConfirmSheet";
+import PinConfirmModal from "../../components/PinConfirmModal";
 import InvoiceModal from "./InvoiceModal";
 import { ITEMS_PER_PDF_PAGE } from "../../lib/invoicePresentation";
 import { useSessionCountBilling } from "./useSessionCountBilling";
 import type { ConfirmState } from "./useSessionCountBilling";
 import { useInvoiceFilters } from "./useInvoiceFilters";
+import { useInvoiceRecovery, invoiceKindLabel, RECOVERY_LIMITS_HINT } from "./useInvoiceRecovery";
+
 import { useInvoiceExports } from "./useInvoiceExports";
 import InvoiceRow from "./InvoiceRow";
 import ManualInvoiceForm from "./ManualInvoiceForm";
@@ -32,6 +35,28 @@ interface TagihanTabProps {
   setMessage: (message: string) => void;
   navigate: (path: string) => void;
   requestedStudentId: string;
+}
+
+/**
+ * Label tombol batal/hapus per baris tagihan (TASK-10 L7).
+ *
+ * - Invoice dari laporan final (bukan paket) → "Batalkan tagihan".
+ * - Tagihan manual tanpa laporan → "Hapus tagihan manual".
+ * - Paket punya tombol pembatalannya sendiri di antrean paket.
+ * - `PAID`, nominal yang sudah diedit manual, dan laporan legacy tanpa status
+ *   final eksplisit sengaja tidak punya tombol (guard-nya di repo).
+ *
+ * Label tidak boleh memuat frasa "Batalkan tagihan paket" agar locator E2E
+ * untuk paket tetap unik.
+ */
+function cancelLabelFor(payment: Payment, report?: MonthlyReport): string | null {
+  if (payment.status !== "UNPAID") return null;
+  if (payment.reportId) {
+    if (!report || report.billingMode === "session_count") return null;
+    if (report.status !== "confirmed" || payment.source !== "auto") return null;
+    return "Batalkan tagihan";
+  }
+  return payment.source === "manual" ? "Hapus tagihan manual" : null;
 }
 
 export default function TagihanTab({
@@ -67,9 +92,14 @@ export default function TagihanTab({
   const allBillableSessions = useLiveQuery(() => listAllBillableSessions(), []);
 
   // ── Hooks (logika diekstraksi) ──
+  // Pembatalan/pemulihan/jatuh tempo: konfirmasi → PIN → aksi (TASK-10 L7).
+  const recovery = useInvoiceRecovery({
+    setMessage, setConfirmState, pinAvailable: Boolean(settings.financialPin),
+  });
   // Tagihan paket (per pertemuan) — antrean, terbitkan, batalkan.
   const sessionCount = useSessionCountBilling({
     requestedStudentId, students, setMessage, setConfirmState,
+    requirePin: recovery.requestPin,
   });
   // Filter + derived rows daftar tagihan (memoized).
   const invoice = useInvoiceFilters({
@@ -630,6 +660,15 @@ export default function TagihanTab({
                 onCancelPackage={() => void handleCancelSessionCountInvoice(
                   payment, student?.name ?? "murid", report?.billingPolicyTransitionTarget ?? report?.billingPolicyAfterBatch, Boolean(report?.finalBillingBatch),
                 )}
+                recovery={{
+                  cancelLabel: cancelLabelFor(payment, report),
+                  cancelBusy: Boolean(recovery.busyKeys[`cancel-${payment.id}`]),
+                  onCancel: () => (payment.reportId
+                    ? recovery.askCancelReportInvoice(payment, student?.name ?? "murid")
+                    : recovery.askDeleteManualPayment(payment, student?.name ?? "murid")),
+                  dueAtSaving: Boolean(recovery.busyKeys[`due-${payment.id}`]),
+                  onSaveDueAt: (dueAt) => recovery.askUpdateDueAt(payment, student?.name ?? "murid", dueAt),
+                }}
               />
             ))}
           </ul>
@@ -637,6 +676,46 @@ export default function TagihanTab({
       </div>
       )}
 
+
+
+      {/* ── Tagihan dibatalkan (R1) — pemulihan lokal per perangkat ── */}
+      {(recovery.cancellations ?? []).length > 0 && (
+        <section aria-labelledby="cancelled-invoices-title" className="space-y-3 rounded-xl border border-amber-200 bg-amber-50/40 p-4 shadow-sm">
+          <div>
+            <h2 id="cancelled-invoices-title" className="text-sm font-bold text-amber-900">Tagihan dibatalkan — bisa dipulihkan</h2>
+            <p className="mt-0.5 text-xs leading-relaxed text-amber-800">
+              {RECOVERY_LIMITS_HINT} Pemulihan ditolak bila sesi, laporan, atau siklus murid sudah berubah.
+            </p>
+          </div>
+          <div className="space-y-2">
+            {(recovery.cancellations ?? []).map((cancellation) => {
+              const studentName = studentMap.get(cancellation.studentId)?.name ?? "Murid dihapus";
+              const busy = Boolean(recovery.busyKeys[`restore-${cancellation.snapshotId}`]);
+              return (
+                <article key={cancellation.snapshotId} className="rounded-xl border border-amber-100 bg-white p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-gray-800">{studentName}</p>
+                      <p className="mt-0.5 text-xs text-gray-500">
+                        {invoiceKindLabel(cancellation.kind)} · {monthLabel(cancellation.month)} · {cancellation.sessionCount} sesi
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-sm font-bold text-gray-800">{formatRupiah(cancellation.totalCost)}</span>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => recovery.askRestoreCancellation(cancellation, studentName)}
+                    className="mt-3 w-full rounded-lg border border-amber-300 py-2 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-50 disabled:cursor-wait disabled:opacity-50"
+                  >
+                    {busy ? "Memulihkan..." : "Pulihkan tagihan"}
+                  </button>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
 
       <ManualInvoiceForm
@@ -789,6 +868,18 @@ export default function TagihanTab({
         onCancel={() => setConfirmState(null)}
         onConfirm={() => confirmState?.onConfirm()}
       />
+
+      {/* D4: PIN Keuangan wajib untuk batal, pulihkan, dan ubah jatuh tempo. */}
+      {recovery.pinAction && settings.financialPin && (
+        <PinConfirmModal
+          storedPin={settings.financialPin}
+          title={recovery.pinAction.title}
+          description={recovery.pinAction.description}
+          confirmLabel={recovery.pinAction.confirmLabel}
+          onCancel={recovery.cancelPinAction}
+          onConfirm={recovery.pinAction.onConfirm}
+        />
+      )}
     </div>
   );
 }

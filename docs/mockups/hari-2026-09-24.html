@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — DayView + zoom &amp; mode tangkapan layar · Les Ko Lui</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  .tl-outer { overflow: hidden; background: var(--surface); }
+  .hour .lbl { font-size: 11.5px; }
+  /* Garis tengah hari supaya pagi/siang/sore terbaca */
+  .noon { position: absolute; left: 0; right: 0; border-top: 1px dashed #cbd5e1; }
+  .noon::after { content: "siang"; position: absolute; right: 8px; top: -8px; font-size: 9.5px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: .5px; background: var(--surface); padding: 0 4px; }
+</style>
+</head>
+<body>
+
+<div class="stage-head">
+  <h1>Mockup <em>Jadwal Hari</em> — zoom + mode tangkapan layar</h1>
+  <p>Menjawab permintaanmu: <b>zoom in / zoom out</b> supaya jadwal pagi-sampai-malam bisa terlihat sekaligus dan <b>ditangkap sebagai gambar</b>.</p>
+  <p>Sekarang: <code>PX_PER_HR = 64</code> tetap, rentang 07:00–22:00 (15 jam) = <b>960px</b> — tidak muat di layar HP. Lima layar: <b>rapat</b> · <b>normal</b> · <b>lega</b> · <b>mode tangkapan</b> · <b>alternatif tanpa FAB</b>.</p>
+  <div class="nav-links">
+    <a href="home-2026-09-24.html">Home (revisi 3)</a>
+    <a href="uang-2026-09-24.html">Uang</a>
+    <a class="on" href="hari-2026-09-24.html">DayView + zoom</a>
+  </div>
+</div>
+
+<div class="stage">
+
+  <!-- ═══════════ ① RAPAT — sehari penuh dalam satu layar ═══════════ -->
+  <div class="wrap">
+    <div class="phone"><div class="screen">
+      <div class="statusbar"><span>9.41</span><span class="icons">▮▮▮ ᯤ ▰</span></div>
+
+      <div class="head" style="padding-bottom:8px">
+        <div class="head-row">
+          <h2 style="font-size:22px">Jadwal Hari</h2>
+          <span class="date">Rabu, 24 Sep</span>
+        </div>
+      </div>
+
+      <div class="daybar">
+        <div class="title">Rabu, 24 Sep 2026 <span>06.00 – 24.00 · 7 sesi · 9,5 jam</span></div>
+        <div class="zoomctl">
+          <button class="on">AA</button><button>A</button><button>a</button>
+        </div>
+        <button class="iconbtn" title="Muat sehari penuh">⇱</button>
+        <button class="iconbtn" title="Mode tangkapan">📸</button>
+      </div>
+
+      <div class="tl-outer">
+        <div class="timeline" style="height:486px">
+          <div class="hour" style="height:27px"><span class="lbl">06</span></div>
+          <div class="hour" style="height:27px"><span class="lbl">07</span></div>
+          <div class="hour" style="height:27px"><span class="lbl">08</span></div>
+          <div class="hour" style="height:27px"><span class="lbl">09</span></div>
+          <div class="hour" style="height:27px"><span class="lbl">10</span></div>
+          <div class="hour" style="height:27px"><span class="lbl">11</span></div>
+          <div class="hour" style="height:27px"><span class="lbl">12</span></div>
+          <div class="hour" style="height:27px"><span class="lbl">13</span></div>
+          <div class="hour" style="height:27px"><span class="lbl">14</span></div>
+          <div class="hour" style="height:27px"><span class="lbl">15</span></div>
+          <div class="hour" style="height:27px"><span class="lbl">16</span></div>
+          <div class="hour" style="height:27px"><span class="lbl">17</span></div>
+          <div class="hour" style="height:27px"><span class="lbl">18</span></div>
+          <div class="hour" style="height:27px"><span class="lbl">19</span></div>
+          <div class="hour" style="height:27px"><span class="lbl">20</span></div>
+          <div class="hour" style="height:27px"><span class="lbl">21</span></div>
+          <div class="hour" style="height:27px"><span class="lbl">22</span></div>
+          <div class="hour" style="height:27px"><span class="lbl">23</span></div>
+
+          <div class="noon" style="top:162px"></div>
+
+          <!-- 27px per jam, mulai 06:00 -->
+          <div class="ev" style="top:58px;height:26px;left:52px;right:58%;background:#fef3c7;border-left:3px solid #f59e0b"><span class="nm">Budi</span></div>
+          <div class="ev" style="top:85px;height:40px;left:52px;right:20%;background:#dbeafe;border-left:3px solid #3b82f6"><span class="nm">Sari</span></div>
+          <div class="ev" style="top:139px;height:26px;left:52px;right:54%;background:#ede9fe;border-left:3px solid #8b5cf6"><span class="nm">Dewi</span></div>
+          <div class="ev" style="top:274px;height:26px;left:52px;right:58%;background:#d1fae5;border-left:3px solid #10b981"><span class="nm">Rina</span></div>
+          <div class="ev" style="top:328px;height:40px;left:52px;right:24%;background:#fef3c7;border-left:3px solid #f59e0b"><span class="nm">Budi</span></div>
+          <div class="ev" style="top:382px;height:26px;left:52px;right:56%;background:#dbeafe;border-left:3px solid #3b82f6"><span class="nm">Agus</span></div>
+          <div class="ev" style="top:409px;height:26px;left:52px;right:28%;background:#ede9fe;border-left:3px solid #8b5cf6"><span class="nm">Sari</span></div>
+        </div>
+      </div>
+
+      <div class="nav">
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><path d="M9 21v-9h6v9"/></svg>
+          Hari Ini
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7"/></svg>
+          Murid
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h13A2.5 2.5 0 0 1 21 7.5v9A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-9Z"/><path d="M3 10h18"/><path d="M16 15.5h.01"/></svg>
+          Uang
+        </div>
+      </div>
+    </div></div>
+    <div class="caption">① Zoom <b>rapat</b> (27 px/jam) — 18 jam muat dalam 486 px</div>
+    <div class="caption">Pagi → malam terlihat sekaligus; nama murid tetap terbaca</div>
+  </div>
+
+  <!-- ═══════════ ② NORMAL ═══════════ -->
+  <div class="wrap">
+    <div class="phone"><div class="screen scroll">
+      <div class="statusbar"><span>9.41</span><span class="icons">▮▮▮ ᯤ ▰</span></div>
+
+      <div class="head" style="padding-bottom:8px">
+        <div class="head-row">
+          <h2 style="font-size:22px">Jadwal Hari</h2>
+          <span class="date">Rabu, 24 Sep</span>
+        </div>
+      </div>
+
+      <div class="daybar">
+        <div class="title">Rabu, 24 Sep 2026 <span>06.00 – 24.00 · 7 sesi · 9,5 jam</span></div>
+        <div class="zoomctl">
+          <button>AA</button><button class="on">A</button><button>a</button>
+        </div>
+        <button class="iconbtn" title="Muat sehari penuh">⇱</button>
+        <button class="iconbtn" title="Mode tangkapan">📸</button>
+      </div>
+
+      <div class="tl-outer">
+        <div class="timeline" style="height:486px">
+          <div class="hour" style="height:54px"><span class="lbl">06</span></div>
+          <div class="hour" style="height:54px"><span class="lbl">07</span></div>
+          <div class="hour" style="height:54px"><span class="lbl">08</span></div>
+          <div class="hour" style="height:54px"><span class="lbl">09</span></div>
+          <div class="hour" style="height:54px"><span class="lbl">10</span></div>
+          <div class="hour" style="height:54px"><span class="lbl">11</span></div>
+          <div class="hour" style="height:54px"><span class="lbl">12</span></div>
+          <div class="hour" style="height:54px"><span class="lbl">13</span></div>
+          <div class="hour" style="height:54px"><span class="lbl">14</span></div>
+
+          <div class="noon" style="top:324px"></div>
+
+          <!-- 54px per jam, mulai 06:00 -->
+          <div class="ev" style="top:116px;height:52px;left:52px;right:58%;background:#fef3c7;border-left:3px solid #f59e0b;padding:5px 8px">
+            <span class="nm">Budi</span><span class="mt">08.10 – 09.10 · Mat</span>
+          </div>
+          <div class="ev" style="top:170px;height:79px;left:52px;right:20%;background:#dbeafe;border-left:3px solid #3b82f6;padding:5px 8px">
+            <span class="nm">Sari</span><span class="mt">09.10 – 10.40 · Fis</span>
+          </div>
+          <div class="ev" style="top:278px;height:52px;left:52px;right:54%;background:#ede9fe;border-left:3px solid #8b5cf6;padding:5px 8px">
+            <span class="nm">Dewi</span><span class="mt">11.10 – 12.10</span>
+          </div>
+          <div class="ev" style="top:440px;height:52px;left:52px;right:58%;background:#d1fae5;border-left:3px solid #10b981;padding:5px 8px">
+            <span class="nm">Rina</span><span class="mt">14.10 – 15.10</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:12px 16px 6px;font-size:11.5px;color:var(--text-soft);text-align:center;line-height:1.5">
+        ↕ geser untuk jam berikutnya — atau tekan <b>⇱</b> agar semuanya muat
+      </div>
+
+      <div class="nav">
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><path d="M9 21v-9h6v9"/></svg>
+          Hari Ini
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7"/></svg>
+          Murid
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h13A2.5 2.5 0 0 1 21 7.5v9A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-9Z"/><path d="M3 10h18"/><path d="M16 15.5h.01"/></svg>
+          Uang
+        </div>
+      </div>
+    </div></div>
+    <div class="caption">② Zoom <b>normal</b> (54 px/jam) — detail jam terbaca, perlu di-scroll</div>
+    <div class="caption">Tiga tingkat ini menggantikan satu nilai tetap <code>PX_PER_HR = 64</code></div>
+  </div>
+
+  <!-- ═══════════ ③ LEGA ═══════════ -->
+  <div class="wrap">
+    <div class="phone"><div class="screen scroll">
+      <div class="statusbar"><span>9.41</span><span class="icons">▮▮▮ ᯤ ▰</span></div>
+
+      <div class="head" style="padding-bottom:8px">
+        <div class="head-row">
+          <h2 style="font-size:22px">Jadwal Hari</h2>
+          <span class="date">Rabu, 24 Sep</span>
+        </div>
+      </div>
+
+      <div class="daybar">
+        <div class="title">Rabu, 24 Sep 2026 <span>06.00 – 24.00 · 7 sesi · 9,5 jam</span></div>
+        <div class="zoomctl">
+          <button>AA</button><button>A</button><button class="on">a</button>
+        </div>
+        <button class="iconbtn" title="Muat sehari penuh">⇱</button>
+        <button class="iconbtn" title="Mode tangkapan">📸</button>
+      </div>
+
+      <div class="tl-outer">
+        <div class="timeline" style="height:486px">
+          <div class="hour" style="height:97px"><span class="lbl">06</span></div>
+          <div class="hour" style="height:97px"><span class="lbl">07</span></div>
+          <div class="hour" style="height:97px"><span class="lbl">08</span></div>
+          <div class="hour" style="height:97px"><span class="lbl">09</span></div>
+          <div class="hour" style="height:98px"><span class="lbl">10</span></div>
+
+          <div class="noon" style="top:340px"></div>
+
+          <!-- 97px per jam, mulai 06:00 -->
+          <div class="ev" style="top:210px;height:95px;left:52px;right:48%;background:#fef3c7;border-left:4px solid #f59e0b;padding:8px 10px">
+            <span class="nm" style="font-size:14px">Budi</span>
+            <span class="mt" style="display:block;margin-top:3px">08.10 – 09.10<br>Matematika · Trigonometri<br><b>✓ tercatat</b></span>
+          </div>
+          <div class="ev" style="top:307px;height:143px;left:52px;right:16%;background:#dbeafe;border-left:4px solid #3b82f6;padding:8px 10px">
+            <span class="nm" style="font-size:14px">Sari</span>
+            <span class="mt" style="display:block;margin-top:3px">09.10 – 10.40<br>Fisika · Gelombang<br>1,5 jam</span>
+          </div>
+          <div class="now-line" style="top:412px"></div>
+        </div>
+      </div>
+
+      <div class="nav">
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><path d="M9 21v-9h6v9"/></svg>
+          Hari Ini
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7"/></svg>
+          Murid
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h13A2.5 2.5 0 0 1 21 7.5v9A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-9Z"/><path d="M3 10h18"/><path d="M16 15.5h.01"/></svg>
+          Uang
+        </div>
+      </div>
+    </div></div>
+    <div class="caption">③ Zoom <b>lega</b> (97 px/jam) — untuk melihat detail satu blok</div>
+    <div class="caption">Isi blok menampilkan mapel + status, bukan hanya nama</div>
+  </div>
+
+  <!-- ═══════════ ④ MODE TANGKAPAN LAYAR (penuh, tidak terpotong) ═══════════ -->
+  <div class="wrap">
+    <div class="phone"><div class="screen scroll">
+      <div class="statusbar"><span>9.41</span><span class="icons">▮▮▮ ᯤ ▰</span></div>
+
+      <div class="caphead">
+        <div class="d">Jadwal — Rabu, 24 Sep 2026</div>
+        <div class="s">7 sesi · 9,5 jam · 06.00–24.00 · Les Ko Lui</div>
+      </div>
+
+      <div class="timeline" style="height:486px;padding:0">
+        <div class="hour" style="height:27px"><span class="lbl" style="color:#64748b">06</span></div>
+        <div class="hour" style="height:27px"><span class="lbl" style="color:#64748b">07</span></div>
+        <div class="hour" style="height:27px"><span class="lbl" style="color:#64748b">08</span></div>
+        <div class="hour" style="height:27px"><span class="lbl" style="color:#64748b">09</span></div>
+        <div class="hour" style="height:27px"><span class="lbl" style="color:#64748b">10</span></div>
+        <div class="hour" style="height:27px"><span class="lbl" style="color:#64748b">11</span></div>
+        <div class="hour" style="height:27px"><span class="lbl" style="color:#64748b">12</span></div>
+        <div class="hour" style="height:27px"><span class="lbl" style="color:#64748b">13</span></div>
+        <div class="hour" style="height:27px"><span class="lbl" style="color:#64748b">14</span></div>
+        <div class="hour" style="height:27px"><span class="lbl" style="color:#64748b">15</span></div>
+        <div class="hour" style="height:27px"><span class="lbl" style="color:#64748b">16</span></div>
+        <div class="hour" style="height:27px"><span class="lbl" style="color:#64748b">17</span></div>
+        <div class="hour" style="height:27px"><span class="lbl" style="color:#64748b">18</span></div>
+        <div class="hour" style="height:27px"><span class="lbl" style="color:#64748b">19</span></div>
+        <div class="hour" style="height:27px"><span class="lbl" style="color:#64748b">20</span></div>
+        <div class="hour" style="height:27px"><span class="lbl" style="color:#64748b">21</span></div>
+        <div class="hour" style="height:27px"><span class="lbl" style="color:#64748b">22</span></div>
+        <div class="hour" style="height:27px"><span class="lbl" style="color:#64748b">23</span></div>
+
+        <div class="noon" style="top:162px"></div>
+
+        <div class="ev" style="top:58px;height:26px;left:54px;right:52%;background:#fef3c7;border-left:3px solid #f59e0b;padding:2px 8px"><span class="nm">Budi</span> <span class="mt">Mat</span></div>
+        <div class="ev" style="top:85px;height:40px;left:54px;right:16%;background:#dbeafe;border-left:3px solid #3b82f6;padding:2px 8px"><span class="nm">Sari</span> <span class="mt">Fis</span></div>
+        <div class="ev" style="top:139px;height:26px;left:54px;right:50%;background:#ede9fe;border-left:3px solid #8b5cf6;padding:2px 8px"><span class="nm">Dewi</span> <span class="mt">B.Ing</span></div>
+        <div class="ev" style="top:274px;height:26px;left:54px;right:52%;background:#d1fae5;border-left:3px solid #10b981;padding:2px 8px"><span class="nm">Rina</span> <span class="mt">Kim</span></div>
+        <div class="ev" style="top:328px;height:40px;left:54px;right:20%;background:#fef3c7;border-left:3px solid #f59e0b;padding:2px 8px"><span class="nm">Budi</span> <span class="mt">Mat</span></div>
+        <div class="ev" style="top:382px;height:26px;left:54px;right:50%;background:#dbeafe;border-left:3px solid #3b82f6;padding:2px 8px"><span class="nm">Agus</span> <span class="mt">Fis</span></div>
+        <div class="ev" style="top:409px;height:26px;left:54px;right:24%;background:#ede9fe;border-left:3px solid #8b5cf6;padding:2px 8px"><span class="nm">Sari</span> <span class="mt">Fis</span></div>
+
+        <div class="now-line" style="top:202px"></div>
+      </div>
+
+      <div class="capfoot">
+        <span>Dibuat 24 Sep 2026, 09.41 WIB</span>
+        <span>Les Ko Lui</span>
+      </div>
+
+      <div style="padding:14px 16px 12px;display:flex;flex-direction:column;gap:8px">
+        <button class="btn btn-primary btn-block">Salin sebagai gambar</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" style="flex:1">Simpan PNG</button>
+          <button class="btn btn-ghost" style="flex:1">Tangkap seminggu</button>
+        </div>
+        <button class="btn btn-quiet">Keluar dari mode tangkapan</button>
+      </div>
+
+      <div class="nav">
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><path d="M9 21v-9h6v9"/></svg>
+          Hari Ini
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7"/></svg>
+          Murid
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h13A2.5 2.5 0 0 1 21 7.5v9A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-9Z"/><path d="M3 10h18"/><path d="M16 15.5h.01"/></svg>
+          Uang
+        </div>
+      </div>
+    </div></div>
+    <div class="caption">④ Mode tangkapan — <b>18 jam penuh</b>, tombol editor hilang, ada kepala &amp; kaki</div>
+    <div class="caption">Bisa <b>satu hari</b> atau <b>seminggu sekaligus</b>, langsung jadi gambar siap kirim</div>
+  </div>
+
+  <!-- ═══════════ ⑤ ALTERNATIF: TANPA FAB ═══════════ -->
+  <div class="wrap">
+    <div class="phone"><div class="screen">
+      <div class="statusbar"><span>9.41</span><span class="icons">▮▮▮ ᯤ ▰</span></div>
+
+      <div class="head">
+        <div class="head-row">
+          <h2>Hari Ini</h2>
+          <span class="date">Rabu, 24 Sep</span>
+        </div>
+        <p class="sub"><b>2 sesi</b> tersisa · 1 sudah dicatat</p>
+      </div>
+
+      <div class="body">
+
+        <div class="sect">Perlu keputusan <span class="count">Maks 3</span></div>
+        <div class="card brief">
+          <div class="b-top">
+            <div class="b-ico ico-amber">⚠</div>
+            <div class="b-main">
+              <div class="b-title">Sesi Rina kemarin belum dicatat</div>
+              <div class="b-why">Jadwal <b>23 Sep 19.00</b> sudah lewat 1 hari. Tentukan: lesnya terjadi, atau tidak.</div>
+            </div>
+          </div>
+          <div class="b-acts">
+            <button class="btn btn-primary btn-sm">Catat</button>
+            <button class="btn btn-red btn-sm">Batal les</button>
+            <button class="btn btn-amber btn-sm">Tidak hadir</button>
+            <button class="btn btn-quiet btn-sm more">⋯</button>
+          </div>
+        </div>
+
+        <div class="sect">Jadwal hari ini <span class="count">2 tersisa</span></div>
+        <div class="card sched">
+          <div class="slot past">
+            <div class="slot-time"><div class="t">08:00</div><div class="d">1j</div></div>
+            <div class="slot-main"><div class="slot-name"><span class="dot" style="background:#f59e0b"></span>Budi</div><div class="slot-meta">Matematika · Trigonometri</div></div>
+            <span class="tick">✓ Tercatat</span>
+          </div>
+          <div class="slot">
+            <div class="slot-time"><div class="t">15:30</div><div class="d">1,5j</div></div>
+            <div class="slot-main"><div class="slot-name"><span class="dot" style="background:#3b82f6"></span>Sari</div><div class="slot-meta">Fisika · Gelombang</div></div>
+            <button class="btn btn-primary btn-sm">Catat</button>
+          </div>
+          <div class="slot">
+            <div class="slot-time"><div class="t">19:00</div><div class="d">1j</div></div>
+            <div class="slot-main"><div class="slot-name"><span class="dot" style="background:#10b981"></span>Rina</div><div class="slot-meta">Kimia · Stoikiometri</div></div>
+            <button class="btn btn-primary btn-sm">Catat</button>
+          </div>
+        </div>
+
+        <div class="sect">Jadwal</div>
+        <div class="seg">
+          <button>Hari</button><button>Minggu</button><button class="on">Bulan</button>
+        </div>
+        <div class="card cal">
+          <div class="cal-head">
+            <div class="m">September 2026</div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <button class="today-chip">Hari ini</button>
+              <div class="nav-btns"><button>‹</button><button>›</button></div>
+            </div>
+          </div>
+          <div class="dow"><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span><span>Min</span></div>
+          <div class="grid">
+            <div class="cell dim"><span class="n">31</span></div>
+            <div class="cell"><span class="n">1</span></div>
+            <div class="cell has"><span class="n">2</span><div class="bars"><i style="background:#f59e0b"></i><i style="background:#3b82f6"></i></div></div>
+            <div class="cell"><span class="n">3</span></div>
+            <div class="cell has"><span class="n">4</span><div class="bars"><i style="background:#10b981"></i></div></div>
+            <div class="cell dim"><span class="n">5</span></div>
+            <div class="cell dim"><span class="n">6</span></div>
+            <div class="cell"><span class="n">7</span></div>
+            <div class="cell has"><span class="n">8</span><div class="bars"><i style="background:#f59e0b"></i><i style="background:#8b5cf6"></i></div></div>
+            <div class="cell has"><span class="n">9</span><div class="bars"><i style="background:#3b82f6"></i></div></div>
+            <div class="cell"><span class="n">10</span></div>
+            <div class="cell has"><span class="n">11</span><div class="bars"><i style="background:#10b981"></i><i style="background:#f59e0b"></i></div></div>
+            <div class="cell dim"><span class="n">12</span></div>
+            <div class="cell dim"><span class="n">13</span></div>
+            <div class="cell"><span class="n">14</span></div>
+            <div class="cell has"><span class="n">15</span><div class="bars"><i style="background:#3b82f6"></i></div></div>
+            <div class="cell has"><span class="n">16</span><div class="bars"><i style="background:#8b5cf6"></i></div></div>
+            <div class="cell"><span class="n">17</span></div>
+            <div class="cell has"><span class="n">18</span><div class="bars"><i style="background:#f59e0b"></i><i style="background:#10b981"></i></div></div>
+            <div class="cell dim"><span class="n">19</span></div>
+            <div class="cell dim"><span class="n">20</span></div>
+            <div class="cell"><span class="n">21</span></div>
+            <div class="cell has"><span class="n">22</span><div class="bars"><i style="background:#3b82f6"></i><i style="background:#8b5cf6"></i></div></div>
+            <div class="cell has" style="outline:1.5px dashed #fca5a5;outline-offset:-1.5px"><span class="n">23</span><div class="bars"><i style="background:#ef4444"></i></div></div>
+            <div class="cell today has"><span class="n">24</span><div class="bars"><i style="background:#fff"></i><i style="background:#fff"></i></div></div>
+            <div class="cell"><span class="n">25</span></div>
+            <div class="cell dim"><span class="n">26</span></div>
+            <div class="cell dim"><span class="n">27</span></div>
+            <div class="cell has"><span class="n">28</span><div class="bars"><i style="background:#f59e0b"></i></div></div>
+            <div class="cell has"><span class="n">29</span><div class="bars"><i style="background:#3b82f6"></i></div></div>
+            <div class="cell"><span class="n">30</span></div>
+            <div class="cell dim"><span class="n">1</span></div>
+            <div class="cell dim"><span class="n">2</span></div>
+            <div class="cell dim"><span class="n">3</span></div>
+            <div class="cell dim"><span class="n">4</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="nav" style="height:72px;justify-content:space-between;gap:8px">
+        <div class="nav-item active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><path d="M9 21v-9h6v9"/></svg>
+          Hari Ini
+        </div>
+        <button class="btn btn-primary" style="flex:1;min-height:46px;font-size:14px">+ Catat sesi</button>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7"/></svg>
+          Murid
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h13A2.5 2.5 0 0 1 21 7.5v9A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-9Z"/><path d="M3 10h18"/><path d="M16 15.5h.01"/></svg>
+          Uang
+        </div>
+      </div>
+    </div></div>
+    <div class="caption">⑤ Alternatif <b>tanpa FAB</b> — aksi utama jadi tombol di dalam nav</div>
+    <div class="caption">Tidak lagi menutupi konten, dan selalu di tempat yang sama</div>
+  </div>
+
+</div>
+
+</body>
+</html>

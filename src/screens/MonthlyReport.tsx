@@ -8,6 +8,7 @@ import {
   getReportById, findReportByPeriod, listReportsByStudent, listConfirmedReportsByStudent,
   upsertReport, createReportForPeriod, discardReport, updateSession, saveSettings,
   getPaymentByReport, syncReportPayment, listPaymentsByStudent,
+  reportTotalsDrifted, frozenReportTotals,
 } from "../db/repos";
 import { billingPolicyOf, reportStatus, reportDisplayStatus, type ReportStatus } from "../db/types";
 import {
@@ -644,13 +645,17 @@ export default function MonthlyReportPage() {
       () => findReportByPeriod(studentId, periodStart, periodEnd),
     );
     if (current) {
+      // D6: laporan yang sudah final membekukan total & cakupan sesinya.
+      const totals = frozenReportTotals(current, {
+        sessionIds: reportSessions.map((s) => s.id),
+        totalHours, totalCost,
+      });
       const refreshed = {
         ...current,
         ...reportBillingFields,
         month: monthOf(periodEnd),
         periodStart, periodEnd,
-        sessionIds: reportSessions.map((s) => s.id),
-        totalHours, totalCost,
+        ...totals,
       };
       await upsertReport(refreshed);
       // Perubahan laporan tidak boleh membuat invoice baru. Jika invoice sudah
@@ -864,8 +869,11 @@ export default function MonthlyReportPage() {
           ...r,
           ...reportBillingFields,
           month: monthOf(periodEnd), periodStart, periodEnd,
-          sessionIds: reportSessions.map((s) => s.id),
-          totalHours, totalCost,
+          // D6: laporan final tidak dihitung ulang; layout boleh diganti.
+          ...frozenReportTotals(r, {
+            sessionIds: reportSessions.map((s) => s.id),
+            totalHours, totalCost,
+          }),
           templateKey: { themeId: r.templateKey.themeId, layoutId: newLayoutId },
         };
         await upsertReport(updated);
@@ -877,8 +885,10 @@ export default function MonthlyReportPage() {
           ...r,
           ...reportBillingFields,
           month: monthOf(periodEnd), periodStart, periodEnd,
-          sessionIds: reportSessions.map((s) => s.id),
-          totalHours, totalCost,
+          ...frozenReportTotals(r, {
+            sessionIds: reportSessions.map((s) => s.id),
+            totalHours, totalCost,
+          }),
         };
         await upsertReport(updated);
         const existingPayment = isConfirmed ? await getPaymentByReport(r.id) : undefined;
@@ -940,13 +950,18 @@ export default function MonthlyReportPage() {
     reportMutationBusyRef.current = true;
     setReportMutationBusy(true);
     try {
+      // D6: pembekuan berlaku tepat pada saat difinalkan. Laporan yang SUDAH
+      // final tidak boleh berubah totalnya hanya karena dibuka ulang.
+      const totals = frozenReportTotals(report, {
+        sessionIds: reportSessions.map((s) => s.id),
+        totalHours, totalCost,
+      });
       const refreshed = {
         ...report,
         ...reportBillingFields,
         status: "confirmed" as ReportStatus,
         month: monthOf(periodEnd), periodStart, periodEnd,
-        sessionIds: reportSessions.map((s) => s.id),
-        totalHours, totalCost,
+        ...totals,
       };
       await upsertReport(refreshed);
       lockReportSnapshot(refreshed);
@@ -1379,6 +1394,18 @@ const [shareWithInvoiceBusy, setShareWithInvoiceBusy] = useState(false);
                             ? `Periode belajar dikunci dan laporan sudah dibagikan ${report.pdfGeneratedAt ? `pada ${dayLabel(report.pdfGeneratedAt.slice(0, 10))}` : ""}.`
                             : "Periode belajar sudah dikunci sebagai laporan final. Setelah dibagikan ke orang tua, tandai agar statusnya jelas."}
                         </p>
+                        {/* D6 — angka final dibekukan supaya nominal yang sudah
+                            dikirim tidak berubah diam-diam saat sesi dihitung ulang. */}
+                        {reportTotalsDrifted(report, {
+                          sessionIds: reportSessions.map((s) => s.id),
+                          totalHours, totalCost,
+                        }) && (
+                          <p className="mt-2 rounded-lg bg-white/70 px-2.5 py-1.5 text-xs font-medium leading-relaxed">
+                            Total laporan final ini dibekukan di {formatRupiah(report.totalCost)}. Perubahan sesi
+                            setelah final tidak mengubah nominal yang sudah dikirim. Untuk memperbaiki, batalkan
+                            tagihannya dulu di Keuangan (lewat tagihan yang belum lunas) atau terbitkan laporan susulan.
+                          </p>
+                        )}
                         {reportDisplayStatus(report) !== "shared" && (
                           <button
                             onClick={handleMarkReportShared}

@@ -25,15 +25,25 @@ export type ConfirmState = {
 export type MessageSetter = (message: string) => void;
 export type ConfirmSetter = (state: ConfirmState | null) => void;
 
+/** Permintaan PIN (D4) — bentuknya sama dengan `PinConfirmModal`. */
+export type PinRequest = (action: {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  onConfirm: () => void;
+}) => void;
+
 interface UseSessionCountBillingArgs {
   requestedStudentId: string;
   students: Student[] | undefined;
   setMessage: MessageSetter;
   setConfirmState: ConfirmSetter;
+  /** D4: pembatalan apa pun wajib lewat PIN Keuangan. */
+  requirePin?: PinRequest;
 }
 
 export function useSessionCountBilling({
-  requestedStudentId, students, setMessage, setConfirmState,
+  requestedStudentId, students, setMessage, setConfirmState, requirePin,
 }: UseSessionCountBillingArgs) {
   const sessionCountBillingProgress = useLiveQuery(() => listSessionCountBillingProgress(), []);
 
@@ -159,7 +169,18 @@ export function useSessionCountBilling({
       danger: true,
       onConfirm: () => {
         setConfirmState(null);
-        void doCancelSessionCountInvoice(payment, studentName, effectiveRestoredPolicy ?? "monthly", finalBatch);
+        const run = () => { void doCancelSessionCountInvoice(payment, studentName, effectiveRestoredPolicy ?? "monthly", finalBatch); };
+        // D4: pembatalan paket juga wajib PIN Keuangan.
+        if (requirePin) {
+          requirePin({
+            title: `Batalkan ${invoiceKind}?`,
+            description: "Masukkan PIN Keuangan untuk membatalkan tagihan ini.",
+            confirmLabel: "Batalkan",
+            onConfirm: run,
+          });
+          return;
+        }
+        run();
       },
     });
   };
