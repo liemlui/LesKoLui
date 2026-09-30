@@ -160,6 +160,11 @@ Empat syarat install (semuanya sudah dipenuhi konfigurasi di atas, **tapi hanya 
    `Service-Worker-Allowed: /` dan `no-cache`).
 4. **WebAPK minting** oleh Chrome memakai **Google Play Services**; kalau Play Services tidak ada/terlalu tua,
    Chrome hanya menawarkan pintasan biasa ("Tambahkan ke layar utama"), bukan aplikasi standalone.
+   Konsekuensi yang terukur di lapangan (Huawei/EMUI 16 tanpa GMS): ikon memang muncul di layar utama, tetapi
+   event `appinstalled` **tidak pernah** menyala dan `display-mode` tetap `browser` — jadi "sudah terpasang"
+   tidak bisa disimpulkan dari event itu. Karena itu penolakan pengguna **disimpan di perangkat** lewat
+   `src/lib/pwaInstall.ts` ("Nanti" = 90 hari, setelah tombol "Pasang" dijalankan = 365 hari), dan banner di
+   `PwaPrompts.tsx` hanya dirender bila `beforeinstallprompt` ada, mode bukan standalone, dan belum di-snooze.
 
 Batas versi browser (ini yang menjelaskan kenapa HP lama gagal install):
 
@@ -169,6 +174,7 @@ Batas versi browser (ini yang menjelaskan kenapa HP lama gagal install):
 | Android 6 (Marshmallow) | Chrome for Android berhenti di **Chrome 106** (Okt 2022) — masih di bawah target 111, jadi belum didukung. |
 | Android 7 (Nougat) | Masih bisa: Chrome for Android berhenti di **Chrome 119** (Android 7 dihentikan di Chrome 120), dan 119 ≥ 111. |
 | Android 8+ / Chrome 111+ | Jalur yang disarankan. |
+| **HarmonyOS NEXT (5/6)** | **Tidak bisa dipasang sebagai aplikasi.** Sistem ini tidak lagi berbasis Android: APK (termasuk dari APKPure) tidak berjalan dan PWA install tidak tersedia ([catatan Progressier](https://intercom.help/progressier/en/articles/10036387-is-pwa-installation-available-on-devices-that-run-harmonyos)). Browser bawaannya bisa menaruh ikon di layar utama, tetapi `display: standalone` belum dihormati sehingga address bar browser tetap terlihat ([laporan pengguna HarmonyOS NEXT 6](https://bbs.itying.com/topic/6983bd4fa45f61004d4cf6d0)). Yang tersisa: pakai PWA-nya lewat browser (ikon = pintasan) atau bangun aplikasi native HarmonyOS/atomic service. |
 
 Deploy produksi ada di Vercel (`vercel.json`: SPA rewrite, `sw.js` no-cache + `Service-Worker-Allowed: /`,
 HSTS, dan CSP dengan `worker-src 'self'`), jadi URL Vercel adalah cara yang benar untuk install di HP.

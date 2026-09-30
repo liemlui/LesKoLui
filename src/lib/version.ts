@@ -11,6 +11,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.79.3",
+    date: "2026-10-01",
+    title: "Banner “Pasang di layar utama” tidak lagi muncul terus",
+    items: [
+      "Di HP tanpa Google Play Services (mis. Huawei/EMUI), Chrome tidak bisa mengubah situs menjadi aplikasi terpasang (WebAPK) — yang dibuat hanya pintasan — dan event `appinstalled` tidak pernah menyala. Karena penolakan “Nanti” dan hasil tombol “Pasang” sebelumnya hanya hidup di state React, banner kembali muncul setiap aplikasi dibuka walau ikonnya sudah ada di layar utama.",
+      "Penolakan kini disimpan di perangkat: “Nanti” menahan banner 90 hari, dan setelah tombol “Pasang” dijalankan (diterima maupun dibatalkan) banner tidak ditawarkan lagi 365 hari — jadi tawaran berulang berhenti di perangkat yang memang tidak bisa memasang WebAPK.",
+      "Banner juga tidak muncul saat aplikasi sudah berjalan sebagai aplikasi terpasang (`display-mode: standalone`/`fullscreen`/`window-controls-overlay`, atau `navigator.standalone` di iOS) dan ikut menyesuaikan diri saat aplikasi dipindah ke jendela aplikasi.",
+    ],
+  },
+  {
     version: "v1.79.2",
     date: "2026-10-01",
     title: "Filter kategori layout dihapus — tinggal Pilih tema & Layout",
