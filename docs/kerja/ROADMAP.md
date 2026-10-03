@@ -32,9 +32,9 @@
 | G2-01 | token + 7 primitif + Q25 | T3 | — | index.css, components/ui/* | L | ✅ v1.86.0 |
 | G2-02 | sapu kelas warna → token semantik | T2 | G2-01 | src/**/*.tsx, src/index.css | L | ✅ v1.87.0 |
 | G2-03 | kunci light-only permanen | T1 | G2-01 | index.css (komentar), playwright.config | S | ✅ v1.87.0 |
-| G2-04 | satu pintu uang (TASK-08) | T2 | G2-01 | useMoneyVisible, MaskedMoney, 5 layar | L | ✅ v1.88.0 |
+| G2-04 | satu pintu uang (TASK-08) | T2 | G2-01 | useMoneyVisible, MaskedMoney, 5 layar | L | ✅ v1.88.0 — cakupan §6 dipersempit: `src/screens/payments/**` dikecualikan (Q44/A17); residual **109 baris** didaftarkan di `ATURAN-AI` §5 |
 | G2-05 | verifikasi input Android (manual) | T1 | G2-01, owner | tidak ada | S | ⛔ manual (butuh HP Android) |
-| G2-06 | tap target ≥44px | T2 | G2-01 | 9 berkas layar | M | ✅ v1.88.0 |
+| G2-06 | tap target ≥44px | T2 | G2-01 | 9 berkas layar | M | ✅ v1.88.0 — DoD ditegaskan: **44 px = kontrol utama**, chip/sekunder **24–36 px diterima** (Q45/A18); residual **52 kontrol** (proksi statis) tercatat di `ATURAN-AI` §5 |
 | G2-07 | DayView kerapatan 27/54/97 | T1 | G2-01 | home/DayView.tsx | M | ✅ v1.88.0 |
 | G2-08 | Beranda non-uang | T2 | G2-04 | home/*.tsx | M | ✅ v1.88.0 |
 | G2-09 | emoji→SVG | T2 | G2-01 | icons.tsx + layar pemakai | M | ✅ v1.88.0 — kebijakan [TASK-11](TASK-11-emoji-ke-svg.md): emoji hanya untuk kosakata afektif ber-penanda; guard menuntut 0 di luar itu (**belum dijalankan**) |

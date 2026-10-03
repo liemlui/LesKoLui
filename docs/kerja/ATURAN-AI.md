@@ -103,10 +103,12 @@ Alasan: selector E2E hanya boleh patah sekali.
   **fitur inti tidak boleh bergantung pada AI**.
 - **K3 Uang tertutup** — satu hook `useMoneyVisible()` · bentuk terkunci `Rp ••••••` + 🔒 ·
   gerbang di semua layar (6 titik di §5) · sekali buka berlaku selama app terbuka (B2) ·
-  **Home tanpa uang sama sekali**.
+  **Home tanpa uang sama sekali** · **cakupan perintah §6 = `src/screens` DI LUAR `src/screens/payments/**`** —
+  modul keuangan hanya bisa dirender setelah gerbang penuh `Payments.tsx` lolos (Q44/A17).
 - **K4 Token & rasa** — tipografi **4 langkah** (24/18/15/13) · konten terbaca **≥13px** ·
-  elevasi **2 tingkat** · target sentuh **≥44px** · **2 pola gerak** (200ms/250ms) ·
-  panel HP = **sheet dari bawah**.
+  elevasi **2 tingkat** · target sentuh **≥44px untuk kontrol utama** (aksi primer, nav, ikon aksi) —
+  chip & kontrol sekunder **24–36 px diterima** (ambang keras WCAG 2.5.8 = 24 px) (Q45/A18) ·
+  **2 pola gerak** (200ms/250ms) · panel HP = **sheet dari bawah**.
 
 ---
 
@@ -149,6 +151,7 @@ Alasan: selector E2E hanya boleh patah sekali.
 | Fakta | Nilai | Lokasi |
 |---|---:|---|
 | Kelas warna di luar berkas §2.1 | **0** (G2-02, v1.87.0) — target ≤190 dicabut, target resmi = **0**; baseline terukur 2026-10-03 = **2976**. Angka kontrak lama **471** berasal dari perintah **tidak rekursif** yang hanya menjangkau 38 berkas. Sisa kelas warna hidup **hanya** di tiga berkas §2.1: `engagement.ts:135-148` · `invoicePresentation.ts:37-40,82` · `finance.ts:108-110` — keputusan Q42/Q43 di `docs/README.md` §4.2 #26 | `Get-ChildItem -Recurse src -Include *.tsx -File` + `Select-String` |
+| Residual K3 di `payments/**` | **109 baris** memakai `formatRupiah`/`totalCost`/`rateSnapshot` tanpa penanda di `src/screens/payments/**` — **dikecualikan dari §6** (Q44/A17). Rincian: `RingkasanTab` 29 · `TagihanTab` 29 · `RekapTab` 24 · `PengeluaranTab` 6 · `ManualInvoiceForm` 6 · `InvoiceModal` 4 · `FinancePipelineBoard` 4 · `InvoiceRow` 3 · `InvoicePdfPages` 2 · `Payments` 2. Terukur 2026-10-04; masking modul = opsi lanjutan, belum dijadwalkan | perintah §6 (versi 2026-10-04) |
 | Dark mode | **mati — permanen, light-only (Q4 2026-10-01)** | `src/index.css` (cari `Dark mode DEAKTIVASI`) |
 | Langkah wizard | **6** | `captureSession/constants.ts` → `STEP_META` |
 | Kerapatan timeline | `PX_PER_HR = 64` tetap | `home/DayView.tsx:18` |
@@ -186,9 +189,22 @@ Penghitung khusus (angka wajib dilaporkan sebelum → sesudah langkah):
 # TASK-07 — jalur AI harus satu (REKURSIF — pola lama "src\**\*.tsx" tidak menjangkau subfolder)
 Get-ChildItem -Recurse src -Include *.tsx -File | Select-String -Pattern "AiCostConfirmModal|AiCostModal"
 
-# TASK-08 — kebocoran uang harus 0 (REKURSIF di dalam src\screens saja)
-Get-ChildItem -Recurse src\screens -Include *.tsx -File | Select-String -Pattern "formatRupiah|totalCost|rateSnapshot" |
+# TASK-08 — kebocoran uang harus 0 (REKURSIF di src\screens, DI LUAR src\screens\payments)
+# `src\screens\payments\**` DIKECUALIKAN — keputusan pemilik 2026-10-04 (Q44/A17): modul itu hanya
+# bisa dirender setelah gerbang penuh `Payments.tsx` lolos (K3.4 lapisan kedua). Residual yang
+# diterima: 109 baris (daftar berkas + angka ada di §5). Masking modul keuangan = opsi lanjutan,
+# belum dijadwalkan.
+Get-ChildItem -Recurse src\screens -Include *.tsx -File |
+  Where-Object { $_.FullName -notmatch "\\payments\\" } |
+  Select-String -Pattern "formatRupiah|totalCost|rateSnapshot" |
   Where-Object { $_.Line -notmatch "useMoneyVisible|money-safe|formatRupiahDisplay" }
+# harapan: 17 baris — semuanya BUKAN tampilan uang (terukur 2026-10-04):
+#   MonthlyReport 12 → `totalCost` sebagai variabel/prop
+#   StudentDetail 3  → import `formatRupiah` (1) · `rateSnapshot` di logika setter (1) ·
+#                      1 baris yang SUDAH memakai <MaskedMoney/> (false positive perintah)
+#   Payments 2       → `report.totalCost` di predikat & agregasi, bukan tampilan
+# Catatan: `src/screens/Payments.tsx` TIDAK ikut dikecualikan — yang dikecualikan hanya folder
+# `src/screens/payments/**`.
 ```
 
 **Kegagalan yang BUKAN regresi** (jangan "diperbaiki"):
@@ -313,3 +329,5 @@ Jangan menyalin isi berkas, jangan menjelaskan dokumen, jangan merangkum tugas.
 | 2026-10-01 | **Amandemen Q1–Q9**: B4 default kosong · pipeline dipertahankan (di dalam blok "Perlu ditagih") · light-only permanen · simpan dari langkah 5 (6 langkah tetap) · peta tab Murid Ringkas/Sesi/Progres/Proyek · fokus Android (tanpa aturan 16px) · refactor terbatas sebelum wave fitur · penghitung kelas warna dibuat rekursif (baseline 904) | v1.79.3 |
 | 2026-10-03 | **A15** — Smart Gating: gate tes **3 tier** menurut *blast radius* tugas (diputuskan `G2-00`/Q27) · rujuk §6.2 | — |
 | 2026-10-03 | **A16** — Line Endings: semua berkas teks **WAJIB LF**, dikunci `.gitattributes` · rujuk §6.3 | — |
+| 2026-10-04 | **A17 (Q44)** — cakupan K3 §6 dipersempit: `src/screens/payments/**` **dikecualikan** karena hanya bisa dirender setelah gerbang penuh `Payments.tsx` lolos; residual 109 baris diterima & didaftarkan di §5 | — |
+| 2026-10-04 | **A18 (Q45)** — definisi tap target K4 ditegaskan: **≥44 px hanya untuk kontrol utama** (aksi primer, nav, ikon aksi); chip & kontrol sekunder **24–36 px diterima** (WCAG 2.5.8 ambang keras 24 px). Residual 52 kontrol (proksi statis `g2-06-scan.cjs`) ditutup sebagai pengecualian tertulis | — |
