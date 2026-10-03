@@ -23,7 +23,7 @@ import Modal from "../components/Modal";
 import PaginationControls from "../components/PaginationControls";
 import Badge from "../components/Badge";
 import { clampPage, paginateItems } from "../lib/pagination";
-import { PencilIcon } from "../components/icons";
+import { BellIcon, PencilIcon, ReceiptIcon, UserIcon } from "../components/icons";
 
 type Tab = "aktif" | "historis";
 
@@ -301,10 +301,10 @@ export default function Students() {
               {(pendingFollowUps > 0 || unpaidInvoices > 0) && (
                 <div className="flex flex-wrap gap-1 mt-2">
                   {pendingFollowUps > 0 && (
-                    <Badge tone="amber" size="sm">🔔 {pendingFollowUps} follow-up</Badge>
+                    <Badge tone="amber" size="sm"><BellIcon size={11} className="inline align-[-2px] mr-1" />{pendingFollowUps} follow-up</Badge>
                   )}
                   {unpaidInvoices > 0 && (
-                    <Badge tone="red" size="sm">💳 {unpaidInvoices} tagihan belum dibayar</Badge>
+                    <Badge tone="red" size="sm"><ReceiptIcon size={11} className="inline align-[-2px] mr-1" />{unpaidInvoices} tagihan belum dibayar</Badge>
                   )}
                 </div>
               )}
@@ -322,7 +322,7 @@ export default function Students() {
                   <span className="text-xs text-[var(--ink-muted)]">{monthsSince} bulan bersama</span>
                 )}
                 {s.parentContact?.name && (
-                  <span className="text-xs text-[var(--ink-muted)] truncate">👤 {s.parentContact.name}</span>
+                  <span className="text-xs text-[var(--ink-muted)] truncate"><UserIcon size={12} className="inline align-[-2px] mr-1" />{s.parentContact.name}</span>
                 )}
               </div>
             </div>
@@ -412,7 +412,7 @@ export default function Students() {
       {/* Needs-attention summary */}
       {needsAttentionCount > 0 && (
         <div className="flex items-center gap-2 bg-[var(--bg-warn)] border border-[var(--border-warn)] rounded-xl px-3 py-2">
-          <span>🔔</span>
+          <BellIcon size={14} className="text-[var(--ink-warn)]" />
           <p className="text-xs font-semibold text-[var(--ink-warn)]">
             {needsAttentionCount} murid butuh perhatian (follow-up atau tagihan)
           </p>

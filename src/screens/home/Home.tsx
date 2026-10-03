@@ -25,6 +25,7 @@ import ResolveMissedSessionModal from "./ResolveMissedSessionModal";
 import OperationalSnapshot from "./OperationalSnapshot";
 import type { SessionActions } from "./SessionPill";
 import { feedbackTypeForResult, todayHeroLoadState } from "../captureSession/helpers";
+import { SettingsIcon } from "../../components/icons";
 
 export default function Home() {
   const today = todayWIB();
@@ -167,7 +168,7 @@ export default function Home() {
               Pengeluaran; Beranda hanya jadwal & murid. */}
           <Link to="/settings" aria-label="Pengaturan"
             className="text-[var(--ink-muted)] hover:text-[var(--ink-strong)] hover:bg-[var(--bg-subtle)] rounded-xl w-[44px] h-[44px] flex items-center justify-center text-lg transition-colors">
-            ⚙️
+            <SettingsIcon size={20} />
           </Link>
         </div>
       </div>

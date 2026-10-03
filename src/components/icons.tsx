@@ -446,3 +446,48 @@ export function UploadIcon(props: IconProps) {
     </IconBase>
   );
 }
+
+/* ── TASK-11 lanjutan: emoji STRUKTURAL di dalam kontrol/heading ───────────────
+   Guard `e2e:uiux` menuntut 0 emoji di kontrol & heading di luar kosakata afektif.
+   Tiga ikon berikut menggantikan emoji yang lolos dari pemeriksa statis karena
+   masuk lewat **nilai prop** atau `<span>` di dalam `<a>`: 👥 (Murid aktif) ·
+   🔔 (follow-up) · ⚙️ (tautan Pengaturan). */
+
+/** Lonceng — pengingat/follow-up (menggantikan emoji 🔔). */
+export function BellIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 3.5a5.5 5.5 0 0 0-5.5 5.5v3.1L4.8 15.4a.8.8 0 0 0 .7 1.1h13a.8.8 0 0 0 .7-1.1l-1.7-3.3V9A5.5 5.5 0 0 0 12 3.5Z" />
+      <path d="M10 19a2 2 0 0 0 4 0" />
+    </IconBase>
+  );
+}
+
+/** Dua orang — jumlah murid (menggantikan emoji 👥). */
+export function UsersIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M15.5 19.5v-1.4a3.6 3.6 0 0 0-3.6-3.6h-4.3A3.6 3.6 0 0 0 4 18.1v1.4" />
+      <circle cx="9.8" cy="8" r="3.3" />
+      <path d="M20 19.5v-1.4a3.6 3.6 0 0 0-2.7-3.5" />
+      <path d="M15.4 5a3.3 3.3 0 0 1 0 6" />
+    </IconBase>
+  );
+}
+
+/** Pengaturan/penyesuaian — menggantikan emoji ⚙️ pada tautan Pengaturan. */
+export function SettingsIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M4 7h8" />
+      <path d="M17 7h3" />
+      <circle cx="14.5" cy="7" r="2.5" />
+      <path d="M4 12h3" />
+      <path d="M12 12h8" />
+      <circle cx="9.5" cy="12" r="2.5" />
+      <path d="M4 17h8" />
+      <path d="M17 17h3" />
+      <circle cx="14.5" cy="17" r="2.5" />
+    </IconBase>
+  );
+}

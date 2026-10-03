@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 type Tone = "blue" | "green" | "amber" | "red" | "slate";
 
 const TONE: Record<Tone, string> = {
@@ -28,7 +30,7 @@ interface Props {
   label: string;
   value: string | number;
   description: string;
-  icon?: string;
+  icon?: ReactNode;
   tone?: Tone;
   /** Optional CTA text shown at the bottom with a trailing chevron. */
   action?: string;

@@ -1,5 +1,6 @@
 import { LineChart } from "../../components/charts";
 import MetricCard from "../../components/dashboard/MetricCard";
+import { UsersIcon } from "../../components/icons";
 
 interface Props {
   activeStudents: number;
@@ -76,7 +77,7 @@ export default function OperationalSnapshot({
             label="Murid aktif"
             value={activeStudents}
             description="Kelola jadwal & follow-up."
-            icon="👥"
+            icon={<UsersIcon size={14} />}
             tone="blue"
             action="Lihat murid"
             onClick={onActiveStudentsClick}

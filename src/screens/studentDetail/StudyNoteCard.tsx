@@ -3,6 +3,7 @@ import type { StudyNote } from "../../db/types";
 import { SimpleMarkdown } from "../../components/SimpleMarkdown";
 import Card from "../../components/ui/Card";
 import SectionHeader from "../../components/ui/SectionHeader";
+import { PencilIcon } from "../../components/icons";
 
 interface Props {
   studentId: string;
@@ -39,7 +40,7 @@ export default function StudyNoteCard({ studentId, studyNote, onSave }: Props) {
 
   return (
     <Card className="space-y-2">
-      <SectionHeader title="📝 Catatan Belajar" />
+      <SectionHeader title="Catatan Belajar" icon={<PencilIcon size={13} />} />
       <p className="text-xs text-[var(--ink-muted)]">
         Topik sekolah, PR dari sekolah, progres belajar, rencana sesi berikutnya.
       </p>
