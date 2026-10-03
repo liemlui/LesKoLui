@@ -1,3 +1,5 @@
+import { BookIcon, ClipboardIcon, LightbulbIcon, RefreshIcon, StarIcon, WrenchIcon } from "../components/icons";
+
 export type SessionType =
   | "regular"
   | "exam_prep"
@@ -6,13 +8,19 @@ export type SessionType =
   | "trial"
   | "catch_up";
 
-export const SESSION_TYPE_OPTIONS: { value: SessionType; label: string; icon: string; desc: string }[] = [
-  { value: "regular",    label: "Sesi Reguler",      icon: "📚", desc: "Bahas materi & latihan soal" },
-  { value: "exam_prep",  label: "Persiapan Ujian",   icon: "📋", desc: "Latihan soal past paper & review" },
-  { value: "project",    label: "Proyek / IA",       icon: "🛠️", desc: "Kerja proyek, IA, atau EE" },
-  { value: "brainstorm", label: "Brainstorm",        icon: "💡", desc: "Diskusi ide, analisis topik" },
-  { value: "catch_up",   label: "Remedial",          icon: "🔄", desc: "Ulang materi yang belum dipahami" },
-  { value: "trial",      label: "Sesi Percobaan",    icon: "🌟", desc: "Pertemuan pertama / percobaan" },
+/**
+ * TASK-11 (opsi A): tipe sesi adalah kontrol **struktural** (pemilih), jadi ikonnya
+ * SVG — bukan emoji. Ini satu-satunya kelompok data yang dikonversi; kosakata
+ * keadaan afektif (mood, situasi, indikator perilaku, tag respons, level sesi)
+ * sengaja tetap emoji dan ditandai `data-emoji-vocab="affect"` di titik rendernya.
+ */
+export const SESSION_TYPE_OPTIONS: { value: SessionType; label: string; Icon: typeof BookIcon; desc: string }[] = [
+  { value: "regular",    label: "Sesi Reguler",    Icon: BookIcon,      desc: "Bahas materi & latihan soal" },
+  { value: "exam_prep",  label: "Persiapan Ujian", Icon: ClipboardIcon, desc: "Latihan soal past paper & review" },
+  { value: "project",    label: "Proyek / IA",     Icon: WrenchIcon,    desc: "Kerja proyek, IA, atau EE" },
+  { value: "brainstorm", label: "Brainstorm",      Icon: LightbulbIcon, desc: "Diskusi ide, analisis topik" },
+  { value: "catch_up",   label: "Remedial",        Icon: RefreshIcon,   desc: "Ulang materi yang belum dipahami" },
+  { value: "trial",      label: "Sesi Percobaan",  Icon: StarIcon,      desc: "Pertemuan pertama / percobaan" },
 ];
 
 export interface EngagementNarrativeInput {

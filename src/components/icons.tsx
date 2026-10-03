@@ -391,6 +391,44 @@ export function BanIcon(props: IconProps) {
   );
 }
 
+/* ── TASK-11 (opsi A): ikon untuk kontrol STRUKTURAL yang tadinya emoji ─────── */
+
+export function WrenchIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M14.5 6.5a3.5 3.5 0 0 1 4.6-3.3l-2.6 2.6 1.8 1.8 2.6-2.6a3.5 3.5 0 0 1-4.5 4.5L7 19a2 2 0 1 1-2.8-2.8l9.4-9.4a3.5 3.5 0 0 1 .9-.3Z" />
+    </IconBase>
+  );
+}
+
+export function LightbulbIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M9.5 18h5" />
+      <path d="M10 21h4" />
+      <path d="M12 3.5a6 6 0 0 1 3.7 10.7c-.6.5-.9 1-1 1.6v.2h-5.4v-.2c-.1-.6-.4-1.1-1-1.6A6 6 0 0 1 12 3.5Z" />
+    </IconBase>
+  );
+}
+
+export function StarIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="m12 3.5 2.6 5.4 5.9.8-4.3 4.1 1.1 5.8-5.3-2.9-5.3 2.9 1.1-5.8L3.5 9.7l5.9-.8L12 3.5Z" />
+    </IconBase>
+  );
+}
+
+/** Balon percakapan — dipakai tombol kirim WhatsApp (menggantikan emoji 💬). */
+export function ChatIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M20 12.5c0 4-3.6 7-8 7a9 9 0 0 1-2.6-.4L5 21l1.2-3.3A6.6 6.6 0 0 1 4 12.5c0-4 3.6-7 8-7s8 3 8 7Z" />
+      <path d="M9 12.5h.01M12 12.5h.01M15 12.5h.01" />
+    </IconBase>
+  );
+}
+
 export function FolderIcon(props: IconProps) {
   return (
     <IconBase {...props}>

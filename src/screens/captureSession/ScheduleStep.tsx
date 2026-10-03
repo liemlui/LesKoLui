@@ -87,7 +87,7 @@ export default function ScheduleStep({
           {SESSION_TYPE_OPTIONS.map((option) => <button key={option.value} type="button"
             onClick={() => onSessionTypeChange(sessionType === option.value ? undefined : option.value)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${sessionType === option.value ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]" : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)] hover:border-[var(--brand-tint-strong)]"}`}>
-            <span>{option.icon}</span> {option.label}
+            <span><option.Icon size={14} aria-hidden="true" /></span> {option.label}
           </button>)}
         </div>
       </div>

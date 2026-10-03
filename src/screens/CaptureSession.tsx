@@ -1240,7 +1240,7 @@ export default function CaptureSession() {
               {ENGAGEMENT_LEVELS.map((opt) => {
                 const active = engLevel === opt.value;
                 return (
-                  <button key={opt.value} type="button"
+                  <button data-emoji-vocab="affect" key={opt.value} type="button"
                     aria-pressed={active}
                     onClick={() => setEngLevel(active ? undefined : opt.value)}
                     className={`flex items-center gap-3 rounded-xl border-2 px-3 py-2.5 text-left transition-all ${
@@ -1282,7 +1282,7 @@ export default function CaptureSession() {
                 const meta = ENGAGEMENT_FLAG_META[key];
                 const active = Boolean(engFlags[key]);
                 return (
-                  <button key={key} type="button" onClick={() => toggleFlag(key)}
+                  <button data-emoji-vocab="affect" key={key} type="button" onClick={() => toggleFlag(key)}
                     aria-pressed={active}
                     className={`flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-medium transition-all ${
                       active
@@ -1311,7 +1311,7 @@ export default function CaptureSession() {
                   const meta = ENGAGEMENT_FLAG_META[key];
                   const active = Boolean(engFlags[key]);
                   return (
-                    <button key={key} type="button" onClick={() => toggleFlag(key)}
+                    <button data-emoji-vocab="affect" key={key} type="button" onClick={() => toggleFlag(key)}
                       aria-pressed={active}
                       className={`flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-medium transition-all ${
                         active
@@ -1335,7 +1335,7 @@ export default function CaptureSession() {
               </label>
               <div className="mt-1.5 flex flex-wrap gap-1.5">
                 {MOODS.map((m) => (
-                  <button key={m.v} type="button"
+                  <button data-emoji-vocab="affect" key={m.v} type="button"
                     aria-pressed={mood === m.v}
                     className={`rounded-full border px-3 py-2 text-sm transition-colors ${
                       mood === m.v ? "border-[var(--border-accent)] bg-[var(--accent-solid)] text-[var(--on-strong)]" : "border-[var(--border)] bg-[var(--surface-strong)] text-[var(--ink-muted)] hover:border-[var(--border-accent)]"
@@ -1368,7 +1368,7 @@ export default function CaptureSession() {
               {SITUASI_CHIPS.map((c) => {
                 const active = hasSituasi(situasiNote, c.label);
                 return (
-                  <button key={c.label} type="button"
+                  <button data-emoji-vocab="affect" key={c.label} type="button"
                     onClick={() => appendSituasiChip(c.label)}
                     className={`px-2.5 py-1.5 rounded-full text-xs font-medium border transition-all ${
                       active ? "bg-[var(--bg-success-strong)] text-[var(--on-strong)] border-[var(--border-success)]" : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)] hover:border-[var(--border-success)] hover:bg-[var(--bg-success)]"}`}>
@@ -1411,7 +1411,7 @@ export default function CaptureSession() {
                           : tone === "orange" ? "bg-[var(--bg-attention-strong)] border-[var(--border-attention)]" : "bg-[var(--surface-inverse)] border-[var(--border-strong)]";
                         return (
                           <div key={tag.id} className="flex items-center gap-1">
-                            <button type="button"
+                            <button data-emoji-vocab="affect" type="button"
                               aria-pressed={active}
                               onClick={() => setBehaviorTags((prev) => prev.includes(tag.id) ? prev.filter((x) => x !== tag.id) : [...prev, tag.id])}
                               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
@@ -1486,7 +1486,7 @@ export default function CaptureSession() {
                   {RESPONSE_TAGS.filter(t => ["correct-independent","correct-with-prompt","can-explain-orally","transfer-attempt","metacognitive"].includes(t.id)).map((tag) => {
                     const score = tag.id === "correct-independent" ? "+2" : "+1";
                     return (
-                      <button key={tag.id} type="button"
+                      <button data-emoji-vocab="affect" key={tag.id} type="button"
                         onClick={() => setResponseTag(responseTag === tag.id ? undefined : tag.id)}
                         className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                           responseTag === tag.id
@@ -1507,7 +1507,7 @@ export default function CaptureSession() {
                   {RESPONSE_TAGS.filter(t => ["partial-correct","can-do-procedurally","guessing"].includes(t.id)).map((tag) => {
                     const score = tag.id === "guessing" ? "−1" : "0";
                     return (
-                      <button key={tag.id} type="button"
+                      <button data-emoji-vocab="affect" key={tag.id} type="button"
                         onClick={() => setResponseTag(responseTag === tag.id ? undefined : tag.id)}
                         className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                           responseTag === tag.id
@@ -1527,7 +1527,7 @@ export default function CaptureSession() {
                 <div className="flex flex-wrap gap-1.5">
                   {RESPONSE_TAGS.filter(t => ["misconception","prerequisite-gap"].includes(t.id)).map((tag) => {
                     return (
-                      <button key={tag.id} type="button"
+                      <button data-emoji-vocab="affect" key={tag.id} type="button"
                         onClick={() => setResponseTag(responseTag === tag.id ? undefined : tag.id)}
                         className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                           responseTag === tag.id

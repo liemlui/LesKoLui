@@ -310,7 +310,7 @@ export default function SessionDetailModal({
                       {BEHAVIOR_TAGS.map((t) => {
                         const active = draftTags.includes(t.id);
                         return (
-                          <button key={t.id} type="button"
+                          <button data-emoji-vocab="affect" key={t.id} type="button"
                             aria-pressed={active}
                             onClick={() => toggleDraftTag(t.id)}
                             className={`rounded-full border px-2.5 py-1.5 text-xs font-medium transition-colors ${
@@ -330,7 +330,7 @@ export default function SessionDetailModal({
                       {RESPONSE_TAGS.map((t) => {
                         const active = draftResponse === t.id;
                         return (
-                          <button key={t.id} type="button"
+                          <button data-emoji-vocab="affect" key={t.id} type="button"
                             aria-pressed={active}
                             onClick={() => setDraftResponse(active ? undefined : t.id)}
                             className={`rounded-full border px-2.5 py-1.5 text-xs font-medium transition-colors ${
@@ -349,7 +349,7 @@ export default function SessionDetailModal({
                       <p className="text-xs font-semibold text-[var(--ink-muted)] uppercase tracking-wide mb-1.5">Kondisi les</p>
                       <div className="flex flex-wrap gap-1.5">
                         {ENGAGEMENT_LEVELS.map((opt) => (
-                          <button key={opt.value} type="button"
+                          <button data-emoji-vocab="affect" key={opt.value} type="button"
                             aria-pressed={draftLevel === opt.value}
                             onClick={() => setDraftLevel(draftLevel === opt.value ? undefined : opt.value)}
                             className={`rounded-full border px-2.5 py-1.5 text-xs font-medium transition-colors ${
@@ -364,7 +364,7 @@ export default function SessionDetailModal({
                       <p className="text-xs font-semibold text-[var(--ink-muted)] uppercase tracking-wide mb-1.5">Suasana hati</p>
                       <div className="flex flex-wrap gap-1.5">
                         {MOODS.map((m) => (
-                          <button key={m.v} type="button"
+                          <button data-emoji-vocab="affect" key={m.v} type="button"
                             aria-pressed={draftMood === m.v}
                             onClick={() => setDraftMood(draftMood === m.v ? undefined : m.v)}
                             className={`rounded-full border px-2.5 py-1.5 text-xs font-medium transition-colors ${

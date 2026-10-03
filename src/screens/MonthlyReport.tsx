@@ -1664,7 +1664,7 @@ export default function MonthlyReportPage() {
                               disabled={unlockBusy}
                               className="inline-flex min-h-[44px] items-center rounded-lg border border-[var(--border-warn)] bg-[var(--surface-strong)] px-3 py-1.5 text-xs font-semibold text-[var(--ink-warn)] transition-colors hover:bg-[var(--bg-warn)] disabled:cursor-wait disabled:opacity-50"
                             >
-                              {unlockBusy ? "Membuka kunci..." : " Buka kunci laporan (perbaiki)"}
+                              {unlockBusy ? "Membuka kunci..." : "Buka kunci laporan (perbaiki)"}
                             </button>
                             <p className="text-xs leading-relaxed opacity-80">
                               Membuka kunci mengembalikan laporan ini menjadi draft supaya sesi, periode, dan
@@ -2195,7 +2195,7 @@ export default function MonthlyReportPage() {
                             <p className="pt-3 text-sm text-[var(--ink-muted)]">Belum ada rencana. Mulai dari target yang spesifik, cara belajar, dan indikator keberhasilan.</p>
                           )}
                           <button className="btn btn-secondary w-full text-sm" onClick={() => setEditingPlan(true)}>
-                            {hasPlan ? " Edit Rencana" : "＋ Susun Rencana"}
+                            {hasPlan ? "Edit Rencana" : "＋ Susun Rencana"}
                           </button>
                           {settings?.ai?.enabled && settings.ai.apiKey && (
                             <p className="pt-1 text-xs text-[var(--ink-muted)]">

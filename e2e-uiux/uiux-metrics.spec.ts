@@ -135,10 +135,13 @@ const COLLECT = `(() => {
 
   const headings = Array.from(document.querySelectorAll("h1,h2,h3,h4,h5,h6")).map((h) => h.tagName + ": " + (h.textContent || "").trim().slice(0, 40));
 
-  // L-05 / G2-09 — emoji di dalam kontrol & heading. Yang dihitung hanya
-  // piktograf (termasuk yang ber-default-teks tetapi dipakai dengan VS16 seperti
-  // ⬇️ ☁️ ♻️). Glyph tipografi ✓ ✕ ✗ ↩ ← → ↑ ↓ ↺ ⇱ × ↗ ▶ dikecualikan: itu bukan
-  // emoji berwarna dan justru lebih andal daripada ikon di tengah kalimat.
+  // TASK-11 (lanjutan G2-09) — emoji di dalam kontrol & heading. Yang dihitung
+  // hanya piktograf (termasuk yang ber-default-teks tetapi dipakai dengan VS16
+  // seperti ⬇️ ☁️ ♻️). Glyph tipografi ✓ ✕ ✗ ↩ ← → ↑ ↓ ↺ ⇱ × ↗ ▶ dikecualikan.
+  // Elemen ber-atribut data-emoji-vocab DILEWATI: itu kosakata keadaan afektif (mood,
+  // situasi, indikator perilaku, tag respons, level sesi) yang SENGAJA tetap emoji
+  // karena ikon stroke generik untuknya berisiko terbaca salah. Aturannya:
+  // docs/kerja/TASK-11-emoji-ke-svg.md
   // ⚠️ Backslash ditulis ganda karena blok ini adalah isi template literal.
   const EMOJI_RE = /\\p{Extended_Pictographic}\\uFE0F?/gu;
   const TEXT_GLYPHS = new Set([
@@ -146,7 +149,9 @@ const COLLECT = `(() => {
     "\\u21BA", "\\u21F1", "\\u2194", "\\u2197", "\\u25B6", "\\u00D7",
   ]);
   const emojiInControls = [];
-  for (const el of Array.from(document.querySelectorAll("button, h1, h2, h3, h4, h5, h6"))) {
+  const CONTROL_SEL = "button, a[href], [role=button], h1, h2, h3, h4, h5, h6";
+  for (const el of Array.from(document.querySelectorAll(CONTROL_SEL))) {
+    if (el.closest("[data-emoji-vocab]")) continue;
     const text = (el.textContent || "").trim();
     for (const m of text.matchAll(EMOJI_RE)) {
       if (TEXT_GLYPHS.has(m[0][0])) continue;
@@ -333,36 +338,26 @@ const RESIDUAL_UKURAN: Record<string, string> = {
 };
 
 /**
- * L-05 sisa (G2-09). Emoji yang **sudah disapu** adalah yang tertulis langsung di
- * JSX: terukur 0 (skrip `.design-audit/g2-09-check.cjs`, 2026-10-03). Yang tersisa
- * hidup sebagai `icon:` di berkas DATA, sehingga tetap dirender ke dalam tombol
- * tanpa terlihat oleh pemeriksa statis atas JSX:
+ * TASK-11 (lanjutan G2-09) — kebijakan emoji, bukan lagi residual.
  *
- *   `responseTaxonomy.ts` 26 · `captureSession/constants.ts` 19 · `moods.ts` 6 ·
- *   `sessionTemplates.ts` 6 · `template/layouts/*` 9 · `engagement.ts` 3 (berkas dilindungi §2.1)
+ * Emoji **literal** di JSX sudah 0 dan kelompok **struktural** (tipe sesi) sudah
+ * memakai ikon SVG. Yang tetap emoji adalah kosakata **keadaan afektif** — mood,
+ * situasi, indikator perilaku, tag respons, dan level sesi — dan setiap tombolnya
+ * membawa `data-emoji-vocab="affect"`. Guard melewati elemen ber-penanda itu
+ * (lihat blok measure()), lalu menuntut **0** emoji di kontrol lain.
  *
- * Perbaikannya bukan pekerjaan kecil: butuh 26+ ikon baru dan mengubah bentuk data
- * beserta pemanggilnya. Ada pula jaring yang harus ikut diperbarui —
- * `src/__tests__/captureSessionHelpers.test.ts` menjaga **keunikan ikon antar-kontrol**
- * (`ENGAGEMENT_FLAG_META` vs `MOODS`) dengan membandingkan string ikonnya, jadi
- * mengubah tipe `icon` menjadi komponen membuat tes itu tidak lagi bermakna.
- * Per-screen-nya angka tepatnya baru terlihat dari hasil jalannya tes ini.
+ * Karena itu tidak ada `test.fixme` di sini: angka 0 adalah syarat, dan setiap
+ * emoji baru di luar kosakata afektif akan menggagalkannya.
+ * Kebijakan lengkap: docs/kerja/TASK-11-emoji-ke-svg.md
  */
-const RESIDUAL_EMOJI =
-  "L-05 sisa (G2-09): emoji yang tertulis di JSX sudah 0, tetapi 70 entri `icon:` masih hidup di berkas DATA " +
-  "dan 14 situs render-nya berada di dalam <button> (CaptureSession 9 · SessionDetailModal 4 · ScheduleStep 1). " +
-  "21 di antaranya adalah emosi/keadaan tubuh yang butuh keputusan desain; sisanya punya padanan ikon yang jelas. " +
-  "Rincian + tiga opsi: docs/kerja/TASK-11-emoji-ke-svg.md";
-
-test.describe("guard metrik UI — emoji di kontrol/heading (L-05)", () => {
+test.describe("guard metrik UI — emoji di kontrol/heading (TASK-11)", () => {
   for (const screen of SCREENS) {
     test(`${screen.title}`, async ({ page }) => {
-      test.fixme(true, RESIDUAL_EMOJI);
       await openScreen(page, screen.id);
       const data = await measure(page, screen.id);
       expect(
         data.emojiInControlsCount,
-        `emoji di dalam kontrol/heading:\n${show(data.emojiInControls)}`,
+        `emoji di kontrol/heading di luar kosakata afektif:\n${show(data.emojiInControls)}`,
       ).toBe(0);
     });
   }

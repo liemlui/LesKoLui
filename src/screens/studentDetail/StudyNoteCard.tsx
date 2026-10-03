@@ -74,7 +74,7 @@ export default function StudyNoteCard({ studentId, studyNote, onSave }: Props) {
             type="button"
             onClick={() => setPreview((v) => !v)}
             className="text-xs font-semibold text-[var(--ink-muted)] bg-[var(--surface)] hover:bg-[var(--bg-subtle)] border border-[var(--border)] px-2 py-1 rounded-lg transition-colors">
-            {preview ? " Edit" : " Pratinjau"}
+            {preview ? "Edit" : "Pratinjau"}
           </button>
         )}
       </div>

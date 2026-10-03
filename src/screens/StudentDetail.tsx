@@ -41,7 +41,7 @@ import RiwayatSesi from "./studentDetail/RiwayatSesi";
 import IaEeTracker from "./studentDetail/IaEeTracker";
 import NilaiRapor from "./studentDetail/NilaiRapor";
 import { engagementAverage, sessionEngagementScore } from "../lib/engagement";
-import { PencilIcon, CameraIcon, LockIcon, ChartIcon, ImageIcon } from "../components/icons";
+import { PencilIcon, CameraIcon, LockIcon, ChartIcon, ImageIcon, ChatIcon } from "../components/icons";
 
 const DURATIONS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
 
@@ -538,7 +538,7 @@ export default function StudentDetail() {
           <a href={`https://wa.me/${student.parentContact.phone.replace(/^0/, "62").replace(/[^0-9]/g, "")}`}
             target="_blank" rel="noopener noreferrer"
             className="inline-flex min-h-[44px] items-center gap-1.5 text-[var(--ink-success)] font-medium hover:text-[var(--ink-success)]">
-            <span>💬</span>{student.parentContact.phone}
+            <ChatIcon size={14} aria-hidden="true" />{student.parentContact.phone}
           </a>
         </div>
         {student.studentPhone && (
@@ -547,7 +547,7 @@ export default function StudentDetail() {
             <a href={`https://wa.me/${student.studentPhone.replace(/^0/, "62").replace(/[^0-9]/g, "")}`}
               target="_blank" rel="noopener noreferrer"
               className="inline-flex min-h-[44px] items-center gap-1.5 text-[var(--ink-brand)] font-medium hover:text-[var(--ink-brand)]">
-              <span>💬</span>{student.studentPhone}
+              <ChatIcon size={14} aria-hidden="true" />{student.studentPhone}
             </a>
           </div>
         )}
