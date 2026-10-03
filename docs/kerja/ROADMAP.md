@@ -16,7 +16,7 @@
 |---|---|
 | Total tugas | 22 |
 | Selesai | 10 (G2-00, G2-00b, G2-01, G2-02, G2-03, G2-04, G2-06, G2-07, G2-08, G2-10) |
-| Sebagian | 1 (G2-09 — judul & tombol utama sudah SVG, chip wizard belum) |
+| Sebagian | 1 (G2-09 — emoji literal di kontrol = 0; sisa 69 ikon di berkas data) |
 | Manual | 1 (G2-05 — butuh HP Android; tanpa perubahan kode) |
 | Belum | 10 (G3-01 … G3-10) |
 | Progress | ~45% hitung tugas (10 dari 22) · ~39% bobot usaha (S=1/M=2/L=4; G2-09 dihitung separuh) |
@@ -35,7 +35,7 @@
 | G2-06 | tap target ≥44px | T2 | G2-01 | 9 berkas layar | M | ✅ v1.88.0 |
 | G2-07 | DayView kerapatan 27/54/97 | T1 | G2-01 | home/DayView.tsx | M | ✅ v1.88.0 |
 | G2-08 | Beranda non-uang | T2 | G2-04 | home/*.tsx | M | ✅ v1.88.0 |
-| G2-09 | emoji→SVG | T2 | G2-01 | icons.tsx + layar pemakai | M | 🟡 sebagian v1.88.0 (judul + tombol utama; chip wizard belum) |
+| G2-09 | emoji→SVG | T2 | G2-01 | icons.tsx + layar pemakai | M | 🟡 literal **0** · sisa **69 ikon konstanta** di 7 berkas (1 dilindungi §2.1) |
 | G2-10 | jalur galat tunggal useLiveQuery | T3 | G2-01 | useSettingsQuery + 6 layar | M | ✅ v1.88.0 |
 
 ## Gelombang 3
