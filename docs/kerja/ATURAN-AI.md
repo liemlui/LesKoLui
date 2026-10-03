@@ -148,7 +148,7 @@ Alasan: selector E2E hanya boleh patah sekali.
 
 | Fakta | Nilai | Lokasi |
 |---|---:|---|
-| Kelas warna di luar berkas §2.1 | **0** (G2-02, v1.87.0) — target ≤190 dicabut, target resmi = **0**; baseline terukur 2026-10-03 = **2976**. Angka kontrak lama **471** berasal dari perintah **tidak rekursif** yang hanya menjangkau 38 berkas | `Get-ChildItem -Recurse src -Include *.tsx -File` + `Select-String` |
+| Kelas warna di luar berkas §2.1 | **0** (G2-02, v1.87.0) — target ≤190 dicabut, target resmi = **0**; baseline terukur 2026-10-03 = **2976**. Angka kontrak lama **471** berasal dari perintah **tidak rekursif** yang hanya menjangkau 38 berkas. Sisa kelas warna hidup **hanya** di tiga berkas §2.1: `engagement.ts:135-148` · `invoicePresentation.ts:37-40,82` · `finance.ts:108-110` — keputusan Q42/Q43 di `docs/README.md` §4.2 #26 | `Get-ChildItem -Recurse src -Include *.tsx -File` + `Select-String` |
 | Dark mode | **mati — permanen, light-only (Q4 2026-10-01)** | `src/index.css` (cari `Dark mode DEAKTIVASI`) |
 | Langkah wizard | **6** | `captureSession/constants.ts` → `STEP_META` |
 | Kerapatan timeline | `PX_PER_HR = 64` tetap | `home/DayView.tsx:18` |

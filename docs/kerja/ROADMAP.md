@@ -1,7 +1,8 @@
 # ROADMAP — Gelombang 2 & 3 (22 tugas)
 
-> **Status:** aktif · Diperbarui: 2026-10-03 · Baseline: v1.88.0 (gate dijalankan untuk v1.88.0: `npx tsc -b` saja — keputusan pemilik tanpa lint/tes/e2e)
+> **Status:** aktif · Diperbarui: 2026-10-04 · Baseline: v1.88.0 (gate dijalankan untuk v1.88.0: `npx tsc -b` saja — keputusan pemilik tanpa lint/tes/e2e)
 > **Penjaga yang sudah DITULIS tetapi BELUM dijalankan:** `src/__tests__/moneyGate.test.ts` (G2-04, predikatnya dipra-uji 12/12 di luar vitest) dan `emojiInControlsCount` di `e2e-uiux/uiux-metrics.spec.ts` (TASK-11 — kini **asertif, bukan `test.fixme`**: menuntut 0 emoji di kontrol/heading di luar penanda `data-emoji-vocab`). Jalankan `npm test` + `npm run e2e:uiux` untuk mengubah keduanya menjadi bukti.
+> **Masih `test.fixme` di guard yang sama (4):** 3 pemeriksaan kontras (Murid · Detail murid · Keuangan) + 1 ukuran (`detail-murid`). Penghapusannya (Q24) menuntut `npm run e2e:uiux` benar-benar dijalankan — **bukan** menaikkan ambang.
 > **Cara pakai:** baca ATURAN-AI §0. Tentukan tier SEBELUM mulai. Satu putaran = satu tugas (kecuali batch 📦).
 > Paralelisasi: hanya sah kalau tidak ada chat lain yang menyentuh berkas itu. Karena satu tugas bisa memegang puluhan berkas src/**, aturan default = SERIAL. Paralel butuh git worktree terpisah.
 > Kolom Tier = perkiraan; tier final ditetapkan saat tugas dimulai (§6.2 butir 1).
@@ -9,7 +10,8 @@
 > **Target G2-02 (revisi — menggantikan "889→≤190"):** **0 kelas warna langsung di luar berkas §2.1**.
 > Angka 889/≤190 berasal dari penghitung 4-pola yang **buta** terhadap `slate`/`blue`/`indigo`/`text-white`,
 > dan baseline sebenarnya **2976 kelas**. Terukur sesudah sapu: **0 kelas warna hidup di 72 berkas**;
-> sisa 42 kelas ada di 3 berkas §2.1 (`engagement.ts` 24 · `invoicePresentation.ts` 12 · `finance.ts` 6).
+> sisa kelas warna hidup **hanya** di 3 berkas §2.1 (`engagement.ts` · `invoicePresentation.ts` · `finance.ts`) — jangkar, angka terukur 2026-10-04, dan keputusan Q42/Q43 ada di [`docs/README.md`](../README.md) §4.2 #26.
+> **Jangan pakai angka sebagai DoD:** penghitung `g2-02-scan.mjs` ikut menghitung komentar & teks changelog (terukur 2026-10-04: 9 dari 55 kemunculan bukan kelas hidup). Ukurannya = daftar berkas + jangkar.
 
 ## Status ringkas
 
