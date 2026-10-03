@@ -15,10 +15,10 @@
 | Ukuran | Nilai |
 |---|---|
 | Total tugas | 22 |
-| Selesai | 4 (G2-00, G2-00b, G2-01, G2-02) |
+| Selesai | 5 (G2-00, G2-00b, G2-01, G2-02, G2-03) |
 | Berjalan | 0 |
-| Belum | 18 (22 − 4) |
-| Progress | ~18% |
+| Belum | 17 (22 − 5) |
+| Progress | ~23% hitung tugas · ~16% bobot usaha (S=1/M=2/L=4; sisa Gelombang 3 semuanya L/M) |
 
 ## Gelombang 2
 
@@ -28,7 +28,7 @@
 | G2-00b | Line Endings A15/A16 (docs) | T0 | — | .gitattributes, ATURAN-AI | — | ✅ |
 | G2-01 | token + 7 primitif + Q25 | T3 | — | index.css, components/ui/* | L | ✅ v1.86.0 |
 | G2-02 | sapu kelas warna → token semantik | T2 | G2-01 | src/**/*.tsx, src/index.css | L | ✅ v1.87.0 |
-| G2-03 | kunci light-only permanen | T1 | G2-01 | index.css (komentar), playwright.config | S | ⬜ |
+| G2-03 | kunci light-only permanen | T1 | G2-01 | index.css (komentar), playwright.config | S | ✅ v1.87.0 |
 | G2-04 | satu pintu uang (TASK-08) | T2 | G2-01 | useMoneyVisible, MaskedMoney, 5 layar | L | ⬜ |
 | G2-05 | verifikasi input Android (manual) | T1 | G2-01, owner | tidak ada | S | ⛔ manual (butuh HP Android) |
 | G2-06 | tap target ≥44px | T2 | G2-01 | 9 berkas layar | M | ⬜ |

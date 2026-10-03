@@ -170,10 +170,8 @@
   color-scheme: light;
 }
 
-/* Dark mode DEAKTIVASI (2026-09-11, playbook P1-a): token dark membuat UI
-   setengah-gelap karena ~180 bg-white / 131 bg-gray-* hardcode di .tsx.
-   Blok @media (prefers-color-scheme: dark) dihapus sampai migrasi ke
-   CSS-var tokens selesai; app berjalan light-only. */
+/* Light-only permanen — keputusan pemilik 2026-10-01 (Q4).
+   JANGAN tambahkan @media (prefers-color-scheme: dark). */
 
 html, body, #root { min-height: 100vh; }
 body {

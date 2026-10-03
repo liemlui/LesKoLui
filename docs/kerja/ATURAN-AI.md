@@ -148,7 +148,7 @@ Alasan: selector E2E hanya boleh patah sekali.
 
 | Fakta | Nilai | Lokasi |
 |---|---:|---|
-| Kelas warna hardcode | **904** (target ≤190) — angka kontrak lama **471** berasal dari perintah **tidak rekursif** yang hanya menjangkau 38 berkas; angka terkoreksi 2026-10-01 | `Get-ChildItem -Recurse src -Include *.tsx -File` + `Select-String` |
+| Kelas warna di luar berkas §2.1 | **0** (G2-02, v1.87.0) — target ≤190 dicabut, target resmi = **0**; baseline terukur 2026-10-03 = **2976**. Angka kontrak lama **471** berasal dari perintah **tidak rekursif** yang hanya menjangkau 38 berkas | `Get-ChildItem -Recurse src -Include *.tsx -File` + `Select-String` |
 | Dark mode | **mati — permanen, light-only (Q4 2026-10-01)** | `src/index.css` (cari `Dark mode DEAKTIVASI`) |
 | Langkah wizard | **6** | `captureSession/constants.ts` → `STEP_META` |
 | Kerapatan timeline | `PX_PER_HR = 64` tetap | `home/DayView.tsx:18` |
@@ -177,7 +177,7 @@ Penghitung khusus (angka wajib dilaporkan sebelum → sesudah langkah):
 ```powershell
 # TASK-04 — utang kelas warna (REKURSIF — perintah lama "src\**\*.tsx" hanya menjangkau 38 berkas → 470)
 (Get-ChildItem -Recurse src -Include *.tsx -File | Select-String -Pattern "bg-white|bg-gray-|text-gray-|border-gray-").Count
-# baseline 2026-10-01 = 904 (git grep = 902) · target ≤190
+# baseline 2976 → 0 (G2-02, v1.87.0). Target ≤190 dicabut.
 
 # TASK-05 — pipeline harus TETAP ADA & tetap diimpor (Q3 2026-10-01: redesign, bukan bubarkan)
 (Get-ChildItem -Recurse src -Include *.tsx -File | Select-String -Pattern "FinancePipelineBoard").Count
