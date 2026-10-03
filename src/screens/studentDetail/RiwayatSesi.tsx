@@ -3,6 +3,7 @@ import { dayLabel, monthLabel } from "../../lib/format";
 import { scoreLabel } from "../../lib/engagement";
 import { getBehaviorTag, getResponseTag } from "../../lib/responseTaxonomy";
 import PaginationControls from "../../components/PaginationControls";
+import { PencilIcon } from "../../components/icons";
 
 interface RiwayatSesiProps {
   /** Semua sesi murid (dipakai grafik & daftar topik). */
@@ -195,7 +196,7 @@ export default function RiwayatSesi({
                         {s.status === "DONE" && (
                           <button onClick={(e) => { e.stopPropagation(); openEditNote(s); }}
                             aria-label="Edit catatan sesi"
-                            className="text-[var(--ink-muted)] hover:text-[var(--ink-brand)] transition-colors text-xs p-1.5 -m-1.5 rounded-full hover:bg-[var(--bg-subtle)]">✏️</button>
+                            className="text-[var(--ink-muted)] hover:text-[var(--ink-brand)] transition-colors text-xs p-1.5 -m-1.5 rounded-full hover:bg-[var(--bg-subtle)]"><PencilIcon size={13} className="mr-1 inline align-[-2px]" /></button>
                         )}
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.status === "DONE" ? "bg-[var(--bg-success)] text-[var(--ink-success)]" : s.status === "CANCELLED" ? "bg-[var(--bg-danger)] text-[var(--ink-danger)]" : "bg-[var(--brand-tint)] text-[var(--ink-brand)]"}`}>
                           {s.status === "DONE" ? `${s.durationHours}j` : s.status}

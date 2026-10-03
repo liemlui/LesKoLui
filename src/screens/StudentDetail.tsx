@@ -41,6 +41,7 @@ import RiwayatSesi from "./studentDetail/RiwayatSesi";
 import IaEeTracker from "./studentDetail/IaEeTracker";
 import NilaiRapor from "./studentDetail/NilaiRapor";
 import { engagementAverage, sessionEngagementScore } from "../lib/engagement";
+import { PencilIcon, CameraIcon, LockIcon, ChartIcon, ImageIcon } from "../components/icons";
 
 const DURATIONS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
 
@@ -461,15 +462,15 @@ export default function StudentDetail() {
       <div className="grid grid-cols-2 gap-2">
         <button onClick={() => navigate(`/capture?studentId=${encodeURIComponent(id ?? "")}`)}
           className="flex items-center justify-center gap-2 py-3 rounded-xl bg-[var(--brand-solid)] text-[var(--on-strong)] text-sm font-semibold shadow-sm hover:bg-[var(--brand-solid)] transition-colors">
-          <span>📝</span> Catat Sesi
+          <span><PencilIcon size={13} className="mr-1 inline align-[-2px]" /></span> Catat Sesi
         </button>
         <button onClick={() => navigate(`/report?studentId=${id}`)}
           className="flex items-center justify-center gap-2 py-3 rounded-xl bg-[var(--accent-tint)] text-[var(--ink-accent)] text-sm font-semibold border border-[var(--border-accent)] hover:bg-[var(--accent-tint)] transition-colors">
-          <span>📊</span> Lihat Laporan
+          <span><ChartIcon size={13} className="mr-1 inline align-[-2px]" /></span> Lihat Laporan
         </button>
         <button onClick={() => navigate(`/payments?tab=tagihan&studentId=${encodeURIComponent(id ?? "")}`)}
           className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[var(--bg-success)] text-[var(--ink-success)] text-sm font-semibold border border-[var(--border-success)] hover:bg-[var(--bg-success)] transition-colors">
-          <span>{studentBillingPolicy === "session_count" ? "🧾" : "💸"}</span>
+          <span>{studentBillingPolicy === "session_count" ? "" : ""}</span>
           {studentBillingPolicy === "monthly"
             ? "Kelola Penagihan Bulanan"
             : studentBillingPolicy === "session_count"
@@ -589,9 +590,9 @@ export default function StudentDetail() {
               <div className="flex items-center gap-2 flex-1">
                 <span className="text-[var(--ink-strong)] font-medium"><MaskedMoney amount={student.hourlyRate} />/{studentBillingPolicy === "session_count" ? "pertemuan" : "jam"}</span>
                 <button onClick={() => { setShowRateEdit(true); setNewRate(student.hourlyRate); }}
-                  className="ml-auto text-xs bg-[var(--bg-subtle)] hover:bg-[var(--bg-subtle)] text-[var(--ink-muted)] px-2 py-1 rounded-lg">✏️ Edit</button>
+                  className="ml-auto text-xs bg-[var(--bg-subtle)] hover:bg-[var(--bg-subtle)] text-[var(--ink-muted)] px-2 py-1 rounded-lg"><PencilIcon size={13} className="mr-1 inline align-[-2px]" /> Edit</button>
                 <button onClick={money.lock} aria-label="Kunci angka uang"
-                  className="inline-flex h-8 w-8 items-center justify-center text-xs text-[var(--ink-muted)] px-1.5 py-1">🔒</button>
+                  className="inline-flex h-8 w-8 items-center justify-center text-xs text-[var(--ink-muted)] px-1.5 py-1"><LockIcon size={13} className="mr-1 inline align-[-2px]" /></button>
               </div>
             )
           ) : (
@@ -808,7 +809,7 @@ export default function StudentDetail() {
                           className="text-xs text-[var(--ink-brand)] hover:text-[var(--ink-brand)] ml-auto"
                           title="Edit biaya manual"
                         >
-                          ✏️ Edit
+                          <PencilIcon size={13} className="mr-1 inline align-[-2px]" /> Edit
                         </button>
                       )}
                     </div>
@@ -881,20 +882,20 @@ export default function StudentDetail() {
                     <img src={editPhotoUrl} alt="Foto sesi" className="h-44 w-full object-cover" />
                     <div className="absolute bottom-2 right-2 flex gap-1.5">
                       <button type="button" onClick={() => editCameraRef.current?.click()}
-                        className="rounded-full bg-[var(--scrim)]/65 px-2.5 py-1 text-xs text-[var(--on-strong)]">📷 Kamera</button>
+                        className="rounded-full bg-[var(--scrim)]/65 px-2.5 py-1 text-xs text-[var(--on-strong)]"><CameraIcon size={13} className="mr-1 inline align-[-2px]" /> Kamera</button>
                       <button type="button" onClick={() => editGalleryRef.current?.click()}
-                        className="rounded-full bg-[var(--scrim)]/65 px-2.5 py-1 text-xs text-[var(--on-strong)]">🖼️ Galeri</button>
+                        className="rounded-full bg-[var(--scrim)]/65 px-2.5 py-1 text-xs text-[var(--on-strong)]"><ImageIcon size={13} className="mr-1 inline align-[-2px]" /> Galeri</button>
                     </div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
                     <button type="button" onClick={() => editCameraRef.current?.click()}
                       className="rounded-xl border-2 border-dashed border-[var(--border)] py-5 text-sm text-[var(--ink-muted)] transition-colors hover:border-[var(--brand-tint-strong)] hover:text-[var(--ink-brand)]">
-                      📷 Ambil Foto
+                      <CameraIcon size={13} className="mr-1 inline align-[-2px]" /> Ambil Foto
                     </button>
                     <button type="button" onClick={() => editGalleryRef.current?.click()}
                       className="rounded-xl border-2 border-dashed border-[var(--border)] py-5 text-sm text-[var(--ink-muted)] transition-colors hover:border-[var(--border-success)] hover:text-[var(--ink-success)]">
-                      🖼️ Pilih Galeri
+                      <ImageIcon size={13} className="mr-1 inline align-[-2px]" /> Pilih Galeri
                     </button>
                   </div>
                 )}

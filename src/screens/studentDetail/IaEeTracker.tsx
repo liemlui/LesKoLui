@@ -1,3 +1,4 @@
+import { TrashIcon } from "../../components/icons";
 import { useState } from "react";
 import type { Student, IaEeMilestone } from "../../db/types";
 import type { IaEeProject, IaEeType } from "../../db/types";
@@ -254,7 +255,7 @@ export default function IaEeTracker({ student, projects, notify }: IaEeTrackerPr
                       }
                     }}
                     className="w-full py-1.5 rounded-xl text-xs text-[var(--ink-danger)] hover:bg-[var(--bg-danger)] transition-colors">
-                    🗑 Hapus Proyek
+                    <TrashIcon size={13} className="mr-1 inline align-[-2px]" /> Hapus Proyek
                   </button>
                 </div>
               )}

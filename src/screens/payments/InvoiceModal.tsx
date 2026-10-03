@@ -5,6 +5,7 @@ import type { Payment, Student, Settings, Session, MonthlyReport } from "../../d
 import { reportDisplayStatus } from "../../db/types";
 import { formatRupiah, periodLabel, monthLabel } from "../../lib/format";
 import { Z } from "../../lib/zIndex";
+import { ClipboardIcon } from "../../components/icons";
 
 interface InvoiceModalProps {
   payment: Payment;
@@ -59,7 +60,7 @@ export default function InvoiceModal({
           <div className="flex gap-2">
             <button onClick={onExport} disabled={exporting || sessionsLoading}
               className="bg-[var(--accent-solid)] text-[var(--on-strong)] text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
-              {sessionsLoading ? "Memuat..." : exporting ? "Ekspor..." : "📥 PDF"}
+              {sessionsLoading ? "Memuat..." : exporting ? "Ekspor..." : " PDF"}
             </button>
             <button aria-label="Tutup" onClick={onClose} className="text-[var(--ink-muted)] hover:text-[var(--ink-muted)] text-lg w-10 h-10 flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
           </div>
@@ -147,7 +148,7 @@ function InvoiceContent({
               onClick={onOpenReport}
               className="w-full py-2 rounded-lg border border-[var(--brand-tint-strong)] text-[var(--ink-brand)] text-xs font-semibold hover:bg-[var(--brand-tint)] transition-colors"
             >
-              📋 Buka Laporan Perkembangan
+              <ClipboardIcon size={13} className="mr-1 inline align-[-2px]" /> Buka Laporan Perkembangan
             </button>
             {/* "Kirim Laporan + Tagihan" sengaja TIDAK di sini: satu-satunya
                 tempat mengirim laporan + tagihan adalah Ringkasan Keuangan,
@@ -159,7 +160,7 @@ function InvoiceContent({
             onClick={onOpenReport}
             className="mt-2 w-full py-2 rounded-lg border border-[var(--brand-tint-strong)] text-[var(--ink-brand)] text-xs font-semibold hover:bg-[var(--brand-tint)] transition-colors"
           >
-            📋 Lengkapi Laporan Perkembangan
+            <ClipboardIcon size={13} className="mr-1 inline align-[-2px]" /> Lengkapi Laporan Perkembangan
           </button>
         )}
       </div>

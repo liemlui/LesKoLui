@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Modal from "./Modal";
+import { ClockIcon } from "../components/icons";
 
 interface Props {
   value: string;    // "HH:mm" 24-hour
@@ -62,7 +63,7 @@ export default function ClockTimePicker({ value, onChange }: Props) {
     <>
       <button type="button" onClick={() => { setOpen(true); setMode("hour"); }}
         className="input text-left flex items-center gap-2 font-mono text-sm font-semibold text-[var(--ink-strong)]">
-        🕐 {display}
+        <ClockIcon size={13} className="mr-1 inline align-[-2px]" /> {display}
       </button>
 
       {open && (

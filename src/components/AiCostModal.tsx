@@ -13,12 +13,13 @@ interface AiCostModalProps {
 
 import Modal from "./Modal";
 import { DEEPSEEK_MODEL_LABEL, DEEPSEEK_COST_NOTE, DEEPSEEK_PRICING_URL, getDeepSeekPricing } from "../lib/aiConfig";
+import { SparkleIcon } from "../components/icons";
 
 export function AiCostModal({ open, title, estimatedIDR, description, dataSent, extraContent, onConfirm, onCancel }: AiCostModalProps) {
   if (!open) return null;
   return (
     <Modal onClose={onCancel} ariaLabel={title}>
-      <h3 className="font-bold text-base">✨ {title}</h3>
+      <h3 className="font-bold text-base"><SparkleIcon size={13} className="mr-1 inline align-[-2px]" /> {title}</h3>
       <div className="bg-[var(--accent-tint)] rounded-xl p-3 space-y-1">
         <p className="text-sm font-semibold text-[var(--ink-accent)]">Estimasi biaya DeepSeek</p>
         <p className="text-xs text-[var(--ink-accent)]">{DEEPSEEK_MODEL_LABEL} · tarif {getDeepSeekPricing().period}</p>

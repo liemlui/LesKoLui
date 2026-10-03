@@ -72,7 +72,7 @@ export default function WeekView({
                       style={{ background: color + (isDone ? "20" : "35"), fontSize: 10 }}
                       onClick={() => isEditable && (s.date < today ? actions.onResolveMissed(s) : actions.onEdit(s))}>
                       <p className="font-bold truncate" style={{ color }}>{info?.name?.split(" ")[0] ?? "—"}</p>
-                      {s.time && <p className="opacity-60" style={{ fontSize: 10 }}>{s.status === "NO_SHOW" ? "🚫 Tidak hadir" : s.time}</p>}
+                      {s.time && <p className="opacity-60" style={{ fontSize: 10 }}>{s.status === "NO_SHOW" ? " Tidak hadir" : s.time}</p>}
                     </button>
                   );
                 })}

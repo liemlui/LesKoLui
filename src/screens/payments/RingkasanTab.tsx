@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { RefreshIcon, SparkleIcon } from "../../components/icons";
 import { Link, useNavigate } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
@@ -579,8 +580,8 @@ export default function RingkasanTab({
                 : aiInsightLoading
                   ? "Menganalisis..."
                   : aiInsights
-                    ? "🔄 Analisis Ulang"
-                    : "✨ Analisis AI"}
+                    ? <><RefreshIcon size={13} className="mr-1 inline align-[-2px]" /> Analisis Ulang</>
+                    : <><SparkleIcon size={13} className="mr-1 inline align-[-2px]" /> Analisis AI</>}
           </button>
         </div>
         <p className={`text-xs mb-3 ${financialAiConfigured ? "text-[var(--ink-accent)]" : "text-[var(--ink-muted)]"}`}>

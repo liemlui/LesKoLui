@@ -1,3 +1,4 @@
+import { RefreshIcon, WarningIcon } from "../../components/icons";
 import type { Session } from "../../db/types";
 import type { StudentMap } from "../../lib/studentColor";
 
@@ -39,8 +40,8 @@ function SessionPill({ session: s, studentMap, today, dateCtx, onEdit, onCapture
             <p className="text-sm font-semibold truncate" style={{ color }}>{info?.name ?? "—"}</p>
             <p className="text-xs text-[var(--ink-muted)]">
               {s.time ? `${s.time} · ` : ""}{s.durationHours}j
-              {isDone ? " ✓" : ""}{s.seriesId ? " 🔁" : ""}
-              {isMissed ? " ⚠️ Terlewat" : ""}
+              {isDone ? " ✓" : ""}{s.seriesId ? <RefreshIcon size={11} className="mr-1 inline align-[-2px]" /> : ""}
+              {isMissed ? <><WarningIcon size={11} className="mr-1 inline align-[-2px]" />Terlewat</> : ""}
             </p>
           </button>
           {isDone ? (

@@ -23,6 +23,7 @@ import Modal from "../components/Modal";
 import PaginationControls from "../components/PaginationControls";
 import Badge from "../components/Badge";
 import { clampPage, paginateItems } from "../lib/pagination";
+import { PencilIcon } from "../components/icons";
 
 type Tab = "aktif" | "historis";
 
@@ -331,7 +332,7 @@ export default function Students() {
               onClick={(e) => { e.preventDefault(); requirePin("edit", s); }}
               className="w-11 h-11 flex items-center justify-center rounded-full bg-[var(--bg-subtle)] hover:bg-[var(--brand-tint-strong)] text-[var(--ink-muted)] hover:text-[var(--ink-brand)] flex-shrink-0 transition-colors text-sm"
               aria-label="Edit murid" title="Edit murid"
-            >✏️</button>
+            ><PencilIcon size={13} className="mr-1 inline align-[-2px]" /></button>
           </div>
         </Link>
 

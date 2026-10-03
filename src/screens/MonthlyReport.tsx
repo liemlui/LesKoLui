@@ -42,7 +42,7 @@ import { formatRupiahDisplay } from "../lib/moneyDisplay";
 import MaskedMoney from "../components/ui/MaskedMoney";
 import SettingsLoadError from "../components/SettingsLoadError";
 import { useMoneyVisible } from "../hooks/useMoneyVisible";
-import { TrashIcon, EyeIcon } from "../components/icons";
+import { TrashIcon, EyeIcon, TargetIcon, BookIcon, PencilIcon, SparkleIcon, BoltIcon } from "../components/icons";
 import { useSettingsQuery } from "../hooks/useSettingsQuery";
 import { useReportExport } from "./monthlyReport/useReportExport";
 import { useReportGeneration } from "./monthlyReport/useReportGeneration";
@@ -1227,7 +1227,7 @@ export default function MonthlyReportPage() {
             aria-expanded={historyOpen}
             onClick={() => setHistoryOpen((v) => !v)}>
             <div>
-              <p className="font-semibold text-[var(--ink-strong)] text-sm">📚 Laporan tersimpan</p>
+              <p className="font-semibold text-[var(--ink-strong)] text-sm"><BookIcon size={13} className="mr-1 inline align-[-2px]" /> Laporan tersimpan</p>
               <p className="text-xs text-[var(--ink-muted)] mt-0.5">
                 Buka lagi laporan yang sudah pernah dibuat — draft maupun yang sudah final.
               </p>
@@ -1664,7 +1664,7 @@ export default function MonthlyReportPage() {
                               disabled={unlockBusy}
                               className="inline-flex min-h-[44px] items-center rounded-lg border border-[var(--border-warn)] bg-[var(--surface-strong)] px-3 py-1.5 text-xs font-semibold text-[var(--ink-warn)] transition-colors hover:bg-[var(--bg-warn)] disabled:cursor-wait disabled:opacity-50"
                             >
-                              {unlockBusy ? "Membuka kunci..." : "🔓 Buka kunci laporan (perbaiki)"}
+                              {unlockBusy ? "Membuka kunci..." : " Buka kunci laporan (perbaiki)"}
                             </button>
                             <p className="text-xs leading-relaxed opacity-80">
                               Membuka kunci mengembalikan laporan ini menjadi draft supaya sesi, periode, dan
@@ -1841,7 +1841,7 @@ export default function MonthlyReportPage() {
                               aria-label={`Preview layout ${l.name}`}
                               onClick={() => setPreviewLayoutId(l.id)}
                               className="absolute -right-1.5 -top-1.5 z-10 flex h-4 w-4 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-strong)] text-[8px] leading-none text-[var(--ink-muted)] shadow-sm transition-colors hover:border-[var(--brand-tint-strong)] hover:text-[var(--ink-brand)]">
-                              👁
+                              <EyeIcon size={13} className="mr-1 inline align-[-2px]" />
                             </button>
                           </span>
                         ))}
@@ -1985,13 +1985,13 @@ export default function MonthlyReportPage() {
                 {/* Export */}
                 <div className="grid grid-cols-3 gap-2">
                   <button className="btn btn-primary text-sm" onClick={() => doExport("jpg")} disabled={!!exporting || !reportData}>
-                    {exporting === "jpg" ? "⏳" : "🖼️"} JPG
+                    {exporting === "jpg" ? "" : ""} JPG
                   </button>
                   <button className="btn text-sm bg-[var(--accent-solid)] text-[var(--on-strong)] hover:bg-[var(--accent-solid)]" onClick={() => doExport("png")} disabled={!!exporting || !reportData}>
-                    {exporting === "png" ? "⏳" : "📋"} PNG
+                    {exporting === "png" ? "" : ""} PNG
                   </button>
                   <button className="btn btn-secondary text-sm" onClick={() => doExport("pdf")} disabled={!!exporting || !reportData}>
-                    {exporting === "pdf" ? "⏳" : "📄"} PDF
+                    {exporting === "pdf" ? "" : ""} PDF
                   </button>
                 </div>
               </section>
@@ -2006,7 +2006,7 @@ export default function MonthlyReportPage() {
                   <button className="w-full flex items-center justify-between p-4 text-left"
                     onClick={() => setOpenNarasi((v) => !v)}>
                     <div>
-                      <p className="font-semibold text-[var(--ink-strong)] text-sm">✏️ Narasi Sesi</p>
+                      <p className="font-semibold text-[var(--ink-strong)] text-sm"><PencilIcon size={13} className="mr-1 inline align-[-2px]" /> Narasi Sesi</p>
                       <p className="text-xs text-[var(--ink-muted)] mt-0.5">{sessionsWithNarrative}/{filteredSessions.length} narasi siap</p>
                     </div>
                     <span className="text-[var(--ink-muted)] text-sm">{openNarasi ? "▲" : "▼"}</span>
@@ -2016,7 +2016,7 @@ export default function MonthlyReportPage() {
                       <div className="pt-3 flex gap-2">
                         <button className="btn btn-secondary text-xs"
                           onClick={handleGenerateLocalNarratives}>
-                          ⚡ Generate Narasi Gratis
+                          <BoltIcon size={13} className="mr-1 inline align-[-2px]" /> Generate Narasi Gratis
                         </button>
                         <span className="text-xs text-[var(--ink-muted)] self-center">
                           Isi narasi kosong dari catatan singkat/topik/perhatian tanpa AI.
@@ -2059,9 +2059,9 @@ export default function MonthlyReportPage() {
                     onClick={() => setOpenTeks((v) => !v)}>
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold text-[var(--ink-strong)] text-sm">📝 Teks Laporan</p>
+                        <p className="font-semibold text-[var(--ink-strong)] text-sm"><PencilIcon size={13} className="mr-1 inline align-[-2px]" /> Teks Laporan</p>
                         {(report.summaryText || report.quote) && (
-                          <span className="text-xs bg-[var(--accent-tint)] text-[var(--ink-accent)] font-bold px-1.5 py-0.5 rounded-full">✨ AI</span>
+                          <span className="text-xs bg-[var(--accent-tint)] text-[var(--ink-accent)] font-bold px-1.5 py-0.5 rounded-full"><SparkleIcon size={13} className="mr-1 inline align-[-2px]" /> AI</span>
                         )}
                       </div>
                       <p className="text-xs text-[var(--ink-muted)] mt-0.5">Ringkasan · Catatan guru · Kutipan</p>
@@ -2073,7 +2073,7 @@ export default function MonthlyReportPage() {
                       <div className="pt-3 flex gap-2">
                         <button className="btn btn-secondary text-xs"
                           onClick={handleGenerateLocalTexts}>
-                          ⚡ Generate Teks Gratis
+                          <BoltIcon size={13} className="mr-1 inline align-[-2px]" /> Generate Teks Gratis
                         </button>
                         <span className="text-xs text-[var(--ink-muted)] self-center">
                           Isi ringkasan, catatan guru & kutipan dari data sesi tanpa AI.
@@ -2143,7 +2143,7 @@ export default function MonthlyReportPage() {
                     onClick={() => setOpenPlan((value) => !value)}>
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold text-[var(--ink-strong)] text-sm">🎯 Fokus & Rencana Berikutnya</p>
+                        <p className="font-semibold text-[var(--ink-strong)] text-sm"><TargetIcon size={13} className="mr-1 inline align-[-2px]" /> Fokus & Rencana Berikutnya</p>
                         {hasPlan && <span className="text-xs bg-[var(--bg-success)] text-[var(--ink-success)] font-bold px-1.5 py-0.5 rounded-full">Siap</span>}
                       </div>
                       <p className="text-xs text-[var(--ink-muted)] mt-0.5">
@@ -2195,7 +2195,7 @@ export default function MonthlyReportPage() {
                             <p className="pt-3 text-sm text-[var(--ink-muted)]">Belum ada rencana. Mulai dari target yang spesifik, cara belajar, dan indikator keberhasilan.</p>
                           )}
                           <button className="btn btn-secondary w-full text-sm" onClick={() => setEditingPlan(true)}>
-                            {hasPlan ? "✏️ Edit Rencana" : "＋ Susun Rencana"}
+                            {hasPlan ? " Edit Rencana" : "＋ Susun Rencana"}
                           </button>
                           {settings?.ai?.enabled && settings.ai.apiKey && (
                             <p className="pt-1 text-xs text-[var(--ink-muted)]">

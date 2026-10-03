@@ -27,10 +27,7 @@ import { settingsDirtyPatch } from "../lib/settingsDirtyPatch";
 import Toggle from "../components/Toggle";
 import PinConfirmModal from "../components/PinConfirmModal";
 import ExitAppModal from "../components/ExitAppModal";
-import {
-  UserIcon, KeyIcon, BankIcon, RobotIcon, BackupIcon,
-  TrashIcon, ReceiptIcon, PhoneIcon,
-} from "../components/icons";
+import { UserIcon, KeyIcon, BankIcon, RobotIcon, BackupIcon, TrashIcon, ReceiptIcon, PhoneIcon, CameraIcon, ChartIcon, SearchIcon, CloudIcon, RefreshIcon, DownloadIcon, UploadIcon } from "../components/icons";
 
 const WORDLIST = [
   "apel","baju","cabe","dadu","elang","fajar","gula","harap","ikan","jalan",
@@ -806,7 +803,7 @@ export default function SettingsPage() {
             <input id="set-logo" ref={fileRef} type="file" accept="image/*" onChange={handleLogo} className="hidden" />
             <button onClick={() => fileRef.current?.click()}
               className="flex items-center gap-2 text-sm text-[var(--ink-muted)] bg-[var(--bg-subtle)] hover:bg-[var(--bg-subtle)] px-3 py-2 rounded-xl font-medium transition-colors">
-              📷 {logoUrl ? "Ganti Logo" : "Upload Logo"}
+              <CameraIcon size={13} className="mr-1 inline align-[-2px]" /> {logoUrl ? "Ganti Logo" : "Upload Logo"}
             </button>
           </div>
         </div>
@@ -1074,11 +1071,11 @@ export default function SettingsPage() {
                 if (!backupPass || backupPass.length < MIN_PASS) { toastCtx.info(`Isi Kata Sandi Enkripsi (min ${MIN_PASS} karakter) dulu!`); return; }
                 requireFinancialPin("exportBackup");
               }}>
-              ⬇️ Backup ke File
+              <DownloadIcon size={13} className="mr-1 inline align-[-2px]" /> Backup ke File
             </button>
             <button className="w-full py-2 rounded-xl bg-[var(--brand-tint-strong)] text-[var(--ink-brand)] text-sm font-medium hover:bg-[var(--brand-tint-strong)] transition-colors"
               onClick={() => requireFinancialPin("exportCsv")}>
-              📊 Ekspor data ke CSV (terbaca)
+              <ChartIcon size={13} className="mr-1 inline align-[-2px]" /> Ekspor data ke CSV (terbaca)
             </button>
             <p className="text-xs text-[var(--ink-brand)]">CSV terbaca tanpa app (cadangan tambahan). Backup .jles tetap utama (terenkripsi).</p>
             <div className="border-t border-[var(--brand-tint-strong)] pt-2.5 space-y-2">
@@ -1092,7 +1089,7 @@ export default function SettingsPage() {
                   if (!confirm("Restore akan mengganti semua data saat ini. Lanjut?")) return;
                   requireFinancialPin("restore");
                 }}>
-                ♻️ Restore dari File
+                <RefreshIcon size={13} className="mr-1 inline align-[-2px]" /> Restore dari File
               </button>
               {/* Pratinjau file tanpa menyentuh data: menjawab "file-nya atau
                   kata sandinya yang salah?" sebelum tutor menekan Restore. */}
@@ -1114,7 +1111,7 @@ export default function SettingsPage() {
                     setRestoreProgress("");
                   }
                 }}>
-                🔍 Cek file ini bisa dibuka
+                <SearchIcon size={13} className="mr-1 inline align-[-2px]" /> Cek file ini bisa dibuka
               </button>
               {restoreProgress && (
                 <p role="status" aria-live="polite" className="rounded-lg bg-[var(--brand-tint-strong)] px-2.5 py-2 text-xs font-medium text-[var(--ink-brand)]">
@@ -1143,7 +1140,7 @@ export default function SettingsPage() {
                   if (!backupPass || backupPass.length < MIN_PASS) { toastCtx.info(`Isi Kata Sandi Enkripsi (min ${MIN_PASS} karakter) dulu!`); return; }
                   requireFinancialPin("driveBackup");
                 }}>
-                ☁️⬆️ Backup ke Drive
+                <CloudIcon size={13} className="mr-1 inline align-[-2px]" /><UploadIcon size={13} className="mr-1 inline align-[-2px]" /> Backup ke Drive
               </button>
               <button className="w-full py-2 rounded-xl bg-[var(--bg-success)] text-[var(--ink-success)] text-sm font-medium hover:bg-[var(--bg-success-strong)] transition-colors"
                 onClick={() => {
@@ -1151,12 +1148,12 @@ export default function SettingsPage() {
                   if (!confirm("Restore dari Google Drive akan mengganti semua data saat ini. Lanjut?")) return;
                   requireFinancialPin("driveRestore");
                 }}>
-                ☁️♻️ Restore dari Drive
+                <CloudIcon size={13} className="mr-1 inline align-[-2px]" /><RefreshIcon size={13} className="mr-1 inline align-[-2px]" /> Restore dari Drive
               </button>
               <button disabled={verifying}
                 className="w-full py-2 rounded-xl bg-[var(--surface-strong)] text-[var(--ink-success)] text-sm font-medium border border-[var(--border-success)] hover:bg-[var(--bg-success)] transition-colors disabled:opacity-60"
                 onClick={doVerifyDrive}>
-                {verifying ? "Memverifikasi..." : "🔎 Verifikasi backup Drive"}
+                {verifying ? "Memverifikasi..." : <><SearchIcon size={13} className="mr-1 inline align-[-2px]" /> Verifikasi backup Drive</>}
               </button>
               <p className="text-xs text-[var(--ink-success)]">1 file di-overwrite tiap backup — Drive simpan riwayat versi.</p>
               <label className="flex items-center gap-2.5 pt-2 border-t border-[var(--border-success)] cursor-pointer">
@@ -1228,7 +1225,7 @@ export default function SettingsPage() {
               requireFinancialPin("resetAll");
             }}
             className="w-full py-3 rounded-xl bg-[var(--bg-danger-strong)] text-[var(--on-strong)] text-sm font-bold hover:bg-[var(--bg-danger-strong)] transition-colors">
-            🗑️ Hapus Semua Data
+            <TrashIcon size={13} className="mr-1 inline align-[-2px]" /> Hapus Semua Data
           </button>
         </div>
       </Section>
@@ -1270,7 +1267,7 @@ export default function SettingsPage() {
           <button
             onClick={() => setConfirmClearCache(true)}
             className="w-full py-2.5 rounded-xl bg-[var(--bg-subtle)] text-[var(--ink-strong)] text-sm font-semibold hover:bg-[var(--bg-subtle)] transition-colors">
-            🧹 Bersihkan Cache (butuh internet setelahnya)
+            <TrashIcon size={13} className="mr-1 inline align-[-2px]" /> Bersihkan Cache (butuh internet setelahnya)
           </button>
         </div>
       </Section>

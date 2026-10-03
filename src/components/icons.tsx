@@ -322,3 +322,89 @@ export function ChecklistIcon(props: IconProps) {
     </IconBase>
   );
 }
+
+export function BoltIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M13.5 2.5 5 13.5h5l-1 8 9-11.5h-5.2l1.7-7.5Z" />
+    </IconBase>
+  );
+}
+
+export function SearchIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="10.5" cy="10.5" r="6" />
+      <path d="m15 15 4.5 4.5" />
+    </IconBase>
+  );
+}
+
+export function ClockIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7v5.2l3.2 2" />
+    </IconBase>
+  );
+}
+
+export function DownloadIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 3.5v11" />
+      <path d="m7.5 10 4.5 4.5L16.5 10" />
+      <path d="M4.5 19.5h15" />
+    </IconBase>
+  );
+}
+
+export function DocumentIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M6 3.5h7.5L19 9v11.5H6V3.5Z" />
+      <path d="M13 3.5V9h6" />
+      <path d="M9 13h6M9 16.5h4" />
+    </IconBase>
+  );
+}
+
+/** Jam pasir — status "sedang diproses" pada tombol. */
+export function HourglassIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M7 3.5h10" />
+      <path d="M7 20.5h10" />
+      <path d="M8 3.5v3.2c0 2 4 2.8 4 5.3s-4 3.3-4 5.3v3.2" />
+      <path d="M16 3.5v3.2c0 2-4 2.8-4 5.3s4 3.3 4 5.3v3.2" />
+    </IconBase>
+  );
+}
+
+/** Cincin bergaris miring — penanda "tidak hadir / batal" pada kalender. */
+export function BanIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="m6 6 12 12" />
+    </IconBase>
+  );
+}
+
+export function FolderIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M3.5 7.5A1.5 1.5 0 0 1 5 6h4l2 2.5h8A1.5 1.5 0 0 1 20.5 10v7.5A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5v-10Z" />
+    </IconBase>
+  );
+}
+
+export function UploadIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 19.5v-11" />
+      <path d="m7.5 13 4.5-4.5L16.5 13" />
+      <path d="M4.5 4.5h15" />
+    </IconBase>
+  );
+}

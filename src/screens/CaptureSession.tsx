@@ -1,5 +1,5 @@
 import Skeleton from "../components/Skeleton";
-import { TargetIcon, BookIcon, SmileIcon, ClipboardIcon, PencilIcon, CameraIcon, ChartIcon, ImageIcon } from "../components/icons";
+import { TargetIcon, BookIcon, SmileIcon, ClipboardIcon, PencilIcon, CameraIcon, ChartIcon, ImageIcon, RefreshIcon, ChecklistIcon, BoltIcon } from "../components/icons";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -1084,7 +1084,7 @@ export default function CaptureSession() {
                   aria-expanded={showBrowse}
                   className="flex w-full items-center justify-between gap-2 bg-[var(--surface)] px-3.5 py-3 text-left hover:bg-[var(--bg-subtle)] transition-colors">
                   <span className="text-xs font-bold text-[var(--ink-muted)] uppercase tracking-wide">
-                    📚 Pilih dari daftar bab
+                    <BookIcon size={13} className="mr-1 inline align-[-2px]" /> Pilih dari daftar bab
                   </span>
                   <span className="text-xs font-semibold text-[var(--ink-muted)]">
                     {showBrowse ? "Sembunyikan ▲" : "Lihat ▼"}
@@ -1214,7 +1214,7 @@ export default function CaptureSession() {
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={addTopicsFromInput}
                 className="text-xs text-[var(--ink-muted)] mt-1.5 hover:text-[var(--ink-brand)] transition-colors">
-                ✏️ Tambah topik custom: "{topicSearch.trim()}" ↵
+                <PencilIcon size={13} className="mr-1 inline align-[-2px]" /> Tambah topik custom: "{topicSearch.trim()}" ↵
               </button>
             )}
           </div>
@@ -1351,7 +1351,7 @@ export default function CaptureSession() {
               <div className="mt-3 border-t border-[var(--border)] pt-2 text-right">
                 <button type="button" onClick={resetEngagementFlags}
                   className="text-xs font-semibold text-[var(--ink-muted)] underline underline-offset-2 hover:text-[var(--ink-strong)]">
-                  🔄 Kosongkan kondisi &amp; mood
+                  <RefreshIcon size={13} className="mr-1 inline align-[-2px]" /> Kosongkan kondisi &amp; mood
                 </button>
               </div>
             )}
@@ -1385,7 +1385,7 @@ export default function CaptureSession() {
               className="flex items-center justify-between w-full px-4 py-3 bg-[var(--surface)] text-sm font-semibold text-[var(--ink-muted)] hover:bg-[var(--bg-subtle)] transition-colors"
               aria-expanded={showBehavior}
               onClick={() => setShowBehavior(!showBehavior)}>
-              <span>🧩 Observasi Lanjutan <span className="font-normal text-[var(--ink-muted)]">(opsional — buat laporan lebih kaya)</span></span>
+              <span><ChecklistIcon size={13} className="mr-1 inline align-[-2px]" /> Observasi Lanjutan <span className="font-normal text-[var(--ink-muted)]">(opsional — buat laporan lebih kaya)</span></span>
               <div className="flex items-center gap-2">
                 {behaviorTags.length > 0 && (
                   <span className="bg-[var(--accent-tint)] text-[var(--ink-purple)] text-xs font-bold px-2 py-0.5 rounded-full">{behaviorTags.length}</span>
@@ -1452,22 +1452,22 @@ export default function CaptureSession() {
               <button type="button"
                 onClick={() => setResponseTag("correct-independent")}
                 className="px-3 py-2 rounded-full text-sm font-semibold bg-[var(--bg-success)] text-[var(--ink-success)] border border-[var(--border-success)] hover:bg-[var(--bg-success)] transition-colors">
-                ⭐ Lancar
+                 Lancar
               </button>
               <button type="button"
                 onClick={() => setResponseTag("partial-correct")}
                 className="px-3 py-2 rounded-full text-sm font-semibold bg-[var(--bg-warn)] text-[var(--ink-warn)] border border-[var(--border-warn)] hover:bg-[var(--bg-warn)] transition-colors">
-                🟡 Butuh Latihan
+                 Butuh Latihan
               </button>
               <button type="button"
                 onClick={() => setResponseTag("misconception")}
                 className="px-3 py-2 rounded-full text-sm font-semibold bg-[var(--bg-danger)] text-[var(--ink-danger)] border border-[var(--border-danger)] hover:bg-[var(--bg-danger)] transition-colors">
-                🔴 Miskonsepsi
+                 Miskonsepsi
               </button>
               <button type="button"
                 onClick={() => { setResponseTag(undefined); setNeedsWork(""); }}
                 className="px-3 py-2 rounded-full text-sm font-semibold bg-[var(--surface-strong)] text-[var(--ink-muted)] border border-[var(--border)] hover:bg-[var(--surface)] transition-colors">
-                🔄 Kosongkan
+                <RefreshIcon size={13} className="mr-1 inline align-[-2px]" /> Kosongkan
               </button>
             </div>
             <p className="text-xs text-[var(--ink-muted)] mt-2">
@@ -1695,7 +1695,7 @@ export default function CaptureSession() {
                 <button type="button"
                   className="text-xs text-[var(--ink-brand)] hover:text-[var(--ink-brand)] font-semibold"
                   onClick={handleLocalGenerate}>
-                  ⚡ Rangkum Cepat
+                  <BoltIcon size={13} className="mr-1 inline align-[-2px]" /> Rangkum Cepat
                 </button>
               )}
             </div>
@@ -1710,19 +1710,19 @@ export default function CaptureSession() {
                   {briefLastSession?.shortNote && (
                     <button type="button" onClick={() => appendNoteChip(`Melanjutkan sesi lalu: ${briefLastSession.shortNote}.`)}
                       className="inline-flex min-h-[36px] items-center text-xs text-[var(--ink-muted)] bg-[var(--surface)] border border-[var(--border)] rounded-full px-3 py-1 hover:bg-[var(--brand-tint)] hover:text-[var(--ink-brand)] transition-colors">
-                      🔁 Sesi lalu
+                      <RefreshIcon size={13} className="mr-1 inline align-[-2px]" /> Sesi lalu
                     </button>
                   )}
                   {briefFollowUps.slice(0, 3).map((f) => (
                     <button key={f.id} type="button" onClick={() => appendNoteChip(`Fokus berikutnya: ${f.text}.`)}
                       className="inline-flex min-h-[36px] items-center text-xs text-[var(--ink-warn)] bg-[var(--bg-warn)] border border-[var(--border-warn)] rounded-full px-3 py-1 hover:bg-[var(--bg-warn)] transition-colors">
-                      🔁 {f.text.length > 28 ? f.text.slice(0, 28) + "…" : f.text}
+                      <RefreshIcon size={13} className="mr-1 inline align-[-2px]" /> {f.text.length > 28 ? f.text.slice(0, 28) + "…" : f.text}
                     </button>
                   ))}
                   {needsWork && (
                     <button type="button" onClick={() => appendNoteChip(`Fokus perbaikan: ${needsWork}.`)}
                       className="inline-flex min-h-[36px] items-center text-xs text-[var(--ink-danger)] bg-[var(--bg-danger)] border border-[var(--border-danger)] rounded-full px-2.5 py-1 hover:bg-[var(--bg-danger)] transition-colors">
-                      🎯 Fokus perbaikan
+                      <TargetIcon size={13} className="mr-1 inline align-[-2px]" /> Fokus perbaikan
                     </button>
                   )}
                 </div>
@@ -1842,7 +1842,7 @@ export default function CaptureSession() {
             <div className="grid grid-cols-2 gap-3">
               <button onClick={() => cameraRef.current?.click()}
                 className="flex flex-col items-center justify-center gap-2 py-12 rounded-2xl border-2 border-dashed border-[var(--border)] text-[var(--ink-muted)] hover:border-[var(--border-brand)] hover:text-[var(--ink-brand)] transition-colors bg-[var(--surface)]">
-                <span className="text-4xl">📷</span>
+                <span className="text-4xl"><CameraIcon size={30} className="mr-1 inline align-[-2px]" /></span>
                 <div className="text-center">
                   <p className="font-semibold text-sm">Ambil Foto</p>
                   <p className="text-xs mt-0.5 text-[var(--ink-muted)]">Buka kamera</p>
@@ -1850,7 +1850,7 @@ export default function CaptureSession() {
               </button>
               <button onClick={() => galleryRef.current?.click()}
                 className="flex flex-col items-center justify-center gap-2 py-12 rounded-2xl border-2 border-dashed border-[var(--border)] text-[var(--ink-muted)] hover:border-[var(--border-success)] hover:text-[var(--ink-success)] transition-colors bg-[var(--surface)]">
-                <span className="text-4xl">🖼️</span>
+                <span className="text-4xl"><ImageIcon size={30} className="mr-1 inline align-[-2px]" /></span>
                 <div className="text-center">
                   <p className="font-semibold text-sm">Pilih dari Galeri</p>
                   <p className="text-xs mt-0.5 text-[var(--ink-muted)]">Cari di gallery</p>
@@ -1886,7 +1886,7 @@ export default function CaptureSession() {
           ) : (
             <button type="button" onClick={() => setShowSigPad(true)}
               className="flex flex-col items-center justify-center gap-3 w-full py-10 rounded-2xl border-2 border-dashed border-[var(--border)] text-[var(--ink-muted)] hover:border-[var(--border-accent)] hover:text-[var(--ink-accent)] transition-colors bg-[var(--surface)]">
-              <span className="text-4xl">✍️</span>
+              <span className="text-4xl"><PencilIcon size={30} className="mr-1 inline align-[-2px]" /></span>
               <div className="text-center">
                 <p className="font-semibold text-sm">Tanda Tangan Murid</p>
                 <p className="text-xs mt-0.5 text-[var(--ink-muted)]">Tap untuk buka signature pad</p>

@@ -4,6 +4,7 @@ import type { StudentMap } from "../../lib/studentColor";
 import { dayLabel } from "../../lib/format";
 import { addDays } from "../../lib/calendar";
 import SessionPill, { type SessionActions } from "./SessionPill";
+import { PencilIcon } from "../../components/icons";
 
 interface Props extends SessionActions {
   anchor: string;
@@ -226,13 +227,13 @@ export default function DayView({
                 onClick={() => isEditable && (s.date < today ? actions.onResolveMissed(s) : actions.onEdit(s))}>
                 <div className="px-2 py-1">
                   <p className="font-bold text-xs leading-tight truncate" style={{ color }}>
-                    {info?.name ?? "—"}{isDone ? " ✓" : ""}{s.status === "NO_SHOW" ? " 🚫" : ""}{s.seriesId ? " 🔁" : ""}
+                    {info?.name ?? "—"}{isDone ? " ✓" : ""}{s.status === "NO_SHOW" ? " " : ""}{s.seriesId ? " " : ""}
                   </p>
                   <p className="opacity-70 truncate" style={{ color, fontSize: 10 }}>
                     {s.time} – {endLabel} · {s.durationHours}j
                   </p>
                 </div>
-                {isEditable && <span className="absolute top-1 right-1 text-xs opacity-50">✏️</span>}
+                {isEditable && <span className="absolute top-1 right-1 text-xs opacity-50"><PencilIcon size={13} className="mr-1 inline align-[-2px]" /></span>}
               </button>
             );
           })}

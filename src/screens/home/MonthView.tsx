@@ -5,6 +5,7 @@ import { monthLabel, monthOf, dayLabel } from "../../lib/format";
 import { prevMonth, nextMonth, calendarCells, DOW_LABELS } from "../../lib/calendar";
 import DayDetail from "./DayDetail";
 import type { SessionActions } from "./SessionPill";
+import { BanIcon } from "../../components/icons";
 
 interface Props extends SessionActions {
   calMonth: string;
@@ -92,7 +93,7 @@ export default function MonthView({
                       title={`${info?.name ?? "—"}${s.time ? ` · ${s.time}` : ""}${s.status === "DONE" ? " · selesai" : ""}`}
                       style={{ background: color + (s.status === "DONE" ? "18" : "30"), color, fontSize: 11, fontWeight: 700, lineHeight: 1.35 }}>
                       {s.status === "DONE" && <span style={{ fontSize: 11 }}>✓</span>}
-                      {s.status === "NO_SHOW" && <span style={{ fontSize: 11 }}>🚫</span>}
+                      {s.status === "NO_SHOW" && <span style={{ fontSize: 11 }}><BanIcon size={13} className="mr-1 inline align-[-2px]" /></span>}
                       <span className="truncate">{info?.name?.split(" ")[0] ?? "—"}</span>
                     </div>
                   );

@@ -5,6 +5,7 @@ import type { Payment, Student } from "../../db/types";
 import { formatRupiah, todayWIB, monthLabel, periodLabel } from "../../lib/format";
 import { downloadBlob } from "../../lib/download";
 import { escapeCsvCell } from "../../lib/csv";
+import { DownloadIcon } from "../../components/icons";
 
 const monthsBetween = (a: string, b: string): number => {
   const [ay, am] = a.split("-").map(Number);
@@ -222,7 +223,7 @@ ${invoiceRows.join("\n")}
         </div>
         <button onClick={exportAuditCsv}
           className="w-full py-2 rounded-lg border border-[var(--border)] text-[var(--ink-muted)] text-sm font-medium hover:bg-[var(--surface)] transition-colors">
-          ⬇ Ekspor CSV {auditYear}
+          <DownloadIcon size={13} className="mr-1 inline align-[-2px]" /> Ekspor CSV {auditYear}
         </button>
 
         <div className="pt-2 border-t border-[var(--border)]">

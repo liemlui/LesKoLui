@@ -6,6 +6,7 @@ import { Z } from "../../lib/zIndex";
 import { ENGAGEMENT_LEVELS, scoreLabel, engagementScoreBasis, calcEngagementScore } from "../../lib/engagement";
 import { BEHAVIOR_TAGS, RESPONSE_TAGS, getResponseTag } from "../../lib/responseTaxonomy";
 import { MOODS } from "../../lib/moods";
+import { TrashIcon, PencilIcon } from "../../components/icons";
 
 interface SessionDetailModalProps {
   detailSession: Session | null;
@@ -232,7 +233,7 @@ export default function SessionDetailModal({
                 {onUpdateSession && !editing && (
                   <button type="button" onClick={startEditing}
                     className="text-xs font-semibold text-[var(--ink-purple)] underline underline-offset-2 hover:text-[var(--ink-purple)]">
-                    ✏️ Koreksi
+                    <PencilIcon size={13} className="mr-1 inline align-[-2px]" /> Koreksi
                   </button>
                 )}
               </div>
@@ -421,7 +422,7 @@ export default function SessionDetailModal({
             <button
               onClick={(e) => { e.stopPropagation(); setDetailSession(null); openEditNote(s); }}
               className="w-full py-2.5 rounded-xl border border-[var(--border)] text-[var(--ink-muted)] text-sm font-medium hover:bg-[var(--surface)] transition-colors">
-              ✏️ Edit Catatan &amp; Nilai Sesi
+              <PencilIcon size={13} className="mr-1 inline align-[-2px]" /> Edit Catatan &amp; Nilai Sesi
             </button>
           )}
 
@@ -430,7 +431,7 @@ export default function SessionDetailModal({
             <button
               onClick={() => setShowDeletePin(true)}
               className="w-full py-2.5 rounded-xl border border-[var(--border-danger)] text-[var(--ink-danger)] text-sm font-medium hover:bg-[var(--bg-danger)] transition-colors">
-              🗑️ Hapus Sesi
+              <TrashIcon size={13} className="mr-1 inline align-[-2px]" /> Hapus Sesi
             </button>
           ) : (
             <div className="space-y-2 border border-[var(--border-danger)] rounded-xl p-3 bg-[var(--bg-danger)]">

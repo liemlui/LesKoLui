@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { APP_VERSION, CHANGELOG, type ChangelogEntry } from "../lib/version";
 import { Z } from "../lib/zIndex";
+import { SparkleIcon } from "../components/icons";
 
 const STORAGE_KEY = "leskolui-last-seen-version";
 
@@ -78,7 +79,7 @@ export default function ChangelogModal() {
             onClick={handleClose}
             className="w-full py-3 rounded-xl bg-[var(--brand-solid)] hover:bg-[var(--brand-solid)] text-[var(--on-strong)] font-semibold text-sm transition-colors"
           >
-            Mengerti, Terima Kasih ✨
+            Mengerti, Terima Kasih <SparkleIcon size={13} className="mr-1 inline align-[-2px]" />
           </button>
         </div>
       </div>

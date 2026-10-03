@@ -5,6 +5,7 @@ import { dayLabel, todayWIB } from "../../lib/format";
 import { DURATIONS } from "../../lib/calendar";
 import Modal from "../../components/Modal";
 import ClockTimePicker from "../../components/ClockTimePicker";
+import { CalendarIcon, BanIcon } from "../../components/icons";
 
 type Resolution = "reschedule" | "no-show" | "cancel";
 
@@ -68,12 +69,12 @@ export default function ResolveMissedSessionModal({ session, studentName, onClos
       <div className="grid gap-2">
         <button type="button" onClick={() => setResolution("reschedule")}
           className={optionClass("reschedule", "bg-[var(--brand-tint)] border-[var(--border-brand)] text-[var(--ink-brand)]", "bg-[var(--surface-strong)] border-[var(--border)] text-[var(--ink-strong)]")}>
-          <span className="block text-sm font-semibold">📅 Jadwalkan ulang</span>
+          <span className="block text-sm font-semibold"><CalendarIcon size={13} className="mr-1 inline align-[-2px]" /> Jadwalkan ulang</span>
           <span className="block text-xs mt-0.5 opacity-70">Buat jadwal pengganti; sesi asal tidak ditagihkan.</span>
         </button>
         <button type="button" onClick={() => setResolution("no-show")}
           className={optionClass("no-show", "bg-[var(--bg-attention)] border-[var(--border-attention)] text-[var(--ink-attention)]", "bg-[var(--surface-strong)] border-[var(--border)] text-[var(--ink-strong)]")}>
-          <span className="block text-sm font-semibold">🚫 Murid tidak hadir</span>
+          <span className="block text-sm font-semibold"><BanIcon size={13} className="mr-1 inline align-[-2px]" /> Murid tidak hadir</span>
           <span className="block text-xs mt-0.5 opacity-70">Catat no-show dan tentukan kebijakan tagihannya.</span>
         </button>
         <button type="button" onClick={() => setResolution("cancel")}

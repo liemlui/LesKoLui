@@ -70,7 +70,7 @@ export default function QuickExpenseModal({ onClose, onSaved, initialDate, expen
     <div role="dialog" aria-modal="true" aria-label="Catat Pengeluaran" className={`fixed inset-0 bg-[var(--scrim)]/60 ${Z.invoice} flex items-end justify-center`}>
       <div className="w-full max-w-md bg-[var(--surface-strong)] rounded-t-2xl overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
-          <h3 className="font-bold text-base">{editing ? "✏️ Edit Pengeluaran" : "💰 Catat Pengeluaran"}</h3>
+          <h3 className="font-bold text-base">{editing ? " Edit Pengeluaran" : " Catat Pengeluaran"}</h3>
           <button aria-label="Tutup" onClick={onClose} className="text-[var(--ink-muted)] hover:text-[var(--ink-muted)] text-lg w-10 h-10 flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
         </div>
         <div className="p-4 space-y-3">
