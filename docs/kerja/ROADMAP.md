@@ -1,6 +1,7 @@
 # ROADMAP — Gelombang 2 & 3 (22 tugas)
 
 > **Status:** aktif · Diperbarui: 2026-10-03 · Baseline: v1.88.0 (gate dijalankan untuk v1.88.0: `npx tsc -b` saja — keputusan pemilik tanpa lint/tes/e2e)
+> **Penjaga yang sudah DITULIS tetapi BELUM dijalankan:** `src/__tests__/moneyGate.test.ts` (G2-04, predikatnya dipra-uji 12/12 di luar vitest) dan metrik emoji di `e2e-uiux/uiux-metrics.spec.ts` (G2-09, `test.fixme` + residual 69 ikon). Jalankan `npm test` + `npm run e2e:uiux` untuk mengubah keduanya menjadi bukti.
 > **Cara pakai:** baca ATURAN-AI §0. Tentukan tier SEBELUM mulai. Satu putaran = satu tugas (kecuali batch 📦).
 > Paralelisasi: hanya sah kalau tidak ada chat lain yang menyentuh berkas itu. Karena satu tugas bisa memegang puluhan berkas src/**, aturan default = SERIAL. Paralel butuh git worktree terpisah.
 > Kolom Tier = perkiraan; tier final ditetapkan saat tugas dimulai (§6.2 butir 1).
