@@ -7,9 +7,11 @@ import {
   listPendingFollowUps,
   completeFollowUp,
   listPastScheduledSessions,
+  listPayments,
 } from "../../db/repos";
 import type { Session } from "../../db/types";
 import { dayLabel, todayWIB, monthOf } from "../../lib/format";
+import { invoiceAgeDays } from "../../lib/finance";
 import { weekDates, byDay, type CalView } from "../../lib/calendar";
 import { colorForStudent, type StudentMap } from "../../lib/studentColor";
 import TodayHero from "./TodayHero";
@@ -94,6 +96,19 @@ export default function Home() {
   const follows      = (allFollowUps ?? []).filter((f) => inFilter(f.studentId));
   const missed       = (missedSchedules ?? []).filter((s) => inFilter(s.studentId));
 
+  // ── "Perlu keputusan": jumlah tagihan yang menunggu tindakan ────────────────
+  // G2-04 (K3.5) memindahkan akses uang keluar dari Beranda. Penggantinya bukan
+  // nominal, melainkan JUMLAH tagihan + jalan ke layar Uang. Umur piutang dihitung
+  // dengan aturan yang sudah dipakai Keuangan (`invoiceAgeDays`), bukan rumus baru.
+  const allPayments = useLiveQuery(() => listPayments(), []);
+  const unpaidSummary = useMemo(() => {
+    const unpaid = (allPayments ?? []).filter((p) => p.status === "UNPAID");
+    return {
+      count: unpaid.length,
+      overdue: unpaid.filter((p) => invoiceAgeDays(p, today) > 30).length,
+    };
+  }, [allPayments, today]);
+
   // ── Helpers ─────────────────────────────────────────────────────────────────
   /**
    * Umpan balik hasil aksi dari modal Beranda (audit L-08).
@@ -157,14 +172,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Agenda "Hari Ini" */}
-      <OperationalSnapshot
-        activeStudents={(students ?? []).length}
-        weekDone={(currentWeekSessions ?? []).filter((s) => s.status === "DONE").length}
-        weekPlanned={(currentWeekSessions ?? []).filter((s) => s.status === "DONE" || s.status === "SCHEDULED").length}
-        weeklyTrend={weeklyTrend ?? []}
-        onActiveStudentsClick={() => navigate("/students")}
-      />
+      {/* Satu blok "Hari Ini": agenda + ringkasan minggu (B-04/B-05, Q6 = A). */}
       <TodayHero
         today={today}
         sessions={todayList}
@@ -173,7 +181,31 @@ export default function Home() {
         // Audit B-01: `useLiveQuery` mengembalikan undefined selama query pertama
         // berjalan — itu "belum siap", bukan "tidak ada sesi hari ini".
         loading={todayHeroLoadState(todaySessions, students) === "loading"}
+        snapshot={(
+          <OperationalSnapshot
+            activeStudents={(students ?? []).length}
+            weekDone={(currentWeekSessions ?? []).filter((s) => s.status === "DONE").length}
+            weekPlanned={(currentWeekSessions ?? []).filter((s) => s.status === "DONE" || s.status === "SCHEDULED").length}
+            weeklyTrend={weeklyTrend ?? []}
+            onActiveStudentsClick={() => navigate("/students")}
+          />
+        )}
         {...actions} />
+
+      {/* "Perlu keputusan" — pengganti akses uang yang dilepas dari Beranda:
+          hanya JUMLAH tagihan, tanpa satu pun nominal (TASK-08 Langkah 3). */}
+      {unpaidSummary.count > 0 && (
+        <div className="mx-4 mb-2 flex items-center justify-between gap-2 rounded-xl border border-[var(--border-warn)] bg-[var(--bg-warn)] px-3 py-2">
+          <p className="text-xs font-semibold text-[var(--ink-warn)]">
+            {unpaidSummary.count} tagihan perlu ditindak
+            {unpaidSummary.overdue > 0 ? ` — ${unpaidSummary.overdue} lewat 30 hari` : ""}
+          </p>
+          <button onClick={() => navigate("/payments?tab=tagihan")}
+            className="shrink-0 min-h-[44px] rounded-lg px-2 text-xs font-bold text-[var(--ink-warn)] underline underline-offset-2">
+            Lihat di Uang ▸
+          </button>
+        </div>
+      )}
 
       {/* Perlu Perhatian */}
       <div>

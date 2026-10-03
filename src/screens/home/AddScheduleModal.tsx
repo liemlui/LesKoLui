@@ -118,14 +118,29 @@ export default function AddScheduleModal({ date, students, onClose, onResult }: 
       {conflicts.length > 0 && (
         <div className="bg-[var(--bg-attention)] border border-[var(--border-attention)] rounded-xl p-3">
           <p className="text-sm font-semibold text-[var(--ink-attention)] mb-1">⚠️ Berpotensi tabrakan</p>
+          {/* B-02: peringatan bentrok tidak boleh murni informatif — ia harus
+              menyebut jumlahnya dan menyebut cakupannya dengan istilah yang sama
+              seperti EditSessionModal ("Sesi ini saja" / "Hari ini dan semua sesi
+              berikutnya"), supaya tutor tahu apa yang benar-benar ia simpan. */}
+          <p className="text-xs text-[var(--ink-attention)] mb-1">
+            Bentrok dengan {conflicts.length} sesi lain pada jam ini
+            {repeat ? " — hari ini dan semua sesi berikutnya." : "."}
+          </p>
           {conflicts.slice(0, 4).map((c, i) => (
             <p key={i} className="text-xs text-[var(--ink-attention)]">{c.date} {c.time} — {c.studentName}</p>
           ))}
           {conflicts.length > 4 && <p className="text-xs text-[var(--ink-attention)]">+{conflicts.length - 4} lainnya</p>}
         </div>
       )}
-      <button onClick={handleSave} disabled={saving} className="btn-primary w-full py-3 font-semibold">
-        {saving ? "Menyimpan..." : repeat ? "Buat Jadwal Berulang" : "Simpan Jadwal"}
+      <button onClick={handleSave} disabled={saving}
+        className={conflicts.length > 0
+          ? "w-full py-3 rounded-xl font-semibold bg-[var(--bg-attention-strong)] text-[var(--on-strong)] hover:bg-[var(--bg-attention-strong)] disabled:opacity-50 transition-colors"
+          : "btn-primary w-full py-3 font-semibold"}>
+        {saving
+          ? "Menyimpan..."
+          : conflicts.length > 0
+            ? `Tetap simpan (${conflicts.length} bentrok)`
+            : repeat ? "Buat Jadwal Berulang" : "Simpan Jadwal"}
       </button>
     </Modal>
   );

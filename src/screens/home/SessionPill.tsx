@@ -33,7 +33,9 @@ function SessionPill({ session: s, studentMap, today, dateCtx, onEdit, onCapture
       <div className="w-1 self-stretch rounded-full flex-shrink-0 mt-1" style={{ background: color, minHeight: 28 }} />
       <div className={`flex-1 bg-[var(--surface-strong)] rounded-xl px-3 py-2 shadow-sm border transition-colors ${isMissed ? "border-[var(--border-attention)] bg-[var(--bg-attention)]" : "border-[var(--border)] hover:border-[var(--brand-tint-strong)]"}`}>
         <div className="flex items-start justify-between gap-2">
-          <button className="min-w-0 text-left flex-1" onClick={() => isMissed ? onResolveMissed(s) : isScheduled && onEdit(s)}>
+          <button className="min-w-0 text-left flex-1"
+            aria-label={isMissed ? `Kelola sesi terlewat ${info?.name ?? "murid"}` : `Ubah jadwal ${info?.name ?? "murid"}`}
+            onClick={() => isMissed ? onResolveMissed(s) : isScheduled && onEdit(s)}>
             <p className="text-sm font-semibold truncate" style={{ color }}>{info?.name ?? "—"}</p>
             <p className="text-xs text-[var(--ink-muted)]">
               {s.time ? `${s.time} · ` : ""}{s.durationHours}j
@@ -59,7 +61,7 @@ function SessionPill({ session: s, studentMap, today, dateCtx, onEdit, onCapture
           ) : (isToday || isScheduled) ? (
             <button onClick={() => onCapture(s.id)} aria-label={`Catat sesi ${info?.name ?? "murid"}`}
               className="text-xs bg-[var(--brand-solid)] text-[var(--on-strong)] px-3 py-1.5 rounded-lg font-semibold flex-shrink-0 hover:bg-[var(--brand-solid)] transition-colors">
-              ✏️ Catat
+              Catat Sesi
             </button>
           ) : null}
         </div>

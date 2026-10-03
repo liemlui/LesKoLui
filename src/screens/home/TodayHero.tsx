@@ -1,4 +1,5 @@
 import type { Session } from "../../db/types";
+import type { ReactNode } from "react";
 import type { StudentMap } from "../../lib/studentColor";
 import Badge from "../../components/Badge";
 import EmptyState from "../../components/EmptyState";
@@ -20,10 +21,15 @@ interface Props extends SessionActions {
    * selama query pertama berjalan — itulah yang diteruskan ke sini.
    */
   loading?: boolean;
+  /**
+   * Ringkasan minggu (B-05/Q6 = A) — disuntikkan sebagai ANAK dari blok yang sama
+   * supaya Beranda punya satu blok utama "Hari Ini", bukan dua blok bersaing.
+   */
+  snapshot?: ReactNode;
 }
 
 /** Agenda-first hero v2: progress bar, visual separators between time blocks, badge summaries. */
-export default function TodayHero({ today, sessions, studentMap, onAdd, loading = false, ...actions }: Props) {
+export default function TodayHero({ today, sessions, studentMap, onAdd, loading = false, snapshot, ...actions }: Props) {
   const ordered = [...sessions].sort((a, b) => (a.time ?? "").localeCompare(b.time ?? ""));
   const done    = sessions.filter((s) => s.status === "DONE").length;
   const waiting = sessions.filter((s) => s.status === "SCHEDULED").length;
@@ -53,7 +59,7 @@ export default function TodayHero({ today, sessions, studentMap, onAdd, loading 
           )}
         </div>
         <button onClick={() => onAdd(today)}
-          className="flex items-center gap-1 text-xs font-semibold text-[var(--ink-brand)] bg-[var(--brand-tint)] hover:bg-[var(--brand-tint-strong)] px-2.5 py-1.5 rounded-lg transition-colors">
+          className="flex min-h-[44px] items-center gap-1 px-3 text-xs font-semibold text-[var(--on-strong)] bg-[var(--brand-solid)] hover:bg-[var(--brand-solid)] rounded-lg transition-colors">
           + Jadwal
         </button>
       </div>
@@ -107,6 +113,9 @@ export default function TodayHero({ today, sessions, studentMap, onAdd, loading 
           })}
         </div>
       )}
+
+      {/* Satu blok "Hari Ini": agenda + ringkasan minggu. Selalu terlihat. */}
+      {snapshot}
     </div>
   );
 }

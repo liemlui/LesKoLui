@@ -21,22 +21,16 @@ export default function OperationalSnapshot({
     ? `${weekDone}/${weekPlanned} sesi tercatat`
     : "Belum ada agenda";
 
+  // B-05 (Q6 = A): blok ini TIDAK lagi berdiri sendiri dengan judulnya sendiri —
+  // ia digabungkan ke blok "Hari Ini" (`TodayHero`) supaya Beranda punya satu blok
+  // utama, bukan dua yang bersaing. Karena itu tidak ada `h2` di sini.
   return (
     <section
-      className="mx-4 mb-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] shadow-sm overflow-hidden"
-      aria-labelledby="operational-title"
+      className="mt-3 border-t border-[var(--border)] pt-3"
+      aria-label="Ringkasan minggu ini"
     >
-      {/* ── Header ── */}
-      <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-3 border-b border-[var(--border)]">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--ink-muted)]">Pusat Tindakan</p>
-          <h2 id="operational-title" className="text-base font-bold text-[var(--ink-strong)]">Operasional hari ini</h2>
-          <p className="mt-0.5 text-xs text-[var(--ink-muted)]">Ringkasan yang bisa langsung ditindaklanjuti.</p>
-        </div>
-      </div>
-
       {/* ── Weekly context and student shortcut ── */}
-      <div className="p-4 space-y-3">
+      <div className="space-y-3">
         {/* Secondary row: Minggu Ini + Murid Aktif */}
         <div className="grid grid-cols-2 gap-3">
           {/* Minggu Ini */}
@@ -58,8 +52,9 @@ export default function OperationalSnapshot({
                 </div>
               </div>
             )}
-            {/* Sparkline tren 4 minggu terakhir — konteks historis di card Minggu Ini */}
-            {Array.isArray(weeklyTrend) && weeklyTrend.length >= 2 && (
+            {/* Sparkline tren 4 minggu terakhir. Disembunyikan bila tidak ada satu
+                pun sesi selesai — garis rata di dasar bukan informasi (B-05). */}
+            {Array.isArray(weeklyTrend) && weeklyTrend.length >= 2 && weeklyTrend.some((v) => v > 0) && (
               <div className="mt-2" aria-label="Tren sesi selesai 4 minggu terakhir">
                 <LineChart
                   series={[{

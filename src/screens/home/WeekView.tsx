@@ -1,6 +1,7 @@
 import type { Session } from "../../db/types";
 import type { StudentMap } from "../../lib/studentColor";
 import { addDays, DOW_LABELS } from "../../lib/calendar";
+import { dayLabel } from "../../lib/format";
 import DayDetail from "./DayDetail";
 import type { SessionActions } from "./SessionPill";
 
@@ -47,8 +48,12 @@ export default function WeekView({
           const label      = DOW_LABELS[new Date(date + "T00:00:00").getDay()];
           const daySess    = weekByDay.get(date) ?? [];
           const colBg      = isSelected ? "bg-[var(--accent-tint)]" : isToday ? "bg-[var(--brand-tint)]" : isPast ? "bg-[var(--surface)]" : "";
+          // Penanda hari terpilih (temuan B-06). Spec menulis `ring-indigo-400`,
+          // tetapi kelas palet langsung dilarang kontrak K4.1 → dipakai token
+          // `--border-brand` (nilai warna yang sama).
+          const colRing    = isSelected ? " ring-2 ring-inset ring-[var(--border-brand)]" : "";
           return (
-            <div key={date} className={`border-r border-[var(--border)] last:border-r-0 ${colBg}`}>
+            <div key={date} className={`border-r border-[var(--border)] last:border-r-0 ${colBg}${colRing}`}>
               <button className="w-full text-center py-1.5" onClick={() => setSelectedDay(isSelected ? null : date)}>
                 <p className={`text-xs ${isSunday ? "text-[var(--ink-danger)]" : "text-[var(--ink-muted)]"}`}>{label}</p>
                 <span className={`text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full mx-auto ${
@@ -71,7 +76,9 @@ export default function WeekView({
                     </button>
                   );
                 })}
-                <button aria-label={`Tambah jadwal ${date}`} onClick={() => onAdd(date)} className="w-full text-center text-[var(--ink-muted)] hover:text-[var(--ink-brand)] text-sm leading-none mt-0.5 py-0.5 rounded hover:bg-[var(--brand-tint)] transition-colors">+</button>
+                <button aria-label={`Tambah jadwal ${dayLabel(date)}`} title={`Tambah jadwal ${dayLabel(date)}`}
+                  onClick={() => onAdd(date)}
+                  className="w-full min-h-[36px] text-center text-[var(--ink-muted)] hover:text-[var(--ink-brand)] text-sm leading-none mt-0.5 rounded hover:bg-[var(--brand-tint)] transition-colors">+</button>
               </div>
             </div>
           );

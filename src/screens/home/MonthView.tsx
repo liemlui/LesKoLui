@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { Session } from "../../db/types";
 import type { StudentMap } from "../../lib/studentColor";
-import { monthLabel, monthOf } from "../../lib/format";
+import { monthLabel, monthOf, dayLabel } from "../../lib/format";
 import { prevMonth, nextMonth, calendarCells, DOW_LABELS } from "../../lib/calendar";
 import DayDetail from "./DayDetail";
 import type { SessionActions } from "./SessionPill";
@@ -54,7 +54,7 @@ export default function MonthView({
       </div>
       <div className="grid grid-cols-7">
         {cells.map((date, i) => {
-          if (!date) return <div key={`e-${i}`} className="min-h-[64px] border-b border-r border-[var(--border)] last:border-r-0" />;
+          if (!date) return <div key={`e-${i}`} className="min-h-[76px] border-b border-r border-[var(--border)] last:border-r-0" />;
           const daySess    = monthByDay.get(date) ?? [];
           const sortedSess = [...daySess].sort((a, b) => (a.time ?? "").localeCompare(b.time ?? ""));
           const isToday    = date === today;
@@ -69,7 +69,9 @@ export default function MonthView({
           return (
             <button key={date}
               onClick={() => setSelectedDay(isSelected ? null : date)}
-              className={`min-h-[64px] flex flex-col items-start p-1 border-b border-r border-[var(--border)] last:border-r-0 transition-colors ${
+              aria-label={`${dayLabel(date)}, ${daySess.length} sesi`}
+              title={`${dayLabel(date)} — ${daySess.length} sesi`}
+              className={`min-h-[76px] flex flex-col items-start p-1 border-b border-r border-[var(--border)] last:border-r-0 transition-colors ${
                 isSelected ? "bg-[var(--brand-tint)]" : isPast ? "bg-[var(--surface)] hover:bg-[var(--bg-subtle)]" : isWeekend ? "bg-[var(--surface)]/60 hover:bg-[var(--bg-subtle)]" : "hover:bg-[var(--surface)]"
               }`}
               style={heatBg && !isSelected ? { background: heatBg } : undefined}>
@@ -82,26 +84,31 @@ export default function MonthView({
                 {dayNum}
               </span>
               <div className="w-full space-y-0.5">
-                {sortedSess.slice(0, 3).map((s) => {
+                {sortedSess.slice(0, 2).map((s) => {
                   const info  = studentMap.get(s.studentId);
                   const color = info?.color ?? "#9CA3AF";
                   return (
                     <div key={s.id} className="w-full truncate rounded px-1 py-0.5 flex items-center gap-0.5"
-                      style={{ background: color + (s.status === "DONE" ? "18" : "30"), color, fontSize: 10, fontWeight: 700, lineHeight: 1.3 }}>
-                      {s.status === "DONE" && <span style={{ fontSize: 10 }}>✓</span>}
-                      {s.status === "NO_SHOW" && <span style={{ fontSize: 10 }}>🚫</span>}
+                      title={`${info?.name ?? "—"}${s.time ? ` · ${s.time}` : ""}${s.status === "DONE" ? " · selesai" : ""}`}
+                      style={{ background: color + (s.status === "DONE" ? "18" : "30"), color, fontSize: 11, fontWeight: 700, lineHeight: 1.35 }}>
+                      {s.status === "DONE" && <span style={{ fontSize: 11 }}>✓</span>}
+                      {s.status === "NO_SHOW" && <span style={{ fontSize: 11 }}>🚫</span>}
                       <span className="truncate">{info?.name?.split(" ")[0] ?? "—"}</span>
                     </div>
                   );
                 })}
-                {sortedSess.length > 3 && (
-                  <div className="text-center text-[var(--ink-muted)] font-medium" style={{ fontSize: 10 }}>+{sortedSess.length - 3}</div>
+                {sortedSess.length > 2 && (
+                  <div className="text-center text-[var(--ink-muted)] font-medium" style={{ fontSize: 11 }}>+{sortedSess.length - 2}</div>
                 )}
               </div>
             </button>
           );
         })}
       </div>
+      {/* Legenda heatmap: tanpa ini warna tanggal tidak bisa dibaca (temuan B-03). */}
+      <p className="border-t border-[var(--border)] px-3 py-1.5 text-[11px] leading-relaxed text-[var(--ink-muted)]">
+        Warna tanggal: rata-rata skor sesi — ≥7 hijau · 4–6 kuning · &lt;4 merah
+      </p>
       {selectedDay && (
         <DayDetail date={selectedDay} sessions={monthByDay.get(selectedDay) ?? []}
           studentMap={studentMap} today={today} onAdd={onAdd} {...actions} />

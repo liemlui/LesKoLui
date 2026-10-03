@@ -14,7 +14,7 @@ interface Props extends SessionActions {
 
 export default function DayDetail({ date, sessions, studentMap, today, onAdd, ...actions }: Props) {
   return (
-    <div className="border-t border-[var(--border)] p-3">
+    <div className="border-t-2 border-[var(--border)] p-3">
       <div className="flex items-center justify-between mb-2">
         <p className="text-sm font-semibold text-[var(--ink-strong)]">{dayLabel(date)}</p>
         <button onClick={() => onAdd(date)}
@@ -23,7 +23,7 @@ export default function DayDetail({ date, sessions, studentMap, today, onAdd, ..
         </button>
       </div>
       {sessions.length === 0
-        ? <EmptyState message="Belum ada sesi" description='Tap "+ Jadwal" untuk menambahkan.' />
+        ? <EmptyState message="Belum ada sesi" description="Tambahkan sesi untuk tanggal ini." />
         : [...sessions]
             .sort((a, b) => (a.time ?? "").localeCompare(b.time ?? ""))
             .map((s) => (

@@ -18,6 +18,9 @@ interface Props {
   onCompleteFollowUp: (id: string) => void;
 }
 
+/** Status lipat disimpan agar pilihan pengguna bertahan setelah reload (temuan B-11). */
+const COLLAPSED_KEY = "attention_inbox_collapsed";
+
 /** Tabbed "needs attention" inbox — missed sessions and follow-ups. */
 export default function AttentionInbox({
   missed,
@@ -30,7 +33,19 @@ export default function AttentionInbox({
   const [activeTab, setActiveTab] = useState("missed");
   const [missedPage, setMissedPage] = useState(1);
   const [followUpPage, setFollowUpPage] = useState(1);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem(COLLAPSED_KEY) === "1"; } catch { return false; }
+  });
+
+  const toggleCollapsed = () => {
+    setCollapsed((current) => {
+      const next = !current;
+      // localStorage bisa gagal (mode privat / kuota) — kegagalan itu tidak boleh
+      // membatalkan aksi lipatnya.
+      try { localStorage.setItem(COLLAPSED_KEY, next ? "1" : "0"); } catch { /* diabaikan */ }
+      return next;
+    });
+  };
 
   const total = missed.length + follows.length;
   const tabs: Tab[] = useMemo(
@@ -54,9 +69,9 @@ export default function AttentionInbox({
           itu teks heading disediakan untuk pembaca layar. */}
       <h2 id="attention-inbox-title" className="sr-only">Perlu Perhatian</h2>
       <button
-        onClick={() => setCollapsed((c) => !c)}
+        onClick={toggleCollapsed}
         aria-expanded={!collapsed}
-        className="w-full flex items-center justify-between px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl"
+        className="w-full min-h-[44px] flex items-center justify-between px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl"
       >
         <span className="text-xs font-bold text-[var(--ink-strong)] uppercase tracking-wide flex items-center gap-2">
           <Badge tone="red" size="sm" count={total}>
@@ -159,9 +174,9 @@ export default function AttentionInbox({
                           <button
                             onClick={() => onCompleteFollowUp(f.id)}
                             aria-label={`Tandai follow-up "${f.text}" selesai`}
-                            className="flex-shrink-0 text-xs bg-[var(--brand-tint-strong)] text-[var(--ink-brand)] px-2 py-1 rounded-lg font-semibold hover:bg-[var(--brand-tint-strong)]"
+                            className="flex-shrink-0 min-h-[44px] text-xs bg-[var(--brand-tint-strong)] text-[var(--ink-brand)] px-2.5 py-1 rounded-lg font-semibold hover:bg-[var(--brand-tint-strong)]"
                           >
-                            ✓
+                            Selesai ✓
                           </button>
                         </div>
                       );
