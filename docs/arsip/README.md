@@ -1,6 +1,6 @@
 # 00 — Daftar Arsip Dokumentasi
 
-> **Sekilas** · Isi: **15 dokumen** yang sudah selesai, historis, atau usang · Status: **dibekukan** · Terakhir dirapikan: 2026-09-13.
+> **Sekilas** · Isi: **19 dokumen** yang sudah selesai, historis, atau usang · Status: **dibekukan** · Terakhir dirapikan: 2026-10-03.
 > **Untuk siapa:** siapa pun yang bertanya "kenapa dulu diputuskan begitu?" atau "apa yang sudah pernah dikerjakan?".
 > **Baca kalau:** dokumen aktif di folder induk tidak menjawab pertanyaan Anda, atau Anda perlu jejak audit/keputusan lama.
 > **Yang tidak ada di sini:** aturan yang masih berlaku hari ini — itu ada di [`../README.md`](../README.md) (indeks utama).
@@ -37,6 +37,10 @@ Tidak ada dokumen yang dihapus. Semua dipindahkan ke folder ini dan diringkas di
 | 13 | [`AUDIT-KONDISI-LES-DAN-TOPIK-2026-09-13.md`](AUDIT-KONDISI-LES-DAN-TOPIK-2026-09-13.md) | 2026-09-13 | v1.74.0 (P0) + v1.75.0 (P1–P3) | ✅ P0–P3 diimplementasikan; **verifikasi manual 12 langkah belum dijalankan** (dipindah ke `../README.md` §4.3) | Pilihan kondisi les & kelengkapan sub topik: cakupan topik 64→93 dari 167 mapel (nama ber-kode Cambridge akhirnya bertemu katalog), saran topik lintas-jenjang tidak lagi menyamar, langkah Kondisi 60→11 kontrol, mood keluar dari skor, sesi tanpa pengamatan tidak lagi "5/10", rata-rata berpenyebut + cakupan data, detail sesi bisa dikoreksi, jenjang murid tidak lagi "UNIV" |
 | 14 | [`03-capture-flow.md`](03-capture-flow.md) | (dari seri arsitektur) | — | ⚠️ **usang** — diarsipkan 2026-09-13 | Dokumentasi alur catat sesi versi lama: urutan UI-nya sudah tidak cocok (kini 6 langkah + pemilih topik berbasis bab + kondisi 3 lapis; `mood` tidak lagi menggeser skor) |
 | 15 | [`TODO-2026-09-13.md`](TODO-2026-09-13.md) | 2025-07-19 → rev. 2026-09-13 | v1.75.1 | ⚠️ **dipindah** ke `../README.md` §4 + `../kerja/` | Catatan utang teknis layar besar; daftar pekerjaan aktif kini hidup di indeks supaya hanya ada satu sumber kebenaran |
+| 16 | [`06-AUDIT-UIUX-2026-10-01.md`](06-AUDIT-UIUX-2026-10-01.md) | 2026-10-03 | v1.79.3 | ✅ selesai — diarsipkan 2026-10-03 | Audit UI/UX v1.79.3: 73 temuan tetap, 18 sebagian, 1 klaim dibatalkan; diarsipkan setelah validasi & ROADMAP dibuat |
+| 17 | [`07-VALIDASI-RENCANA-2026-10-01.md`](07-VALIDASI-RENCANA-2026-10-01.md) | 2026-10-03 | v1.79.3 | ✅ selesai — diarsipkan 2026-10-03 | Validasi + rencana eksekusi audit UI/UX, dipecah 3 gelombang (baseline kelas warna dikoreksi 904); diarsipkan setelah ROADMAP dibuat |
+| 18 | [`GELOMBANG-2.md`](GELOMBANG-2.md) | 2026-10-03 | v1.86.0 | ⚠️ **digantikan** — diarsipkan 2026-10-03 | Peta 11 tugas `G2-00`…`G2-10` (fondasi token/uang/jadwal); digantikan [`../kerja/ROADMAP.md`](../kerja/ROADMAP.md) |
+| 19 | [`GELOMBANG-3.md`](GELOMBANG-3.md) | 2026-10-03 | v1.86.0 | ⚠️ **digantikan** — diarsipkan 2026-10-03 | Peta 10 tugas `G3-01`…`G3-10` (alur sesi/keuangan/AI/laporan); digantikan [`../kerja/ROADMAP.md`](../kerja/ROADMAP.md) |
 
 ---
 

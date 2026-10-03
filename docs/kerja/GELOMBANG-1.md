@@ -3,9 +3,9 @@
 > **Sekilas** · Jenis: **dokumen tugas (dapat dieksekusi)** · Diperbarui: 2026-10-03 · Status: **tuntas**
 > **Untuk siapa:** agen AI pelaksana (ditulis untuk model kecil: ikuti urutan, jangan improvisasi).
 > **Prasyarat wajib dibaca lebih dulu:** [`ATURAN-AI.md`](ATURAN-AI.md) (kontrak + larangan), lalu
-> [`../07-VALIDASI-RENCANA-2026-10-01.md`](../07-VALIDASI-RENCANA-2026-10-01.md) §3–§4.
+> [`../arsip/07-VALIDASI-RENCANA-2026-10-01.md`](../arsip/07-VALIDASI-RENCANA-2026-10-01.md) §3–§4.
 > **Isi:** 11 tugas — **SEMUA SELESAI** (G1-01…G1-11, v1.85.0). **Tidak ada perubahan skema Dexie. Tidak menyentuh perilaku uang/AI.**
-> **Estimasi total sisa:** **tidak ada** — Gelombang 1 tuntas; lanjut [`GELOMBANG-2.md`](GELOMBANG-2.md).
+> **Estimasi total sisa:** **tidak ada** — Gelombang 1 tuntas; lanjut [`ROADMAP.md`](ROADMAP.md).
 
 ---
 
@@ -72,7 +72,7 @@ Alasannya: tiga tugas pertama tidak menyentuh berkas bersama, sehingga belum ada
 matriks screenshot.
 
 > **Status gelombang:** **11/11 selesai** (2026-10-03, v1.85.0). Tidak ada tugas tersisa di gelombang ini;
-> tugas berikutnya ada di [`GELOMBANG-2.md`](GELOMBANG-2.md) (prasyarat "seluruh Gelombang 1 selesai" kini terpenuhi).
+> tugas berikutnya ada di [`ROADMAP.md`](ROADMAP.md) (prasyarat "seluruh Gelombang 1 selesai" kini terpenuhi).
 
 ---
 

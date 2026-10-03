@@ -1,0 +1,102 @@
+# CHEATSHEET — TASK-01…TASK-10
+
+> Pengganti baca TASK-XX utuh. 1 seksi per tugas. Jangkar = teks.
+
+## TASK-01 — Refactor layar besar (refactor, bukan perbaikan)
+
+- **Target:** `CaptureSession.tsx` 2.591 → ≤1.900; `MonthlyReport.tsx` 2.097 → ≤1.500; `Settings.tsx` 1.109 → ≤700; `StudentDetail.tsx` 1.039 → ≤800; `payments/TagihanTab.tsx` 1.004 → ≤800 (§2). Ekstraksi: `AiTagTooltip` · `AiCostConfirmModal` · `useAiFill` · `CloseOutSheet` · `NilaiRapor` · `InvoiceRow` (§3). Amandemen §10: refactor terbatas, tiap berkas tepat sebelum wave-nya.
+- **Aturan kunci:** memindah, bukan memperbaiki; satu langkah per putaran. Jangkar: `TOOLTIP OVERLAY` · `AI Cost confirm modal` · `// AI states` · `handleLocalGenerate` · `CLOSE-OUT LAPORAN SESI` · `{detailTab === "nilai" && (<>` · `const { aiNoteLoading` · `STEP_META`. Jangan sentuh `src/db/types.ts`, `src/lib/engagement.ts`, `src/lib/ibTopics.ts`, `src/components/Modal.tsx`.
+- **Jebakan:** skrip pemotong baris menghapus baris pembuka (blok `) (<>` muncul dua kali — pernah di `StudentDetail.tsx`) → setelah memotong, baca ulang 10 baris sekitar sambungan; state draf (`draftForm`) ikut pindah → draf berhenti memulihkan isian; dependency `useMemo`/`useEffect` berubah (audit C-17); test timeout >20 dtk dianggap regresi → jalankan `npm test` sendirian.
+- **Verifikasi:** `npm run build` (built + `dist/sw.js`) · `npm run lint` (0 error 0 warning) · `npm test` (561+ lulus). Pakai `node_modules/.bin/tsc -b` & `eslint src`; **jangan** `npx` (EPERM `_cacache`). Jangan jalankan tsc+eslint+test paralel.
+
+## TASK-02 — Format dokumen tugas AI (spesifikasi penulisan)
+
+- **Target:** tiap tugas = `docs/kerja/TASK-NN-<slug>.md`, maksimal ±400 baris (satu-satunya ukuran panjang di sumber); baseline v1.75.1 · 561 test lulus. Kerangka wajib: §0 cara pakai · §1 tujuan & definisi selesai · §2 kondisi awal (angka nyata) · §3 urutan langkah · §4 pola umum · §5 jebakan · §6 kalau macet · §7 progres · §8 catatan penyimpangan · §9 riwayat.
+- **Aturan kunci:** jangkar teks, bukan nomor baris; tiap langkah wajib punya ukuran hasil; kontrak ditulis sebagai blok kode tersalin; sebut yang JANGAN dipindah. Jangkar: cari komentar teks (mis. `TOOLTIP OVERLAY`), bukan nomor baris · `grep -n "CLOSE-OUT LAPORAN SESI" src/screens/CaptureSession.tsx`. Anti-pola: "rapikan sekalian kalau perlu", hanya nomor baris, "pastikan test tetap lulus" tanpa perintahnya.
+- **Jebakan:** dokumen audit gaya tugas (temuan tanpa langkah) — itu milik `docs/` / `docs/arsip/`; menyembunyikan ketidakpastian alih-alih "kalau X tidak terpenuhi, berhenti dan catat".
+- **Verifikasi:** daftar periksa §6 (9 kotak): jangkar sudah dicek ada · ukuran hasil · kontrak salin · daftar state dilarang pindah · perintah verifikasi + kegagalan bukan regresi · tabel larangan konkret · §Kalau macet ≥4 gejala · urutan risiko terendah · §8 tabel kosong ada.
+
+## TASK-03 — Blueprint UI/UX (induk: peta layar & arah)
+
+- **Target:** §2 inventaris layar → nasib, tanpa baris "belum diputuskan"; 6 prinsip §3; 5 pola §4; `BottomNav.tsx` = tepat 3 `NavLink` + 1 tombol aksi (k1.1); `StudentDetail` → tab Ringkas/Sesi/Progres/Proyek (Q5). Urutan lintas tugas: 04 → 08 → 09 → 06 → 05 → 07.
+- **Aturan kunci:** pola A blok keputusan (maks 3 kartu) · B baris aksi · C sub-layar `▸` · D sheet dari bawah (panel HP, bukan modal tengah) · E kosong yang lega. Jangkar: `const NAV_ITEMS: NavItem[]` · `TAB_SCOPE` · `end={to === "/"}`. Jangan: `useMoneyVisible()` dilewati saat menulis angka uang, `aiClient` langsung dari komponen, menambah pustaka UI/animasi, mengubah template engine `MonthlyReport`.
+- **Jebakan:** `npm test` gagal setelah token diubah = tes kontras `engagementContrast.test.ts` membaca warna → perbarui pasangan warna di sumber, **jangan** matikan tes; `useLiveQuery` ikut terhapus bersama blok lama → layar kosong; istilah "Hari Ini" (pintu nav) vs "Jadwal" (blok kalender) tertukar.
+- **Verifikasi:** `npx tsc -b` · `npx eslint src` · `npm test` (561+) · `npm run build`; E2E: selector `e2e/` diperbarui di langkah yang sama.
+
+## TASK-04 — Fondasi visual (token, 7 primitif, ganti hardcode, light-only)
+
+- **Target:** kelas warna hardcode target ≤190, turun ≥60% dari baseline (§2); tipografi 4 langkah (24/18/15/13); elevasi 2 tingkat; 7 primitif di `src/components/ui/` (`Card` · `SectionHeader` · `ListRow` · `ActionBar` · `StatTile` · `Sheet` · `EmptyState`); konten terbaca ≥13px; `playwright.config.ts` baris 17: project `mobile-dark` dihapus.
+- **Aturan kunci:** Token di `@theme static` (WAJIB `static`, kalau tidak `--bg-*` hilang dari build). Skala: tipografi 13/15/18/24 · spacing 4/8/12/16/20/24 · elevasi 2 · gerak 200/250ms. Pola warna: `bg-white`→`bg-[var(--surface-strong)]` · `text-gray-500`→`text-[var(--text-muted)]` · `bg-gray-50\|100\|200`→`bg-[var(--surface-soft)]` · `text-gray-400`→`text-[var(--text-muted)]` · `border-gray-*`→`border-[var(--border)]`. Light-only permanen (Q4): jangan tambah `@media (prefers-color-scheme: dark)`. Q25: `font: inherit` wajib di `@layer base`. Satu langkah = satu jenis perubahan; **jangan** migrasi 2 berkas per putaran.
+- **Jebakan:** `Select-String -Path "src\**\*.tsx"` tidak rekursif (hanya 38 berkas → 470, bukan 904) — pakai perintah rekursif; salah ambil angka baseline. Tes kontras gagal → perbaiki di sumber, bukan mematikan tes; `engagement.ts` terlarang (A7). `text-xs` disapu rata ke label grafik → label bertumpuk. Nav diubah di sini → E2E patah; struktur nav **hanya** di TASK-05.
+- **Jebakan `--text-soft`:** token ini **TIDAK ADA** di `src/index.css` meski TASK-04 §4 memetakan `text-gray-400` ke sana. G2-02: **JANGAN** buat `text-soft` baru (nilai gray-400 = 2,49:1, gagal ambang non-teks 3:1). Sapu `text-gray-400` → `--text-muted`.
+- **Verifikasi:** perintah standar §0 + penghitung: `(Get-ChildItem -Recurse src -Include *.tsx -File | Select-String -Pattern "bg-white|bg-gray-|text-gray-|border-gray-").Count` — baseline terukur saat ini **889**, target ≤190.
+
+## TASK-05 — Rombak keuangan (4 tab → 1 layar)
+
+- **Target:** 4 tab → 1 layar dengan 3 blok tetap (Ringkasan AI · Perlu ditagih · Bulan ini) + 3 baris `▸`; 5 mekanisme tagih → 1 daftar `BarisTagihan`; `RekapTab` 8 kolom → 3 kolom; nav 5 pintu + FAB → 3 pintu + 1 aksi. Berkas baru: `src/lib/financeRows.ts` · `src/lib/financeOverview.ts` · `src/__tests__/financeRows.test.ts` (9 tes). Lokasi gerbang: `src/screens/uang/`.
+- **Aturan kunci:** angka **tidak boleh berubah**; AI hanya memilih & mengurutkan, rupiah dihitung aturan. Jangkar kontrak: `buildTagihanRows` · `sortTagihanRows` · `BarisTagihanKeadaan` (`"siap-ditagih" | "terkirim" | "lewat" | "lunas"`) · `buildFinanceOverview` · `ringkasLokal` · `sorotan` · `RECOVERY_LIMITS_HINT` · `invoiceReportIds`. Urutan baris: `lewat` ↓`umurHari` → `siap-ditagih` → `terkirim` ↑`dueAt` → `lunas` dipotong.
+- **Jebakan:** query baru ditulis padahal repo sudah punya (§2) → angka beda antar blok; laporan final dihitung dobel → saring dengan `invoiceReportIds` (`Payments.tsx:85`); murid nonaktif hilang (perilaku `Payments.tsx:53-55`); `umurHari` negatif padahal lewat → pakai `todayWIB()` dari `src/lib/format.ts`, bukan `new Date()`; CSV berubah tanpa sengaja.
+- **Verifikasi:** `npm test -- financeRows` · `-- financeOverview` · `-- csv` · `npm run e2e` · penghitung: `(Get-ChildItem -Recurse src -Include *.tsx -File | Select-String -Pattern "FinancePipelineBoard").Count` → **harus TIDAK kosong** (kebalikan perintah lama).
+
+## TASK-06 — Perkuat Catat Sesi (wizard 6 langkah dipertahankan)
+
+- **Target:** jumlah langkah tetap **6** (`STEP_META`) — tidak digabung, tidak dikurangi; `CaptureSession.tsx` 2.099 setelah TASK-01; `EditSessionModal` + `ResolveMissedSessionModal` → satu `src/screens/home/ManageSessionSheet.tsx`; target sentuh ≥44px untuk kontrol utama, tombol `Lanjut`/`Simpan` tinggi ≥52px lebar penuh.
+- **Aturan kunci:** jangan ubah jumlah/urutan `STEP_META`. Jangkar: `const STEPS = STEP_META.map((s) => ({ ...s, Icon: iconForStep(s.icon) }));` · `Langkah {currentStep} dari {STEPS.length}` · `--task-bar-h` · `kontek: SesiKontek` · `/capture?scheduleId=<id>` · `useCaptureDraft.ts`. `Simpan Sesi` aktif di langkah 5 **dan** 6 (Q2); simpan dari langkah 5 **bukan** pengurangan langkah.
+- **Jebakan:** menggabung langkah "supaya cepat" → data engagement kosong (dilarang); bentuk/kunci draf (`captureDrafts`) diubah → isian hilang; `Jadwalkan ulang` dihapus alih-alih pindah ke `⋯`; modal lama dibiarkan terimpor → dua perilaku untuk satu hal; `--task-bar-h` tidak di-set → bilah aksi bertumpuk nav.
+- **Verifikasi:** `npm test -- captureDraft` (3 tes draf lama lulus tanpa diubah) · `npm run e2e` · `npx playwright test e2e/capture-happy-fast.spec.ts` · `(Get-ChildItem -Recurse src -Include *.tsx -File | Select-String -Pattern "EditSessionModal|ResolveMissedSessionModal").Count` (**harus 0**) · 12 kotak `docs/README.md` §4.3.
+
+## TASK-07 — Kontrak AI berbiaya (satu jalur, harga selalu terlihat)
+
+- **Target:** 7 titik pemanggil + 2 modal + 8 estimator → satu jalur `useAiAction()`; satu modal `src/components/AiCostModal.tsx` (hapus pemakaian `AiCostConfirmModal.tsx`); tiap panggilan sukses → `AuditEntry` `action: "ai.call"` + `costIdr` + `aiFeature`; `Settings.ai.monthlyBudgetIdr` default kosong = tanpa batas (Q1); estimator baru **tidak** dibuat (`aiClient.ts:343,348,353,357,361,499,576`).
+- **Aturan kunci:** `run()` hanya dari tombol `Jalankan` — batal = nol panggilan API. Jangkar kontrak: `useAiAction` · `AiActionRequest` · `estimatedIDR` · `logAiCall` · `getAiUsage` · `DEEPSEEK_COST_NOTE` · `DEEPSEEK_PRICING_URL` · `modalProps`. Bulan memakai **WIB** (`todayWIB()`); `estimatedIDR < 1` tetap tampil `~Rp 1`.
+- **Jebakan:** modal dibatalkan tapi API tetap terpanggil; estimasi dihitung dua kali → angka tombol ≠ angka modal; `logAiCall` sebelum panggilan → pemakaian naik padahal gagal; pemakaian dihitung UTC → panggilan tanggal 1 pagi WIB masuk bulan lalu; dua `<AiCostModal>` dalam satu layar → tombol tak bisa ditekan; skema Dexie dinaikkan untuk field opsional.
+- **Verifikasi:** peta jalur AI §0 hanya menyebut satu jalur · `npm test -- aiUsage` · `-- useAiAction` (termasuk tes batas kosong → tidak memblokir) · `-- aiSettings` · `-- aiOptionalFallback` (3 skenario); selisih estimasi vs pemakaian wajar ≤±20%.
+
+## TASK-08 — Satu pintu uang (tutup 6 kebocoran, PIN satu lapisan)
+
+- **Target:** satu hook `src/hooks/useMoneyVisible.ts` (4 keadaan: `needsSetup`/`locked`/`visible` + `lock()`); `src/components/ui/MaskedMoney.tsx`; 6 kebocoran ditutup (Home · `OperationalSnapshot` · `Students` · `StudentDetail` · `SessionDetailModal` · `MonthlyReport`); peta kebocoran §0 → **keluaran kosong**; Home tanpa uang sama sekali; tes jaga `src/__tests__/moneyGate.test.ts`.
+- **Aturan kunci:** masking **hanya** di lapisan tampilan komponen: `Rp ••••••` + 🔒, bukan baris hilang, bukan digit parsial. Jangkar: `const money = useMoneyVisible` · `<MaskedMoney amount={...} />` · `formatRupiah` (`src/lib/format.ts:66`) · `// money-safe: pesan keluar, bukan layar` · `verifyPin` + `pinLockout`. Status di memori modul (bukan `localStorage`) = berlaku selama aplikasi terbuka; pilih modul+`useSyncExternalStore` atau Context, tulis alasan di §8.
+- **Jebakan:** masking ditempel di `formatRupiah` → pesan WhatsApp ke orang tua berisi `Rp ••••••`; tiap layar menyimpan status kunci sendiri → buka di Home, terkunci di Murid; PIN di-hash ulang (sentuh `crypto.ts`) → PIN lama tak berlaku; `needsSetup` lupa → pengguna tanpa PIN melihat `Rp ••••••` tanpa jalan keluar; `/payments` minta PIN dua kali karena `usePinGate` lokal tersisa.
+- **Verifikasi:** peta kebocoran §0 `Get-ChildItem -Recurse src\screens -Include *.tsx -File | Select-String -Pattern "formatRupiah|totalCost|rateSnapshot"` + `Where-Object { $_.Line -notmatch "useMoneyVisible|money-safe|formatRupiahDisplay" }` → kosong · `npm test -- useMoneyVisible` · `-- MaskedMoney` · `-- moneyGate`.
+
+## TASK-09 — Jadwal Hari: zoom + mode tangkapan layar
+
+- **Target:** terisolasi di `src/screens/home/DayView.tsx`; 3 tingkat zoom rapat/normal/lega = 27/54/97 px per jam menggantikan `PX_PER_HR = 64`; `⇱` "Muat sehari penuh" mengatur rentang 06:00–24:00; mode tangkapan 1 hari & 1 minggu; tes `src/__tests__/dayDensity.test.ts` + `e2e/day-zoom.spec.ts`.
+- **Aturan kunci:** satu nilai `pxPerHr` mengalir ke semua perhitungan (`totalH`, `heightPx`, `topPx`, `nowTop`); tinggi blok `Math.max(durasiJam * pxPerHr - 2, 22)`; label jam 11,5–12px; `DAY_START`/`DAY_END` selalu melebar untuk sesi luar rentang. Jangkar: `const PX_PER_HR = 64;` · `const LABEL_W   = 44;` · `DAY_DENSITY` · `useDayDensity` · `useCaptureMode` · `renderScheduleImage` · `document.fonts.ready` · `src/lib/download.ts`.
+- **Jebakan:** satu referensi `PX_PER_HR` tertinggal → blok sesi bertumpuk; `nowTop` tidak ikut skala → garis "sekarang" salah posisi; sesi jam 05:00 terpotong saat `⇱`; teks kosong di gambar karena font belum siap; baris lampau diredupkan di warna teks → gagal WCAG (redupkan latar). Kerapatan di memori sesi, bukan `localStorage`.
+- **Verifikasi:** `Select-String -Path "src\screens\home\DayView.tsx" -Pattern "PX_PER_HR"` (harus kosong) · `npm test -- dayDensity` · `npm run e2e` · `npx playwright test e2e/day-zoom.spec.ts` · tangkap manual 1 hari & 1 minggu (7 kolom utuh).
+
+## TASK-10 — Tarif sesi & pengelolaan tagihan (selesai)
+
+- **Target:** **selesai L0–L10**. Basis v1.76.0 · Dexie **v15** · 599 tes / 53 berkas sebelum L10 → **609/609 lulus (54 berkas)** setelah L10 · HEAD `2e40b02`. Amandemen §13 (K-01) masih terbuka: peringatan sebelum mengubah asal tagihan — dikerjakan di lapisan UI.
+- **Aturan kunci:** snapshot **wajib** ditulis `db.auditLog.add(...)` **di dalam** transaksi, bukan `logAudit` best-effort; guard G0–G9 diperiksa **sebelum** penulisan apa pun. Jangkar: `const rateSnapshot = student.hourlyRate;` · `frozenReportTotals` · `restoreCancelledInvoice` · `RECOVERY_LIMITS_HINT` · `AUDIT_LABEL: Record<AuditAction, string>` · `session.reprice` · `updatePaymentDueAt` · `isValidYmd`. Jangan: `src/db/db.ts`, versi skema Dexie, operasi apa pun ke DB aplikasi pengguna, `logAudit` best-effort, berkas §2.1 worktree, mengakali tes.
+- **Jebakan:** W8 (`studentRepo.ts:76-91`, pemicu `toPolicy === "session_count"`) menulis `rateSnapshot`/`cost`/`updatedAt` serentak dan **tidak berjejak audit** → rekonstruksi tarif lama hanya dari backup; laporan final `confirmed` ikut ditulis ulang (J1–J4) — kini dibekukan `frozenReportTotals()`; memulihkan sebagian record saat satu guard gagal (dilarang); G9 tidak membandingkan seluruh data pasangan → menimpa data hasil restore backup.
+- **Verifikasi:** `npx tsc -b --force` · `npx eslint .` · `npm test` · `npm test -- sessionPricing` · `-- sessionCountBilling` · `-- invoiceRecovery` · `-- reportUnlock` · `npx playwright test e2e/report-unlock.spec.ts` · E2E kini **dua** project (project `mobile-dark` hilang, Q4) sehingga angka lama 39/39 di tiga project tidak sebanding.
+
+## Verifikasi per tier (Smart Gating 4 tier)
+
+| Tier | Kondisi | Perintah gate | Durasi |
+|---|---|---|---|
+| T0 | Dokumen saja (docs/**, *.md) | `node scripts/check-md-links.mjs` | ~2 dtk |
+| T1 | <3 berkas, tidak sentuh infra | `tsc -b` · `eslint src` · `vitest <berkas terkait>` | ~15 dtk |
+| T2 | Sentuh src/components/lib/db/hooks ATAU layar dipakai >3 layar | T1 + smoke suite (6 tes) + `e2e:uiux` bila menyentuh UI | ~45 dtk |
+| T3 | Tugas terakhir gelombang ATAU sentuh package.json/config | T2 + full suite (691) + playwright semua spec | ~5 mnt |
+
+## Smoke suite (6 tes)
+
+engagementContrast · captureSessionHelpers · repos · backup · finance · settingsRepo
+
+## Larangan global (ATURAN-AI §2.1)
+
+| Berkas | Alasan |
+|---|---|
+| `src/db/db.ts` | versi skema Dexie; migrasi salah = kehilangan data pengguna nyata |
+| `src/lib/crypto.ts` | cara PIN disimpan; salah = pengguna terkunci dari datanya |
+| `src/lib/format.ts` → isi `formatRupiah()` | juga menyusun **pesan WhatsApp ke orang tua**; masking di sini merusak tagihan |
+| `src/lib/waBilling.ts`, `src/lib/invoicePresentation.ts` | pesan keluar harus memuat nominal **asli** |
+| `src/lib/engagement.ts` | rumus skor; mengubahnya mengubah arti data historis |
+| `src/lib/finance.ts`, `src/lib/financePipeline.ts` | rumus uang yang sudah benar |
+| `src/lib/csv.ts` | format ekspor lama harus identik |
+| `src/template/**` | mesin laporan (tema/rotation); tugas terpisah |
+| `src/screens/captureSession/constants.ts` → `STEP_META` | jumlah langkah dikunci 6 (ada tesnya) |
+| Prompt di `src/lib/aiClient.ts` | mutu hasil AI; tugas ini soal jalur, bukan isi |

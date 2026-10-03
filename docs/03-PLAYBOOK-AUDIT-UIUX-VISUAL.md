@@ -427,8 +427,8 @@ _Tandai checkbox sesuai progres; set hasil verifikasi di baris paling atas._
 - [x] Fase 1 — dokumen audit visual templated → `arsip/UI-UX-AUDIT-VISUAL-2026-09-11.md`
 - [x] Fase 2 — P1-a dark deaktivasi · P1-b kontras · P2 wayfinding/nonaktifkan · P3 glossary (emoji→SVG = backlog)
   > **Kelanjutan 2026-10-01:** dark mode dinonaktifkan **permanen** (light-only, Q4) — project `mobile-dark` dihapus
-  > dari `playwright.config.ts`. Audit UI/UX baru: [`06-AUDIT-UIUX-2026-10-01.md`](06-AUDIT-UIUX-2026-10-01.md) +
-  > validasi/rencana [`07-VALIDASI-RENCANA-2026-10-01.md`](07-VALIDASI-RENCANA-2026-10-01.md).
+  > dari `playwright.config.ts`. Audit UI/UX baru: [`06-AUDIT-UIUX-2026-10-01.md`](arsip/06-AUDIT-UIUX-2026-10-01.md) +
+  > validasi/rencana [`07-VALIDASI-RENCANA-2026-10-01.md`](arsip/07-VALIDASI-RENCANA-2026-10-01.md).
 - [x] Fase 3 — guard rail test + e2e smoke + docs final (2026-09-11)
 
 > **Fase 3 — hasil (2026-09-11):**

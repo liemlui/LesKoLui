@@ -17,6 +17,9 @@
    Pakai **jangkar** yang disebut di tugas: cari teksnya, baca ±40 baris di sekitarnya.
 5. **Satu langkah per putaran.** Verifikasi → lapor → berhenti. Jangan lanjut sendiri.
 6. **Jangan menambah berkas baru** selain yang disebut kontrak, tanpa persetujuan.
+7. **Baca CHEATSHEET.md dulu, bukan TASK-XX.** `docs/kerja/CHEATSHEET.md` memuat 1 halaman per tugas (TASK-01…TASK-10) yang cukup untuk 95% kasus. Buka TASK-XX utuh kalau perlu detail lebih.
+8. **Kalau DSH baru:** baca urutan ini saja: §0 · §1 (B1–B4) · §2.1 (larangan berkas) · §6.2 (gate 4-tier) · ROADMAP.md · CHEATSHEET.md. Sisanya referensi.
+9. **ROADMAP.md menggantikan GELOMBANG-2/3.md** (keduanya sudah diarsipkan).
 
 ---
 
@@ -217,49 +220,29 @@ $env:NODE_OPTIONS="--require $env:TEMP\dsh-no-exec.cjs"; npm run test:sandbox
 di-spawn. Di sandbox, jalankan dengan eskalasi, atau lewati dan catat di §8 tugas terkait —
 **jangan** mengubah `vite.config.ts` atau `playwright.config.ts` demi sandbox.
 
-### 6.2 Smart Gating — gate menurut blast radius tugas (berlaku mulai `G2-01`)
+### 6.2 Smart Gating — 4 tier (revisi 2026-10-03)
 
-**Kenapa ada.** Satu gate untuk semua tugas membuang waktu. Gelombang 1 menghabiskan **±2 menit gate
-di setiap tugas** (tsc + lint + 691 tes + build + `md-links` + Playwright), padahal mayoritas tugas
-hanya menyentuh 1–2 berkas. Itu **±20 menit per gelombang**; dengan 20 tugas tersisa
-(`G2-01…G2-10`, `G3-01…G3-10`) menjadi **±40 menit** tes berulang — untuk kode yang tidak mungkin
-patah karena tugasnya tidak menyentuhnya.
+**Kenapa 4 tier:** 3 tier lama terlalu gemuk — T2 & T3 sama-sama jalankan 691 tes, padahal blast radius berbeda. 4 tier menurunkan ~40% waktu gate tanpa mengurangi cakupan.
 
-**Tier ditentukan SEBELUM mulai**, dari blast radius tugas:
+| Tier | Kondisi | Gate | Durasi |
+|---|---|---|---|
+| T0 | Dokumen saja (docs/**, *.md) | `node scripts/check-md-links.mjs` | ~2 dtk |
+| T1 | <3 berkas, tidak sentuh infra | `tsc -b` · `eslint src` · `vitest <berkas terkait>` | ~15 dtk |
+| T2 | Sentuh src/components/lib/db/hooks ATAU layar dipakai >3 layar | T1 + smoke suite (6 tes) + `e2e:uiux` bila menyentuh UI | ~45 dtk |
+| T3 | Tugas terakhir gelombang ATAU sentuh package.json/config ATAU blast radius seluruh aplikasi (token/ui/**) | T2 + full suite (691) + playwright semua spec | ~5 mnt |
 
-| Tier | Kondisi | Gate |
-|---|---|---|
-| **Tier 1** | Tugas menyentuh <3 berkas **dan** TIDAK menyentuh infrastruktur | `npx tsc -b` · `npx eslint src` · **tes yang berkaitan saja** (vitest `-t` / berkas tes terkait) · spec Playwright terkait (kalau ada) |
-| **Tier 2** | Tugas menyentuh infrastruktur: `src/components/**`, `src/lib/**`, `src/db/**`, `src/hooks/**`, **atau** layar yang dipakai >3 layar lain | Tier 1 + `npm run test:sandbox` **PENUH** |
-| **Tier 3** | Tugas terakhir gelombang **atau** tugas yang mengubah `package.json`/`scripts`/config | Tier 2 + `npx playwright test` **SEMUA spec** di `e2e/` |
+**Aturan wajib (7 butir):**
+1. Tentukan tier SEBELUM mulai, tulis `Tier: X — alasan: …` di laporan. Tier tanpa alasan = gate tidak sah.
+2. Ragu tier → ambil tier lebih tinggi.
+3. Naik tier di tengah jalan = wajar; turun = tidak. Tandai langkah baru "BARU".
+4. T3 = tugas terakhir gelombang ATAU mengubah package.json/scripts/config ATAU blast radius seluruh aplikasi (mis. token/primitif ui/** yang dipakai hampir semua layar). Selain itu T2 maksimum.
+5. `npm run e2e:uiux` tidak berubah — tetap dijalankan pada tugas yang menyentuh metrik UI.
+6. Batch 📦 — tugas kecil boleh digabung 1 putaran. Terdaftar di ROADMAP.md.
+7. Tidak berlaku surut. Gelombang 1 tuntas di gate penuh; tidak diuji ulang.
 
-**Aturan tambahan (mengikat):**
+**Smoke suite = 6 tes inti:** engagementContrast · captureSessionHelpers · repos · backup · finance · settingsRepo.
 
-1. **Ragu tier → ambil tier lebih tinggi.** Gate berlebih hanya kehilangan menit; gate kurang bisa
-   meloloskan regresi ke pengguna nyata.
-2. **Wajib menulis `Tier: X — alasan: …`** di checklist kerja laporan. Tier tanpa alasan = gate
-   tidak sah, dan tugasnya dianggap belum diverifikasi.
-3. **Naik tier di tengah jalan itu wajar; turun tidak.** Kalau ternyata tugas menyentuh infra:
-   naikkan tier, **update checklist**, dan tandai langkah baru dengan **"BARU"**.
-4. **Full suite tetap dijalankan di tugas terakhir tiap gelombang (Tier 3)** — `npx playwright test`
-   semua spec di `e2e/` sebagai jaring akhir. Smart gating **tidak** menghapus gate itu.
-5. **`npm run e2e:uiux` tidak berubah.** Tetap dijalankan pada tugas yang menyentuh metrik UI
-   (kontras, tap target, emoji di kontrol, heading, kontrak tab) dan pada checkpoint gelombang.
-   Spec-nya tetap di `e2e-uiux/` (Q23) supaya `npm run e2e` tidak ikut melambat.
-6. **Tugas dokumen-saja = Tier 1 termurah.** Kalau yang berubah hanya `docs/**` dan `*.md`
-   (tidak ada kode, tidak ada script), cukup `node scripts/check-md-links.mjs` → **rusak = 0**.
-   tsc/lint/test/build/Playwright dilewati dan alasan itu ditulis di laporan. *(Preseden: `G2-00`.)*
-7. **Smart gating tidak berlaku surut.** Gelombang 1 sudah tuntas pada gate penuh (v1.85.0) dan
-   tidak diuji ulang. §6 di atas **tidak berubah** — perintahnya tetap sama; yang berubah hanya
-   **kapan** masing-masing dijalankan.
-
-> **Kaidah pemutus:** kalau sebuah tugas menyentuh berkas di §2.1, tiernya **bukan** soal pilihan —
-> tugas itu **salah lingkup** (§7). Berhenti dan lapor; **jangan** naikkan tier untuk menutupinya.
-
-**Tier ditetapkan ulang sebelum tiap tugas dimulai** dan ditulis di checklist laporan tugas itu —
-tier **bukan** warisan dari tugas sebelumnya. Contoh penentuan tier untuk gelombang 2 ada di
-[`GELOMBANG-2.md`](GELOMBANG-2.md) §2; kolom `Tier` permanen per tugas **belum** ditambahkan
-(dilaporkan ke pemilik; **tidak** dikerjakan di `G2-00`).
+**Kaidah pemutus:** kalau tugas menyentuh berkas §2.1 → tugasnya salah lingkup, bukan soal tier. Berhenti dan lapor.
 
 ### 6.3 Line Endings (CRLF/LF) — WAJIB LF
 

@@ -2,20 +2,20 @@
 
 > **Sekilas** · Jenis: **dokumen tugas (dapat dieksekusi)** · Diperbarui: 2026-10-01 · Status: **aktif**
 > **Untuk siapa:** agen AI pelaksana (satu putaran = satu bagian, jangan improvisasi).
-> **Prasyarat wajib dibaca lebih dulu:** [`ATURAN-AI.md`](ATURAN-AI.md) → tugas asal tiap pekerjaan
-> ([`TASK-05`](TASK-05-rombak-keuangan.md) · [`TASK-06`](TASK-06-perkuat-catat-sesi.md) · [`TASK-07`](TASK-07-kontrak-ai-berbiaya.md))
-> → [`TASK-01` §10](TASK-01-refactor-layar-besar.md) (refactor terbatas).
+> **Prasyarat wajib dibaca lebih dulu:** [`ATURAN-AI.md`](../kerja/ATURAN-AI.md) → tugas asal tiap pekerjaan
+> ([`TASK-05`](../kerja/TASK-05-rombak-keuangan.md) · [`TASK-06`](../kerja/TASK-06-perkuat-catat-sesi.md) · [`TASK-07`](../kerja/TASK-07-kontrak-ai-berbiaya.md))
+> → [`TASK-01` §10](../kerja/TASK-01-refactor-layar-besar.md) (refactor terbatas).
 > **Dependency gelombang:** **seluruh Gelombang 1 & 2 selesai.**
 > **Isi:** 10 tugas. **Tidak ada perubahan skema Dexie** (satu-satunya perubahan tipe: `IaEeType` + `AuditAction`).
 > **Estimasi total:** **6×L + 4×M** ≈ 4–6 minggu (L = G3-01…G3-06; M = G3-07…G3-10), **belum termasuk** 5 refactor terbatas di §0 tiap tugas.
 
 ## 0. Cara pakai
 
-Sama seperti [`GELOMBANG-1.md`](GELOMBANG-1.md) §0 (satu putaran, gate wajib, laporan 5 baris).
+Sama seperti [`GELOMBANG-1.md`](../kerja/GELOMBANG-1.md) §0 (satu putaran, gate wajib, laporan 5 baris).
 Tambahan khusus gelombang ini:
 
 1. **Lima tugas punya bagian "0. Refactor terbatas"** (G3-01, G3-02, G3-05, G3-06, G3-09). Kerjakan bagian 0
-   **sampai gate hijau**, baru bagian 1. Target ukuran diambil dari [`TASK-01` §2](TASK-01-refactor-layar-besar.md) —
+   **sampai gate hijau**, baru bagian 1. Target ukuran diambil dari [`TASK-01` §2](../kerja/TASK-01-refactor-layar-besar.md) —
    **jangan membuat target baru**.
 2. **Refactor = memindah, bukan memperbaiki.** Jangan mengubah perilaku, teks yang dilihat pengguna, atau `STEP_META`.
 3. **⏸ = menunggu.** Fitur bertanda ⏸ tetap ada di daftar; ia dikerjakan setelah penghambatnya selesai,
@@ -516,7 +516,7 @@ rekening, AI, backup, riwayat, PWA, zona bahaya). Setelah tiap ekstraksi: `npm t
 **G3-05** **butuh** `useAiAction` dari **G3-04**, sehingga urutan itu tidak bisa dipakai apa adanya.
 
 - **Keputusan pemilik (Q12 = A):** **`G3-04` dikerjakan sebelum `G3-05`.** Dikunci sebagai **A14** di
-  [`ATURAN-AI.md`](ATURAN-AI.md) §4.
+  [`ATURAN-AI.md`](../kerja/ATURAN-AI.md) §4.
 - **Urutan akhir gelombang 3 (berlaku):** `G3-01 → G3-02 → G3-03 → G3-04 → G3-05 → G3-06 → G3-07 → G3-08 → G3-09 → G3-10`.
 - **Konsekuensi yang diterima:** `TASK-07` menyentuh 7 titik pemanggilan AI **sebelum** laporan dirombak —
   titik-titik itu harus sudah stabil saat `G3-05` dimulai.

@@ -2,8 +2,8 @@
 
 > **Sekilas** · Jenis: **dokumen tugas (dapat dieksekusi)** · Diperbarui: 2026-10-03 · Status: **aktif**
 > **Untuk siapa:** agen AI pelaksana (satu langkah per putaran, jangan improvisasi).
-> **Prasyarat wajib dibaca lebih dulu:** [`ATURAN-AI.md`](ATURAN-AI.md) → [`TASK-04-fondasi-visual.md`](TASK-04-fondasi-visual.md) →
-> [`TASK-08-satu-pintu-uang.md`](TASK-08-satu-pintu-uang.md) → [`TASK-09-jadwal-hari-zoom.md`](TASK-09-jadwal-hari-zoom.md).
+> **Prasyarat wajib dibaca lebih dulu:** [`ATURAN-AI.md`](../kerja/ATURAN-AI.md) → [`TASK-04-fondasi-visual.md`](../kerja/TASK-04-fondasi-visual.md) →
+> [`TASK-08-satu-pintu-uang.md`](../kerja/TASK-08-satu-pintu-uang.md) → [`TASK-09-jadwal-hari-zoom.md`](../kerja/TASK-09-jadwal-hari-zoom.md).
 > **Dependency gelombang:** **seluruh Gelombang 1 selesai** (khusus `G1-02` untuk angka & `G1-04` untuk kontras interim).
 > **Isi:** **11 tugas** — **G2-00 ditambahkan 2026-10-03** (amandemen Smart Gating; dokumen saja, **sudah selesai**) dan **G2-10 ditambahkan 2026-10-01 dari Q18/G1-07**. **Tidak ada perubahan skema Dexie.** Urutan risiko terendah sudah dikunci `ATURAN-AI` §4: `04 → 08 → 09`.
 > **Gate:** **Smart Gating** (`ATURAN-AI` §6.2) berlaku **mulai `G2-01`** — setiap tugas menulis `Tier: X — alasan: …` di checklist laporannya. Tier per tugas dicatat di §2; ragu tier → ambil tier lebih tinggi.
@@ -14,11 +14,11 @@
 
 ## 0. Cara pakai
 
-Sama seperti [`GELOMBANG-1.md`](GELOMBANG-1.md) §0: satu langkah per putaran, laporan 5 baris, dan
+Sama seperti [`GELOMBANG-1.md`](../kerja/GELOMBANG-1.md) §0: satu langkah per putaran, laporan 5 baris, dan
 **jangan mengakali tes**.
 
 **Gate tidak lagi sama untuk semua tugas — mulai `G2-01` berlaku SMART GATING**
-([`ATURAN-AI.md`](ATURAN-AI.md) §6.2). Tier ditentukan dari **blast radius** tugas **sebelum** mulai,
+([`ATURAN-AI.md`](../kerja/ATURAN-AI.md) §6.2). Tier ditentukan dari **blast radius** tugas **sebelum** mulai,
 dan `Tier: X — alasan: …` wajib ditulis di checklist laporan. Ragu tier → ambil tier **lebih tinggi**.
 
 | Tier | Kondisi ringkas | Gate |
@@ -30,7 +30,7 @@ dan `Tier: X — alasan: …` wajib ditulis di checklist laporan. Ragu tier → 
 Urutan gate lama (`npx tsc -b` → `npx eslint src` → `npm test` → `npm run build` → `npm run e2e`)
 **tidak dibuang** — itu isi **Tier 3**, dan tetap dijalankan penuh di tugas terakhir gelombang (§3).
 `npm run e2e:uiux` (hasil `G1-11`) tetap dijalankan pada tugas yang menyentuh metrik UI dan di checkpoint.
-Rincian + aturan naik-tier di tengah jalan: [`ATURAN-AI.md`](ATURAN-AI.md) §6.2.
+Rincian + aturan naik-tier di tengah jalan: [`ATURAN-AI.md`](../kerja/ATURAN-AI.md) §6.2.
 
 ### Larangan tambahan yang berlaku di gelombang ini
 
@@ -93,7 +93,7 @@ Tier tertinggi (Tier 3) **tetap** dijalankan penuh di tugas terakhir tiap gelomb
 akhir — jadi yang dihemat bukan cakupan akhir, melainkan tes berulang di tugas-tugas kecil.
 
 **Langkah (berurutan):**
-1. Tambah **§6.2 Smart Gating** di [`ATURAN-AI.md`](ATURAN-AI.md) (setelah §6.1 sandbox; §6.1 tidak diubah):
+1. Tambah **§6.2 Smart Gating** di [`ATURAN-AI.md`](../kerja/ATURAN-AI.md) (setelah §6.1 sandbox; §6.1 tidak diubah):
    tabel 3 tier + 7 aturan tambahan (ragu → tier lebih tinggi · wajib `Tier: X — alasan: …` · boleh naik
    tier + tandai "BARU" · full suite tetap di tugas terakhir · `e2e:uiux` tidak berubah · dokumen-saja =
    Tier 1 termurah · tidak berlaku surut).
