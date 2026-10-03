@@ -1,8 +1,12 @@
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import type { Session } from "../../db/types";
 import type { StudentMap } from "../../lib/studentColor";
 import { dayLabel } from "../../lib/format";
 import { addDays } from "../../lib/calendar";
+import {
+  DAY_DENSITY, DENSITY_ORDER, densityForHeight, FULL_DAY_END, FULL_DAY_START,
+  TIMELINE_VIEWPORT_FRACTION, useDayDensity,
+} from "../../lib/dayDensity";
 import SessionPill, { type SessionActions } from "./SessionPill";
 import { PencilIcon } from "../../components/icons";
 
@@ -14,63 +18,6 @@ interface Props extends SessionActions {
   studentMap: StudentMap;
   onJumpToday: () => void;
   onAdd: (date: string) => void;
-}
-
-/** Tiga tingkat kerapatan timeline (TASK-09 Langkah 1: rapat / normal / lega). */
-export const DAY_DENSITY = {
-  rapat:  27,   // 18 jam ≈ 486 px — sehari penuh muat
-  normal: 54,   // kerapatan membaca detail jam
-  lega:   97,   // satu blok besar, untuk melihat isi
-} as const;
-export type DayDensityKey = keyof typeof DAY_DENSITY;
-
-const DENSITY_ORDER: DayDensityKey[] = ["rapat", "normal", "lega"];
-/** Rentang mode "sehari penuh" (18 jam) dan tinggi yang dipakai untuk memilihnya. */
-const FULL_DAY_START = 6;
-const FULL_DAY_END   = 24;
-/** Tinggi area timeline yang tersedia = 62vh (lihat maxHeight kontainer di bawah). */
-const TIMELINE_VIEWPORT_FRACTION = 0.62;
-
-/**
- * Pemilih kerapatan untuk tombol ⇱ "Muat sehari penuh".
- *
- * Memilih tingkat **terbesar yang tidak melebihi** tinggi tersedia — bukan yang
- * terdekat — supaya seluruh hari benar-benar muat tanpa scroll. Bila bahkan
- * tingkat terapat masih terlalu besar, hasilnya tetap `rapat`.
- */
-export function densityForHeight(availablePx: number, hours = FULL_DAY_END - FULL_DAY_START): DayDensityKey {
-  const perHour = Math.floor(availablePx / hours);
-  let pick: DayDensityKey = "rapat";
-  for (const key of DENSITY_ORDER) {
-    if (DAY_DENSITY[key] <= perHour) pick = key;
-  }
-  return pick;
-}
-
-/**
- * Kerapatan disimpan di **memori sesi**, bukan `localStorage` — konsisten dengan
- * keputusan "berlaku selama aplikasi terbuka" (§K3.4). Berpindah layar tidak
- * mengembalikan pilihan ke default.
- */
-let densityMemory: DayDensityKey = "normal";
-const densityListeners = new Set<() => void>();
-const subscribeDensity = (listener: () => void) => {
-  densityListeners.add(listener);
-  return () => { densityListeners.delete(listener); };
-};
-const getDensitySnapshot = () => densityMemory;
-
-/** Hook kecil; nilai default "normal" (tampilan awal tidak berubah). */
-export function useDayDensity(): {
-  density: DayDensityKey;
-  setDensity(k: DayDensityKey): void;
-} {
-  const density = useSyncExternalStore(subscribeDensity, getDensitySnapshot, getDensitySnapshot);
-  const setDensity = useCallback((k: DayDensityKey) => {
-    densityMemory = k;
-    for (const listener of densityListeners) listener();
-  }, []);
-  return { density, setDensity };
 }
 
 const LABEL_W = 44;

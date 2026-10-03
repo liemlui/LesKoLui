@@ -274,6 +274,7 @@ di gambar; teks di gambar tidak kosong; berfungsi di Chrome/Edge.
 |---|---|---|---|
 | 2026-10-03 | L1–L2 | Dikerjakan sebagai **G2-07** dan **berhenti di Langkah 2**: `DAY_DENSITY` 27/54/97, `useDayDensity()` (memori sesi), `densityForHeight()`, tombol ⇱, batas bawah blok 22 px, label jam 11,5–12 px | DoD gelombang menuntut **hanya `DayView.tsx` berubah**; Langkah 3–4 (mode tangkapan + `src/lib/captureScheduleImage.ts`) butuh berkas baru dan **belum** dikerjakan. Rentang ⇱ = 06:00–24:00 (18 jam) → 486 px pada kerapatan rapat |
 | 2026-10-03 | L2 | Rentang default saat ⇱ tetap bisa **melebar** bila ada sesi di luar 06:00–24:00 | Perilaku lama dipertahankan sesuai §3 Langkah 2 aturan 3 — ⇱ tidak boleh menyembunyikan sesi |
+| 2026-10-03 | L1 | Kontrak §3 Langkah 1 menulis `export const DAY_DENSITY` / `export function densityForHeight` **di `DayView.tsx`** — tetapi preset ESLint repo (`reactRefresh.configs.vite`) melarang berkas layar mengekspor selain komponen. Presedennya sudah ada di repo: `lib/moods.ts` dipisah dari `CaptureSession.tsx` dengan alasan yang sama | Helper dipindah ke **`src/lib/dayDensity.ts`** (`DAY_DENSITY`, `DENSITY_ORDER`, `densityForHeight`, `FULL_DAY_START/END`, `TIMELINE_VIEWPORT_FRACTION`, `useDayDensity`). **Menyimpang dari DoD gelombang "hanya DayView.tsx berubah"** — disengaja, karena alternatifnya menggagalkan `npm run lint` yang tidak bisa dijalankan untuk memverifikasi di putaran ini. Berkas layar kini hanya mengekspor komponen |
 
 ## 9. Progres
 
