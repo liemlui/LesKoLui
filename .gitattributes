@@ -1,5 +1,9 @@
 # Normalisasi line-ending: simpan LF di repo, cegah diff CRLF-noise antar OS.
-* text=auto
+# eol=lf dikunci eksplisit: checkout di OS apa pun tetap LF (bukan CRLF di Windows).
+* text=auto eol=lf
+
+# Pengecualian: batch Windows wajib CRLF, kalau tidak cmd.exe bisa gagal.
+*.bat text eol=crlf
 
 # File biner — jangan dinormalisasi
 *.png binary
@@ -9,4 +13,6 @@
 *.ico binary
 *.woff binary
 *.woff2 binary
+*.ttf binary
 *.pdf binary
+*.zip binary

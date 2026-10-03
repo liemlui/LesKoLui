@@ -217,6 +217,80 @@ $env:NODE_OPTIONS="--require $env:TEMP\dsh-no-exec.cjs"; npm run test:sandbox
 di-spawn. Di sandbox, jalankan dengan eskalasi, atau lewati dan catat di §8 tugas terkait —
 **jangan** mengubah `vite.config.ts` atau `playwright.config.ts` demi sandbox.
 
+### 6.2 Smart Gating — gate menurut blast radius tugas (berlaku mulai `G2-01`)
+
+**Kenapa ada.** Satu gate untuk semua tugas membuang waktu. Gelombang 1 menghabiskan **±2 menit gate
+di setiap tugas** (tsc + lint + 691 tes + build + `md-links` + Playwright), padahal mayoritas tugas
+hanya menyentuh 1–2 berkas. Itu **±20 menit per gelombang**; dengan 20 tugas tersisa
+(`G2-01…G2-10`, `G3-01…G3-10`) menjadi **±40 menit** tes berulang — untuk kode yang tidak mungkin
+patah karena tugasnya tidak menyentuhnya.
+
+**Tier ditentukan SEBELUM mulai**, dari blast radius tugas:
+
+| Tier | Kondisi | Gate |
+|---|---|---|
+| **Tier 1** | Tugas menyentuh <3 berkas **dan** TIDAK menyentuh infrastruktur | `npx tsc -b` · `npx eslint src` · **tes yang berkaitan saja** (vitest `-t` / berkas tes terkait) · spec Playwright terkait (kalau ada) |
+| **Tier 2** | Tugas menyentuh infrastruktur: `src/components/**`, `src/lib/**`, `src/db/**`, `src/hooks/**`, **atau** layar yang dipakai >3 layar lain | Tier 1 + `npm run test:sandbox` **PENUH** |
+| **Tier 3** | Tugas terakhir gelombang **atau** tugas yang mengubah `package.json`/`scripts`/config | Tier 2 + `npx playwright test` **SEMUA spec** di `e2e/` |
+
+**Aturan tambahan (mengikat):**
+
+1. **Ragu tier → ambil tier lebih tinggi.** Gate berlebih hanya kehilangan menit; gate kurang bisa
+   meloloskan regresi ke pengguna nyata.
+2. **Wajib menulis `Tier: X — alasan: …`** di checklist kerja laporan. Tier tanpa alasan = gate
+   tidak sah, dan tugasnya dianggap belum diverifikasi.
+3. **Naik tier di tengah jalan itu wajar; turun tidak.** Kalau ternyata tugas menyentuh infra:
+   naikkan tier, **update checklist**, dan tandai langkah baru dengan **"BARU"**.
+4. **Full suite tetap dijalankan di tugas terakhir tiap gelombang (Tier 3)** — `npx playwright test`
+   semua spec di `e2e/` sebagai jaring akhir. Smart gating **tidak** menghapus gate itu.
+5. **`npm run e2e:uiux` tidak berubah.** Tetap dijalankan pada tugas yang menyentuh metrik UI
+   (kontras, tap target, emoji di kontrol, heading, kontrak tab) dan pada checkpoint gelombang.
+   Spec-nya tetap di `e2e-uiux/` (Q23) supaya `npm run e2e` tidak ikut melambat.
+6. **Tugas dokumen-saja = Tier 1 termurah.** Kalau yang berubah hanya `docs/**` dan `*.md`
+   (tidak ada kode, tidak ada script), cukup `node scripts/check-md-links.mjs` → **rusak = 0**.
+   tsc/lint/test/build/Playwright dilewati dan alasan itu ditulis di laporan. *(Preseden: `G2-00`.)*
+7. **Smart gating tidak berlaku surut.** Gelombang 1 sudah tuntas pada gate penuh (v1.85.0) dan
+   tidak diuji ulang. §6 di atas **tidak berubah** — perintahnya tetap sama; yang berubah hanya
+   **kapan** masing-masing dijalankan.
+
+> **Kaidah pemutus:** kalau sebuah tugas menyentuh berkas di §2.1, tiernya **bukan** soal pilihan —
+> tugas itu **salah lingkup** (§7). Berhenti dan lapor; **jangan** naikkan tier untuk menutupinya.
+
+**Tier ditetapkan ulang sebelum tiap tugas dimulai** dan ditulis di checklist laporan tugas itu —
+tier **bukan** warisan dari tugas sebelumnya. Contoh penentuan tier untuk gelombang 2 ada di
+[`GELOMBANG-2.md`](GELOMBANG-2.md) §2; kolom `Tier` permanen per tugas **belum** ditambahkan
+(dilaporkan ke pemilik; **tidak** dikerjakan di `G2-00`).
+
+### 6.3 Line Endings (CRLF/LF) — WAJIB LF
+
+**Aturannya.** Setiap berkas teks yang DSH **tulis atau edit** disimpan dengan **LF (`\n`)** — bukan CRLF.
+Berlaku sama dari Windows, Linux, maupun macOS; tidak ada pengecualian per-OS.
+
+**Yang mengunci.** `.gitattributes` di akar repo memuat `* text=auto eol=lf`: isi index dinormalkan ke LF
+**dan** checkout tetap LF di OS apa pun. Pengecualian yang disengaja: `*.bat text eol=crlf` (batch Windows),
+dan berkas biner ditandai `binary` (`*.png` · `*.jpg` · `*.jpeg` · `*.gif` · `*.ico` · `*.woff` · `*.woff2`
+· `*.ttf` · `*.pdf` · `*.zip`) supaya line ending-nya tidak pernah disentuh.
+
+**1. Menemukan CRLF atau campur (mixed) → JANGAN commit.** Perbaiki dulu ke LF, lalu **LAPORKAN** di
+checklist sebagai temuan (berkas + jumlah). Periksa dengan:
+
+```powershell
+git ls-files --eol   # i/ = isi index · w/ = checkout kerja · attr/ = atribut yang berlaku
+```
+
+**2. Jangan mengubah line ending berkas yang tidak disentuh tugas.** Refactor terbatas (Q9 = C): yang
+diubah hanya berkas di lingkup tugas. Menormalkan seluruh repo sekaligus memicu diff ratusan baris dan
+merusak `git blame` — itu keputusan pemilik, bukan agen.
+
+**3. Gate gagal karena CRLF → perbaiki akarnya, jangan dilewati.** Gejalanya: pesan aneh yang memuat `\r`,
+`bad interpreter: /bin/sh^M`, atau parser gagal pada baris yang terlihat benar. Itu **bukan** alasan
+menjalankan `--no-verify`, melewati pre-commit, atau mematikan gate.
+
+> **Jebakan yang mudah salah baca.** `core.autocrlf=true` (default Git for Windows) tetap men-checkout CRLF
+> di mesin Windows meskipun atributnya `eol=lf` — **sampai berkas itu di-checkout ulang**. Jadi
+> `git ls-files --eol` bisa menampilkan `w/crlf` untuk berkas yang isi index-nya sudah LF. Periksa kolom
+> **`i/`** lebih dulu: `i/lf` berarti isi repo bersih dan yang terlihat hanyalah artefak working tree lokal.
+
 ---
 
 ## 7. Kalau macet
@@ -254,3 +328,5 @@ Jangan menyalin isi berkas, jangan menjelaskan dokumen, jangan merangkum tugas.
 |---|---|---|
 | 2026-09-25 | Dibuat; B1–B4 dikunci `final` | v1.75.1 |
 | 2026-10-01 | **Amandemen Q1–Q9**: B4 default kosong · pipeline dipertahankan (di dalam blok "Perlu ditagih") · light-only permanen · simpan dari langkah 5 (6 langkah tetap) · peta tab Murid Ringkas/Sesi/Progres/Proyek · fokus Android (tanpa aturan 16px) · refactor terbatas sebelum wave fitur · penghitung kelas warna dibuat rekursif (baseline 904) | v1.79.3 |
+| 2026-10-03 | **A15** — Smart Gating: gate tes **3 tier** menurut *blast radius* tugas (diputuskan `G2-00`/Q27) · rujuk §6.2 | — |
+| 2026-10-03 | **A16** — Line Endings: semua berkas teks **WAJIB LF**, dikunci `.gitattributes` · rujuk §6.3 | — |

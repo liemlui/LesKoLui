@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.86.0",
+    date: "2026-10-03",
+    title: "Fondasi tampilan: skala ukuran teks akhirnya berlaku di tombol & kolom isian",
+    items: [
+      "Ukuran dan ketebalan huruf pada tombol, kolom isian, menu pilih, dan kotak teks kini benar-benar mengikuti kelas yang tertulis di kodenya. Sebelumnya aturan “kontrol form mewarisi huruf sekitarnya” ditulis di luar lapisan gaya, sehingga ia mengalahkan seluruh aturan ukuran/ketebalan huruf di aplikasi — akibatnya tombol yang ditulis “14px dan tebal” tetap dirender 16px biasa, dan skala tipografi yang baru tidak pernah sampai ke kontrol mana pun. Aturan itu kini berada di lapisan yang benar, jadi tulisan di kode dan yang tampil di layar akhirnya sama. Ini juga membuat kolom isian konsisten 14px seperti yang diminta pada pemeriksaan Android.",
+      "Fondasi warna dan ukuran teks untuk perombakan tampilan Gelombang 2 sudah dipasang: satu skala ukuran huruf (13/15/18/24 px) menggantikan campuran ukuran ad-hoc, satu skala jarak kelipatan 4, dua tingkat bayangan, dan dua pola gerak (200ms untuk elemen masuk, 250ms untuk panel dari bawah).",
+      "Ditambahkan empat warna teks bertema (bahaya, peringatan, berhasil, redup) beserta warna latarnya. Nilainya bukan warna baru — semuanya diambil dari langkah palet resmi yang sudah dipakai aplikasi, tetapi dipilih ulang dengan bukti hitungan supaya lulus ambang keterbacaan 4,5:1 di semua latar terang yang dipakai aplikasi, bukan hanya di atas latar warnanya sendiri. Dua langkah yang sebelumnya dipakai untuk teks peringatan/berhasil ternyata gagal tipis (4,49:1 dan 4,40:1) di atas latar abu muda, jadi keduanya dinaikkan satu langkah lebih gelap. Ke-13 titik kontras yang diperbaiki pada v1.79.3 sudah diuji ulang dengan token baru — semuanya lulus, dengan rasio 5,05–7,13:1.",
+      "Tujuh komponen dasar baru (kartu, judul blok, baris daftar, baris aksi, kotak angka, panel dari bawah, keadaan kosong) menjadi bahan bangunan layar berikutnya. Ketujuhnya hanya memakai warna dari token, sehingga tidak ada lagi warna yang ditulis langsung per layar. Panel dari bawah menggantikan panel modal lama pada dialog konfirmasi, dengan perilaku aksesibilitas yang sama persis (fokus terjebak, Escape menutup, bisa ditutup dari latar).",
+      "Enam belas titik kontras dan dua tautan nomor telepon yang masih tercatat pada v1.85.0 **belum** diperbaiki di rilis ini — penyapuan kelas warna per layar adalah tugas berikutnya (G2-02), dan target sentuh adalah G2-06. Penjaga `npm run e2e:uiux` tetap menandainya, jadi tidak ada yang hilang diam-diam.",
+    ],
+  },
+  {
     version: "v1.85.0",
     date: "2026-10-03",
     title: "Judul layar Murid, Laporan, dan Pengaturan akhirnya terbaca pembaca layar",

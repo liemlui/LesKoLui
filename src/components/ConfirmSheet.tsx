@@ -1,4 +1,4 @@
-import Modal from "./Modal";
+import Sheet from "./ui/Sheet";
 
 interface ConfirmSheetProps {
   open: boolean;
@@ -13,8 +13,10 @@ interface ConfirmSheetProps {
 
 /**
  * Mobile bottom-sheet confirmation dialog.
- * Reuses Modal for role="dialog", aria-modal, backdrop click/Escape close,
- * and focus trapping. Adds a danger-styled confirm button and busy state.
+ * G2-01: sekarang memakai primitif `components/ui/Sheet` (token, pola D kontrak
+ * K4.6) menggantikan `components/Modal`. Perilaku yang dipertahankan: role="dialog",
+ * aria-modal, tutup lewat backdrop & Escape, jebakan fokus, tombol ✕ "Tutup panel",
+ * teks tombol, dan `ariaLabel={title}`.
  */
 export default function ConfirmSheet({
   open,
@@ -26,35 +28,38 @@ export default function ConfirmSheet({
   onCancel,
   onConfirm,
 }: ConfirmSheetProps) {
-  if (!open) return null;
   return (
-    <Modal onClose={onCancel} ariaLabel={title}>
-      <h3 className="font-bold text-base text-gray-800">{title}</h3>
-      <p className="whitespace-pre-line text-sm leading-relaxed text-gray-600">
-        {message}
-      </p>
-      <div className="flex gap-3 pt-1">
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={busy}
-          className="flex-1 rounded-xl border border-gray-200 py-3 text-sm font-semibold text-gray-500 transition-colors hover:bg-gray-50 disabled:opacity-50"
-        >
-          Batal
-        </button>
-        <button
-          type="button"
-          onClick={onConfirm}
-          disabled={busy}
-          className={`flex-1 rounded-xl py-3 text-sm font-bold text-white transition-colors disabled:opacity-50 ${
-            danger
-              ? "bg-red-600 hover:bg-red-700"
-              : "bg-indigo-600 hover:bg-indigo-700"
-          }`}
-        >
-          {busy ? "Memproses..." : confirmLabel}
-        </button>
-      </div>
-    </Modal>
+    <Sheet
+      open={open}
+      onClose={onCancel}
+      title={title}
+      ariaLabel={title}
+      footer={
+        <div className="flex gap-[var(--space-3)]">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={busy}
+            className="flex-1 rounded-[var(--radius-card)] border border-[var(--border)] py-3 text-body font-semibold text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-soft)] disabled:opacity-50"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={busy}
+            className={`flex-1 rounded-[var(--radius-card)] py-3 text-body font-bold text-white transition-colors disabled:opacity-50 ${
+              danger
+                ? "bg-[var(--bg-danger-strong)] hover:opacity-90"
+                : "bg-[var(--brand)] hover:bg-[var(--brand-strong)]"
+            }`}
+          >
+            {busy ? "Memproses..." : confirmLabel}
+          </button>
+        </div>
+      }
+    >
+      <p className="whitespace-pre-line text-body leading-relaxed text-[var(--text-muted)] m-0">{message}</p>
+    </Sheet>
   );
 }

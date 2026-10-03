@@ -3,6 +3,8 @@ import { dayLabel } from "../../lib/format";
 import { clampPage, paginateItems } from "../../lib/pagination";
 import PaginationControls from "../../components/PaginationControls";
 import EmptyState from "../../components/EmptyState";
+import SectionHeader from "../../components/ui/SectionHeader";
+import ListRow from "../../components/ui/ListRow";
 
 interface UpcomingScheduleProps {
   upcomingSched: Session[] | undefined;
@@ -28,10 +30,11 @@ export default function UpcomingSchedule({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-lg font-semibold">Jadwal Mendatang</h2>
-        <span className="text-xs text-gray-500 font-medium">{(upcomingSched ?? []).length} jadwal</span>
-      </div>
+      <SectionHeader
+        className="mb-2"
+        title="Jadwal Mendatang"
+        hint={`${(upcomingSched ?? []).length} jadwal`}
+      />
 
       {availMonths.length > 1 && (
         <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
@@ -57,20 +60,25 @@ export default function UpcomingSchedule({
       ) : (
         <div className="space-y-2">
           {paginatedFiltered.map((s) => (
-            <button key={s.id} type="button"
-              className="w-full text-left bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex items-center justify-between gap-3 cursor-pointer hover:border-blue-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            <ListRow
+              key={s.id}
+              leading={
+                (s.date === today || s.seriesId) ? (
+                  <span className="flex flex-col items-start gap-1">
+                    {s.date === today && (
+                      <span className="rounded-full bg-[var(--surface-soft)] px-1.5 py-0.5 text-caption font-semibold text-[var(--brand)]">
+                        Hari ini
+                      </span>
+                    )}
+                    {s.seriesId && <span className="text-caption">🔁 Rutin</span>}
+                  </span>
+                ) : undefined
+              }
+              title={dayLabel(s.date)}
+              subtitle={`${s.time ? `${s.time} · ` : ""}${s.durationHours} jam`}
+              trailing={<span className="text-caption">✏️ Edit</span>}
               onClick={() => openEditSched(s)}
-              aria-label={`Edit jadwal ${dayLabel(s.date)}${s.time ? ` pukul ${s.time}` : ""}`}>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  {s.date === today && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-semibold">Hari ini</span>}
-                  {s.seriesId && <span className="text-xs text-gray-500">🔁 Rutin</span>}
-                </div>
-                <p className="text-sm font-semibold text-gray-800 mt-0.5">{dayLabel(s.date)}</p>
-                <p className="text-xs text-gray-500">{s.time ? `${s.time} · ` : ""}{s.durationHours} jam</p>
-              </div>
-              <span className="text-gray-500 text-xs flex-shrink-0">✏️ Edit</span>
-            </button>
+            />
           ))}
           <PaginationControls
             page={safeFilteredPage}

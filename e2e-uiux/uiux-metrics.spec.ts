@@ -281,25 +281,27 @@ const show = (rows: Array<Record<string, unknown>>) => JSON.stringify(rows, null
  *
  * CATATAN pembacaan angka (`fontSize`/`weight`): guard membaca
  * `getComputedStyle` — yaitu ukuran yang BENAR-BENAR dirender, dan itulah yang
- * dipakai aturan kontras WCAG. Untuk elemen `<button>`/`<input>`, ukuran itu
- * sering tidak sama dengan kelas `text-*`/`font-*` di sumbernya karena
- * `src/index.css:67` (`button, input, select, textarea { font: inherit }`)
- * berada DI LUAR `@layer`, sehingga mengalahkan `@layer utilities` Tailwind v4.
- * Efeknya belum pernah mengubah keputusan ambang di sini (semua nilai itu tetap
- * butuh 4,5:1), tetapi itu **temuan terpisah** (Q25) dan bukan urusan guard ini.
+ * dipakai aturan kontras WCAG.
+ *
+ * Q25 **SUDAH DIPERBAIKI** di G2-01 (v1.86.0): aturan
+ * `button, input, select, textarea { font: inherit }` yang dulu berada DI LUAR
+ * `@layer` (dan karena itu mengalahkan `@layer utilities` Tailwind v4, sehingga
+ * kelas `text-*`/`font-*` tidak pernah berlaku pada kontrol form) kini berada di
+ * dalam `@layer base`. Efeknya pada guard ini nihil: ambang kontras di sini
+ * ditentukan ukuran >=/< 18,66px, dan 14px maupun 16px sama-sama butuh 4,5:1.
  */
 const RESIDUAL_KONTRAS: Record<string, string> = {
   murid:
     "L-01 sisa (6×): 4,39:1 — `text-gray-500` di atas `bg-gray-100` — 1× tab \"Historis (1)\" " +
     "(Students.tsx:465, keadaan tidak terpilih) dan 5× tombol \"Edit murid\" (Students.tsx:325). " +
-    "Tanggung jawab G2-01/G2-02 (token + sapu kelas).",
+    "Tanggung jawab G2-02 (sapu kelas warna ke token). G2-01 hanya menambah token — kelas lama belum disapu.",
   "detail-murid":
     "L-01 sisa (4×): tautan telepon 📞 3,22:1 (14px), \"Total Sesi\" `text-blue-500` di `bg-blue-50` 3,46:1 (12px), " +
-    "\"Total Jam\" `text-indigo-500` di `bg-indigo-50` 4,09:1 (12px). Tanggung jawab G2-01/G2-02.",
+    "\"Total Jam\" `text-indigo-500` di `bg-indigo-50` 4,09:1 (12px). Tanggung jawab G2-02 (sapu kelas warna ke token). G2-01 hanya menambah token — kelas lama belum disapu.",
   keuangan:
     "L-01 sisa (6×): \"Perlu ditindaklanjuti\" 3,10:1 · tombol \"Tindak lanjuti di Tagihan\" putih di `bg-amber-600` 3,20:1 · " +
     "\"Uang masuk & keluar\" `green-600` 3,47:1 · \"AI belum aktif\" (nonaktif) 3,20:1 · dua chip rentang grafik " +
-    "\"3 bulan\"/\"12 bulan\" 4,39:1 (RingkasanTab.tsx:689, `text-gray-500` di `bg-gray-100`). Tanggung jawab G2-01/G2-02.",
+    "\"3 bulan\"/\"12 bulan\" 4,39:1 (RingkasanTab.tsx:689, `text-gray-500` di `bg-gray-100`). Tanggung jawab G2-02 (sapu kelas warna ke token). G2-01 hanya menambah token — kelas lama belum disapu.",
 };
 
 const RESIDUAL_UKURAN: Record<string, string> = {

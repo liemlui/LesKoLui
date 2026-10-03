@@ -4,13 +4,13 @@
 jenis: indeks
 status: aktif
 diperbarui: 2026-10-03
-versi_app: v1.84.0
+versi_app: v1.86.0
 test: 678 lulus / 56 berkas
 baca_ini_kalau: kamu (manusia atau AI) perlu tahu dokumen mana yang harus dibuka
 jangan_baca_berurutan: pakai tabel §2
 ```
 
-> **Sekilas** · Jenis: **indeks dokumentasi (pintu masuk)** · Status: **aktif** · Diperbarui: 2026-10-03 (v1.84.0).
+> **Sekilas** · Jenis: **indeks dokumentasi (pintu masuk)** · Status: **aktif** · Diperbarui: 2026-10-03 (v1.86.0).
 > **Untuk siapa:** pemilik aplikasi (Ko Lui) dan agen AI yang merawat repo ini.
 > **Isi:** peta "mau X → buka Y" (§2) · aturan penamaan (§3) · **status pekerjaan (§4)** · riwayat rilis (§5) · aturan pemeliharaan (§6).
 > **Berkas lain tidak perlu dibaca berurutan.** Tabel §2 adalah router-nya.
@@ -82,13 +82,15 @@ jangan_baca_berurutan: pakai tabel §2
 |---|---|---|---|
 | 1 | **Refactor layar besar** — `CaptureSession.tsx` 2.591 → ≤1.900 baris, dst. | [`kerja/TASK-01-refactor-layar-besar.md`](kerja/TASK-01-refactor-layar-besar.md) | 4 dari 6 langkah selesai; dua target ukuran masih terbuka. **Refactor terbatas dikunci 2026-10-01 (Q9, §10):** `CaptureSession.tsx` sebelum G3-01, `MonthlyReport.tsx` sebelum G3-05 |
 | 2 | **Blueprint UI/UX** — peta layar → nasib, nav 3 pintu + aksi di nav, 6 prinsip arah | [`kerja/TASK-03-blueprint-uiux.md`](kerja/TASK-03-blueprint-uiux.md) | `todo` — **induk**; baca [`kerja/ATURAN-AI.md`](kerja/ATURAN-AI.md) dulu. Amandemen 2026-10-01 (Q3/Q5) sudah masuk §2 |
-| 3 | **Fondasi visual** — token, 7 primitif, **904** kelas hardcode (baseline 2026-10-01), **light-only permanen** | [`kerja/TASK-04-fondasi-visual.md`](kerja/TASK-04-fondasi-visual.md) | `todo` — risiko terendah, dikerjakan lebih dulu. L6 dark mode **dibatalkan** (Q4); penghitung dibuat rekursif (A8) |
+| 3 | **Fondasi visual** — token, 7 primitif, kelas warna hardcode (baseline **907** terukur saat G2-01), **light-only permanen** | [`kerja/TASK-04-fondasi-visual.md`](kerja/TASK-04-fondasi-visual.md) | 🔄 **sebagian selesai** — `G2-01` (v1.86.0) menuntaskan **L1–L2**: token (tipografi 13/15/18/24 · spacing · 2 elevasi · 2 gerak) + warna semantik `--ink-*`/`--bg-*`, **7 primitif** di `src/components/ui/`, dan **Q25** (`font: inherit` masuk `@layer base`). **Sisa: L3–L5** — sapu kelas warna ke ≤190 = **G2-02**. L6 dark mode **dibatalkan** (Q4); penghitung dibuat rekursif (A8) |
 | 4 | **Rombak keuangan** — 5 mekanisme tagih → 1 daftar, 4 tab → 1 layar, pipeline **di-redesign** (board di dalam blok "Perlu ditagih") | [`kerja/TASK-05-rombak-keuangan.md`](kerja/TASK-05-rombak-keuangan.md) | `todo` — prioritas pemilik. Langkah 6 diubah 2026-10-01 (Q3): **bukan** dibubarkan |
 | 5 | **Perkuat Catat Sesi** — wizard **dipertahankan** (6 langkah tetap 6), satu sheet "Kelola sesi", **simpan boleh dari langkah 5** | [`kerja/TASK-06-perkuat-catat-sesi.md`](kerja/TASK-06-perkuat-catat-sesi.md) | `todo` — amandemen Q2: `STEP_META` tidak berubah, +2 tes (L7) |
 | 6 | **Kontrak AI berbiaya** — satu jalur `useAiAction`, modal biaya tiap panggilan, batas bulanan **opsional (default kosong)** | [`kerja/TASK-07-kontrak-ai-berbiaya.md`](kerja/TASK-07-kontrak-ai-berbiaya.md) | `todo` — keputusan pemilik: semua AI lewat tombol biaya. B4 diubah 2026-10-01 (Q1) |
 | 7 | **Satu pintu uang** — tutup 6 kebocoran (Home/Murid/Detail/Laporan), `useMoneyVisible()` | [`kerja/TASK-08-satu-pintu-uang.md`](kerja/TASK-08-satu-pintu-uang.md) | `todo` |
 | 8 | **Jadwal hari: zoom + tangkapan layar** — agar jadwal pagi–malam bisa di-SS sekaligus | [`kerja/TASK-09-jadwal-hari-zoom.md`](kerja/TASK-09-jadwal-hari-zoom.md) | `todo` |
 | 9 | **Tiga gelombang perbaikan UI/UX** — G1-01…G1-11 (bersih-bersih & aksesibilitas), G2-01…G2-10 (fondasi token/uang/jadwal), G3-01…G3-10 (alur: catat sesi, keuangan, AI, laporan, murid/proyek, foto, pengaturan) | [`kerja/GELOMBANG-1.md`](kerja/GELOMBANG-1.md) · [`kerja/GELOMBANG-2.md`](kerja/GELOMBANG-2.md) · [`kerja/GELOMBANG-3.md`](kerja/GELOMBANG-3.md) | ✅ **G1-01…G1-11 SELESAI** (v1.85.0, 2026-10-03) — **Gelombang 1 tuntas**, prasyarat Gelombang 2 terpenuhi. **Q19 dipindah ke G2**; Q20/Q21/Q22 ditutup di G1-11; **Q23, Q24 & Q25** menunggu keputusan (§4.2 #23/#24/#25) |
+| 10 | **Smart Gating** — gate 3 tier menurut *blast radius* tugas (Tier 1 <3 berkas tanpa infra · Tier 2 menyentuh `src/components`/`lib`/`db`/`hooks` atau layar dipakai >3 layar · Tier 3 tugas terakhir gelombang / perubahan config), supaya tugas kecil di Gelombang 2 & 3 tidak membayar gate penuh; **jaring akhir tetap** di tugas terakhir tiap gelombang | [`kerja/ATURAN-AI.md`](kerja/ATURAN-AI.md) §6.2 · [`kerja/GELOMBANG-2.md`](kerja/GELOMBANG-2.md) §G2-00 | ✅ **G2-00 SELESAI** (2026-10-03) — amandemen dokumen saja: **tanpa** perubahan kode, script, atau config; **tanpa** version bump; **tanpa** entri §5. **Berlaku mulai G2-01** |
+| 11 | **Line Endings + formalisasi A15/A16** — semua berkas teks WAJIB **LF**, dikunci `.gitattributes`; aturannya ditulis di §6.3 | [`kerja/ATURAN-AI.md`](kerja/ATURAN-AI.md) §6.3 · §9 | **G2-00b ✅ — Line Endings + A15/A16** (2026-10-03) — dokumen + `.gitattributes` saja; **tanpa** perubahan kode; **tanpa** version bump; **tanpa** entri §5 |
 
 ### 4.2 Belum ada dokumen tugasnya (butuh keputusan manusia dulu)
 
@@ -139,6 +141,7 @@ Satu-satunya cara menutup pekerjaan §4.2 #4. Jalankan dengan data dev (fungsi `
 
 | Tanggal | Peristiwa | Versi |
 |---|---|---|
+| 2026-10-03 | **Skala ukuran teks akhirnya berlaku di tombol & kolom isian**: aturan “kontrol form mewarisi huruf sekitarnya” yang ditulis di luar lapisan gaya dipindah ke `@layer base` — sebelumnya ia mengalahkan seluruh kelas ukuran/ketebalan huruf, sehingga tombol yang ditulis 14px tebal tetap dirender 16px biasa (Q25). Ditambah **fondasi tampilan Gelombang 2**: skala ukuran huruf 13/15/18/24 px, skala jarak kelipatan 4, 2 tingkat bayangan, 2 pola gerak, **4 warna teks bertema** (`--ink-*`) + latarnya yang dibuktikan ≥4,5:1 di semua latar terang (13 titik G1-04 diuji ulang: 5,05–7,13:1), dan **7 primitif** di `src/components/ui/` (G2-01) | v1.86.0 |
 | 2026-06-26 | Audit dokumentasi vs kode: 13 dokumen diselaraskan | v1.12.1 |
 | 2026-07 → 08 | Audit keamanan/teknis 4 ronde: 26/26 ditangani (1 di-waive: H-2, API key AI) | v1.37.0 → v1.53.0 |
 | 2026-08-29 | Refactor Catat Sesi: state besar dipecah ke 3 hook | v1.64.x |

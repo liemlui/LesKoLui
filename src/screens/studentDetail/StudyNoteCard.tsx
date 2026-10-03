@@ -1,6 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { StudyNote } from "../../db/types";
 import { SimpleMarkdown } from "../../components/SimpleMarkdown";
+import Card from "../../components/ui/Card";
+import SectionHeader from "../../components/ui/SectionHeader";
 
 interface Props {
   studentId: string;
@@ -36,8 +38,8 @@ export default function StudyNoteCard({ studentId, studyNote, onSave }: Props) {
   );
 
   return (
-    <div className="bg-white rounded-2xl p-4 border border-gray-100 space-y-2">
-      <h2 className="text-base font-semibold text-gray-700">📝 Catatan Belajar</h2>
+    <Card className="space-y-2">
+      <SectionHeader title="📝 Catatan Belajar" />
       <p className="text-xs text-gray-500">
         Topik sekolah, PR dari sekolah, progres belajar, rencana sesi berikutnya.
       </p>
@@ -76,6 +78,6 @@ export default function StudyNoteCard({ studentId, studyNote, onSave }: Props) {
           </button>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

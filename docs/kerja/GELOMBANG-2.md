@@ -1,21 +1,36 @@
-# GELOMBANG-2 — Fondasi: token → uang → jadwal (G2-01 … G2-10)
+# GELOMBANG-2 — Fondasi: token → uang → jadwal (G2-00 … G2-10)
 
-> **Sekilas** · Jenis: **dokumen tugas (dapat dieksekusi)** · Diperbarui: 2026-10-01 · Status: **aktif**
+> **Sekilas** · Jenis: **dokumen tugas (dapat dieksekusi)** · Diperbarui: 2026-10-03 · Status: **aktif**
 > **Untuk siapa:** agen AI pelaksana (satu langkah per putaran, jangan improvisasi).
 > **Prasyarat wajib dibaca lebih dulu:** [`ATURAN-AI.md`](ATURAN-AI.md) → [`TASK-04-fondasi-visual.md`](TASK-04-fondasi-visual.md) →
 > [`TASK-08-satu-pintu-uang.md`](TASK-08-satu-pintu-uang.md) → [`TASK-09-jadwal-hari-zoom.md`](TASK-09-jadwal-hari-zoom.md).
 > **Dependency gelombang:** **seluruh Gelombang 1 selesai** (khusus `G1-02` untuk angka & `G1-04` untuk kontras interim).
-> **Isi:** 10 tugas (**G2-10 ditambahkan 2026-10-01 dari Q18/G1-07**). **Tidak ada perubahan skema Dexie.** Urutan risiko terendah sudah dikunci `ATURAN-AI` §4: `04 → 08 → 09`.
-> **Estimasi total:** **3×L + 5×M + 2×S** ≈ 2 minggu (L = G2-01, G2-02, G2-04; M = G2-06…G2-10; S = G2-03, G2-05).
+> **Isi:** **11 tugas** — **G2-00 ditambahkan 2026-10-03** (amandemen Smart Gating; dokumen saja, **sudah selesai**) dan **G2-10 ditambahkan 2026-10-01 dari Q18/G1-07**. **Tidak ada perubahan skema Dexie.** Urutan risiko terendah sudah dikunci `ATURAN-AI` §4: `04 → 08 → 09`.
+> **Gate:** **Smart Gating** (`ATURAN-AI` §6.2) berlaku **mulai `G2-01`** — setiap tugas menulis `Tier: X — alasan: …` di checklist laporannya. Tier per tugas dicatat di §2; ragu tier → ambil tier lebih tinggi.
+> **Estimasi total:** **3×L + 5×M + 2×S** ≈ 2 minggu (L = G2-01, G2-02, G2-04; M = G2-06…G2-10; S = G2-03, G2-05). *(G2-00 tidak masuk estimasi — dokumen saja, ±10 menit.)*
 > **Revisi estimasi:** `TASK-04` menulis "6 langkah × 30–45 menit" untuk 471 kelas; dengan baseline **904** angka itu tidak realistis (lihat §1).
 
 ---
 
 ## 0. Cara pakai
 
-Sama seperti [`GELOMBANG-1.md`](GELOMBANG-1.md) §0: satu langkah per putaran, gate wajib
-(`npx tsc -b` → `npx eslint src` → `npm test` → `npm run build` → `npm run e2e`, plus `npm run e2e:uiux`
-hasil `G1-11`), laporan 5 baris, dan **jangan mengakali tes**.
+Sama seperti [`GELOMBANG-1.md`](GELOMBANG-1.md) §0: satu langkah per putaran, laporan 5 baris, dan
+**jangan mengakali tes**.
+
+**Gate tidak lagi sama untuk semua tugas — mulai `G2-01` berlaku SMART GATING**
+([`ATURAN-AI.md`](ATURAN-AI.md) §6.2). Tier ditentukan dari **blast radius** tugas **sebelum** mulai,
+dan `Tier: X — alasan: …` wajib ditulis di checklist laporan. Ragu tier → ambil tier **lebih tinggi**.
+
+| Tier | Kondisi ringkas | Gate |
+|---|---|---|
+| Tier 1 | <3 berkas **dan** tanpa infrastruktur | `npx tsc -b` · `npx eslint src` · tes terkait saja · spec Playwright terkait |
+| Tier 2 | menyentuh `src/components/**`, `src/lib/**`, `src/db/**`, `src/hooks/**`, **atau** layar yang dipakai >3 layar lain | Tier 1 + `npm run test:sandbox` **PENUH** |
+| Tier 3 | tugas **terakhir** gelombang, **atau** mengubah `package.json`/`scripts`/config | Tier 2 + `npx playwright test` **SEMUA** spec di `e2e/` |
+
+Urutan gate lama (`npx tsc -b` → `npx eslint src` → `npm test` → `npm run build` → `npm run e2e`)
+**tidak dibuang** — itu isi **Tier 3**, dan tetap dijalankan penuh di tugas terakhir gelombang (§3).
+`npm run e2e:uiux` (hasil `G1-11`) tetap dijalankan pada tugas yang menyentuh metrik UI dan di checkpoint.
+Rincian + aturan naik-tier di tengah jalan: [`ATURAN-AI.md`](ATURAN-AI.md) §6.2.
 
 ### Larangan tambahan yang berlaku di gelombang ini
 
@@ -33,7 +48,8 @@ hasil `G1-11`), laporan 5 baris, dan **jangan mengakali tes**.
 ## 1. Graf dependency
 
 ```
-G2-01 (TASK-04 L1–L3: token + 7 primitif + skala tipografi)   ← wajib pertama
+G2-00 (amandemen Smart Gating — dokumen saja, tanpa kode)     ← SELESAI 2026-10-03
+G2-01 (TASK-04 L1–L3: token + 7 primitif + skala tipografi)   ← ✅ SELESAI v1.86.0 (kode)
   ├─ G2-02 (TASK-04 L4–L5: sapu 904 → ≤190 + guard kontras)
   ├─ G2-03 (TASK-04 L6 dicabut → light-only; verifikasi + komentar CSS)
   ├─ G2-04 (TASK-08 satu pintu uang)  ← juga butuh G1-04
@@ -55,6 +71,70 @@ G2-01 (TASK-04 L1–L3: token + 7 primitif + skala tipografi)   ← wajib pertam
 ---
 
 ## 2. Daftar tugas
+
+### G2-00 — Amandemen Smart Gating (prasyarat Gelombang 2)
+
+| Field | Isi |
+|---|---|
+| ID | G2-00 |
+| Judul | Tulis aturan **Smart Gating** 3 tier (`ATURAN-AI` §6.2) + daftarkan tier per tugas gelombang |
+| Berkas disentuh | `docs/kerja/ATURAN-AI.md` · `docs/kerja/GELOMBANG-2.md` · `docs/README.md` — **dokumen saja** |
+| Dependency | Gelombang 1 selesai (v1.85.0) |
+| Latar | Gate penuh di **setiap** tugas Gelombang 1 menghabiskan **±2 menit/tugas** (tsc + lint + 691 tes + build + `md-links` + Playwright) — **±20 menit/gelombang** — untuk tugas yang mayoritas hanya menyentuh 1–2 berkas. Dengan 20 tugas tersisa (`G2-01…G2-10`, `G3-01…G3-10`) itu **±40 menit** tes berulang |
+| Langkah acuan | — (tugas prosedural) |
+| Estimasi | **S** (±10 menit) |
+| Keputusan pemilik | **Q23, Q24, Q25 sudah dikunci** — tugas ini **tidak** membukanya lagi |
+| Amandemen terkait | **§6.2 baru** di `ATURAN-AI` (amandemen ini sendiri) |
+| Catatan | **Tidak ada** perubahan kode, script, config, atau versi. Bukan rilis user-facing → **tidak ada** entri di `src/lib/version.ts` dan **tidak ada** baris di `docs/README.md` §5 |
+
+**Latar singkat.** Smart Gating menggantikan "satu gate untuk semua tugas" dengan **3 tier menurut
+blast radius**, supaya tugas yang jelas tidak bisa mematahkan apa pun tidak membayar 2 menit gate.
+Tier tertinggi (Tier 3) **tetap** dijalankan penuh di tugas terakhir tiap gelombang sebagai jaring
+akhir — jadi yang dihemat bukan cakupan akhir, melainkan tes berulang di tugas-tugas kecil.
+
+**Langkah (berurutan):**
+1. Tambah **§6.2 Smart Gating** di [`ATURAN-AI.md`](ATURAN-AI.md) (setelah §6.1 sandbox; §6.1 tidak diubah):
+   tabel 3 tier + 7 aturan tambahan (ragu → tier lebih tinggi · wajib `Tier: X — alasan: …` · boleh naik
+   tier + tandai "BARU" · full suite tetap di tugas terakhir · `e2e:uiux` tidak berubah · dokumen-saja =
+   Tier 1 termurah · tidak berlaku surut).
+2. Daftarkan **G2-00** di dokumen ini (header, §0, §1 graf, entri ini) dan tegaskan
+   **Smart Gating berlaku mulai `G2-01`**.
+3. Tambah **satu baris** di [`../README.md`](../README.md) §4.1. §5 dan `versi_app` **tidak** disentuh.
+4. Gate: `node scripts/check-md-links.mjs` → **rusak = 0** (Tier 1 dokumen-saja; tanpa tsc/lint/test/build/Playwright).
+5. Catat hasilnya di blok **Hasil** di bawah ini.
+
+**DoD terverifikasi:**
+- [ ] `ATURAN-AI` §6.2 memuat tabel 3 tier **dan** 7 aturan tambahan; §6.1 tidak berubah satu baris pun.
+- [ ] `GELOMBANG-2` menyebut G2-00 di header, §0, §1, dan §2; **"Smart Gating berlaku mulai G2-01"** tertulis eksplisit.
+- [ ] `docs/README.md` §4.1 punya baris G2-00; **tidak ada** baris baru di §5; `versi_app` tidak diubah.
+- [ ] `node scripts/check-md-links.mjs` → **rusak = 0**.
+- [ ] `git diff --name-only` = **hanya** 3 berkas dokumentasi (nol berkas `src/**`, nol config, nol `package.json`).
+- [ ] Tidak ada berkas di `ATURAN-AI` §2.1 yang tersentuh.
+
+**Catatan penting untuk `G2-01`…`G2-10`:** tentukan tier **sebelum** mulai dan tulis
+`Tier: X — alasan: …` di checklist laporan. Contoh cepat untuk gelombang ini: `G2-07` (hanya
+`DayView.tsx`) = **Tier 1**; `G2-01`/`G2-02` (`src/index.css` + `src/components/**`) = **Tier 3**
+karena mengubah token/primitif yang dipakai hampir semua layar; `G2-10` (tugas terakhir gelombang) = **Tier 3**.
+Ini **contoh**, bukan keputusan — tier ditetapkan ulang saat tugas itu dikerjakan.
+
+**Hasil (2026-10-03):**
+- **`ATURAN-AI` §6.2 Smart Gating** tertulis: tabel 3 tier + 7 aturan tambahan. Diff berkas itu = **hanya penambahan**
+  (42 baris, **0 penghapusan**) → **§6.1 tidak berubah**.
+- **G2-00 terdaftar** di dokumen ini: header (`G2-00 … G2-10`, **11 tugas**), §0 (gate per tier), §1 (graf dependency),
+  §2 (entri ini). **"Smart Gating berlaku mulai `G2-01`"** tertulis eksplisit di header, §0, dan §2.
+- **`docs/README.md` §4.1** dapat baris **#10** (Smart Gating / G2-00 ✅). **§5 tidak disentuh**; `versi_app` **tidak diubah**.
+- **Gate (Tier 1 dokumen-saja):** `node scripts/check-md-links.mjs` → 50 berkas · **188 tautan** · **rusak 0**
+  (sebelum: 50 berkas · 180 tautan · 0 rusak). tsc/lint/`test:sandbox`/build/Playwright **tidak dijalankan** —
+  tidak ada kode yang berubah (aturan §6.2 butir 6).
+- **Berkas disentuh: 3** — semuanya `docs/**`. `git diff --name-only` bersih dari `src/**`, config, dan `package.json`.
+  **Tanpa version bump**, **tanpa** entri `CHANGELOG` di `src/lib/version.ts`.
+- **Dua ketidaksesuaian metadata lama ditemukan dan sengaja TIDAK diubah** (di luar lingkup tugas ini, dilaporkan ke
+  pemilik sebagai **Q26 & Q27**): `docs/README.md` blok YAML masih `versi_app: v1.84.0` / `test: 678 lulus / 56 berkas`
+  (tertinggal dari G1-11), dan `ATURAN-AI` §9 belum punya baris riwayat untuk amandemen ini.
+
+**Status:** G2-00 **selesai**. **`G2-01` boleh dimulai.**
+
+---
 
 ### G2-01 — TASK-04 L1–L3: token, 7 primitif, skala tipografi
 
@@ -79,11 +159,19 @@ G2-01 (TASK-04 L1–L3: token + 7 primitif + skala tipografi)   ← wajib pertam
 4. Pakai primitif di **minimal 3 layar** (mis. `Card` di Beranda, `ListRow` di Murid, `Sheet` di satu modal).
 5. Verifikasi kontras: 13 pasangan `G1-04` harus lulus memakai token baru (ukur dengan skrip kontras).
 
-**DoD terverifikasi:**
-- [ ] `@theme` memuat 4 langkah tipografi + spacing + 2 elevasi + 2 pola gerak.
-- [ ] `src/components/ui/` berisi 7 berkas; `grep` menunjukkan primitif dipakai di ≥3 layar.
-- [ ] 13 pasangan kontras lulus (≥4,5:1 untuk teks <18,66px) — tabel pasangan ditulis di §4.
-- [ ] Tidak ada kelas warna langsung di berkas primitif.
+**DoD terverifikasi (G2-01 selesai — v1.86.0, 2026-10-03):**
+- [x] `@theme` memuat 4 langkah tipografi + spacing + 2 elevasi + 2 pola gerak. — **CATATAN:** blok-nya harus `@theme static`; tanpa `static` Tailwind v4 tidak mencetak variabel tema yang belum dipakai utility, dan **seluruh `--bg-*` hilang** dari `dist/assets/*.css` (terukur).
+- [x] `src/components/ui/` berisi 7 berkas; `grep` menunjukkan primitif dipakai di ≥3 layar. — 7 berkas; dipakai di **3 berkas layar** (`PengeluaranTab`, `StudyNoteCard`, `UpcomingSchedule`) dan lewat `ConfirmSheet` → `ui/Sheet` menjangkau **4 layar utama lagi** (`Payments`/Keuangan, `CaptureSession`, `MonthlyReport`, `Settings`). Ketujuh primitif punya ≥1 pemakaian nyata.
+- [x] 13 pasangan kontras lulus (≥4,5:1 untuk teks <18,66px) — tabel pasangan ditulis di §4.
+- [x] Tidak ada kelas warna langsung di berkas primitif. — `Select-String -Path "src\components\ui\*.tsx" -Pattern "bg-white|gray-"` → **kosong**.
+
+**Hasil (2026-10-03 · v1.86.0 · Tier 3):**
+- **Token** di `src/index.css`: tipografi 13/15/18/24 px · `--space-1..6` · `--e-flat`/`--e-float` · `--motion-enter`(200ms)/`--motion-sheet`(250ms) · warna semantik `--ink-danger/warn/success/muted` + `--bg-danger/warn/success/muted` + `--bg-*-strong` + `--color-scrim` (tirai sheet, supaya primitif benar-benar nol kelas warna).
+- **Pemilihan nilai warna berbasis bukti**, bukan hafalan: `.design-audit/g2-01-contrast.mjs` memeriksa **41 pasangan → 0 gagal**. Dua langkah yang dipakai teks (amber-700 **4,49:1**, green-700 **4,40:1**) **GAGAL tipis** di atas `--surface-soft` (#eef2f7), jadi warn/success dinaikkan ke langkah **-800** (warn 6,34:1 · success 6,31:1 · danger−red-700 5,71:1 · muted 6,74:1).
+- **Q25 DIKERJAKAN**: `button, input, select, textarea { font: inherit }` pindah dari luar layer ke `@layer base`, sehingga `@layer utilities` Tailwind v4 menang. Ini satu-satunya **perubahan perilaku** rilis ini (ukuran/ketebalan huruf kontrol form).
+- **7 primitif**: `Card` · `SectionHeader` · `ListRow` · `ActionBar` · `StatTile` · `Sheet` · `EmptyState` — semuanya berbasis token, tanpa kelas warna langsung.
+- **Penghitung kelas warna: 907 → 889.** Angka 904 di dokumen adalah pengukuran 2026-10-01; saat G2-01 dimulai penghitung rekursif berbunyi **907**. Sapu sampai **≤190** tetap milik **G2-02** (lihat §4 penyimpangan #1).
+- **`test.fixme` tetap 3** (16 residu kontras) + **1** (2 residu tap target) — tidak satu pun tertutup oleh G2-01, karena perbaikannya ada di lapisan kelas warna layar (**G2-02**) dan ukuran kontrol (**G2-06**). Sesuai Q24, `test.fixme` **tidak** dihapus sebelum tugas terkait selesai.
 
 ---
 
@@ -396,4 +484,45 @@ Ketiganya **bukan** perubahan satu baris, dan di G1-07 tidak dikerjakan agar tid
 
 | Tanggal | Tugas | Yang terjadi | Keputusan |
 |---|---|---|---|
-| | | | |
+| 2026-10-03 | **G2-01** | **Brief/checklist menyuruh "sapu 904 kelas warna" di tugas ini**, padahal `GELOMBANG-2` §2 menaruh sapu kelas (target **≤190**) di **G2-02**, dan langkah G2-01 sendiri (5 langkah) tidak memuat sapu | **Ikuti DoD** (klausul pengaman brief). Sapu **tidak** dikerjakan di G2-01. Penghitung dicatat sebagai bukti: **907 → 889** |
+| 2026-10-03 | **G2-01** | **Baseline penghitung ≠ 904.** Diukur ulang 2026-10-03 (awal G2-01): **907**. Angka **904** adalah pengukuran 2026-10-01 (sebelum G1-05…G1-11) | Dipakai **907** sebagai titik awal. **G2-02 wajib mengukur ulang** sebelum menyapu; jangan memakai 904 sebagai pembanding |
+| 2026-10-03 | **G2-01** | **Brief menyebut "13 pasangan kontras G1-04"** — G1-04 sebenarnya **14 baris kelas** dalam **13 titik** (baris #10 memuat dua warna) | Diuji **14 baris** (bagian C skrip), bukan 13 |
+| 2026-10-03 | **G2-01** | **`TASK-04` §4 memetakan `text-gray-400` → `var(--text-soft)`**, tetapi **`--text-soft` tidak ada** di `src/index.css` (hanya `--text` dan `--text-muted`) | **Tidak** ditambahkan di G2-01 (di luar daftar token DoD). **G2-02 akan menabraknya** → dicatat sebagai Q31 di laporan |
+| 2026-10-03 | **G2-01** | **`@theme` biasa membuat `--bg-*` hilang** dari CSS hasil build (Tailwind v4 memangkas variabel tema yang belum dipakai utility) | Blok diubah ke **`@theme static`**; diberi komentar "jangan dihapus". Diverifikasi ulang dengan `grep` pada `dist/assets/*.css` |
+| 2026-10-03 | **G2-01** | **A15 & §6.3 (Line Endings) ternyata sudah ditulis pihak lain** (tugas **G2-00b**) di tengah pengerjaan G2-01, sekaligus memperbaiki metadata `docs/README.md` (Q26) | **Q26/Q27 dianggap SELESAI oleh G2-00b** — tidak dikerjakan ulang. G2-01 hanya menaikkan `versi_app` ke **v1.86.0** sesudah bump, dan menormalkan berkas yang disentuhnya ke **LF** |
+| 2026-10-03 | **G2-01** | `src/index.css` dan `src/lib/version.ts` ditemukan **CRLF** di working tree (aturan baru: WAJIB LF, §6.3 A16) | Dinormalkan ke **LF** oleh G2-01 (hanya 2 berkas itu, keduanya disentuh tugas ini). Berkas lain **tidak** disentuh (larangan §6.3 butir 2) |
+
+### 4.1 Tabel pasangan kontras token (DoD G2-01 butir 3)
+
+Bukti: `.design-audit/g2-01-contrast.mjs` — **41 pasangan diperiksa, 0 gagal**. Ambang 4,5:1 (teks <18,66px).
+Nilai warna = langkah **palet resmi Tailwind v4** (`node_modules/tailwindcss/theme.css`), tanpa warna baru.
+
+| # | Lokasi (temuan G1-04) | Token pengganti | Latar | Rasio |
+|---|---|---|---|---|
+| 1 | `App.tsx:244` "Besok" | `--ink-warn` | `--bg-warn` (amber-50) | **6,88:1** |
+| 2 | `App.tsx:256` "Backup" | putih | `--bg-warn-strong` (amber-700) | **5,05:1** |
+| 3 | `Settings.tsx:113` "Hapus foto lama" | putih | `--bg-warn-strong` | **5,05:1** |
+| 4 | `FinancePeriodPicker:81` (disabled) | `--ink-muted` | `--bg-muted` (slate-100) | **6,90:1** |
+| 5 | `AttentionInbox:87` | `--ink-warn` | orange-50 | **6,72:1** |
+| 6 | `MonthView:53` "Min" | `--ink-danger` | putih | **6,42:1** |
+| 7 | `MonthView:79` angka Minggu | `--ink-danger` | `--surface` | **6,14:1** |
+| 8 | `Students:353` "Hapus" | `--ink-danger` | putih | **6,42:1** |
+| 9 | `RiwayatSesi:200` chip CANCELLED | `--ink-danger` | `--bg-danger` (red-50) | **5,88:1** |
+| 10a | `IaEeTracker:158` merah | `--ink-danger` | putih | **6,42:1** |
+| 10b | `IaEeTracker:158` oranye | `--ink-warn` | putih | **7,13:1** |
+| 11 | `EngagementSummary:198` | `--ink-warn` | putih | **7,13:1** |
+| 12 | `EvidenceCard:15` | `--ink-warn` | putih | **7,13:1** |
+| 13 | `StudentDetail:846` | `--ink-warn` | putih | **7,13:1** |
+| 14 | `StudentForm:364` | `--ink-warn` | putih | **7,13:1** |
+
+**Rasio terburuk tiap token di semua latar terang aplikasi** (`--surface` · `--surface-strong` · `--surface-soft` · tint-nya · putih):
+
+| Token | Nilai (langkah palet) | Terburuk | Di latar |
+|---|---|---|---|
+| `--ink-danger` | red-700 | **5,71:1** | `--surface-soft` |
+| `--ink-warn` | amber-**800** | **6,34:1** | `--surface-soft` |
+| `--ink-success` | green-**800** | **6,31:1** | `--surface-soft` |
+| `--ink-muted` | slate-600 (= `--color-text-muted`) | **6,74:1** | `--surface-soft` |
+
+**Residual yang SENGAJA dibiarkan gagal (milik G2-02)** — dibuktikan masih gagal oleh skrip bagian D:
+`"Total Sesi"` blue-500 di blue-50 **3,45:1** · `"Total Jam"` indigo-500 di indigo-50 **4,09:1** · chip `"3 bulan"` gray-500 di gray-100 **4,39:1**.

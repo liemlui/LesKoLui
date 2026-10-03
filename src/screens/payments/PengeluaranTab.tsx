@@ -5,6 +5,9 @@ import { dayLabel, formatRupiah, todayWIB, monthLabel } from "../../lib/format";
 import { EXPENSE_LABELS, sumExpensesByCategory } from "../../lib/finance";
 import QuickExpenseModal from "../../components/QuickExpenseModal";
 import ConfirmSheet from "../../components/ConfirmSheet";
+import StatTile from "../../components/ui/StatTile";
+import ActionBar from "../../components/ui/ActionBar";
+import EmptyState from "../../components/ui/EmptyState";
 
 interface PengeluaranTabProps {
   month: string;
@@ -51,10 +54,12 @@ export default function PengeluaranTab({ month, monthExpenses, cashInMonth, setM
           <h2 className="mt-0.5 text-base font-bold text-slate-800">{monthLabel(month)}</h2>
           <p className="mt-1 text-xs text-slate-500">Catat semua uang yang keluar pada bulan keuangan ini.</p>
         </div>
-        <button onClick={() => setShowExpenseModal(true)}
-          className="shrink-0 px-3 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors">
-          + Catat
-        </button>
+        <ActionBar emphasis>
+          <button onClick={() => setShowExpenseModal(true)}
+            className="shrink-0 px-3 py-2 rounded-[var(--radius-card)] bg-[var(--bg-danger-strong)] text-white text-body font-semibold hover:opacity-90 transition-colors">
+            + Catat
+          </button>
+        </ActionBar>
       </div>
 
       {isHistoricalMonth && (
@@ -64,18 +69,17 @@ export default function PengeluaranTab({ month, monthExpenses, cashInMonth, setM
       )}
 
       <div className="grid grid-cols-2 gap-2">
-        <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Total pengeluaran</p>
-          <p className="text-lg font-bold text-red-600">{formatRupiah(expenseTotal)}</p>
-          <p className="mt-0.5 text-xs text-gray-500">{monthExpenses.length} transaksi</p>
-        </div>
-        <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Sisa kas bulan ini</p>
-          <p className={`text-lg font-bold ${netCash >= 0 ? "text-emerald-700" : "text-red-600"}`}>{formatRupiah(netCash)}</p>
-          <p className="mt-0.5 text-xs text-gray-500">
-            {formatRupiah(cashInMonth)} uang masuk − pengeluaran
-          </p>
-        </div>
+        <StatTile
+          label="Total pengeluaran"
+          value={formatRupiah(expenseTotal)}
+          hint={`${monthExpenses.length} transaksi`}
+        />
+        <StatTile
+          label="Sisa kas bulan ini"
+          value={formatRupiah(netCash)}
+          hint={`${formatRupiah(cashInMonth)} uang masuk − pengeluaran`}
+          delta={{ text: netCash >= 0 ? "Surplus" : "Defisit", tone: netCash >= 0 ? "up" : "down" }}
+        />
       </div>
 
       {/* Ringkasan pengeluaran per kategori — dengan proporsi visual */}
@@ -112,10 +116,15 @@ export default function PengeluaranTab({ month, monthExpenses, cashInMonth, setM
           <span className="text-xs text-gray-500">Terbaru di atas</span>
         </div>
         {monthExpenses.length === 0 ? (
-          <div className="py-8 text-center">
-            <p className="text-sm text-gray-500">Belum ada pengeluaran pada {monthLabel(month)}.</p>
-            <button onClick={() => setShowExpenseModal(true)} className="mt-2 text-sm font-semibold text-blue-600">Catat pengeluaran pertama</button>
-          </div>
+          <EmptyState
+            title={`Belum ada pengeluaran pada ${monthLabel(month)}`}
+            message="Catat pengeluaran pertama bulan ini supaya sisa kas ikut terhitung."
+            action={
+              <button onClick={() => setShowExpenseModal(true)} className="text-body font-semibold text-[var(--brand)]">
+                Catat pengeluaran pertama
+              </button>
+            }
+          />
         ) : (
           <div className="divide-y divide-gray-100">
             {[...monthExpenses].reverse().map((expense) => (
