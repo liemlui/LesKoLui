@@ -243,7 +243,9 @@ test("close-out gagal: isian bertahan, tanpa tindak lanjut parsial, retry menyim
   await expect(pendingBanner).toBeVisible({ timeout: 30_000 });
   await page.getByRole("button", { name: "Lanjutkan draf" }).click();
 
-  const saveButton = page.getByRole("button", { name: "✅ Simpan Sesi" });
+  // Label tombol tidak lagi memuat emoji (kebijakan G2-09/TASK-11: emoji pada
+  // kontrol diganti ikon SVG), jadi locator memakai teks polosnya.
+  const saveButton = page.getByRole("button", { name: "Simpan Sesi" });
   await expect(saveButton).toBeVisible({ timeout: 15_000 });
   await saveButton.click();
 
@@ -267,7 +269,7 @@ test("close-out gagal: isian bertahan, tanpa tindak lanjut parsial, retry menyim
   expect(beforeFailure.followUps).toHaveLength(0);
 
   // ── Submit saat penulisan followUps dipaksa gagal ──────────────────────
-  const doneButton = report.getByRole("button", { name: "🏁 Selesai & Lihat Profil" });
+  const doneButton = report.getByRole("button", { name: "Selesai & Lihat Profil" });
   await page.evaluate((flag) => {
     (window as unknown as Record<string, unknown>)[flag] = true;
   }, FAIL_FLAG);

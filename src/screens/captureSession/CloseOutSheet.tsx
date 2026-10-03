@@ -105,7 +105,7 @@ export default function CloseOutSheet({
               </button>
             </div>
           )}
-          <button onClick={onDone} disabled={saving} className="w-full py-4 rounded-2xl font-black text-base text-[var(--on-strong)] transition-all disabled:opacity-50 shadow-lg" style={{ background: "linear-gradient(135deg, #1f2937, #374151)" }}>{saving ? " Menyimpan..." : " Selesai & Lihat Profil"}</button>
+          <button onClick={onDone} disabled={saving} className="w-full py-4 rounded-2xl font-black text-base text-[var(--on-strong)] transition-all disabled:opacity-50 shadow-lg" style={{ background: "linear-gradient(135deg, #1f2937, #374151)" }}>{saving ? "Menyimpan..." : "Selesai & Lihat Profil"}</button>
         </div>
       </div>
     </Modal>
