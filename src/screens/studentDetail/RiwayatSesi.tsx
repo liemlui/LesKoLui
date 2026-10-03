@@ -52,7 +52,7 @@ export default function RiwayatSesi({
         <h2 className="text-lg font-semibold">Riwayat Sesi</h2>
         <div className="flex items-center gap-2">
           <select
-            className="input py-1 text-xs w-auto"
+            className="input min-h-[44px] py-1 text-xs w-auto"
             value={historyMonth}
             aria-label="Filter bulan riwayat sesi"
             onChange={(e) => { setHistoryMonth(e.target.value); setHistoryPage(1); }}

@@ -855,7 +855,7 @@ export default function SettingsPage() {
               <div className="flex items-center gap-3 mb-2">
                 <img src={logoUrl} className="h-14 w-14 object-contain rounded-lg border border-[var(--border)] bg-[var(--surface)]" alt="logo" />
                 <button onClick={() => update("logo", undefined)}
-                  className="text-xs text-[var(--ink-danger)] hover:text-[var(--ink-danger)] font-medium px-2 py-1 bg-[var(--bg-danger)] rounded-lg">
+                  className="inline-flex min-h-[44px] items-center text-xs text-[var(--ink-danger)] hover:text-[var(--ink-danger)] font-medium px-3 py-1 bg-[var(--bg-danger)] rounded-lg">
                   Hapus Logo
                 </button>
               </div>
@@ -1234,7 +1234,7 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-2">
                   <button disabled={relayBusy || !relaySecret}
                     onClick={doTestRelay}
-                    className="text-xs px-3 py-1.5 rounded-xl bg-[var(--bg-success)] text-[var(--ink-success)] font-medium disabled:opacity-50">
+                    className="inline-flex min-h-[44px] items-center text-xs px-3 py-1.5 rounded-xl bg-[var(--bg-success)] text-[var(--ink-success)] font-medium disabled:opacity-50">
                     {relayBusy ? "Menguji..." : "Tes relay"}
                   </button>
                   <span className="text-xs text-[var(--ink-muted)]">{relaySecret ? "Aktif — backup tanpa popup" : "Nonaktif (pakai 1-tap)"}</span>

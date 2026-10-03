@@ -909,7 +909,7 @@ export default function CaptureSession() {
               type="button"
               aria-label="Tutup pesan"
               onClick={() => setMessage(null)}
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-current/80 transition hover:bg-[var(--scrim)]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-brand)]"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-current/80 transition hover:bg-[var(--scrim)]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-brand)]"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
                 <path d="M18 6L6 18M6 6l12 12" />
@@ -1056,7 +1056,7 @@ export default function CaptureSession() {
                   {recentTopicChips.map((t) => (
                     <button key={t} type="button"
                       onClick={() => addTopic(t)}
-                      className={`rounded-full border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                      className={`inline-flex min-h-[36px] items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                         topics.includes(t)
                           ? "border-[var(--border-success)] bg-[var(--bg-success-strong)] text-[var(--on-strong)]"
                           : "border-[var(--border-success)] bg-[var(--surface-strong)] text-[var(--ink-success)] hover:bg-[var(--bg-success)]"
@@ -1413,7 +1413,7 @@ export default function CaptureSession() {
                             <button type="button"
                               aria-label={`Info ${tag.label}`}
                               onClick={(e) => { e.stopPropagation(); setActiveTooltip({ tag, type: "behavior" }); }}
-                              className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs border transition-all ${
+                              className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-xs border transition-all ${
                                 active ? "bg-[var(--surface-inverse)] text-[var(--on-strong)] border-[var(--border-strong)]" : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)] hover:border-[var(--border-strong)]"}`}>
                               ⓘ
                             </button>
@@ -1701,19 +1701,19 @@ export default function CaptureSession() {
                 <div className="flex flex-wrap gap-1.5 mt-1.5">
                   {briefLastSession?.shortNote && (
                     <button type="button" onClick={() => appendNoteChip(`Melanjutkan sesi lalu: ${briefLastSession.shortNote}.`)}
-                      className="text-xs text-[var(--ink-muted)] bg-[var(--surface)] border border-[var(--border)] rounded-full px-2.5 py-1 hover:bg-[var(--brand-tint)] hover:text-[var(--ink-brand)] transition-colors">
+                      className="inline-flex min-h-[36px] items-center text-xs text-[var(--ink-muted)] bg-[var(--surface)] border border-[var(--border)] rounded-full px-3 py-1 hover:bg-[var(--brand-tint)] hover:text-[var(--ink-brand)] transition-colors">
                       🔁 Sesi lalu
                     </button>
                   )}
                   {briefFollowUps.slice(0, 3).map((f) => (
                     <button key={f.id} type="button" onClick={() => appendNoteChip(`Fokus berikutnya: ${f.text}.`)}
-                      className="text-xs text-[var(--ink-warn)] bg-[var(--bg-warn)] border border-[var(--border-warn)] rounded-full px-2.5 py-1 hover:bg-[var(--bg-warn)] transition-colors">
+                      className="inline-flex min-h-[36px] items-center text-xs text-[var(--ink-warn)] bg-[var(--bg-warn)] border border-[var(--border-warn)] rounded-full px-3 py-1 hover:bg-[var(--bg-warn)] transition-colors">
                       🔁 {f.text.length > 28 ? f.text.slice(0, 28) + "…" : f.text}
                     </button>
                   ))}
                   {needsWork && (
                     <button type="button" onClick={() => appendNoteChip(`Fokus perbaikan: ${needsWork}.`)}
-                      className="text-xs text-[var(--ink-danger)] bg-[var(--bg-danger)] border border-[var(--border-danger)] rounded-full px-2.5 py-1 hover:bg-[var(--bg-danger)] transition-colors">
+                      className="inline-flex min-h-[36px] items-center text-xs text-[var(--ink-danger)] bg-[var(--bg-danger)] border border-[var(--border-danger)] rounded-full px-2.5 py-1 hover:bg-[var(--bg-danger)] transition-colors">
                       🎯 Fokus perbaikan
                     </button>
                   )}

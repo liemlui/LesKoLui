@@ -25,7 +25,7 @@ export default function WeekView({
   return (
     <div className="mx-4 bg-[var(--surface-strong)] rounded-2xl shadow-sm border border-[var(--border)] overflow-hidden">
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--border)]">
-        <button aria-label="Minggu sebelumnya" onClick={() => setAnchor(addDays(anchor, -7))} className="text-[var(--ink-muted)] hover:text-[var(--ink-strong)] text-xl w-10 h-10 flex items-center justify-center">‹</button>
+        <button aria-label="Minggu sebelumnya" onClick={() => setAnchor(addDays(anchor, -7))} className="text-[var(--ink-muted)] hover:text-[var(--ink-strong)] text-xl w-11 h-11 flex items-center justify-center">‹</button>
         <div className="flex items-center gap-2 min-w-0">
           <span className="font-semibold text-[var(--ink-strong)] text-sm truncate">
             {new Date(week[1] + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
@@ -33,10 +33,10 @@ export default function WeekView({
             {new Date(week[6] + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
           </span>
           {!week.includes(today) && (
-            <button onClick={onJumpToday} className="flex-shrink-0 text-xs font-semibold text-[var(--ink-brand)] bg-[var(--brand-tint)] hover:bg-[var(--brand-tint-strong)] px-2 py-0.5 rounded-lg transition-colors">Hari Ini</button>
+            <button onClick={onJumpToday} className="inline-flex min-h-[36px] flex-shrink-0 items-center text-xs font-semibold text-[var(--ink-brand)] bg-[var(--brand-tint)] hover:bg-[var(--brand-tint-strong)] px-2.5 py-1 rounded-lg transition-colors">Hari Ini</button>
           )}
         </div>
-        <button aria-label="Minggu berikutnya" onClick={() => setAnchor(addDays(anchor, 7))} className="text-[var(--ink-muted)] hover:text-[var(--ink-strong)] text-xl w-10 h-10 flex items-center justify-center">›</button>
+        <button aria-label="Minggu berikutnya" onClick={() => setAnchor(addDays(anchor, 7))} className="text-[var(--ink-muted)] hover:text-[var(--ink-strong)] text-xl w-11 h-11 flex items-center justify-center">›</button>
       </div>
       <div className="grid grid-cols-7 border-b border-[var(--border)]">
         {week.map((date) => {
@@ -54,7 +54,7 @@ export default function WeekView({
           const colRing    = isSelected ? " ring-2 ring-inset ring-[var(--border-brand)]" : "";
           return (
             <div key={date} className={`border-r border-[var(--border)] last:border-r-0 ${colBg}${colRing}`}>
-              <button className="w-full text-center py-1.5" onClick={() => setSelectedDay(isSelected ? null : date)}>
+              <button className="w-full min-h-[32px] text-center py-1.5" onClick={() => setSelectedDay(isSelected ? null : date)}>
                 <p className={`text-xs ${isSunday ? "text-[var(--ink-danger)]" : "text-[var(--ink-muted)]"}`}>{label}</p>
                 <span className={`text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full mx-auto ${
                   isToday ? "bg-[var(--brand-solid)] text-[var(--on-strong)]" : isPast ? "text-[var(--ink-muted)]" : isSunday ? "text-[var(--ink-danger)]" : "text-[var(--ink-strong)]"
@@ -68,7 +68,7 @@ export default function WeekView({
                   const isEditable = s.status === "SCHEDULED";
                   return (
                     <button key={s.id} type="button"
-                      className={`block w-full text-left rounded mb-0.5 px-1 py-0.5 ${isEditable ? "cursor-pointer" : "cursor-default"}`}
+                      className={`block w-full text-left rounded mb-0.5 min-h-[28px] px-1 py-1 ${isEditable ? "cursor-pointer" : "cursor-default"}`}
                       style={{ background: color + (isDone ? "20" : "35"), fontSize: 10 }}
                       onClick={() => isEditable && (s.date < today ? actions.onResolveMissed(s) : actions.onEdit(s))}>
                       <p className="font-bold truncate" style={{ color }}>{info?.name?.split(" ")[0] ?? "—"}</p>

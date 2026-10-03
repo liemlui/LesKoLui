@@ -101,9 +101,9 @@ ${invoiceRows.join("\n")}
             <p className="mt-0.5 text-xs text-[var(--ink-muted)]">Per tahun buku — tidak mengikuti bulan keuangan.</p>
           </div>
           <div className="flex shrink-0 items-center gap-1">
-            <button aria-label="Tahun sebelumnya" onClick={() => setAuditYear((y) => y - 1)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--ink-muted)] hover:bg-[var(--bg-subtle)] hover:text-[var(--ink-strong)] transition-colors">‹</button>
+            <button aria-label="Tahun sebelumnya" onClick={() => setAuditYear((y) => y - 1)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-[var(--ink-muted)] hover:bg-[var(--bg-subtle)] hover:text-[var(--ink-strong)] transition-colors">‹</button>
             <span className="min-w-[3.5rem] text-center font-bold text-[var(--ink-strong)]">{auditYear}</span>
-            <button aria-label="Tahun berikutnya" onClick={() => setAuditYear((y) => y + 1)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--ink-muted)] hover:bg-[var(--bg-subtle)] hover:text-[var(--ink-strong)] transition-colors">›</button>
+            <button aria-label="Tahun berikutnya" onClick={() => setAuditYear((y) => y + 1)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-[var(--ink-muted)] hover:bg-[var(--bg-subtle)] hover:text-[var(--ink-strong)] transition-colors">›</button>
           </div>
         </div>
 

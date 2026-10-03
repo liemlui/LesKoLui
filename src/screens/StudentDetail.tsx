@@ -523,7 +523,7 @@ export default function StudentDetail() {
           <span className="text-[var(--ink-muted)] w-28 flex-shrink-0">WA Ortu</span>
           <a href={`https://wa.me/${student.parentContact.phone.replace(/^0/, "62").replace(/[^0-9]/g, "")}`}
             target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-[var(--ink-success)] font-medium hover:text-[var(--ink-success)]">
+            className="inline-flex min-h-[44px] items-center gap-1.5 text-[var(--ink-success)] font-medium hover:text-[var(--ink-success)]">
             <span>💬</span>{student.parentContact.phone}
           </a>
         </div>
@@ -532,7 +532,7 @@ export default function StudentDetail() {
             <span className="text-[var(--ink-muted)] w-28 flex-shrink-0">WA Murid</span>
             <a href={`https://wa.me/${student.studentPhone.replace(/^0/, "62").replace(/[^0-9]/g, "")}`}
               target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-[var(--ink-brand)] font-medium hover:text-[var(--ink-brand)]">
+              className="inline-flex min-h-[44px] items-center gap-1.5 text-[var(--ink-brand)] font-medium hover:text-[var(--ink-brand)]">
               <span>💬</span>{student.studentPhone}
             </a>
           </div>

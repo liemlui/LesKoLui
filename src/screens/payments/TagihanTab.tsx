@@ -387,7 +387,7 @@ export default function TagihanTab({
             type="button"
             aria-pressed={invoiceStatusFilter === "all"}
             onClick={() => selectCollectionStage("all")}
-            className={`rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors ${
+            className={`inline-flex min-h-[36px] items-center rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
               invoiceStatusFilter === "all"
                 ? "border-[var(--border-strong)] bg-[var(--surface-inverse)] text-[var(--on-strong)]"
                 : "border-[var(--border)] bg-[var(--surface-strong)] text-[var(--ink-muted)] hover:bg-[var(--surface)]"
@@ -399,7 +399,7 @@ export default function TagihanTab({
             <button
               type="button"
               onClick={() => selectCollectionStage("unpaid")}
-              className="rounded-full border border-[var(--border-warn)] bg-[var(--bg-warn)] px-2.5 py-1 text-xs font-semibold text-[var(--ink-warn)] transition-colors hover:bg-[var(--bg-warn)]"
+              className="inline-flex min-h-[36px] items-center rounded-full border border-[var(--border-warn)] bg-[var(--bg-warn)] px-3 py-1 text-xs font-semibold text-[var(--ink-warn)] transition-colors hover:bg-[var(--bg-warn)]"
             >
               Ke tagihan belum dibayar →
             </button>
@@ -518,7 +518,7 @@ export default function TagihanTab({
                   onClick={() => setShowBillingHelp(true)}
                   aria-label="Bantuan cara kerja tagihan"
                   title="Cara kerja tagihan"
-                  className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-[var(--bg-subtle)] text-sm font-bold text-[var(--ink-muted)] transition-colors hover:bg-[var(--accent-tint)] hover:text-[var(--ink-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]"
+                  className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-[var(--bg-subtle)] text-sm font-bold text-[var(--ink-muted)] transition-colors hover:bg-[var(--accent-tint)] hover:text-[var(--ink-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]"
                 >?</button>
               </div>
               <p className="mt-0.5 rounded-lg bg-[var(--accent-tint)] px-2 py-1 text-xs font-medium text-[var(--ink-accent)]">
@@ -696,7 +696,7 @@ export default function TagihanTab({
                 ["manual", "Manual"],
               ] as const).map(([filter, label]) => (
                 <button key={filter} type="button" onClick={() => setInvoiceOriginFilter(filter)}
-                  className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
+                  className={`inline-flex min-h-[36px] items-center rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
                     invoiceOriginFilter === filter ? "bg-[var(--surface-strong)] text-[var(--ink-strong)] shadow-sm ring-1 ring-[var(--border-strong)]" : "text-[var(--ink-muted)] hover:text-[var(--ink-strong)]"
                   }`}>
                   {label}

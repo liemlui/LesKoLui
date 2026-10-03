@@ -1163,7 +1163,7 @@ export default function MonthlyReportPage() {
           <div role="alert" className="rounded-xl border border-[var(--border-warn)] bg-[var(--bg-warn)] p-3 text-sm text-[var(--ink-warn)]">
             <p className="font-semibold">Laporan tidak ditemukan</p>
             <p className="mt-0.5 text-xs">Tautan mungkin sudah lama atau laporan telah dihapus.</p>
-            <button onClick={leaveEditingReport} className="mt-2 rounded-lg bg-[var(--bg-warn)] px-3 py-1.5 text-xs font-semibold text-[var(--ink-warn)] hover:bg-[var(--bg-warn-strong)]">
+            <button onClick={leaveEditingReport} className="mt-2 inline-flex min-h-[36px] items-center rounded-lg bg-[var(--bg-warn)] px-3 py-1.5 text-xs font-semibold text-[var(--ink-warn)] hover:bg-[var(--bg-warn-strong)]">
               Pilih laporan lain
             </button>
           </div>
@@ -1179,7 +1179,7 @@ export default function MonthlyReportPage() {
                 type="button"
                 aria-label="Tutup pesan"
                 onClick={() => setMessage("")}
-                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-current/80 transition hover:bg-[var(--scrim)]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-brand)]"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-current/80 transition hover:bg-[var(--scrim)]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-brand)]"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
                   <path d="M18 6L6 18M6 6l12 12" />
@@ -1271,7 +1271,7 @@ export default function MonthlyReportPage() {
                           </div>
                           <button
                             onClick={() => { setStudentId(r.studentId); jumpToDraft(r); }}
-                            className="shrink-0 rounded-lg bg-[var(--brand-tint)] px-2.5 py-1.5 text-xs font-semibold text-[var(--ink-brand)] transition-colors hover:bg-[var(--brand-tint-strong)]">
+                            className="inline-flex min-h-[36px] shrink-0 items-center rounded-lg bg-[var(--brand-tint)] px-3 py-1.5 text-xs font-semibold text-[var(--ink-brand)] transition-colors hover:bg-[var(--brand-tint-strong)]">
                             Buka
                           </button>
                         </li>
@@ -1316,12 +1316,12 @@ export default function MonthlyReportPage() {
                         <MaskedMoney amount={d.totalCost} className="text-[var(--ink-muted)]" />
                         <div className="flex gap-1 shrink-0">
                           <button onClick={() => jumpToDraft(d)}
-                            className="px-2 py-0.5 rounded bg-[var(--brand-tint-strong)] text-[var(--ink-brand)] text-xs font-medium hover:bg-[var(--brand-tint-strong)] transition-colors">
+                            className="inline-flex min-h-[32px] items-center rounded bg-[var(--brand-tint-strong)] px-2.5 py-1 text-[var(--ink-brand)] text-xs font-medium hover:bg-[var(--brand-tint-strong)] transition-colors">
                             Buka
                           </button>
                           <button type="button" aria-label={`Hapus draft ${periodLabel(d.periodStart, d.periodEnd)}`}
                             onClick={async () => { if (confirm("Hapus draft ini?")) { await discardReport(d.id); } }}
-                            className="px-1.5 py-1.5 -m-0.5 rounded text-[var(--ink-danger)] text-xs hover:bg-[var(--bg-danger)] transition-colors">
+                            className="inline-flex h-11 w-11 items-center justify-center rounded text-[var(--ink-danger)] text-xs hover:bg-[var(--bg-danger)] transition-colors">
                             ✕
                           </button>
                         </div>
@@ -1337,7 +1337,7 @@ export default function MonthlyReportPage() {
                       onClick={() => setShowBillingHelp(true)}
                       aria-label="Bantuan memilih periode belajar dan memahami penagihan"
                       title="Periode belajar & penagihan"
-                      className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-[var(--bg-subtle)] text-sm font-bold text-[var(--ink-muted)] transition-colors hover:bg-[var(--brand-tint-strong)] hover:text-[var(--ink-brand)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-brand)]"
+                      className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-[var(--bg-subtle)] text-sm font-bold text-[var(--ink-muted)] transition-colors hover:bg-[var(--brand-tint-strong)] hover:text-[var(--ink-brand)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-brand)]"
                     >?</button>
                   </div>
                   <div className="grid grid-cols-3 gap-1.5">
@@ -1395,7 +1395,7 @@ export default function MonthlyReportPage() {
                               setMode("range");
                             }}
                             title="Pindah ke Rentang Tanggal dengan tanggal sesi pertama & terakhir terisi"
-                            className="rounded-md bg-[var(--bg-subtle)] px-2 py-0.5 text-xs font-semibold text-[var(--ink-muted)] transition-colors hover:bg-[var(--bg-subtle)]">
+                            className="inline-flex min-h-[32px] items-center rounded-md bg-[var(--bg-subtle)] px-2.5 py-1 text-xs font-semibold text-[var(--ink-muted)] transition-colors hover:bg-[var(--bg-subtle)]">
                             Sesuaikan tanggal
                           </button>
                         </div>
@@ -1497,13 +1497,13 @@ export default function MonthlyReportPage() {
                 <div className="flex flex-wrap gap-1.5">
                   <button
                     onClick={() => setSubjectFilter("")}
-                    className={`text-xs font-semibold rounded-full px-2.5 py-1 transition-colors ${!subjectFilter ? "bg-[var(--brand-solid)] text-[var(--on-strong)]" : "bg-[var(--bg-subtle)] text-[var(--ink-muted)] hover:bg-[var(--bg-subtle)]"}`}>
+                    className={`inline-flex min-h-[36px] items-center text-xs font-semibold rounded-full px-3 py-1 transition-colors ${!subjectFilter ? "bg-[var(--brand-solid)] text-[var(--on-strong)]" : "bg-[var(--bg-subtle)] text-[var(--ink-muted)] hover:bg-[var(--bg-subtle)]"}`}>
                     Semua
                   </button>
                   {uniqueSubjects.map((subj) => (
                     <button key={subj}
                       onClick={() => setSubjectFilter(subj === subjectFilter ? "" : subj)}
-                      className={`text-xs font-semibold rounded-full px-2.5 py-1 transition-colors ${subj === subjectFilter ? "bg-[var(--brand-solid)] text-[var(--on-strong)]" : "bg-[var(--bg-subtle)] text-[var(--ink-muted)] hover:bg-[var(--bg-subtle)]"}`}>
+                      className={`inline-flex min-h-[36px] items-center text-xs font-semibold rounded-full px-3 py-1 transition-colors ${subj === subjectFilter ? "bg-[var(--brand-solid)] text-[var(--on-strong)]" : "bg-[var(--bg-subtle)] text-[var(--ink-muted)] hover:bg-[var(--bg-subtle)]"}`}>
                       {subj}
                     </button>
                   ))}
@@ -1634,7 +1634,7 @@ export default function MonthlyReportPage() {
                         {reportDisplayStatus(report) !== "shared" && (
                           <button
                             onClick={handleMarkReportShared}
-                            className="mt-2 rounded-lg bg-[var(--accent-solid)] px-2.5 py-1.5 text-xs font-semibold text-[var(--on-strong)] hover:bg-[var(--accent-solid)]"
+                            className="mt-2 inline-flex min-h-[44px] items-center rounded-lg bg-[var(--accent-solid)] px-3 py-1.5 text-xs font-semibold text-[var(--on-strong)] hover:bg-[var(--accent-solid)]"
                           >
                             Tandai Sudah Dibagikan
                           </button>
@@ -1653,7 +1653,7 @@ export default function MonthlyReportPage() {
                               type="button"
                               onClick={askUnlockReport}
                               disabled={unlockBusy}
-                              className="rounded-lg border border-[var(--border-warn)] bg-[var(--surface-strong)] px-2.5 py-1.5 text-xs font-semibold text-[var(--ink-warn)] transition-colors hover:bg-[var(--bg-warn)] disabled:cursor-wait disabled:opacity-50"
+                              className="inline-flex min-h-[44px] items-center rounded-lg border border-[var(--border-warn)] bg-[var(--surface-strong)] px-3 py-1.5 text-xs font-semibold text-[var(--ink-warn)] transition-colors hover:bg-[var(--bg-warn)] disabled:cursor-wait disabled:opacity-50"
                             >
                               {unlockBusy ? "Membuka kunci..." : "🔓 Buka kunci laporan (perbaiki)"}
                             </button>
@@ -1690,7 +1690,7 @@ export default function MonthlyReportPage() {
                           <button
                             onClick={handleOpenBilling}
                             disabled={invoiceBusy}
-                            className="inline-flex rounded-lg bg-[var(--brand-solid)] px-2.5 py-1.5 text-xs font-semibold text-[var(--on-strong)] hover:bg-[var(--brand-solid)] disabled:opacity-50"
+                            className="inline-flex min-h-[44px] items-center rounded-lg bg-[var(--brand-solid)] px-3 py-1.5 text-xs font-semibold text-[var(--on-strong)] hover:bg-[var(--brand-solid)] disabled:opacity-50"
                           >
                             {payment
                               ? "Buka Penagihan →"
@@ -1782,22 +1782,22 @@ export default function MonthlyReportPage() {
                   </summary>
                   {/* Row 1: Random + Pilih tema + Cover toggle */}
                   <div className="flex flex-wrap items-center gap-2">
-                    <button className="btn btn-secondary text-sm py-1.5 px-2 flex-shrink-0 whitespace-nowrap"
+                    <button className="btn btn-secondary min-h-[44px] text-sm py-1.5 px-2 flex-shrink-0 whitespace-nowrap"
                       onClick={handleRegenerate}>🎲 Acak</button>
-                    <button className="btn btn-secondary text-sm py-1.5 px-2 flex-shrink-0 whitespace-nowrap"
+                    <button className="btn btn-secondary min-h-[44px] text-sm py-1.5 px-2 flex-shrink-0 whitespace-nowrap"
                       onClick={() => setShowThemeList((v) => !v)}
                       aria-expanded={showThemeList}
                       title="Tampilkan semua tema. Untuk memilih layout, buka tombol “Layout”.">
                       {showThemeList ? "🙈 Sembunyikan tema" : "🎨 Pilih tema"}
                     </button>
-                    <button className="btn btn-secondary text-sm py-1.5 px-2 flex-shrink-0 whitespace-nowrap"
+                    <button className="btn btn-secondary min-h-[44px] text-sm py-1.5 px-2 flex-shrink-0 whitespace-nowrap"
                       onClick={() => setShowLayoutList((v) => !v)}
                       aria-expanded={showLayoutList}
                       title="Tampilkan semua layout halaman laporan.">
                       {showLayoutList ? "🙈 Sembunyikan layout" : "📐 Layout"}
                     </button>
                     {undoStack.length > 0 && (
-                      <button className="btn btn-secondary text-sm py-1.5 px-2 flex-shrink-0"
+                      <button className="btn btn-secondary min-h-[44px] text-sm py-1.5 px-2 flex-shrink-0"
                         onClick={async () => {
                           const prev = undoStack[undoStack.length - 1];
                           setUndoStack((s) => s.slice(0, -1));
@@ -1819,7 +1819,7 @@ export default function MonthlyReportPage() {
                                 setUndoStack((s) => [...s, { themeId: report.templateKey.themeId, layoutId: report.templateKey.layoutId }]);
                                 void handleCreateOrSwitch(l.id);
                               }}
-                              className={`rounded-lg border px-2 py-1 text-xs font-medium transition-colors ${
+                              className={`inline-flex min-h-[36px] items-center rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
                                 report.templateKey.layoutId === l.id
                                   ? "border-[var(--border-brand)] bg-[var(--brand-solid)] text-[var(--on-strong)]"
                                   : "border-[var(--border)] bg-[var(--surface)] text-[var(--ink-muted)] hover:bg-[var(--bg-subtle)]"
@@ -1839,7 +1839,7 @@ export default function MonthlyReportPage() {
                       </div>
                     )}
                     <button onClick={() => setCoverPage((v) => !v)}
-                      className={`text-sm py-1.5 px-2 rounded-lg border transition-colors whitespace-nowrap ${coverPage ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]" : "bg-[var(--surface)] text-[var(--ink-muted)] border-[var(--border)]"}`}>
+                      className={`inline-flex min-h-[44px] items-center text-sm py-1.5 px-2 rounded-lg border transition-colors whitespace-nowrap ${coverPage ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]" : "bg-[var(--surface)] text-[var(--ink-muted)] border-[var(--border)]"}`}>
                       {coverPage ? "📄 Cover ✓" : "📄 Cover"}
                     </button>
                   </div>
@@ -1847,7 +1847,7 @@ export default function MonthlyReportPage() {
                   {/* Row 2: Custom Theme Builder (mode "Bandingkan" dihapus —
                       pemilik hanya memilih satu tema yang sesuai). */}
                   <div className="flex gap-2">
-                    <button className="btn btn-secondary text-xs py-1 px-2 flex-1"
+                    <button className="btn btn-secondary min-h-[44px] text-xs py-1 px-2 flex-1"
                       onClick={() => setShowCustomBuilder((v) => !v)}>
                       {showCustomBuilder ? "❌ Tutup" : "🎨 Custom Theme"}
                     </button>
@@ -1962,7 +1962,7 @@ export default function MonthlyReportPage() {
                       {[2, 3, 4, 6].map((n) => (
                         <button key={n}
                           onClick={() => setEntriesPerPage(n)}
-                          className={`text-xs font-semibold rounded-lg px-2.5 py-1 transition-colors ${entriesPerPage === n ? "bg-[var(--brand-solid)] text-[var(--on-strong)]" : "bg-[var(--bg-subtle)] text-[var(--ink-muted)] hover:bg-[var(--bg-subtle)]"}`}>
+                          className={`inline-flex min-h-[36px] items-center text-xs font-semibold rounded-lg px-3 py-1 transition-colors ${entriesPerPage === n ? "bg-[var(--brand-solid)] text-[var(--on-strong)]" : "bg-[var(--bg-subtle)] text-[var(--ink-muted)] hover:bg-[var(--bg-subtle)]"}`}>
                           {n}
                         </button>
                       ))}

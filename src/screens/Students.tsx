@@ -329,28 +329,27 @@ export default function Students() {
         </Link>
 
         {/* Action bar */}
-        <div className="border-t border-[var(--border)] px-4 py-2 flex gap-2 justify-end">
+        <div className="border-t border-[var(--border)] px-4 py-2 flex flex-col items-stretch gap-1">
           {s.active ? (
             <button
               onClick={() => requirePin("deactivate", s)}
               aria-label={`Nonaktifkan ${s.name}`}
-              className="text-xs text-[var(--ink-muted)] hover:text-[var(--ink-strong)] px-2 py-1 rounded-lg hover:bg-[var(--surface)] transition-colors"
+              className="inline-flex min-h-[44px] items-center justify-center text-xs text-[var(--ink-muted)] hover:text-[var(--ink-strong)] px-3 py-1 rounded-lg hover:bg-[var(--surface)] transition-colors"
             >
               Nonaktifkan
             </button>
           ) : (
             <button
               onClick={() => requirePin("activate", s)}
-              className="text-xs text-[var(--ink-success)] hover:text-[var(--ink-success)] px-2 py-1 rounded-lg hover:bg-[var(--bg-success)] transition-colors"
+              className="inline-flex min-h-[44px] items-center justify-center text-xs text-[var(--ink-success)] hover:text-[var(--ink-success)] px-3 py-1 rounded-lg hover:bg-[var(--bg-success)] transition-colors"
             >
               Aktifkan
             </button>
           )}
-          <span aria-hidden="true" className="h-4 w-px bg-[var(--bg-subtle)]" />
           <button
             onClick={() => requirePin("delete", s)}
             aria-label={`Hapus permanen ${s.name}`}
-            className="text-xs font-semibold text-[var(--ink-danger)] hover:text-[var(--ink-danger)] px-2 py-1 rounded-lg hover:bg-[var(--bg-danger)] transition-colors"
+            className="mt-1 inline-flex min-h-[44px] items-center justify-center border-t border-[var(--border)] pt-2 text-xs font-semibold text-[var(--ink-danger)] hover:text-[var(--ink-danger)] px-3 py-1 rounded-lg hover:bg-[var(--bg-danger)] transition-colors"
           >
             Hapus
           </button>
@@ -390,11 +389,11 @@ export default function Students() {
             </p>
             <div className="flex gap-2 mt-2">
               <button onClick={() => navigate("/")}
-                className="text-xs font-semibold bg-[var(--brand-solid)] text-[var(--on-strong)] px-3 py-1.5 rounded-lg hover:bg-[var(--brand-solid)] transition-colors">
+                className="inline-flex min-h-[44px] items-center text-xs font-semibold bg-[var(--brand-solid)] text-[var(--on-strong)] px-3 py-1.5 rounded-lg hover:bg-[var(--brand-solid)] transition-colors">
                 Buka Kalender
               </button>
               <button onClick={() => setJustAddedId(null)}
-                className="text-xs font-semibold text-[var(--ink-brand)] px-3 py-1.5 rounded-lg hover:bg-[var(--brand-tint-strong)] transition-colors">
+                className="inline-flex min-h-[44px] items-center text-xs font-semibold text-[var(--ink-brand)] px-3 py-1.5 rounded-lg hover:bg-[var(--brand-tint-strong)] transition-colors">
                 Nanti saja
               </button>
             </div>
@@ -586,7 +585,7 @@ export default function Students() {
           {pendingAction.action === "delete" && (
             <button
               onClick={() => { setPendingAction({ action: "deactivate", student: pendingAction.student }); pin.resetPin(); }}
-              className="w-full text-center text-xs font-semibold text-[var(--ink-muted)] hover:text-[var(--ink-strong)] py-1">
+              className="inline-flex min-h-[44px] w-full items-center justify-center text-center text-xs font-semibold text-[var(--ink-muted)] hover:text-[var(--ink-strong)] py-1">
               Alih-alih hapus, nonaktifkan saja →
             </button>
           )}
