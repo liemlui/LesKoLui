@@ -54,9 +54,14 @@ Pemeriksa mandiri dengan **selektor yang sama** dengan guard: `.design-audit/tas
 2. **Batas cakupan: `label`, `<span>`, tooltip, dan teks paragraf tidak disapu.** Contoh yang tersisa:
    `🗂️ Tipe Sesi` (label di `ScheduleStep`), `🔁` di baris tindak lanjut `CloseOutSheet`, emoji di
    tooltip tag AI. Itu bukan kontrol, jadi di luar DoD — tetapi terlihat di layar.
-3. **Guard-nya belum pernah dijalankan.** Angka 0 di atas berasal dari pemeriksa statis dan
-   pengukuran mandiri; `npm run e2e:uiux` adalah satu-satunya pembuktian runtime. Gate itu dimatikan
-   atas keputusan pemilik.
+3. **Guard sudah dijalankan (2026-10-04) dan sempat GAGAL 6 tes — sekarang hijau.** Pemeriksa statis
+   melaporkan 0 karena emoji lolos lewat **nilai prop** (`<SectionHeader title="📝 …"/>`) dan
+   **`<span>` bersarang di dalam `<a>`** — dua jalur yang tidak terjangkau pemindaian rentang JSX.
+   Terukur saat gagal (identik chromium & mobile): **Beranda 2** (`⚙️` di `<a>`, `👥` di `<button>`) ·
+   **Murid — daftar 11** (`🔔` `👤` `💳`) · **Detail murid 1** (`📝` di `<h2>`).
+   Ditutup di commit **`f035451`**: keenam emoji struktural diganti ikon SVG (`SettingsIcon`, `UsersIcon`,
+   `BellIcon`, `ReceiptIcon`, `UserIcon`, `PencilIcon`); `MetricCard.icon` dan `SectionHeader.icon` kini
+   menerima `ReactNode` sehingga ikon bisa dikirim sebagai prop. Guard **48 lulus / 8 skip / 0 gagal**.
 4. **Pelajaran teknis:** komentar di dalam blok `measure()` berada di **dalam template literal** —
    satu backtick di sana menutup template lebih awal dan merusak seluruh spec. Sudah pernah terjadi
    di sini dan diperbaiki (kesalahan tertangkap karena spec diperiksa `tsc --noEmit` terpisah).
@@ -70,8 +75,8 @@ Pemeriksa mandiri dengan **selektor yang sama** dengan guard: `.design-audit/tas
 | `.design-audit/task-11-check.cjs` (selektor = guard) | **0 pelanggaran** |
 | `.design-audit/g2-09-verify-metric.cjs` | 21/21 contoh sesuai (regex + allowlist) |
 | `node scripts/check-md-links.mjs` | 0 tautan rusak |
-| `npm run e2e:uiux` | **belum dijalankan** |
-| `npm test` | **belum dijalankan** |
+| `npm run e2e:uiux` | **48 lulus · 8 skip · 0 gagal** (2026-10-04, setelah `f035451`) |
+| `npm test` | **58 berkas · 698 tes lulus** (2026-10-04) |
 
 ## 5. Riwayat
 
@@ -79,3 +84,4 @@ Pemeriksa mandiri dengan **selektor yang sama** dengan guard: `.design-audit/tas
 |---|---|
 | 2026-10-03 | Dibuat dari sisa G2-09: JSX bersih (0), sisa 70 entri `icon:` di berkas data, 14 situs render di dalam kontrol, 21 emoji emosi butuh keputusan |
 | 2026-10-03 | **Keputusan pemilik: opsi A.** DoD diganti menjadi "0 emoji di kontrol kecuali kosakata afektif ber-penanda". Tipe sesi dikonversi ke SVG, 13 tombol ditandai, guard menuntut 0 |
+| 2026-10-04 | **Guard dijalankan pertama kali → GAGAL 6 tes** (Beranda 2 · Murid 11 · Detail murid 1). Akar: emoji masuk lewat nilai prop dan `<span>` di dalam `<a>`, di luar jangkauan pemindai statis. Diperbaiki di `f035451` (6 ikon SVG baru/berjalan + `MetricCard.icon`/`SectionHeader.icon` menerima `ReactNode`); guard **48/8/0** |
