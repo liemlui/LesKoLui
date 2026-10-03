@@ -136,7 +136,12 @@ export default function StudentDetail() {
   };
 
   const handleSaveRate = async () => {
-    if (!id || !isValidCurrencyAmount(newRate, MAX_HOURLY_RATE)) { msg(`Tarif harus 1 sampai ${formatRupiah(MAX_HOURLY_RATE)}.`); return; }
+    if (!id || !isValidCurrencyAmount(newRate, MAX_HOURLY_RATE)) {
+      // Penanda money-safe WAJIB sebaris dengan pemanggilannya: perintah verifikasi K3
+      // (`arsitektur/11` §6) dan tes `moneyGate` memfilter per BARIS, bukan per blok.
+      msg(`Tarif harus 1 sampai ${formatRupiah(MAX_HOURLY_RATE)}.`); // money-safe: konstanta batas tarif
+      return;
+    }
     const rateChanged = newRate !== student?.hourlyRate;
     const applyRetroactive = repriceUnbilledSessions && rateChanged;
     setRateSaving(true);
