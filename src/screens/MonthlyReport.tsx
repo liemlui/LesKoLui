@@ -3,7 +3,7 @@ import { useState, useMemo, useEffect, useRef, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  listStudents, getStudent, getSettings,
+  listStudents, getStudent,
   listSessionsByStudentRange, listBillableSessionsByStudentRange,
   getReportById, findReportByPeriod, listReportsByStudent, listConfirmedReportsByStudent,
   listAllReports,
@@ -40,7 +40,9 @@ import { ReportRenderer } from "../template/ReportRenderer";
 import { dayLabel, monthLabel, todayWIB, monthOf, periodLabel } from "../lib/format";
 import { formatRupiahDisplay } from "../lib/moneyDisplay";
 import MaskedMoney from "../components/ui/MaskedMoney";
+import SettingsLoadError from "../components/SettingsLoadError";
 import { useMoneyVisible } from "../hooks/useMoneyVisible";
+import { useSettingsQuery } from "../hooks/useSettingsQuery";
 import { useReportExport } from "./monthlyReport/useReportExport";
 import { useReportGeneration } from "./monthlyReport/useReportGeneration";
 import { blobToDataUrl } from "../lib/imageUtils";
@@ -107,7 +109,8 @@ export default function MonthlyReportPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const students = useLiveQuery(() => listStudents(true), []);
-  const settings = useLiveQuery(() => getSettings(), []);
+  const settingsQuery = useSettingsQuery();
+  const settings = settingsQuery.settings;
   // G2-04 (K3.3/K3.6): laporan bulanan kini ikut gerbang uang yang sama.
   const money = useMoneyVisible();
 
@@ -1135,6 +1138,11 @@ export default function MonthlyReportPage() {
     setEditingPlan(false);
     setMessage("Rencana berikutnya disimpan ✓");
   };
+
+  // G2-10: laporan butuh pengaturan (tema, profil, rekening) — galat baca punya jalan keluar.
+  if (settingsQuery.error || settingsQuery.timedOut) {
+    return <SettingsLoadError screen="Laporan bulanan" busy={settingsQuery.retrying} onRetry={settingsQuery.retry} />;
+  }
 
   if (!students) return <Skeleton variant="card" lines={4} className="p-4" />;
   const studentOptions = student && !students.some((candidate) => candidate.id === student.id)

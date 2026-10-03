@@ -5,7 +5,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import {
   getStudent, listSessionsByStudent, listScheduledForStudent,
   cancelSeriesSessions, updateSeriesSessions,
-  getSettings, updateStudent,
+  updateStudent,
   listIaEeProjects,
   deleteSession, updateSession,
   getStudyNote, saveStudyNote,
@@ -26,7 +26,9 @@ import ClockTimePicker from "../components/ClockTimePicker";
 import SignaturePad from "../components/SignaturePad";
 import Modal from "../components/Modal";
 import MaskedMoney from "../components/ui/MaskedMoney";
+import SettingsLoadError from "../components/SettingsLoadError";
 import { useMoneyVisible } from "../hooks/useMoneyVisible";
+import { useSettingsQuery } from "../hooks/useSettingsQuery";
 import { Z } from "../lib/zIndex";
 import { compressPhoto, stampPhoto } from "../lib/foto";
 import { getResponseTag } from "../lib/responseTaxonomy";
@@ -60,7 +62,8 @@ export default function StudentDetail() {
   const student       = useLiveQuery(() => (id ? getStudent(id) : undefined), [id]);
   const allSessions   = useLiveQuery(() => (id ? listSessionsByStudent(id) : []), [id]);
   const upcomingSched = useLiveQuery(() => (id ? listScheduledForStudent(id, today) : []), [id, today]);
-  const settings      = useLiveQuery(() => getSettings(), []);
+  const settingsQuery = useSettingsQuery();
+  const settings      = settingsQuery.settings;
   const studyNote      = useLiveQuery(() => (id ? getStudyNote(id) : undefined), [id]);
   const iaeeProjects  = useLiveQuery(() => (id ? listIaEeProjects(id) : []), [id]);
   // Sesi lama yang belum ditagih — menentukan apakah pilihan retroaktif perlu
@@ -407,6 +410,11 @@ export default function StudentDetail() {
       .sort((a, b) => b.date.localeCompare(a.date) || (b.time ?? "").localeCompare(a.time ?? "")),
     [allSessions, historyMonth]
   );
+
+  // G2-10: kegagalan baca pengaturan punya jalan keluar yang sama di semua layar.
+  if (settingsQuery.error || settingsQuery.timedOut) {
+    return <SettingsLoadError screen="Detail murid" busy={settingsQuery.retrying} onRetry={settingsQuery.retry} />;
+  }
 
   if (!student) return <Skeleton variant="card" lines={4} className="p-4" />;
   const studentBillingPolicy = billingPolicyOf(student);

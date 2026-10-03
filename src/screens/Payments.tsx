@@ -3,13 +3,15 @@ import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  listPayments, listStudents, getSettings,
+  listPayments, listStudents,
   listExpenses, listBillableSessionsForMonth,
   listAllReports, listSessionCountBillingProgress,
 } from "../db/repos";
 import { todayWIB, monthLabel } from "../lib/format";
 import { reportStatus } from "../db/types";
 import { useMoneyVisible } from "../hooks/useMoneyVisible";
+import { useSettingsQuery } from "../hooks/useSettingsQuery";
+import SettingsLoadError from "../components/SettingsLoadError";
 import { LockIcon } from "../components/icons";
 import Breadcrumb from "../components/Breadcrumb";
 import Tabs from "../components/Tabs";
@@ -54,7 +56,8 @@ export default function PaymentsPage() {
   // Historical invoices must retain their student names even after a student
   // becomes inactive, so finance intentionally loads active + inactive rows.
   const students  = useLiveQuery(() => listStudents(), []);
-  const settings  = useLiveQuery(() => getSettings(), []);
+  const settingsQuery = useSettingsQuery();
+  const settings = settingsQuery.settings;
   // G2-04 (K3.4): gerbang layar ini tetap penuh — lapisan kedua — tetapi status
   // buka-kuncinya sekarang BERBAGI dengan layar lain lewat `useMoneyVisible`.
   const money = useMoneyVisible();
@@ -103,6 +106,11 @@ export default function PaymentsPage() {
     .reduce((sum, p) => sum + p.totalCost, 0);
 
   // ── Ringkasan cepat untuk header ──
+  // G2-10: kegagalan baca pengaturan diperiksa SEBELUM keadaan "PIN belum aktif" —
+  // kalau tidak, layar ini akan salah mengira PIN-nya kosong padahal datanya gagal dibaca.
+  if (settingsQuery.error || settingsQuery.timedOut) {
+    return <SettingsLoadError screen="Keuangan" busy={settingsQuery.retrying} onRetry={settingsQuery.retry} />;
+  }
   if (!payments || !students || !settings
     || monthSessions === undefined || monthExpenses === undefined
     || reports === undefined || sessionCountBillingProgress === undefined

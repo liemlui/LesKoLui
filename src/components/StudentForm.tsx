@@ -1,9 +1,11 @@
 import Skeleton from "./Skeleton";
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { getSettings, countUnbilledBillableSessions } from "../db/repos";
+import { countUnbilledBillableSessions } from "../db/repos";
 import type { StudentBillingUpdateOptions } from "../db/repos";
 import { todayWIB } from "../lib/format";
+import { useSettingsQuery } from "../hooks/useSettingsQuery";
+import SettingsLoadError from "./SettingsLoadError";
 import { toggleArrayItem } from "../lib/arrays";
 import type { Student, Level, CurriculumType, BillingPolicy } from "../db/types";
 import { levelForCurriculum } from "../db/types";
@@ -52,7 +54,8 @@ function inferCurriculum(s: Student): CurriculumType {
 }
 
 export default function StudentForm({ initial, onSave, onCancel }: Props) {
-  const settings = useLiveQuery(() => getSettings(), []);
+  const settingsQuery = useSettingsQuery();
+  const settings = settingsQuery.settings;
 
   const [name,         setName]         = useState(initial?.name ?? "");
   const [curriculum,   setCurriculum]   = useState<CurriculumType>(
@@ -97,6 +100,10 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
   const rateChanged = Boolean(initial) && hourlyRate !== initial!.hourlyRate;
   const showRepriceChoice = rateChanged && (unbilledCount ?? 0) > 0;
 
+  // G2-10: galat baca pengaturan tidak boleh tampil sebagai rangka yang tak berujung.
+  if (settingsQuery.error || settingsQuery.timedOut) {
+    return <SettingsLoadError screen="Form murid" busy={settingsQuery.retrying} onRetry={settingsQuery.retry} />;
+  }
   if (!settings) return <Skeleton variant="card" lines={4} className="p-4" />;
 
   const curriculumGroups = getSubjectGroups(curriculum);

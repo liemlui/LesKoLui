@@ -4,7 +4,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { Link, useNavigate } from "react-router-dom";
 import {
   listStudents, createStudent, updateStudent, deleteStudent,
-  listSessionsForMonth, getSettings, listAllUpcomingScheduled,
+  listSessionsForMonth, listAllUpcomingScheduled,
   listPendingFollowUps, listPayments,
   listSessionsByStudent, listReportsByStudent, listPaymentsByStudent,
   listRaporGrades, listIaEeProjects, getStudyNote,
@@ -12,6 +12,8 @@ import {
 import type { StudentBillingUpdateOptions } from "../db/repos";
 import { todayWIB, monthOf, monthLabel, dayLabel } from "../lib/format";
 import { usePinGate } from "../hooks/usePinGate";
+import { useSettingsQuery } from "../hooks/useSettingsQuery";
+import SettingsLoadError from "../components/SettingsLoadError";
 import { colorForStudent } from "../lib/studentColor";
 import type { Student } from "../db/types";
 import { levelLabel } from "../db/types";
@@ -31,7 +33,8 @@ export default function Students() {
   const toast        = useToastCtx();
   const allStudents   = useLiveQuery(() => listStudents(), []);
   const monthSessions = useLiveQuery(() => listSessionsForMonth(currentMonth), [currentMonth]);
-  const settings      = useLiveQuery(() => getSettings(), []);
+  const settingsQuery = useSettingsQuery();
+  const settings      = settingsQuery.settings;
   const upcomingSched = useLiveQuery(() => listAllUpcomingScheduled(today), [today]);
   const followUps     = useLiveQuery(() => listPendingFollowUps(), []);
   const payments      = useLiveQuery(() => listPayments(), []);
@@ -165,6 +168,10 @@ export default function Students() {
   const paginatedActive   = paginateItems(active, safeActivePage);
   const paginatedInactive = paginateItems(inactive, safeHistPage);
 
+  // G2-10: "gagal baca" punya jalan keluar, bukan layar yang menggantung.
+  if (settingsQuery.error || settingsQuery.timedOut) {
+    return <SettingsLoadError screen="Daftar murid" busy={settingsQuery.retrying} onRetry={settingsQuery.retry} />;
+  }
   if (!allStudents) return <Skeleton variant="card" lines={4} className="p-4" />;
 
   const handleSave = async (

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useId, createContext, useContext } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  getSettings, saveSettings, logAudit, listAuditLog,
+  saveSettings, logAudit, listAuditLog,
   countSessionPhotos, pruneSessionPhotosBefore, shrinkSessionPhotosBefore,
 } from "../db/repos";
 import { shrinkPhotoBlob } from "../lib/foto";
@@ -16,7 +16,9 @@ import { todayWIB } from "../lib/format";
 import { compressPhoto } from "../lib/foto";
 import { downloadBlob } from "../lib/download";
 import { APP_VERSION } from "../lib/version";
-import { saveButtonState, settingsLoadGate, SETTINGS_LOAD_TIMEOUT_MS, storageUsageState } from "../lib/settingsPresentation";
+import { saveButtonState, settingsLoadGate, storageUsageState } from "../lib/settingsPresentation";
+import { useSettingsQuery } from "../hooks/useSettingsQuery";
+import SettingsLoadError from "../components/SettingsLoadError";
 import Skeleton from "../components/Skeleton";
 import ConfirmSheet from "../components/ConfirmSheet";
 import { DEEPSEEK_MODEL, DEEPSEEK_MODEL_LABEL, DEEPSEEK_DOCS_URL, DEEPSEEK_PRICING_URL, DEEPSEEK_COST_NOTE } from "../lib/aiConfig";
@@ -303,29 +305,6 @@ function Section({
   );
 }
 
-/** Keadaan gagal baca pengaturan — satu-satunya jalan keluar: coba lagi / muat ulang. */
-function SettingsLoadFailed({ busy, onRetry }: { busy: boolean; onRetry: () => void }) {
-  return (
-    <div className="p-4" role="alert">
-      <div className="rounded-2xl border border-[var(--border-danger)] bg-[var(--bg-danger)] p-4 space-y-2">
-        <p className="text-sm font-bold text-[var(--ink-danger)]">Pengaturan gagal dimuat</p>
-        <p className="text-xs text-[var(--ink-danger)]">
-          Data pengaturan belum bisa dibaca dari perangkat ini. Muat ulang halaman bila
-          tombol di bawah tetap tidak berhasil.
-        </p>
-        <button
-          type="button"
-          onClick={onRetry}
-          disabled={busy}
-          className="w-full py-3 rounded-xl bg-[var(--bg-danger-strong)] text-[var(--on-strong)] text-sm font-semibold hover:bg-[var(--bg-danger-strong)] disabled:opacity-60 transition-colors"
-        >
-          {busy ? "Mencoba lagi..." : "Coba lagi"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
 /**
  * SettingsPage — halaman pengaturan aplikasi.
  * Section: Profil, PIN, Backup/Restore, Google Drive, Relay Server,
@@ -335,13 +314,19 @@ function SettingsLoadFailed({ busy, onRetry }: { busy: boolean; onRetry: () => v
  * @route /settings
  */
 export default function SettingsPage() {
-  const [settingsNonce, setSettingsNonce] = useState(0);
-  const [settingsError, setSettingsError] = useState<string | null>(null);
-  const [settingsTimedOut, setSettingsTimedOut] = useState(false);
-  const [settingsRetrying, setSettingsRetrying] = useState(false);
+  /**
+   * G2-10: probe + watchdog tidak lagi hidup di layar ini — keduanya pindah ke
+   * `useSettingsQuery()` supaya enam layar lain mendapat perilaku yang sama.
+   */
+  const {
+    settings,
+    error: settingsError,
+    timedOut: settingsTimedOut,
+    retrying: settingsRetrying,
+    retry: retrySettings,
+  } = useSettingsQuery();
   /** S-08: bersihkan cache (service worker + Cache Storage) butuh konfirmasi. */
   const [confirmClearCache, setConfirmClearCache] = useState(false);
-  const settings  = useLiveQuery(() => getSettings(), [settingsNonce]);
   const [form,        setForm]        = useState<Settings | null>(null);
   const [logoUrl,     setLogoUrl]     = useState<string | undefined>();
   const [dirty,       setDirty]       = useState(false);
@@ -392,41 +377,7 @@ export default function SettingsPage() {
   }, [form?.logo]);
 
   // ── Loading / kegagalan pembacaan pengaturan (audit L-09) ───────────────────
-  /**
-   * Pastikan penyimpanan benar-benar menjawab. Selama `settings` masih undefined
-   * kita tidak tahu apakah datanya belum datang atau query sudah mati — karena itu
-   * ada dua jaring: probe di bawah (menangkap galat) dan batas tunggu ini.
-   * Keduanya dipasang SEBELUM early-return supaya urutan hook tidak berubah.
-   */
-  useEffect(() => {
-    if (settings) return;
-    const t = setTimeout(() => setSettingsTimedOut(true), SETTINGS_LOAD_TIMEOUT_MS);
-    return () => clearTimeout(t);
-  }, [settings, settingsNonce]);
-
-  /**
-   * Probe independen ke store yang sama. `useLiveQuery` pada hook ini tidak
-   * meneruskan galat (observable-nya hanya membawa nilai), sehingga tanpa probe
-   * kegagalan baca tidak terlihat sama sekali. Setelah gagal, probe TIDAK dijalankan
-   * ulang sampai tombol "Coba lagi" ditekan (nonce berubah) — tanpa penjaga itu,
-   * kegagalan permanen berubah menjadi loop request tanpa akhir.
-   */
-  useEffect(() => {
-    if (settings || settingsError) return;
-    let cancelled = false;
-    db.settings.get("app")
-      .then(() => {
-        if (cancelled) return;
-        setSettingsTimedOut(false);
-        setSettingsRetrying(false);
-      })
-      .catch((e: unknown) => {
-        if (cancelled) return;
-        setSettingsRetrying(false);
-        setSettingsError((e as Error)?.message || "pengaturan tidak bisa dibaca");
-      });
-    return () => { cancelled = true; };
-  }, [settings, settingsNonce, settingsError]);
+  // Batas tunggu + probe independen sekarang di `useSettingsQuery()` (G2-10).
 
   const settingsView = settingsLoadGate({
     settingsLoaded: settings !== undefined,
@@ -445,15 +396,7 @@ export default function SettingsPage() {
       );
     }
     return (
-      <SettingsLoadFailed
-        busy={settingsRetrying}
-        onRetry={() => {
-          setSettingsRetrying(true);
-          setSettingsError(null);
-          setSettingsTimedOut(false);
-          setSettingsNonce((n) => n + 1);
-        }}
-      />
+      <SettingsLoadError busy={settingsRetrying} onRetry={retrySettings} />
     );
   }
 

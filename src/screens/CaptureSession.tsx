@@ -6,9 +6,11 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db/db";
 import {
   listStudents, createSessionWithCloseoutDraft, recentShortNotes,
-  createFollowUpBatch, getSettings, listDoneSessionsForDate,
+  createFollowUpBatch, listDoneSessionsForDate,
   markSessionDoneWithCloseoutDraft, updateSession,
 } from "../db/repos";
+import SettingsLoadError from "../components/SettingsLoadError";
+import { useSettingsQuery } from "../hooks/useSettingsQuery";
 import Modal from "../components/Modal";
 import { compressPhoto, stampPhoto } from "../lib/foto";
 import SignaturePad from "../components/SignaturePad";
@@ -81,7 +83,8 @@ export default function CaptureSession() {
 
   const students = useLiveQuery(() => listStudents(true), []);
   const allNotes = useLiveQuery(() => recentShortNotes(50), []);
-  const settings = useLiveQuery(() => getSettings(), []);
+  const settingsQuery = useSettingsQuery();
+  const settings = settingsQuery.settings;
 
   const today = todayWIB();
 
@@ -646,6 +649,11 @@ export default function CaptureSession() {
       bathroomBreaks: engBathroom, restless: engRestless, offTask: engOffTask, score: engScore },
     hasEngagementInput: engTouched, originalWaMessage, tutorName, shortNote, setShortNote,
   });
+
+  // G2-10: wizard butuh pengaturan (tarif, profil, AI) — galat baca punya jalan keluar.
+  if (settingsQuery.error || settingsQuery.timedOut) {
+    return <SettingsLoadError screen="Catat Sesi" busy={settingsQuery.retrying} onRetry={settingsQuery.retry} />;
+  }
 
   if (!students) return <Skeleton variant="card" lines={4} className="p-4" />;
 
