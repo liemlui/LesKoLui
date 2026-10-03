@@ -55,9 +55,9 @@ const NAV_ITEMS: NavItem[] = [
 const linkClass = ({ isActive }: { isActive: boolean }, primary = false) =>
   `flex flex-col items-center justify-center gap-0.5 min-h-[48px] min-w-[48px] px-2 py-1 text-[12px] font-medium transition-colors rounded-xl ${
     primary
-      ? "h-14 w-14 -mt-4 rounded-full border-4 border-[var(--border)] bg-[var(--brand)] text-white shadow-lg"
+      ? "h-14 w-14 -mt-4 rounded-full border-4 border-[var(--border)] bg-[var(--brand-solid)] text-[var(--on-strong)] shadow-lg"
       : isActive
-        ? "text-[var(--brand)] bg-[var(--surface-soft)]"
+        ? "text-[var(--ink-brand)] bg-[var(--surface-soft)]"
         : "text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-soft)]"
   }`;
 

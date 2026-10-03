@@ -93,8 +93,8 @@ export default function LineChart({
 
   if (allLabels.length === 0 || series.length === 0) {
     return (
-      <div className="flex items-center justify-center rounded-xl bg-slate-50 border border-slate-100" style={{ height }}>
-        <p className="text-sm text-slate-400">{emptyLabel}</p>
+      <div className="flex items-center justify-center rounded-xl bg-[var(--surface)] border border-[var(--border)]" style={{ height }}>
+        <p className="text-sm text-[var(--ink-muted)]">{emptyLabel}</p>
       </div>
     );
   }
@@ -112,7 +112,7 @@ export default function LineChart({
               <line x1={padding.left} x2={chartW - padding.right} y1={y} y2={y}
                 stroke="#e2e8f0" strokeWidth={0.5} />
               <text x={padding.left - 6} y={y + 4} textAnchor="end"
-                className="text-[10px] fill-slate-400" fontFamily="system-ui">{formatY(val)}</text>
+                className="text-[10px] fill-[var(--border-strong)]" fontFamily="system-ui">{formatY(val)}</text>
             </g>
           );
         })}
@@ -144,7 +144,7 @@ export default function LineChart({
                 <circle cx={p.x} cy={p.y} r={4} fill={color} />
                 {showAxes && (
                   <text x={toX(allLabels.indexOf(s.data[0]?.x ?? ""))} y={chartH - 6}
-                    textAnchor="middle" className="text-[10px] fill-slate-400" fontFamily="system-ui">
+                    textAnchor="middle" className="text-[10px] fill-[var(--border-strong)]" fontFamily="system-ui">
                     {dateXAxis ? shortDateLabel(s.data[0]?.x ?? "") : (s.data[0]?.x ?? "")}
                   </text>
                 )}
@@ -202,7 +202,7 @@ export default function LineChart({
         {/* X-axis labels */}
         {showAxes && allLabels.length <= 14 && allLabels.map((label, li) => (
           <text key={`xl-${li}`} x={toX(li)} y={chartH - 6} textAnchor="middle"
-            className="text-[10px] fill-slate-400" fontFamily="system-ui">
+            className="text-[10px] fill-[var(--border-strong)]" fontFamily="system-ui">
             {dateXAxis ? shortDateLabel(label) : (label.length > 6 ? label.slice(0, 5) + "…" : label)}
           </text>
         ))}
@@ -210,7 +210,7 @@ export default function LineChart({
 
       {tooltip && (
         <div
-          className="absolute pointer-events-none bg-gray-800 text-white text-xs font-semibold px-2 py-1 rounded-lg shadow-lg whitespace-nowrap z-10"
+          className="absolute pointer-events-none bg-[var(--surface-inverse)] text-[var(--on-strong)] text-xs font-semibold px-2 py-1 rounded-lg shadow-lg whitespace-nowrap z-10"
           style={{ left: tooltip.x, top: tooltip.y, transform: "translate(-50%, -100%)" }}>
           {tooltip.text}
         </div>

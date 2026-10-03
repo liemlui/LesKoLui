@@ -40,14 +40,14 @@ export default function StudyNoteCard({ studentId, studyNote, onSave }: Props) {
   return (
     <Card className="space-y-2">
       <SectionHeader title="📝 Catatan Belajar" />
-      <p className="text-xs text-gray-500">
+      <p className="text-xs text-[var(--ink-muted)]">
         Topik sekolah, PR dari sekolah, progres belajar, rencana sesi berikutnya.
       </p>
       {preview ? (
-        <div className="w-full min-h-[104px] text-sm rounded-xl border border-blue-200 bg-blue-50/50 p-3 overflow-auto">
+        <div className="w-full min-h-[104px] text-sm rounded-xl border border-[var(--brand-tint-strong)] bg-[var(--brand-tint)]/50 p-3 overflow-auto">
           {content.trim()
             ? <SimpleMarkdown text={content} />
-            : <span className="text-gray-400 text-xs">Belum ada catatan.</span>}
+            : <span className="text-[var(--ink-muted)] text-xs">Belum ada catatan.</span>}
         </div>
       ) : (
         <textarea
@@ -55,16 +55,16 @@ export default function StudyNoteCard({ studentId, studyNote, onSave }: Props) {
           onChange={(e) => handleChange(e.target.value)}
           placeholder="Contoh: Minggu ini fokus ke integral & turunan untuk persiapan UTS. PR dari sekolah: latihan soal halaman 45-47..."
           rows={4}
-          className="w-full text-sm rounded-xl border border-gray-200 p-3 resize-y focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition-colors"
+          className="w-full text-sm rounded-xl border border-[var(--border)] p-3 resize-y focus:border-[var(--border-brand)] focus:ring-1 focus:ring-[var(--border-brand)] outline-none transition-colors"
         />
       )}
       <div className="flex items-center justify-between min-h-[18px]">
         <div>
           {saving && (
-            <span className="text-xs text-blue-500 animate-pulse">menyimpan...</span>
+            <span className="text-xs text-[var(--ink-brand)] animate-pulse">menyimpan...</span>
           )}
           {!saving && content.trim() && studyNote?.updatedAt && (
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-[var(--ink-muted)]">
               Disimpan {new Date(studyNote.updatedAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
             </span>
           )}
@@ -73,7 +73,7 @@ export default function StudyNoteCard({ studentId, studyNote, onSave }: Props) {
           <button
             type="button"
             onClick={() => setPreview((v) => !v)}
-            className="text-xs font-semibold text-gray-500 bg-gray-50 hover:bg-gray-100 border border-gray-200 px-2 py-1 rounded-lg transition-colors">
+            className="text-xs font-semibold text-[var(--ink-muted)] bg-[var(--surface)] hover:bg-[var(--bg-subtle)] border border-[var(--border)] px-2 py-1 rounded-lg transition-colors">
             {preview ? "✏️ Edit" : "👁 Pratinjau"}
           </button>
         )}

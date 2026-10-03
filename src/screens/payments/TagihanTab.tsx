@@ -313,12 +313,12 @@ export default function TagihanTab({
 
   return (
     <div className="space-y-4">
-      <section aria-labelledby="collection-center-title" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <section aria-labelledby="collection-center-title" className="rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] p-4 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-indigo-500">Semua periode</p>
-            <h2 id="collection-center-title" className="mt-0.5 text-base font-bold text-slate-800">Alur tagihan</h2>
-            <p className="mt-1 max-w-prose text-xs leading-relaxed text-slate-500">
+            <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--ink-accent)]">Semua periode</p>
+            <h2 id="collection-center-title" className="mt-0.5 text-base font-bold text-[var(--ink-strong)]">Alur tagihan</h2>
+            <p className="mt-1 max-w-prose text-xs leading-relaxed text-[var(--ink-muted)]">
               Dari laporan menjadi tagihan, lalu dibayar. Ketuk salah satu langkah untuk menyaring daftar di bawah.
             </p>
           </div>
@@ -332,8 +332,8 @@ export default function TagihanTab({
               label: "Siap ditagih",
               value: `${readyActionCount} tindakan`,
               hint: "Laporan final & paket yang menunggu invoice",
-              activeClass: "border-indigo-300 bg-indigo-600 text-white shadow-sm",
-              idleClass: "border-indigo-100 bg-white text-indigo-800 hover:bg-indigo-50",
+              activeClass: "border-[var(--border-accent)] bg-[var(--accent-solid)] text-[var(--on-strong)] shadow-sm",
+              idleClass: "border-[var(--border-accent)] bg-[var(--surface-strong)] text-[var(--ink-accent)] hover:bg-[var(--accent-tint)]",
             },
             {
               key: "semua" as const,
@@ -341,8 +341,8 @@ export default function TagihanTab({
               label: "Sudah diterbitkan",
               value: formatRupiah(totalBilled),
               hint: `${allPayments.length} tagihan lintas periode`,
-              activeClass: "border-blue-300 bg-blue-600 text-white shadow-sm",
-              idleClass: "border-blue-100 bg-white text-blue-800 hover:bg-blue-50",
+              activeClass: "border-[var(--brand-tint-strong)] bg-[var(--brand-solid)] text-[var(--on-strong)] shadow-sm",
+              idleClass: "border-[var(--brand-tint-strong)] bg-[var(--surface-strong)] text-[var(--ink-brand)] hover:bg-[var(--brand-tint)]",
             },
             {
               key: "unpaid" as const,
@@ -350,8 +350,8 @@ export default function TagihanTab({
               label: "Belum dibayar",
               value: formatRupiah(totalUnpaid),
               hint: `${unpaidCount} tagihan perlu ditindaklanjuti`,
-              activeClass: "border-amber-300 bg-amber-500 text-white shadow-sm",
-              idleClass: "border-amber-100 bg-white text-amber-800 hover:bg-amber-50",
+              activeClass: "border-[var(--border-warn)] bg-[var(--bg-warn-strong)] text-[var(--on-strong)] shadow-sm",
+              idleClass: "border-[var(--border-warn)] bg-[var(--surface-strong)] text-[var(--ink-warn)] hover:bg-[var(--bg-warn)]",
             },
             {
               key: "paid" as const,
@@ -359,8 +359,8 @@ export default function TagihanTab({
               label: "Lunas",
               value: formatRupiah(totalPaid),
               hint: `${paidCount} tagihan sudah selesai`,
-              activeClass: "border-green-300 bg-green-600 text-white shadow-sm",
-              idleClass: "border-green-100 bg-white text-green-800 hover:bg-green-50",
+              activeClass: "border-[var(--border-success)] bg-[var(--bg-success-strong)] text-[var(--on-strong)] shadow-sm",
+              idleClass: "border-[var(--border-success)] bg-[var(--surface-strong)] text-[var(--ink-success)] hover:bg-[var(--bg-success)]",
             },
           ]).map((stage) => {
             const active = invoiceStatusFilter === stage.key;
@@ -389,8 +389,8 @@ export default function TagihanTab({
             onClick={() => selectCollectionStage("all")}
             className={`rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors ${
               invoiceStatusFilter === "all"
-                ? "border-slate-400 bg-slate-700 text-white"
-                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                ? "border-[var(--border-strong)] bg-[var(--surface-inverse)] text-[var(--on-strong)]"
+                : "border-[var(--border)] bg-[var(--surface-strong)] text-[var(--ink-muted)] hover:bg-[var(--surface)]"
             }`}
           >
             Tampilkan semua langkah
@@ -399,7 +399,7 @@ export default function TagihanTab({
             <button
               type="button"
               onClick={() => selectCollectionStage("unpaid")}
-              className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100"
+              className="rounded-full border border-[var(--border-warn)] bg-[var(--bg-warn)] px-2.5 py-1 text-xs font-semibold text-[var(--ink-warn)] transition-colors hover:bg-[var(--bg-warn)]"
             >
               Ke tagihan belum dibayar →
             </button>
@@ -409,7 +409,7 @@ export default function TagihanTab({
         {/* Cincin dan catatannya ditumpuk, bukan berdampingan: pada lebar kolom
             keuangan (±382px) teks penjelas hanya kebagian ~100px bila dipaksa
             satu baris dengan cincin. */}
-        <div className="mt-3 rounded-xl border border-slate-100 bg-white px-3 py-2.5">
+        <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--surface-strong)] px-3 py-2.5">
           <ActivityRing
             value={paidCount}
             total={allPayments.length}
@@ -418,19 +418,19 @@ export default function TagihanTab({
             size="sm"
             tone={collectionRate >= 80 ? "green" : collectionRate > 0 ? "amber" : "slate"}
           />
-          <p className="mt-2 border-t border-slate-100 pt-2 text-xs leading-relaxed text-slate-500">
-            <span className="font-semibold text-slate-700">Status invoice ≠ uang masuk.</span>{" "}
+          <p className="mt-2 border-t border-[var(--border)] pt-2 text-xs leading-relaxed text-[var(--ink-muted)]">
+            <span className="font-semibold text-[var(--ink-strong)]">Status invoice ≠ uang masuk.</span>{" "}
             Pelunasan menutup piutang; uang masuk dicatat menurut tanggal pembayaran di Ringkasan.
           </p>
         </div>
 
-        <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-3" aria-label="Umur piutang">
+        <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3" aria-label="Umur piutang">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-600">Umur piutang</p>
-              <p className="mt-0.5 text-xs text-slate-500">Tap bar untuk menyaring daftar invoice belum dibayar pada periode ini.</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">Umur piutang</p>
+              <p className="mt-0.5 text-xs text-[var(--ink-muted)]">Tap bar untuk menyaring daftar invoice belum dibayar pada periode ini.</p>
             </div>
-            <span className="rounded-full bg-white px-2 py-1 text-xs font-semibold text-amber-700 shadow-sm">
+            <span className="rounded-full bg-[var(--surface-strong)] px-2 py-1 text-xs font-semibold text-[var(--ink-warn)] shadow-sm">
               {agingTotal > 0 ? formatRupiah(agingTotal) : "Tidak ada piutang"}
             </span>
           </div>
@@ -449,7 +449,7 @@ export default function TagihanTab({
                     selectCollectionStage("unpaid");
                     setAgingFilter((current) => current === row.bucket ? "all" : row.bucket);
                   }}
-                  className={`w-full rounded-lg px-2 py-1.5 text-left transition-colors disabled:cursor-default disabled:opacity-45 ${selected ? "bg-white shadow-sm ring-1 ring-slate-300" : "hover:bg-white"}`}
+                  className={`w-full rounded-lg px-2 py-1.5 text-left transition-colors disabled:cursor-default disabled:opacity-45 ${selected ? "bg-[var(--surface-strong)] shadow-sm ring-1 ring-[var(--border-strong)]" : "hover:bg-[var(--surface-strong)]"}`}
                 >
                   <ProgressBar
                     value={row.amount}
@@ -467,36 +467,36 @@ export default function TagihanTab({
       </section>
 
       {showReadySections && readyReportRows.length > 0 && (
-        <section aria-labelledby="ready-report-invoices-title" className="space-y-3 rounded-xl border border-blue-200 bg-blue-50/40 p-4 shadow-sm">
+        <section aria-labelledby="ready-report-invoices-title" className="space-y-3 rounded-xl border border-[var(--brand-tint-strong)] bg-[var(--brand-tint)]/40 p-4 shadow-sm">
           <div>
-            <h2 id="ready-report-invoices-title" className="text-sm font-bold text-blue-900">Laporan final siap ditagih</h2>
-            <p className="mt-0.5 text-xs text-blue-700">Laporan Perkembangan sudah final, tetapi belum mempunyai invoice. Terbitkan satu per satu setelah nominal diperiksa.</p>
+            <h2 id="ready-report-invoices-title" className="text-sm font-bold text-[var(--ink-brand)]">Laporan final siap ditagih</h2>
+            <p className="mt-0.5 text-xs text-[var(--ink-brand)]">Laporan Perkembangan sudah final, tetapi belum mempunyai invoice. Terbitkan satu per satu setelah nominal diperiksa.</p>
           </div>
           <div className="space-y-2">
             {readyReportRows.map(({ report, student }) => {
               const studentName = student?.name ?? "Murid dihapus";
               const busy = Boolean(reportInvoiceBusy[report.id]);
               return (
-                <article key={report.id} className="rounded-xl border border-blue-100 bg-white p-3">
+                <article key={report.id} className="rounded-xl border border-[var(--brand-tint-strong)] bg-[var(--surface-strong)] p-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-gray-800">{studentName}</p>
-                      <p className="mt-0.5 text-xs font-medium text-blue-700">Periode belajar {periodLabel(report.periodStart, report.periodEnd)}</p>
-                      <p className="mt-1 text-xs font-bold text-gray-800">{formatRupiah(report.totalCost)}</p>
+                      <p className="truncate text-sm font-semibold text-[var(--ink-strong)]">{studentName}</p>
+                      <p className="mt-0.5 text-xs font-medium text-[var(--ink-brand)]">Periode belajar {periodLabel(report.periodStart, report.periodEnd)}</p>
+                      <p className="mt-1 text-xs font-bold text-[var(--ink-strong)]">{formatRupiah(report.totalCost)}</p>
                     </div>
-                    <span className="shrink-0 rounded-full bg-blue-100 px-2 py-1 text-xs font-bold text-blue-700">Laporan Final</span>
+                    <span className="shrink-0 rounded-full bg-[var(--brand-tint-strong)] px-2 py-1 text-xs font-bold text-[var(--ink-brand)]">Laporan Final</span>
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={() => navigate(`/report?reportId=${encodeURIComponent(report.id)}`)}
-                      className="rounded-lg border border-blue-200 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+                      className="rounded-lg border border-[var(--brand-tint-strong)] px-3 py-2 text-xs font-semibold text-[var(--ink-brand)] hover:bg-[var(--brand-tint)]"
                     >Lihat Laporan</button>
                     <button
                       type="button"
                       disabled={busy}
                       onClick={() => void handleIssueReportInvoice(report, studentName)}
-                      className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-50"
+                      className="rounded-lg bg-[var(--brand-solid)] px-3 py-2 text-xs font-semibold text-[var(--on-strong)] hover:bg-[var(--brand-solid)] disabled:cursor-wait disabled:opacity-50"
                     >{busy ? "Menerbitkan..." : "Terbitkan Invoice"}</button>
                   </div>
                 </article>
@@ -507,32 +507,32 @@ export default function TagihanTab({
       )}
 
       {showReadySections && (
-      <section aria-labelledby="session-count-billing-title" className="bg-white rounded-xl p-4 shadow-sm border border-indigo-100 space-y-3">
+      <section aria-labelledby="session-count-billing-title" className="bg-[var(--surface-strong)] rounded-xl p-4 shadow-sm border border-[var(--border-accent)] space-y-3">
         <div>
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h2 id="session-count-billing-title" className="text-sm font-bold text-gray-800">Tagihan per Pertemuan</h2>
+                <h2 id="session-count-billing-title" className="text-sm font-bold text-[var(--ink-strong)]">Tagihan per Pertemuan</h2>
                 <button
                   type="button"
                   onClick={() => setShowBillingHelp(true)}
                   aria-label="Bantuan cara kerja tagihan"
                   title="Cara kerja tagihan"
-                  className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-gray-100 text-sm font-bold text-gray-600 transition-colors hover:bg-indigo-100 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-[var(--bg-subtle)] text-sm font-bold text-[var(--ink-muted)] transition-colors hover:bg-[var(--accent-tint)] hover:text-[var(--ink-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-accent)]"
                 >?</button>
               </div>
-              <p className="mt-0.5 rounded-lg bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700">
+              <p className="mt-0.5 rounded-lg bg-[var(--accent-tint)] px-2 py-1 text-xs font-medium text-[var(--ink-accent)]">
                 Lintas bulan — tidak dipengaruhi pilihan Bulan Keuangan. Sesi tertua ditagih lebih dahulu.
               </p>
             </div>
-            <span className="flex-shrink-0 rounded-full bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700">
+            <span className="flex-shrink-0 rounded-full bg-[var(--accent-tint)] px-2 py-1 text-xs font-semibold text-[var(--ink-accent)]">
               {needsActionCount} perlu tindakan
             </span>
           </div>
         </div>
 
         {(sessionCountBillingProgress ?? []).length === 0 ? (
-          <p className="rounded-lg bg-gray-50 px-3 py-4 text-center text-xs text-gray-500">
+          <p className="rounded-lg bg-[var(--surface)] px-3 py-4 text-center text-xs text-[var(--ink-muted)]">
             Belum ada murid dengan aturan tagihan per pertemuan.
           </p>
         ) : (
@@ -545,7 +545,7 @@ export default function TagihanTab({
               const invalidTarget = progress.targetCount <= 0;
               const currentCount = Math.min(progress.unbilledCount, progress.targetCount);
               return (
-                <article key={progress.studentId} className={`rounded-xl border p-3 ${focusStudentId === progress.studentId ? "ring-2 ring-indigo-400 ring-offset-1" : ""} ${ready ? "border-indigo-200 bg-indigo-50/40" : "border-gray-100"}`}>
+                <article key={progress.studentId} className={`rounded-xl border p-3 ${focusStudentId === progress.studentId ? "ring-2 ring-[var(--border-accent)] ring-offset-1" : ""} ${ready ? "border-[var(--border-accent)] bg-[var(--accent-tint)]/40" : "border-[var(--border)]"}`}>
                   <button
                     type="button"
                     aria-expanded={expanded}
@@ -554,24 +554,24 @@ export default function TagihanTab({
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-gray-800">{progress.studentName}</p>
-                        <p className="mt-0.5 text-xs text-gray-500">
+                        <p className="truncate text-sm font-semibold text-[var(--ink-strong)]">{progress.studentName}</p>
+                        <p className="mt-0.5 text-xs text-[var(--ink-muted)]">
                           {progress.unbilledCount} sesi belum ditagih
                           {ready && progress.readyBatchCount > 1 ? ` · ${progress.readyBatchCount} paket siap` : ""}
                         </p>
                         {progress.pendingBillingPolicy && (
-                          <p className="mt-1 text-xs font-semibold text-amber-700">
+                          <p className="mt-1 text-xs font-semibold text-[var(--ink-warn)]">
                             Peralihan ke {pendingPolicyLabel} tertunda
                           </p>
                         )}
                       </div>
-                      <span className={`flex-shrink-0 rounded-full px-2 py-1 text-xs font-bold ${ready ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-600"}`}>
+                      <span className={`flex-shrink-0 rounded-full px-2 py-1 text-xs font-bold ${ready ? "bg-[var(--accent-solid)] text-[var(--on-strong)]" : "bg-[var(--bg-subtle)] text-[var(--ink-muted)]"}`}>
                         {invalidTarget ? "Atur N" : ready ? "Paket siap" : `${currentCount}/${progress.targetCount}`}
                       </span>
                     </div>
                     <div className="mt-2 flex items-center gap-2">
                       {invalidTarget ? (
-                        <span className="min-w-0 flex-1 rounded-lg bg-amber-50 px-2 py-1.5 text-xs font-medium text-amber-700">
+                        <span className="min-w-0 flex-1 rounded-lg bg-[var(--bg-warn)] px-2 py-1.5 text-xs font-medium text-[var(--ink-warn)]">
                           Jumlah pertemuan belum diatur — buka profil murid.
                         </span>
                       ) : (
@@ -586,29 +586,29 @@ export default function TagihanTab({
                           />
                         </div>
                       )}
-                      <span className="flex-shrink-0 text-xs text-gray-400">{expanded ? "▾" : "▸"}</span>
+                      <span className="flex-shrink-0 text-xs text-[var(--ink-muted)]">{expanded ? "▾" : "▸"}</span>
                     </div>
                   </button>
 
                   {expanded && (
-                    <div className="mt-3 border-t border-indigo-100 pt-3">
+                    <div className="mt-3 border-t border-[var(--border-accent)] pt-3">
                       <div className="mb-2 flex flex-wrap items-center justify-between gap-1 text-xs">
-                        <span className="font-semibold text-gray-600">
+                        <span className="font-semibold text-[var(--ink-muted)]">
                           {ready ? `${progress.targetCount} sesi paket berikutnya` : "Sesi terkumpul"}
                         </span>
-                        <span className="text-gray-500">{progress.nextBatchHours}j · {formatRupiah(progress.nextBatchTotal)}</span>
+                        <span className="text-[var(--ink-muted)]">{progress.nextBatchHours}j · {formatRupiah(progress.nextBatchTotal)}</span>
                       </div>
                       {progress.nextBatchSessions.length === 0 ? (
-                        <p className="rounded-lg bg-white px-3 py-2 text-xs text-gray-500">Belum ada sesi billable.</p>
+                        <p className="rounded-lg bg-[var(--surface-strong)] px-3 py-2 text-xs text-[var(--ink-muted)]">Belum ada sesi billable.</p>
                       ) : (
-                        <div className="space-y-1 rounded-lg bg-white p-2">
+                        <div className="space-y-1 rounded-lg bg-[var(--surface-strong)] p-2">
                           {progress.nextBatchSessions.map((session) => (
                             <div key={session.id} className="grid grid-cols-[46px_minmax(0,1fr)_auto] items-center gap-2 px-1 py-1 text-xs">
-                              <span className="font-mono text-gray-500">{session.date.slice(5).replace("-", "/")}</span>
-                              <span className="truncate text-gray-600">
+                              <span className="font-mono text-[var(--ink-muted)]">{session.date.slice(5).replace("-", "/")}</span>
+                              <span className="truncate text-[var(--ink-muted)]">
                                 {session.status === "NO_SHOW" ? "Tidak hadir (ditagihkan)" : session.subjects.slice(0, 2).join(", ") || "—"}
                               </span>
-                              <span className="text-right font-medium text-gray-700">{formatRupiah(session.cost)}</span>
+                              <span className="text-right font-medium text-[var(--ink-strong)]">{formatRupiah(session.cost)}</span>
                             </div>
                           ))}
                         </div>
@@ -625,7 +625,7 @@ export default function TagihanTab({
                     onClick={() => invalidTarget
                       ? navigate(`/students/${encodeURIComponent(progress.studentId)}`)
                       : void handleCreateSessionCountInvoice(progress)}
-                    className={`mt-3 w-full rounded-lg px-3 py-2.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-500 ${invalidTarget ? "border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100" : "bg-indigo-600 text-white hover:bg-indigo-700"}`}
+                    className={`mt-3 w-full rounded-lg px-3 py-2.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:bg-[var(--bg-subtle)] disabled:text-[var(--ink-muted)] ${invalidTarget ? "border border-[var(--border-warn)] bg-[var(--bg-warn)] text-[var(--ink-warn)] hover:bg-[var(--bg-warn)]" : "bg-[var(--accent-solid)] text-[var(--on-strong)] hover:bg-[var(--accent-solid)]"}`}
                   >
                     {busy
                       ? "Menerbitkan..."
@@ -645,7 +645,7 @@ export default function TagihanTab({
                       disabled={busy}
                       aria-label={`Terbitkan tagihan penutup ${progress.unbilledCount} pertemuan untuk ${progress.studentName}`}
                       onClick={() => void handleCreateSessionCountInvoice(progress, true)}
-                      className="mt-2 w-full rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100 disabled:opacity-50"
+                      className="mt-2 w-full rounded-lg border border-[var(--border-warn)] bg-[var(--bg-warn)] px-3 py-2.5 text-xs font-semibold text-[var(--ink-warn)] transition-colors hover:bg-[var(--bg-warn)] disabled:opacity-50"
                     >
                       {busy ? "Menerbitkan..." : `Tagihan Penutup ${progress.unbilledCount} Sesi · ${formatRupiah(progress.nextBatchTotal)}`}
                     </button>
@@ -661,32 +661,32 @@ export default function TagihanTab({
 
       {/* Aksi tagihan selalu tersedia, termasuk ketika bulan masih terbuka. */}
       {showIssuedList && (
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 space-y-3">
+      <div className="bg-[var(--surface-strong)] rounded-xl p-4 shadow-sm border border-[var(--border)] space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Daftar tagihan</p>
-            <p className="text-xs text-gray-500 mt-0.5">Ketuk satu tagihan untuk mengubah nominal, mencatat pembayaran, mengirim WA, atau mengunduh invoice.</p>
+            <p className="text-xs text-[var(--ink-muted)] font-medium uppercase tracking-wide">Daftar tagihan</p>
+            <p className="text-xs text-[var(--ink-muted)] mt-0.5">Ketuk satu tagihan untuk mengubah nominal, mencatat pembayaran, mengirim WA, atau mengunduh invoice.</p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-xs font-semibold text-gray-500 bg-gray-100 rounded-full px-2 py-1">{filteredBillRows.length}/{allPayments.length}</span>
+            <span className="text-xs font-semibold text-[var(--ink-muted)] bg-[var(--bg-subtle)] rounded-full px-2 py-1">{filteredBillRows.length}/{allPayments.length}</span>
           </div>
         </div>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-50 px-2.5 py-1.5">
-          <p className="text-xs text-gray-500">Ekspor CSV/PDF mengikuti langkah dan asal tagihan yang tersaring.</p>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[var(--surface)] px-2.5 py-1.5">
+          <p className="text-xs text-[var(--ink-muted)]">Ekspor CSV/PDF mengikuti langkah dan asal tagihan yang tersaring.</p>
           <div className="flex items-center gap-2">
             <button onClick={handleExportCsv}
-              className="rounded-lg border border-green-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-green-700 transition-colors hover:bg-green-50">
+              className="rounded-lg border border-[var(--border-success)] bg-[var(--surface-strong)] px-2.5 py-1.5 text-xs font-semibold text-[var(--ink-success)] transition-colors hover:bg-[var(--bg-success)]">
               Ekspor CSV
             </button>
             <button onClick={handleExportPdf} disabled={pdfExporting}
-              className="rounded-lg border border-indigo-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 disabled:opacity-50">
+              className="rounded-lg border border-[var(--border-accent)] bg-[var(--surface-strong)] px-2.5 py-1.5 text-xs font-semibold text-[var(--ink-accent)] transition-colors hover:bg-[var(--accent-tint)] disabled:opacity-50">
               {pdfExporting ? "Mengekspor..." : "Ekspor PDF"}
             </button>
           </div>
         </div>
-        <div className="space-y-2 rounded-xl bg-gray-50 p-2.5">
+        <div className="space-y-2 rounded-xl bg-[var(--surface)] p-2.5">
           <div>
-            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-gray-500">Asal invoice</p>
+            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">Asal invoice</p>
             <div className="flex flex-wrap gap-1" role="group" aria-label="Filter asal invoice">
               {([
                 ["semua", "Semua"],
@@ -697,7 +697,7 @@ export default function TagihanTab({
               ] as const).map(([filter, label]) => (
                 <button key={filter} type="button" onClick={() => setInvoiceOriginFilter(filter)}
                   className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
-                    invoiceOriginFilter === filter ? "bg-white text-gray-800 shadow-sm ring-1 ring-gray-300" : "text-gray-500 hover:text-gray-700"
+                    invoiceOriginFilter === filter ? "bg-[var(--surface-strong)] text-[var(--ink-strong)] shadow-sm ring-1 ring-[var(--border-strong)]" : "text-[var(--ink-muted)] hover:text-[var(--ink-strong)]"
                   }`}>
                   {label}
                 </button>
@@ -706,11 +706,11 @@ export default function TagihanTab({
           </div>
         </div>
         {filteredBillRows.length === 0 ? (
-          <p className="rounded-lg bg-gray-50 px-3 py-4 text-center text-sm text-gray-500">
+          <p className="rounded-lg bg-[var(--surface)] px-3 py-4 text-center text-sm text-[var(--ink-muted)]">
             Tidak ada tagihan yang cocok dengan langkah dan asal ini.
           </p>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-[var(--border)]">
             {filteredBillRows.map(({ payment, report, student, sessions }) => (
               <InvoiceRow
                 key={payment.id}
@@ -754,10 +754,10 @@ export default function TagihanTab({
 
       {/* ── Tagihan dibatalkan (R1) — pemulihan lokal per perangkat ── */}
       {(recovery.cancellations ?? []).length > 0 && (
-        <section aria-labelledby="cancelled-invoices-title" className="space-y-3 rounded-xl border border-amber-200 bg-amber-50/40 p-4 shadow-sm">
+        <section aria-labelledby="cancelled-invoices-title" className="space-y-3 rounded-xl border border-[var(--border-warn)] bg-[var(--bg-warn)]/40 p-4 shadow-sm">
           <div>
-            <h2 id="cancelled-invoices-title" className="text-sm font-bold text-amber-900">Tagihan dibatalkan — bisa dipulihkan</h2>
-            <p className="mt-0.5 text-xs leading-relaxed text-amber-800">
+            <h2 id="cancelled-invoices-title" className="text-sm font-bold text-[var(--ink-warn)]">Tagihan dibatalkan — bisa dipulihkan</h2>
+            <p className="mt-0.5 text-xs leading-relaxed text-[var(--ink-warn)]">
               {RECOVERY_LIMITS_HINT} Pemulihan ditolak bila sesi, laporan, atau siklus murid sudah berubah.
             </p>
           </div>
@@ -767,22 +767,22 @@ export default function TagihanTab({
               const busy = Boolean(recovery.busyKeys[`restore-${cancellation.snapshotId}`]);
               const discarding = Boolean(recovery.busyKeys[`discard-${cancellation.snapshotId}`]);
               return (
-                <article key={cancellation.snapshotId} className="rounded-xl border border-amber-100 bg-white p-3">
+                <article key={cancellation.snapshotId} className="rounded-xl border border-[var(--border-warn)] bg-[var(--surface-strong)] p-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-gray-800">{studentName}</p>
-                      <p className="mt-0.5 text-xs text-gray-500">
+                      <p className="truncate text-sm font-semibold text-[var(--ink-strong)]">{studentName}</p>
+                      <p className="mt-0.5 text-xs text-[var(--ink-muted)]">
                         {invoiceKindLabel(cancellation.kind)} · {monthLabel(cancellation.month)} · {cancellation.sessionCount} sesi
                       </p>
                     </div>
-                    <span className="shrink-0 text-sm font-bold text-gray-800">{formatRupiah(cancellation.totalCost)}</span>
+                    <span className="shrink-0 text-sm font-bold text-[var(--ink-strong)]">{formatRupiah(cancellation.totalCost)}</span>
                   </div>
                   <div className="mt-3 flex items-stretch gap-2">
                     <button
                       type="button"
                       disabled={busy || discarding}
                       onClick={() => recovery.askRestoreCancellation(cancellation, studentName)}
-                      className="flex-1 rounded-lg border border-amber-300 py-2 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-50 disabled:cursor-wait disabled:opacity-50"
+                      className="flex-1 rounded-lg border border-[var(--border-warn)] py-2 text-xs font-semibold text-[var(--ink-warn)] transition-colors hover:bg-[var(--bg-warn)] disabled:cursor-wait disabled:opacity-50"
                     >
                       {busy ? "Memulihkan..." : "Pulihkan tagihan"}
                     </button>
@@ -792,7 +792,7 @@ export default function TagihanTab({
                       disabled={busy || discarding}
                       aria-label={`Hapus entri pemulihan tagihan ${studentName}`}
                       onClick={() => recovery.askDiscardCancellation(cancellation, studentName)}
-                      className="shrink-0 rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:cursor-wait disabled:opacity-50"
+                      className="shrink-0 rounded-lg border border-[var(--border-danger)] px-3 py-2 text-xs font-semibold text-[var(--ink-danger)] transition-colors hover:bg-[var(--bg-danger)] disabled:cursor-wait disabled:opacity-50"
                     >
                       {discarding ? "Menghapus..." : "Hapus"}
                     </button>
@@ -803,7 +803,7 @@ export default function TagihanTab({
                     disabled={busy || discarding}
                     aria-label={`Riwayat pemulihan tagihan ${studentName}`}
                     onClick={() => openSnapshotHistory(cancellation)}
-                    className="mt-2 w-full rounded-lg border border-amber-200 py-2 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 disabled:cursor-wait disabled:opacity-50"
+                    className="mt-2 w-full rounded-lg border border-[var(--border-warn)] py-2 text-xs font-semibold text-[var(--ink-warn)] transition-colors hover:bg-[var(--bg-warn)] disabled:cursor-wait disabled:opacity-50"
                   >
                     Riwayat pemulihan ({snapshotPointCounts?.get(cancellation.paymentId) ?? 1})
                   </button>
@@ -854,19 +854,19 @@ export default function TagihanTab({
 
       {showBillingHelp && (
         <Modal onClose={() => setShowBillingHelp(false)} ariaLabel="Cara kerja tagihan" showCloseButton={false}
-          panelClassName="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl outline-none">
-          <div className="flex items-start justify-between border-b border-gray-100 px-5 py-4">
+          panelClassName="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-[var(--surface-strong)] shadow-xl sm:rounded-2xl outline-none">
+          <div className="flex items-start justify-between border-b border-[var(--border)] px-5 py-4">
             <div>
-              <h2 className="text-lg font-bold text-gray-800">Cara Kerja Tagihan</h2>
-              <p className="mt-0.5 text-xs text-gray-600">Cara menagih murid sesuai siklusnya.</p>
+              <h2 className="text-lg font-bold text-[var(--ink-strong)]">Cara Kerja Tagihan</h2>
+              <p className="mt-0.5 text-xs text-[var(--ink-muted)]">Cara menagih murid sesuai siklusnya.</p>
             </div>
             <button onClick={() => setShowBillingHelp(false)} aria-label="Tutup"
-              className="text-xl leading-none text-gray-500 hover:text-gray-700">✕</button>
+              className="text-xl leading-none text-[var(--ink-muted)] hover:text-[var(--ink-strong)]">✕</button>
           </div>
 
-          <div className="space-y-4 overflow-y-auto px-5 py-4 text-sm text-gray-700">
+          <div className="space-y-4 overflow-y-auto px-5 py-4 text-sm text-[var(--ink-strong)]">
             <section>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-600">Tagihan per Pertemuan (Paket)</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-muted)]">Tagihan per Pertemuan (Paket)</h3>
               <ul className="mt-2 space-y-2 text-xs leading-relaxed">
                 <li>Untuk murid <strong>Paket per N pertemuan</strong> (8, 10, 12, dst).</li>
                 <li>Antrean lintas bulan — sesi <strong>tertua</strong> ditagih lebih dulu.</li>
@@ -876,7 +876,7 @@ export default function TagihanTab({
             </section>
 
             <section>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-600">Bulanan</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-muted)]">Bulanan</h3>
               <ul className="mt-2 space-y-2 text-xs leading-relaxed">
                 <li>Murid <strong>Bulanan</strong> — finalkan Laporan Perkembangan, lalu terbitkan invoice dari langkah <strong>Siap ditagih</strong>.</li>
                 <li>Daftar tagihan lintas bulan — semua invoice tampil tanpa perlu memilih bulan.</li>
@@ -884,7 +884,7 @@ export default function TagihanTab({
             </section>
 
             <section>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-600">Laporan Perkembangan</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-muted)]">Laporan Perkembangan</h3>
               <ul className="mt-2 space-y-2 text-xs leading-relaxed">
                 <li>Laporan yang sudah <strong>final</strong> tetapi belum punya invoice muncul di langkah <strong>Siap ditagih</strong>.</li>
                 <li><strong>Terbitkan Invoice</strong> membuat tagihan dari nominal dan periode belajar pada laporan tersebut.</li>
@@ -892,7 +892,7 @@ export default function TagihanTab({
             </section>
 
             <section>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-600">Manual & Filter</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-muted)]">Manual & Filter</h3>
               <ul className="mt-2 space-y-2 text-xs leading-relaxed">
                 <li><strong>Manual</strong> — buat tagihan nominal bebas tanpa mengambil atau menampilkan sesi.</li>
                 <li>Filter <strong>Status</strong> dan <strong>Asal invoice</strong> menyaring daftar serta hasil ekspor CSV/PDF.</li>
@@ -900,9 +900,9 @@ export default function TagihanTab({
             </section>
           </div>
 
-          <div className="border-t border-gray-100 px-5 py-3">
+          <div className="border-t border-[var(--border)] px-5 py-3">
             <button onClick={() => setShowBillingHelp(false)}
-              className="w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-bold text-white transition-colors hover:bg-indigo-700">
+              className="w-full rounded-xl bg-[var(--accent-solid)] py-2.5 text-sm font-bold text-[var(--on-strong)] transition-colors hover:bg-[var(--accent-solid)]">
               Mengerti
             </button>
           </div>
@@ -915,25 +915,25 @@ export default function TagihanTab({
           onClose={recovery.closeSnapshotHistory}
           ariaLabel={`Riwayat pemulihan tagihan ${historyStudentName}`}
           showCloseButton={false}
-          panelClassName="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl outline-none"
+          panelClassName="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-[var(--surface-strong)] shadow-xl sm:rounded-2xl outline-none"
         >
-          <div className="flex items-start justify-between border-b border-gray-100 px-5 py-4">
+          <div className="flex items-start justify-between border-b border-[var(--border)] px-5 py-4">
             <div>
-              <h2 className="text-lg font-bold text-gray-800">Riwayat pemulihan</h2>
-              <p className="mt-0.5 text-xs text-gray-600">
+              <h2 className="text-lg font-bold text-[var(--ink-strong)]">Riwayat pemulihan</h2>
+              <p className="mt-0.5 text-xs text-[var(--ink-muted)]">
                 Tagihan {historyStudentName} — pilih satu titik waktu untuk dipulihkan persis seperti keadaannya saat itu.
               </p>
             </div>
             <button onClick={recovery.closeSnapshotHistory} aria-label="Tutup"
-              className="text-xl leading-none text-gray-500 hover:text-gray-700">✕</button>
+              className="text-xl leading-none text-[var(--ink-muted)] hover:text-[var(--ink-strong)]">✕</button>
           </div>
 
           <div className="space-y-3 overflow-y-auto px-5 py-4">
-            <p className="text-xs leading-relaxed text-amber-800">{RECOVERY_LIMITS_HINT}</p>
+            <p className="text-xs leading-relaxed text-[var(--ink-warn)]">{RECOVERY_LIMITS_HINT}</p>
             {recovery.snapshotPoints === undefined ? (
-              <p className="text-sm text-gray-500">Memuat riwayat pemulihan…</p>
+              <p className="text-sm text-[var(--ink-muted)]">Memuat riwayat pemulihan…</p>
             ) : recovery.snapshotPoints.length === 0 ? (
-              <p className="text-sm text-gray-500">Belum ada titik pemulihan untuk tagihan ini di perangkat ini.</p>
+              <p className="text-sm text-[var(--ink-muted)]">Belum ada titik pemulihan untuk tagihan ini di perangkat ini.</p>
             ) : (
               <ol className="space-y-2">
                 {[...recovery.snapshotPoints]
@@ -950,33 +950,33 @@ export default function TagihanTab({
                       ? `salinan sudah dihapus ${snapshotMomentLabel(point.discardedAt)}`
                       : undefined;
                     return (
-                      <li key={point.snapshotId} className="rounded-xl border border-gray-100 bg-white p-3">
+                      <li key={point.snapshotId} className="rounded-xl border border-[var(--border)] bg-[var(--surface-strong)] p-3">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-gray-800">
+                            <p className="text-sm font-semibold text-[var(--ink-strong)]">
                               Dibatalkan {snapshotMomentLabel(point.cancelAt)}
                               {index === 0 && (
-                                <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">
+                                <span className="ml-2 rounded-full bg-[var(--bg-warn)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--ink-warn)]">
                                   terbaru
                                 </span>
                               )}
                             </p>
-                            <p className="mt-0.5 text-xs text-gray-500">
+                            <p className="mt-0.5 text-xs text-[var(--ink-muted)]">
                               {invoiceKindLabel(point.kind)} · {hasDetails
                                 ? `${monthLabel(point.month)} · ${point.sessionCount} sesi`
                                 : "rincian nominal sudah tidak tersimpan"}
                             </p>
                             {!unavailable && !point.restoredAt && (
-                              <p className="mt-1 text-[11px] font-semibold text-emerald-700">Masih bisa dipulihkan</p>
+                              <p className="mt-1 text-[11px] font-semibold text-[var(--ink-success)]">Masih bisa dipulihkan</p>
                             )}
                             {point.restoredAt && (
-                              <p className="mt-1 text-[11px] font-semibold text-indigo-700">
+                              <p className="mt-1 text-[11px] font-semibold text-[var(--ink-accent)]">
                                 Pernah dipulihkan {snapshotMomentLabel(point.restoredAt)} — bisa dipilih lagi untuk kembali ke titik ini
                               </p>
                             )}
                           </div>
                           {hasDetails && (
-                            <span className="shrink-0 text-sm font-bold text-gray-800">{formatRupiah(point.totalCost)}</span>
+                            <span className="shrink-0 text-sm font-bold text-[var(--ink-strong)]">{formatRupiah(point.totalCost)}</span>
                           )}
                         </div>
                         <div className="mt-2">
@@ -984,12 +984,12 @@ export default function TagihanTab({
                             type="button"
                             disabled={unavailable || pointBusy}
                             onClick={() => recovery.askRestoreSnapshot(point, historyStudentName)}
-                            className="w-full rounded-lg border border-amber-300 py-2 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400"
+                            className="w-full rounded-lg border border-[var(--border-warn)] py-2 text-xs font-semibold text-[var(--ink-warn)] transition-colors hover:bg-[var(--bg-warn)] disabled:cursor-not-allowed disabled:border-[var(--border)] disabled:text-[var(--ink-muted)]"
                           >
                             {pointBusy ? "Memulihkan..." : point.restoredAt ? "Kembalikan ke titik ini" : "Pulihkan titik ini"}
                           </button>
                           {reason && (
-                            <p className="mt-1.5 text-[11px] text-gray-500">Tidak bisa dipulihkan: {reason}.</p>
+                            <p className="mt-1.5 text-[11px] text-[var(--ink-muted)]">Tidak bisa dipulihkan: {reason}.</p>
                           )}
                         </div>
                       </li>
@@ -999,9 +999,9 @@ export default function TagihanTab({
             )}
           </div>
 
-          <div className="border-t border-gray-100 px-5 py-3">
+          <div className="border-t border-[var(--border)] px-5 py-3">
             <button onClick={recovery.closeSnapshotHistory}
-              className="w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-bold text-white transition-colors hover:bg-indigo-700">
+              className="w-full rounded-xl bg-[var(--accent-solid)] py-2.5 text-sm font-bold text-[var(--on-strong)] transition-colors hover:bg-[var(--accent-solid)]">
               Tutup
             </button>
           </div>

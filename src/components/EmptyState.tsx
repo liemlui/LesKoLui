@@ -32,13 +32,13 @@ export default function EmptyState({
     <div
       className={
         (tone === "dashed"
-          ? "bg-white rounded-2xl border border-dashed border-gray-200 py-6 "
+          ? "bg-[var(--surface-strong)] rounded-2xl border border-dashed border-[var(--border)] py-6 "
           : "py-3 ") + `text-center ${className}`
       }
     >
       {icon ? <p className="text-2xl mb-1">{icon}</p> : null}
-      <p className="text-sm text-gray-600">{message}</p>
-      {description && <p className="text-xs text-gray-500 mt-0.5">{description}</p>}
+      <p className="text-sm text-[var(--ink-muted)]">{message}</p>
+      {description && <p className="text-xs text-[var(--ink-muted)] mt-0.5">{description}</p>}
       {action && <div className="mt-2 flex justify-center">{action}</div>}
     </div>
   );

@@ -39,13 +39,13 @@ export default function UpcomingSchedule({
       {availMonths.length > 1 && (
         <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
           <button
-            className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${schedMonth === "" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200"}`}
+            className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${schedMonth === "" ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]" : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)]"}`}
             onClick={() => setSchedMonth("")}>Semua</button>
           {availMonths.map((m) => {
             const label = new Date(m + "-01T00:00:00").toLocaleDateString("id-ID", { month: "short", year: "2-digit" });
             return (
               <button key={m}
-                className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${schedMonth === m ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200"}`}
+                className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${schedMonth === m ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]" : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)]"}`}
                 onClick={() => { setSchedMonth(m); setUpcomingPage(1); }}>
                 {label}
               </button>
@@ -66,7 +66,7 @@ export default function UpcomingSchedule({
                 (s.date === today || s.seriesId) ? (
                   <span className="flex flex-col items-start gap-1">
                     {s.date === today && (
-                      <span className="rounded-full bg-[var(--surface-soft)] px-1.5 py-0.5 text-caption font-semibold text-[var(--brand)]">
+                      <span className="rounded-full bg-[var(--surface-soft)] px-1.5 py-0.5 text-caption font-semibold text-[var(--ink-brand)]">
                         Hari ini
                       </span>
                     )}

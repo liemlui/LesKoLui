@@ -1,11 +1,11 @@
 type Tone = "blue" | "green" | "amber" | "red" | "slate";
 
 const TONE: Record<Tone, { stroke: string; track: string; text: string }> = {
-  blue:  { stroke: "#2563eb", track: "#dbeafe", text: "text-blue-700" },
-  green: { stroke: "#16a34a", track: "#dcfce7", text: "text-green-700" },
-  amber: { stroke: "#d97706", track: "#fef3c7", text: "text-amber-700" },
-  red:   { stroke: "#dc2626", track: "#fee2e2", text: "text-red-700" },
-  slate: { stroke: "#475569", track: "#e2e8f0", text: "text-slate-700" },
+  blue:  { stroke: "#2563eb", track: "#dbeafe", text: "text-[var(--ink-brand)]" },
+  green: { stroke: "#16a34a", track: "#dcfce7", text: "text-[var(--ink-success)]" },
+  amber: { stroke: "#d97706", track: "#fef3c7", text: "text-[var(--ink-warn)]" },
+  red:   { stroke: "#dc2626", track: "#fee2e2", text: "text-[var(--ink-danger)]" },
+  slate: { stroke: "#475569", track: "#e2e8f0", text: "text-[var(--ink-strong)]" },
 };
 
 interface Props {
@@ -66,9 +66,9 @@ export default function ActivityRing({ value, total, label, detail, tone = "blue
         </span>
       </div>
       <div className="min-w-0">
-        <p className="text-xs font-semibold text-gray-700 whitespace-nowrap">{label}</p>
+        <p className="text-xs font-semibold text-[var(--ink-strong)] whitespace-nowrap">{label}</p>
         <p className={`font-bold ${palette.text} ${size === "sm" ? "text-sm" : "text-base"}`}>{safeValue}/{safeTotal}</p>
-        {detail && <p className="text-xs text-gray-500 leading-snug">{detail}</p>}
+        {detail && <p className="text-xs text-[var(--ink-muted)] leading-snug">{detail}</p>}
       </div>
     </div>
   );

@@ -61,30 +61,30 @@ export default function ClockTimePicker({ value, onChange }: Props) {
   return (
     <>
       <button type="button" onClick={() => { setOpen(true); setMode("hour"); }}
-        className="input text-left flex items-center gap-2 font-mono text-sm font-semibold text-gray-800">
+        className="input text-left flex items-center gap-2 font-mono text-sm font-semibold text-[var(--ink-strong)]">
         🕐 {display}
       </button>
 
       {open && (
-        <Modal onClose={() => setOpen(false)} ariaLabel="Pilih waktu" panelClassName="bg-white rounded-t-2xl sm:rounded-2xl p-5 w-full max-w-xs outline-none max-h-[90vh] overflow-y-auto">
+        <Modal onClose={() => setOpen(false)} ariaLabel="Pilih waktu" panelClassName="bg-[var(--surface-strong)] rounded-t-2xl sm:rounded-2xl p-5 w-full max-w-xs outline-none max-h-[90vh] overflow-y-auto">
             {/* Digital header */}
             <div className="flex items-center justify-center gap-2 mb-4">
               <button onClick={() => setMode("hour")}
-                className={`text-4xl font-bold font-mono rounded-lg px-2 py-1 transition-colors ${mode === "hour" ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-100"}`}>
+                className={`text-4xl font-bold font-mono rounded-lg px-2 py-1 transition-colors ${mode === "hour" ? "bg-[var(--brand-solid)] text-[var(--on-strong)]" : "text-[var(--ink-muted)] hover:bg-[var(--bg-subtle)]"}`}>
                 {String(h12).padStart(2, "0")}
               </button>
-              <span className="text-3xl font-bold text-gray-500">:</span>
+              <span className="text-3xl font-bold text-[var(--ink-muted)]">:</span>
               <button onClick={() => setMode("minute")}
-                className={`text-4xl font-bold font-mono rounded-lg px-2 py-1 transition-colors ${mode === "minute" ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-100"}`}>
+                className={`text-4xl font-bold font-mono rounded-lg px-2 py-1 transition-colors ${mode === "minute" ? "bg-[var(--brand-solid)] text-[var(--on-strong)]" : "text-[var(--ink-muted)] hover:bg-[var(--bg-subtle)]"}`}>
                 {String(min).padStart(2, "0")}
               </button>
               <div className="flex flex-col gap-1 ml-2">
                 <button onClick={() => setAMPM(true)}
-                  className={`text-sm font-semibold px-2 py-1 rounded-lg transition-colors ${isAM ? "bg-blue-600 text-white" : "text-gray-500 bg-gray-100 hover:bg-gray-200"}`}>
+                  className={`text-sm font-semibold px-2 py-1 rounded-lg transition-colors ${isAM ? "bg-[var(--brand-solid)] text-[var(--on-strong)]" : "text-[var(--ink-muted)] bg-[var(--bg-subtle)] hover:bg-[var(--bg-subtle)]"}`}>
                   AM
                 </button>
                 <button onClick={() => setAMPM(false)}
-                  className={`text-sm font-semibold px-2 py-1 rounded-lg transition-colors ${!isAM ? "bg-blue-600 text-white" : "text-gray-500 bg-gray-100 hover:bg-gray-200"}`}>
+                  className={`text-sm font-semibold px-2 py-1 rounded-lg transition-colors ${!isAM ? "bg-[var(--brand-solid)] text-[var(--on-strong)]" : "text-[var(--ink-muted)] bg-[var(--bg-subtle)] hover:bg-[var(--bg-subtle)]"}`}>
                   PM
                 </button>
               </div>
@@ -124,7 +124,7 @@ export default function ClockTimePicker({ value, onChange }: Props) {
                     return (
                       <g key={n} style={{ cursor: "pointer" }} onClick={() => setHourVal(n)}>
                         <circle cx={x} cy={y} r={17} fill={isActive ? "#2563eb" : "transparent"}
-                          className="hover:fill-blue-100 transition-colors" />
+                          className="hover:fill-[var(--brand-tint-strong)] transition-colors" />
                         <text x={x} y={y} textAnchor="middle" dominantBaseline="central"
                           fontSize={13} fontWeight={isActive ? "bold" : "500"}
                           fill={isActive ? "white" : "#475569"}>
@@ -144,8 +144,8 @@ export default function ClockTimePicker({ value, onChange }: Props) {
                     <button key={m} type="button" onClick={() => setMinuteVal(m)}
                       className={`py-8 rounded-2xl text-3xl font-bold font-mono transition-colors ${
                         isActive
-                          ? "bg-blue-600 text-white shadow-md"
-                          : "bg-gray-100 text-gray-700 hover:bg-blue-50"
+                          ? "bg-[var(--brand-solid)] text-[var(--on-strong)] shadow-md"
+                          : "bg-[var(--bg-subtle)] text-[var(--ink-strong)] hover:bg-[var(--brand-tint)]"
                       }`}>
                       :{String(m).padStart(2, "0")}
                     </button>
@@ -154,12 +154,12 @@ export default function ClockTimePicker({ value, onChange }: Props) {
               </div>
             )}
 
-            <p className="text-center text-xs text-gray-500 mt-2 mb-4">
+            <p className="text-center text-xs text-[var(--ink-muted)] mt-2 mb-4">
               {mode === "hour" ? "Tap angka jam" : "Pilih menit (kelipatan 15)"}
             </p>
 
             <button onClick={() => setOpen(false)}
-              className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-colors">
+              className="w-full py-3 rounded-xl bg-[var(--brand-solid)] text-[var(--on-strong)] font-bold text-sm hover:bg-[var(--brand-solid)] transition-colors">
               Selesai
             </button>
         </Modal>

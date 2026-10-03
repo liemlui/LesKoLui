@@ -58,33 +58,33 @@ export default function ResolveMissedSessionModal({ session, studentName, onClos
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="font-bold text-lg">Kelola Sesi Terlewat</h3>
-          <p className="text-sm text-gray-500 mt-0.5">{studentName} · {dayLabel(session.date)}</p>
+          <p className="text-sm text-[var(--ink-muted)] mt-0.5">{studentName} · {dayLabel(session.date)}</p>
         </div>
-        <button aria-label="Tutup" onClick={onClose} className="text-gray-500 hover:text-gray-600 text-xl w-10 h-10 flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        <button aria-label="Tutup" onClick={onClose} className="text-[var(--ink-muted)] hover:text-[var(--ink-muted)] text-xl w-10 h-10 flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
       </div>
 
-      <p className="text-xs text-gray-500 -mt-2">Pilih hasil sesi ini. Riwayat jadwal asal tetap tersimpan.</p>
+      <p className="text-xs text-[var(--ink-muted)] -mt-2">Pilih hasil sesi ini. Riwayat jadwal asal tetap tersimpan.</p>
 
       <div className="grid gap-2">
         <button type="button" onClick={() => setResolution("reschedule")}
-          className={optionClass("reschedule", "bg-blue-50 border-blue-500 text-blue-800", "bg-white border-gray-200 text-gray-700")}>
+          className={optionClass("reschedule", "bg-[var(--brand-tint)] border-[var(--border-brand)] text-[var(--ink-brand)]", "bg-[var(--surface-strong)] border-[var(--border)] text-[var(--ink-strong)]")}>
           <span className="block text-sm font-semibold">📅 Jadwalkan ulang</span>
           <span className="block text-xs mt-0.5 opacity-70">Buat jadwal pengganti; sesi asal tidak ditagihkan.</span>
         </button>
         <button type="button" onClick={() => setResolution("no-show")}
-          className={optionClass("no-show", "bg-orange-50 border-orange-500 text-orange-800", "bg-white border-gray-200 text-gray-700")}>
+          className={optionClass("no-show", "bg-[var(--bg-attention)] border-[var(--border-attention)] text-[var(--ink-attention)]", "bg-[var(--surface-strong)] border-[var(--border)] text-[var(--ink-strong)]")}>
           <span className="block text-sm font-semibold">🚫 Murid tidak hadir</span>
           <span className="block text-xs mt-0.5 opacity-70">Catat no-show dan tentukan kebijakan tagihannya.</span>
         </button>
         <button type="button" onClick={() => setResolution("cancel")}
-          className={optionClass("cancel", "bg-red-50 border-red-500 text-red-700", "bg-white border-gray-200 text-gray-700")}>
+          className={optionClass("cancel", "bg-[var(--bg-danger)] border-[var(--ink-danger)] text-[var(--ink-danger)]", "bg-[var(--surface-strong)] border-[var(--border)] text-[var(--ink-strong)]")}>
           <span className="block text-sm font-semibold">Batalkan sesi</span>
           <span className="block text-xs mt-0.5 opacity-70">Tidak dijadwalkan ulang dan tidak ditagihkan.</span>
         </button>
       </div>
 
       {resolution === "reschedule" && (
-        <div className="space-y-4 rounded-xl bg-blue-50/60 border border-blue-100 p-3">
+        <div className="space-y-4 rounded-xl bg-[var(--brand-tint)]/60 border border-[var(--brand-tint-strong)] p-3">
           <div>
             <label htmlFor="rms-tanggal" className="label">Tanggal pengganti</label>
             <input id="rms-tanggal" className="input" type="date" min={todayWIB()} value={date} onChange={(e) => setDate(e.target.value)} />
@@ -98,7 +98,7 @@ export default function ResolveMissedSessionModal({ session, studentName, onClos
             <div className="flex flex-wrap gap-2">
               {DURATIONS.map((d) => (
                 <button key={d} type="button" onClick={() => setDuration(d)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${duration === d ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300"}`}>
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${duration === d ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]" : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)]"}`}>
                   {d}j
                 </button>
               ))}
@@ -108,31 +108,31 @@ export default function ResolveMissedSessionModal({ session, studentName, onClos
       )}
 
       {resolution === "no-show" && (
-        <div className="rounded-xl bg-orange-50 border border-orange-200 p-3">
-          <p className="text-sm font-semibold text-orange-800">Kebijakan tagihan</p>
+        <div className="rounded-xl bg-[var(--bg-attention)] border border-[var(--border-attention)] p-3">
+          <p className="text-sm font-semibold text-[var(--ink-attention)]">Kebijakan tagihan</p>
           <div className="grid grid-cols-2 gap-2 mt-2">
             <button type="button" onClick={() => setBillable(false)}
-              className={`rounded-lg border px-2 py-2 text-xs font-semibold ${!billable ? "bg-white border-orange-500 text-orange-700" : "border-orange-100 text-orange-500"}`}>
+              className={`rounded-lg border px-2 py-2 text-xs font-semibold ${!billable ? "bg-[var(--surface-strong)] border-[var(--border-attention)] text-[var(--ink-attention)]" : "border-[var(--border-attention)] text-[var(--ink-attention)]"}`}>
               Gratis / tidak tagih
             </button>
             <button type="button" onClick={() => setBillable(true)}
-              className={`rounded-lg border px-2 py-2 text-xs font-semibold ${billable ? "bg-orange-600 border-orange-600 text-white" : "border-orange-100 text-orange-600"}`}>
+              className={`rounded-lg border px-2 py-2 text-xs font-semibold ${billable ? "bg-[var(--bg-attention-strong)] border-[var(--border-attention)] text-[var(--on-strong)]" : "border-[var(--border-attention)] text-[var(--ink-attention)]"}`}>
               Tetap tagihkan
             </button>
           </div>
-          <p className="text-xs text-orange-700 mt-2">
+          <p className="text-xs text-[var(--ink-attention)] mt-2">
             {billable ? "Biaya sesi ini akan masuk ke tagihan bulan berjalan." : "Biaya sesi ini tidak akan masuk ke tagihan."}
           </p>
         </div>
       )}
 
       <div>
-        <label htmlFor="rms-alasan" className="label">Alasan <span className="text-gray-500 font-normal">(opsional)</span></label>
+        <label htmlFor="rms-alasan" className="label">Alasan <span className="text-[var(--ink-muted)] font-normal">(opsional)</span></label>
         <textarea id="rms-alasan" className="input min-h-20 resize-y" value={reason} onChange={(e) => setReason(e.target.value)}
           placeholder={resolution === "no-show" ? "Contoh: murid sakit / tidak ada kabar" : resolution === "reschedule" ? "Contoh: permintaan orang tua" : "Contoh: libur sekolah"} />
       </div>
 
-      <button onClick={handleSave} disabled={saving} className={`w-full py-3 rounded-xl text-white font-semibold disabled:opacity-50 ${resolution === "cancel" ? "bg-red-600" : resolution === "no-show" ? "bg-orange-600" : "bg-blue-600"}`}>
+      <button onClick={handleSave} disabled={saving} className={`w-full py-3 rounded-xl text-[var(--on-strong)] font-semibold disabled:opacity-50 ${resolution === "cancel" ? "bg-[var(--bg-danger-strong)]" : resolution === "no-show" ? "bg-[var(--bg-attention-strong)]" : "bg-[var(--brand-solid)]"}`}>
         {saving ? "Menyimpan..." : resolution === "reschedule" ? "Simpan Jadwal Pengganti" : resolution === "no-show" ? "Simpan Status Tidak Hadir" : "Batalkan Sesi"}
       </button>
     </Modal>

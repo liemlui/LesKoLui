@@ -64,15 +64,15 @@ export function NextMonthPlanEditor({ initialPlan, onSave, onCancel }: {
 
   return (
     <div className="space-y-3 pt-3">
-      <div className="rounded-xl bg-indigo-50 px-3 py-2 text-xs text-indigo-700">
+      <div className="rounded-xl bg-[var(--accent-tint)] px-3 py-2 text-xs text-[var(--ink-accent)]">
         Pilih maksimal tiga prioritas. Buat target yang dapat dilihat hasilnya, bukan hanya “lebih memahami materi”.
       </div>
       {draft.priorities.map((item, index) => (
-        <div key={item.id} className="rounded-xl border border-gray-200 p-3 space-y-2.5">
+        <div key={item.id} className="rounded-xl border border-[var(--border)] p-3 space-y-2.5">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-gray-700">Prioritas {index + 1}</p>
+            <p className="text-sm font-semibold text-[var(--ink-strong)]">Prioritas {index + 1}</p>
             {draft.priorities.length > 1 && (
-              <button type="button" className="text-xs font-semibold text-red-500" onClick={() => removeItem(item.id)}>Hapus</button>
+              <button type="button" className="text-xs font-semibold text-[var(--ink-danger)]" onClick={() => removeItem(item.id)}>Hapus</button>
             )}
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -132,7 +132,7 @@ export function NextMonthPlanEditor({ initialPlan, onSave, onCancel }: {
         </div>
       ))}
       {draft.priorities.length < 3 && (
-        <button type="button" className="w-full rounded-xl border border-dashed border-indigo-300 py-2 text-sm font-semibold text-indigo-600 hover:bg-indigo-50"
+        <button type="button" className="w-full rounded-xl border border-dashed border-[var(--border-accent)] py-2 text-sm font-semibold text-[var(--ink-accent)] hover:bg-[var(--accent-tint)]"
           onClick={() => setDraft((plan) => ({ ...plan, priorities: [...plan.priorities, newPlanItem()] }))}>
           ＋ Tambah Prioritas
         </button>
@@ -143,7 +143,7 @@ export function NextMonthPlanEditor({ initialPlan, onSave, onCancel }: {
           placeholder="Contoh: Sediakan 10 menit latihan mandiri dua kali seminggu."
           onChange={(event) => setDraft((plan) => ({ ...plan, parentSupport: event.target.value }))} />
       </div>
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-[var(--ink-danger)]">{error}</p>}
       <div className="flex gap-2">
         <button className="btn btn-secondary flex-1 text-sm" onClick={onCancel} disabled={saving}>Batal</button>
         <button className="btn btn-primary flex-1 text-sm" onClick={save} disabled={saving}>

@@ -51,14 +51,14 @@ export default function EditSessionModal({ target, students, onClose, onResult }
 
   return (
     <Modal onClose={onClose} ariaLabel="Edit jadwal" showCloseButton={false}
-      panelClassName="bg-white w-full max-w-md rounded-t-2xl pb-8 max-h-[92vh] overflow-y-auto overflow-x-hidden outline-none">
+      panelClassName="bg-[var(--surface-strong)] w-full max-w-md rounded-t-2xl pb-8 max-h-[92vh] overflow-y-auto overflow-x-hidden outline-none">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
         <div>
           <h3 className="font-bold text-lg">Edit Jadwal</h3>
-          <p className="text-xs text-gray-500">{dayLabel(target.date)}{target.seriesId ? " · Sesi berulang 🔁" : ""}</p>
+          <p className="text-xs text-[var(--ink-muted)]">{dayLabel(target.date)}{target.seriesId ? " · Sesi berulang 🔁" : ""}</p>
         </div>
-        <button aria-label="Tutup" onClick={onClose} className="text-gray-500 hover:text-gray-600 text-xl w-10 h-10 flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        <button aria-label="Tutup" onClick={onClose} className="text-[var(--ink-muted)] hover:text-[var(--ink-muted)] text-xl w-10 h-10 flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
       </div>
 
       <div className="p-5 space-y-4">
@@ -75,7 +75,7 @@ export default function EditSessionModal({ target, students, onClose, onResult }
           <label htmlFor="esm-tanggal" className="label">
             Tanggal
             {target.seriesId && mode !== "this" && (
-              <span className="ml-2 text-xs text-gray-500 font-normal">(tanggal hanya bisa diubah untuk sesi ini saja)</span>
+              <span className="ml-2 text-xs text-[var(--ink-muted)] font-normal">(tanggal hanya bisa diubah untuk sesi ini saja)</span>
             )}
           </label>
           <input id="esm-tanggal" className="input" type="date" value={date}
@@ -96,7 +96,7 @@ export default function EditSessionModal({ target, students, onClose, onResult }
             {DURATIONS.map((d) => (
               <button key={d} type="button"
                 onClick={() => setDuration(d)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${duration === d ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300"}`}>
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${duration === d ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]" : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)]"}`}>
                 {d}j
               </button>
             ))}
@@ -110,7 +110,7 @@ export default function EditSessionModal({ target, students, onClose, onResult }
             <div className="grid grid-cols-3 gap-2">
               {(["this", "future", "all"] as EditMode[]).map((m) => (
                 <button key={m} onClick={() => { setMode(m); if (m !== "this") setDate(target.date); }}
-                  className={`py-2 rounded-xl text-xs font-semibold border transition-colors ${mode === m ? "bg-blue-600 text-white border-blue-600" : "bg-gray-50 text-gray-600 border-gray-200"}`}>
+                  className={`py-2 rounded-xl text-xs font-semibold border transition-colors ${mode === m ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]" : "bg-[var(--surface)] text-[var(--ink-muted)] border-[var(--border)]"}`}>
                   {m === "this" ? "Sesi ini" : m === "future" ? "Ini & berikutnya" : "Semua seri"}
                 </button>
               ))}
@@ -120,44 +120,44 @@ export default function EditSessionModal({ target, students, onClose, onResult }
 
         {/* Save */}
         <button onClick={handleSave} disabled={saving}
-          className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors">
+          className="w-full py-3 rounded-xl bg-[var(--brand-solid)] text-[var(--on-strong)] font-semibold hover:bg-[var(--brand-solid)] disabled:opacity-50 transition-colors">
           {saving ? "Menyimpan..." : "Simpan Perubahan"}
         </button>
 
         {/* Cancel section */}
-        <div className="border-t border-gray-100 pt-3">
+        <div className="border-t border-[var(--border)] pt-3">
           {!showCancel ? (
             <button onClick={() => setShowCancel(true)}
-              className="w-full py-2.5 rounded-xl text-sm font-medium text-red-500 bg-red-50 hover:bg-red-100 transition-colors">
+              className="w-full py-2.5 rounded-xl text-sm font-medium text-[var(--ink-danger)] bg-[var(--bg-danger)] hover:bg-[var(--bg-danger)] transition-colors">
               Batalkan Jadwal Ini
             </button>
           ) : (
             <div className="space-y-2">
-              <label htmlFor="esm-alasan" className="text-sm font-semibold text-red-600 mb-2 block">Batalkan jadwal — pilih scope:</label>
+              <label htmlFor="esm-alasan" className="text-sm font-semibold text-[var(--ink-danger)] mb-2 block">Batalkan jadwal — pilih scope:</label>
               <textarea id="esm-alasan" className="input min-h-20 resize-y text-sm" value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)} placeholder="Alasan pembatalan (opsional)" />
               {target.seriesId ? (
                 <>
                   <button onClick={() => handleCancel("this")}
-                    className="w-full text-left px-4 py-3 rounded-xl bg-gray-50 hover:bg-gray-100 text-sm font-medium border border-gray-200">
+                    className="w-full text-left px-4 py-3 rounded-xl bg-[var(--surface)] hover:bg-[var(--bg-subtle)] text-sm font-medium border border-[var(--border)]">
                     Sesi ini saja ({dayLabel(target.date).split(",")[1]?.trim()})
                   </button>
                   <button onClick={() => handleCancel("future")}
-                    className="w-full text-left px-4 py-3 rounded-xl bg-orange-50 text-sm font-medium text-orange-700 border border-orange-200 hover:bg-orange-100">
+                    className="w-full text-left px-4 py-3 rounded-xl bg-[var(--bg-attention)] text-sm font-medium text-[var(--ink-attention)] border border-[var(--border-attention)] hover:bg-[var(--bg-attention)]">
                     Hari ini dan semua sesi berikutnya
                   </button>
                   <button onClick={() => handleCancel("all")}
-                    className="w-full text-left px-4 py-3 rounded-xl bg-red-50 text-sm font-medium text-red-600 border border-red-200 hover:bg-red-100">
+                    className="w-full text-left px-4 py-3 rounded-xl bg-[var(--bg-danger)] text-sm font-medium text-[var(--ink-danger)] border border-[var(--border-danger)] hover:bg-[var(--bg-danger)]">
                     Semua sesi dalam seri ini
                   </button>
                 </>
               ) : (
                 <button onClick={() => handleCancel("this")}
-                  className="w-full px-4 py-3 rounded-xl bg-red-50 text-red-600 font-medium text-sm border border-red-200">
+                  className="w-full px-4 py-3 rounded-xl bg-[var(--bg-danger)] text-[var(--ink-danger)] font-medium text-sm border border-[var(--border-danger)]">
                   Ya, batalkan sesi ini
                 </button>
               )}
-              <button onClick={() => setShowCancel(false)} className="w-full text-center text-gray-500 text-sm py-1">
+              <button onClick={() => setShowCancel(false)} className="w-full text-center text-[var(--ink-muted)] text-sm py-1">
                 Jangan batalkan
               </button>
             </div>

@@ -211,7 +211,7 @@ function Layout() {
       {/* Offline banner */}
       {offline && (
         <div data-top-banner className={`fixed top-0 inset-x-0 ${Z.toast} px-4 pt-[max(env(safe-area-inset-top),0.5rem)]`}>
-          <div className="max-w-md mx-auto bg-slate-900 text-white text-xs font-semibold px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg dark:bg-slate-800">
+          <div className="max-w-md mx-auto bg-[var(--surface-inverse)] text-[var(--on-strong)] text-xs font-semibold px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg dark:bg-[var(--surface-inverse)]">
             <OfflineIcon size={16} className="shrink-0" /> Offline — data tetap aman, perubahan disimpan lokal
           </div>
         </div>
@@ -220,7 +220,7 @@ function Layout() {
       {/* Peringatan penyimpanan penuh — risiko kehilangan data (persistent, bisa ditutup) */}
       {storageWarn && (
         <div data-top-banner className={`fixed top-0 inset-x-0 ${Z.bannerTop} px-4 pt-[max(env(safe-area-inset-top),0.5rem)]`}>
-          <div className="max-w-md mx-auto bg-red-600 text-white text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-lg">
+          <div className="max-w-md mx-auto bg-[var(--bg-danger-strong)] text-[var(--on-strong)] text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-lg">
             <WarningIcon size={16} className="shrink-0" />
             <span className="flex-1">Penyimpanan hampir penuh — ekspor backup lalu hapus data/foto lama agar data baru tak gagal tersimpan.</span>
             <button onClick={() => setStorageWarn(false)} className="font-bold px-1" aria-label="Tutup peringatan"><CloseIcon size={16} /></button>
@@ -231,14 +231,14 @@ function Layout() {
       {/* Peringatan backup menua — risiko kehilangan data bila HP hilang/rusak */}
       {staleBackup && !storageWarn && (
         <div data-top-banner className={`fixed top-0 inset-x-0 ${Z.banner} px-4 pt-[max(env(safe-area-inset-top),0.5rem)]`}>
-          <div className="max-w-md mx-auto bg-red-600 text-white text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-lg">
+          <div className="max-w-md mx-auto bg-[var(--bg-danger-strong)] text-[var(--on-strong)] text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-lg">
             <ShieldIcon size={16} className="shrink-0" />
             <span className="flex-1">
               {staleBackup.days === null
                 ? "Datamu belum pernah di-backup. Lindungi dari kehilangan HP/kerusakan."
                 : `Backup terakhir ${staleBackup.days} hari lalu. Segera backup agar datamu aman.`}
             </span>
-            <button onClick={() => { setStaleBackup(null); navigate("/settings"); }} className="bg-white/20 px-2 py-1 rounded-lg font-bold">Backup</button>
+            <button onClick={() => { setStaleBackup(null); navigate("/settings"); }} className="bg-[var(--surface-strong)]/20 px-2 py-1 rounded-lg font-bold">Backup</button>
             <button onClick={() => setStaleBackup(null)} className="font-bold px-1" aria-label="Tutup peringatan"><CloseIcon size={16} /></button>
           </div>
         </div>
@@ -247,7 +247,7 @@ function Layout() {
       {/* Flash hasil aksi (mis. backup Drive) */}
       {flash && (
         <div className={`fixed inset-x-0 ${Z.flash} px-4`} style={{ bottom: "calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 0.75rem + var(--task-bar-h, 0px))" }}>
-          <div className="max-w-md mx-auto bg-gray-800 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-lg text-center" role="status" aria-live="polite">{flash}</div>
+          <div className="max-w-md mx-auto bg-[var(--surface-inverse)] text-[var(--on-strong)] text-xs font-semibold px-4 py-2.5 rounded-xl shadow-lg text-center" role="status" aria-live="polite">{flash}</div>
         </div>
       )}
 
@@ -260,12 +260,12 @@ function Layout() {
           Changelog z-90) — nag tidak boleh menghalangi tombol modal. */}
       {backupPrompt && !staleBackup && !storageWarn && !onTaskScreen && !dialogOpen && (
         <div data-nag className={`fixed inset-x-0 ${Z.nag} px-4`} style={{ bottom: "calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 0.75rem + var(--task-bar-h, 0px))" }}>
-          <div className="max-w-md mx-auto bg-amber-50 border border-amber-300 rounded-2xl pl-4 pr-2 py-3 shadow-xl flex items-center justify-between gap-2">
+          <div className="max-w-md mx-auto bg-[var(--bg-warn)] border border-[var(--border-warn)] rounded-2xl pl-4 pr-2 py-3 shadow-xl flex items-center justify-between gap-2">
             <div className="flex items-start gap-2">
-              <BackupIcon size={18} className="mt-0.5 shrink-0 text-amber-700" />
+              <BackupIcon size={18} className="mt-0.5 shrink-0 text-[var(--ink-warn)]" />
               <div>
-                <p className="text-sm font-semibold text-amber-800">Saatnya backup mingguan</p>
-                <p className="text-xs text-amber-700 mt-0.5">
+                <p className="text-sm font-semibold text-[var(--ink-warn)]">Saatnya backup mingguan</p>
+                <p className="text-xs text-[var(--ink-warn)] mt-0.5">
                   {driveAutoOn() ? "Backup terenkripsi langsung ke Google Drive" : "Lindungi datamu dengan file backup terenkripsi"}
                 </p>
               </div>
@@ -277,19 +277,19 @@ function Layout() {
                   localStorage.setItem(AUTO_BACKUP_KEY, String(remindTomorrow));
                   setBackupPrompt(false);
                 }}
-                className="text-xs text-amber-700 px-2 py-1.5">Besok</button>
+                className="text-xs text-[var(--ink-warn)] px-2 py-1.5">Besok</button>
               {driveAutoOn() ? (
                 <button
                   disabled={driveBusy}
                   onClick={doReminderDriveBackup}
-                  className="bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl disabled:opacity-60 inline-flex items-center gap-1.5">
+                  className="bg-[var(--bg-success-strong)] text-[var(--on-strong)] text-xs font-bold px-3 py-1.5 rounded-xl disabled:opacity-60 inline-flex items-center gap-1.5">
                   <CloudIcon size={14} />
                   {driveBusy ? "..." : "Backup ke Drive"}
                 </button>
               ) : (
                 <button
                   onClick={() => { localStorage.setItem(AUTO_BACKUP_KEY, String(Date.now())); setBackupPrompt(false); navigate("/settings"); }}
-                  className="bg-amber-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl">Backup</button>
+                  className="bg-[var(--bg-warn-strong)] text-[var(--on-strong)] text-xs font-bold px-3 py-1.5 rounded-xl">Backup</button>
               )}
               {/* Tutup = tolak nag satu siklus mingguan (localStorage, tahan reload). */}
               <button
@@ -298,7 +298,7 @@ function Layout() {
                   setBackupPrompt(false);
                 }}
                 aria-label="Tutup pengingat backup"
-                className="h-11 w-11 shrink-0 inline-flex items-center justify-center rounded-xl text-amber-800 hover:bg-amber-100 transition-colors">
+                className="h-11 w-11 shrink-0 inline-flex items-center justify-center rounded-xl text-[var(--ink-warn)] hover:bg-[var(--bg-warn)] transition-colors">
                 <CloseIcon size={16} />
               </button>
             </div>

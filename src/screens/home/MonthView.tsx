@@ -38,23 +38,23 @@ export default function MonthView({
   }, [monthByDay]);
 
   return (
-    <div className="mx-4 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
-        <button aria-label="Bulan sebelumnya" onClick={() => setCalMonth(prevMonth(calMonth))} className="text-gray-600 hover:text-gray-800 text-xl w-10 h-10 flex items-center justify-center">‹</button>
+    <div className="mx-4 bg-[var(--surface-strong)] rounded-2xl shadow-sm border border-[var(--border)] overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--border)]">
+        <button aria-label="Bulan sebelumnya" onClick={() => setCalMonth(prevMonth(calMonth))} className="text-[var(--ink-muted)] hover:text-[var(--ink-strong)] text-xl w-10 h-10 flex items-center justify-center">‹</button>
         <div className="flex items-center gap-2">
-          <span className="font-semibold text-gray-800">{monthLabel(calMonth)}</span>
+          <span className="font-semibold text-[var(--ink-strong)]">{monthLabel(calMonth)}</span>
           {calMonth !== monthOf(today) && (
-            <button onClick={onJumpToday} className="text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded-lg transition-colors">Hari Ini</button>
+            <button onClick={onJumpToday} className="text-xs font-semibold text-[var(--ink-brand)] bg-[var(--brand-tint)] hover:bg-[var(--brand-tint-strong)] px-2 py-0.5 rounded-lg transition-colors">Hari Ini</button>
           )}
         </div>
-        <button aria-label="Bulan berikutnya" onClick={() => setCalMonth(nextMonth(calMonth))} className="text-gray-600 hover:text-gray-800 text-xl w-10 h-10 flex items-center justify-center">›</button>
+        <button aria-label="Bulan berikutnya" onClick={() => setCalMonth(nextMonth(calMonth))} className="text-[var(--ink-muted)] hover:text-[var(--ink-strong)] text-xl w-10 h-10 flex items-center justify-center">›</button>
       </div>
-      <div className="grid grid-cols-7 text-center border-b border-gray-100">
-        {DOW_LABELS.map((d, i) => <div key={d} className={`py-1.5 text-xs font-medium ${i === 0 ? "text-red-700" : "text-gray-600"}`}>{d}</div>)}
+      <div className="grid grid-cols-7 text-center border-b border-[var(--border)]">
+        {DOW_LABELS.map((d, i) => <div key={d} className={`py-1.5 text-xs font-medium ${i === 0 ? "text-[var(--ink-danger)]" : "text-[var(--ink-muted)]"}`}>{d}</div>)}
       </div>
       <div className="grid grid-cols-7">
         {cells.map((date, i) => {
-          if (!date) return <div key={`e-${i}`} className="min-h-[64px] border-b border-r border-gray-50 last:border-r-0" />;
+          if (!date) return <div key={`e-${i}`} className="min-h-[64px] border-b border-r border-[var(--border)] last:border-r-0" />;
           const daySess    = monthByDay.get(date) ?? [];
           const sortedSess = [...daySess].sort((a, b) => (a.time ?? "").localeCompare(b.time ?? ""));
           const isToday    = date === today;
@@ -69,15 +69,15 @@ export default function MonthView({
           return (
             <button key={date}
               onClick={() => setSelectedDay(isSelected ? null : date)}
-              className={`min-h-[64px] flex flex-col items-start p-1 border-b border-r border-gray-100 last:border-r-0 transition-colors ${
-                isSelected ? "bg-blue-50" : isPast ? "bg-gray-50 hover:bg-gray-100" : isWeekend ? "bg-gray-50/60 hover:bg-gray-100" : "hover:bg-gray-50"
+              className={`min-h-[64px] flex flex-col items-start p-1 border-b border-r border-[var(--border)] last:border-r-0 transition-colors ${
+                isSelected ? "bg-[var(--brand-tint)]" : isPast ? "bg-[var(--surface)] hover:bg-[var(--bg-subtle)]" : isWeekend ? "bg-[var(--surface)]/60 hover:bg-[var(--bg-subtle)]" : "hover:bg-[var(--surface)]"
               }`}
               style={heatBg && !isSelected ? { background: heatBg } : undefined}>
               <span className={`text-xs font-medium w-5 h-5 flex items-center justify-center rounded-full mb-0.5 self-center ${
-                isToday ? "bg-blue-600 text-white"
-                : isPast ? "text-gray-600"
-                : isSunday ? "text-red-700"
-                : "text-gray-600"
+                isToday ? "bg-[var(--brand-solid)] text-[var(--on-strong)]"
+                : isPast ? "text-[var(--ink-muted)]"
+                : isSunday ? "text-[var(--ink-danger)]"
+                : "text-[var(--ink-muted)]"
               }`}>
                 {dayNum}
               </span>
@@ -95,7 +95,7 @@ export default function MonthView({
                   );
                 })}
                 {sortedSess.length > 3 && (
-                  <div className="text-center text-gray-600 font-medium" style={{ fontSize: 10 }}>+{sortedSess.length - 3}</div>
+                  <div className="text-center text-[var(--ink-muted)] font-medium" style={{ fontSize: 10 }}>+{sortedSess.length - 3}</div>
                 )}
               </div>
             </button>

@@ -44,8 +44,8 @@ export default function PinConfirmModal({
   return (
     <Modal onClose={onCancel} ariaLabel={title}>
       <div>
-        <h3 className="font-bold text-lg text-gray-900">{title}</h3>
-        <p className="text-sm text-gray-500 mt-1">{description}</p>
+        <h3 className="font-bold text-lg text-[var(--ink-strong)]">{title}</h3>
+        <p className="text-sm text-[var(--ink-muted)] mt-1">{description}</p>
       </div>
       <input
         type="password"
@@ -58,13 +58,13 @@ export default function PinConfirmModal({
         className="input text-center tracking-widest text-xl font-mono"
         placeholder="PIN"
       />
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && <p className="text-sm text-[var(--ink-danger)]">{error}</p>}
       <div className="flex gap-2">
         <button
           type="button"
           onClick={onCancel}
           disabled={busy}
-          className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-600 font-semibold text-sm"
+          className="flex-1 py-3 rounded-xl bg-[var(--bg-subtle)] text-[var(--ink-muted)] font-semibold text-sm"
         >
           Batal
         </button>
@@ -72,7 +72,7 @@ export default function PinConfirmModal({
           type="button"
           onClick={submit}
           disabled={busy || pin.length !== 6}
-          className="flex-1 py-3 rounded-xl bg-red-600 text-white font-semibold text-sm disabled:opacity-40"
+          className="flex-1 py-3 rounded-xl bg-[var(--bg-danger-strong)] text-[var(--on-strong)] font-semibold text-sm disabled:opacity-40"
         >
           {busy ? "Memeriksa..." : confirmLabel}
         </button>

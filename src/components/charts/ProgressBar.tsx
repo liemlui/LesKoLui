@@ -1,16 +1,16 @@
 type ProgressTone = "blue" | "green" | "amber" | "red" | "slate";
 
 const TONE_BAR: Record<ProgressTone, string> = {
-  blue: "bg-blue-500", green: "bg-green-500", amber: "bg-amber-500",
-  red: "bg-red-500", slate: "bg-slate-500",
+  blue: "bg-[var(--brand-solid)]", green: "bg-[var(--bg-success-strong)]", amber: "bg-[var(--bg-warn-strong)]",
+  red: "bg-[var(--bg-danger-strong)]", slate: "bg-[var(--surface-inverse)]",
 };
 const TONE_BG: Record<ProgressTone, string> = {
-  blue: "bg-blue-100", green: "bg-green-100", amber: "bg-amber-100",
-  red: "bg-red-100", slate: "bg-slate-200",
+  blue: "bg-[var(--brand-tint-strong)]", green: "bg-[var(--bg-success)]", amber: "bg-[var(--bg-warn)]",
+  red: "bg-[var(--bg-danger)]", slate: "bg-[var(--bg-subtle)]",
 };
 const TONE_TEXT: Record<ProgressTone, string> = {
-  blue: "text-blue-700", green: "text-green-700", amber: "text-amber-700",
-  red: "text-red-700", slate: "text-slate-700",
+  blue: "text-[var(--ink-brand)]", green: "text-[var(--ink-success)]", amber: "text-[var(--ink-warn)]",
+  red: "text-[var(--ink-danger)]", slate: "text-[var(--ink-strong)]",
 };
 
 interface Props {
@@ -57,7 +57,7 @@ export default function ProgressBar({
       {(label || showPercent) && (
         <div className="flex items-center justify-between mb-1">
           {label && (
-            <span className={`font-semibold ${textSizes[size]} text-slate-700`}>{label}</span>
+            <span className={`font-semibold ${textSizes[size]} text-[var(--ink-strong)]`}>{label}</span>
           )}
           {showPercent && (
             <span className={`font-bold ${TONE_TEXT[activeTone]} ${textSizes[size]}`}>{percent}%</span>
@@ -71,7 +71,7 @@ export default function ProgressBar({
         />
       </div>
       {detail && (
-        <p className={`mt-1 text-xs text-slate-600`}>{detail}</p>
+        <p className={`mt-1 text-xs text-[var(--ink-muted)]`}>{detail}</p>
       )}
     </div>
   );

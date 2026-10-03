@@ -2,9 +2,9 @@ import type { ToastMessage } from "../hooks/useToast";
 import { Z } from "../lib/zIndex";
 
 const STYLE: Record<ToastMessage["type"], string> = {
-  success: "bg-green-600 text-white",
-  error:   "bg-red-500 text-white",
-  info:    "bg-gray-800 text-white",
+  success: "bg-[var(--bg-success-strong)] text-[var(--on-strong)]",
+  error:   "bg-[var(--bg-danger-strong)] text-[var(--on-strong)]",
+  info:    "bg-[var(--surface-inverse)] text-[var(--on-strong)]",
 };
 
 interface Props {
@@ -33,7 +33,7 @@ export default function ToastContainer({ toasts, onDismiss }: Props) {
                 t.action?.onClick();
                 onDismiss(t.id);
               }}
-              className="rounded-lg bg-white/15 px-2.5 py-1 text-xs font-bold underline-offset-2 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+              className="rounded-lg bg-[var(--surface-strong)]/15 px-2.5 py-1 text-xs font-bold underline-offset-2 hover:bg-[var(--surface-strong)]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--surface-strong)]/80"
             >
               {t.action.label}
             </button>

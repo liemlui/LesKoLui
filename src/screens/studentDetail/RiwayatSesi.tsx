@@ -67,12 +67,12 @@ export default function RiwayatSesi({
 
       {/* ── Grafik skor ── */}
       {scored.length >= 2 && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Grafik Engagement (15 sesi terakhir)</p>
+        <div className="bg-[var(--surface-strong)] rounded-2xl border border-[var(--border)] shadow-sm p-4 mb-3">
+          <p className="text-xs font-bold text-[var(--ink-muted)] uppercase tracking-wide mb-3">Grafik Engagement (15 sesi terakhir)</p>
           <div className="relative">
             {/* Garis acuan skor 5 (netral) */}
-            <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 border-t border-dashed border-gray-200 z-0" />
-            <span className="absolute -left-0.5 top-1/2 -translate-y-1/2 text-gray-500 font-medium" style={{ fontSize: 10 }}>5</span>
+            <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 border-t border-dashed border-[var(--border)] z-0" />
+            <span className="absolute -left-0.5 top-1/2 -translate-y-1/2 text-[var(--ink-muted)] font-medium" style={{ fontSize: 10 }}>5</span>
             <div className="flex items-end gap-1 h-20 relative z-[1]">
               {scored.map((s) => {
                 const score = s.engagement!.score;
@@ -85,49 +85,49 @@ export default function RiwayatSesi({
                     <div className="flex-1 w-full flex items-end min-h-0">
                       <div className="w-full rounded-t-sm" style={{ height: `${pct}%`, background: color }} />
                     </div>
-                    <span className="text-gray-500 font-semibold" style={{ fontSize: 10 }}>{score}</span>
+                    <span className="text-[var(--ink-muted)] font-semibold" style={{ fontSize: 10 }}>{score}</span>
                   </div>
                 );
               })}
             </div>
           </div>
           <div className="flex justify-between mt-1.5">
-            <span className="text-xs text-gray-500">{scored[0]?.date?.slice(5)}</span>
-            <span className="text-xs text-gray-500">{scored[scored.length - 1]?.date?.slice(5)}</span>
+            <span className="text-xs text-[var(--ink-muted)]">{scored[0]?.date?.slice(5)}</span>
+            <span className="text-xs text-[var(--ink-muted)]">{scored[scored.length - 1]?.date?.slice(5)}</span>
           </div>
         </div>
       )}
 
       {/* ── Topik pernah dibahas ── */}
       {topics.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Topik Pernah Dibahas ({topics.length})</p>
+        <div className="bg-[var(--surface-strong)] rounded-2xl border border-[var(--border)] shadow-sm p-4 mb-3">
+          <p className="text-xs font-bold text-[var(--ink-muted)] uppercase tracking-wide mb-2">Topik Pernah Dibahas ({topics.length})</p>
           <div className="flex flex-wrap gap-1.5">
             {topics.slice(0, 20).map((t) => (
-              <span key={t} className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium border border-blue-100">{t}</span>
+              <span key={t} className="text-xs bg-[var(--brand-tint)] text-[var(--ink-brand)] px-2 py-0.5 rounded-full font-medium border border-[var(--brand-tint-strong)]">{t}</span>
             ))}
-            {topics.length > 20 && <span className="text-xs text-gray-500">+{topics.length - 20} lagi</span>}
+            {topics.length > 20 && <span className="text-xs text-[var(--ink-muted)]">+{topics.length - 20} lagi</span>}
           </div>
         </div>
       )}
 
       {/* ── Daftar sesi ── */}
       {historySessions.length === 0 ? (
-        <div className="text-center py-10 bg-white rounded-2xl border border-gray-100">
+        <div className="text-center py-10 bg-[var(--surface-strong)] rounded-2xl border border-[var(--border)]">
           <p className="text-3xl mb-2">📚</p>
           {historyMonth && allSessions.length > 0 ? (
             <>
-              <p className="text-gray-500 text-sm">Tidak ada sesi di {monthLabel(historyMonth)}.</p>
+              <p className="text-[var(--ink-muted)] text-sm">Tidak ada sesi di {monthLabel(historyMonth)}.</p>
               <button onClick={() => setHistoryMonth("")}
-                className="mt-3 px-4 py-2 rounded-xl bg-gray-100 text-gray-600 text-sm font-semibold">
+                className="mt-3 px-4 py-2 rounded-xl bg-[var(--bg-subtle)] text-[var(--ink-muted)] text-sm font-semibold">
                 Tampilkan Semua Bulan
               </button>
             </>
           ) : (
             <>
-              <p className="text-gray-500 text-sm">Belum ada sesi yang dicatat.</p>
+              <p className="text-[var(--ink-muted)] text-sm">Belum ada sesi yang dicatat.</p>
               <button onClick={onCaptureFirst}
-                className="mt-3 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold">
+                className="mt-3 px-4 py-2 rounded-xl bg-[var(--brand-solid)] text-[var(--on-strong)] text-sm font-semibold">
                 Catat Sesi Pertama
               </button>
             </>
@@ -143,7 +143,7 @@ export default function RiwayatSesi({
               <div key={s.id} role="button" tabIndex={0}
                 aria-label={`Buka detail sesi ${(s.subjects ?? []).join(", ") || "Sesi umum"}`}
                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDetailSession(s); } }}
-                className="bg-white rounded-xl shadow-sm border border-gray-100 px-4 py-3 cursor-pointer active:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="bg-[var(--surface-strong)] rounded-xl shadow-sm border border-[var(--border)] px-4 py-3 cursor-pointer active:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-brand)]"
                 onClick={() => setDetailSession(s)}>
                 <div className="flex items-start gap-2">
                   {(photoUrl || sigUrl) && (
@@ -152,7 +152,7 @@ export default function RiwayatSesi({
                         <img src={photoUrl} alt="foto sesi" className="w-12 h-12 rounded-lg object-cover" />
                       )}
                       {sigUrl && (
-                        <div className="w-12 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center overflow-hidden">
+                        <div className="w-12 h-8 rounded-lg border border-[var(--border)] bg-[var(--surface-strong)] flex items-center justify-center overflow-hidden">
                           <img src={sigUrl} alt="TTD" className="max-w-full max-h-full object-contain" />
                         </div>
                       )}
@@ -160,10 +160,10 @@ export default function RiwayatSesi({
                   )}
                   <div className="min-w-0 flex-1 flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-gray-800">
+                      <p className="text-sm font-semibold text-[var(--ink-strong)]">
                         {(s.subjects ?? []).join(", ") || "Sesi umum"}
                       </p>
-                      <p className="text-xs text-gray-500 mt-0.5">
+                      <p className="text-xs text-[var(--ink-muted)] mt-0.5">
                         {dayLabel(s.date).split(",")[1]?.trim() ?? s.date.slice(5)}
                         {s.timeIn && s.timeOut
                           ? ` · ${s.timeIn}–${s.timeOut}`
@@ -171,23 +171,23 @@ export default function RiwayatSesi({
                         {` · ${s.durationHours}j`}
                         {s.mood ? ` · ${s.mood}` : ""}
                       </p>
-                      {s.shortNote && <p className="text-xs text-gray-500 mt-1 italic">"{s.shortNote}"</p>}
+                      {s.shortNote && <p className="text-xs text-[var(--ink-muted)] mt-1 italic">"{s.shortNote}"</p>}
                       {((s.behaviorTags && s.behaviorTags.length > 0) || s.responseTag) && (
                         <div className="flex flex-wrap gap-1 mt-1.5">
                           {(s.behaviorTags ?? []).map((id) => {
                             const t = getBehaviorTag(id);
                             if (!t) return null;
-                            const color = t.valence === "positive" ? "bg-green-50 text-green-700" : t.valence === "negative" ? "bg-red-50 text-red-600" : "bg-gray-100 text-gray-500";
+                            const color = t.valence === "positive" ? "bg-[var(--bg-success)] text-[var(--ink-success)]" : t.valence === "negative" ? "bg-[var(--bg-danger)] text-[var(--ink-danger)]" : "bg-[var(--bg-subtle)] text-[var(--ink-muted)]";
                             return <span key={id} className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${color}`}>{t.icon} {t.label}</span>;
                           })}
                           {s.responseTag && (() => {
                             const t = getResponseTag(s.responseTag);
-                            return t ? <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-blue-50 text-blue-700">{t.icon} {t.label}</span> : null;
+                            return t ? <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-[var(--brand-tint)] text-[var(--ink-brand)]">{t.icon} {t.label}</span> : null;
                           })()}
                         </div>
                       )}
                       {s.needsWork && (
-                        <p className="text-xs text-orange-500 mt-1">⚠ {s.needsWork}</p>
+                        <p className="text-xs text-[var(--ink-attention)] mt-1">⚠ {s.needsWork}</p>
                       )}
                     </div>
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
@@ -195,9 +195,9 @@ export default function RiwayatSesi({
                         {s.status === "DONE" && (
                           <button onClick={(e) => { e.stopPropagation(); openEditNote(s); }}
                             aria-label="Edit catatan sesi"
-                            className="text-gray-500 hover:text-blue-500 transition-colors text-xs p-1.5 -m-1.5 rounded-full hover:bg-gray-100">✏️</button>
+                            className="text-[var(--ink-muted)] hover:text-[var(--ink-brand)] transition-colors text-xs p-1.5 -m-1.5 rounded-full hover:bg-[var(--bg-subtle)]">✏️</button>
                         )}
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.status === "DONE" ? "bg-green-50 text-green-600" : s.status === "CANCELLED" ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-600"}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.status === "DONE" ? "bg-[var(--bg-success)] text-[var(--ink-success)]" : s.status === "CANCELLED" ? "bg-[var(--bg-danger)] text-[var(--ink-danger)]" : "bg-[var(--brand-tint)] text-[var(--ink-brand)]"}`}>
                           {s.status === "DONE" ? `${s.durationHours}j` : s.status}
                         </span>
                       </div>

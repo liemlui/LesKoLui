@@ -56,18 +56,18 @@ export default function Modal({ onClose, children, ariaLabel, panelClassName, sh
   }, [onClose]);
 
   return (
-    <div className={`fixed inset-0 bg-black/40 ${Z.modal} flex items-end justify-center sm:items-center sm:p-4`} onClick={onClose}>
+    <div className={`fixed inset-0 bg-[var(--scrim)]/40 ${Z.modal} flex items-end justify-center sm:items-center sm:p-4`} onClick={onClose}>
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel}
         tabIndex={-1}
-        className={panelClassName ?? "relative bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 pb-[calc(2rem+var(--safe-bottom))] space-y-4 max-h-[90vh] overflow-y-auto overflow-x-hidden overscroll-contain outline-none"}
+        className={panelClassName ?? "relative bg-[var(--surface-strong)] w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 pb-[calc(2rem+var(--safe-bottom))] space-y-4 max-h-[90vh] overflow-y-auto overflow-x-hidden overscroll-contain outline-none"}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3">
-          <div className="mx-auto h-1.5 w-12 rounded-full bg-gray-300" aria-hidden="true" />
+          <div className="mx-auto h-1.5 w-12 rounded-full bg-[var(--bg-subtle)]" aria-hidden="true" />
         </div>
         {children}
         {showCloseButton && (
@@ -75,7 +75,7 @@ export default function Modal({ onClose, children, ariaLabel, panelClassName, sh
             type="button"
             onClick={onClose}
             aria-label="Tutup panel"
-            className="absolute right-2 top-1 inline-flex h-10 w-10 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="absolute right-2 top-1 inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--ink-muted)] transition hover:bg-[var(--bg-subtle)] hover:text-[var(--ink-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-brand)]"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
               <path d="M18 6L6 18M6 6l12 12" />

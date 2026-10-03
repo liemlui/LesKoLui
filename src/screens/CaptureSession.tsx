@@ -661,9 +661,9 @@ export default function CaptureSession() {
     : draft.status === "unsaved"  ? "Draf gagal disimpan"
     : "";
   const draftTone =
-    draft.status === "saved"  ? "text-green-600"
-    : draft.status === "saving" ? "text-gray-500"
-    : "text-red-600";
+    draft.status === "saved"  ? "text-[var(--ink-success)]"
+    : draft.status === "saving" ? "text-[var(--ink-muted)]"
+    : "text-[var(--ink-danger)]";
 
   /** Ada isian nyata di layar? Dipakai untuk memutuskan apakah draf tertunda
    *  boleh memblokir form atau cukup ditawarkan dengan label eksplisit. */
@@ -692,16 +692,16 @@ export default function CaptureSession() {
       <div className="pb-24">
         <Breadcrumb />
         <div className="px-4 pt-4 pb-3">
-          <h1 className="text-2xl font-bold text-gray-800">📓 Catat Sesi</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Draf tersimpan menunggu keputusan</p>
+          <h1 className="text-2xl font-bold text-[var(--ink-strong)]">📓 Catat Sesi</h1>
+          <p className="text-xs text-[var(--ink-muted)] mt-0.5">Draf tersimpan menunggu keputusan</p>
         </div>
-        <div className="mx-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-          <p className="font-bold text-amber-900">Draf Catat Sesi tersedia</p>
-          <p className="mt-1 text-sm text-amber-800">
+        <div className="mx-4 rounded-2xl border border-[var(--border-warn)] bg-[var(--bg-warn)] p-4">
+          <p className="font-bold text-[var(--ink-warn)]">Draf Catat Sesi tersedia</p>
+          <p className="mt-1 text-sm text-[var(--ink-warn)]">
             Draf ini tersimpan di perangkat pada {draftStamp(draft.pending.updatedAt)}. Pilih salah satu
             sebelum mengisi form.
           </p>
-          <div className="mt-3 space-y-1 text-xs text-amber-800">
+          <div className="mt-3 space-y-1 text-xs text-[var(--ink-warn)]">
             <p className="font-semibold">
               Langkah {draft.pending.form.step} dari {STEPS.length}
               {pendingStudent ? ` · ${pendingStudent.name}` : ""}
@@ -713,16 +713,16 @@ export default function CaptureSession() {
           </div>
           <div className="mt-4 flex flex-col gap-2">
             <button type="button" onClick={draft.resume}
-              className="w-full py-3 rounded-xl bg-amber-600 text-white font-bold text-sm hover:bg-amber-700 transition-colors">
+              className="w-full py-3 rounded-xl bg-[var(--bg-warn-strong)] text-[var(--on-strong)] font-bold text-sm hover:bg-[var(--bg-warn-strong)] transition-colors">
               Lanjutkan draf
             </button>
             <button type="button" onClick={() => void draft.discard()}
-              className="w-full py-2.5 rounded-xl border border-amber-300 bg-white text-amber-800 font-semibold text-sm hover:bg-amber-100 transition-colors">
+              className="w-full py-2.5 rounded-xl border border-[var(--border-warn)] bg-[var(--surface-strong)] text-[var(--ink-warn)] font-semibold text-sm hover:bg-[var(--bg-warn)] transition-colors">
               Buang draf & mulai baru
             </button>
           </div>
         </div>
-        <p className="mx-4 mt-3 text-xs text-gray-500">
+        <p className="mx-4 mt-3 text-xs text-[var(--ink-muted)]">
           Form disembunyikan sampai pilihan ini dibuat agar isian baru tidak tertimpa draf lama.
         </p>
       </div>
@@ -737,8 +737,8 @@ export default function CaptureSession() {
       {/* ── PAGE HEADER ── */}
       <div className="px-4 pt-4 pb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-gray-800">📓 Catat Sesi</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Langkah {currentStep} dari {STEPS.length}</p>
+          <h1 className="text-2xl font-bold text-[var(--ink-strong)]">📓 Catat Sesi</h1>
+          <p className="text-xs text-[var(--ink-muted)] mt-0.5">Langkah {currentStep} dari {STEPS.length}</p>
         </div>
         {/* Status draf berada di baris ber-tinggi tetap: perubahan status tidak
             boleh menggeser tata letak form (audit C-17). */}
@@ -750,18 +750,18 @@ export default function CaptureSession() {
       {/* Draf tertunda padahal form sudah terisi: jangan blokir, tetapi label
           aksinya menyebut akibatnya supaya tidak ada penimpaan senyap (C-06). */}
       {draft.pending && hasFormContent && (
-        <div className="mx-4 mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+        <div className="mx-4 mb-3 rounded-xl border border-[var(--border-warn)] bg-[var(--bg-warn)] p-3 text-xs text-[var(--ink-warn)]">
           <p className="font-semibold">Draf sesi tersimpan untuk murid ini</p>
           <p className="mt-0.5">
             Isian di layar ini sudah ada — memuat draf akan menimpa isian tersebut.
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
             <button type="button" onClick={draft.resume}
-              className="rounded-lg bg-amber-600 px-3 py-2 font-semibold text-white hover:bg-amber-700 transition-colors">
+              className="rounded-lg bg-[var(--bg-warn-strong)] px-3 py-2 font-semibold text-[var(--on-strong)] hover:bg-[var(--bg-warn-strong)] transition-colors">
               Ganti dengan draf
             </button>
             <button type="button" onClick={() => void draft.discard()}
-              className="rounded-lg border border-amber-300 bg-white px-3 py-2 font-semibold text-amber-800 hover:bg-amber-100 transition-colors">
+              className="rounded-lg border border-[var(--border-warn)] bg-[var(--surface-strong)] px-3 py-2 font-semibold text-[var(--ink-warn)] hover:bg-[var(--bg-warn)] transition-colors">
               Hapus draf, pakai isian layar
             </button>
           </div>
@@ -771,11 +771,11 @@ export default function CaptureSession() {
       {/* Sesi sudah tersimpan tapi laporan belum rampung → beri jalan kembali
           tanpa menyimpan ulang (audit C-05). */}
       {coSessionData && !editingSavedSession && !showCloseOut && (
-        <div className="mx-4 mb-3 rounded-xl border border-green-200 bg-green-50 p-3 text-xs text-green-800">
+        <div className="mx-4 mb-3 rounded-xl border border-[var(--border-success)] bg-[var(--bg-success)] p-3 text-xs text-[var(--ink-success)]">
           <p className="font-semibold">✅ Sesi sudah tersimpan</p>
           <p className="mt-0.5">Tindak lanjut sesi berikutnya & pesan ke orang tua belum diselesaikan.</p>
           <button type="button" onClick={() => setShowCloseOut(true)}
-            className="mt-2 rounded-lg bg-green-600 px-3 py-2 font-semibold text-white hover:bg-green-700 transition-colors">
+            className="mt-2 rounded-lg bg-[var(--bg-success-strong)] px-3 py-2 font-semibold text-[var(--on-strong)] hover:bg-[var(--bg-success-strong)] transition-colors">
             Buka laporan sesi
           </button>
         </div>
@@ -786,8 +786,8 @@ export default function CaptureSession() {
           role="alert"
           className={`mx-4 mb-3 rounded-xl border p-3 text-xs ${
             draft.status === "conflict"
-              ? "border-red-200 bg-red-50 text-red-700"
-              : "border-amber-200 bg-amber-50 text-amber-800"}`}
+              ? "border-[var(--border-danger)] bg-[var(--bg-danger)] text-[var(--ink-danger)]"
+              : "border-[var(--border-warn)] bg-[var(--bg-warn)] text-[var(--ink-warn)]"}`}
         >
           <p className="font-semibold">
             {draft.status === "conflict" ? "Draf berubah di tab lain" : "Draf belum tersimpan"}
@@ -800,17 +800,17 @@ export default function CaptureSession() {
           <div className="mt-2 flex flex-wrap gap-2">
             {draft.status === "unsaved" ? (
               <button type="button" onClick={() => void draft.retry()}
-                className="rounded-lg bg-amber-600 px-3 py-2 font-semibold text-white hover:bg-amber-700 transition-colors">
+                className="rounded-lg bg-[var(--bg-warn-strong)] px-3 py-2 font-semibold text-[var(--on-strong)] hover:bg-[var(--bg-warn-strong)] transition-colors">
                 Coba simpan lagi
               </button>
             ) : (
               <>
                 <button type="button" onClick={() => void draft.reload()}
-                  className="rounded-lg bg-red-600 px-3 py-2 font-semibold text-white hover:bg-red-700 transition-colors">
+                  className="rounded-lg bg-[var(--bg-danger-strong)] px-3 py-2 font-semibold text-[var(--on-strong)] hover:bg-[var(--bg-danger-strong)] transition-colors">
                   Pakai versi tersimpan
                 </button>
                 <button type="button" onClick={() => void draft.overwrite()}
-                  className="rounded-lg border border-red-300 bg-white px-3 py-2 font-semibold text-red-700 hover:bg-red-50 transition-colors">
+                  className="rounded-lg border border-[var(--border-danger)] bg-[var(--surface-strong)] px-3 py-2 font-semibold text-[var(--ink-danger)] hover:bg-[var(--bg-danger)] transition-colors">
                   Pertahankan versi di layar
                 </button>
               </>
@@ -822,7 +822,7 @@ export default function CaptureSession() {
       {/* ── PROGRESS STEPPER ── */}
       <div className="px-4 mb-4">
         <div className="relative flex items-start justify-between">
-          <div className="absolute top-4 left-4 right-4 h-0.5 bg-gray-200 z-0" />
+          <div className="absolute top-4 left-4 right-4 h-0.5 bg-[var(--bg-subtle)] z-0" />
           {STEPS.map((step) => {
             const done   = currentStep > step.id;
             const active = currentStep === step.id;
@@ -842,13 +842,13 @@ export default function CaptureSession() {
                 className={`flex flex-col items-center gap-1.5 z-10 relative flex-1 ${done ? "cursor-pointer" : "cursor-default"}`}
               >
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all shadow-sm
-                  ${done   ? "bg-green-500 text-white scale-95"
-                  : active ? "bg-blue-600 text-white ring-4 ring-blue-100 scale-110"
-                  :          "bg-white text-gray-500 border-2 border-gray-200"}`}>
+                  ${done   ? "bg-[var(--bg-success-strong)] text-[var(--on-strong)] scale-95"
+                  : active ? "bg-[var(--brand-solid)] text-[var(--on-strong)] ring-4 ring-[var(--brand-tint-strong)] scale-110"
+                  :          "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-2 border-[var(--border)]"}`}>
                   {done ? "✓" : <step.Icon size={16} />}
                 </div>
                 <span className={`text-xs font-bold tracking-wide transition-colors
-                  ${active ? "text-blue-600" : done ? "text-green-600" : "text-gray-500"}`}>
+                  ${active ? "text-[var(--ink-brand)]" : done ? "text-[var(--ink-success)]" : "text-[var(--ink-muted)]"}`}>
                   {step.label}
                 </span>
               </button>
@@ -858,16 +858,16 @@ export default function CaptureSession() {
       </div>
 
       {/* ── STEP HEADER CARD ── */}
-      <div className="mx-4 mb-4 rounded-2xl border border-gray-100 bg-gradient-to-r from-gray-50 to-white px-4 py-3 flex items-center gap-3 shadow-sm">
-        <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center flex-shrink-0">
+      <div className="mx-4 mb-4 rounded-2xl border border-[var(--border)] bg-gradient-to-r from-gray-50 to-white px-4 py-3 flex items-center gap-3 shadow-sm">
+        <div className="w-10 h-10 rounded-xl bg-[var(--brand-tint-strong)] text-[var(--ink-brand)] flex items-center justify-center flex-shrink-0">
           <stepMeta.Icon size={20} />
         </div>
         <div className="flex-1 min-w-0">
-          <h2 className="font-bold text-gray-800 text-base">{stepMeta.label}</h2>
-          <p className="text-xs text-gray-500">{stepMeta.desc}</p>
+          <h2 className="font-bold text-[var(--ink-strong)] text-base">{stepMeta.label}</h2>
+          <p className="text-xs text-[var(--ink-muted)]">{stepMeta.desc}</p>
         </div>
         {stepMeta.optional && (
-          <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full font-semibold uppercase tracking-wide flex-shrink-0">
+          <span className="text-xs bg-[var(--bg-subtle)] text-[var(--ink-muted)] px-2 py-1 rounded-full font-semibold uppercase tracking-wide flex-shrink-0">
             opsional
           </span>
         )}
@@ -885,7 +885,7 @@ export default function CaptureSession() {
             tabIndex={-1}
             role={message.kind === "error" ? "alert" : "status"}
             className={`flex items-start gap-2 rounded-xl border p-3 text-sm font-medium outline-none ${
-            message.kind === "success" ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-600"}`}>
+            message.kind === "success" ? "border-[var(--border-success)] bg-[var(--bg-success)] text-[var(--ink-success)]" : "border-[var(--border-danger)] bg-[var(--bg-danger)] text-[var(--ink-danger)]"}`}>
             <span className="flex-1">{message.text}</span>
             {/* Audit C-11: kegagalan simpan harus punya jalan keluar, bukan hanya
                 pesan. Tombolnya memanggil handler yang SESUAI dengan kegagalannya
@@ -900,7 +900,7 @@ export default function CaptureSession() {
                   if (target === "save") handleSave();
                   else handleCloseOutDone();
                 }}
-                className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-lg border border-red-300 bg-white px-3 text-sm font-bold text-red-700 transition hover:bg-red-100 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-lg border border-[var(--border-danger)] bg-[var(--surface-strong)] px-3 text-sm font-bold text-[var(--ink-danger)] transition hover:bg-[var(--bg-danger)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-brand)]"
               >
                 Coba lagi
               </button>
@@ -909,7 +909,7 @@ export default function CaptureSession() {
               type="button"
               aria-label="Tutup pesan"
               onClick={() => setMessage(null)}
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-current/80 transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-current/80 transition hover:bg-[var(--scrim)]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-brand)]"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
                 <path d="M18 6L6 18M6 6l12 12" />
@@ -961,25 +961,25 @@ export default function CaptureSession() {
             <label className="label">
               📖 Mata Pelajaran
               {studentSubjects.length > 0
-                ? <span className="text-red-400 ml-1">*</span>
-                : <span className="text-gray-500 font-normal text-xs ml-1">(opsional)</span>}
+                ? <span className="text-[var(--ink-danger)] ml-1">*</span>
+                : <span className="text-[var(--ink-muted)] font-normal text-xs ml-1">(opsional)</span>}
             </label>
             <div className="flex flex-wrap gap-2 mt-1">
               {studentSubjects.map((s) => (
                 <button key={s} type="button"
                   className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                    subjects.includes(s) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300"}`}
+                    subjects.includes(s) ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]" : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)]"}`}
                   onClick={() => toggleSubject(s)}>{s}</button>
               ))}
               {subjects.filter((s) => !studentSubjects.includes(s)).map((s) => (
                 <button key={s} type="button"
-                  className="px-3 py-1.5 rounded-full text-sm font-medium border bg-purple-600 text-white border-purple-600 flex items-center gap-1"
+                  className="px-3 py-1.5 rounded-full text-sm font-medium border bg-[var(--accent-solid)] text-[var(--on-strong)] border-[var(--border-accent)] flex items-center gap-1"
                   onClick={() => setSubjects((prev) => prev.filter((x) => x !== s))}>
-                  {s} <span className="text-purple-200 text-xs"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></span>
+                  {s} <span className="text-[var(--ink-purple)] text-xs"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></span>
                 </button>
               ))}
               <button type="button"
-                className="px-3 py-1.5 rounded-full text-sm font-medium border bg-white text-gray-500 border-dashed border-gray-300 hover:border-purple-400 hover:text-purple-600 transition-colors"
+                className="px-3 py-1.5 rounded-full text-sm font-medium border bg-[var(--surface-strong)] text-[var(--ink-muted)] border-dashed border-[var(--border)] hover:border-[var(--border-accent)] hover:text-[var(--ink-purple)] transition-colors"
                 onClick={() => { setShowIBPicker(true); setIbTab("MYP"); }}>
                 + Tambah Mapel{currentStudent?.curriculum ? ` (${CURRICULUM_META[currentStudent.curriculum].shortLabel})` : ""}
               </button>
@@ -988,15 +988,15 @@ export default function CaptureSession() {
 
           {/* Topik — search + multi-select */}
           <div>
-            <label htmlFor="cs-topik" className="label">🎯 Topik <span className="text-gray-500 font-normal text-xs">(cari topik, pilih beberapa, atau ketik bebas — pisahkan dengan ;)</span></label>
+            <label htmlFor="cs-topik" className="label">🎯 Topik <span className="text-[var(--ink-muted)] font-normal text-xs">(cari topik, pilih beberapa, atau ketik bebas — pisahkan dengan ;)</span></label>
             {/* Jenjang yang sedang diprioritaskan (audit P0) — sebelumnya
                 pembatasan level tidak terlihat, sehingga tutor tidak tahu
                 mengapa daftar topiknya sedikit. */}
             {topicSearch.trim() && topicLevelHint(
               currentStudent?.curriculum, currentStudent?.grade, topicMeta?.targetLevel ?? null,
             ) && (
-              <p className="mt-1 text-xs text-gray-500">
-                Menampilkan topik jenjang <span className="font-semibold text-gray-700">{
+              <p className="mt-1 text-xs text-[var(--ink-muted)]">
+                Menampilkan topik jenjang <span className="font-semibold text-[var(--ink-strong)]">{
                   topicLevelHint(currentStudent?.curriculum, currentStudent?.grade, topicMeta?.targetLevel ?? null)
                 }</span>
                 {topicOffLevel && topicAllowOffLevel ? " — mode level lain aktif" : ""}
@@ -1020,7 +1020,7 @@ export default function CaptureSession() {
                 <button type="button" aria-label="Bersihkan pencarian topik"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => { setTopicSearch(""); setTopicResponse(null); setTopicAllowOffLevel(false); }}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 text-gray-500 hover:text-gray-700 transition-colors">
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 text-[var(--ink-muted)] hover:text-[var(--ink-strong)] transition-colors">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 </button>
               )}
@@ -1029,17 +1029,17 @@ export default function CaptureSession() {
             {topics.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {topics.map((t) => (
-                  <span key={t} className="inline-flex items-start gap-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-2.5 py-1 text-xs font-medium">
+                  <span key={t} className="inline-flex items-start gap-1 bg-[var(--brand-tint)] text-[var(--ink-brand)] border border-[var(--brand-tint-strong)] rounded-full px-2.5 py-1 text-xs font-medium">
                     <span>
                       {t}
                       {topicUnits[t] && (
-                        <span className="block text-xs font-normal text-blue-500">📚 {topicUnits[t]}</span>
+                        <span className="block text-xs font-normal text-[var(--ink-brand)]">📚 {topicUnits[t]}</span>
                       )}
                     </span>
                     <button type="button"
                       onClick={() => removeTopic(t)}
                       aria-label={`Hapus topik ${t}`}
-                      className="-m-1 p-1 rounded-full text-blue-500 hover:text-blue-700 transition-colors">
+                      className="-m-1 p-1 rounded-full text-[var(--ink-brand)] hover:text-[var(--ink-brand)] transition-colors">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
                     </button>
                   </span>
@@ -1049,7 +1049,7 @@ export default function CaptureSession() {
             {/* Topik sesi lalu (audit P1 #8) — 1 ketuk untuk kasus paling umum */}
             {recentTopicChips.length > 0 && (
               <div className="mt-2">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                <p className="text-xs font-semibold text-[var(--ink-muted)] uppercase tracking-wide mb-1">
                   ↩ Topik sesi lalu — ketuk untuk pakai lagi
                 </p>
                 <div className="flex flex-wrap gap-1.5">
@@ -1058,8 +1058,8 @@ export default function CaptureSession() {
                       onClick={() => addTopic(t)}
                       className={`rounded-full border px-2.5 py-1.5 text-xs font-medium transition-colors ${
                         topics.includes(t)
-                          ? "border-teal-500 bg-teal-500 text-white"
-                          : "border-teal-200 bg-white text-teal-700 hover:bg-teal-50"
+                          ? "border-[var(--border-success)] bg-[var(--bg-success-strong)] text-[var(--on-strong)]"
+                          : "border-[var(--border-success)] bg-[var(--surface-strong)] text-[var(--ink-success)] hover:bg-[var(--bg-success)]"
                       }`}>
                       {topics.includes(t) ? "✓ " : ""}{t}
                     </button>
@@ -1070,22 +1070,22 @@ export default function CaptureSession() {
             {/* Pilih dari daftar bab (audit P1 #7) — untuk tutor yang ingin
                 MEMBACA pilihan, bukan mengingat kata kunci. */}
             {browseSubjects.length > 0 && currentStudent?.curriculum && (
-              <div className="mt-3 rounded-xl border border-gray-200 overflow-hidden">
+              <div className="mt-3 rounded-xl border border-[var(--border)] overflow-hidden">
                 <button type="button"
                   onClick={() => { setShowBrowse((v) => !v); setOpenUnit(null); }}
                   aria-expanded={showBrowse}
-                  className="flex w-full items-center justify-between gap-2 bg-gray-50 px-3.5 py-3 text-left hover:bg-gray-100 transition-colors">
-                  <span className="text-xs font-bold text-gray-600 uppercase tracking-wide">
+                  className="flex w-full items-center justify-between gap-2 bg-[var(--surface)] px-3.5 py-3 text-left hover:bg-[var(--bg-subtle)] transition-colors">
+                  <span className="text-xs font-bold text-[var(--ink-muted)] uppercase tracking-wide">
                     📚 Pilih dari daftar bab
                   </span>
-                  <span className="text-xs font-semibold text-gray-500">
+                  <span className="text-xs font-semibold text-[var(--ink-muted)]">
                     {showBrowse ? "Sembunyikan ▲" : "Lihat ▼"}
                   </span>
                 </button>
                 {showBrowse && (
-                  <div className="divide-y divide-gray-100 bg-white">
+                  <div className="divide-y divide-[var(--border)] bg-[var(--surface-strong)]">
                     {browseGroups.length === 0 ? (
-                      <p className="px-3.5 py-3 text-xs text-gray-500">
+                      <p className="px-3.5 py-3 text-xs text-[var(--ink-muted)]">
                         Belum ada bab untuk mapel ini pada jenjang {
                           topicLevelHint(currentStudent.curriculum, currentStudent.grade, topicMeta?.targetLevel ?? null) ?? "murid ini"
                         }. Pakai pencarian atau tulis topik sendiri di bawah.
@@ -1099,20 +1099,20 @@ export default function CaptureSession() {
                             <button type="button"
                               onClick={() => setOpenUnit(open ? null : group.unit)}
                               aria-expanded={open}
-                              className="flex w-full items-center justify-between gap-2 px-3.5 py-2.5 text-left hover:bg-blue-50 transition-colors">
+                              className="flex w-full items-center justify-between gap-2 px-3.5 py-2.5 text-left hover:bg-[var(--brand-tint)] transition-colors">
                               <span className="min-w-0">
-                                <span className="block truncate text-sm font-medium text-gray-700">{group.unit}</span>
-                                <span className="block text-xs text-gray-500">
+                                <span className="block truncate text-sm font-medium text-[var(--ink-strong)]">{group.unit}</span>
+                                <span className="block text-xs text-[var(--ink-muted)]">
                                   {group.topics.length} topik · {group.topics[0]?.gradeLabel}
                                 </span>
                               </span>
                               <span className="flex shrink-0 items-center gap-1.5">
                                 {selectedCount > 0 && (
-                                  <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-xs font-bold text-blue-700">
+                                  <span className="rounded-full bg-[var(--brand-tint-strong)] px-1.5 py-0.5 text-xs font-bold text-[var(--ink-brand)]">
                                     {selectedCount}
                                   </span>
                                 )}
-                                <span className="text-gray-400" aria-hidden="true">{open ? "▲" : "▼"}</span>
+                                <span className="text-[var(--ink-muted)]" aria-hidden="true">{open ? "▲" : "▼"}</span>
                               </span>
                             </button>
                             {open && (
@@ -1122,7 +1122,7 @@ export default function CaptureSession() {
                                   return (
                                     <label key={`${t.unit}::${t.topic}`}
                                       className={`flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors ${
-                                        checked ? "bg-blue-50 text-blue-800" : "text-gray-700 hover:bg-gray-50"
+                                        checked ? "bg-[var(--brand-tint)] text-[var(--ink-brand)]" : "text-[var(--ink-strong)] hover:bg-[var(--surface)]"
                                       }`}>
                                       <input type="checkbox" checked={checked} className="mt-0.5"
                                         onChange={() => (checked ? removeTopic(t.topic) : addTopic(t.topic, t.unit))} />
@@ -1144,18 +1144,18 @@ export default function CaptureSession() {
             {topicResults.length > 0 && (
               <div className="mt-1">
                 {topicOffLevel && topicAllowOffLevel && (
-                  <p className="mb-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs text-amber-800">
+                  <p className="mb-1 rounded-lg border border-[var(--border-warn)] bg-[var(--bg-warn)] px-2.5 py-1.5 text-xs text-[var(--ink-warn)]">
                     ⚠️ Topik di bawah berasal dari <span className="font-semibold">{topicMeta?.otherLevels.join(", ")}</span> — <span className="font-semibold">bukan</span> jenjang murid ini.
                   </p>
                 )}
-                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm max-h-52 overflow-y-auto">
+                <div className="bg-[var(--surface-strong)] border border-[var(--border)] rounded-xl overflow-hidden shadow-sm max-h-52 overflow-y-auto">
                   {topicResults.map((t, i) => (
                     <button key={`${t.topic}-${i}`} type="button"
                       onMouseDown={(e) => e.preventDefault()}
-                      className={`block w-full text-left px-3.5 py-2.5 border-b border-gray-50 last:border-0 hover:bg-blue-50 transition-colors ${topics.includes(t.topic) ? "bg-blue-50" : ""}`}
+                      className={`block w-full text-left px-3.5 py-2.5 border-b border-[var(--border)] last:border-0 hover:bg-[var(--brand-tint)] transition-colors ${topics.includes(t.topic) ? "bg-[var(--brand-tint)]" : ""}`}
                       onClick={() => addTopic(t.topic, t.unit)}>
-                      <span className="font-semibold text-gray-800 text-sm">{t.topic}</span>
-                      <span className={`text-xs ml-2 ${topicOffLevel ? "text-amber-600 font-medium" : "text-gray-500"}`}>{t.gradeLabel} · {t.unit}</span>
+                      <span className="font-semibold text-[var(--ink-strong)] text-sm">{t.topic}</span>
+                      <span className={`text-xs ml-2 ${topicOffLevel ? "text-[var(--ink-warn)] font-medium" : "text-[var(--ink-muted)]"}`}>{t.gradeLabel} · {t.unit}</span>
                     </button>
                   ))}
                 </div>
@@ -1165,13 +1165,13 @@ export default function CaptureSession() {
                 (audit T-03): sebelumnya aplikasi diam-diam menampilkan topik
                 level lain seolah-olah topik murid itu. */}
             {topicSearch.trim() && topicMeta && !topicMeta.inLevel && !topicAllowOffLevel && (
-              <div className="mt-1.5 rounded-xl border border-amber-200 bg-amber-50 p-3">
-                <p className="text-xs font-semibold text-amber-800">
+              <div className="mt-1.5 rounded-xl border border-[var(--border-warn)] bg-[var(--bg-warn)] p-3">
+                <p className="text-xs font-semibold text-[var(--ink-warn)]">
                   Tidak ada topik jenjang {
                     topicLevelHint(currentStudent?.curriculum, currentStudent?.grade, topicMeta.targetLevel) ?? "murid ini"
                   } untuk mapel ini.
                 </p>
-                <p className="mt-0.5 text-xs text-amber-700">
+                <p className="mt-0.5 text-xs text-[var(--ink-warn)]">
                   {topicResults.length > 0
                     ? `Ada ${topicResults.length} topik pada jenjang lain (${topicMeta.otherLevels.join(", ")}) — berbeda dari jenjang murid, jadi periksa dulu sebelum dipakai.`
                     : "Belum ada saran untuk kueri ini. Tulis sendiri lewat \"Tambah topik custom\" di bawah."}
@@ -1185,13 +1185,13 @@ export default function CaptureSession() {
                       <button type="button"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => setTopicAllowOffLevel(true)}
-                        className="rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100 transition-colors">
+                        className="rounded-lg border border-[var(--border-warn)] bg-[var(--surface-strong)] px-3 py-2 text-xs font-semibold text-[var(--ink-warn)] hover:bg-[var(--bg-warn)] transition-colors">
                         Tampilkan topik jenjang lain
                       </button>
                       <button type="button"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={addTopicsFromInput}
-                        className="rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700 transition-colors">
+                        className="rounded-lg bg-[var(--bg-warn-strong)] px-3 py-2 text-xs font-semibold text-[var(--on-strong)] hover:bg-[var(--bg-warn-strong)] transition-colors">
                         Pakai "{topicSearch.trim()}" sebagai topik
                       </button>
                     </>
@@ -1205,7 +1205,7 @@ export default function CaptureSession() {
               <button type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={addTopicsFromInput}
-                className="text-xs text-gray-500 mt-1.5 hover:text-blue-600 transition-colors">
+                className="text-xs text-[var(--ink-muted)] mt-1.5 hover:text-[var(--ink-brand)] transition-colors">
                 ✏️ Tambah topik custom: "{topicSearch.trim()}" ↵
               </button>
             )}
@@ -1225,7 +1225,7 @@ export default function CaptureSession() {
               menyalakan indikator yang belum tentu diamati (mis. "aktif bertanya"
               hanya karena tutor menekan "Lancar") — audit P2 #12. */}
           <div>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
+            <p className="text-xs font-bold text-[var(--ink-muted)] uppercase tracking-wide mb-2">
               Kondisi les hari ini
             </p>
             <div className="grid gap-2">
@@ -1241,28 +1241,28 @@ export default function CaptureSession() {
                     <span className="text-lg">{opt.icon}</span>
                     <span className="min-w-0">
                       <span className="block text-sm font-semibold">{opt.label}</span>
-                      <span className={`block text-xs ${active ? "opacity-90" : "text-gray-500"}`}>{opt.hint}</span>
+                      <span className={`block text-xs ${active ? "opacity-90" : "text-[var(--ink-muted)]"}`}>{opt.hint}</span>
                     </span>
                     {active && <span className="ml-auto text-sm font-bold">✓</span>}
                   </button>
                 );
               })}
             </div>
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-2 text-xs text-[var(--ink-muted)]">
               Kondisi tersimpan apa adanya dan <span className="font-semibold">tidak</span> menambah
               atau mengurangi skor.
             </p>
           </div>
 
           {/* ══ LAPIS 2 — apa yang menonjol hari ini (opsional) ══ */}
-          <div className="rounded-xl border border-gray-100 p-3.5">
+          <div className="rounded-xl border border-[var(--border)] p-3.5">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+              <p className="text-xs font-bold text-[var(--ink-muted)] uppercase tracking-wide">
                 Yang menonjol hari ini <span className="font-normal normal-case">(opsional)</span>
               </p>
               {undoAvailable && (
                 <button type="button" onClick={undoEngagement}
-                  className="text-xs font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-900">
+                  className="text-xs font-semibold text-[var(--ink-brand)] underline underline-offset-2 hover:text-[var(--ink-brand)]">
                   ↩ Batalkan
                 </button>
               )}
@@ -1279,12 +1279,12 @@ export default function CaptureSession() {
                     className={`flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-medium transition-all ${
                       active
                         ? meta.tone === "positive"
-                          ? "border-green-600 bg-green-600 text-white"
-                          : "border-rose-600 bg-rose-600 text-white"
-                        : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"
+                          ? "border-[var(--border-success)] bg-[var(--bg-success-strong)] text-[var(--on-strong)]"
+                          : "border-[var(--border-danger)] bg-[var(--bg-danger-strong)] text-[var(--on-strong)]"
+                        : "border-[var(--border)] bg-[var(--surface-strong)] text-[var(--ink-muted)] hover:border-[var(--border-strong)]"
                     }`}>
                     <span>{meta.icon}</span> {meta.label}
-                    <span className={`text-xs font-bold ${active ? "opacity-80" : "text-gray-400"}`}>{meta.delta}</span>
+                    <span className={`text-xs font-bold ${active ? "opacity-80" : "text-[var(--ink-muted)]"}`}>{meta.delta}</span>
                   </button>
                 );
               })}
@@ -1294,7 +1294,7 @@ export default function CaptureSession() {
             <button type="button"
               onClick={() => setShowMoreFlags((v) => !v)}
               aria-expanded={showMoreFlags}
-              className="mt-2 text-xs font-semibold text-blue-700 hover:text-blue-900">
+              className="mt-2 text-xs font-semibold text-[var(--ink-brand)] hover:text-[var(--ink-brand)]">
               {showMoreFlags ? "▲ Sembunyikan" : `▼ ${SECONDARY_ENGAGEMENT_FLAGS.length} indikator lain`}
             </button>
             {showMoreFlags && (
@@ -1308,12 +1308,12 @@ export default function CaptureSession() {
                       className={`flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-medium transition-all ${
                         active
                           ? meta.tone === "positive"
-                            ? "border-green-600 bg-green-600 text-white"
-                            : "border-rose-600 bg-rose-600 text-white"
-                          : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"
+                            ? "border-[var(--border-success)] bg-[var(--bg-success-strong)] text-[var(--on-strong)]"
+                            : "border-[var(--border-danger)] bg-[var(--bg-danger-strong)] text-[var(--on-strong)]"
+                          : "border-[var(--border)] bg-[var(--surface-strong)] text-[var(--ink-muted)] hover:border-[var(--border-strong)]"
                       }`}>
                       <span>{meta.icon}</span> {meta.label}
-                      <span className={`text-xs font-bold ${active ? "opacity-80" : "text-gray-400"}`}>{meta.delta}</span>
+                      <span className={`text-xs font-bold ${active ? "opacity-80" : "text-[var(--ink-muted)]"}`}>{meta.delta}</span>
                     </button>
                   );
                 })}
@@ -1321,8 +1321,8 @@ export default function CaptureSession() {
             )}
 
             {/* Suasana hati — konteks, bukan penilaian (audit P2 #15). */}
-            <div className="mt-3 border-t border-gray-100 pt-3">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            <div className="mt-3 border-t border-[var(--border)] pt-3">
+              <label className="text-xs font-semibold text-[var(--ink-muted)] uppercase tracking-wide">
                 Suasana hati <span className="font-normal normal-case">(opsional — tidak memengaruhi skor)</span>
               </label>
               <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -1330,7 +1330,7 @@ export default function CaptureSession() {
                   <button key={m.v} type="button"
                     aria-pressed={mood === m.v}
                     className={`rounded-full border px-3 py-2 text-sm transition-colors ${
-                      mood === m.v ? "border-indigo-600 bg-indigo-600 text-white" : "border-gray-200 bg-white text-gray-600 hover:border-indigo-300"
+                      mood === m.v ? "border-[var(--border-accent)] bg-[var(--accent-solid)] text-[var(--on-strong)]" : "border-[var(--border)] bg-[var(--surface-strong)] text-[var(--ink-muted)] hover:border-[var(--border-accent)]"
                     }`}
                     onClick={() => setMood(mood === m.v ? undefined : m.v)}>
                     {m.icon} {m.v}
@@ -1340,9 +1340,9 @@ export default function CaptureSession() {
             </div>
 
             {(engTouched || engLevel || behaviorTags.length > 0 || responseTag) && (
-              <div className="mt-3 border-t border-gray-100 pt-2 text-right">
+              <div className="mt-3 border-t border-[var(--border)] pt-2 text-right">
                 <button type="button" onClick={resetEngagementFlags}
-                  className="text-xs font-semibold text-gray-500 underline underline-offset-2 hover:text-gray-700">
+                  className="text-xs font-semibold text-[var(--ink-muted)] underline underline-offset-2 hover:text-[var(--ink-strong)]">
                   🔄 Kosongkan kondisi &amp; mood
                 </button>
               </div>
@@ -1351,8 +1351,8 @@ export default function CaptureSession() {
 
           {/* Situasi hari ini — konteks humanis, bukan perilaku */}
           <div>
-            <label htmlFor="cs-situasi" className="label">🫶 Situasi Hari Ini <span className="text-gray-500 font-normal text-xs">(opsional — konteks saja, tidak mengurangi skor)</span></label>
-            <p className="text-xs text-gray-500 mt-1 mb-2">Cerita di balik sesi hari ini — mis. habis sakit, kurang tidur, ada acara keluarga. Konteks manusiawi untuk tutor &amp; AI saja (tidak dikirim ke WA ortu).</p>
+            <label htmlFor="cs-situasi" className="label">🫶 Situasi Hari Ini <span className="text-[var(--ink-muted)] font-normal text-xs">(opsional — konteks saja, tidak mengurangi skor)</span></label>
+            <p className="text-xs text-[var(--ink-muted)] mt-1 mb-2">Cerita di balik sesi hari ini — mis. habis sakit, kurang tidur, ada acara keluarga. Konteks manusiawi untuk tutor &amp; AI saja (tidak dikirim ke WA ortu).</p>
             <textarea id="cs-situasi" className="input" rows={2} maxLength={200} value={situasiNote}
               onChange={(e) => setSituasiNote(e.target.value)}
               placeholder="Contoh: habis sakit, kurang tidur tadi malam, besok ulangan…" />
@@ -1363,7 +1363,7 @@ export default function CaptureSession() {
                   <button key={c.label} type="button"
                     onClick={() => appendSituasiChip(c.label)}
                     className={`px-2.5 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                      active ? "bg-teal-500 text-white border-teal-500" : "bg-white text-gray-600 border-gray-200 hover:border-teal-300 hover:bg-teal-50"}`}>
+                      active ? "bg-[var(--bg-success-strong)] text-[var(--on-strong)] border-[var(--border-success)]" : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)] hover:border-[var(--border-success)] hover:bg-[var(--bg-success)]"}`}>
                     {c.icon} {c.label}
                   </button>
                 );
@@ -1372,21 +1372,21 @@ export default function CaptureSession() {
           </div>
 
           {/* ══ LAPIS 3 — observasi lanjutan (opsional) ══ */}
-          <div className="border border-gray-100 rounded-xl overflow-hidden">
+          <div className="border border-[var(--border)] rounded-xl overflow-hidden">
             <button type="button"
-              className="flex items-center justify-between w-full px-4 py-3 bg-gray-50 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
+              className="flex items-center justify-between w-full px-4 py-3 bg-[var(--surface)] text-sm font-semibold text-[var(--ink-muted)] hover:bg-[var(--bg-subtle)] transition-colors"
               aria-expanded={showBehavior}
               onClick={() => setShowBehavior(!showBehavior)}>
-              <span>🧩 Observasi Lanjutan <span className="font-normal text-gray-500">(opsional — buat laporan lebih kaya)</span></span>
+              <span>🧩 Observasi Lanjutan <span className="font-normal text-[var(--ink-muted)]">(opsional — buat laporan lebih kaya)</span></span>
               <div className="flex items-center gap-2">
                 {behaviorTags.length > 0 && (
-                  <span className="bg-purple-100 text-purple-700 text-xs font-bold px-2 py-0.5 rounded-full">{behaviorTags.length}</span>
+                  <span className="bg-[var(--accent-tint)] text-[var(--ink-purple)] text-xs font-bold px-2 py-0.5 rounded-full">{behaviorTags.length}</span>
                 )}
-                <span className="text-gray-500">{showBehavior ? "▲" : "▼"}</span>
+                <span className="text-[var(--ink-muted)]">{showBehavior ? "▲" : "▼"}</span>
               </div>
             </button>
             {showBehavior && (
-              <div className="p-4 space-y-4 bg-white">
+              <div className="p-4 space-y-4 bg-[var(--surface-strong)]">
                 {([
                   ["positive", "✨ Perilaku Positif", "green"],
                   ["neutral", "📊 Perilaku Netral", "gray"],
@@ -1394,27 +1394,27 @@ export default function CaptureSession() {
                 ] as const).map(([valence, heading, tone]) => (
                   <div key={valence}>
                     <p className={`text-xs font-semibold uppercase tracking-wide mb-2 ${
-                      tone === "green" ? "text-green-700" : tone === "orange" ? "text-orange-700" : "text-gray-600"
+                      tone === "green" ? "text-[var(--ink-success)]" : tone === "orange" ? "text-[var(--ink-attention)]" : "text-[var(--ink-muted)]"
                     }`}>{heading}</p>
                     <div className="flex flex-wrap gap-2">
                       {BEHAVIOR_TAGS.filter((t) => t.valence === valence).map((tag) => {
                         const active = behaviorTags.includes(tag.id);
-                        const activeClass = tone === "green" ? "bg-green-500 border-green-500"
-                          : tone === "orange" ? "bg-orange-500 border-orange-500" : "bg-gray-600 border-gray-600";
+                        const activeClass = tone === "green" ? "bg-[var(--bg-success-strong)] border-[var(--border-success)]"
+                          : tone === "orange" ? "bg-[var(--bg-attention-strong)] border-[var(--border-attention)]" : "bg-[var(--surface-inverse)] border-[var(--border-strong)]";
                         return (
                           <div key={tag.id} className="flex items-center gap-1">
                             <button type="button"
                               aria-pressed={active}
                               onClick={() => setBehaviorTags((prev) => prev.includes(tag.id) ? prev.filter((x) => x !== tag.id) : [...prev, tag.id])}
                               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                                active ? `${activeClass} text-white` : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"}`}>
+                                active ? `${activeClass} text-[var(--on-strong)]` : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)] hover:border-[var(--border-strong)]"}`}>
                               <span>{tag.icon}</span> {tag.label}
                             </button>
                             <button type="button"
                               aria-label={`Info ${tag.label}`}
                               onClick={(e) => { e.stopPropagation(); setActiveTooltip({ tag, type: "behavior" }); }}
                               className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs border transition-all ${
-                                active ? "bg-gray-700 text-white border-gray-700" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"}`}>
+                                active ? "bg-[var(--surface-inverse)] text-[var(--on-strong)] border-[var(--border-strong)]" : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)] hover:border-[var(--border-strong)]"}`}>
                               ⓘ
                             </button>
                           </div>
@@ -1439,41 +1439,41 @@ export default function CaptureSession() {
               "Fokus perbaikan"; hapus otomatis isian pengguna dihapus di sini
               karena itu kehilangan data tanpa peringatan — audit C-04) */}
           <div>
-            <label className="label">⚡ Isi cepat (respons) <span className="text-gray-500 font-normal text-xs">(pilih satu)</span></label>
+            <label className="label">⚡ Isi cepat (respons) <span className="text-[var(--ink-muted)] font-normal text-xs">(pilih satu)</span></label>
             <div className="flex flex-wrap gap-2">
               <button type="button"
                 onClick={() => setResponseTag("correct-independent")}
-                className="px-3 py-2 rounded-full text-sm font-semibold bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors">
+                className="px-3 py-2 rounded-full text-sm font-semibold bg-[var(--bg-success)] text-[var(--ink-success)] border border-[var(--border-success)] hover:bg-[var(--bg-success)] transition-colors">
                 ⭐ Lancar
               </button>
               <button type="button"
                 onClick={() => setResponseTag("partial-correct")}
-                className="px-3 py-2 rounded-full text-sm font-semibold bg-yellow-50 text-yellow-700 border border-yellow-200 hover:bg-yellow-100 transition-colors">
+                className="px-3 py-2 rounded-full text-sm font-semibold bg-[var(--bg-warn)] text-[var(--ink-warn)] border border-[var(--border-warn)] hover:bg-[var(--bg-warn)] transition-colors">
                 🟡 Butuh Latihan
               </button>
               <button type="button"
                 onClick={() => setResponseTag("misconception")}
-                className="px-3 py-2 rounded-full text-sm font-semibold bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 transition-colors">
+                className="px-3 py-2 rounded-full text-sm font-semibold bg-[var(--bg-danger)] text-[var(--ink-danger)] border border-[var(--border-danger)] hover:bg-[var(--bg-danger)] transition-colors">
                 🔴 Miskonsepsi
               </button>
               <button type="button"
                 onClick={() => { setResponseTag(undefined); setNeedsWork(""); }}
-                className="px-3 py-2 rounded-full text-sm font-semibold bg-white text-gray-500 border border-gray-200 hover:bg-gray-50 transition-colors">
+                className="px-3 py-2 rounded-full text-sm font-semibold bg-[var(--surface-strong)] text-[var(--ink-muted)] border border-[var(--border)] hover:bg-[var(--surface)] transition-colors">
                 🔄 Kosongkan
               </button>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-[var(--ink-muted)] mt-2">
               “Kosongkan” menghapus pilihan respons sekaligus isi kolom Fokus perbaikan.
             </p>
           </div>
 
           {/* Kualitas Respons Akademik */}
           <div>
-            <label className="label">🎓 Kualitas Respons Akademik <span className="text-gray-500 font-normal text-xs">(pilih satu)</span></label>
+            <label className="label">🎓 Kualitas Respons Akademik <span className="text-[var(--ink-muted)] font-normal text-xs">(pilih satu)</span></label>
             <div className="space-y-3 mt-2">
               {/* ── Pemahaman Baik ── */}
               <div>
-                <p className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1.5">✨ Pemahaman Baik</p>
+                <p className="text-xs font-semibold text-[var(--ink-success)] uppercase tracking-wide mb-1.5">✨ Pemahaman Baik</p>
                 <div className="flex flex-wrap gap-1.5">
                   {RESPONSE_TAGS.filter(t => ["correct-independent","correct-with-prompt","can-explain-orally","transfer-attempt","metacognitive"].includes(t.id)).map((tag) => {
                     const score = tag.id === "correct-independent" ? "+2" : "+1";
@@ -1482,10 +1482,10 @@ export default function CaptureSession() {
                         onClick={() => setResponseTag(responseTag === tag.id ? undefined : tag.id)}
                         className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                           responseTag === tag.id
-                            ? "bg-green-500 text-white border-green-500 shadow-sm"
-                            : "bg-white text-gray-700 border-gray-200 hover:border-green-300 hover:bg-green-50"}`}>
+                            ? "bg-[var(--bg-success-strong)] text-[var(--on-strong)] border-[var(--border-success)] shadow-sm"
+                            : "bg-[var(--surface-strong)] text-[var(--ink-strong)] border-[var(--border)] hover:border-[var(--border-success)] hover:bg-[var(--bg-success)]"}`}>
                         <span>{tag.icon}</span> {tag.label}
-                        <span className={`ml-0.5 text-xs font-bold rounded px-1 ${responseTag === tag.id ? "bg-green-300 text-green-800" : "bg-green-50 text-green-600"}`}>{score}</span>
+                        <span className={`ml-0.5 text-xs font-bold rounded px-1 ${responseTag === tag.id ? "bg-[var(--bg-success-strong)] text-[var(--ink-success)]" : "bg-[var(--bg-success)] text-[var(--ink-success)]"}`}>{score}</span>
                       </button>
                     );
                   })}
@@ -1494,7 +1494,7 @@ export default function CaptureSession() {
 
               {/* ── Perlu Pendalaman ── */}
               <div>
-                <p className="text-xs font-semibold text-yellow-600 uppercase tracking-wide mb-1.5">📊 Perlu Pendalaman</p>
+                <p className="text-xs font-semibold text-[var(--ink-warn)] uppercase tracking-wide mb-1.5">📊 Perlu Pendalaman</p>
                 <div className="flex flex-wrap gap-1.5">
                   {RESPONSE_TAGS.filter(t => ["partial-correct","can-do-procedurally","guessing"].includes(t.id)).map((tag) => {
                     const score = tag.id === "guessing" ? "−1" : "0";
@@ -1503,10 +1503,10 @@ export default function CaptureSession() {
                         onClick={() => setResponseTag(responseTag === tag.id ? undefined : tag.id)}
                         className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                           responseTag === tag.id
-                            ? "bg-yellow-500 text-white border-yellow-500 shadow-sm"
-                            : "bg-white text-gray-700 border-gray-200 hover:border-yellow-300 hover:bg-yellow-50"}`}>
+                            ? "bg-[var(--bg-warn-strong)] text-[var(--on-strong)] border-[var(--border-warn)] shadow-sm"
+                            : "bg-[var(--surface-strong)] text-[var(--ink-strong)] border-[var(--border)] hover:border-[var(--border-warn)] hover:bg-[var(--bg-warn)]"}`}>
                         <span>{tag.icon}</span> {tag.label}
-                        <span className={`ml-0.5 text-xs font-bold rounded px-1 ${responseTag === tag.id ? "bg-yellow-300 text-yellow-800" : "bg-yellow-50 text-yellow-600"}`}>{score}</span>
+                        <span className={`ml-0.5 text-xs font-bold rounded px-1 ${responseTag === tag.id ? "bg-[var(--bg-warn-strong)] text-[var(--ink-warn)]" : "bg-[var(--bg-warn)] text-[var(--ink-warn)]"}`}>{score}</span>
                       </button>
                     );
                   })}
@@ -1515,7 +1515,7 @@ export default function CaptureSession() {
 
               {/* ── Perlu Perhatian ── */}
               <div>
-                <p className="text-xs font-semibold text-red-700 uppercase tracking-wide mb-1.5">⚠️ Respons Perlu Perhatian</p>
+                <p className="text-xs font-semibold text-[var(--ink-danger)] uppercase tracking-wide mb-1.5">⚠️ Respons Perlu Perhatian</p>
                 <div className="flex flex-wrap gap-1.5">
                   {RESPONSE_TAGS.filter(t => ["misconception","prerequisite-gap"].includes(t.id)).map((tag) => {
                     return (
@@ -1523,10 +1523,10 @@ export default function CaptureSession() {
                         onClick={() => setResponseTag(responseTag === tag.id ? undefined : tag.id)}
                         className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                           responseTag === tag.id
-                            ? "bg-red-500 text-white border-red-500 shadow-sm"
-                            : "bg-white text-gray-700 border-gray-200 hover:border-red-300 hover:bg-red-50"}`}>
+                            ? "bg-[var(--bg-danger-strong)] text-[var(--on-strong)] border-[var(--ink-danger)] shadow-sm"
+                            : "bg-[var(--surface-strong)] text-[var(--ink-strong)] border-[var(--border)] hover:border-[var(--border-danger)] hover:bg-[var(--bg-danger)]"}`}>
                         <span>{tag.icon}</span> {tag.label}
-                        <span className={`ml-0.5 text-xs font-bold rounded px-1 ${responseTag === tag.id ? "bg-red-300 text-red-800" : "bg-red-50 text-red-600"}`}>−2</span>
+                        <span className={`ml-0.5 text-xs font-bold rounded px-1 ${responseTag === tag.id ? "bg-[var(--bg-danger-strong)] text-[var(--ink-danger)]" : "bg-[var(--bg-danger)] text-[var(--ink-danger)]"}`}>−2</span>
                       </button>
                     );
                   })}
@@ -1538,11 +1538,11 @@ export default function CaptureSession() {
                 const tag = RESPONSE_TAGS.find(t => t.id === responseTag);
                 if (!tag) return null;
                 return (
-                  <div className="bg-blue-50 border border-blue-100 rounded-xl px-3.5 py-2.5">
-                    <p className="text-xs text-gray-700 leading-relaxed">
+                  <div className="bg-[var(--brand-tint)] border border-[var(--brand-tint-strong)] rounded-xl px-3.5 py-2.5">
+                    <p className="text-xs text-[var(--ink-strong)] leading-relaxed">
                       <span className="font-semibold">{tag.icon} {tag.label}:</span> {tag.description}
                     </p>
-                    <p className="text-xs text-blue-600 mt-1">
+                    <p className="text-xs text-[var(--ink-brand)] mt-1">
                       💡 {tag.teacherNote}
                     </p>
                   </div>
@@ -1562,8 +1562,8 @@ export default function CaptureSession() {
               Pindah ke sini dari langkah 3 supaya angka yang dilihat tutor adalah
               angka yang benar-benar disimpan — kualitas respons akademik (di atas)
               ikut menentukan skor. */}
-          <div className="rounded-2xl border border-gray-100 p-4">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Skor sesi</p>
+          <div className="rounded-2xl border border-[var(--border)] p-4">
+            <p className="text-xs font-bold text-[var(--ink-muted)] uppercase tracking-wide mb-2">Skor sesi</p>
             {engScoreInfo ? (
               <div className="flex items-center gap-3 rounded-xl p-3" style={{ background: engScoreInfo.bg }}>
                 <div className="relative w-14 h-14 flex-shrink-0">
@@ -1583,7 +1583,7 @@ export default function CaptureSession() {
                 </div>
               </div>
             ) : (
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-[var(--ink-muted)]">
                 Belum ada pengamatan pada sesi ini, jadi <span className="font-semibold">skor tidak dihitung</span> —
                 sesi ini tidak akan masuk rata-rata keseriusan belajar. Kondisi yang tercatat (mis. “Seperti biasa”)
                 tetap tersimpan sebagai fakta.
@@ -1601,12 +1601,12 @@ export default function CaptureSession() {
         <div className="px-4 space-y-4">
 
           {/* Context summary — dilipat agar kolom wajib tidak tertimbun (C-16) */}
-          <div className="bg-blue-50 border border-blue-100 rounded-xl overflow-hidden">
+          <div className="bg-[var(--brand-tint)] border border-[var(--brand-tint-strong)] rounded-xl overflow-hidden">
             <button type="button" onClick={() => setShowAiContext((v) => !v)}
               aria-expanded={showAiContext}
               className="flex w-full items-center justify-between gap-2 px-3.5 py-3 text-left">
-              <span className="text-xs font-bold text-blue-700 uppercase tracking-wide">📊 Konteks yang dipakai AI</span>
-              <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold text-blue-700">
+              <span className="text-xs font-bold text-[var(--ink-brand)] uppercase tracking-wide">📊 Konteks yang dipakai AI</span>
+              <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold text-[var(--ink-brand)]">
                 {showAiContext ? "Sembunyikan" : "Lihat"}
                 <span aria-hidden="true">{showAiContext ? "▲" : "▼"}</span>
               </span>
@@ -1614,32 +1614,32 @@ export default function CaptureSession() {
             {showAiContext && (
             <div className="px-3.5 pb-3 space-y-1.5">
             {(subjects.length > 0 || studentSubjects.length > 0) && (
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-[var(--ink-muted)]">
                 <span className="font-semibold">📚 Mapel:</span> {(subjects.length ? subjects : studentSubjects).join(", ")}
               </p>
             )}
             {topic && (
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-[var(--ink-muted)]">
                 <span className="font-semibold">💡 Topik:</span> {topic}
               </p>
             )}
             {predictedGrade.trim() && (
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-[var(--ink-muted)]">
                 <span className="font-semibold">📈 Prediksi Nilai:</span> {predictedGrade.trim()}
               </p>
             )}
             {mood && (
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-[var(--ink-muted)]">
                 <span className="font-semibold">🔥 Mood:</span> {mood}
               </p>
             )}
             {situasiNote.trim() && (
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-[var(--ink-muted)]">
                 <span className="font-semibold">🫶 Situasi:</span> {situasiNote.trim()}
               </p>
             )}
             {engTouched && (
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-[var(--ink-muted)]">
                 <span className="font-semibold">🎯 Engagement {engScore}/10:</span>{" "}
                 {[
                   engPrepared && "sudah siap", engFocused && "sangat fokus",
@@ -1652,25 +1652,25 @@ export default function CaptureSession() {
               </p>
             )}
             {behaviorTags.length > 0 && (
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-[var(--ink-muted)]">
                 <span className="font-semibold">🧩 Perilaku:</span>{" "}
                 {behaviorTags.map(id => BEHAVIOR_TAGS.find(t => t.id === id)?.label).filter(Boolean).join(", ")}
               </p>
             )}
             {responseTag && (
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-[var(--ink-muted)]">
                 <span className="font-semibold">🎓 Respons akademik:</span>{" "}
                 {RESPONSE_TAGS.find(t => t.id === responseTag)?.label}
               </p>
             )}
             {needsWork && (
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-[var(--ink-muted)]">
                 <span className="font-semibold">🎯 Fokus perbaikan:</span> {needsWork}
               </p>
             )}
             {briefLastSession && (
-              <p className="text-xs text-gray-600 italic">
-                <span className="font-semibold not-italic text-gray-700">🔁 Sesi lalu:</span>{" "}
+              <p className="text-xs text-[var(--ink-muted)] italic">
+                <span className="font-semibold not-italic text-[var(--ink-strong)]">🔁 Sesi lalu:</span>{" "}
                 "{briefLastSession.shortNote.length > 70 ? briefLastSession.shortNote.slice(0, 70) + "…" : briefLastSession.shortNote}"
               </p>
             )}
@@ -1682,10 +1682,10 @@ export default function CaptureSession() {
               "Prediksi Nilai" agar tidak tertimbun (audit C-16) */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label htmlFor="cs-catatan" className="label">✏️ Catatan Singkat <span className="text-red-400">*</span></label>
+              <label htmlFor="cs-catatan" className="label">✏️ Catatan Singkat <span className="text-[var(--ink-danger)]">*</span></label>
               {(activeSubjects.length > 0 || Boolean(topic) || Boolean(sessionType)) && (
                 <button type="button"
-                  className="text-xs text-blue-600 hover:text-blue-800 font-semibold"
+                  className="text-xs text-[var(--ink-brand)] hover:text-[var(--ink-brand)] font-semibold"
                   onClick={handleLocalGenerate}>
                   ⚡ Rangkum Cepat
                 </button>
@@ -1701,19 +1701,19 @@ export default function CaptureSession() {
                 <div className="flex flex-wrap gap-1.5 mt-1.5">
                   {briefLastSession?.shortNote && (
                     <button type="button" onClick={() => appendNoteChip(`Melanjutkan sesi lalu: ${briefLastSession.shortNote}.`)}
-                      className="text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-full px-2.5 py-1 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                      className="text-xs text-[var(--ink-muted)] bg-[var(--surface)] border border-[var(--border)] rounded-full px-2.5 py-1 hover:bg-[var(--brand-tint)] hover:text-[var(--ink-brand)] transition-colors">
                       🔁 Sesi lalu
                     </button>
                   )}
                   {briefFollowUps.slice(0, 3).map((f) => (
                     <button key={f.id} type="button" onClick={() => appendNoteChip(`Fokus berikutnya: ${f.text}.`)}
-                      className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1 hover:bg-amber-100 transition-colors">
+                      className="text-xs text-[var(--ink-warn)] bg-[var(--bg-warn)] border border-[var(--border-warn)] rounded-full px-2.5 py-1 hover:bg-[var(--bg-warn)] transition-colors">
                       🔁 {f.text.length > 28 ? f.text.slice(0, 28) + "…" : f.text}
                     </button>
                   ))}
                   {needsWork && (
                     <button type="button" onClick={() => appendNoteChip(`Fokus perbaikan: ${needsWork}.`)}
-                      className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-full px-2.5 py-1 hover:bg-red-100 transition-colors">
+                      className="text-xs text-[var(--ink-danger)] bg-[var(--bg-danger)] border border-[var(--border-danger)] rounded-full px-2.5 py-1 hover:bg-[var(--bg-danger)] transition-colors">
                       🎯 Fokus perbaikan
                     </button>
                   )}
@@ -1722,11 +1722,11 @@ export default function CaptureSession() {
             )}
 
             <div className="flex items-center justify-between mt-1">
-              <span className="text-xs text-gray-500">{shortNote.length}/300</span>
+              <span className="text-xs text-[var(--ink-muted)]">{shortNote.length}/300</span>
               {settings?.ai?.enabled && settings.ai.apiKey && (subjects.length > 0 || studentSubjects.length > 0) && (
                 <button type="button" disabled={aiNoteLoading}
                   onClick={() => setShowAiCostModal(true)}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
+                  className="flex items-center gap-1.5 text-xs font-semibold text-[var(--ink-accent)] bg-[var(--accent-tint)] hover:bg-[var(--accent-tint)] border border-[var(--border-accent)] px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
                   {aiNoteLoading ? "⏳ Draft AI..." : "✨ Draft AI"}
                 </button>
               )}
@@ -1734,24 +1734,24 @@ export default function CaptureSession() {
 
             {/* Usulan AI — tampil dulu, jangan langsung menimpa */}
             {aiNoteDraft && (
-              <div className="mt-2 bg-indigo-50 border border-indigo-200 rounded-xl p-3">
+              <div className="mt-2 bg-[var(--accent-tint)] border border-[var(--border-accent)] rounded-xl p-3">
                 <div className="flex items-center justify-between mb-1.5">
-                  <p className="text-xs font-bold text-indigo-700">✨ Usulan AI ({aiNoteStyle})</p>
+                  <p className="text-xs font-bold text-[var(--ink-accent)]">✨ Usulan AI ({aiNoteStyle})</p>
                   <button type="button" onClick={() => setAiNoteDraft(null)}
-                    className="text-xs text-indigo-400 hover:text-indigo-600">Tutup</button>
+                    className="text-xs text-[var(--ink-accent)] hover:text-[var(--ink-accent)]">Tutup</button>
                 </div>
-                <div className="max-h-32 overflow-y-auto text-sm text-gray-800">
+                <div className="max-h-32 overflow-y-auto text-sm text-[var(--ink-strong)]">
                   <SimpleMarkdown text={aiNoteDraft} />
                 </div>
                 <div className="flex gap-2 mt-2">
                   <button type="button"
                     onClick={() => { setShortNote(aiNoteDraft); setAiNoteDraft(null); }}
-                    className="flex-1 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition-colors">
+                    className="flex-1 py-2 rounded-xl bg-[var(--accent-solid)] text-[var(--on-strong)] text-xs font-bold hover:bg-[var(--accent-solid)] transition-colors">
                     ✓ Terima
                   </button>
                   <button type="button"
                     onClick={() => setAiNoteDraft(null)}
-                    className="flex-1 py-2 rounded-xl border border-indigo-200 text-indigo-600 text-xs font-bold hover:bg-indigo-100 transition-colors">
+                    className="flex-1 py-2 rounded-xl border border-[var(--border-accent)] text-[var(--ink-accent)] text-xs font-bold hover:bg-[var(--accent-tint)] transition-colors">
                     ✕ Tolak
                   </button>
                 </div>
@@ -1761,17 +1761,17 @@ export default function CaptureSession() {
             {aiNoteOriginal && shortNote !== aiNoteOriginal && (
               <button type="button"
                 onClick={() => { setShortNote(aiNoteOriginal); setAiNoteOriginal(""); setAiNoteDraft(null); }}
-                className="mt-1.5 text-xs text-gray-500 hover:text-indigo-600 font-semibold">
+                className="mt-1.5 text-xs text-[var(--ink-muted)] hover:text-[var(--ink-accent)] font-semibold">
                 ↩ Kembalikan ke teks awal
               </button>
             )}
 
-            {aiError && <p className="text-xs text-red-500 mt-1">{aiError}</p>}
+            {aiError && <p className="text-xs text-[var(--ink-danger)] mt-1">{aiError}</p>}
             {suggestions.length > 0 && (
-              <div className="mt-1 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+              <div className="mt-1 bg-[var(--surface-strong)] border border-[var(--border)] rounded-xl overflow-hidden shadow-sm">
                 {suggestions.map((s) => (
                   <button key={s} type="button"
-                    className="block w-full text-left text-sm text-blue-600 hover:bg-blue-50 px-3 py-2 border-b border-gray-100 last:border-0"
+                    className="block w-full text-left text-sm text-[var(--ink-brand)] hover:bg-[var(--brand-tint)] px-3 py-2 border-b border-[var(--border)] last:border-0"
                     onClick={() => { setShortNote(s); setAiNoteDraft(null); setAiNoteOriginal(""); }}>{s}</button>
                 ))}
               </div>
@@ -1780,7 +1780,7 @@ export default function CaptureSession() {
 
           {/* Prediksi nilai — jadi bahan follow-up saat nilai akhir keluar */}
           <div>
-            <label htmlFor="cs-prediksi" className="label">📈 Prediksi Nilai <span className="text-gray-500 font-normal text-xs">(opsional — mis. 6, 7, A, B)</span></label>
+            <label htmlFor="cs-prediksi" className="label">📈 Prediksi Nilai <span className="text-[var(--ink-muted)] font-normal text-xs">(opsional — mis. 6, 7, A, B)</span></label>
             <input id="cs-prediksi" className="input" maxLength={10} value={predictedGrade}
               onChange={(e) => setPredictedGrade(e.target.value)}
               placeholder="Prediksi nilai akhir murid untuk materi ini" />
@@ -1794,14 +1794,14 @@ export default function CaptureSession() {
       {currentStep === 6 && (
         <div className="px-4 space-y-3">
           {/* Info: bisa diisi nanti */}
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-2.5">
-            <span className="text-amber-500 text-xl">⏭️</span>
+          <div className="bg-[var(--bg-warn)] border border-[var(--border-warn)] rounded-xl p-3 flex items-center gap-2.5">
+            <span className="text-[var(--ink-warn)] text-xl">⏭️</span>
             <div className="flex-1">
-              <p className="text-xs font-bold text-amber-800">Foto & tanda tangan bisa diisi nanti</p>
-              <p className="text-xs text-amber-800 mt-0.5">Lengkapi dari profil murid setelah sesi. Simpan dulu detailnya sekarang.</p>
+              <p className="text-xs font-bold text-[var(--ink-warn)]">Foto & tanda tangan bisa diisi nanti</p>
+              <p className="text-xs text-[var(--ink-warn)] mt-0.5">Lengkapi dari profil murid setelah sesi. Simpan dulu detailnya sekarang.</p>
             </div>
           </div>
-          <p className="text-xs font-semibold text-gray-600">Isi sekarang (opsional)</p>
+          <p className="text-xs font-semibold text-[var(--ink-muted)]">Isi sekarang (opsional)</p>
 
           {/* Kamera — capture langsung */}
           <input ref={cameraRef} type="file" accept="image/*" capture="environment"
@@ -1809,7 +1809,7 @@ export default function CaptureSession() {
           {/* Galeri — browse dari gallery / file picker */}
           <input ref={galleryRef} type="file" accept="image/*"
             onChange={handlePhoto} className="hidden" />
-          <p className="text-xs text-gray-500 text-center -mt-2">💡 Di HP, tap ⋮ atau menu Browse untuk pilih folder</p>
+          <p className="text-xs text-[var(--ink-muted)] text-center -mt-2">💡 Di HP, tap ⋮ atau menu Browse untuk pilih folder</p>
 
           {/* Foto */}
           {photoUrl ? (
@@ -1821,31 +1821,31 @@ export default function CaptureSession() {
                 confirmLabel: "Hapus foto",
                 onConfirm: () => { setPhoto(undefined); setConfirmDelete(null); },
               })}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-10 h-10 text-sm flex items-center justify-center shadow-md"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                className="absolute -top-2 -right-2 bg-[var(--bg-danger-strong)] text-[var(--on-strong)] rounded-full w-10 h-10 text-sm flex items-center justify-center shadow-md"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
               <div className="absolute bottom-2 right-2 flex gap-1.5">
                 <button onClick={() => cameraRef.current?.click()}
-                  className="bg-black/60 text-white text-xs px-2.5 py-1 rounded-full">📷 Kamera</button>
+                  className="bg-[var(--scrim)]/60 text-[var(--on-strong)] text-xs px-2.5 py-1 rounded-full">📷 Kamera</button>
                 <button onClick={() => galleryRef.current?.click()}
-                  className="bg-black/60 text-white text-xs px-2.5 py-1 rounded-full">🖼️ Galeri</button>
+                  className="bg-[var(--scrim)]/60 text-[var(--on-strong)] text-xs px-2.5 py-1 rounded-full">🖼️ Galeri</button>
               </div>
-              <span className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full">📅 timestamp ✓</span>
+              <span className="absolute top-2 left-2 bg-[var(--scrim)]/50 text-[var(--on-strong)] text-xs px-2 py-0.5 rounded-full">📅 timestamp ✓</span>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
               <button onClick={() => cameraRef.current?.click()}
-                className="flex flex-col items-center justify-center gap-2 py-12 rounded-2xl border-2 border-dashed border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-colors bg-gray-50">
+                className="flex flex-col items-center justify-center gap-2 py-12 rounded-2xl border-2 border-dashed border-[var(--border)] text-[var(--ink-muted)] hover:border-[var(--border-brand)] hover:text-[var(--ink-brand)] transition-colors bg-[var(--surface)]">
                 <span className="text-4xl">📷</span>
                 <div className="text-center">
                   <p className="font-semibold text-sm">Ambil Foto</p>
-                  <p className="text-xs mt-0.5 text-gray-500">Buka kamera</p>
+                  <p className="text-xs mt-0.5 text-[var(--ink-muted)]">Buka kamera</p>
                 </div>
               </button>
               <button onClick={() => galleryRef.current?.click()}
-                className="flex flex-col items-center justify-center gap-2 py-12 rounded-2xl border-2 border-dashed border-gray-300 text-gray-500 hover:border-green-400 hover:text-green-500 transition-colors bg-gray-50">
+                className="flex flex-col items-center justify-center gap-2 py-12 rounded-2xl border-2 border-dashed border-[var(--border)] text-[var(--ink-muted)] hover:border-[var(--border-success)] hover:text-[var(--ink-success)] transition-colors bg-[var(--surface)]">
                 <span className="text-4xl">🖼️</span>
                 <div className="text-center">
                   <p className="font-semibold text-sm">Pilih dari Galeri</p>
-                  <p className="text-xs mt-0.5 text-gray-500">Cari di gallery</p>
+                  <p className="text-xs mt-0.5 text-[var(--ink-muted)]">Cari di gallery</p>
                 </div>
               </button>
             </div>
@@ -1854,8 +1854,8 @@ export default function CaptureSession() {
           {/* Tanda tangan */}
           {signatureUrl ? (
             <div>
-              <p className="text-xs text-gray-500 font-medium mb-1.5">✍️ Tanda Tangan Murid</p>
-              <div className="relative bg-white rounded-xl border border-gray-200 p-2">
+              <p className="text-xs text-[var(--ink-muted)] font-medium mb-1.5">✍️ Tanda Tangan Murid</p>
+              <div className="relative bg-[var(--surface-strong)] rounded-xl border border-[var(--border)] p-2">
                 <img src={signatureUrl} alt="TTD" className="max-h-24 w-full object-contain" />
                 <button aria-label="Hapus tanda tangan" onClick={() => setConfirmDelete({
                   title: "Hapus tanda tangan?",
@@ -1863,12 +1863,12 @@ export default function CaptureSession() {
                   confirmLabel: "Hapus tanda tangan",
                   onConfirm: () => { setSignature(undefined); setShowSigPad(false); setConfirmDelete(null); },
                 })}
-                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-8 h-8 text-xs flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                  className="absolute top-1 right-1 bg-[var(--bg-danger-strong)] text-[var(--on-strong)] rounded-full w-8 h-8 text-xs flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
               </div>
             </div>
           ) : showSigPad ? (
             <div>
-              <p className="text-xs text-gray-500 font-medium mb-1.5">✍️ Tanda Tangan Murid</p>
+              <p className="text-xs text-[var(--ink-muted)] font-medium mb-1.5">✍️ Tanda Tangan Murid</p>
               <SignaturePad
                 key={studentId}
                 onSave={(blob) => { setSignature(blob); setShowSigPad(false); }}
@@ -1877,21 +1877,21 @@ export default function CaptureSession() {
             </div>
           ) : (
             <button type="button" onClick={() => setShowSigPad(true)}
-              className="flex flex-col items-center justify-center gap-3 w-full py-10 rounded-2xl border-2 border-dashed border-gray-300 text-gray-500 hover:border-indigo-400 hover:text-indigo-500 transition-colors bg-gray-50">
+              className="flex flex-col items-center justify-center gap-3 w-full py-10 rounded-2xl border-2 border-dashed border-[var(--border)] text-[var(--ink-muted)] hover:border-[var(--border-accent)] hover:text-[var(--ink-accent)] transition-colors bg-[var(--surface)]">
               <span className="text-4xl">✍️</span>
               <div className="text-center">
                 <p className="font-semibold text-sm">Tanda Tangan Murid</p>
-                <p className="text-xs mt-0.5 text-gray-500">Tap untuk buka signature pad</p>
+                <p className="text-xs mt-0.5 text-[var(--ink-muted)]">Tap untuk buka signature pad</p>
               </div>
             </button>
           )}
 
           {(photo || signature) && (
-            <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-2.5">
-              <span className="text-green-500 text-xl">✅</span>
+            <div className="bg-[var(--bg-success)] border border-[var(--border-success)] rounded-xl p-3 flex items-center gap-2.5">
+              <span className="text-[var(--ink-success)] text-xl">✅</span>
               <div>
-                <p className="text-xs font-bold text-green-700">Bukti kehadiran siap!</p>
-                <p className="text-xs text-green-600 mt-0.5">
+                <p className="text-xs font-bold text-[var(--ink-success)]">Bukti kehadiran siap!</p>
+                <p className="text-xs text-[var(--ink-success)] mt-0.5">
                   {[photo ? "📷 Foto tersimpan" : null, signature ? "✍️ TTD tersimpan" : null].filter(Boolean).join(" · ")}
                 </p>
               </div>
@@ -1904,11 +1904,11 @@ export default function CaptureSession() {
           FIXED NAVIGATION BAR
           ══════════════════════════════════════════ */}
       <div className="fixed bottom-[calc(var(--bottom-nav-h)+var(--safe-bottom))] left-0 right-0 z-50 h-[4.25rem]">
-        <div className="h-full bg-white/95 backdrop-blur border-t border-gray-100 shadow-xl px-4 py-3">
+        <div className="h-full bg-[var(--surface-strong)]/95 backdrop-blur border-t border-[var(--border)] shadow-xl px-4 py-3">
           <div className="flex items-center gap-2 max-w-md mx-auto h-full">
             {currentStep > 1 ? (
               <button onClick={goBack}
-                className="flex items-center gap-1 px-4 py-2.5 rounded-xl bg-gray-100 text-gray-600 font-semibold text-sm hover:bg-gray-200 transition-colors flex-shrink-0">
+                className="flex items-center gap-1 px-4 py-2.5 rounded-xl bg-[var(--bg-subtle)] text-[var(--ink-muted)] font-semibold text-sm hover:bg-[var(--bg-subtle)] transition-colors flex-shrink-0">
                 ← Kembali
               </button>
             ) : (
@@ -1916,12 +1916,12 @@ export default function CaptureSession() {
             )}
             {stepMeta.optional && currentStep !== 6 && (
               <button onClick={skipStep}
-                className="flex items-center gap-1 px-4 py-2.5 rounded-xl border border-gray-300 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-colors flex-shrink-0">
+                className="flex items-center gap-1 px-4 py-2.5 rounded-xl border border-[var(--border)] text-[var(--ink-muted)] font-semibold text-sm hover:bg-[var(--surface)] transition-colors flex-shrink-0">
                 Lewati
               </button>
             )}
             <button onClick={goNext} disabled={saving}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm text-white transition-all disabled:opacity-50 shadow-md"
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm text-[var(--on-strong)] transition-all disabled:opacity-50 shadow-md"
               style={{ background: saving ? "#93c5fd" : currentStep === 6 ? "linear-gradient(135deg,#16a34a,#15803d)" : "linear-gradient(135deg,#2563eb,#1d4ed8)" }}>
               {saving ? "⏳ Menyimpan..." : currentStep === 6 ? "✅ Simpan Sesi" : "Lanjut →"}
             </button>
@@ -1948,28 +1948,28 @@ export default function CaptureSession() {
           ariaLabel="Pilih Mata Pelajaran"
           onClose={() => setShowIBPicker(false)}
           showCloseButton={false}
-          panelClassName="relative bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[88vh] overflow-y-auto overscroll-contain outline-none"
+          panelClassName="relative bg-[var(--surface-strong)] w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[88vh] overflow-y-auto overscroll-contain outline-none"
         >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
               <div>
                 <h3 className="font-bold text-lg">Pilih Mata Pelajaran</h3>
                 {currentStudent?.curriculum && (
-                  <p className="text-xs text-gray-500 mt-0.5">{CURRICULUM_META[currentStudent.curriculum].label}</p>
+                  <p className="text-xs text-[var(--ink-muted)] mt-0.5">{CURRICULUM_META[currentStudent.curriculum].label}</p>
                 )}
               </div>
-              <button aria-label="Tutup" onClick={() => setShowIBPicker(false)} className="text-gray-500 text-xl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+              <button aria-label="Tutup" onClick={() => setShowIBPicker(false)} className="text-[var(--ink-muted)] text-xl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
 
             {currentStudent?.curriculum ? (
               <div className="p-4 space-y-4">
                 {getSubjectGroups(currentStudent.curriculum).map((grp) => (
                   <div key={grp.group}>
-                    <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-2">{grp.group}</p>
+                    <p className="text-xs text-[var(--ink-muted)] font-semibold uppercase tracking-wide mb-2">{grp.group}</p>
                     <div className="flex flex-wrap gap-2">
                       {grp.subjects.map((s) => (
                         <button key={s} type="button"
                           className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                            subjects.includes(s) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300 hover:border-blue-400"}`}
+                            subjects.includes(s) ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]" : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)] hover:border-[var(--border-brand)]"}`}
                           onClick={() => toggleSubject(s)}>
                           {subjects.includes(s) ? "✓ " : ""}{s}
                         </button>
@@ -1980,10 +1980,10 @@ export default function CaptureSession() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 bg-gray-100 mx-4 mt-3 rounded-xl p-1">
+                <div className="grid grid-cols-2 bg-[var(--bg-subtle)] mx-4 mt-3 rounded-xl p-1">
                   {(["MYP", "DP"] as const).map((t) => (
                     <button key={t} onClick={() => setIbTab(t)}
-                      className={`py-2 rounded-lg text-sm font-semibold transition-colors ${ibTab === t ? "bg-white shadow text-blue-700" : "text-gray-500"}`}>
+                      className={`py-2 rounded-lg text-sm font-semibold transition-colors ${ibTab === t ? "bg-[var(--surface-strong)] shadow text-[var(--ink-brand)]" : "text-[var(--ink-muted)]"}`}>
                       {t === "MYP" ? "MYP (Middle Years)" : "DP (Diploma)"}
                     </button>
                   ))}
@@ -1991,12 +1991,12 @@ export default function CaptureSession() {
                 <div className="p-4 space-y-4">
                   {ibTab === "MYP" ? (
                     <div>
-                      <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-2">IB MYP Subjects</p>
+                      <p className="text-xs text-[var(--ink-muted)] font-semibold uppercase tracking-wide mb-2">IB MYP Subjects</p>
                       <div className="flex flex-wrap gap-2">
                         {IB_MYP_SUBJECTS.map((s) => (
                           <button key={s} type="button"
                             className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                              subjects.includes(s) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300 hover:border-blue-400"}`}
+                              subjects.includes(s) ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]" : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)] hover:border-[var(--border-brand)]"}`}
                             onClick={() => toggleSubject(s)}>
                             {subjects.includes(s) ? "✓ " : ""}{s}
                           </button>
@@ -2007,12 +2007,12 @@ export default function CaptureSession() {
                     <div className="space-y-4">
                       {IB_DP_GROUPS.map((grp) => (
                         <div key={grp.group}>
-                          <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-2">{grp.group}</p>
+                          <p className="text-xs text-[var(--ink-muted)] font-semibold uppercase tracking-wide mb-2">{grp.group}</p>
                           <div className="flex flex-wrap gap-2">
                             {grp.subjects.map((s) => (
                               <button key={s} type="button"
                                 className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                                  subjects.includes(s) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300 hover:border-blue-400"}`}
+                                  subjects.includes(s) ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]" : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)] hover:border-[var(--border-brand)]"}`}
                                 onClick={() => toggleSubject(s)}>
                                 {subjects.includes(s) ? "✓ " : ""}{s}
                               </button>
@@ -2027,8 +2027,8 @@ export default function CaptureSession() {
             )}
 
             <div className="px-4 pb-4 space-y-4">
-              <div className="border-t border-gray-100 pt-3">
-                <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-2">Custom</p>
+              <div className="border-t border-[var(--border)] pt-3">
+                <p className="text-xs text-[var(--ink-muted)] font-semibold uppercase tracking-wide mb-2">Custom</p>
                 <div className="flex gap-2">
                   <input className="input flex-1 text-sm" placeholder="Ketik mapel lain..."
                     value={ibCustom} onChange={(e) => setIbCustom(e.target.value)}
@@ -2041,7 +2041,7 @@ export default function CaptureSession() {
                       }
                     }} />
                   <button type="button" disabled={!ibCustom.trim()}
-                    className="px-4 py-2 rounded-xl bg-purple-600 text-white text-sm font-semibold disabled:opacity-40"
+                    className="px-4 py-2 rounded-xl bg-[var(--accent-solid)] text-[var(--on-strong)] text-sm font-semibold disabled:opacity-40"
                     onClick={() => {
                       const val = ibCustom.trim();
                       if (val && !subjects.includes(val)) setSubjects((prev) => [...prev, val]);
@@ -2050,22 +2050,22 @@ export default function CaptureSession() {
                 </div>
               </div>
               {subjects.length > 0 && (
-                <div className="bg-blue-50 rounded-xl p-3">
-                  <p className="text-xs text-blue-600 font-semibold mb-1.5">Dipilih ({subjects.length}):</p>
+                <div className="bg-[var(--brand-tint)] rounded-xl p-3">
+                  <p className="text-xs text-[var(--ink-brand)] font-semibold mb-1.5">Dipilih ({subjects.length}):</p>
                   <div className="flex flex-wrap gap-1.5">
                     {subjects.map((s) => (
-                      <span key={s} className="inline-flex items-center gap-1 text-xs bg-blue-600 text-white px-2.5 py-1 rounded-full font-medium">
+                      <span key={s} className="inline-flex items-center gap-1 text-xs bg-[var(--brand-solid)] text-[var(--on-strong)] px-2.5 py-1 rounded-full font-medium">
                         {s}
                         <button type="button" aria-label={`Hapus ${s}`}
                           onClick={() => setSubjects((prev) => prev.filter((x) => x !== s))}
-                          className="-my-1 -mr-1 p-1.5 text-blue-200 hover:text-white"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                          className="-my-1 -mr-1 p-1.5 text-[var(--brand-tint-strong)] hover:text-[var(--on-strong)]"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
                       </span>
                     ))}
                   </div>
                 </div>
               )}
               <button onClick={() => setShowIBPicker(false)}
-                className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors">
+                className="w-full py-3 rounded-xl bg-[var(--brand-solid)] text-[var(--on-strong)] font-semibold hover:bg-[var(--brand-solid)] transition-colors">
                 Selesai
               </button>
             </div>

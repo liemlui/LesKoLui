@@ -108,14 +108,14 @@ export default function PaymentsPage() {
     return (
       <div className="p-4 flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <p className="text-4xl">🔐</p>
-        <p className="font-bold text-lg text-gray-800">PIN Keuangan Belum Aktif</p>
-        <p className="text-sm text-gray-500 text-center">Buat PIN dulu sebelum membuka data keuangan, penagihan, dan rekap tahunan.</p>
+        <p className="font-bold text-lg text-[var(--ink-strong)]">PIN Keuangan Belum Aktif</p>
+        <p className="text-sm text-[var(--ink-muted)] text-center">Buat PIN dulu sebelum membuka data keuangan, penagihan, dan rekap tahunan.</p>
         <button
           onClick={() => navigate("/settings")}
-          className="px-8 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-colors">
+          className="px-8 py-3 rounded-xl bg-[var(--brand-solid)] text-[var(--on-strong)] font-bold text-sm hover:bg-[var(--brand-solid)] transition-colors">
           Buka Pengaturan
         </button>
-        <button onClick={() => navigate(-1)} className="text-sm text-gray-500 hover:text-gray-600">← Kembali</button>
+        <button onClick={() => navigate(-1)} className="text-sm text-[var(--ink-muted)] hover:text-[var(--ink-muted)]">← Kembali</button>
       </div>
     );
   }
@@ -124,18 +124,18 @@ export default function PaymentsPage() {
     return (
       <div className="p-4 flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <p className="text-4xl">🔐</p>
-        <p className="font-bold text-lg text-gray-800">Data Keuangan</p>
-        <p className="text-sm text-gray-500 text-center">Masukkan PIN untuk mengakses keuangan</p>
+        <p className="font-bold text-lg text-[var(--ink-strong)]">Data Keuangan</p>
+        <p className="text-sm text-[var(--ink-muted)] text-center">Masukkan PIN untuk mengakses keuangan</p>
         <input type="password" inputMode="numeric" maxLength={6} placeholder="PIN (6 digit)"
           value={pin.pinInput} onChange={(e) => pin.setPinInput(e.target.value.replace(/\D/g, "").slice(0, 6))}
           className="input text-center tracking-widest text-xl w-40" autoFocus />
-        {pin.pinError && <p className="text-sm text-red-500">{pin.pinError}</p>}
+        {pin.pinError && <p className="text-sm text-[var(--ink-danger)]">{pin.pinError}</p>}
         <button
           onClick={async () => { await pin.attemptPin(settings.financialPin!); }}
-          className="px-8 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-colors">
+          className="px-8 py-3 rounded-xl bg-[var(--brand-solid)] text-[var(--on-strong)] font-bold text-sm hover:bg-[var(--brand-solid)] transition-colors">
           Buka
         </button>
-        <button onClick={() => navigate(-1)} className="text-sm text-gray-500 hover:text-gray-600">← Kembali</button>
+        <button onClick={() => navigate(-1)} className="text-sm text-[var(--ink-muted)] hover:text-[var(--ink-muted)]">← Kembali</button>
       </div>
     );
   }
@@ -158,18 +158,18 @@ export default function PaymentsPage() {
     <div className="pb-24">
       {/* Header lengket: periode dan area kerja selalu terlihat bersama, sehingga
           pindah tab tidak pernah menyembunyikan konteks waktu. */}
-      <div className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <div className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--surface-strong)]/95 backdrop-blur">
         <Breadcrumb />
         <div className="space-y-2 px-4 pb-2 pt-1">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
             <h1 className="text-xl font-bold">Keuangan</h1>
-            <p aria-live="polite" className="text-sm font-semibold text-slate-700">
+            <p aria-live="polite" className="text-sm font-semibold text-[var(--ink-strong)]">
               {monthLabel(month)}
             </p>
           </div>
           <FinancePeriodPicker month={month} onChange={handleMonthChange} />
-          <p className="text-xs leading-relaxed text-slate-500">
-            <span className="font-semibold text-slate-600">Cakupan tab ini:</span> {TAB_SCOPE[activeTab]}
+          <p className="text-xs leading-relaxed text-[var(--ink-muted)]">
+            <span className="font-semibold text-[var(--ink-muted)]">Cakupan tab ini:</span> {TAB_SCOPE[activeTab]}
           </p>
         </div>
         <Tabs
@@ -192,13 +192,13 @@ export default function PaymentsPage() {
           <div
             role={message.startsWith("Gagal") ? "alert" : "status"}
             aria-live={message.startsWith("Gagal") ? "assertive" : "polite"}
-            className={`flex items-start gap-2 rounded-lg p-3 text-sm ${message.includes("✓") ? "bg-green-50 text-green-700" : message.startsWith("Gagal") ? "bg-red-50 text-red-600" : "bg-blue-50 text-blue-700"}`}>
+            className={`flex items-start gap-2 rounded-lg p-3 text-sm ${message.includes("✓") ? "bg-[var(--bg-success)] text-[var(--ink-success)]" : message.startsWith("Gagal") ? "bg-[var(--bg-danger)] text-[var(--ink-danger)]" : "bg-[var(--brand-tint)] text-[var(--ink-brand)]"}`}>
             <span className="flex-1">{message}</span>
             <button
               type="button"
               aria-label="Tutup pesan"
               onClick={() => setMessage("")}
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition hover:bg-[var(--scrim)]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-brand)]"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
             </button>

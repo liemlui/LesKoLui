@@ -25,11 +25,15 @@
 
 ## TASK-04 — Fondasi visual (token, 7 primitif, ganti hardcode, light-only)
 
-- **Target:** kelas warna hardcode target ≤190, turun ≥60% dari baseline (§2); tipografi 4 langkah (24/18/15/13); elevasi 2 tingkat; 7 primitif di `src/components/ui/` (`Card` · `SectionHeader` · `ListRow` · `ActionBar` · `StatTile` · `Sheet` · `EmptyState`); konten terbaca ≥13px; `playwright.config.ts` baris 17: project `mobile-dark` dihapus.
+- **Target (DIPERBARUI 2026-10-03, G2-02 selesai):** sapu kelas warna **TUNTAS** — baseline sebenarnya **2976**, hasil **0** di 72 berkas. Target lama "≤190" **DICABUT** (penghitung 4-pola buta terhadap `slate`/`blue`/`indigo`/`text-white`); target berlaku sekarang: **"0 kelas warna langsung di luar berkas §2.1"** — sisa 42 kelas ada di `engagement.ts` (24) · `invoicePresentation.ts` (12) · `finance.ts` (6), semuanya terlindungi. Tipografi 4 langkah (24/18/15/13); elevasi 2 tingkat; 7 primitif di `src/components/ui/` (`Card` · `SectionHeader` · `ListRow` · `ActionBar` · `StatTile` · `Sheet` · `EmptyState`); konten terbaca ≥13px; `playwright.config.ts` baris 17: project `mobile-dark` dihapus.
 - **Aturan kunci:** Token di `@theme static` (WAJIB `static`, kalau tidak `--bg-*` hilang dari build). Skala: tipografi 13/15/18/24 · spacing 4/8/12/16/20/24 · elevasi 2 · gerak 200/250ms. Pola warna: `bg-white`→`bg-[var(--surface-strong)]` · `text-gray-500`→`text-[var(--text-muted)]` · `bg-gray-50\|100\|200`→`bg-[var(--surface-soft)]` · `text-gray-400`→`text-[var(--text-muted)]` · `border-gray-*`→`border-[var(--border)]`. Light-only permanen (Q4): jangan tambah `@media (prefers-color-scheme: dark)`. Q25: `font: inherit` wajib di `@layer base`. Satu langkah = satu jenis perubahan; **jangan** migrasi 2 berkas per putaran.
 - **Jebakan:** `Select-String -Path "src\**\*.tsx"` tidak rekursif (hanya 38 berkas → 470, bukan 904) — pakai perintah rekursif; salah ambil angka baseline. Tes kontras gagal → perbaiki di sumber, bukan mematikan tes; `engagement.ts` terlarang (A7). `text-xs` disapu rata ke label grafik → label bertumpuk. Nav diubah di sini → E2E patah; struktur nav **hanya** di TASK-05.
 - **Jebakan `--text-soft`:** token ini **TIDAK ADA** di `src/index.css` meski TASK-04 §4 memetakan `text-gray-400` ke sana. G2-02: **JANGAN** buat `text-soft` baru (nilai gray-400 = 2,49:1, gagal ambang non-teks 3:1). Sapu `text-gray-400` → `--text-muted`.
-- **Verifikasi:** perintah standar §0 + penghitung: `(Get-ChildItem -Recurse src -Include *.tsx -File | Select-String -Pattern "bg-white|bg-gray-|text-gray-|border-gray-").Count` — baseline terukur saat ini **889**, target ≤190.
+- **Verifikasi:** perintah standar §0 + penghitung rigor `.design-audit/g2-02-sweep.mjs --dry <berkas>`
+  (harus **0 diganti · 0 sisa**, artinya sapu idempoten). **JANGAN** memakai
+  `Select-String -Pattern "bg-white|bg-gray-|text-gray-|border-gray-"`: pola itu hanya melihat 4 dari
+  23 keluarga palet dan menghitung **baris**, bukan kelas — angka 889 yang dihasilkannya menyesatkan
+  (baseline sebenarnya 2976).
 
 ## TASK-05 — Rombak keuangan (4 tab → 1 layar)
 

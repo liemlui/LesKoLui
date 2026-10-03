@@ -130,107 +130,107 @@ export default function SessionDetailModal({
   );
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Detail Sesi" className={`fixed inset-0 bg-black/50 ${Z.picker} flex items-end justify-center`} onClick={() => { setDetailSession(null); setShowDeletePin(false); setDeletePinInput(""); setDeletePinError(""); }}>
-      <div className="bg-white w-full max-w-md rounded-t-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+    <div role="dialog" aria-modal="true" aria-label="Detail Sesi" className={`fixed inset-0 bg-[var(--scrim)]/50 ${Z.picker} flex items-end justify-center`} onClick={() => { setDetailSession(null); setShowDeletePin(false); setDeletePinInput(""); setDeletePinError(""); }}>
+      <div className="bg-[var(--surface-strong)] w-full max-w-md rounded-t-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
           <div>
             <h3 className="font-bold text-base">{(s.subjects ?? []).join(", ") || "Sesi umum"}</h3>
-            <p className="text-xs text-gray-500 mt-0.5">{dayLabel(s.date)}</p>
+            <p className="text-xs text-[var(--ink-muted)] mt-0.5">{dayLabel(s.date)}</p>
           </div>
-          <button onClick={() => setDetailSession(null)} aria-label="Tutup" className="text-gray-500 text-xl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+          <button onClick={() => setDetailSession(null)} aria-label="Tutup" className="text-[var(--ink-muted)] text-xl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
         </div>
 
         <div className="p-5 space-y-4">
           {/* Waktu & durasi */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-blue-50 rounded-xl p-3">
-              <p className="text-xs text-blue-500 font-medium">Waktu</p>
-              <p className="text-sm font-bold text-blue-800 mt-0.5">
+            <div className="bg-[var(--brand-tint)] rounded-xl p-3">
+              <p className="text-xs text-[var(--ink-brand)] font-medium">Waktu</p>
+              <p className="text-sm font-bold text-[var(--ink-brand)] mt-0.5">
                 {s.timeIn && s.timeOut ? `${s.timeIn} — ${s.timeOut}` : s.time ?? "—"}
               </p>
             </div>
-            <div className="bg-indigo-50 rounded-xl p-3">
-              <p className="text-xs text-indigo-500 font-medium">Durasi</p>
-              <p className="text-sm font-bold text-indigo-800 mt-0.5">{s.durationHours} jam</p>
+            <div className="bg-[var(--accent-tint)] rounded-xl p-3">
+              <p className="text-xs text-[var(--ink-accent)] font-medium">Durasi</p>
+              <p className="text-sm font-bold text-[var(--ink-accent)] mt-0.5">{s.durationHours} jam</p>
             </div>
           </div>
 
           {/* Status + mood */}
           <div className="flex gap-2 flex-wrap">
-            <span className={`text-xs px-3 py-1 rounded-full font-semibold ${s.status === "DONE" ? "bg-green-50 text-green-600" : s.status === "CANCELLED" ? "bg-red-50 text-red-500" : "bg-blue-50 text-blue-600"}`}>
+            <span className={`text-xs px-3 py-1 rounded-full font-semibold ${s.status === "DONE" ? "bg-[var(--bg-success)] text-[var(--ink-success)]" : s.status === "CANCELLED" ? "bg-[var(--bg-danger)] text-[var(--ink-danger)]" : "bg-[var(--brand-tint)] text-[var(--ink-brand)]"}`}>
               {s.status === "DONE" ? "✓ Selesai" : s.status === "CANCELLED" ? "✗ Dibatalkan" : "Terjadwal"}
             </span>
-            {s.mood && <span className="text-xs px-3 py-1 rounded-full bg-orange-50 text-orange-600 font-medium">Suasana: {s.mood}</span>}
+            {s.mood && <span className="text-xs px-3 py-1 rounded-full bg-[var(--bg-attention)] text-[var(--ink-attention)] font-medium">Suasana: {s.mood}</span>}
             {eng?.level && (
-              <span className="text-xs px-3 py-1 rounded-full bg-slate-100 text-slate-700 font-medium">
+              <span className="text-xs px-3 py-1 rounded-full bg-[var(--bg-subtle)] text-[var(--ink-strong)] font-medium">
                 {ENGAGEMENT_LEVELS.find((l) => l.value === eng.level)?.icon}{" "}
                 {ENGAGEMENT_LEVELS.find((l) => l.value === eng.level)?.label ?? eng.level}
               </span>
             )}
             {eng && eng.scoreBasis !== "none" && (
-              <span className="text-xs px-3 py-1 rounded-full bg-purple-50 text-purple-600 font-semibold">Skor {eng.score}/10</span>
+              <span className="text-xs px-3 py-1 rounded-full bg-[var(--accent-tint)] text-[var(--ink-purple)] font-semibold">Skor {eng.score}/10</span>
             )}
           </div>
 
           {/* Catatan */}
           {s.shortNote && (
-            <div className="bg-gray-50 rounded-xl p-3">
-              <p className="text-xs text-gray-500 font-medium mb-1">Catatan</p>
-              <p className="text-sm text-gray-700 italic">"{s.shortNote}"</p>
+            <div className="bg-[var(--surface)] rounded-xl p-3">
+              <p className="text-xs text-[var(--ink-muted)] font-medium mb-1">Catatan</p>
+              <p className="text-sm text-[var(--ink-strong)] italic">"{s.shortNote}"</p>
             </div>
           )}
 
           {/* Situasi hari ini — konteks humanis */}
           {s.situasiNote && (
-            <div className="bg-teal-50 rounded-xl p-3">
-              <p className="text-xs text-teal-500 font-medium mb-1">🫶 Situasi hari ini</p>
-              <p className="text-sm text-teal-800">{s.situasiNote}</p>
+            <div className="bg-[var(--bg-success)] rounded-xl p-3">
+              <p className="text-xs text-[var(--ink-success)] font-medium mb-1">🫶 Situasi hari ini</p>
+              <p className="text-sm text-[var(--ink-success)]">{s.situasiNote}</p>
             </div>
           )}
 
           {/* Topik */}
           {s.topic && (
             <div>
-              <p className="text-xs text-gray-500 font-medium mb-1">Topik</p>
-              <p className="text-sm text-gray-700">{s.topic}</p>
-              {s.topicUnit && <p className="text-xs text-gray-500 mt-0.5">📚 {s.topicUnit}</p>}
+              <p className="text-xs text-[var(--ink-muted)] font-medium mb-1">Topik</p>
+              <p className="text-sm text-[var(--ink-strong)]">{s.topic}</p>
+              {s.topicUnit && <p className="text-xs text-[var(--ink-muted)] mt-0.5">📚 {s.topicUnit}</p>}
             </div>
           )}
 
           {/* Nilai: prediksi → aktual + refleksi */}
           {(s.predictedGrade || s.actualGrade) && (
-            <div className="bg-amber-50 rounded-xl p-3 space-y-1.5">
-              <p className="text-xs text-amber-500 font-medium">Nilai</p>
+            <div className="bg-[var(--bg-warn)] rounded-xl p-3 space-y-1.5">
+              <p className="text-xs text-[var(--ink-warn)] font-medium">Nilai</p>
               <div className="flex flex-wrap gap-2">
                 {s.predictedGrade && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-white text-amber-700 font-semibold">📈 Prediksi: {s.predictedGrade}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--surface-strong)] text-[var(--ink-warn)] font-semibold">📈 Prediksi: {s.predictedGrade}</span>
                 )}
                 {s.actualGrade && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-white text-amber-800 font-semibold">✅ Akhir: {s.actualGrade}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--surface-strong)] text-[var(--ink-warn)] font-semibold">✅ Akhir: {s.actualGrade}</span>
                 )}
               </div>
               {s.gradeReflection && (
-                <p className="text-xs text-amber-700 leading-relaxed">💭 Refleksi: {s.gradeReflection}</p>
+                <p className="text-xs text-[var(--ink-warn)] leading-relaxed">💭 Refleksi: {s.gradeReflection}</p>
               )}
             </div>
           )}
 
           {/* Biaya */}
           {s.cost > 0 && (
-            <div className="bg-green-50 rounded-xl p-3">
-              <p className="text-xs text-green-500 font-medium">Biaya Sesi</p>
-              <p className="text-sm font-bold text-green-800 mt-0.5">{formatRupiah(s.cost)}</p>
+            <div className="bg-[var(--bg-success)] rounded-xl p-3">
+              <p className="text-xs text-[var(--ink-success)] font-medium">Biaya Sesi</p>
+              <p className="text-sm font-bold text-[var(--ink-success)] mt-0.5">{formatRupiah(s.cost)}</p>
             </div>
           )}
 
           {/* ── Kondisi sesi: SEMUA indikator + tag (audit P2 #16) ── */}
           {(eng || (s.behaviorTags && s.behaviorTags.length > 0) || s.responseTag) && (
-            <div className="bg-purple-50 rounded-xl p-3 space-y-2">
+            <div className="bg-[var(--accent-tint)] rounded-xl p-3 space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs text-purple-500 font-medium">Kondisi &amp; observasi sesi</p>
+                <p className="text-xs text-[var(--ink-purple)] font-medium">Kondisi &amp; observasi sesi</p>
                 {onUpdateSession && !editing && (
                   <button type="button" onClick={startEditing}
-                    className="text-xs font-semibold text-purple-700 underline underline-offset-2 hover:text-purple-900">
+                    className="text-xs font-semibold text-[var(--ink-purple)] underline underline-offset-2 hover:text-[var(--ink-purple)]">
                     ✏️ Koreksi
                   </button>
                 )}
@@ -241,13 +241,13 @@ export default function SessionDetailModal({
                   {activeFlags.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
                       {activeFlags.map((f) => (
-                        <span key={f.key} className={`text-xs px-2 py-0.5 rounded-full bg-white ${f.positive ? "text-green-600" : "text-orange-600"}`}>
+                        <span key={f.key} className={`text-xs px-2 py-0.5 rounded-full bg-[var(--surface-strong)] ${f.positive ? "text-[var(--ink-success)]" : "text-[var(--ink-attention)]"}`}>
                           {f.label}
                         </span>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-[var(--ink-muted)]">
                       {eng?.scoreBasis === "none"
                         ? "Tidak ada pengamatan kondisi pada sesi ini — skor tidak dihitung."
                         : "Tidak ada indikator perilaku yang ditandai."}
@@ -255,13 +255,13 @@ export default function SessionDetailModal({
                   )}
                   {(s.behaviorTags ?? []).length > 0 && (
                     <div>
-                      <p className="text-xs text-gray-500 font-medium mb-1">Observasi lanjutan</p>
+                      <p className="text-xs text-[var(--ink-muted)] font-medium mb-1">Observasi lanjutan</p>
                       <div className="flex flex-wrap gap-1">
                         {(s.behaviorTags ?? []).map((id) => {
                           const t = BEHAVIOR_TAGS.find((x) => x.id === id);
                           if (!t) return null;
-                          const color = t.valence === "positive" ? "bg-green-100 text-green-700"
-                            : t.valence === "negative" ? "bg-red-100 text-red-600" : "bg-gray-100 text-gray-600";
+                          const color = t.valence === "positive" ? "bg-[var(--bg-success)] text-[var(--ink-success)]"
+                            : t.valence === "negative" ? "bg-[var(--bg-danger)] text-[var(--ink-danger)]" : "bg-[var(--bg-subtle)] text-[var(--ink-muted)]";
                           return <span key={id} className={`text-xs px-2 py-0.5 rounded-full ${color}`}>{t.icon} {t.label}</span>;
                         })}
                       </div>
@@ -271,8 +271,8 @@ export default function SessionDetailModal({
                     const t = getResponseTag(s.responseTag);
                     return t ? (
                       <div>
-                        <p className="text-xs text-gray-500 font-medium mb-1">Respons akademik</p>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-white text-blue-700">{t.icon} {t.label}</span>
+                        <p className="text-xs text-[var(--ink-muted)] font-medium mb-1">Respons akademik</p>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--surface-strong)] text-[var(--ink-brand)]">{t.icon} {t.label}</span>
                       </div>
                     ) : null;
                   })()}
@@ -281,7 +281,7 @@ export default function SessionDetailModal({
                 <div className="space-y-3">
                   {/* Indikator */}
                   <div>
-                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Indikator</p>
+                    <p className="text-xs font-semibold text-[var(--ink-muted)] uppercase tracking-wide mb-1.5">Indikator</p>
                     <div className="flex flex-wrap gap-1.5">
                       {FLAG_LABELS.map((f) => {
                         const active = draftFlags.includes(f.key);
@@ -291,8 +291,8 @@ export default function SessionDetailModal({
                             onClick={() => toggleDraftFlag(f.key)}
                             className={`rounded-full border px-2.5 py-1.5 text-xs font-medium transition-colors ${
                               active
-                                ? f.positive ? "border-green-600 bg-green-600 text-white" : "border-rose-600 bg-rose-600 text-white"
-                                : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"
+                                ? f.positive ? "border-[var(--border-success)] bg-[var(--bg-success-strong)] text-[var(--on-strong)]" : "border-[var(--border-danger)] bg-[var(--bg-danger-strong)] text-[var(--on-strong)]"
+                                : "border-[var(--border)] bg-[var(--surface-strong)] text-[var(--ink-muted)] hover:border-[var(--border-strong)]"
                             }`}>
                             {f.label}
                           </button>
@@ -303,7 +303,7 @@ export default function SessionDetailModal({
 
                   {/* Observasi lanjutan */}
                   <div>
-                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Observasi lanjutan</p>
+                    <p className="text-xs font-semibold text-[var(--ink-muted)] uppercase tracking-wide mb-1.5">Observasi lanjutan</p>
                     <div className="flex flex-wrap gap-1.5">
                       {BEHAVIOR_TAGS.map((t) => {
                         const active = draftTags.includes(t.id);
@@ -312,7 +312,7 @@ export default function SessionDetailModal({
                             aria-pressed={active}
                             onClick={() => toggleDraftTag(t.id)}
                             className={`rounded-full border px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                              active ? "border-purple-600 bg-purple-600 text-white" : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"
+                              active ? "border-[var(--border-accent)] bg-[var(--accent-solid)] text-[var(--on-strong)]" : "border-[var(--border)] bg-[var(--surface-strong)] text-[var(--ink-muted)] hover:border-[var(--border-strong)]"
                             }`}>
                             {t.icon} {t.label}
                           </button>
@@ -323,7 +323,7 @@ export default function SessionDetailModal({
 
                   {/* Respons akademik */}
                   <div>
-                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Respons akademik</p>
+                    <p className="text-xs font-semibold text-[var(--ink-muted)] uppercase tracking-wide mb-1.5">Respons akademik</p>
                     <div className="flex flex-wrap gap-1.5">
                       {RESPONSE_TAGS.map((t) => {
                         const active = draftResponse === t.id;
@@ -332,7 +332,7 @@ export default function SessionDetailModal({
                             aria-pressed={active}
                             onClick={() => setDraftResponse(active ? undefined : t.id)}
                             className={`rounded-full border px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                              active ? "border-blue-600 bg-blue-600 text-white" : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"
+                              active ? "border-[var(--border-brand)] bg-[var(--brand-solid)] text-[var(--on-strong)]" : "border-[var(--border)] bg-[var(--surface-strong)] text-[var(--ink-muted)] hover:border-[var(--border-strong)]"
                             }`}>
                             {t.icon} {t.label}
                           </button>
@@ -344,7 +344,7 @@ export default function SessionDetailModal({
                   {/* Kondisi umum + suasana */}
                   <div className="grid gap-2">
                     <div>
-                      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Kondisi les</p>
+                      <p className="text-xs font-semibold text-[var(--ink-muted)] uppercase tracking-wide mb-1.5">Kondisi les</p>
                       <div className="flex flex-wrap gap-1.5">
                         {ENGAGEMENT_LEVELS.map((opt) => (
                           <button key={opt.value} type="button"
@@ -359,14 +359,14 @@ export default function SessionDetailModal({
                       </div>
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Suasana hati</p>
+                      <p className="text-xs font-semibold text-[var(--ink-muted)] uppercase tracking-wide mb-1.5">Suasana hati</p>
                       <div className="flex flex-wrap gap-1.5">
                         {MOODS.map((m) => (
                           <button key={m.v} type="button"
                             aria-pressed={draftMood === m.v}
                             onClick={() => setDraftMood(draftMood === m.v ? undefined : m.v)}
                             className={`rounded-full border px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                              draftMood === m.v ? "border-indigo-600 bg-indigo-600 text-white" : "border-gray-200 bg-white text-gray-600 hover:border-indigo-300"
+                              draftMood === m.v ? "border-[var(--border-accent)] bg-[var(--accent-solid)] text-[var(--on-strong)]" : "border-[var(--border)] bg-[var(--surface-strong)] text-[var(--ink-muted)] hover:border-[var(--border-accent)]"
                             }`}>
                             {m.icon} {m.v}
                           </button>
@@ -377,20 +377,20 @@ export default function SessionDetailModal({
 
                   <div className="flex gap-2">
                     <button type="button" onClick={() => setEditing(false)} disabled={saving}
-                      className="flex-1 rounded-xl bg-gray-100 py-2 text-sm font-semibold text-gray-600 disabled:opacity-50">
+                      className="flex-1 rounded-xl bg-[var(--bg-subtle)] py-2 text-sm font-semibold text-[var(--ink-muted)] disabled:opacity-50">
                       Batal
                     </button>
                     <button type="button" onClick={() => void saveCorrections()} disabled={saving}
-                      className="flex-1 rounded-xl bg-purple-600 py-2 text-sm font-semibold text-white disabled:opacity-50">
+                      className="flex-1 rounded-xl bg-[var(--accent-solid)] py-2 text-sm font-semibold text-[var(--on-strong)] disabled:opacity-50">
                       {saving ? "Menyimpan…" : "Simpan koreksi"}
                     </button>
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-[var(--ink-muted)]">
                     Skor dihitung ulang dari koreksi ini. Bila semua pengamatan dikosongkan, skor menjadi
                     0 dan sesi ini tidak lagi ikut rata-rata.
                   </p>
                   {eng?.score != null && !editing && (
-                    <p className="text-xs text-gray-500">Skor tersimpan saat ini: {scoreLabel(eng.score).text} ({eng.score}/10)</p>
+                    <p className="text-xs text-[var(--ink-muted)]">Skor tersimpan saat ini: {scoreLabel(eng.score).text} ({eng.score}/10)</p>
                   )}
                 </div>
               )}
@@ -400,7 +400,7 @@ export default function SessionDetailModal({
           {/* Foto */}
           {photoUrl && (
             <div>
-              <p className="text-xs text-gray-500 font-medium mb-1">Foto Sesi</p>
+              <p className="text-xs text-[var(--ink-muted)] font-medium mb-1">Foto Sesi</p>
               <img src={photoUrl} alt="foto sesi" className="w-full max-h-48 object-cover rounded-xl" />
             </div>
           )}
@@ -408,8 +408,8 @@ export default function SessionDetailModal({
           {/* Tanda tangan */}
           {sigUrl && (
             <div>
-              <p className="text-xs text-gray-500 font-medium mb-1">Tanda Tangan Murid</p>
-              <div className="border border-gray-200 rounded-xl bg-gray-50 p-3 flex items-center justify-center">
+              <p className="text-xs text-[var(--ink-muted)] font-medium mb-1">Tanda Tangan Murid</p>
+              <div className="border border-[var(--border)] rounded-xl bg-[var(--surface)] p-3 flex items-center justify-center">
                 <img src={sigUrl} alt="TTD murid" className="max-h-20 object-contain" />
               </div>
             </div>
@@ -419,7 +419,7 @@ export default function SessionDetailModal({
           {s.status === "DONE" && (
             <button
               onClick={(e) => { e.stopPropagation(); setDetailSession(null); openEditNote(s); }}
-              className="w-full py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors">
+              className="w-full py-2.5 rounded-xl border border-[var(--border)] text-[var(--ink-muted)] text-sm font-medium hover:bg-[var(--surface)] transition-colors">
               ✏️ Edit Catatan &amp; Nilai Sesi
             </button>
           )}
@@ -428,12 +428,12 @@ export default function SessionDetailModal({
           {!showDeletePin ? (
             <button
               onClick={() => setShowDeletePin(true)}
-              className="w-full py-2.5 rounded-xl border border-red-200 text-red-500 text-sm font-medium hover:bg-red-50 transition-colors">
+              className="w-full py-2.5 rounded-xl border border-[var(--border-danger)] text-[var(--ink-danger)] text-sm font-medium hover:bg-[var(--bg-danger)] transition-colors">
               🗑️ Hapus Sesi
             </button>
           ) : (
-            <div className="space-y-2 border border-red-200 rounded-xl p-3 bg-red-50">
-              <p className="text-xs text-red-600 font-semibold">Hapus sesi ini? Tidak bisa dibatalkan.</p>
+            <div className="space-y-2 border border-[var(--border-danger)] rounded-xl p-3 bg-[var(--bg-danger)]">
+              <p className="text-xs text-[var(--ink-danger)] font-semibold">Hapus sesi ini? Tidak bisa dibatalkan.</p>
               {settings?.financialPin ? (
                 <>
                   <input
@@ -444,23 +444,23 @@ export default function SessionDetailModal({
                     className="input text-center tracking-widest text-base w-full"
                     autoFocus
                   />
-                  {deletePinError && <p className="text-xs text-red-500">{deletePinError}</p>}
+                  {deletePinError && <p className="text-xs text-[var(--ink-danger)]">{deletePinError}</p>}
                 </>
               ) : (
-                <div className="rounded-lg bg-white/70 p-2.5 text-xs text-red-700">
+                <div className="rounded-lg bg-[var(--surface-strong)]/70 p-2.5 text-xs text-[var(--ink-danger)]">
                   <p>Atur PIN Keuangan terlebih dahulu agar penghapusan sesi tetap aman.</p>
                   <button type="button" onClick={openSettings}
-                    className="mt-2 font-semibold text-blue-600 hover:underline">Atur PIN Keuangan</button>
+                    className="mt-2 font-semibold text-[var(--ink-brand)] hover:underline">Atur PIN Keuangan</button>
                 </div>
               )}
               <div className="flex gap-2">
                 <button onClick={() => { setShowDeletePin(false); setDeletePinInput(""); setDeletePinError(""); }}
-                  className="flex-1 py-2 rounded-xl bg-gray-100 text-gray-600 text-sm font-semibold">
+                  className="flex-1 py-2 rounded-xl bg-[var(--bg-subtle)] text-[var(--ink-muted)] text-sm font-semibold">
                   Batal
                 </button>
                 {settings?.financialPin && (
                   <button onClick={handleDeleteSession}
-                    className="flex-1 py-2 rounded-xl bg-red-500 text-white text-sm font-semibold">
+                    className="flex-1 py-2 rounded-xl bg-[var(--bg-danger-strong)] text-[var(--on-strong)] text-sm font-semibold">
                     Hapus
                   </button>
                 )}

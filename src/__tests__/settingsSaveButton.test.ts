@@ -8,10 +8,12 @@ describe("saveButtonState (audit V-02)", () => {
     const s = saveButtonState(false, false);
     expect(s.disabled).toBe(true);
     expect(s.label).toBe("Tersimpan ✓");
-    // Kontras teks non-dirty: slate-700 (≥4.5:1), bukan gray-500 (~3.0:1).
-    expect(s.className).toContain("text-slate-700");
-    expect(s.className).not.toContain("text-gray-500");
-    expect(s.className).not.toContain("bg-blue-600");
+    // Kontras teks non-dirty: --ink-strong (≈4.6:1 di atas --bg-subtle), bukan
+    // --ink-muted yang hanya ≈3,0:1 pada latar itu. Nama token menggantikan
+    // kelas literal `text-slate-700` / `text-gray-500` pada sapu G2-02.
+    expect(s.className).toContain("text-[var(--ink-strong)]");
+    expect(s.className).not.toContain("text-[var(--ink-muted)]");
+    expect(s.className).not.toContain("bg-[var(--brand-solid)]");
     expect(s.className).toContain("disabled:opacity-60");
   });
 
@@ -19,7 +21,7 @@ describe("saveButtonState (audit V-02)", () => {
     const s = saveButtonState(true, false);
     expect(s.disabled).toBe(false);
     expect(s.label).toBe("Simpan Pengaturan");
-    expect(s.className).toContain("bg-blue-600");
+    expect(s.className).toContain("bg-[var(--brand-solid)]");
     expect(s.className).not.toContain("disabled:opacity-60");
   });
 

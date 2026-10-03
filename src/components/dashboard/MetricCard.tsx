@@ -1,19 +1,19 @@
 type Tone = "blue" | "green" | "amber" | "red" | "slate";
 
 const TONE: Record<Tone, string> = {
-  blue: "bg-blue-50 border-blue-100 text-blue-700",
-  green: "bg-green-50 border-green-100 text-green-700",
-  amber: "bg-amber-50 border-amber-100 text-amber-700",
-  red: "bg-red-50 border-red-100 text-red-700",
-  slate: "bg-slate-50 border-slate-200 text-slate-700",
+  blue: "bg-[var(--brand-tint)] border-[var(--brand-tint-strong)] text-[var(--ink-brand)]",
+  green: "bg-[var(--bg-success)] border-[var(--border-success)] text-[var(--ink-success)]",
+  amber: "bg-[var(--bg-warn)] border-[var(--border-warn)] text-[var(--ink-warn)]",
+  red: "bg-[var(--bg-danger)] border-[var(--border-danger)] text-[var(--ink-danger)]",
+  slate: "bg-[var(--surface)] border-[var(--border)] text-[var(--ink-strong)]",
 };
 
 const TONE_ACTION: Record<Tone, string> = {
-  blue: "text-blue-700",
-  green: "text-green-700",
-  amber: "text-amber-700",
-  red: "text-red-700",
-  slate: "text-slate-600",
+  blue: "text-[var(--ink-brand)]",
+  green: "text-[var(--ink-success)]",
+  amber: "text-[var(--ink-warn)]",
+  red: "text-[var(--ink-danger)]",
+  slate: "text-[var(--ink-muted)]",
 };
 
 const TONE_LEFT_BAR: Record<Tone, string> = {
@@ -43,11 +43,11 @@ export default function MetricCard({ label, value, description, icon, tone = "sl
   const content = (
     <>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-600">{label}</p>
+        <p className="text-[12px] font-semibold uppercase tracking-wide text-[var(--ink-muted)]">{label}</p>
         {icon && <span aria-hidden="true" className="text-sm leading-none">{icon}</span>}
       </div>
-      <p className="mt-1 text-xl font-bold leading-none text-slate-800">{value}</p>
-      <p className="mt-1.5 text-[12px] leading-snug text-slate-600">{description}</p>
+      <p className="mt-1 text-xl font-bold leading-none text-[var(--ink-strong)]">{value}</p>
+      <p className="mt-1.5 text-[12px] leading-snug text-[var(--ink-muted)]">{description}</p>
       {action && (
         <p className={`mt-2 text-[12px] font-semibold flex items-center gap-1 ${TONE_ACTION[tone]}`}>
           {action}

@@ -67,15 +67,15 @@ export default function Breadcrumb({ crumbs, resolveNames }: Props) {
           const isLast = i === autoCrumbs.length - 1;
           return (
             <li key={i} className="flex items-center gap-1">
-              {i > 0 && <span className="text-slate-300 select-none">›</span>}
+              {i > 0 && <span className="text-[var(--ink-muted)] select-none">›</span>}
               {crumb.path && !isLast ? (
                 <Link
                   to={crumb.path}
-                  className="text-slate-500 hover:text-blue-600 transition-colors truncate max-w-[120px]">
+                  className="text-[var(--ink-muted)] hover:text-[var(--ink-brand)] transition-colors truncate max-w-[120px]">
                   {crumb.label}
                 </Link>
               ) : (
-                <span className={`truncate max-w-[140px] ${isLast ? "text-slate-700 font-bold" : "text-slate-500"}`}>
+                <span className={`truncate max-w-[140px] ${isLast ? "text-[var(--ink-strong)] font-bold" : "text-[var(--ink-muted)]"}`}>
                   {crumb.label}
                 </span>
               )}

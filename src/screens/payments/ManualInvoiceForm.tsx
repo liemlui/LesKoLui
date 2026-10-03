@@ -26,8 +26,8 @@ export default function ManualInvoiceForm({
   };
 
   return (
-    <div className="rounded-xl bg-gray-50 p-4">
-      <button type="button" onClick={toggle} className="flex w-full items-center justify-between text-sm font-semibold text-gray-600">
+    <div className="rounded-xl bg-[var(--surface)] p-4">
+      <button type="button" onClick={toggle} className="flex w-full items-center justify-between text-sm font-semibold text-[var(--ink-muted)]">
         <span>+ Tagihan Manual (di luar tutup bulan)</span>
         <span>{open ? "▾" : "▸"}</span>
       </button>
@@ -38,7 +38,7 @@ export default function ManualInvoiceForm({
             {students.filter((student) => student.active).map((student) => <option key={student.id} value={student.id}>{student.name}</option>)}
           </select>
           <div>
-            <label htmlFor="manual-invoice-month" className="mb-1 block text-xs font-medium text-gray-600">Bulan tagihan</label>
+            <label htmlFor="manual-invoice-month" className="mb-1 block text-xs font-medium text-[var(--ink-muted)]">Bulan tagihan</label>
             <input id="manual-invoice-month" className="input" type="month" value={selectedMonth} onChange={(event) => onMonthChange(event.target.value)} />
           </div>
           <input className="input" type="number" placeholder="Total biaya (IDR)" value={totalCost || ""} min={1} max={MAX_PAYMENT_AMOUNT}

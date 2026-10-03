@@ -101,8 +101,8 @@ export default function BarChart({
 
   if (labels.length === 0 || series.length === 0) {
     return (
-      <div className="flex items-center justify-center rounded-xl bg-slate-50 border border-slate-100" style={{ height }}>
-        <p className="text-sm text-slate-400">{emptyLabel}</p>
+      <div className="flex items-center justify-center rounded-xl bg-[var(--surface)] border border-[var(--border)]" style={{ height }}>
+        <p className="text-sm text-[var(--ink-muted)]">{emptyLabel}</p>
       </div>
     );
   }
@@ -117,8 +117,8 @@ export default function BarChart({
               onClick={() => onRangeChange(r)}
               className={`text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors ${
                 range === r
-                  ? "bg-blue-100 text-blue-700"
-                  : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                  ? "bg-[var(--brand-tint-strong)] text-[var(--ink-brand)]"
+                  : "text-[var(--ink-muted)] hover:text-[var(--ink-muted)] hover:bg-[var(--bg-subtle)]"
               }`}>
               {r === "daily" ? "Harian" : r === "weekly" ? "Mingguan" : "Bulanan"}
             </button>
@@ -138,7 +138,7 @@ export default function BarChart({
                 <line x1={padding.left} x2={chartW - padding.right} y1={y} y2={y}
                   stroke="#e2e8f0" strokeWidth={i === 0 ? 1 : 0.5} />
                 <text x={padding.left - 6} y={y + 4} textAnchor="end"
-                  className="text-[10px] fill-slate-400" fontFamily="system-ui">{formatValue(val)}</text>
+                  className="text-[10px] fill-[var(--border-strong)]" fontFamily="system-ui">{formatValue(val)}</text>
               </g>
             );
           })}
@@ -198,7 +198,7 @@ export default function BarChart({
                 {/* X-axis label */}
                 {showAxes && (
                   <text x={x + barWidth / 2} y={chartH - 6} textAnchor="middle"
-                    className="text-[10px] fill-slate-400" fontFamily="system-ui">
+                    className="text-[10px] fill-[var(--border-strong)]" fontFamily="system-ui">
                     {label.length > 6 ? label.slice(0, 5) + "…" : label}
                   </text>
                 )}
@@ -217,7 +217,7 @@ export default function BarChart({
         {/* Tooltip overlay */}
         {tooltip && (
           <div
-            className="absolute pointer-events-none bg-gray-800 text-white text-xs font-semibold px-2 py-1 rounded-lg shadow-lg whitespace-nowrap z-10"
+            className="absolute pointer-events-none bg-[var(--surface-inverse)] text-[var(--on-strong)] text-xs font-semibold px-2 py-1 rounded-lg shadow-lg whitespace-nowrap z-10"
             style={{ left: tooltip.x, top: tooltip.y, transform: "translate(-50%, -100%)" }}>
             {tooltip.text}
           </div>

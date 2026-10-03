@@ -52,22 +52,22 @@ export default function InvoiceModal({
   const monthStr = periodLbl || `${MONTH_NAMES[mo - 1]} ${y}`;
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Invoice Profesional" className={`fixed inset-0 bg-black/60 ${Z.invoice} flex items-end justify-center px-0`}>
-      <div className="w-full max-w-md bg-white rounded-t-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+    <div role="dialog" aria-modal="true" aria-label="Invoice Profesional" className={`fixed inset-0 bg-[var(--scrim)]/60 ${Z.invoice} flex items-end justify-center px-0`}>
+      <div className="w-full max-w-md bg-[var(--surface-strong)] rounded-t-2xl overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
           <h3 className="font-bold text-base">Invoice Profesional</h3>
           <div className="flex gap-2">
             <button onClick={onExport} disabled={exporting || sessionsLoading}
-              className="bg-indigo-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
+              className="bg-[var(--accent-solid)] text-[var(--on-strong)] text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
               {sessionsLoading ? "Memuat..." : exporting ? "Ekspor..." : "📥 PDF"}
             </button>
-            <button aria-label="Tutup" onClick={onClose} className="text-gray-500 hover:text-gray-600 text-lg w-10 h-10 flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+            <button aria-label="Tutup" onClick={onClose} className="text-[var(--ink-muted)] hover:text-[var(--ink-muted)] text-lg w-10 h-10 flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
           </div>
         </div>
 
         <div className="overflow-y-auto max-h-[75vh] p-4">
           {sessionsLoading ? (
-            <p role="status" className="py-12 text-center text-sm text-gray-500">Memuat sesi invoice...</p>
+            <p role="status" className="py-12 text-center text-sm text-[var(--ink-muted)]">Memuat sesi invoice...</p>
           ) : (
             <>
               <div style={{ position: "absolute", left: -9999, top: 0, pointerEvents: "none" }}>
@@ -145,7 +145,7 @@ function InvoiceContent({
           <div className="mt-2 flex flex-col gap-2">
             <button
               onClick={onOpenReport}
-              className="w-full py-2 rounded-lg border border-blue-200 text-blue-700 text-xs font-semibold hover:bg-blue-50 transition-colors"
+              className="w-full py-2 rounded-lg border border-[var(--brand-tint-strong)] text-[var(--ink-brand)] text-xs font-semibold hover:bg-[var(--brand-tint)] transition-colors"
             >
               📋 Buka Laporan Perkembangan
             </button>
@@ -157,7 +157,7 @@ function InvoiceContent({
         {showReportActions && !report && (
           <button
             onClick={onOpenReport}
-            className="mt-2 w-full py-2 rounded-lg border border-blue-200 text-blue-700 text-xs font-semibold hover:bg-blue-50 transition-colors"
+            className="mt-2 w-full py-2 rounded-lg border border-[var(--brand-tint-strong)] text-[var(--ink-brand)] text-xs font-semibold hover:bg-[var(--brand-tint)] transition-colors"
           >
             📋 Lengkapi Laporan Perkembangan
           </button>

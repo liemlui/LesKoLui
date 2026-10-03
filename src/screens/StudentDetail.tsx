@@ -428,12 +428,12 @@ export default function StudentDetail() {
       {/* Back — label menyebut tujuan spesifik, jadi arahkan eksplisit ke daftar
           murid (bukan history-back generik) agar cocok dibuka dari mana pun. */}
       <button onClick={() => navigate("/students")}
-        className="flex items-center gap-1.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-xl transition-colors">
+        className="flex items-center gap-1.5 text-sm font-medium text-[var(--ink-muted)] bg-[var(--bg-subtle)] hover:bg-[var(--bg-subtle)] px-3 py-2 rounded-xl transition-colors">
         ‹ Kembali ke Daftar Murid
       </button>
 
       {flash && (
-        <div className={`p-2 rounded-lg text-sm text-center font-medium ${flash.includes("✓") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
+        <div className={`p-2 rounded-lg text-sm text-center font-medium ${flash.includes("✓") ? "bg-[var(--bg-success)] text-[var(--ink-success)]" : "bg-[var(--bg-danger)] text-[var(--ink-danger)]"}`}>
           {flash}
         </div>
       )}
@@ -448,7 +448,7 @@ export default function StudentDetail() {
                 {CURRICULUM_META[student.curriculum].shortLabel}
               </span>
             ) : (
-              <span className="text-xs text-gray-500">{student.level}</span>
+              <span className="text-xs text-[var(--ink-muted)]">{student.level}</span>
             )}
           </div>
         </div>
@@ -460,15 +460,15 @@ export default function StudentDetail() {
       {/* Quick actions */}
       <div className="grid grid-cols-2 gap-2">
         <button onClick={() => navigate(`/capture?studentId=${encodeURIComponent(id ?? "")}`)}
-          className="flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 text-white text-sm font-semibold shadow-sm hover:bg-blue-700 transition-colors">
+          className="flex items-center justify-center gap-2 py-3 rounded-xl bg-[var(--brand-solid)] text-[var(--on-strong)] text-sm font-semibold shadow-sm hover:bg-[var(--brand-solid)] transition-colors">
           <span>📝</span> Catat Sesi
         </button>
         <button onClick={() => navigate(`/report?studentId=${id}`)}
-          className="flex items-center justify-center gap-2 py-3 rounded-xl bg-indigo-50 text-indigo-700 text-sm font-semibold border border-indigo-200 hover:bg-indigo-100 transition-colors">
+          className="flex items-center justify-center gap-2 py-3 rounded-xl bg-[var(--accent-tint)] text-[var(--ink-accent)] text-sm font-semibold border border-[var(--border-accent)] hover:bg-[var(--accent-tint)] transition-colors">
           <span>📊</span> Lihat Laporan
         </button>
         <button onClick={() => navigate(`/payments?tab=tagihan&studentId=${encodeURIComponent(id ?? "")}`)}
-          className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-green-50 text-green-700 text-sm font-semibold border border-green-200 hover:bg-green-100 transition-colors">
+          className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[var(--bg-success)] text-[var(--ink-success)] text-sm font-semibold border border-[var(--border-success)] hover:bg-[var(--bg-success)] transition-colors">
           <span>{studentBillingPolicy === "session_count" ? "🧾" : "💸"}</span>
           {studentBillingPolicy === "monthly"
             ? "Kelola Penagihan Bulanan"
@@ -477,7 +477,7 @@ export default function StudentDetail() {
               : "Buat Tagihan Manual"}
         </button>
         {studentBillingPolicy === "monthly" && (
-          <p className="col-span-2 text-xs text-gray-500 -mt-1">
+          <p className="col-span-2 text-xs text-[var(--ink-muted)] -mt-1">
             💡 Laporan perkembangan difinalkan di menu Laporan. Tagihan bulanan diterbitkan dan diperiksa terpisah melalui <strong>Keuangan → Penagihan</strong>.
           </p>
         )}
@@ -503,58 +503,58 @@ export default function StudentDetail() {
       <div role="tabpanel" id="student-panel-ringkasan" aria-labelledby="student-tab-ringkasan" hidden={detailTab !== "ringkasan"}>
       {detailTab === "ringkasan" && (<>
       {/* Info card */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-2">
-        <h2 className="font-semibold text-gray-700 text-sm mb-2">Info Murid</h2>
+      <div className="bg-[var(--surface-strong)] rounded-2xl p-4 shadow-sm border border-[var(--border)] space-y-2">
+        <h2 className="font-semibold text-[var(--ink-strong)] text-sm mb-2">Info Murid</h2>
         {student.school && (
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-500 w-28 flex-shrink-0">Sekolah</span>
-            <span className="text-gray-700 font-medium">{student.school}</span>
+            <span className="text-[var(--ink-muted)] w-28 flex-shrink-0">Sekolah</span>
+            <span className="text-[var(--ink-strong)] font-medium">{student.school}</span>
           </div>
         )}
         {student.grade && (
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-500 w-28 flex-shrink-0">Kelas</span>
-            <span className="text-gray-700 font-medium">{student.grade}</span>
+            <span className="text-[var(--ink-muted)] w-28 flex-shrink-0">Kelas</span>
+            <span className="text-[var(--ink-strong)] font-medium">{student.grade}</span>
           </div>
         )}
         {student.subjects.length > 0 && (
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-500 w-28 flex-shrink-0">Mapel</span>
-            <span className="text-gray-700 font-medium">{student.subjects.join(", ")}</span>
+            <span className="text-[var(--ink-muted)] w-28 flex-shrink-0">Mapel</span>
+            <span className="text-[var(--ink-strong)] font-medium">{student.subjects.join(", ")}</span>
           </div>
         )}
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-gray-500 w-28 flex-shrink-0">Orang Tua</span>
-          <span className="text-gray-700 font-medium">{student.parentContact.name || "—"}</span>
+          <span className="text-[var(--ink-muted)] w-28 flex-shrink-0">Orang Tua</span>
+          <span className="text-[var(--ink-strong)] font-medium">{student.parentContact.name || "—"}</span>
         </div>
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-gray-500 w-28 flex-shrink-0">WA Ortu</span>
+          <span className="text-[var(--ink-muted)] w-28 flex-shrink-0">WA Ortu</span>
           <a href={`https://wa.me/${student.parentContact.phone.replace(/^0/, "62").replace(/[^0-9]/g, "")}`}
             target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-green-600 font-medium hover:text-green-700">
+            className="flex items-center gap-1.5 text-[var(--ink-success)] font-medium hover:text-[var(--ink-success)]">
             <span>💬</span>{student.parentContact.phone}
           </a>
         </div>
         {student.studentPhone && (
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-500 w-28 flex-shrink-0">WA Murid</span>
+            <span className="text-[var(--ink-muted)] w-28 flex-shrink-0">WA Murid</span>
             <a href={`https://wa.me/${student.studentPhone.replace(/^0/, "62").replace(/[^0-9]/g, "")}`}
               target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-blue-600 font-medium hover:text-blue-700">
+              className="flex items-center gap-1.5 text-[var(--ink-brand)] font-medium hover:text-[var(--ink-brand)]">
               <span>💬</span>{student.studentPhone}
             </a>
           </div>
         )}
         {student.notes && (
           <div className="flex items-start gap-2 text-sm">
-            <span className="text-gray-500 w-28 flex-shrink-0">Catatan</span>
-            <span className="text-gray-700">{student.notes}</span>
+            <span className="text-[var(--ink-muted)] w-28 flex-shrink-0">Catatan</span>
+            <span className="text-[var(--ink-strong)]">{student.notes}</span>
           </div>
         )}
 
         {/* Tarif les — masked, unlock with PIN to reveal or edit */}
-        <div className="flex items-center gap-2 text-sm pt-1 border-t border-gray-50">
-          <span className="text-gray-500 w-28 flex-shrink-0">Tarif les</span>
+        <div className="flex items-center gap-2 text-sm pt-1 border-t border-[var(--border)]">
+          <span className="text-[var(--ink-muted)] w-28 flex-shrink-0">Tarif les</span>
           {rateUnlocked ? (
             showRateEdit ? (
               <div className="flex flex-1 flex-col gap-2">
@@ -563,19 +563,19 @@ export default function StudentDetail() {
                     onChange={(e) => setNewRate(clampCurrencyAmount(Number(e.target.value), MAX_HOURLY_RATE))}
                     placeholder={studentBillingPolicy === "session_count" ? "IDR/pertemuan" : "IDR/jam"} />
                   <button onClick={handleSaveRate} disabled={rateSaving}
-                    className="text-xs bg-blue-600 text-white px-2 py-1.5 rounded-lg font-semibold">
+                    className="text-xs bg-[var(--brand-solid)] text-[var(--on-strong)] px-2 py-1.5 rounded-lg font-semibold">
                     {rateSaving ? "..." : "Simpan"}
                   </button>
                   <button onClick={() => { setShowRateEdit(false); setRepriceUnbilledSessions(false); }}
-                    className="text-xs text-gray-500 px-1.5 py-1.5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                    className="text-xs text-[var(--ink-muted)] px-1.5 py-1.5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
                 </div>
                 {newRate !== student.hourlyRate && (unbilledCount ?? 0) > 0 && (
-                  <label className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs leading-relaxed text-amber-900">
+                  <label className="flex items-start gap-2 rounded-lg border border-[var(--border-warn)] bg-[var(--bg-warn)] p-2 text-xs leading-relaxed text-[var(--ink-warn)]">
                     <input
                       type="checkbox"
                       checked={repriceUnbilledSessions}
                       onChange={(event) => setRepriceUnbilledSessions(event.target.checked)}
-                      className="mt-0.5 h-4 w-4 flex-none accent-amber-600"
+                      className="mt-0.5 h-4 w-4 flex-none accent-[var(--border-warn)]"
                     />
                     <span>
                       Terapkan tarif baru ke {unbilledCount} sesi lama yang belum ditagih (retroaktif).
@@ -587,36 +587,36 @@ export default function StudentDetail() {
               </div>
             ) : (
               <div className="flex items-center gap-2 flex-1">
-                <span className="text-gray-700 font-medium">Rp {student.hourlyRate.toLocaleString("id-ID")}/{studentBillingPolicy === "session_count" ? "pertemuan" : "jam"}</span>
+                <span className="text-[var(--ink-strong)] font-medium">Rp {student.hourlyRate.toLocaleString("id-ID")}/{studentBillingPolicy === "session_count" ? "pertemuan" : "jam"}</span>
                 <button onClick={() => { setShowRateEdit(true); setNewRate(student.hourlyRate); }}
-                  className="ml-auto text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded-lg">✏️ Edit</button>
+                  className="ml-auto text-xs bg-[var(--bg-subtle)] hover:bg-[var(--bg-subtle)] text-[var(--ink-muted)] px-2 py-1 rounded-lg">✏️ Edit</button>
                 <button onClick={() => { setRateUnlocked(false); setRatePinInput(""); }}
-                  className="text-xs text-gray-500 px-1.5 py-1">🔒</button>
+                  className="text-xs text-[var(--ink-muted)] px-1.5 py-1">🔒</button>
               </div>
             )
           ) : (
             <div className="flex items-center gap-2 flex-1">
-              <span className="text-gray-500 tracking-widest text-base">•••••</span>
+              <span className="text-[var(--ink-muted)] tracking-widest text-base">•••••</span>
               {settings?.financialPin ? (
                 <div className="flex items-center gap-1.5 ml-auto">
                   <input type="password" inputMode="numeric" maxLength={6} placeholder="PIN"
                     value={ratePinInput} onChange={(e) => { setRatePinInput(e.target.value); setRatePinError(""); }}
-                    className="w-16 text-xs border border-gray-200 rounded-lg px-2 py-1 text-center" />
+                    className="w-16 text-xs border border-[var(--border)] rounded-lg px-2 py-1 text-center" />
                   <button onClick={handleUnlockRate}
-                    className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded-lg">🔒 Buka</button>
+                    className="text-xs bg-[var(--bg-subtle)] hover:bg-[var(--bg-subtle)] text-[var(--ink-muted)] px-2 py-1 rounded-lg">🔒 Buka</button>
                 </div>
               ) : (
                 <button onClick={() => navigate("/settings")}
-                  className="ml-auto text-xs bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg">Buat PIN</button>
+                  className="ml-auto text-xs bg-[var(--bg-danger)] hover:bg-[var(--bg-danger)] text-[var(--ink-danger)] px-2 py-1 rounded-lg">Buat PIN</button>
               )}
-              {ratePinError && <span className="text-xs text-red-500">{ratePinError}</span>}
+              {ratePinError && <span className="text-xs text-[var(--ink-danger)]">{ratePinError}</span>}
             </div>
           )}
         </div>
 
-        <div className="flex items-start gap-2 border-t border-gray-50 pt-2 text-sm">
-          <span className="w-28 flex-shrink-0 text-gray-500">Siklus tagihan</span>
-          <span className="min-w-0 flex-1 font-medium text-gray-700">
+        <div className="flex items-start gap-2 border-t border-[var(--border)] pt-2 text-sm">
+          <span className="w-28 flex-shrink-0 text-[var(--ink-muted)]">Siklus tagihan</span>
+          <span className="min-w-0 flex-1 font-medium text-[var(--ink-strong)]">
             {studentBillingPolicy === "session_count"
               ? `Setiap ${student.billingSessionCount ?? 8} pertemuan yang dapat ditagih${
                   student.pendingBillingPolicy
@@ -632,19 +632,19 @@ export default function StudentDetail() {
             onClick={() => setShowBillingHelp(true)}
             aria-label="Bantuan siklus tagihan"
             title="Cara kerja siklus tagihan"
-            className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600 transition-colors hover:bg-blue-100 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[var(--bg-subtle)] text-xs font-bold text-[var(--ink-muted)] transition-colors hover:bg-[var(--brand-tint-strong)] hover:text-[var(--ink-brand)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-brand)]"
           >?</button>
         </div>
 
         {totalSessions > 0 && (
-          <div className="pt-3 mt-1 border-t border-gray-100 grid grid-cols-2 gap-3">
-            <div className="bg-blue-50 rounded-xl p-3 text-center">
-              <p className="text-xl font-bold text-blue-700">{totalSessions}</p>
-              <p className="text-xs text-blue-500 font-medium">Total Sesi</p>
+          <div className="pt-3 mt-1 border-t border-[var(--border)] grid grid-cols-2 gap-3">
+            <div className="bg-[var(--brand-tint)] rounded-xl p-3 text-center">
+              <p className="text-xl font-bold text-[var(--ink-brand)]">{totalSessions}</p>
+              <p className="text-xs text-[var(--ink-brand)] font-medium">Total Sesi</p>
             </div>
-            <div className="bg-indigo-50 rounded-xl p-3 text-center">
-              <p className="text-xl font-bold text-indigo-700">{totalHours}j</p>
-              <p className="text-xs text-indigo-500 font-medium">Total Jam</p>
+            <div className="bg-[var(--accent-tint)] rounded-xl p-3 text-center">
+              <p className="text-xl font-bold text-[var(--ink-accent)]">{totalHours}j</p>
+              <p className="text-xs text-[var(--ink-accent)] font-medium">Total Jam</p>
             </div>
           </div>
         )}
@@ -728,18 +728,18 @@ export default function StudentDetail() {
 
       {/* ── EDIT SESSION NOTES MODAL ── */}
       {editSession && (
-        <div role="dialog" aria-modal="true" aria-label="Edit catatan sesi" className={`fixed inset-0 bg-black/40 ${Z.modal} flex items-end justify-center`} onClick={() => setEditSession(null)}>
-          <div className="bg-white w-full max-w-md rounded-t-2xl pb-8 max-h-[80vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div role="dialog" aria-modal="true" aria-label="Edit catatan sesi" className={`fixed inset-0 bg-[var(--scrim)]/40 ${Z.modal} flex items-end justify-center`} onClick={() => setEditSession(null)}>
+          <div className="bg-[var(--surface-strong)] w-full max-w-md rounded-t-2xl pb-8 max-h-[80vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
               <div>
                 <h3 className="font-bold text-base">Edit Catatan Sesi</h3>
-                <p className="text-xs text-gray-500 mt-0.5">{editSession.date} · {editSession.durationHours}j</p>
+                <p className="text-xs text-[var(--ink-muted)] mt-0.5">{editSession.date} · {editSession.durationHours}j</p>
               </div>
-              <button onClick={() => setEditSession(null)} aria-label="Tutup" className="text-gray-500 text-xl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+              <button onClick={() => setEditSession(null)} aria-label="Tutup" className="text-[var(--ink-muted)] text-xl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
             <div className="p-5 space-y-4">
               {/* ── Durasi & Biaya ── */}
-              <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+              <div className="bg-[var(--surface)] rounded-xl p-4 space-y-3">
                 <div>
                   <label className="label">⏱️ Durasi</label>
                   <div className="flex flex-wrap gap-1.5 mt-1">
@@ -750,8 +750,8 @@ export default function StudentDetail() {
                         onClick={() => { setEditNoteDuration(d); if (editCostOverride === null) setEditCost(d * editSession.rateSnapshot); }}
                         className={`py-1.5 px-3 rounded-lg text-xs font-semibold border transition-colors ${
                           editNoteDuration === d
-                            ? "bg-blue-600 text-white border-blue-600"
-                            : "bg-white text-gray-600 border-gray-300"
+                            ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]"
+                            : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)]"
                         }`}
                       >
                         {d}j
@@ -763,7 +763,7 @@ export default function StudentDetail() {
                   <label className="label">💰 Biaya</label>
                   {isEditingCost ? (
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-gray-500 text-sm font-medium">Rp</span>
+                      <span className="text-[var(--ink-muted)] text-sm font-medium">Rp</span>
                       <input
                         type="number"
                         className="input flex-1"
@@ -781,18 +781,18 @@ export default function StudentDetail() {
                       <button
                         type="button"
                         onClick={() => setIsEditingCost(false)}
-                        className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1"
+                        className="text-xs text-[var(--ink-muted)] hover:text-[var(--ink-muted)] px-2 py-1"
                       >
                         ✕
                       </button>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-base font-bold text-gray-800">
+                      <span className="text-base font-bold text-[var(--ink-strong)]">
                         {formatRupiah(editCostOverride ?? editCost)}
                       </span>
                       {editCostOverride !== null && (
-                        <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">
+                        <span className="text-xs bg-[var(--bg-warn)] text-[var(--ink-warn)] px-1.5 py-0.5 rounded-full font-medium">
                           Manual
                         </span>
                       )}
@@ -800,7 +800,7 @@ export default function StudentDetail() {
                         <button
                           type="button"
                           onClick={() => setEditCostOverride(null)}
-                          className="text-xs text-red-400 hover:text-red-600 ml-1"
+                          className="text-xs text-[var(--ink-danger)] hover:text-[var(--ink-danger)] ml-1"
                           title="Kembalikan ke hitungan otomatis"
                         >
                           ↺ Reset
@@ -812,7 +812,7 @@ export default function StudentDetail() {
                           setIsEditingCost(true);
                           if (editCostOverride === null) setEditCostOverride(editCost);
                         }}
-                        className="text-xs text-blue-500 hover:text-blue-700 ml-auto"
+                        className="text-xs text-[var(--ink-brand)] hover:text-[var(--ink-brand)] ml-auto"
                         title="Edit biaya manual"
                       >
                         ✏️ Edit
@@ -820,7 +820,7 @@ export default function StudentDetail() {
                     </div>
                   )}
                   {editCostOverride === null && (
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="text-xs text-[var(--ink-muted)] mt-0.5">
                       {editSession.rateSnapshot.toLocaleString("id-ID")}/jam × {editNoteDuration}j
                     </p>
                   )}
@@ -854,12 +854,12 @@ export default function StudentDetail() {
               </div>
               {isGradeLower(editActualGrade, editPredictedGrade) && (
                 <div>
-                  <label htmlFor="sd-refleksi" className="label">💭 Refleksi Nilai <span className="text-red-400">*</span></label>
+                  <label htmlFor="sd-refleksi" className="label">💭 Refleksi Nilai <span className="text-[var(--ink-danger)]">*</span></label>
                   <textarea id="sd-refleksi" className="input text-sm" rows={2} value={editGradeReflection}
                     onChange={(e) => { setEditGradeReflection(e.target.value); setEditGradeError(""); }}
                     placeholder="Kenapa nilai akhir lebih rendah dari prediksi? (mis. soal ujian lebih sulit, materi belum dikuasai, kondisi murid...)" />
-                  <p className="text-xs text-orange-700 mt-1">Prediksi ({editPredictedGrade}) lebih tinggi dari nilai akhir ({editActualGrade}) — refleksi wajib diisi.</p>
-                  {editGradeError && <p className="text-xs text-red-500 mt-1">{editGradeError}</p>}
+                  <p className="text-xs text-[var(--ink-attention)] mt-1">Prediksi ({editPredictedGrade}) lebih tinggi dari nilai akhir ({editActualGrade}) — refleksi wajib diisi.</p>
+                  {editGradeError && <p className="text-xs text-[var(--ink-danger)] mt-1">{editGradeError}</p>}
                 </div>
               )}
               <div>
@@ -875,7 +875,7 @@ export default function StudentDetail() {
                   <label className="label !mb-0">📸 Foto Sesi</label>
                   {editPhotoUrl && (
                     <button type="button" onClick={() => { setEditPhoto(undefined); setEditPhotoError(""); }}
-                      className="text-xs text-red-400 hover:text-red-600">Hapus</button>
+                      className="text-xs text-[var(--ink-danger)] hover:text-[var(--ink-danger)]">Hapus</button>
                   )}
                 </div>
                 <input ref={editCameraRef} type="file" accept="image/*" capture="environment"
@@ -883,29 +883,29 @@ export default function StudentDetail() {
                 <input ref={editGalleryRef} type="file" accept="image/*"
                   onChange={handleEditPhoto} className="hidden" />
                 {editPhotoUrl ? (
-                  <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+                  <div className="relative overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
                     <img src={editPhotoUrl} alt="Foto sesi" className="h-44 w-full object-cover" />
                     <div className="absolute bottom-2 right-2 flex gap-1.5">
                       <button type="button" onClick={() => editCameraRef.current?.click()}
-                        className="rounded-full bg-black/65 px-2.5 py-1 text-xs text-white">📷 Kamera</button>
+                        className="rounded-full bg-[var(--scrim)]/65 px-2.5 py-1 text-xs text-[var(--on-strong)]">📷 Kamera</button>
                       <button type="button" onClick={() => editGalleryRef.current?.click()}
-                        className="rounded-full bg-black/65 px-2.5 py-1 text-xs text-white">🖼️ Galeri</button>
+                        className="rounded-full bg-[var(--scrim)]/65 px-2.5 py-1 text-xs text-[var(--on-strong)]">🖼️ Galeri</button>
                     </div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
                     <button type="button" onClick={() => editCameraRef.current?.click()}
-                      className="rounded-xl border-2 border-dashed border-gray-200 py-5 text-sm text-gray-500 transition-colors hover:border-blue-300 hover:text-blue-500">
+                      className="rounded-xl border-2 border-dashed border-[var(--border)] py-5 text-sm text-[var(--ink-muted)] transition-colors hover:border-[var(--brand-tint-strong)] hover:text-[var(--ink-brand)]">
                       📷 Ambil Foto
                     </button>
                     <button type="button" onClick={() => editGalleryRef.current?.click()}
-                      className="rounded-xl border-2 border-dashed border-gray-200 py-5 text-sm text-gray-500 transition-colors hover:border-green-300 hover:text-green-500">
+                      className="rounded-xl border-2 border-dashed border-[var(--border)] py-5 text-sm text-[var(--ink-muted)] transition-colors hover:border-[var(--border-success)] hover:text-[var(--ink-success)]">
                       🖼️ Pilih Galeri
                     </button>
                   </div>
                 )}
-                {editPhotoError && <p className="mt-1 text-xs text-red-500">{editPhotoError}</p>}
-                <p className="mt-1.5 text-xs text-gray-400">Foto akan dikompres dan diberi tanggal sesi.</p>
+                {editPhotoError && <p className="mt-1 text-xs text-[var(--ink-danger)]">{editPhotoError}</p>}
+                <p className="mt-1.5 text-xs text-[var(--ink-muted)]">Foto akan dikompres dan diberi tanggal sesi.</p>
               </div>
 
               {/* Tanda Tangan Murid */}
@@ -914,7 +914,7 @@ export default function StudentDetail() {
                   <label className="label !mb-0">✍️ Tanda Tangan Murid</label>
                   {editSigUrl && (
                     <button type="button" onClick={() => { setEditSignature(undefined); setShowEditSigPad(false); }}
-                      className="text-xs text-red-400 hover:text-red-600">Hapus</button>
+                      className="text-xs text-[var(--ink-danger)] hover:text-[var(--ink-danger)]">Hapus</button>
                   )}
                 </div>
                 {showEditSigPad ? (
@@ -924,31 +924,31 @@ export default function StudentDetail() {
                       onClear={() => setEditSignature(undefined)}
                     />
                     <button type="button" onClick={() => setShowEditSigPad(false)}
-                      className="text-xs text-gray-500 w-full text-center">Tutup</button>
+                      className="text-xs text-[var(--ink-muted)] w-full text-center">Tutup</button>
                   </div>
                 ) : editSigUrl ? (
-                  <div className="border border-gray-200 rounded-xl p-2 bg-gray-50 flex items-center gap-3">
+                  <div className="border border-[var(--border)] rounded-xl p-2 bg-[var(--surface)] flex items-center gap-3">
                     <img src={editSigUrl} alt="TTD" className="h-12 max-w-[120px] object-contain" />
                     <button type="button" onClick={() => setShowEditSigPad(true)}
-                      className="text-xs text-blue-500 hover:underline">Ganti</button>
+                      className="text-xs text-[var(--ink-brand)] hover:underline">Ganti</button>
                   </div>
                 ) : (
                   <button type="button" onClick={() => setShowEditSigPad(true)}
-                    className="w-full py-2.5 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-500 hover:border-blue-300 hover:text-blue-400 transition-colors">
+                    className="w-full py-2.5 border-2 border-dashed border-[var(--border)] rounded-xl text-sm text-[var(--ink-muted)] hover:border-[var(--brand-tint-strong)] hover:text-[var(--ink-brand)] transition-colors">
                     + Minta tanda tangan murid
                   </button>
                 )}
               </div>
 
               <button onClick={handleSaveNote} disabled={editNoteSaving}
-                className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                className="w-full py-3 rounded-xl bg-[var(--brand-solid)] text-[var(--on-strong)] font-bold text-sm hover:bg-[var(--brand-solid)] disabled:opacity-50 transition-colors">
                 {editNoteSaving ? "Menyimpan..." : "Simpan Catatan"}
               </button>
               <button type="button" onClick={() => { setDetailSession(editSession); setEditSession(null); }}
-                className="w-full py-2.5 rounded-xl border border-red-200 text-red-500 text-sm font-medium hover:bg-red-50 transition-colors">
+                className="w-full py-2.5 rounded-xl border border-[var(--border-danger)] text-[var(--ink-danger)] text-sm font-medium hover:bg-[var(--bg-danger)] transition-colors">
                 Kelola / Hapus Sesi
               </button>
-              <p className="text-center text-xs text-gray-400">Penghapusan sesi memerlukan PIN Keuangan.</p>
+              <p className="text-center text-xs text-[var(--ink-muted)]">Penghapusan sesi memerlukan PIN Keuangan.</p>
             </div>
           </div>
         </div>
@@ -956,18 +956,18 @@ export default function StudentDetail() {
 
       {/* ── EDIT SCHEDULE MODAL ── */}
       {editTarget && (
-        <div role="dialog" aria-modal="true" aria-label="Edit jadwal" className={`fixed inset-0 bg-black/40 ${Z.modal} flex items-end justify-center`} onClick={() => setEditTarget(null)}>
-          <div className="bg-white w-full max-w-md rounded-t-2xl pb-8 max-h-[88vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div role="dialog" aria-modal="true" aria-label="Edit jadwal" className={`fixed inset-0 bg-[var(--scrim)]/40 ${Z.modal} flex items-end justify-center`} onClick={() => setEditTarget(null)}>
+          <div className="bg-[var(--surface-strong)] w-full max-w-md rounded-t-2xl pb-8 max-h-[88vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
               <div>
                 <h3 className="font-bold text-lg">Edit Jadwal</h3>
-                <p className="text-xs text-gray-500">{dayLabel(editTarget.date)}{editTarget.seriesId ? " · Sesi berulang 🔁" : ""}</p>
+                <p className="text-xs text-[var(--ink-muted)]">{dayLabel(editTarget.date)}{editTarget.seriesId ? " · Sesi berulang 🔁" : ""}</p>
               </div>
-              <button onClick={() => setEditTarget(null)} aria-label="Tutup" className="text-gray-500 text-xl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+              <button onClick={() => setEditTarget(null)} aria-label="Tutup" className="text-[var(--ink-muted)] text-xl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label htmlFor="sd-tanggal" className="label">Tanggal{editTarget.seriesId && editMode !== "this" && <span className="ml-2 text-xs text-gray-500 font-normal">(hanya bisa diubah untuk sesi ini saja)</span>}</label>
+                <label htmlFor="sd-tanggal" className="label">Tanggal{editTarget.seriesId && editMode !== "this" && <span className="ml-2 text-xs text-[var(--ink-muted)] font-normal">(hanya bisa diubah untuk sesi ini saja)</span>}</label>
                 <input id="sd-tanggal" className="input" type="date" value={editDate}
                   disabled={!!editTarget.seriesId && editMode !== "this"}
                   onChange={(e) => setEditDate(e.target.value)} />
@@ -981,7 +981,7 @@ export default function StudentDetail() {
                 <div className="flex flex-wrap gap-2">
                   {DURATIONS.map((d) => (
                     <button key={d} type="button" onClick={() => setEditDuration(d)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${editDuration === d ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300"}`}>
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${editDuration === d ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]" : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)]"}`}>
                       {d}j
                     </button>
                   ))}
@@ -993,7 +993,7 @@ export default function StudentDetail() {
                   <div className="grid grid-cols-3 gap-2">
                     {(["this", "future", "all"] as EditMode[]).map((m) => (
                       <button key={m} onClick={() => { setEditMode(m); if (m !== "this") setEditDate(editTarget.date); }}
-                        className={`py-2 rounded-xl text-xs font-semibold border transition-colors ${editMode === m ? "bg-blue-600 text-white border-blue-600" : "bg-gray-50 text-gray-600 border-gray-200"}`}>
+                        className={`py-2 rounded-xl text-xs font-semibold border transition-colors ${editMode === m ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]" : "bg-[var(--surface)] text-[var(--ink-muted)] border-[var(--border)]"}`}>
                         {m === "this" ? "Sesi ini" : m === "future" ? "Ini & berikutnya" : "Semua seri"}
                       </button>
                     ))}
@@ -1001,30 +1001,30 @@ export default function StudentDetail() {
                 </div>
               )}
               <button onClick={handleSaveEdit} disabled={editSaving}
-                className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                className="w-full py-3 rounded-xl bg-[var(--brand-solid)] text-[var(--on-strong)] font-semibold hover:bg-[var(--brand-solid)] disabled:opacity-50 transition-colors">
                 {editSaving ? "Menyimpan..." : "Simpan Perubahan"}
               </button>
-              <div className="border-t border-gray-100 pt-3">
+              <div className="border-t border-[var(--border)] pt-3">
                 {!showCancelSect ? (
                   <button onClick={() => setShowCancelSect(true)}
-                    className="w-full py-2.5 rounded-xl text-sm font-medium text-red-500 bg-red-50 hover:bg-red-100 transition-colors">
+                    className="w-full py-2.5 rounded-xl text-sm font-medium text-[var(--ink-danger)] bg-[var(--bg-danger)] hover:bg-[var(--bg-danger)] transition-colors">
                     Batalkan Jadwal Ini
                   </button>
                 ) : (
                   <div className="space-y-2">
-                    <label htmlFor="sd-alasan" className="text-sm font-semibold text-red-600 mb-2 block">Batalkan — pilih scope:</label>
+                    <label htmlFor="sd-alasan" className="text-sm font-semibold text-[var(--ink-danger)] mb-2 block">Batalkan — pilih scope:</label>
                     <textarea id="sd-alasan" className="input min-h-20 resize-y text-sm" value={cancelReason}
                       onChange={(e) => setCancelReason(e.target.value)} placeholder="Alasan pembatalan (opsional)" />
                     {editTarget.seriesId ? (
                       <>
-                        <button onClick={() => handleCancel("this")} className="w-full text-left px-4 py-3 rounded-xl bg-gray-50 hover:bg-gray-100 text-sm font-medium border border-gray-200">Sesi ini saja</button>
-                        <button onClick={() => handleCancel("future")} className="w-full text-left px-4 py-3 rounded-xl bg-orange-50 text-sm font-medium text-orange-700 border border-orange-200">Hari ini dan semua sesi berikutnya</button>
-                        <button onClick={() => handleCancel("all")} className="w-full text-left px-4 py-3 rounded-xl bg-red-50 text-sm font-medium text-red-600 border border-red-200">Semua sesi dalam seri ini</button>
+                        <button onClick={() => handleCancel("this")} className="w-full text-left px-4 py-3 rounded-xl bg-[var(--surface)] hover:bg-[var(--bg-subtle)] text-sm font-medium border border-[var(--border)]">Sesi ini saja</button>
+                        <button onClick={() => handleCancel("future")} className="w-full text-left px-4 py-3 rounded-xl bg-[var(--bg-attention)] text-sm font-medium text-[var(--ink-attention)] border border-[var(--border-attention)]">Hari ini dan semua sesi berikutnya</button>
+                        <button onClick={() => handleCancel("all")} className="w-full text-left px-4 py-3 rounded-xl bg-[var(--bg-danger)] text-sm font-medium text-[var(--ink-danger)] border border-[var(--border-danger)]">Semua sesi dalam seri ini</button>
                       </>
                     ) : (
-                      <button onClick={() => handleCancel("this")} className="w-full px-4 py-3 rounded-xl bg-red-50 text-red-600 font-medium text-sm border border-red-200">Ya, batalkan sesi ini</button>
+                      <button onClick={() => handleCancel("this")} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-danger)] text-[var(--ink-danger)] font-medium text-sm border border-[var(--border-danger)]">Ya, batalkan sesi ini</button>
                     )}
-                    <button onClick={() => setShowCancelSect(false)} className="w-full text-center text-gray-500 text-sm py-1">Jangan batalkan</button>
+                    <button onClick={() => setShowCancelSect(false)} className="w-full text-center text-[var(--ink-muted)] text-sm py-1">Jangan batalkan</button>
                   </div>
                 )}
               </div>
@@ -1062,17 +1062,17 @@ export default function StudentDetail() {
       {showBillingHelp && (
         <Modal onClose={() => setShowBillingHelp(false)} ariaLabel="Cara kerja siklus tagihan">
           <h3 className="font-bold text-base">💳 Siklus Tagihan</h3>
-          <p className="text-xs leading-relaxed text-gray-600">
+          <p className="text-xs leading-relaxed text-[var(--ink-muted)]">
             Cara murid ini ditagih. Ubah lewat <strong>Edit Profil → Siklus Tagihan</strong>; perubahan hanya memengaruhi sesi yang belum ditagih.
           </p>
-          <ul className="space-y-2 text-xs leading-relaxed text-gray-700">
+          <ul className="space-y-2 text-xs leading-relaxed text-[var(--ink-strong)]">
             <li><strong>Bulanan (Tutup Bulan)</strong> — sesi yang dapat ditagih digabung per bulan lewat Tutup Bulan di Keuangan.</li>
             <li><strong>Paket per N pertemuan</strong> — tagihan dibuat setiap N pertemuan (sesi tertua lebih dulu); sisa yang belum genap ditagih lewat Tagihan Penutup.</li>
             <li><strong>Manual</strong> — buat tagihan nominal bebas tanpa mengambil sesi otomatis.</li>
           </ul>
           <div className="flex gap-3">
             <button onClick={() => setShowBillingHelp(false)}
-              className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm">
+              className="flex-1 py-3 rounded-xl bg-[var(--brand-solid)] text-[var(--on-strong)] font-bold text-sm">
               Mengerti
             </button>
           </div>

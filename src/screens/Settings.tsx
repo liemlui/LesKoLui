@@ -81,17 +81,17 @@ function StorageUsage() {
   const pct = info ? Math.round((info.used / info.quota) * 100) : 0;
   const mb = (b: number) => (b / 1024 / 1024).toFixed(1) + " MB";
   return (
-    <div className="bg-gray-50 rounded-xl p-3 space-y-1">
-      <p className="text-xs font-semibold text-gray-500">Penyimpanan Lokal</p>
+    <div className="bg-[var(--surface)] rounded-xl p-3 space-y-1">
+      <p className="text-xs font-semibold text-[var(--ink-muted)]">Penyimpanan Lokal</p>
       {info ? (
         <>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div className="bg-blue-500 h-2 rounded-full transition-all" style={{ width: `${Math.min(pct, 100)}%` }} />
+          <div className="w-full bg-[var(--bg-subtle)] rounded-full h-2">
+            <div className="bg-[var(--brand-solid)] h-2 rounded-full transition-all" style={{ width: `${Math.min(pct, 100)}%` }} />
           </div>
-          <p className="text-xs text-gray-500">{mb(info.used)} digunakan dari {mb(info.quota)} ({pct}%)</p>
+          <p className="text-xs text-[var(--ink-muted)]">{mb(info.used)} digunakan dari {mb(info.quota)} ({pct}%)</p>
         </>
       ) : (
-        <p className="text-xs text-gray-600">Perkiraan penyimpanan tidak tersedia di browser ini</p>
+        <p className="text-xs text-[var(--ink-muted)]">Perkiraan penyimpanan tidak tersedia di browser ini</p>
       )}
     </div>
   );
@@ -136,21 +136,21 @@ function PhotoMaintenance({ onToast }: { onToast: (m: string) => void }) {
 
   if (!oldCount) return null;
   return (
-    <div className="bg-amber-50 rounded-xl p-3 space-y-2">
-      <p className="text-xs font-semibold text-amber-700">🖼️ Foto sesi lama</p>
-      <p className="text-xs text-amber-600">
+    <div className="bg-[var(--bg-warn)] rounded-xl p-3 space-y-2">
+      <p className="text-xs font-semibold text-[var(--ink-warn)]">🖼️ Foto sesi lama</p>
+      <p className="text-xs text-[var(--ink-warn)]">
         {oldCount} foto dari sesi &gt; 6 bulan lalu. Foto &gt; 12 bulan diperkecil
         otomatis (tetap ada, resolusinya turun) agar backup tidak membengkak —
         catatan &amp; tanda tangan sesi tidak pernah diubah.
       </p>
       <button disabled={busy}
         onClick={() => setConfirmPrune(true)}
-        className="w-full py-2 rounded-xl border border-red-300 bg-white text-red-700 text-sm font-semibold hover:bg-red-50 disabled:opacity-60 transition-colors">
+        className="w-full py-2 rounded-xl border border-[var(--border-danger)] bg-[var(--surface-strong)] text-[var(--ink-danger)] text-sm font-semibold hover:bg-[var(--bg-danger)] disabled:opacity-60 transition-colors">
         {busy ? "Menghapus..." : `Hapus ${oldCount} foto lama`}
       </button>
       <button disabled={busy}
         onClick={() => void shrink()}
-        className="w-full py-2 rounded-xl bg-amber-700 text-white text-sm font-medium disabled:opacity-60">
+        className="w-full py-2 rounded-xl bg-[var(--bg-warn-strong)] text-[var(--on-strong)] text-sm font-medium disabled:opacity-60">
         {busy ? "Memproses..." : "Perkecil foto (tanpa menghapus)"}
       </button>
 
@@ -226,7 +226,7 @@ function auditDayLabel(ts: string): string {
 function AuditLogViewer() {
   const entries = useLiveQuery(() => listAuditLog(50), []);
   if (!entries || entries.length === 0)
-    return <p className="text-xs text-gray-500 pt-3">Belum ada aktivitas tercatat.</p>;
+    return <p className="text-xs text-[var(--ink-muted)] pt-3">Belum ada aktivitas tercatat.</p>;
 
   // Kelompokkan per hari (audit V-14) — daftar panjang jadi mudah dipindai.
   const groups: Array<{ key: string; label: string; items: NonNullable<typeof entries> }> = [];
@@ -241,16 +241,16 @@ function AuditLogViewer() {
     <div className="pt-3 space-y-3 max-h-72 overflow-y-auto">
       {groups.map((g) => (
         <div key={g.key} className="space-y-1.5">
-          <p className="sticky top-0 z-10 bg-white/95 py-0.5 text-xs font-bold uppercase tracking-wide text-gray-500">
+          <p className="sticky top-0 z-10 bg-[var(--surface-strong)]/95 py-0.5 text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">
             {g.label}
           </p>
           {g.items.map((e) => (
-            <div key={e.id} className="flex items-start justify-between gap-2 text-xs border-b border-gray-50 pb-1.5">
+            <div key={e.id} className="flex items-start justify-between gap-2 text-xs border-b border-[var(--border)] pb-1.5">
               <div className="min-w-0">
-                <p className="font-medium text-gray-700">{AUDIT_LABEL[e.action] ?? e.action}</p>
-                {e.details && <p className="text-gray-500 truncate">{e.details}</p>}
+                <p className="font-medium text-[var(--ink-strong)]">{AUDIT_LABEL[e.action] ?? e.action}</p>
+                {e.details && <p className="text-[var(--ink-muted)] truncate">{e.details}</p>}
               </div>
-              <span className="text-gray-500 flex-shrink-0">
+              <span className="text-[var(--ink-muted)] flex-shrink-0">
                 {new Date(e.timestamp).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
               </span>
             </div>
@@ -281,7 +281,7 @@ function Section({
     else setLocalOpen((o) => !o);
   };
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-[var(--surface-strong)] rounded-2xl shadow-sm border border-[var(--border)] overflow-hidden">
       <button
         type="button"
         onClick={toggle}
@@ -290,15 +290,15 @@ function Section({
         className="w-full flex items-center justify-between px-4 py-3.5 text-left"
       >
         <div className="flex items-center gap-2.5">
-          <span className="flex-shrink-0 text-gray-500">{icon}</span>
-          <span className="text-sm font-semibold text-gray-800">{title}</span>
+          <span className="flex-shrink-0 text-[var(--ink-muted)]">{icon}</span>
+          <span className="text-sm font-semibold text-[var(--ink-strong)]">{title}</span>
           {badge && (
-            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">{badge}</span>
+            <span className="text-xs bg-[var(--bg-success)] text-[var(--ink-success)] px-2 py-0.5 rounded-full font-medium">{badge}</span>
           )}
         </div>
-        <span className={`text-gray-500 text-sm transition-transform duration-200 ${open ? "rotate-180" : ""}`}>▼</span>
+        <span className={`text-[var(--ink-muted)] text-sm transition-transform duration-200 ${open ? "rotate-180" : ""}`}>▼</span>
       </button>
-      {open && <div id={contentId} className="px-4 pb-4 pt-0 space-y-3 border-t border-gray-50">{children}</div>}
+      {open && <div id={contentId} className="px-4 pb-4 pt-0 space-y-3 border-t border-[var(--border)]">{children}</div>}
     </div>
   );
 }
@@ -307,9 +307,9 @@ function Section({
 function SettingsLoadFailed({ busy, onRetry }: { busy: boolean; onRetry: () => void }) {
   return (
     <div className="p-4" role="alert">
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-4 space-y-2">
-        <p className="text-sm font-bold text-red-700">Pengaturan gagal dimuat</p>
-        <p className="text-xs text-red-700">
+      <div className="rounded-2xl border border-[var(--border-danger)] bg-[var(--bg-danger)] p-4 space-y-2">
+        <p className="text-sm font-bold text-[var(--ink-danger)]">Pengaturan gagal dimuat</p>
+        <p className="text-xs text-[var(--ink-danger)]">
           Data pengaturan belum bisa dibaca dari perangkat ini. Muat ulang halaman bila
           tombol di bawah tetap tidak berhasil.
         </p>
@@ -317,7 +317,7 @@ function SettingsLoadFailed({ busy, onRetry }: { busy: boolean; onRetry: () => v
           type="button"
           onClick={onRetry}
           disabled={busy}
-          className="w-full py-3 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-60 transition-colors"
+          className="w-full py-3 rounded-xl bg-[var(--bg-danger-strong)] text-[var(--on-strong)] text-sm font-semibold hover:bg-[var(--bg-danger-strong)] disabled:opacity-60 transition-colors"
         >
           {busy ? "Mencoba lagi..." : "Coba lagi"}
         </button>
@@ -812,7 +812,7 @@ export default function SettingsPage() {
       <div className="flex items-center justify-between py-1">
         <h1 className="text-2xl font-bold">Pengaturan</h1>
         {dirty && (
-          <span className="text-xs bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full font-medium animate-pulse">
+          <span className="text-xs bg-[var(--bg-warn)] text-[var(--ink-warn)] px-2.5 py-1 rounded-full font-medium animate-pulse">
             Belum disimpan
           </span>
         )}
@@ -838,31 +838,31 @@ export default function SettingsPage() {
               onChange={(e) => updateProfile("phone", e.target.value)} />
           </div>
           <div>
-            <label htmlFor="set-email" className="label">Email <span className="text-gray-500 font-normal">(opsional)</span></label>
+            <label htmlFor="set-email" className="label">Email <span className="text-[var(--ink-muted)] font-normal">(opsional)</span></label>
             <input id="set-email" className="input" placeholder="tutor@email.com" maxLength={100} type="email"
               value={form.tutorProfile.email ?? ""}
               onChange={(e) => updateProfile("email", e.target.value)} />
           </div>
           <div>
-            <label htmlFor="set-alamat" className="label">Alamat <span className="text-gray-500 font-normal">(opsional)</span></label>
+            <label htmlFor="set-alamat" className="label">Alamat <span className="text-[var(--ink-muted)] font-normal">(opsional)</span></label>
             <input id="set-alamat" className="input" placeholder="Jl. Contoh No.1, Jakarta" maxLength={150}
               value={form.tutorProfile.address ?? ""}
               onChange={(e) => updateProfile("address", e.target.value)} />
           </div>
           <div>
-            <label htmlFor="set-logo" className="label">Logo <span className="text-gray-500 font-normal">(tampil di laporan)</span></label>
+            <label htmlFor="set-logo" className="label">Logo <span className="text-[var(--ink-muted)] font-normal">(tampil di laporan)</span></label>
             {logoUrl && (
               <div className="flex items-center gap-3 mb-2">
-                <img src={logoUrl} className="h-14 w-14 object-contain rounded-lg border border-gray-200 bg-gray-50" alt="logo" />
+                <img src={logoUrl} className="h-14 w-14 object-contain rounded-lg border border-[var(--border)] bg-[var(--surface)]" alt="logo" />
                 <button onClick={() => update("logo", undefined)}
-                  className="text-xs text-red-500 hover:text-red-700 font-medium px-2 py-1 bg-red-50 rounded-lg">
+                  className="text-xs text-[var(--ink-danger)] hover:text-[var(--ink-danger)] font-medium px-2 py-1 bg-[var(--bg-danger)] rounded-lg">
                   Hapus Logo
                 </button>
               </div>
             )}
             <input id="set-logo" ref={fileRef} type="file" accept="image/*" onChange={handleLogo} className="hidden" />
             <button onClick={() => fileRef.current?.click()}
-              className="flex items-center gap-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-xl font-medium transition-colors">
+              className="flex items-center gap-2 text-sm text-[var(--ink-muted)] bg-[var(--bg-subtle)] hover:bg-[var(--bg-subtle)] px-3 py-2 rounded-xl font-medium transition-colors">
               📷 {logoUrl ? "Ganti Logo" : "Upload Logo"}
             </button>
           </div>
@@ -874,7 +874,7 @@ export default function SettingsPage() {
       {/* ── PIN Keuangan ── */}
       <Section title="PIN Keuangan" icon={<KeyIcon size={18} />} badge={form.financialPin ? "Aktif" : undefined}>
         <div className="pt-3 space-y-3">
-          <p className="text-xs text-gray-500">Melindungi akses rekap keuangan & hapus sesi</p>
+          <p className="text-xs text-[var(--ink-muted)]">Melindungi akses rekap keuangan & hapus sesi</p>
 
           {pinMode === "view" ? (
             <div className="flex gap-2">
@@ -882,12 +882,12 @@ export default function SettingsPage() {
                 if (form.financialPin) setPinMode("verifyOld");
                 else { setSecQ(""); setSecA(""); setPinMode("edit"); }
               }}
-                className="flex-1 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-2.5 rounded-xl transition-colors">
+                className="flex-1 text-sm font-medium text-[var(--ink-brand)] bg-[var(--brand-tint)] hover:bg-[var(--brand-tint-strong)] px-3 py-2.5 rounded-xl transition-colors">
                 {form.financialPin ? "Ganti PIN" : "Buat PIN"}
               </button>
               {form.financialPin && form.securityQuestion && (
                 <button onClick={() => { setPinMode("forgotPin"); setPinError(""); setOldPin(""); setForgotA(""); }}
-                  className="text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-2.5 rounded-xl transition-colors whitespace-nowrap">
+                  className="text-sm font-medium text-[var(--ink-muted)] bg-[var(--bg-subtle)] hover:bg-[var(--bg-subtle)] px-3 py-2.5 rounded-xl transition-colors whitespace-nowrap">
                   Lupa PIN?
                 </button>
               )}
@@ -900,24 +900,24 @@ export default function SettingsPage() {
                   inputMode="numeric" maxLength={6} placeholder="••••••"
                   value={oldPin} onChange={(e) => { setOldPin(e.target.value.replace(/\D/g, "").slice(0, 6)); setPinError(""); }} />
               </div>
-              {pinError && <p className="text-red-500 text-sm">{pinError}</p>}
+              {pinError && <p className="text-[var(--ink-danger)] text-sm">{pinError}</p>}
               <div className="flex gap-2">
                 <button onClick={handleVerifyOldPin} disabled={pinRecoveryBusy || oldPin.length !== 6}
-                  className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-40 hover:bg-blue-700 transition-colors">{pinRecoveryBusy ? "Memeriksa..." : "Lanjut"}</button>
+                  className="flex-1 py-2.5 rounded-xl bg-[var(--brand-solid)] text-[var(--on-strong)] font-semibold text-sm disabled:opacity-40 hover:bg-[var(--brand-solid)] transition-colors">{pinRecoveryBusy ? "Memeriksa..." : "Lanjut"}</button>
                 <button onClick={() => { setPinMode("view"); setOldPin(""); setPinError(""); }} disabled={pinRecoveryBusy}
-                  className="px-4 py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-medium hover:bg-gray-200 transition-colors">Batal</button>
+                  className="px-4 py-2.5 rounded-xl bg-[var(--bg-subtle)] text-[var(--ink-muted)] text-sm font-medium hover:bg-[var(--bg-subtle)] transition-colors">Batal</button>
               </div>
               {form.securityQuestion && (
                 <button onClick={() => { setPinMode("forgotPin"); setPinError(""); setOldPin(""); }}
-                  className="w-full text-center text-sm font-medium text-blue-600 pt-2 hover:underline">
+                  className="w-full text-center text-sm font-medium text-[var(--ink-brand)] pt-2 hover:underline">
                   Lupa PIN? Jawab Pertanyaan Keamanan
                 </button>
               )}
             </div>
           ) : pinMode === "forgotPin" ? (
             <div className="space-y-3">
-              <p className="text-sm font-medium text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                <span className="text-gray-500 block text-xs mb-1">Pertanyaan Keamanan:</span>
+              <p className="text-sm font-medium text-[var(--ink-strong)] bg-[var(--surface)] p-3 rounded-lg border border-[var(--border)]">
+                <span className="text-[var(--ink-muted)] block text-xs mb-1">Pertanyaan Keamanan:</span>
                 {form.securityQuestion}
               </p>
               <div>
@@ -925,12 +925,12 @@ export default function SettingsPage() {
                 <input id="set-jawaban-anda" className="input" type="text" placeholder="Jawaban rahasia..."
                   value={forgotA} onChange={(e) => { setForgotA(e.target.value); setPinError(""); }} />
               </div>
-              {pinError && <p className="text-red-500 text-sm">{pinError}</p>}
+              {pinError && <p className="text-[var(--ink-danger)] text-sm">{pinError}</p>}
               <div className="flex gap-2">
                 <button onClick={handleVerifyForgot} disabled={pinRecoveryBusy || !forgotA.trim()}
-                  className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-40 hover:bg-blue-700 transition-colors">{pinRecoveryBusy ? "Memeriksa..." : "Verifikasi"}</button>
+                  className="flex-1 py-2.5 rounded-xl bg-[var(--brand-solid)] text-[var(--on-strong)] font-semibold text-sm disabled:opacity-40 hover:bg-[var(--brand-solid)] transition-colors">{pinRecoveryBusy ? "Memeriksa..." : "Verifikasi"}</button>
                 <button onClick={() => { setPinMode("view"); setForgotA(""); setPinError(""); }} disabled={pinRecoveryBusy}
-                  className="px-4 py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-medium hover:bg-gray-200 transition-colors">Kembali</button>
+                  className="px-4 py-2.5 rounded-xl bg-[var(--bg-subtle)] text-[var(--ink-muted)] text-sm font-medium hover:bg-[var(--bg-subtle)] transition-colors">Kembali</button>
               </div>
             </div>
           ) : (
@@ -943,12 +943,12 @@ export default function SettingsPage() {
               </div>
               <div>
                 <label htmlFor="set-pin-konfirmasi" className="label">Konfirmasi PIN Baru</label>
-                <input id="set-pin-konfirmasi" className={`input text-center text-xl tracking-widest font-mono ${pinError?.includes("cocok") ? "border-red-400" : ""}`}
+                <input id="set-pin-konfirmasi" className={`input text-center text-xl tracking-widest font-mono ${pinError?.includes("cocok") ? "border-[var(--ink-danger)]" : ""}`}
                   type="password" inputMode="numeric" maxLength={6} placeholder="••••••"
                   value={newPinConf} onChange={(e) => { setNewPinConf(e.target.value.replace(/\D/g, "").slice(0, 6)); setPinError(""); }} />
               </div>
-              <div className="pt-2 border-t border-gray-100">
-                <p className="text-xs text-blue-600 mb-2 font-medium">Lupa PIN Recovery (Wajib):</p>
+              <div className="pt-2 border-t border-[var(--border)]">
+                <p className="text-xs text-[var(--ink-brand)] mb-2 font-medium">Lupa PIN Recovery (Wajib):</p>
                 <label htmlFor="set-sec-q" className="label">Pertanyaan Keamanan</label>
                 <input id="set-sec-q" className="input mb-2" type="text" maxLength={100} placeholder="Contoh: Nama hewan peliharaan?"
                   value={secQ} onChange={(e) => { setSecQ(e.target.value); setPinError(""); }} />
@@ -956,17 +956,17 @@ export default function SettingsPage() {
                 <input id="set-sec-a" className="input" type="text" maxLength={100} placeholder={form.securityAnswer ? "(Biarkan kosong jika tak ganti)" : "Jawaban rahasia..."}
                   value={secA} onChange={(e) => { setSecA(e.target.value); setPinError(""); }} />
               </div>
-              {pinError && <p className="text-red-500 text-sm">{pinError}</p>}
+              {pinError && <p className="text-[var(--ink-danger)] text-sm">{pinError}</p>}
               <div className="flex gap-2">
                 <button onClick={handleSetPin} disabled={newPin.length !== 6 || newPinConf.length !== 6}
-                  className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-40 hover:bg-blue-700 transition-colors">Simpan PIN</button>
+                  className="flex-1 py-2.5 rounded-xl bg-[var(--brand-solid)] text-[var(--on-strong)] font-semibold text-sm disabled:opacity-40 hover:bg-[var(--brand-solid)] transition-colors">Simpan PIN</button>
                 <button onClick={() => { setPinMode("view"); setNewPin(""); setNewPinConf(""); setSecQ(""); setSecA(""); setPinError(""); }}
-                  className="px-4 py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-medium hover:bg-gray-200 transition-colors">Batal</button>
+                  className="px-4 py-2.5 rounded-xl bg-[var(--bg-subtle)] text-[var(--ink-muted)] text-sm font-medium hover:bg-[var(--bg-subtle)] transition-colors">Batal</button>
               </div>
             </div>
           )}
 
-          <p className="text-xs text-gray-500 pt-2 border-t border-gray-50">
+          <p className="text-xs text-[var(--ink-muted)] pt-2 border-t border-[var(--border)]">
             Buka data keuangan dari tab <b>💰 Keuangan</b> di menu bawah (akan diminta PIN ini).
           </p>
         </div>
@@ -975,7 +975,7 @@ export default function SettingsPage() {
       {/* ── Rekening Bank ── */}
       <Section title="Rekening Bank" icon={<BankIcon size={18} />}>
         <div className="pt-3 space-y-3">
-          <p className="text-xs text-gray-500">Ditampilkan di lembar absensi untuk memudahkan transfer</p>
+          <p className="text-xs text-[var(--ink-muted)]">Ditampilkan di lembar absensi untuk memudahkan transfer</p>
           <div>
             <label htmlFor="set-nama-rekening" className="label">Nama Pemilik Rekening</label>
             <input id="set-nama-rekening" className="input" maxLength={60} placeholder="Nama AN rekening"
@@ -1029,8 +1029,8 @@ export default function SettingsPage() {
           <label className="flex items-center gap-3 cursor-pointer">
             <Toggle checked={form.ai.enabled} onChange={(v) => updateAi("enabled", v)} />
             <div>
-              <p className="text-sm text-gray-700 font-medium">Aktifkan AI</p>
-              <p className="text-xs text-gray-500">Bantu menulis catatan, laporan, pesan WA, dan analisis keuangan</p>
+              <p className="text-sm text-[var(--ink-strong)] font-medium">Aktifkan AI</p>
+              <p className="text-xs text-[var(--ink-muted)]">Bantu menulis catatan, laporan, pesan WA, dan analisis keuangan</p>
             </div>
           </label>
           {form.ai.enabled && (
@@ -1040,30 +1040,30 @@ export default function SettingsPage() {
                 <input id="set-ai-key" className="input font-mono text-xs" type="password" placeholder="sk-..."
                   value={form.ai.apiKey ?? ""}
                   onChange={(e) => updateAi("apiKey", e.target.value)} />
-                <p className="text-xs text-gray-500 mt-1">
-                  Dapatkan di <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 underline">DeepSeek API Keys</a>.
+                <p className="text-xs text-[var(--ink-muted)] mt-1">
+                  Dapatkan di <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener noreferrer" className="font-medium text-[var(--ink-brand)] underline">DeepSeek API Keys</a>.
                   {" "}Disimpan di perangkat ini dan dipakai untuk menghubungkan langsung ke DeepSeek.
                 </p>
               </div>
               <div>
                 <label className="label">Model</label>
-                <div className="input bg-gray-50 text-gray-700 text-sm flex items-center gap-2 cursor-default">
+                <div className="input bg-[var(--surface)] text-[var(--ink-strong)] text-sm flex items-center gap-2 cursor-default">
                   <span className="font-semibold">{DEEPSEEK_MODEL_LABEL}</span>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-[var(--ink-muted)] mt-1">
                   Model API: <span className="font-mono">{DEEPSEEK_MODEL}</span>. Mode cepat untuk catatan dan laporan.
                 </p>
-                <p className="text-xs text-gray-500 mt-1">{DEEPSEEK_COST_NOTE}</p>
+                <p className="text-xs text-[var(--ink-muted)] mt-1">{DEEPSEEK_COST_NOTE}</p>
                 <p className="text-xs mt-1">
-                  <a href={DEEPSEEK_DOCS_URL} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Dokumentasi DeepSeek</a>
+                  <a href={DEEPSEEK_DOCS_URL} target="_blank" rel="noopener noreferrer" className="text-[var(--ink-brand)] underline">Dokumentasi DeepSeek</a>
                   {" · "}
-                  <a href={DEEPSEEK_PRICING_URL} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Tarif resmi</a>
+                  <a href={DEEPSEEK_PRICING_URL} target="_blank" rel="noopener noreferrer" className="text-[var(--ink-brand)] underline">Tarif resmi</a>
                 </p>
               </div>
-              <div className="rounded-xl border border-gray-200 p-3 space-y-2">
-                <p className="text-sm font-semibold text-gray-700">Data yang dikirim ke DeepSeek</p>
-                <p className="text-xs text-gray-600">Data dikirim saat kamu melanjutkan fitur AI. Rinciannya ditampilkan sebelum setiap panggilan.</p>
-                <ul className="list-disc pl-4 space-y-1 text-xs text-gray-600">
+              <div className="rounded-xl border border-[var(--border)] p-3 space-y-2">
+                <p className="text-sm font-semibold text-[var(--ink-strong)]">Data yang dikirim ke DeepSeek</p>
+                <p className="text-xs text-[var(--ink-muted)]">Data dikirim saat kamu melanjutkan fitur AI. Rinciannya ditampilkan sebelum setiap panggilan.</p>
+                <ul className="list-disc pl-4 space-y-1 text-xs text-[var(--ink-muted)]">
                   <li>Catatan dan laporan: identitas murid serta data belajar sesuai sesi yang dipilih. Draft catatan juga menyertakan Situasi Hari Ini dan tindak lanjut bila tersedia.</li>
                   <li>Poles WA: isi pesan awal sesi beserta nama murid dan tutor.</li>
                   <li>Analisis keuangan: ringkasan periode, nama dan data keuangan murid, piutang, pengeluaran, serta pembanding dan proyeksi.</li>
@@ -1083,7 +1083,7 @@ export default function SettingsPage() {
           <PhotoMaintenance onToast={toastCtx.info} />
 
           {/* Kata sandi bersama — dipakai semua backup & restore */}
-          <div className="bg-gray-50 rounded-xl p-3 space-y-2">
+          <div className="bg-[var(--surface)] rounded-xl p-3 space-y-2">
             <label htmlFor="set-backup-pass" className="label">🔑 Kata Sandi Enkripsi</label>
             <div className="flex gap-2">
               <input id="set-backup-pass" className="input flex-1" type={showBackupPass ? "text" : "password"} value={backupPass}
@@ -1095,20 +1095,20 @@ export default function SettingsPage() {
                   setBackupPass(words);
                   setShowBackupPass(true);
                 }}
-                className="text-xs px-3 py-2 rounded-xl bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium flex-shrink-0">
+                className="text-xs px-3 py-2 rounded-xl bg-[var(--bg-subtle)] text-[var(--ink-strong)] hover:bg-[var(--bg-subtle)] font-medium flex-shrink-0">
                 Generate
               </button>
               <button type="button" onClick={() => setShowBackupPass((visible) => !visible)}
-                className="text-xs px-3 py-2 rounded-xl bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium flex-shrink-0">
+                className="text-xs px-3 py-2 rounded-xl bg-[var(--bg-subtle)] text-[var(--ink-strong)] hover:bg-[var(--bg-subtle)] font-medium flex-shrink-0">
                 {showBackupPass ? "Sembunyikan" : "Tampilkan"}
               </button>
             </div>
-            {backupPass && showBackupPass && <p className="text-xs text-gray-500 font-mono break-all">{backupPass}</p>}
+            {backupPass && showBackupPass && <p className="text-xs text-[var(--ink-muted)] font-mono break-all">{backupPass}</p>}
             {backupPass && (() => {
               const st = passStrength(backupPass);
               return (
                 <div className="space-y-1">
-                  <div className="w-full bg-gray-200 rounded-full h-1.5">
+                  <div className="w-full bg-[var(--bg-subtle)] rounded-full h-1.5">
                     <div className="h-1.5 rounded-full transition-all" style={{ width: `${st.pct}%`, background: st.color }} />
                   </div>
                   <p className="text-xs font-medium" style={{ color: st.color }}>
@@ -1118,30 +1118,30 @@ export default function SettingsPage() {
                 </div>
               );
             })()}
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-[var(--ink-muted)]">
               Dipakai untuk <b>backup &amp; restore</b> (File &amp; Drive). <b>Simpan baik-baik</b> — kunci ini tak tersimpan & wajib untuk membuka backup di HP lain.
             </p>
           </div>
 
           {/* Metode 1: File */}
-          <div className="bg-blue-50 rounded-xl p-3 space-y-2.5">
-            <p className="text-sm font-semibold text-blue-700">📁 File (.jles)</p>
-            <button className="w-full py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors"
+          <div className="bg-[var(--brand-tint)] rounded-xl p-3 space-y-2.5">
+            <p className="text-sm font-semibold text-[var(--ink-brand)]">📁 File (.jles)</p>
+            <button className="w-full py-2.5 rounded-xl bg-[var(--brand-solid)] text-[var(--on-strong)] text-sm font-semibold hover:bg-[var(--brand-solid)] transition-colors"
               onClick={() => {
                 if (!backupPass || backupPass.length < MIN_PASS) { toastCtx.info(`Isi Kata Sandi Enkripsi (min ${MIN_PASS} karakter) dulu!`); return; }
                 requireFinancialPin("exportBackup");
               }}>
               ⬇️ Backup ke File
             </button>
-            <button className="w-full py-2 rounded-xl bg-blue-100 text-blue-700 text-sm font-medium hover:bg-blue-200 transition-colors"
+            <button className="w-full py-2 rounded-xl bg-[var(--brand-tint-strong)] text-[var(--ink-brand)] text-sm font-medium hover:bg-[var(--brand-tint-strong)] transition-colors"
               onClick={() => requireFinancialPin("exportCsv")}>
               📊 Ekspor data ke CSV (terbaca)
             </button>
-            <p className="text-xs text-blue-600">CSV terbaca tanpa app (cadangan tambahan). Backup .jles tetap utama (terenkripsi).</p>
-            <div className="border-t border-blue-100 pt-2.5 space-y-2">
-              <label htmlFor="set-restore-file" className="label text-blue-800">Restore dari file</label>
-              <input id="set-restore-file" ref={restoreRef} type="file" accept=".jles" className="text-sm text-gray-600 w-full" />
-              <button className="w-full py-2 rounded-xl bg-blue-100 text-blue-700 text-sm font-medium hover:bg-blue-200 transition-colors"
+            <p className="text-xs text-[var(--ink-brand)]">CSV terbaca tanpa app (cadangan tambahan). Backup .jles tetap utama (terenkripsi).</p>
+            <div className="border-t border-[var(--brand-tint-strong)] pt-2.5 space-y-2">
+              <label htmlFor="set-restore-file" className="label text-[var(--ink-brand)]">Restore dari file</label>
+              <input id="set-restore-file" ref={restoreRef} type="file" accept=".jles" className="text-sm text-[var(--ink-muted)] w-full" />
+              <button className="w-full py-2 rounded-xl bg-[var(--brand-tint-strong)] text-[var(--ink-brand)] text-sm font-medium hover:bg-[var(--brand-tint-strong)] transition-colors"
                 onClick={() => {
                   const file = restoreRef.current?.files?.[0];
                   if (!file) { toastCtx.info("Pilih file .jles dulu!"); return; }
@@ -1155,7 +1155,7 @@ export default function SettingsPage() {
                   kata sandinya yang salah?" sebelum tutor menekan Restore. */}
               <button
                 disabled={restoreProgress !== ""}
-                className="w-full py-2 rounded-xl bg-white text-blue-700 text-sm font-medium border border-blue-200 hover:bg-blue-50 transition-colors disabled:opacity-60"
+                className="w-full py-2 rounded-xl bg-[var(--surface-strong)] text-[var(--ink-brand)] text-sm font-medium border border-[var(--brand-tint-strong)] hover:bg-[var(--brand-tint)] transition-colors disabled:opacity-60"
                 onClick={async () => {
                   const file = restoreRef.current?.files?.[0];
                   if (!file) { toastCtx.info("Pilih file .jles dulu!"); return; }
@@ -1174,11 +1174,11 @@ export default function SettingsPage() {
                 🔍 Cek file ini bisa dibuka
               </button>
               {restoreProgress && (
-                <p role="status" aria-live="polite" className="rounded-lg bg-blue-100 px-2.5 py-2 text-xs font-medium text-blue-800">
+                <p role="status" aria-live="polite" className="rounded-lg bg-[var(--brand-tint-strong)] px-2.5 py-2 text-xs font-medium text-[var(--ink-brand)]">
                   ⏳ {restoreProgress} Jangan tutup halaman ini.
                 </p>
               )}
-              <p className="text-xs text-blue-700">
+              <p className="text-xs text-[var(--ink-brand)]">
                 <b>Kata Sandi Enkripsi</b> (di kolom atas), bukan PIN Keuangan, yang membuka file ini.
               </p>
             </div>
@@ -1186,23 +1186,23 @@ export default function SettingsPage() {
 
           {/* Metode 2: Google Drive */}
           {isDriveConfigured() ? (
-            <div className="bg-green-50 rounded-xl p-3 space-y-2.5">
+            <div className="bg-[var(--bg-success)] rounded-xl p-3 space-y-2.5">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-green-700">☁️ Google Drive</p>
+                <p className="text-sm font-semibold text-[var(--ink-success)]">☁️ Google Drive</p>
                 {form.driveBackup?.backupAt && (
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-[var(--ink-muted)]">
                     {new Date(form.driveBackup.backupAt).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}
                   </p>
                 )}
               </div>
-              <button className="w-full py-2.5 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition-colors"
+              <button className="w-full py-2.5 rounded-xl bg-[var(--bg-success-strong)] text-[var(--on-strong)] text-sm font-semibold hover:bg-[var(--bg-success-strong)] transition-colors"
                 onClick={() => {
                   if (!backupPass || backupPass.length < MIN_PASS) { toastCtx.info(`Isi Kata Sandi Enkripsi (min ${MIN_PASS} karakter) dulu!`); return; }
                   requireFinancialPin("driveBackup");
                 }}>
                 ☁️⬆️ Backup ke Drive
               </button>
-              <button className="w-full py-2 rounded-xl bg-green-100 text-green-700 text-sm font-medium hover:bg-green-200 transition-colors"
+              <button className="w-full py-2 rounded-xl bg-[var(--bg-success)] text-[var(--ink-success)] text-sm font-medium hover:bg-[var(--bg-success-strong)] transition-colors"
                 onClick={() => {
                   if (!backupPass) { toastCtx.info("Isi Kata Sandi Enkripsi dulu!"); return; }
                   if (!confirm("Restore dari Google Drive akan mengganti semua data saat ini. Lanjut?")) return;
@@ -1211,51 +1211,51 @@ export default function SettingsPage() {
                 ☁️♻️ Restore dari Drive
               </button>
               <button disabled={verifying}
-                className="w-full py-2 rounded-xl bg-white text-green-700 text-sm font-medium border border-green-200 hover:bg-green-50 transition-colors disabled:opacity-60"
+                className="w-full py-2 rounded-xl bg-[var(--surface-strong)] text-[var(--ink-success)] text-sm font-medium border border-[var(--border-success)] hover:bg-[var(--bg-success)] transition-colors disabled:opacity-60"
                 onClick={doVerifyDrive}>
                 {verifying ? "Memverifikasi..." : "🔎 Verifikasi backup Drive"}
               </button>
-              <p className="text-xs text-green-600">1 file di-overwrite tiap backup — Drive simpan riwayat versi.</p>
-              <label className="flex items-center gap-2.5 pt-2 border-t border-green-100 cursor-pointer">
+              <p className="text-xs text-[var(--ink-success)]">1 file di-overwrite tiap backup — Drive simpan riwayat versi.</p>
+              <label className="flex items-center gap-2.5 pt-2 border-t border-[var(--border-success)] cursor-pointer">
                 <Toggle checked={driveAuto} onChange={toggleDriveAuto} label="Auto backup Drive mingguan" />
-                <span className="text-xs font-medium text-green-800">Auto backup mingguan (1-tap dari reminder)</span>
+                <span className="text-xs font-medium text-[var(--ink-success)]">Auto backup mingguan (1-tap dari reminder)</span>
               </label>
               {driveAuto && (
-                <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-2 py-1.5">
+                <p className="text-xs text-[var(--ink-warn)] bg-[var(--bg-warn)] rounded-lg px-2 py-1.5">
                   ⚠️ Kata sandi disimpan di perangkat ini agar backup bisa 1-tap — pastikan layar HP terkunci (PIN/biometrik). Tetap simpan salinannya untuk restore di HP lain.
                 </p>
               )}
 
               {/* Backup senyap (relay) — backup tanpa popup saat app dibuka & sudah due */}
-              <div className="pt-2 border-t border-green-100 space-y-1.5">
-                <label htmlFor="set-relay-secret" className="label text-green-800">⚡ Backup senyap (relay, lanjutan)</label>
+              <div className="pt-2 border-t border-[var(--border-success)] space-y-1.5">
+                <label htmlFor="set-relay-secret" className="label text-[var(--ink-success)]">⚡ Backup senyap (relay, lanjutan)</label>
                 <input id="set-relay-secret" className="input font-mono text-xs" type="password" placeholder="Secret relay (BACKUP_API_SECRET)"
                   value={relaySecret} onChange={(e) => saveRelaySecret(e.target.value)} />
                 <div className="flex items-center gap-2">
                   <button disabled={relayBusy || !relaySecret}
                     onClick={doTestRelay}
-                    className="text-xs px-3 py-1.5 rounded-xl bg-green-100 text-green-700 font-medium disabled:opacity-50">
+                    className="text-xs px-3 py-1.5 rounded-xl bg-[var(--bg-success)] text-[var(--ink-success)] font-medium disabled:opacity-50">
                     {relayBusy ? "Menguji..." : "Tes relay"}
                   </button>
-                  <span className="text-xs text-gray-500">{relaySecret ? "Aktif — backup tanpa popup" : "Nonaktif (pakai 1-tap)"}</span>
+                  <span className="text-xs text-[var(--ink-muted)]">{relaySecret ? "Aktif — backup tanpa popup" : "Nonaktif (pakai 1-tap)"}</span>
                 </div>
-                <p className="text-xs text-gray-500">Butuh setup server 1x. Lihat docs/02-PANDUAN-BACKUP-DRIVE-SENYAP.md.</p>
+                <p className="text-xs text-[var(--ink-muted)]">Butuh setup server 1x. Lihat docs/02-PANDUAN-BACKUP-DRIVE-SENYAP.md.</p>
               </div>
             </div>
           ) : (
-            <div className="bg-gray-50 rounded-xl p-3">
-              <p className="text-xs text-gray-500">☁️ Backup Google Drive belum aktif.</p>
+            <div className="bg-[var(--surface)] rounded-xl p-3">
+              <p className="text-xs text-[var(--ink-muted)]">☁️ Backup Google Drive belum aktif.</p>
             </div>
           )}
 
-          <p className="text-xs text-orange-600">⚠️ Restore mengganti <b>semua</b> data saat ini. Sebelum mengganti, app otomatis mengunduh file <b>pre-restore</b> (cadangan data lama Anda).</p>
+          <p className="text-xs text-[var(--ink-attention)]">⚠️ Restore mengganti <b>semua</b> data saat ini. Sebelum mengganti, app otomatis mengunduh file <b>pre-restore</b> (cadangan data lama Anda).</p>
 
-          <p className="text-xs text-gray-500 pt-2 border-t border-gray-50">
+          <p className="text-xs text-[var(--ink-muted)] pt-2 border-t border-[var(--border)]">
             🕒 Backup terakhir:{" "}
             {form.lastBackupAt ? (
-              <b className="text-gray-600">{new Date(form.lastBackupAt).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}</b>
+              <b className="text-[var(--ink-muted)]">{new Date(form.lastBackupAt).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}</b>
             ) : (
-              <span className="text-gray-500">belum pernah backup</span>
+              <span className="text-[var(--ink-muted)]">belum pernah backup</span>
             )}
           </p>
         </div>
@@ -1264,15 +1264,15 @@ export default function SettingsPage() {
       {/* ── Hapus Semua Data ── */}
       <Section title="Hapus Semua Data" icon={<TrashIcon size={18} />}>
         <div className="pt-3 space-y-3">
-          <p className="text-xs text-red-600 font-semibold">
+          <p className="text-xs text-[var(--ink-danger)] font-semibold">
             ⚠️ Menghapus semua data murid, sesi, tagihan, laporan, dan pengeluaran.
           </p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-[var(--ink-muted)]">
             Ikut terhapus juga: PIN Keuangan, pertanyaan keamanan, kunci API AI, logo, profil tutor,
             dan rekening bank — beserta catatan audit (kecuali satu jejak reset), draf Catat Sesi
             yang belum tersimpan, dan pengingat backup terakhir.
           </p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-[var(--ink-muted)]">
             Yang tetap ada: file backup yang sudah Anda unduh (termasuk yang di Google Drive) dan
             kata sandi backup yang mungkin tersimpan di browser ini. Setelah reset, aplikasi terbuka
             dengan pengaturan bawaan — tanpa PIN.
@@ -1284,7 +1284,7 @@ export default function SettingsPage() {
               if (word !== "RESET") { toastCtx.info("Konfirmasi gagal — ketik RESET."); return; }
               requireFinancialPin("resetAll");
             }}
-            className="w-full py-3 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition-colors">
+            className="w-full py-3 rounded-xl bg-[var(--bg-danger-strong)] text-[var(--on-strong)] text-sm font-bold hover:bg-[var(--bg-danger-strong)] transition-colors">
             🗑️ Hapus Semua Data
           </button>
         </div>
@@ -1299,34 +1299,34 @@ export default function SettingsPage() {
       <Section title="Aplikasi (PWA)" icon={<PhoneIcon size={18} />}>
         <div className="pt-3 space-y-3">
           <StorageUsage />
-          <div className="bg-gray-50 rounded-xl p-3 space-y-1.5">
+          <div className="bg-[var(--surface)] rounded-xl p-3 space-y-1.5">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Versi</span>
-              <span className="font-semibold text-gray-700">{APP_VERSION}</span>
+              <span className="text-[var(--ink-muted)]">Versi</span>
+              <span className="font-semibold text-[var(--ink-strong)]">{APP_VERSION}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Framework</span>
-              <span className="text-gray-600">React + Vite + Tailwind</span>
+              <span className="text-[var(--ink-muted)]">Framework</span>
+              <span className="text-[var(--ink-muted)]">React + Vite + Tailwind</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Database</span>
-              <span className="text-gray-600">IndexedDB (lokal)</span>
+              <span className="text-[var(--ink-muted)]">Database</span>
+              <span className="text-[var(--ink-muted)]">IndexedDB (lokal)</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Mode</span>
-              <span className="text-gray-600">{import.meta.env.DEV ? "⚙️ Development" : "🚀 Production"}</span>
+              <span className="text-[var(--ink-muted)]">Mode</span>
+              <span className="text-[var(--ink-muted)]">{import.meta.env.DEV ? "⚙️ Development" : "🚀 Production"}</span>
             </div>
           </div>
 
           <button
             onClick={() => setShowExitModal(true)}
-            className="w-full py-2.5 rounded-xl bg-red-50 text-red-600 text-sm font-semibold hover:bg-red-100 transition-colors">
+            className="w-full py-2.5 rounded-xl bg-[var(--bg-danger)] text-[var(--ink-danger)] text-sm font-semibold hover:bg-[var(--bg-danger)] transition-colors">
             ⏻ Keluar Aplikasi
           </button>
 
           <button
             onClick={() => setConfirmClearCache(true)}
-            className="w-full py-2.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-semibold hover:bg-gray-200 transition-colors">
+            className="w-full py-2.5 rounded-xl bg-[var(--bg-subtle)] text-[var(--ink-strong)] text-sm font-semibold hover:bg-[var(--bg-subtle)] transition-colors">
             🧹 Bersihkan Cache (butuh internet setelahnya)
           </button>
         </div>

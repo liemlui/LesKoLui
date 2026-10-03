@@ -48,10 +48,10 @@ export default function ConfirmSheet({
             type="button"
             onClick={onConfirm}
             disabled={busy}
-            className={`flex-1 rounded-[var(--radius-card)] py-3 text-body font-bold text-white transition-colors disabled:opacity-50 ${
+            className={`flex-1 rounded-[var(--radius-card)] py-3 text-body font-bold text-[var(--on-strong)] transition-colors disabled:opacity-50 ${
               danger
                 ? "bg-[var(--bg-danger-strong)] hover:opacity-90"
-                : "bg-[var(--brand)] hover:bg-[var(--brand-strong)]"
+                : "bg-[var(--brand-solid)] hover:bg-[var(--brand-solid-hover)]"
             }`}
           >
             {busy ? "Memproses..." : confirmLabel}

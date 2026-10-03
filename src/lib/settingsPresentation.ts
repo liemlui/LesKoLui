@@ -4,9 +4,11 @@
  * Helper murni (tanpa React / IndexedDB) agar mudah dites — memisahkan logika
  * status tombol dari komponen besar `Settings.tsx`.
  *
- * Kontras teks pada state non-dirty memakai `text-slate-700` (≈ 4.6:1 di atas
- * `bg-gray-100`) supaya status "Tersimpan ✓" lolos WCAG AA 1.4.3; sebelumnya
- * `text-gray-500` hanya ≈ 3.0:1. Lihat audit visual V-02.
+ * Kontras teks pada state non-dirty memakai `--ink-strong` di atas `--bg-subtle`
+ * (rasio terukur 14,55:1 — lihat `.design-audit/g2-02-contrast.mjs`) supaya status
+ * "Tersimpan ✓" lolos WCAG AA 1.4.3. Sebelum sapu G2-02 kelas literalnya
+ * `text-slate-700` di atas `bg-gray-100`; pembanding lama `text-gray-500` hanya
+ * ≈3,0:1. Lihat audit visual V-02.
  */
 
 export interface SaveButtonState {
@@ -23,7 +25,7 @@ export function saveButtonState(dirty: boolean, saving: boolean): SaveButtonStat
   return {
     disabled,
     className: `w-full py-3.5 rounded-xl font-bold text-base transition-colors shadow-sm ${
-      dirty ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-gray-100 text-slate-700"
+      dirty ? "bg-[var(--brand-solid)] hover:bg-[var(--brand-solid)] text-[var(--on-strong)]" : "bg-[var(--bg-subtle)] text-[var(--ink-strong)]"
     } ${disabled ? "disabled:opacity-60 disabled:cursor-not-allowed" : ""}`,
     label: saving ? "Menyimpan..." : dirty ? "Simpan Pengaturan" : "Tersimpan ✓",
   };

@@ -240,15 +240,15 @@ export interface CurriculumMeta {
 }
 
 export const CURRICULUM_META: Record<CurriculumType, CurriculumMeta> = {
-  "IB MYP":           { label: "IB MYP",            shortLabel: "MYP",    color: "bg-blue-100",   text: "text-blue-700"   },
-  "IB DP":            { label: "IB DP",              shortLabel: "DP",     color: "bg-blue-600",   text: "text-white"      },
-  "Cambridge IGCSE":  { label: "Cambridge IGCSE",    shortLabel: "IGCSE",  color: "bg-purple-100", text: "text-purple-700" },
-  "Cambridge O Level":{ label: "Cambridge O Level",  shortLabel: "O Lvl",  color: "bg-purple-100", text: "text-purple-700" },
-  "Cambridge AS Level":{ label: "Cambridge AS Level",shortLabel: "AS Lvl", color: "bg-violet-100", text: "text-violet-700" },
-  "Cambridge A Level":{ label: "Cambridge A Level",  shortLabel: "A Lvl",  color: "bg-violet-600", text: "text-white"      },
-  "AP":               { label: "AP (College Board)", shortLabel: "AP",     color: "bg-red-100",    text: "text-red-700"    },
-  "National":         { label: "Kurikulum Nasional", shortLabel: "Nasional",color: "bg-green-100", text: "text-green-700"  },
-  "Custom":           { label: "Lainnya / Custom",   shortLabel: "Custom", color: "bg-gray-100",   text: "text-gray-600"   },
+  "IB MYP":           { label: "IB MYP",            shortLabel: "MYP",    color: "bg-[var(--brand-tint-strong)]",   text: "text-[var(--ink-brand)]"   },
+  "IB DP":            { label: "IB DP",              shortLabel: "DP",     color: "bg-[var(--brand-solid)]",   text: "text-[var(--on-strong)]"      },
+  "Cambridge IGCSE":  { label: "Cambridge IGCSE",    shortLabel: "IGCSE",  color: "bg-[var(--accent-tint)]", text: "text-[var(--ink-purple)]" },
+  "Cambridge O Level":{ label: "Cambridge O Level",  shortLabel: "O Lvl",  color: "bg-[var(--accent-tint)]", text: "text-[var(--ink-purple)]" },
+  "Cambridge AS Level":{ label: "Cambridge AS Level",shortLabel: "AS Lvl", color: "bg-[var(--accent-tint)]", text: "text-[var(--ink-accent)]" },
+  "Cambridge A Level":{ label: "Cambridge A Level",  shortLabel: "A Lvl",  color: "bg-[var(--accent-solid)]", text: "text-[var(--on-strong)]"      },
+  "AP":               { label: "AP (College Board)", shortLabel: "AP",     color: "bg-[var(--bg-danger)]",    text: "text-[var(--ink-danger)]"    },
+  "National":         { label: "Kurikulum Nasional", shortLabel: "Nasional",color: "bg-[var(--bg-success)]", text: "text-[var(--ink-success)]"  },
+  "Custom":           { label: "Lainnya / Custom",   shortLabel: "Custom", color: "bg-[var(--bg-subtle)]",   text: "text-[var(--ink-muted)]"   },
 };
 
 export const ALL_CURRICULA: CurriculumType[] = [

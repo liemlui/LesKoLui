@@ -1145,20 +1145,20 @@ export default function MonthlyReportPage() {
       <Breadcrumb />
       <div className="p-4 space-y-4">
         <header>
-          <h1 className="text-2xl font-bold text-gray-900">Laporan Perkembangan</h1>
+          <h1 className="text-2xl font-bold text-[var(--ink-strong)]">Laporan Perkembangan</h1>
           {/* Audit L-07 / Q22(b): layar ini dulu hanya punya `h1` (h2 hanya muncul di
               dalam modal), jadi hierarki heading dan ambang guard G1-11 gagal. */}
           <h2 className="sr-only">Periode dan pratinjau laporan</h2>
-          <p className="mt-1 text-sm leading-relaxed text-gray-600">
+          <p className="mt-1 text-sm leading-relaxed text-[var(--ink-muted)]">
             Susun perkembangan belajar untuk murid dan orang tua. Finalisasi laporan tidak menerbitkan invoice;
             penagihan dikelola terpisah melalui menu Keuangan.
           </p>
         </header>
         {invalidReportLink && (
-          <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <div role="alert" className="rounded-xl border border-[var(--border-warn)] bg-[var(--bg-warn)] p-3 text-sm text-[var(--ink-warn)]">
             <p className="font-semibold">Laporan tidak ditemukan</p>
             <p className="mt-0.5 text-xs">Tautan mungkin sudah lama atau laporan telah dihapus.</p>
-            <button onClick={leaveEditingReport} className="mt-2 rounded-lg bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-200">
+            <button onClick={leaveEditingReport} className="mt-2 rounded-lg bg-[var(--bg-warn)] px-3 py-1.5 text-xs font-semibold text-[var(--ink-warn)] hover:bg-[var(--bg-warn-strong)]">
               Pilih laporan lain
             </button>
           </div>
@@ -1168,13 +1168,13 @@ export default function MonthlyReportPage() {
             <div
               role={messageFailed ? "alert" : "status"}
               aria-live={messageFailed ? "assertive" : "polite"}
-              className={`flex items-start gap-2 rounded-lg p-3 text-sm ${message.includes("✓") ? "bg-green-50 text-green-700" : messageFailed ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700"}`}>
+              className={`flex items-start gap-2 rounded-lg p-3 text-sm ${message.includes("✓") ? "bg-[var(--bg-success)] text-[var(--ink-success)]" : messageFailed ? "bg-[var(--bg-danger)] text-[var(--ink-danger)]" : "bg-[var(--brand-tint)] text-[var(--ink-brand)]"}`}>
               <span className="flex-1">{message}</span>
               <button
                 type="button"
                 aria-label="Tutup pesan"
                 onClick={() => setMessage("")}
-                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-current/80 transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-current/80 transition hover:bg-[var(--scrim)]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-brand)]"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
                   <path d="M18 6L6 18M6 6l12 12" />
@@ -1199,7 +1199,7 @@ export default function MonthlyReportPage() {
                   setPrevTexts(null);
                   setMessage("Undo berhasil ✓");
                 }}
-                className="w-full text-xs text-indigo-600 font-semibold bg-indigo-50 border border-indigo-200 rounded-lg py-2 hover:bg-indigo-100 transition-colors">
+                className="w-full text-xs text-[var(--ink-accent)] font-semibold bg-[var(--accent-tint)] border border-[var(--border-accent)] rounded-lg py-2 hover:bg-[var(--accent-tint)] transition-colors">
                 ↩ Undo Hasil AI
               </button>
             )}
@@ -1207,21 +1207,21 @@ export default function MonthlyReportPage() {
         )}
 
         {/* ── RIWAYAT LAPORAN (menu Laporan harus bisa membuka laporan lama) ── */}
-        <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <section className="bg-[var(--surface-strong)] rounded-2xl shadow-sm border border-[var(--border)] overflow-hidden">
           <button
             className="w-full flex items-center justify-between gap-2 p-4 text-left"
             aria-expanded={historyOpen}
             onClick={() => setHistoryOpen((v) => !v)}>
             <div>
-              <p className="font-semibold text-gray-800 text-sm">📚 Laporan tersimpan</p>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="font-semibold text-[var(--ink-strong)] text-sm">📚 Laporan tersimpan</p>
+              <p className="text-xs text-[var(--ink-muted)] mt-0.5">
                 Buka lagi laporan yang sudah pernah dibuat — draft maupun yang sudah final.
               </p>
             </div>
-            <span className="text-gray-500 text-sm">{historyOpen ? "▲" : "▼"}</span>
+            <span className="text-[var(--ink-muted)] text-sm">{historyOpen ? "▲" : "▼"}</span>
           </button>
           {historyOpen && (
-            <div className="border-t border-gray-100 p-4 space-y-2">
+            <div className="border-t border-[var(--border)] p-4 space-y-2">
               {reportHistory.length === 0 ? (
                 <EmptyState
                   message="Belum ada laporan tersimpan"
@@ -1238,7 +1238,7 @@ export default function MonthlyReportPage() {
                     <option value="">Semua murid</option>
                     {studentOptions.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
-                  <ul className="divide-y divide-gray-100">
+                  <ul className="divide-y divide-[var(--border)]">
                     {historyVisible.map((r) => {
                       const owner = studentOptions.find((s) => s.id === r.studentId);
                       const status = reportStatus(r);
@@ -1246,11 +1246,11 @@ export default function MonthlyReportPage() {
                       return (
                         <li key={r.id} className="flex items-center justify-between gap-2 py-2">
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-gray-800">
+                            <p className="truncate text-sm font-medium text-[var(--ink-strong)]">
                               {owner?.name ?? "Murid dihapus"}
-                              {isCurrent && <span className="ml-1 text-xs text-blue-600">• sedang dibuka</span>}
+                              {isCurrent && <span className="ml-1 text-xs text-[var(--ink-brand)]">• sedang dibuka</span>}
                             </p>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-[var(--ink-muted)]">
                               {periodLabel(r.periodStart, r.periodEnd) || monthLabel(r.month)}
                               {" · "}
                               {status === "confirmed" ? "Final" : "Draft"}
@@ -1259,14 +1259,14 @@ export default function MonthlyReportPage() {
                             {/* Rentang penuh + jumlah sesi apa adanya: di sinilah
                                 terlihat kalau sebuah laporan diam-diam mengunci
                                 rentang yang lebih lebar daripada sesinya. */}
-                            <p className="text-[11px] text-gray-400">
+                            <p className="text-[11px] text-[var(--ink-muted)]">
                               {r.periodStart} → {r.periodEnd} · {r.sessionIds.length} sesi
                               {r.createdAt ? ` · dibuat ${dayLabel(r.createdAt.slice(0, 10))}` : ""}
                             </p>
                           </div>
                           <button
                             onClick={() => { setStudentId(r.studentId); jumpToDraft(r); }}
-                            className="shrink-0 rounded-lg bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100">
+                            className="shrink-0 rounded-lg bg-[var(--brand-tint)] px-2.5 py-1.5 text-xs font-semibold text-[var(--ink-brand)] transition-colors hover:bg-[var(--brand-tint-strong)]">
                             Buka
                           </button>
                         </li>
@@ -1276,7 +1276,7 @@ export default function MonthlyReportPage() {
                   {reportHistoryFiltered.length > 6 && (
                     <button
                       onClick={() => setHistoryExpanded((v) => !v)}
-                      className="w-full rounded-lg bg-gray-50 py-2 text-xs font-semibold text-gray-600 transition-colors hover:bg-gray-100">
+                      className="w-full rounded-lg bg-[var(--surface)] py-2 text-xs font-semibold text-[var(--ink-muted)] transition-colors hover:bg-[var(--bg-subtle)]">
                       {historyExpanded ? "Tampilkan lebih sedikit" : `Tampilkan semua ${reportHistoryFiltered.length} laporan`}
                     </button>
                   )}
@@ -1290,7 +1290,7 @@ export default function MonthlyReportPage() {
         <div className="space-y-3">
 
             {/* CARD 1: Murid + Periode + Stats + Actions */}
-            <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+            <section className="bg-[var(--surface-strong)] rounded-2xl p-4 shadow-sm border border-[var(--border)] space-y-3">
               <div className="grid grid-cols-1 gap-2">
                 <div>
                   <label htmlFor="mr-murid" className="label">Murid</label>
@@ -1303,20 +1303,20 @@ export default function MonthlyReportPage() {
                   </select>
                 </div>
                 {drafts.length > 0 && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 space-y-1.5">
-                    <p className="text-xs font-semibold text-amber-700">📋 {drafts.length} laporan draft — belum final</p>
+                  <div className="bg-[var(--bg-warn)] border border-[var(--border-warn)] rounded-lg p-2.5 space-y-1.5">
+                    <p className="text-xs font-semibold text-[var(--ink-warn)]">📋 {drafts.length} laporan draft — belum final</p>
                     {drafts.map((d) => (
                       <div key={d.id} className="flex items-center justify-between gap-1 text-xs">
-                        <span className="text-gray-700 truncate font-medium">{periodLabel(d.periodStart, d.periodEnd)}</span>
-                        <span className="text-gray-400">{formatRupiah(d.totalCost)}</span>
+                        <span className="text-[var(--ink-strong)] truncate font-medium">{periodLabel(d.periodStart, d.periodEnd)}</span>
+                        <span className="text-[var(--ink-muted)]">{formatRupiah(d.totalCost)}</span>
                         <div className="flex gap-1 shrink-0">
                           <button onClick={() => jumpToDraft(d)}
-                            className="px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-xs font-medium hover:bg-blue-200 transition-colors">
+                            className="px-2 py-0.5 rounded bg-[var(--brand-tint-strong)] text-[var(--ink-brand)] text-xs font-medium hover:bg-[var(--brand-tint-strong)] transition-colors">
                             Buka
                           </button>
                           <button type="button" aria-label={`Hapus draft ${periodLabel(d.periodStart, d.periodEnd)}`}
                             onClick={async () => { if (confirm("Hapus draft ini?")) { await discardReport(d.id); } }}
-                            className="px-1.5 py-1.5 -m-0.5 rounded text-red-500 text-xs hover:bg-red-50 transition-colors">
+                            className="px-1.5 py-1.5 -m-0.5 rounded text-[var(--ink-danger)] text-xs hover:bg-[var(--bg-danger)] transition-colors">
                             ✕
                           </button>
                         </div>
@@ -1332,7 +1332,7 @@ export default function MonthlyReportPage() {
                       onClick={() => setShowBillingHelp(true)}
                       aria-label="Bantuan memilih periode belajar dan memahami penagihan"
                       title="Periode belajar & penagihan"
-                      className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-gray-100 text-sm font-bold text-gray-600 transition-colors hover:bg-blue-100 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                      className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-[var(--bg-subtle)] text-sm font-bold text-[var(--ink-muted)] transition-colors hover:bg-[var(--brand-tint-strong)] hover:text-[var(--ink-brand)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-brand)]"
                     >?</button>
                   </div>
                   <div className="grid grid-cols-3 gap-1.5">
@@ -1357,7 +1357,7 @@ export default function MonthlyReportPage() {
                           )
                           && m !== "jumlah"
                         )}
-                        className={`rounded-lg px-1 py-2 text-xs font-semibold leading-tight transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${mode === m ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                        className={`rounded-lg px-1 py-2 text-xs font-semibold leading-tight transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${mode === m ? "bg-[var(--brand-solid)] text-[var(--on-strong)]" : "bg-[var(--bg-subtle)] text-[var(--ink-muted)] hover:bg-[var(--bg-subtle)]"}`}>
                         {label}
                       </button>
                     ))}
@@ -1376,7 +1376,7 @@ export default function MonthlyReportPage() {
                           yang benar-benar masuk laporan. */}
                       {studentId && (sessions?.length ?? 0) > 0 && (
                         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-[var(--ink-muted)]">
                             Sesi bulan ini: {dayLabel(sessions![0].date)}
                             {sessions!.length > 1 ? ` → ${dayLabel(sessions![sessions!.length - 1].date)}` : ""}
                             {` · ${sessions!.length} sesi`}
@@ -1390,7 +1390,7 @@ export default function MonthlyReportPage() {
                               setMode("range");
                             }}
                             title="Pindah ke Rentang Tanggal dengan tanggal sesi pertama & terakhir terisi"
-                            className="rounded-md bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600 transition-colors hover:bg-gray-200">
+                            className="rounded-md bg-[var(--bg-subtle)] px-2 py-0.5 text-xs font-semibold text-[var(--ink-muted)] transition-colors hover:bg-[var(--bg-subtle)]">
                             Sesuaikan tanggal
                           </button>
                         </div>
@@ -1406,20 +1406,20 @@ export default function MonthlyReportPage() {
                           beginControlScopeChange();
                           setCount(Math.max(1, Math.min(20, Number(e.target.value) || 1)));
                         }} />
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-[var(--ink-muted)] mt-1">
                         {student && billingPolicyOf(student) === "session_count"
                           ? "Mengambil N sesi tertua sesuai siklus murid. Invoice paket tetap diterbitkan dari Keuangan."
                           : "Mengambil N sesi tertua yang belum masuk laporan final."}
                       </p>
                       {student && billingPolicyOf(student) === "session_count" && (
                         <div className="mt-1 space-y-1.5">
-                          <p className="text-xs font-semibold text-indigo-600">
+                          <p className="text-xs font-semibold text-[var(--ink-accent)]">
                             Siklus murid dikunci pada {student.billingSessionCount ?? 8} pertemuan. Terbitkan tagihan paket melalui Keuangan agar sesi diklaim secara atomik.
                           </p>
                           {(!report || reportStatus(report) !== "confirmed") && (
                             <Link
                               to={billingHref}
-                              className="inline-flex rounded-lg bg-indigo-50 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100"
+                              className="inline-flex rounded-lg bg-[var(--accent-tint)] px-2.5 py-1.5 text-xs font-semibold text-[var(--ink-accent)] hover:bg-[var(--accent-tint)]"
                             >
                               Buka Antrean Tagihan
                             </Link>
@@ -1450,7 +1450,7 @@ export default function MonthlyReportPage() {
               </div>
 
               {studentId && periodStart && periodEnd && (
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-[var(--ink-muted)]">
                   Periode belajar: <strong>{periodLabel(periodStart, periodEnd)}</strong>
                   {mode === "jumlah" && ` · ${reportSessions.length}/${reportTargetCount} pertemuan`}
                 </p>
@@ -1460,28 +1460,28 @@ export default function MonthlyReportPage() {
                   saat tombol ditekan. Tutor bisa melihat sendiri rentang mana yang
                   sudah direkap sebelum memilih periode. */}
               {studentId && (confirmedReports?.length ?? 0) > 0 && (
-                <details className="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5">
-                  <summary className="cursor-pointer select-none text-xs font-semibold text-gray-600">
+                <details className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5">
+                  <summary className="cursor-pointer select-none text-xs font-semibold text-[var(--ink-muted)]">
                     🔒 {confirmedReports!.length} periode sudah direkap (final) — lihat rentangnya
                   </summary>
                   <ul className="mt-1.5 space-y-1">
                     {[...confirmedReports!]
                       .sort((a, b) => (b.periodStart ?? "").localeCompare(a.periodStart ?? ""))
                       .map((locked) => (
-                        <li key={locked.id} className="flex flex-wrap items-baseline justify-between gap-x-2 text-xs text-gray-600">
+                        <li key={locked.id} className="flex flex-wrap items-baseline justify-between gap-x-2 text-xs text-[var(--ink-muted)]">
                           <span>
                             {periodLabel(locked.periodStart, locked.periodEnd)}
-                            <span className="text-gray-400"> · {locked.sessionIds.length} sesi</span>
+                            <span className="text-[var(--ink-muted)]"> · {locked.sessionIds.length} sesi</span>
                           </span>
                           <Link
                             to={`/report?reportId=${encodeURIComponent(locked.id)}`}
-                            className="font-semibold text-blue-700 hover:underline">
+                            className="font-semibold text-[var(--ink-brand)] hover:underline">
                             Buka
                           </Link>
                         </li>
                       ))}
                   </ul>
-                  <p className="mt-1.5 text-[11px] leading-relaxed text-gray-500">
+                  <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--ink-muted)]">
                     Yang dikunci adalah <b>sesinya</b>, bukan tanggalnya: sesi yang sudah masuk laporan final
                     tidak bisa direkap dua kali, tetapi tanggal di luar sesi itu tetap bebas dipakai.
                   </p>
@@ -1492,13 +1492,13 @@ export default function MonthlyReportPage() {
                 <div className="flex flex-wrap gap-1.5">
                   <button
                     onClick={() => setSubjectFilter("")}
-                    className={`text-xs font-semibold rounded-full px-2.5 py-1 transition-colors ${!subjectFilter ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+                    className={`text-xs font-semibold rounded-full px-2.5 py-1 transition-colors ${!subjectFilter ? "bg-[var(--brand-solid)] text-[var(--on-strong)]" : "bg-[var(--bg-subtle)] text-[var(--ink-muted)] hover:bg-[var(--bg-subtle)]"}`}>
                     Semua
                   </button>
                   {uniqueSubjects.map((subj) => (
                     <button key={subj}
                       onClick={() => setSubjectFilter(subj === subjectFilter ? "" : subj)}
-                      className={`text-xs font-semibold rounded-full px-2.5 py-1 transition-colors ${subj === subjectFilter ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+                      className={`text-xs font-semibold rounded-full px-2.5 py-1 transition-colors ${subj === subjectFilter ? "bg-[var(--brand-solid)] text-[var(--on-strong)]" : "bg-[var(--bg-subtle)] text-[var(--ink-muted)] hover:bg-[var(--bg-subtle)]"}`}>
                       {subj}
                     </button>
                   ))}
@@ -1506,7 +1506,7 @@ export default function MonthlyReportPage() {
               )}
 
               {!studentId && (
-                <p className="text-sm text-gray-500 text-center py-1">Pilih murid untuk mulai menyusun laporan.</p>
+                <p className="text-sm text-[var(--ink-muted)] text-center py-1">Pilih murid untuk mulai menyusun laporan.</p>
               )}
 
               {studentId && sessions && sessions.length === 0 && (
@@ -1517,7 +1517,7 @@ export default function MonthlyReportPage() {
               )}
 
               {studentId && sessions && sessions.length > 0 && reportSessions.length === 0 && (
-                <p className="text-sm text-gray-500 text-center py-1">
+                <p className="text-sm text-[var(--ink-muted)] text-center py-1">
                   {mode === "jumlah"
                     ? "Belum ada pertemuan yang siap dimasukkan ke paket ini."
                     : "Semua sesi di periode ini sudah pernah direkap — pilih periode lain."}
@@ -1526,7 +1526,7 @@ export default function MonthlyReportPage() {
 
               {studentId && periodStart && periodEnd && reportSessions.length > 0 && (
                 availability.ok ? (
-                  <p className="text-xs text-green-700 bg-green-50 border border-green-100 rounded-lg px-2.5 py-1.5">
+                  <p className="text-xs text-[var(--ink-success)] bg-[var(--bg-success)] border border-[var(--border-success)] rounded-lg px-2.5 py-1.5">
                     {report
                       ? "✓ Laporan ini dapat diperbarui."
                       : mode === "jumlah"
@@ -1534,12 +1534,12 @@ export default function MonthlyReportPage() {
                         : "✓ Periode tersedia — sesi di periode ini belum pernah direkap."}
                   </p>
                 ) : (
-                  <div className="rounded-lg border border-red-100 bg-red-50 px-2.5 py-1.5 space-y-1.5">
-                    <p className="text-xs text-red-700">⛔ {availability.reason}</p>
+                  <div className="rounded-lg border border-[var(--border-danger)] bg-[var(--bg-danger)] px-2.5 py-1.5 space-y-1.5">
+                    <p className="text-xs text-[var(--ink-danger)]">⛔ {availability.reason}</p>
                     {availability.blockingReportId && (
                       <Link
                         to={`/report?reportId=${encodeURIComponent(availability.blockingReportId)}`}
-                        className="inline-flex rounded-lg bg-white px-2.5 py-1.5 text-xs font-semibold text-red-800 ring-1 ring-red-200 hover:bg-red-100">
+                        className="inline-flex rounded-lg bg-[var(--surface-strong)] px-2.5 py-1.5 text-xs font-semibold text-[var(--ink-danger)] ring-1 ring-[var(--border-danger)] hover:bg-[var(--bg-danger)]">
                         📄 Buka laporan yang memblokir →
                       </Link>
                     )}
@@ -1547,7 +1547,7 @@ export default function MonthlyReportPage() {
                 )
               )}
               {protectedNewSessionCount > 0 && (
-                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+                <p className="text-xs text-[var(--ink-warn)] bg-[var(--bg-warn)] border border-[var(--border-warn)] rounded-lg px-2.5 py-1.5">
                   🔒 {protectedNewSessionCount} sesi baru tidak dimasukkan ke invoice yang sudah manual/lunas. {((student && billingPolicyOf(student) === "session_count") || report?.billingMode === "session_count")
                     ? "Sesi tersebut tetap masuk antrean Tagihan untuk paket berikutnya."
                     : student && billingPolicyOf(student) === "manual"
@@ -1560,50 +1560,50 @@ export default function MonthlyReportPage() {
                 <>
                   {/* Ringkasan yang langsung menjawab kondisi belajar periode ini. */}
                   <div className="grid grid-cols-4 gap-1.5">
-                    <div className="bg-blue-50 rounded-xl py-2 text-center">
-                      <p className="text-lg font-bold text-blue-700">{reportSessions.length}</p>
-                      <p className="text-xs text-blue-500">Sesi</p>
+                    <div className="bg-[var(--brand-tint)] rounded-xl py-2 text-center">
+                      <p className="text-lg font-bold text-[var(--ink-brand)]">{reportSessions.length}</p>
+                      <p className="text-xs text-[var(--ink-brand)]">Sesi</p>
                     </div>
-                    <div className="bg-indigo-50 rounded-xl py-2 text-center">
-                      <p className="text-lg font-bold text-indigo-700">{totalHours}j</p>
-                      <p className="text-xs text-indigo-500">Jam</p>
+                    <div className="bg-[var(--accent-tint)] rounded-xl py-2 text-center">
+                      <p className="text-lg font-bold text-[var(--ink-accent)]">{totalHours}j</p>
+                      <p className="text-xs text-[var(--ink-accent)]">Jam</p>
                     </div>
-                    <div className="bg-purple-50 rounded-xl py-2 text-center">
-                      <p className="text-lg font-bold text-purple-700">{avgEngagement != null ? `${avgEngagement}/10` : "—"}</p>
+                    <div className="bg-[var(--accent-tint)] rounded-xl py-2 text-center">
+                      <p className="text-lg font-bold text-[var(--ink-purple)]">{avgEngagement != null ? `${avgEngagement}/10` : "—"}</p>
                       {/* Penyebut wajib (audit P3 #17): tanpa ini "7/10" terbaca
                           sebagai penilaian atas SEMUA sesi. */}
-                      <p className="text-xs text-purple-500">
+                      <p className="text-xs text-[var(--ink-purple)]">
                         Fokus rata²{avgEngagement != null ? ` dari ${engagementCoverage.counted} sesi` : ""}
                       </p>
                     </div>
-                    <div className={`rounded-xl py-2 text-center ${reportReadiness === 4 ? "bg-green-50" : "bg-amber-50"}`}>
-                      <p className={`text-base font-bold leading-tight ${reportReadiness === 4 ? "text-green-700" : "text-amber-700"}`}>
+                    <div className={`rounded-xl py-2 text-center ${reportReadiness === 4 ? "bg-[var(--bg-success)]" : "bg-[var(--bg-warn)]"}`}>
+                      <p className={`text-base font-bold leading-tight ${reportReadiness === 4 ? "text-[var(--ink-success)]" : "text-[var(--ink-warn)]"}`}>
                         {report ? `${reportReadiness}/4` : "—"}
                       </p>
-                      <p className={`text-xs ${reportReadiness === 4 ? "text-green-500" : "text-amber-500"}`}>Siap kirim</p>
+                      <p className={`text-xs ${reportReadiness === 4 ? "text-[var(--ink-success)]" : "text-[var(--ink-warn)]"}`}>Siap kirim</p>
                     </div>
                   </div>
                   {engagementTrend && (
-                    <p className={`text-xs rounded-lg px-2.5 py-2 ${engagementTrend === "Meningkat" ? "bg-green-50 text-green-700" : engagementTrend === "Perlu perhatian" ? "bg-amber-50 text-amber-700" : "bg-gray-50 text-gray-600"}`}>
+                    <p className={`text-xs rounded-lg px-2.5 py-2 ${engagementTrend === "Meningkat" ? "bg-[var(--bg-success)] text-[var(--ink-success)]" : engagementTrend === "Perlu perhatian" ? "bg-[var(--bg-warn)] text-[var(--ink-warn)]" : "bg-[var(--surface)] text-[var(--ink-muted)]"}`}>
                       Fokus tren: <strong>{engagementTrend}</strong> dibandingkan awal periode.
                     </p>
                   )}
 
                   {/* Status laporan dan penagihan sengaja dipisah. */}
                   {report && reportStatus(report) === "draft" && (
-                    <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+                    <div className="rounded-lg border border-[var(--brand-tint-strong)] bg-[var(--brand-tint)] px-3 py-2 text-sm text-[var(--ink-brand)]">
                       <p className="font-semibold">
                         Laporan: Draft{report.billingMode === "session_count" ? ` · ${reportSessions.length}/${reportTargetCount} sesi` : ""}
                       </p>
-                      <p className="mt-0.5 text-xs text-blue-700">Masih dapat diedit dan dibatalkan sebelum difinalkan.</p>
+                      <p className="mt-0.5 text-xs text-[var(--ink-brand)]">Masih dapat diedit dan dibatalkan sebelum difinalkan.</p>
                     </div>
                   )}
                   {report && reportStatus(report) === "confirmed" && (
                     <div className="space-y-2">
                       <div className={`rounded-lg border px-3 py-2 text-sm ${
                         reportDisplayStatus(report) === "shared"
-                          ? "border-violet-100 bg-violet-50 text-violet-800"
-                          : "border-emerald-100 bg-emerald-50 text-emerald-800"
+                          ? "border-[var(--border-accent)] bg-[var(--accent-tint)] text-[var(--ink-accent)]"
+                          : "border-[var(--border-success)] bg-[var(--bg-success)] text-[var(--ink-success)]"
                       }`}>
                         <p className="font-semibold">
                           ✓ Laporan: {reportDisplayStatus(report) === "shared" ? "Sudah dibagikan" : "Final"}
@@ -1619,7 +1619,7 @@ export default function MonthlyReportPage() {
                           sessionIds: reportSessions.map((s) => s.id),
                           totalHours, totalCost,
                         }) && (
-                          <p className="mt-2 rounded-lg bg-white/70 px-2.5 py-1.5 text-xs font-medium leading-relaxed">
+                          <p className="mt-2 rounded-lg bg-[var(--surface-strong)]/70 px-2.5 py-1.5 text-xs font-medium leading-relaxed">
                             Total laporan final ini dibekukan di {formatRupiah(report.totalCost)}. Perubahan sesi
                             setelah final tidak mengubah nominal yang sudah dikirim. Bila yang salah justru
                             laporannya, batalkan tagihannya di Keuangan (yang belum lunas) lalu pakai
@@ -1629,7 +1629,7 @@ export default function MonthlyReportPage() {
                         {reportDisplayStatus(report) !== "shared" && (
                           <button
                             onClick={handleMarkReportShared}
-                            className="mt-2 rounded-lg bg-violet-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-violet-700"
+                            className="mt-2 rounded-lg bg-[var(--accent-solid)] px-2.5 py-1.5 text-xs font-semibold text-[var(--on-strong)] hover:bg-[var(--accent-solid)]"
                           >
                             Tandai Sudah Dibagikan
                           </button>
@@ -1648,7 +1648,7 @@ export default function MonthlyReportPage() {
                               type="button"
                               onClick={askUnlockReport}
                               disabled={unlockBusy}
-                              className="rounded-lg border border-amber-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-50 disabled:cursor-wait disabled:opacity-50"
+                              className="rounded-lg border border-[var(--border-warn)] bg-[var(--surface-strong)] px-2.5 py-1.5 text-xs font-semibold text-[var(--ink-warn)] transition-colors hover:bg-[var(--bg-warn)] disabled:cursor-wait disabled:opacity-50"
                             >
                               {unlockBusy ? "Membuka kunci..." : "🔓 Buka kunci laporan (perbaiki)"}
                             </button>
@@ -1661,10 +1661,10 @@ export default function MonthlyReportPage() {
                         )}
                       </div>
                       <div className={`rounded-lg border px-3 py-2 text-sm ${payment?.status === "PAID"
-                        ? "border-green-100 bg-green-50 text-green-800"
+                        ? "border-[var(--border-success)] bg-[var(--bg-success)] text-[var(--ink-success)]"
                         : payment
-                          ? "border-amber-100 bg-amber-50 text-amber-800"
-                          : "border-gray-200 bg-gray-50 text-gray-700"}`}>
+                          ? "border-[var(--border-warn)] bg-[var(--bg-warn)] text-[var(--ink-warn)]"
+                          : "border-[var(--border)] bg-[var(--surface)] text-[var(--ink-strong)]"}`}>
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <p className="font-semibold">
@@ -1685,7 +1685,7 @@ export default function MonthlyReportPage() {
                           <button
                             onClick={handleOpenBilling}
                             disabled={invoiceBusy}
-                            className="inline-flex rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                            className="inline-flex rounded-lg bg-[var(--brand-solid)] px-2.5 py-1.5 text-xs font-semibold text-[var(--on-strong)] hover:bg-[var(--brand-solid)] disabled:opacity-50"
                           >
                             {payment
                               ? "Buka Penagihan →"
@@ -1695,7 +1695,7 @@ export default function MonthlyReportPage() {
                           </button>
                         </div>
                         {olderUnpaidPayments.length > 0 && (
-                          <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-medium leading-relaxed text-amber-800">
+                          <p className="mt-2 rounded-lg border border-[var(--border-warn)] bg-[var(--bg-warn)] px-2.5 py-1.5 text-xs font-medium leading-relaxed text-[var(--ink-warn)]">
                             ⚠ {olderUnpaidPayments.length} tagihan bulan sebelumnya belum lunas · {formatRupiah(olderUnpaidTotal)}. Buka Keuangan agar piutang tidak menumpuk.
                           </p>
                         )}
@@ -1710,25 +1710,25 @@ export default function MonthlyReportPage() {
                       {reportMutationBusy ? "Memproses..." : report ? (reportStatus(report) === "confirmed" ? "🔄 Update Laporan" : "✏️ Update Draft") : "📝 Buat Laporan"}
                     </button>
                     {report && reportStatus(report) === "draft" && (
-                      <button className="btn flex-1 text-sm bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40" disabled={!availability.ok || reportMutationBusy}
+                      <button className="btn flex-1 text-sm bg-[var(--bg-success-strong)] text-[var(--on-strong)] hover:bg-[var(--bg-success-strong)] disabled:opacity-40" disabled={!availability.ok || reportMutationBusy}
                         onClick={handleFinalize}>
                         {reportMutationBusy ? "Memproses..." : "Finalkan Laporan"}
                       </button>
                     )}
                   </div>
                   {report && reportStatus(report) === "draft" && (
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-[var(--ink-muted)]">
                       Final = kunci periode laporan agar tidak berubah. Tindakan ini <strong>tidak membuat invoice</strong>; lanjutkan penagihan dari Keuangan.
                     </p>
                   )}
                   {report && reportStatus(report) === "draft" && (
-                    <button className="w-full py-2 text-xs text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    <button className="w-full py-2 text-xs text-[var(--ink-danger)] hover:bg-[var(--bg-danger)] rounded-lg transition-colors"
                       onClick={handleDiscard}>
                       🗑 Batalkan Draft
                     </button>
                   )}
                   {report && settings?.ai?.enabled && settings.ai.apiKey && (
-                    <button className="w-full btn text-sm bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
+                    <button className="w-full btn text-sm bg-[var(--accent-solid)] text-[var(--on-strong)] hover:bg-[var(--accent-solid)] disabled:opacity-50"
                       onClick={() => setShowNarrativesModal(true)} disabled={aiLoading || !availability.ok}
                       title="AI mengisi semua isian: narasi tiap sesi (per batch kecil) + ringkasan, catatan guru, kutipan & rencana depan">
                       {aiLoading ? `⏳ AI ${aiProgress?.step ?? "…"}` : "🤖 Isi Semua dengan AI"}
@@ -1738,17 +1738,17 @@ export default function MonthlyReportPage() {
                   {/* Kesiapan laporan, bukan hanya jumlah narasi. */}
                   {report && (
                     <div className="space-y-2">
-                      <div className="flex justify-between text-xs text-gray-500 mb-1">
+                      <div className="flex justify-between text-xs text-[var(--ink-muted)] mb-1">
                         <span>Kesiapan laporan</span>
-                        <span className={reportReadiness === 4 ? "text-green-600 font-semibold" : ""}>{reportReadinessPercent}%</span>
+                        <span className={reportReadiness === 4 ? "text-[var(--ink-success)] font-semibold" : ""}>{reportReadinessPercent}%</span>
                       </div>
-                      <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                        <div className={`h-full rounded-full transition-all ${reportReadiness === 4 ? "bg-green-500" : "bg-blue-500"}`}
+                      <div className="h-1.5 rounded-full bg-[var(--bg-subtle)] overflow-hidden">
+                        <div className={`h-full rounded-full transition-all ${reportReadiness === 4 ? "bg-[var(--bg-success-strong)]" : "bg-[var(--brand-solid)]"}`}
                           style={{ width: `${reportReadinessPercent}%` }} />
                       </div>
                       <div className="grid grid-cols-2 gap-1.5">
                         {reportReadinessItems.map((item) => (
-                          <span key={item.label} className={`text-xs rounded-md px-2 py-1 ${item.complete ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-500"}`}>
+                          <span key={item.label} className={`text-xs rounded-md px-2 py-1 ${item.complete ? "bg-[var(--bg-success)] text-[var(--ink-success)]" : "bg-[var(--surface)] text-[var(--ink-muted)]"}`}>
                             {item.complete ? "✓" : "○"} {item.label}
                           </span>
                         ))}
@@ -1764,16 +1764,16 @@ export default function MonthlyReportPage() {
               <section className="space-y-3">
 
                 {/* Design toolbar */}
-                <details className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-2.5 group"
+                <details className="bg-[var(--surface-strong)] rounded-2xl p-3 shadow-sm border border-[var(--border)] space-y-2.5 group"
                   open={designOpen}
                   onToggle={(e) => setDesignOpen(e.currentTarget.open)}>
                   <summary className="flex flex-wrap items-center justify-between gap-1 cursor-pointer select-none">
-                    <span className="min-w-0 text-sm font-semibold text-gray-700">
+                    <span className="min-w-0 text-sm font-semibold text-[var(--ink-strong)]">
                       🎨 Tema: {allThemes.find((t) => t.id === report.templateKey.themeId)?.name ?? "—"}
                       {" · "}{LAYOUTS.find((l) => l.id === report.templateKey.layoutId)?.name ?? "—"}
                     </span>
-                    <span className="text-xs text-blue-600 font-semibold group-open:hidden">Ubah tema & layout ▸</span>
-                    <span className="text-xs text-gray-400 font-semibold hidden group-open:inline">▾</span>
+                    <span className="text-xs text-[var(--ink-brand)] font-semibold group-open:hidden">Ubah tema & layout ▸</span>
+                    <span className="text-xs text-[var(--ink-muted)] font-semibold hidden group-open:inline">▾</span>
                   </summary>
                   {/* Row 1: Random + Pilih tema + Cover toggle */}
                   <div className="flex flex-wrap items-center gap-2">
@@ -1816,8 +1816,8 @@ export default function MonthlyReportPage() {
                               }}
                               className={`rounded-lg border px-2 py-1 text-xs font-medium transition-colors ${
                                 report.templateKey.layoutId === l.id
-                                  ? "border-blue-600 bg-blue-600 text-white"
-                                  : "border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100"
+                                  ? "border-[var(--border-brand)] bg-[var(--brand-solid)] text-[var(--on-strong)]"
+                                  : "border-[var(--border)] bg-[var(--surface)] text-[var(--ink-muted)] hover:bg-[var(--bg-subtle)]"
                               }`}>
                               {l.name}
                             </button>
@@ -1826,7 +1826,7 @@ export default function MonthlyReportPage() {
                               title={`Preview ${l.name}`}
                               aria-label={`Preview layout ${l.name}`}
                               onClick={() => setPreviewLayoutId(l.id)}
-                              className="absolute -right-1.5 -top-1.5 z-10 flex h-4 w-4 items-center justify-center rounded-full border border-gray-200 bg-white text-[8px] leading-none text-gray-500 shadow-sm transition-colors hover:border-blue-300 hover:text-blue-600">
+                              className="absolute -right-1.5 -top-1.5 z-10 flex h-4 w-4 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-strong)] text-[8px] leading-none text-[var(--ink-muted)] shadow-sm transition-colors hover:border-[var(--brand-tint-strong)] hover:text-[var(--ink-brand)]">
                               👁
                             </button>
                           </span>
@@ -1834,7 +1834,7 @@ export default function MonthlyReportPage() {
                       </div>
                     )}
                     <button onClick={() => setCoverPage((v) => !v)}
-                      className={`text-sm py-1.5 px-2 rounded-lg border transition-colors whitespace-nowrap ${coverPage ? "bg-blue-600 text-white border-blue-600" : "bg-gray-50 text-gray-600 border-gray-200"}`}>
+                      className={`text-sm py-1.5 px-2 rounded-lg border transition-colors whitespace-nowrap ${coverPage ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]" : "bg-[var(--surface)] text-[var(--ink-muted)] border-[var(--border)]"}`}>
                       {coverPage ? "📄 Cover ✓" : "📄 Cover"}
                     </button>
                   </div>
@@ -1862,7 +1862,7 @@ export default function MonthlyReportPage() {
                                 setUndoStack((s) => [...s, { themeId: report.templateKey.themeId, layoutId: report.templateKey.layoutId }]);
                                 await upsertReport({ ...report, templateKey: { ...report.templateKey, themeId: t.id } });
                               }}
-                              className={`rounded-lg border-2 transition-all overflow-hidden ${isActive ? "border-gray-800 ring-2 ring-offset-1 ring-blue-400" : "border-gray-200 hover:border-gray-400"}`}>
+                              className={`rounded-lg border-2 transition-all overflow-hidden ${isActive ? "border-[var(--border-strong)] ring-2 ring-offset-1 ring-[var(--border-brand)]" : "border-[var(--border)] hover:border-[var(--border-strong)]"}`}>
                               <div style={{ background: bgColor, height: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
                                 <span style={{ fontFamily: t.fontDisplay, fontSize: 10, color: t.ink, fontWeight: 700, lineHeight: 1, textAlign: "center", padding: "0 2px" }}>
                                   {t.headerText.slice(0, 4)}
@@ -1875,7 +1875,7 @@ export default function MonthlyReportPage() {
                           );
                         })}
                       </div>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-[var(--ink-muted)]">
                         {allThemes.find((t) => t.id === report.templateKey.themeId)?.name ?? "—"}
                       </p>
                     </>
@@ -1911,18 +1911,18 @@ export default function MonthlyReportPage() {
                     <button
                       type="button"
                       aria-label="Tutup preview"
-                      className="absolute inset-0 cursor-default bg-black/60"
+                      className="absolute inset-0 cursor-default bg-[var(--scrim)]/60"
                       onClick={() => setPreviewLayoutId(null)} />
-                    <div className="relative w-full max-w-[248px] rounded-2xl bg-white p-3 shadow-xl">
+                    <div className="relative w-full max-w-[248px] rounded-2xl bg-[var(--surface-strong)] p-3 shadow-xl">
                       <div className="mb-2 flex items-center justify-between gap-2">
-                        <p className="truncate text-xs font-semibold text-gray-700">
+                        <p className="truncate text-xs font-semibold text-[var(--ink-strong)]">
                           👁 {LAYOUTS.find((l) => l.id === previewLayoutId)?.name ?? "Preview"}
                         </p>
                         <button
                           type="button"
                           onClick={() => setPreviewLayoutId(null)}
                           aria-label="Tutup"
-                          className="text-sm leading-none text-gray-400 hover:text-gray-700">
+                          className="text-sm leading-none text-[var(--ink-muted)] hover:text-[var(--ink-strong)]">
                           ✕
                         </button>
                       </div>
@@ -1935,7 +1935,7 @@ export default function MonthlyReportPage() {
                           />
                         </ScaledPreview>
                       </div>
-                      <p className="mt-2 text-center text-xs text-gray-500">
+                      <p className="mt-2 text-center text-xs text-[var(--ink-muted)]">
                         Preview memakai data contoh — bukan data murid.
                       </p>
                     </div>
@@ -1950,20 +1950,20 @@ export default function MonthlyReportPage() {
 
                 {/* Kontrol export: cukup jumlah sesi per halaman — tinggi halaman
                     selalu otomatis, jadi tidak ada lagi pilihan rasio. */}
-                <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 space-y-2.5">
+                <div className="bg-[var(--surface-strong)] rounded-2xl p-3 shadow-sm border border-[var(--border)] space-y-2.5">
                   <div className="flex items-center justify-between gap-2">
-                    <label className="text-xs font-semibold text-gray-600">Sesi per halaman</label>
+                    <label className="text-xs font-semibold text-[var(--ink-muted)]">Sesi per halaman</label>
                     <div className="flex gap-1">
                       {[2, 3, 4, 6].map((n) => (
                         <button key={n}
                           onClick={() => setEntriesPerPage(n)}
-                          className={`text-xs font-semibold rounded-lg px-2.5 py-1 transition-colors ${entriesPerPage === n ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                          className={`text-xs font-semibold rounded-lg px-2.5 py-1 transition-colors ${entriesPerPage === n ? "bg-[var(--brand-solid)] text-[var(--on-strong)]" : "bg-[var(--bg-subtle)] text-[var(--ink-muted)] hover:bg-[var(--bg-subtle)]"}`}>
                           {n}
                         </button>
                       ))}
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-[var(--ink-muted)]">
                     Tinggi halaman mengikuti isi (tidak ada pilihan rasio). Sesi otomatis dipindah ke halaman berikutnya bila catatan panjang.
                   </p>
                 </div>
@@ -1973,7 +1973,7 @@ export default function MonthlyReportPage() {
                   <button className="btn btn-primary text-sm" onClick={() => doExport("jpg")} disabled={!!exporting || !reportData}>
                     {exporting === "jpg" ? "⏳" : "🖼️"} JPG
                   </button>
-                  <button className="btn text-sm bg-purple-600 text-white hover:bg-purple-700" onClick={() => doExport("png")} disabled={!!exporting || !reportData}>
+                  <button className="btn text-sm bg-[var(--accent-solid)] text-[var(--on-strong)] hover:bg-[var(--accent-solid)]" onClick={() => doExport("png")} disabled={!!exporting || !reportData}>
                     {exporting === "png" ? "⏳" : "📋"} PNG
                   </button>
                   <button className="btn btn-secondary text-sm" onClick={() => doExport("pdf")} disabled={!!exporting || !reportData}>
@@ -1988,29 +1988,29 @@ export default function MonthlyReportPage() {
               <div className="space-y-2">
 
                 {/* Narasi sesi */}
-                <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <section className="bg-[var(--surface-strong)] rounded-2xl shadow-sm border border-[var(--border)] overflow-hidden">
                   <button className="w-full flex items-center justify-between p-4 text-left"
                     onClick={() => setOpenNarasi((v) => !v)}>
                     <div>
-                      <p className="font-semibold text-gray-800 text-sm">✏️ Narasi Sesi</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{sessionsWithNarrative}/{filteredSessions.length} narasi siap</p>
+                      <p className="font-semibold text-[var(--ink-strong)] text-sm">✏️ Narasi Sesi</p>
+                      <p className="text-xs text-[var(--ink-muted)] mt-0.5">{sessionsWithNarrative}/{filteredSessions.length} narasi siap</p>
                     </div>
-                    <span className="text-gray-500 text-sm">{openNarasi ? "▲" : "▼"}</span>
+                    <span className="text-[var(--ink-muted)] text-sm">{openNarasi ? "▲" : "▼"}</span>
                   </button>
                   {openNarasi && (
-                    <div className="px-4 pb-4 space-y-2 border-t border-gray-100">
+                    <div className="px-4 pb-4 space-y-2 border-t border-[var(--border)]">
                       <div className="pt-3 flex gap-2">
                         <button className="btn btn-secondary text-xs"
                           onClick={handleGenerateLocalNarratives}>
                           ⚡ Generate Narasi Gratis
                         </button>
-                        <span className="text-xs text-gray-500 self-center">
+                        <span className="text-xs text-[var(--ink-muted)] self-center">
                           Isi narasi kosong dari catatan singkat/topik/perhatian tanpa AI.
                         </span>
                       </div>
                       {paginatedNarrativeSessions.map((s) => (
-                        <div key={s.id} className="bg-gray-50 rounded-xl p-3 mt-2">
-                          <p className="text-xs text-gray-500 mb-1">{dayLabel(s.date)} — {s.subjects.join(", ")}</p>
+                        <div key={s.id} className="bg-[var(--surface)] rounded-xl p-3 mt-2">
+                          <p className="text-xs text-[var(--ink-muted)] mb-1">{dayLabel(s.date)} — {s.subjects.join(", ")}</p>
                           {editingNarrative === s.id ? (
                             <div className="space-y-2">
                               <textarea className="input text-sm" rows={3} value={editText}
@@ -2023,10 +2023,10 @@ export default function MonthlyReportPage() {
                           ) : (
                             <div className="flex items-start gap-2 cursor-pointer group"
                               onClick={() => { setEditText(s.narrative ?? s.shortNote); setEditingNarrative(s.id); }}>
-                              <p className="text-sm text-gray-700 flex-1 group-hover:text-blue-700 transition-colors line-clamp-2">
+                              <p className="text-sm text-[var(--ink-strong)] flex-1 group-hover:text-[var(--ink-brand)] transition-colors line-clamp-2">
                                 {s.narrative ?? s.shortNote}
                               </p>
-                              <span className={`text-xs flex-shrink-0 font-semibold px-1.5 py-0.5 rounded-full ${s.narrative ? "bg-green-50 text-green-600" : "bg-amber-50 text-amber-600"}`}>
+                              <span className={`text-xs flex-shrink-0 font-semibold px-1.5 py-0.5 rounded-full ${s.narrative ? "bg-[var(--bg-success)] text-[var(--ink-success)]" : "bg-[var(--bg-warn)] text-[var(--ink-warn)]"}`}>
                                 {s.narrative ? "✓" : "Edit"}
                               </span>
                             </div>
@@ -2040,28 +2040,28 @@ export default function MonthlyReportPage() {
                 </section>
 
                 {/* Teks laporan */}
-                <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <section className="bg-[var(--surface-strong)] rounded-2xl shadow-sm border border-[var(--border)] overflow-hidden">
                   <button className="w-full flex items-center justify-between p-4 text-left"
                     onClick={() => setOpenTeks((v) => !v)}>
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold text-gray-800 text-sm">📝 Teks Laporan</p>
+                        <p className="font-semibold text-[var(--ink-strong)] text-sm">📝 Teks Laporan</p>
                         {(report.summaryText || report.quote) && (
-                          <span className="text-xs bg-indigo-50 text-indigo-500 font-bold px-1.5 py-0.5 rounded-full">✨ AI</span>
+                          <span className="text-xs bg-[var(--accent-tint)] text-[var(--ink-accent)] font-bold px-1.5 py-0.5 rounded-full">✨ AI</span>
                         )}
                       </div>
-                      <p className="text-xs text-gray-500 mt-0.5">Ringkasan · Catatan guru · Kutipan</p>
+                      <p className="text-xs text-[var(--ink-muted)] mt-0.5">Ringkasan · Catatan guru · Kutipan</p>
                     </div>
-                    <span className="text-gray-500 text-sm">{openTeks ? "▲" : "▼"}</span>
+                    <span className="text-[var(--ink-muted)] text-sm">{openTeks ? "▲" : "▼"}</span>
                   </button>
                   {openTeks && (
-                    <div className="px-4 pb-4 space-y-3 border-t border-gray-100">
+                    <div className="px-4 pb-4 space-y-3 border-t border-[var(--border)]">
                       <div className="pt-3 flex gap-2">
                         <button className="btn btn-secondary text-xs"
                           onClick={handleGenerateLocalTexts}>
                           ⚡ Generate Teks Gratis
                         </button>
-                        <span className="text-xs text-gray-500 self-center">
+                        <span className="text-xs text-[var(--ink-muted)] self-center">
                           Isi ringkasan, catatan guru & kutipan dari data sesi tanpa AI.
                         </span>
                       </div>
@@ -2077,9 +2077,9 @@ export default function MonthlyReportPage() {
                             </div>
                           </div>
                         ) : (
-                          <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 cursor-pointer hover:bg-gray-100 min-h-[2.5rem]"
+                          <p className="text-sm text-[var(--ink-strong)] bg-[var(--surface)] rounded-lg p-3 cursor-pointer hover:bg-[var(--bg-subtle)] min-h-[2.5rem]"
                             onClick={() => { setSummaryText(report.summaryText); setEditingSummary(true); }}>
-                            {report.summaryText || <span className="text-gray-500">Klik untuk tambah ringkasan...</span>}
+                            {report.summaryText || <span className="text-[var(--ink-muted)]">Klik untuk tambah ringkasan...</span>}
                           </p>
                         )}
                       </div>
@@ -2096,9 +2096,9 @@ export default function MonthlyReportPage() {
                             </div>
                           </div>
                         ) : (
-                          <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 cursor-pointer hover:bg-gray-100 min-h-[2.5rem]"
+                          <p className="text-sm text-[var(--ink-strong)] bg-[var(--surface)] rounded-lg p-3 cursor-pointer hover:bg-[var(--bg-subtle)] min-h-[2.5rem]"
                             onClick={() => { setTeacherNoteText(report.teacherNote ?? ""); setEditingTeacherNote(true); }}>
-                            {report.teacherNote || <span className="text-gray-500">Klik untuk menambahkan kemajuan dan fokus prioritas...</span>}
+                            {report.teacherNote || <span className="text-[var(--ink-muted)]">Klik untuk menambahkan kemajuan dan fokus prioritas...</span>}
                           </p>
                         )}
                       </div>
@@ -2114,9 +2114,9 @@ export default function MonthlyReportPage() {
                             </div>
                           </div>
                         ) : (
-                          <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 italic cursor-pointer hover:bg-gray-100 min-h-[2.5rem]"
+                          <p className="text-sm text-[var(--ink-strong)] bg-[var(--surface)] rounded-lg p-3 italic cursor-pointer hover:bg-[var(--bg-subtle)] min-h-[2.5rem]"
                             onClick={() => { setQuoteText(report.quote ?? ""); setEditingQuote(true); }}>
-                            {report.quote ? `"${report.quote}"` : <span className="text-gray-500 not-italic">Klik untuk tambah kutipan...</span>}
+                            {report.quote ? `"${report.quote}"` : <span className="text-[var(--ink-muted)] not-italic">Klik untuk tambah kutipan...</span>}
                           </p>
                         )}
                       </div>
@@ -2124,22 +2124,22 @@ export default function MonthlyReportPage() {
                   )}
                 </section>
 
-                <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <section className="bg-[var(--surface-strong)] rounded-2xl shadow-sm border border-[var(--border)] overflow-hidden">
                   <button className="w-full flex items-center justify-between p-4 text-left"
                     onClick={() => setOpenPlan((value) => !value)}>
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold text-gray-800 text-sm">🎯 Fokus & Rencana Berikutnya</p>
-                        {hasPlan && <span className="text-xs bg-green-50 text-green-600 font-bold px-1.5 py-0.5 rounded-full">Siap</span>}
+                        <p className="font-semibold text-[var(--ink-strong)] text-sm">🎯 Fokus & Rencana Berikutnya</p>
+                        {hasPlan && <span className="text-xs bg-[var(--bg-success)] text-[var(--ink-success)] font-bold px-1.5 py-0.5 rounded-full">Siap</span>}
                       </div>
-                      <p className="text-xs text-gray-500 mt-0.5">
+                      <p className="text-xs text-[var(--ink-muted)] mt-0.5">
                         {hasPlan ? `${report.nextMonthPlan!.priorities.filter((item) => item.target.trim()).length} prioritas terukur` : "Tetapkan maksimal 3 prioritas yang bisa ditindaklanjuti."}
                       </p>
                     </div>
-                    <span className="text-gray-500 text-sm">{openPlan ? "▲" : "▼"}</span>
+                    <span className="text-[var(--ink-muted)] text-sm">{openPlan ? "▲" : "▼"}</span>
                   </button>
                   {openPlan && (
-                    <div className="px-4 pb-4 space-y-3 border-t border-gray-100">
+                    <div className="px-4 pb-4 space-y-3 border-t border-[var(--border)]">
                       {editingPlan ? (
                         <NextMonthPlanEditor
                           initialPlan={report.nextMonthPlan}
@@ -2151,17 +2151,17 @@ export default function MonthlyReportPage() {
                           {hasPlan ? (
                             <div className="space-y-2 pt-3">
                               {report.nextMonthPlan!.priorities.filter((item) => item.target.trim()).slice(0, 3).map((item, index) => (
-                                <div key={item.id} className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-3">
+                                <div key={item.id} className="rounded-xl border border-[var(--border-accent)] bg-[var(--accent-tint)]/40 p-3">
                                   <div className="flex items-start justify-between gap-2">
-                                    <p className="text-sm font-semibold text-gray-800">{index + 1}. {item.subject || `Prioritas ${index + 1}`}</p>
-                                    <span className="text-xs font-semibold rounded-full bg-white text-indigo-600 px-2 py-0.5">
+                                    <p className="text-sm font-semibold text-[var(--ink-strong)]">{index + 1}. {item.subject || `Prioritas ${index + 1}`}</p>
+                                    <span className="text-xs font-semibold rounded-full bg-[var(--surface-strong)] text-[var(--ink-accent)] px-2 py-0.5">
                                       {PLAN_STATUSES.find((status) => status.value === item.status)?.label ?? "Belum dimulai"}
                                     </span>
                                   </div>
-                                  <p className="text-sm text-gray-700 mt-1">{item.target}</p>
-                                  {item.evidence && <p className="text-xs text-gray-500 mt-1.5">Dasar: {item.evidence}</p>}
+                                  <p className="text-sm text-[var(--ink-strong)] mt-1">{item.target}</p>
+                                  {item.evidence && <p className="text-xs text-[var(--ink-muted)] mt-1.5">Dasar: {item.evidence}</p>}
                                   {(item.tutorAction || item.successMetric || item.cadence) && (
-                                    <p className="text-xs text-indigo-700 mt-1.5">
+                                    <p className="text-xs text-[var(--ink-accent)] mt-1.5">
                                       {item.tutorAction && `Tutor: ${item.tutorAction}`}
                                       {item.tutorAction && (item.successMetric || item.cadence) && " · "}
                                       {item.successMetric && `Cek: ${item.successMetric}`}
@@ -2172,19 +2172,19 @@ export default function MonthlyReportPage() {
                                 </div>
                               ))}
                               {report.nextMonthPlan?.parentSupport && (
-                                <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                <p className="rounded-lg bg-[var(--bg-warn)] px-3 py-2 text-xs text-[var(--ink-warn)]">
                                   <strong>Dukungan di rumah:</strong> {report.nextMonthPlan.parentSupport}
                                 </p>
                               )}
                             </div>
                           ) : (
-                            <p className="pt-3 text-sm text-gray-500">Belum ada rencana. Mulai dari target yang spesifik, cara belajar, dan indikator keberhasilan.</p>
+                            <p className="pt-3 text-sm text-[var(--ink-muted)]">Belum ada rencana. Mulai dari target yang spesifik, cara belajar, dan indikator keberhasilan.</p>
                           )}
                           <button className="btn btn-secondary w-full text-sm" onClick={() => setEditingPlan(true)}>
                             {hasPlan ? "✏️ Edit Rencana" : "＋ Susun Rencana"}
                           </button>
                           {settings?.ai?.enabled && settings.ai.apiKey && (
-                            <p className="pt-1 text-xs text-gray-500">
+                            <p className="pt-1 text-xs text-[var(--ink-muted)]">
                               Ringkasan, catatan guru & rencana depan ikut diisi oleh tombol <strong>🤖 Isi Semua dengan AI</strong> di panel atas.
                             </p>
                           )}
@@ -2203,19 +2203,19 @@ export default function MonthlyReportPage() {
       {/* Bantuan hubungan laporan perkembangan dan penagihan */}
       {showBillingHelp && (
         <Modal onClose={() => setShowBillingHelp(false)} ariaLabel="Hubungan laporan perkembangan dan penagihan" showCloseButton={false}
-          panelClassName="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl outline-none">
-          <div className="flex items-start justify-between border-b border-gray-100 px-5 py-4">
+          panelClassName="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-[var(--surface-strong)] shadow-xl sm:rounded-2xl outline-none">
+          <div className="flex items-start justify-between border-b border-[var(--border)] px-5 py-4">
             <div>
-              <h2 className="text-lg font-bold text-gray-800">Laporan dan Penagihan</h2>
-              <p className="mt-0.5 text-xs text-gray-600">Dua proses terpisah yang menggunakan sesi belajar yang sama.</p>
+              <h2 className="text-lg font-bold text-[var(--ink-strong)]">Laporan dan Penagihan</h2>
+              <p className="mt-0.5 text-xs text-[var(--ink-muted)]">Dua proses terpisah yang menggunakan sesi belajar yang sama.</p>
             </div>
             <button onClick={() => setShowBillingHelp(false)} aria-label="Tutup"
-              className="text-xl leading-none text-gray-500 hover:text-gray-700">✕</button>
+              className="text-xl leading-none text-[var(--ink-muted)] hover:text-[var(--ink-strong)]">✕</button>
           </div>
 
-          <div className="space-y-4 overflow-y-auto px-5 py-4 text-sm text-gray-700">
+          <div className="space-y-4 overflow-y-auto px-5 py-4 text-sm text-[var(--ink-strong)]">
             <section>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-600">Pilihan Periode Belajar</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-muted)]">Pilihan Periode Belajar</h3>
               <ul className="mt-2 space-y-2 text-xs leading-relaxed">
                 <li><strong>Bulan Kalender</strong> — semua sesi dalam satu bulan, misalnya Oktober 2026.</li>
                 <li><strong>Jumlah Sesi</strong> — sejumlah sesi tertua yang belum masuk laporan final.</li>
@@ -2224,7 +2224,7 @@ export default function MonthlyReportPage() {
             </section>
 
             <section>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-600">Siklus Tagihan Murid</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-muted)]">Siklus Tagihan Murid</h3>
               <ul className="mt-2 space-y-2 text-xs leading-relaxed">
                 <li><strong>Bulanan</strong> — gabung sesi yang dapat ditagih lewat Tutup Bulan.</li>
                 <li><strong>Paket per N pertemuan</strong> — tagihan setiap N pertemuan (8, 10, 12, dst). Sesi tertua ditagih lebih dulu; sisa yang belum genap ditagih lewat <em>Tagihan Penutup</em>.</li>
@@ -2233,7 +2233,7 @@ export default function MonthlyReportPage() {
             </section>
 
             <section>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-600">Penting</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-muted)]">Penting</h3>
               <ul className="mt-2 list-disc space-y-1 pl-4 text-xs leading-relaxed">
                 <li><strong>Draft</strong> masih bisa diubah atau dihapus. <strong>Final</strong> mengunci periode laporan.</li>
                 <li>Finalisasi laporan <strong>tidak membuat invoice</strong>. Buka Keuangan → Penagihan untuk menerbitkan atau memeriksa tagihan.</li>
@@ -2243,9 +2243,9 @@ export default function MonthlyReportPage() {
             </section>
           </div>
 
-          <div className="border-t border-gray-100 px-5 py-3">
+          <div className="border-t border-[var(--border)] px-5 py-3">
             <button onClick={() => setShowBillingHelp(false)}
-              className="w-full rounded-xl bg-blue-600 py-2.5 text-sm font-bold text-white transition-colors hover:bg-blue-700">
+              className="w-full rounded-xl bg-[var(--brand-solid)] py-2.5 text-sm font-bold text-[var(--on-strong)] transition-colors hover:bg-[var(--brand-solid)]">
               Mengerti
             </button>
           </div>
@@ -2260,9 +2260,9 @@ export default function MonthlyReportPage() {
         description={`Narasi ${forceNarratives ? reportSessions.length : narrativeDirtyCount} sesi ditulis dalam batch kecil (maks 8 sesi per panggilan) supaya laporan panjang tidak lagi gagal karena batas token, lalu satu panggilan ringkasan mengisi ringkasan, catatan guru, kutipan & rencana depan untuk ${student?.name ?? "murid"}.${!forceNarratives && narrativeDirtyCount === 0 ? " Semua narasi sudah terbaru — ringkasan, catatan guru & rencana depan tetap diisi." : ""}`}
         dataSent="Nama dan level murid, periode laporan, serta ID, tanggal, mapel dan catatan sesi yang dipilih. Bila tersedia: mood, topik, area perhatian, prediksi dan nilai akhir, refleksi nilai, skor engagement, label perilaku dan respons, serta rata-rata engagement periode sebelumnya."
         extraContent={
-          <label className="flex items-start gap-2 mt-3 text-xs text-gray-600 cursor-pointer select-none">
+          <label className="flex items-start gap-2 mt-3 text-xs text-[var(--ink-muted)] cursor-pointer select-none">
             <input type="checkbox" checked={forceNarratives} onChange={(e) => setForceNarratives(e.target.checked)}
-              className="mt-0.5 h-4 w-4 accent-indigo-600" />
+              className="mt-0.5 h-4 w-4 accent-[var(--border-accent)]" />
             <span>Tulis ulang paksa semua narasi (lewati hemat token)</span>
           </label>
         }

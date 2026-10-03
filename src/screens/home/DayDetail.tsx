@@ -14,11 +14,11 @@ interface Props extends SessionActions {
 
 export default function DayDetail({ date, sessions, studentMap, today, onAdd, ...actions }: Props) {
   return (
-    <div className="border-t border-gray-100 p-3">
+    <div className="border-t border-[var(--border)] p-3">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-sm font-semibold text-gray-700">{dayLabel(date)}</p>
+        <p className="text-sm font-semibold text-[var(--ink-strong)]">{dayLabel(date)}</p>
         <button onClick={() => onAdd(date)}
-          className="flex items-center gap-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg transition-colors">
+          className="flex items-center gap-1 text-xs font-semibold text-[var(--ink-brand)] bg-[var(--brand-tint)] hover:bg-[var(--brand-tint-strong)] px-2.5 py-1.5 rounded-lg transition-colors">
           + Jadwal
         </button>
       </div>

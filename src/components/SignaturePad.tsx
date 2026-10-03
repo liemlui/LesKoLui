@@ -79,21 +79,21 @@ export default function SignaturePad({ onSave, onClear }: Props) {
     <div className="space-y-2">
       <canvas
         ref={canvasRef}
-        className="w-full rounded-xl border-2 border-dashed border-gray-300 bg-white cursor-crosshair"
+        className="w-full rounded-xl border-2 border-dashed border-[var(--border)] bg-[var(--surface-strong)] cursor-crosshair"
         style={{ height: 140, touchAction: "none" }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerLeave={onPointerUp}
       />
-      <p className="text-xs text-gray-500 text-center">Minta murid tanda tangan di kotak di atas</p>
+      <p className="text-xs text-[var(--ink-muted)] text-center">Minta murid tanda tangan di kotak di atas</p>
       <div className="flex gap-2">
         <button type="button" onClick={handleClear}
-          className="flex-1 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:border-red-300 hover:text-red-400 transition-colors">
+          className="flex-1 py-2 rounded-xl border border-[var(--border)] text-sm text-[var(--ink-muted)] hover:border-[var(--border-danger)] hover:text-[var(--ink-danger)] transition-colors">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg> Hapus
         </button>
         <button type="button" onClick={handleSave} disabled={!hasInk}
-          className="flex-1 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold disabled:opacity-40 hover:bg-blue-700 transition-colors">
+          className="flex-1 py-2 rounded-xl bg-[var(--brand-solid)] text-[var(--on-strong)] text-sm font-semibold disabled:opacity-40 hover:bg-[var(--brand-solid)] transition-colors">
           ✓ Simpan TTD
         </button>
       </div>

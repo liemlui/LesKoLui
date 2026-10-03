@@ -22,22 +22,22 @@ export default function WeekView({
   weekByDay, studentMap, onJumpToday, onAdd, ...actions
 }: Props) {
   return (
-    <div className="mx-4 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
-        <button aria-label="Minggu sebelumnya" onClick={() => setAnchor(addDays(anchor, -7))} className="text-gray-600 hover:text-gray-800 text-xl w-10 h-10 flex items-center justify-center">‹</button>
+    <div className="mx-4 bg-[var(--surface-strong)] rounded-2xl shadow-sm border border-[var(--border)] overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--border)]">
+        <button aria-label="Minggu sebelumnya" onClick={() => setAnchor(addDays(anchor, -7))} className="text-[var(--ink-muted)] hover:text-[var(--ink-strong)] text-xl w-10 h-10 flex items-center justify-center">‹</button>
         <div className="flex items-center gap-2 min-w-0">
-          <span className="font-semibold text-gray-700 text-sm truncate">
+          <span className="font-semibold text-[var(--ink-strong)] text-sm truncate">
             {new Date(week[1] + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
             {" – "}
             {new Date(week[6] + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
           </span>
           {!week.includes(today) && (
-            <button onClick={onJumpToday} className="flex-shrink-0 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded-lg transition-colors">Hari Ini</button>
+            <button onClick={onJumpToday} className="flex-shrink-0 text-xs font-semibold text-[var(--ink-brand)] bg-[var(--brand-tint)] hover:bg-[var(--brand-tint-strong)] px-2 py-0.5 rounded-lg transition-colors">Hari Ini</button>
           )}
         </div>
-        <button aria-label="Minggu berikutnya" onClick={() => setAnchor(addDays(anchor, 7))} className="text-gray-600 hover:text-gray-800 text-xl w-10 h-10 flex items-center justify-center">›</button>
+        <button aria-label="Minggu berikutnya" onClick={() => setAnchor(addDays(anchor, 7))} className="text-[var(--ink-muted)] hover:text-[var(--ink-strong)] text-xl w-10 h-10 flex items-center justify-center">›</button>
       </div>
-      <div className="grid grid-cols-7 border-b border-gray-100">
+      <div className="grid grid-cols-7 border-b border-[var(--border)]">
         {week.map((date) => {
           const isToday    = date === today;
           const isSelected = date === selectedDay;
@@ -46,13 +46,13 @@ export default function WeekView({
           const d          = parseInt(date.slice(8), 10);
           const label      = DOW_LABELS[new Date(date + "T00:00:00").getDay()];
           const daySess    = weekByDay.get(date) ?? [];
-          const colBg      = isSelected ? "bg-indigo-50" : isToday ? "bg-blue-50" : isPast ? "bg-gray-50" : "";
+          const colBg      = isSelected ? "bg-[var(--accent-tint)]" : isToday ? "bg-[var(--brand-tint)]" : isPast ? "bg-[var(--surface)]" : "";
           return (
-            <div key={date} className={`border-r border-gray-50 last:border-r-0 ${colBg}`}>
+            <div key={date} className={`border-r border-[var(--border)] last:border-r-0 ${colBg}`}>
               <button className="w-full text-center py-1.5" onClick={() => setSelectedDay(isSelected ? null : date)}>
-                <p className={`text-xs ${isSunday ? "text-red-500" : "text-gray-600"}`}>{label}</p>
+                <p className={`text-xs ${isSunday ? "text-[var(--ink-danger)]" : "text-[var(--ink-muted)]"}`}>{label}</p>
                 <span className={`text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full mx-auto ${
-                  isToday ? "bg-blue-600 text-white" : isPast ? "text-gray-600" : isSunday ? "text-red-500" : "text-gray-700"
+                  isToday ? "bg-[var(--brand-solid)] text-[var(--on-strong)]" : isPast ? "text-[var(--ink-muted)]" : isSunday ? "text-[var(--ink-danger)]" : "text-[var(--ink-strong)]"
                 }`}>{d}</span>
               </button>
               <div className="px-0.5 pb-1 min-h-[56px]">
@@ -71,7 +71,7 @@ export default function WeekView({
                     </button>
                   );
                 })}
-                <button aria-label={`Tambah jadwal ${date}`} onClick={() => onAdd(date)} className="w-full text-center text-gray-600 hover:text-blue-600 text-sm leading-none mt-0.5 py-0.5 rounded hover:bg-blue-50 transition-colors">+</button>
+                <button aria-label={`Tambah jadwal ${date}`} onClick={() => onAdd(date)} className="w-full text-center text-[var(--ink-muted)] hover:text-[var(--ink-brand)] text-sm leading-none mt-0.5 py-0.5 rounded hover:bg-[var(--brand-tint)] transition-colors">+</button>
               </div>
             </div>
           );

@@ -7,13 +7,13 @@
    lewat utility, jadi harus selalu ikut tercetak. Jangan dihapus. */
 @theme static {
   --font-sans: "Nunito", "Segoe UI", Arial, sans-serif;
-  --color-brand-50: #eef5ff;
-  --color-brand-100: #dfeeff;
-  --color-brand-200: #bfdcff;
-  --color-brand-500: #3b82f6;
-  --color-brand-600: #2563eb;
-  --color-brand-700: #1d4ed8;
-  --color-brand-900: #0f172a;
+
+  /* Skala `--color-brand-*` (brand-50/100/200/500/600/700/900) DIHAPUS — Q39/Q40.
+     Pemakainya 0 setelah sapu G2-02: kelas brand hardcode diganti token semantik,
+     dan satu-satunya pemakai alias (`src/components/ui/Sheet.tsx:86`) sudah
+     diarahkan ke `--border-brand`. Butuh langkah biru lain? Tambahkan token PERAN
+     (--brand-tint / --brand-solid / --ink-brand / …), jangan menghidupkan skala
+     mentah ini kembali. */
   --color-surface: #f8fafc;
   --color-surface-strong: #ffffff;
   --color-surface-soft: #eef2f7;
@@ -79,17 +79,60 @@
   --bg-danger:   oklch(97.1% 0.013 17.38);   /* = red-50    */
   --bg-warn:     oklch(98.7% 0.022 95.277);  /* = amber-50  */
   --bg-success:  oklch(98.2% 0.018 155.826); /* = green-50  */
-  --bg-muted:    oklch(96.8% 0.007 247.896); /* = slate-100 */
   --bg-danger-strong:  oklch(50.5% 0.213 27.518);  /* = red-700   */
   --bg-warn-strong:    oklch(55.5% 0.163 48.998);  /* = amber-700 */
   --bg-success-strong: oklch(52.7% 0.154 150.069); /* = green-700 */
 
-  /* Tirai di belakang sheet/modal (G2-01). Ditokenkan supaya primitif di
-     `src/components/ui/` benar-benar nol kelas warna langsung — aturan
-     "tidak ada kelas warna langsung di berkas primitif" tidak bisa dipenuhi
-     dengan `bg-black/40` seperti di `components/Modal.tsx` lama.
-     Dipakai sebagai utility `bg-scrim`. */
+  /* `--bg-muted` DIHAPUS — Q44 (G2-02): 0 pemakai, latar netral memakai `--bg-subtle`.
+     `--color-scrim` SENGAJA DIPERTAHANKAN meski 0 pemakai langsung — lihat catatan di
+     alias `--scrim` pada blok `:root` (pemakainya tidak langsung). */
   --color-scrim: rgba(15, 23, 42, 0.4);
+
+  /* ── Token semantik G2-02 (sapu kelas warna) ──────────────────────────────
+     Nilai = LANGKAH PALET RESMI Tailwind v4, bukan warna baru. Bukti kontras:
+     `.design-audit/g2-02-contrast.mjs` (bagian B/C/D) dan laporan G2-02 Tahap 2.
+     Dipakai lewat `var()`, jadi ditulis di blok `@theme static` supaya selalu
+     tercetak (lihat catatan `static` di atas).
+
+     Opasitas: `bg-[var(--token)]/NN` DIDUKUNG — Tailwind 4.3 mencetak fallback
+     polos + `color-mix(in oklab, var(--token) NN%, transparent)` di dalam
+     `@supports`. Terukur pada probe (Q38): berlaku untuk bg/text/border/ring/
+     divide/fill. Jangan mengganti ke nilai pra-komposit. */
+
+  /* Netral — peran yang token netral sekarang belum punya */
+  --ink-strong:    oklch(21% 0.034 264.665);    /* = gray-900, teks paling tegas */
+  --bg-subtle:     oklch(96.7% 0.003 264.542);  /* = gray-100, latar blok netral */
+  --border-strong: oklch(70.7% 0.022 261.325);  /* = gray-400, garis tegas */
+  --surface-inverse: oklch(27.8% 0.033 256.848); /* = gray-800, permukaan gelap */
+  --on-strong:     #ffffff;                     /* teks di atas latar solid/gelap */
+
+  /* Brand (biru) — peran semantik menggantikan `--color-brand-*` (Q39).
+     Biru = aksi utama; oranye = perhatian. Jangan dicampur. */
+  --brand-tint:        oklch(97% 0.014 254.604);   /* = blue-50  */
+  --brand-tint-strong: oklch(93.2% 0.032 255.585); /* = blue-100 */
+  --brand-solid:       oklch(54.6% 0.245 262.881); /* = blue-600, latar tombol */
+  --brand-solid-hover: oklch(48.8% 0.243 264.376); /* = blue-700, hover tombol utama */
+  --border-brand:      oklch(54.6% 0.245 262.881); /* = blue-600, garis fokus */
+  --ink-brand:         oklch(48.8% 0.243 264.376); /* = blue-700, teks tautan */
+
+  /* Aksen sekunder (indigo/violet/purple) */
+  --accent-tint:   oklch(96.2% 0.018 272.314);  /* = indigo-50  */
+  --accent-solid:  oklch(51.1% 0.262 276.966);  /* = indigo-600 */
+  --border-accent: oklch(87% 0.065 274.039);    /* = indigo-200 */
+  --ink-accent:    oklch(45.7% 0.24 277.023);   /* = indigo-700 */
+  --ink-purple:    oklch(49.6% 0.265 301.924);  /* = purple-700 */
+
+  /* Perhatian (oranye) — dipisahkan dari amber "nag backup" (Q33 = A).
+     Terbukti dari kode: `RiwayatSesi.needsWork`, no-show, sesi masa lalu. */
+  --ink-attention:         oklch(47% 0.157 37.304);   /* = orange-800 */
+  --bg-attention:          oklch(98% 0.016 73.684);   /* = orange-50  */
+  --bg-attention-strong:   oklch(55.3% 0.195 38.402); /* = orange-700 */
+  --border-attention:      oklch(90.1% 0.076 70.697); /* = orange-200 */
+
+  /* Garis blok status (pasangan tint yang sebelumnya tidak ada tokennya) */
+  --border-danger:  oklch(88.5% 0.062 18.334);   /* = red-200   */
+  --border-warn:    oklch(92.4% 0.12 95.746);    /* = amber-200 */
+  --border-success: oklch(92.5% 0.084 155.995);  /* = green-200 */
 }
 
 :root {
@@ -116,8 +159,14 @@
   --border: var(--color-border);
   --text: var(--color-text);
   --text-muted: var(--color-text-muted);
-  --brand: var(--color-brand-600);
-  --brand-strong: var(--color-brand-700);
+  /* Alias `--scrim` (WAJIB). Kelas di layar ditulis `bg-[var(--scrim)]/NN` (17 pemakai:
+     tirai modal/sheet + lencana di atas foto). Nama `--scrim` BUKAN hasil resolusi
+     namespace `--color-*` — Tailwind tidak menerjemahkan `var(--scrim)` menjadi
+     `var(--color-scrim)`. Tanpa alias ini seluruh tirai kehilangan latarnya
+     (terukur: `dist/*.css` mencetak `background-color:var(--scrim)` tanpa definisi).
+     Karena itu `--color-scrim` di `@theme` juga tidak boleh dihapus meski 0 pemakai
+     langsung — ia adalah NILAI dari alias ini. */
+  --scrim: var(--color-scrim);
   color-scheme: light;
 }
 
@@ -226,11 +275,11 @@ a, button, input, select, textarea {
     opacity: 0.5;
   }
   .btn-primary {
-    background: var(--brand);
+    background: var(--brand-solid);
     color: white;
   }
   .btn-primary:hover {
-    background: var(--brand-strong);
+    background: var(--brand-solid-hover);
   }
   .btn-secondary {
     background: var(--surface-soft);

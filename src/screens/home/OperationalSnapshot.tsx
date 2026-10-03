@@ -23,15 +23,15 @@ export default function OperationalSnapshot({
 
   return (
     <section
-      className="mx-4 mb-3 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden"
+      className="mx-4 mb-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] shadow-sm overflow-hidden"
       aria-labelledby="operational-title"
     >
       {/* ── Header ── */}
-      <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-3 border-b border-slate-100">
+      <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-3 border-b border-[var(--border)]">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-600">Pusat Tindakan</p>
-          <h2 id="operational-title" className="text-base font-bold text-slate-800">Operasional hari ini</h2>
-          <p className="mt-0.5 text-xs text-slate-600">Ringkasan yang bisa langsung ditindaklanjuti.</p>
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--ink-muted)]">Pusat Tindakan</p>
+          <h2 id="operational-title" className="text-base font-bold text-[var(--ink-strong)]">Operasional hari ini</h2>
+          <p className="mt-0.5 text-xs text-[var(--ink-muted)]">Ringkasan yang bisa langsung ditindaklanjuti.</p>
         </div>
       </div>
 
@@ -40,18 +40,18 @@ export default function OperationalSnapshot({
         {/* Secondary row: Minggu Ini + Murid Aktif */}
         <div className="grid grid-cols-2 gap-3">
           {/* Minggu Ini */}
-          <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Minggu ini</p>
-            <p className="mt-1 text-[28px] font-bold leading-none text-slate-800">
+          <div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-muted)]">Minggu ini</p>
+            <p className="mt-1 text-[28px] font-bold leading-none text-[var(--ink-strong)]">
               {weekPlanned > 0 ? `${weekPct}%` : "—"}
             </p>
-            <p className="mt-1 text-xs text-slate-600">{weekLabel}</p>
+            <p className="mt-1 text-xs text-[var(--ink-muted)]">{weekLabel}</p>
             {weekPlanned > 0 && (
               <div className="mt-2">
-                <div className="h-2.5 w-full rounded-full bg-slate-200 overflow-hidden">
+                <div className="h-2.5 w-full rounded-full bg-[var(--bg-subtle)] overflow-hidden">
                   <div
                     className={`h-2.5 rounded-full transition-all duration-500 ease-out ${
-                      weekPct >= 100 ? "bg-green-500" : weekPct >= 50 ? "bg-blue-500" : "bg-amber-500"
+                      weekPct >= 100 ? "bg-[var(--bg-success-strong)]" : weekPct >= 50 ? "bg-[var(--brand-solid)]" : "bg-[var(--bg-warn-strong)]"
                     }`}
                     style={{ width: `${Math.max(weekPct, 3)}%`, minWidth: weekPct > 0 ? "8px" : 0 }}
                   />

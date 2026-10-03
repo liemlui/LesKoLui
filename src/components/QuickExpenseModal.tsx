@@ -67,20 +67,20 @@ export default function QuickExpenseModal({ onClose, onSaved, initialDate, expen
   };
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Catat Pengeluaran" className={`fixed inset-0 bg-black/60 ${Z.invoice} flex items-end justify-center`}>
-      <div className="w-full max-w-md bg-white rounded-t-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+    <div role="dialog" aria-modal="true" aria-label="Catat Pengeluaran" className={`fixed inset-0 bg-[var(--scrim)]/60 ${Z.invoice} flex items-end justify-center`}>
+      <div className="w-full max-w-md bg-[var(--surface-strong)] rounded-t-2xl overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
           <h3 className="font-bold text-base">{editing ? "✏️ Edit Pengeluaran" : "💰 Catat Pengeluaran"}</h3>
-          <button aria-label="Tutup" onClick={onClose} className="text-gray-500 hover:text-gray-600 text-lg w-10 h-10 flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+          <button aria-label="Tutup" onClick={onClose} className="text-[var(--ink-muted)] hover:text-[var(--ink-muted)] text-lg w-10 h-10 flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
         </div>
         <div className="p-4 space-y-3">
           <div>
-            <label htmlFor="expense-date" className="text-xs text-gray-500 font-medium">Tanggal</label>
+            <label htmlFor="expense-date" className="text-xs text-[var(--ink-muted)] font-medium">Tanggal</label>
             <input id="expense-date" type="date" value={date} onChange={(e) => setDate(e.target.value)}
               className="input w-full mt-1" />
           </div>
           <div>
-            <label htmlFor="expense-category" className="text-xs text-gray-500 font-medium">Kategori</label>
+            <label htmlFor="expense-category" className="text-xs text-[var(--ink-muted)] font-medium">Kategori</label>
             <select id="expense-category" value={category} onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
               className="input w-full mt-1">
               {CATEGORIES.map((c) => (
@@ -89,20 +89,20 @@ export default function QuickExpenseModal({ onClose, onSaved, initialDate, expen
             </select>
           </div>
           <div>
-            <label htmlFor="expense-description" className="text-xs text-gray-500 font-medium">Deskripsi</label>
+            <label htmlFor="expense-description" className="text-xs text-[var(--ink-muted)] font-medium">Deskripsi</label>
             <input id="expense-description" type="text" value={description} onChange={(e) => setDescription(e.target.value)}
               placeholder="Misal: Bensin 2 minggu"
               className="input w-full mt-1" />
           </div>
           <div>
-            <label htmlFor="expense-amount" className="text-xs text-gray-500 font-medium">Jumlah (IDR)</label>
+            <label htmlFor="expense-amount" className="text-xs text-[var(--ink-muted)] font-medium">Jumlah (IDR)</label>
             <input id="expense-amount" type="number" value={amount || ""} onChange={(e) => setAmount(Number(e.target.value))}
               placeholder="0" min={1}
               className="input w-full mt-1" />
           </div>
           {students && students.length > 0 && (
           <div>
-            <label htmlFor="expense-student" className="text-xs text-gray-500 font-medium">Terkait murid (opsional — hitung laba bersih)</label>
+            <label htmlFor="expense-student" className="text-xs text-[var(--ink-muted)] font-medium">Terkait murid (opsional — hitung laba bersih)</label>
             <select id="expense-student" value={studentId} onChange={(e) => setStudentId(e.target.value)}
               className="input w-full mt-1">
               <option value="">— Umum (tidak terkait murid) —</option>
@@ -112,9 +112,9 @@ export default function QuickExpenseModal({ onClose, onSaved, initialDate, expen
             </select>
           </div>
           )}
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {error && <p className="text-sm text-[var(--ink-danger)]">{error}</p>}
           <button onClick={handleSave} disabled={saving}
-            className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-colors disabled:opacity-50">
+            className="w-full py-3 rounded-xl bg-[var(--brand-solid)] text-[var(--on-strong)] font-bold text-sm hover:bg-[var(--brand-solid)] transition-colors disabled:opacity-50">
             {saving ? "Menyimpan..." : editing ? "Simpan Perubahan" : "Simpan Pengeluaran"}
           </button>
         </div>

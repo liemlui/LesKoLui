@@ -50,24 +50,24 @@ export default function DayView({
   const nowTop  = (nowH - DAY_START) * PX_PER_HR;
 
   return (
-    <div className="mx-4 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
-        <button aria-label="Hari sebelumnya" onClick={() => setAnchor(addDays(anchor, -1))} className="text-gray-600 hover:text-gray-800 text-xl w-10 h-10 flex items-center justify-center">‹</button>
+    <div className="mx-4 bg-[var(--surface-strong)] rounded-2xl shadow-sm border border-[var(--border)] overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--border)]">
+        <button aria-label="Hari sebelumnya" onClick={() => setAnchor(addDays(anchor, -1))} className="text-[var(--ink-muted)] hover:text-[var(--ink-strong)] text-xl w-10 h-10 flex items-center justify-center">‹</button>
         <div className="flex items-center gap-2 min-w-0">
-          <span className="font-semibold text-gray-700 text-sm truncate">{dayLabel(anchor)}</span>
+          <span className="font-semibold text-[var(--ink-strong)] text-sm truncate">{dayLabel(anchor)}</span>
           {anchor !== today && (
-            <button onClick={onJumpToday} className="flex-shrink-0 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded-lg transition-colors">Hari Ini</button>
+            <button onClick={onJumpToday} className="flex-shrink-0 text-xs font-semibold text-[var(--ink-brand)] bg-[var(--brand-tint)] hover:bg-[var(--brand-tint-strong)] px-2 py-0.5 rounded-lg transition-colors">Hari Ini</button>
           )}
         </div>
-        <button aria-label="Hari berikutnya" onClick={() => setAnchor(addDays(anchor, 1))} className="text-gray-600 hover:text-gray-800 text-xl w-10 h-10 flex items-center justify-center">›</button>
+        <button aria-label="Hari berikutnya" onClick={() => setAnchor(addDays(anchor, 1))} className="text-[var(--ink-muted)] hover:text-[var(--ink-strong)] text-xl w-10 h-10 flex items-center justify-center">›</button>
       </div>
-      <div className="px-4 py-2 flex items-center justify-between border-b border-gray-50">
-        <p className="text-xs text-gray-600">{sessions.length} sesi</p>
-        <button onClick={() => onAdd(anchor)} className="flex items-center gap-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg transition-colors">+ Jadwal</button>
+      <div className="px-4 py-2 flex items-center justify-between border-b border-[var(--border)]">
+        <p className="text-xs text-[var(--ink-muted)]">{sessions.length} sesi</p>
+        <button onClick={() => onAdd(anchor)} className="flex items-center gap-1 text-xs font-semibold text-[var(--ink-brand)] bg-[var(--brand-tint)] hover:bg-[var(--brand-tint-strong)] px-2.5 py-1.5 rounded-lg transition-colors">+ Jadwal</button>
       </div>
       {untimed.length > 0 && (
-        <div className="px-3 pt-2 pb-1 border-b border-gray-100 space-y-1">
-          <p className="text-xs text-gray-600 font-medium">Tanpa waktu</p>
+        <div className="px-3 pt-2 pb-1 border-b border-[var(--border)] space-y-1">
+          <p className="text-xs text-[var(--ink-muted)] font-medium">Tanpa waktu</p>
           {untimed.map((s) => (
             <SessionPill key={s.id} session={s} dateCtx={anchor} studentMap={studentMap} today={today} {...actions} />
           ))}
@@ -78,22 +78,22 @@ export default function DayView({
           {gridHours.map((h) => (
             <div key={h} className="absolute left-0 right-0 pointer-events-none" style={{ top: (h - DAY_START) * PX_PER_HR }}>
               <div className="flex">
-                <span className="flex-shrink-0 text-right pr-2 text-gray-600"
+                <span className="flex-shrink-0 text-right pr-2 text-[var(--ink-muted)]"
                   style={{ width: LABEL_W, fontSize: 10, lineHeight: 1, marginTop: -6 }}>
                   {`${String(h).padStart(2, "0")}:00`}
                 </span>
-                <div className="flex-1 border-t border-gray-200" />
+                <div className="flex-1 border-t border-[var(--border)]" />
               </div>
             </div>
           ))}
           {gridHours.slice(0, -1).map((h) => (
-            <div key={`h30-${h}`} className="absolute right-0 border-t border-dashed border-gray-100 pointer-events-none"
+            <div key={`h30-${h}`} className="absolute right-0 border-t border-dashed border-[var(--border)] pointer-events-none"
               style={{ top: (h - DAY_START) * PX_PER_HR + PX_PER_HR / 2, left: LABEL_W }} />
           ))}
           {showNow && (
             <div className="absolute right-0 pointer-events-none z-10" style={{ top: nowTop, left: LABEL_W }}>
-              <div className="relative border-t-2 border-red-500">
-                <span className="absolute -left-1 -top-1 w-2 h-2 rounded-full bg-red-500" />
+              <div className="relative border-t-2 border-[var(--ink-danger)]">
+                <span className="absolute -left-1 -top-1 w-2 h-2 rounded-full bg-[var(--bg-danger-strong)]" />
               </div>
             </div>
           )}

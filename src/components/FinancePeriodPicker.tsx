@@ -43,13 +43,13 @@ export default function FinancePeriodPicker({
           aria-label={`Bulan sebelumnya: ${monthLabel(previousMonth)}`}
           title={`Bulan sebelumnya: ${monthLabel(previousMonth)}`}
           onClick={() => onChange(previousMonth)}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-lg font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] text-lg font-semibold text-[var(--ink-strong)] transition-colors hover:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-brand)]"
         >
           <span aria-hidden="true">‹</span>
         </button>
 
         <div className="min-w-[9.5rem] flex-1">
-          <label htmlFor={inputId} className="block text-xs font-medium text-slate-500">
+          <label htmlFor={inputId} className="block text-xs font-medium text-[var(--ink-muted)]">
             Bulan keuangan
           </label>
           <input
@@ -69,7 +69,7 @@ export default function FinancePeriodPicker({
           aria-label={`Bulan berikutnya: ${monthLabel(nextMonth)}`}
           title={`Bulan berikutnya: ${monthLabel(nextMonth)}`}
           onClick={() => onChange(nextMonth)}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-lg font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] text-lg font-semibold text-[var(--ink-strong)] transition-colors hover:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-brand)]"
         >
           <span aria-hidden="true">›</span>
         </button>
@@ -78,7 +78,7 @@ export default function FinancePeriodPicker({
           type="button"
           onClick={() => onChange(currentMonth)}
           disabled={month === currentMonth}
-          className="h-9 shrink-0 rounded-xl border border-blue-200 bg-blue-50 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100 disabled:cursor-default disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-600"
+          className="h-9 shrink-0 rounded-xl border border-[var(--brand-tint-strong)] bg-[var(--brand-tint)] px-2.5 text-xs font-semibold text-[var(--ink-brand)] transition-colors hover:bg-[var(--brand-tint-strong)] disabled:cursor-default disabled:border-[var(--border)] disabled:bg-[var(--bg-subtle)] disabled:text-[var(--ink-muted)]"
         >
           Bulan ini
         </button>

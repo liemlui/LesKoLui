@@ -30,7 +30,7 @@ export default function TodayHero({ today, sessions, studentMap, onAdd, loading 
   const missed  = sessions.filter((s) => s.status === "NO_SHOW").length;
 
   return (
-    <div className="mx-4 mb-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-3">
+    <div className="mx-4 mb-2 bg-[var(--surface-strong)] rounded-2xl shadow-sm border border-[var(--border)] p-3">
       {/* Header with progress bar */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex-1 min-w-0">
@@ -38,10 +38,10 @@ export default function TodayHero({ today, sessions, studentMap, onAdd, loading 
               <p> — kalau tidak, navigasi heading pembaca layar nyaris kosong.
               Kelasnya tidak berubah, jadi tampilannya tetap sama (preflight
               Tailwind menyetel ulang ukuran/berat huruf heading). */}
-          <h2 className="text-sm font-bold text-gray-800">Hari Ini</h2>
+          <h2 className="text-sm font-bold text-[var(--ink-strong)]">Hari Ini</h2>
           {sessions.length > 0 && (
             <div className="flex items-center gap-2 mt-0.5">
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-[var(--ink-muted)]">
                 {sessions.length} sesi
               </p>
               <div className="flex items-center gap-1">
@@ -53,7 +53,7 @@ export default function TodayHero({ today, sessions, studentMap, onAdd, loading 
           )}
         </div>
         <button onClick={() => onAdd(today)}
-          className="flex items-center gap-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg transition-colors">
+          className="flex items-center gap-1 text-xs font-semibold text-[var(--ink-brand)] bg-[var(--brand-tint)] hover:bg-[var(--brand-tint-strong)] px-2.5 py-1.5 rounded-lg transition-colors">
           + Jadwal
         </button>
       </div>
@@ -94,11 +94,11 @@ export default function TodayHero({ today, sessions, studentMap, onAdd, loading 
               <div key={s.id}>
                 {showSep && (
                   <div className="flex items-center gap-2 my-2">
-                    <div className="flex-1 border-t border-slate-100" />
-                    <span className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider">
+                    <div className="flex-1 border-t border-[var(--border)]" />
+                    <span className="text-[12px] font-semibold text-[var(--ink-muted)] uppercase tracking-wider">
                       {thisTime}:00
                     </span>
-                    <div className="flex-1 border-t border-slate-100" />
+                    <div className="flex-1 border-t border-[var(--border)]" />
                   </div>
                 )}
                 <SessionPill session={s} dateCtx={today} studentMap={studentMap} today={today} {...actions} />

@@ -38,8 +38,8 @@ export default function DonutChart({
 
   if (total === 0 || segments.length === 0) {
     return (
-      <div className="flex items-center justify-center rounded-xl bg-slate-50 border border-slate-100" style={{ width: size, height: size }}>
-        <p className="text-xs text-slate-400 text-center px-2">{emptyLabel}</p>
+      <div className="flex items-center justify-center rounded-xl bg-[var(--surface)] border border-[var(--border)]" style={{ width: size, height: size }}>
+        <p className="text-xs text-[var(--ink-muted)] text-center px-2">{emptyLabel}</p>
       </div>
     );
   }
@@ -73,8 +73,8 @@ export default function DonutChart({
         </svg>
         {/* Center text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{centerLabel}</span>
-          <span className="text-lg font-bold text-slate-800">
+          <span className="text-xs font-semibold text-[var(--ink-muted)] uppercase tracking-wide">{centerLabel}</span>
+          <span className="text-lg font-bold text-[var(--ink-strong)]">
             {centerValue ?? String(total)}
           </span>
         </div>
@@ -86,10 +86,10 @@ export default function DonutChart({
             const color = seg.color ?? DEFAULT_COLORS[i % DEFAULT_COLORS.length];
             const pct = total > 0 ? Math.round((Math.max(0, seg.value) / total) * 100) : 0;
             return (
-              <div key={i} className="flex items-center gap-1.5 text-xs text-slate-600">
+              <div key={i} className="flex items-center gap-1.5 text-xs text-[var(--ink-muted)]">
                 <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: color }} />
                 <span className="font-medium">{seg.label}</span>
-                <span className="text-slate-400">{pct}%</span>
+                <span className="text-[var(--ink-muted)]">{pct}%</span>
               </div>
             );
           })}

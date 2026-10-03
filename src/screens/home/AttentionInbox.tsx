@@ -56,18 +56,18 @@ export default function AttentionInbox({
       <button
         onClick={() => setCollapsed((c) => !c)}
         aria-expanded={!collapsed}
-        className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl"
+        className="w-full flex items-center justify-between px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl"
       >
-        <span className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+        <span className="text-xs font-bold text-[var(--ink-strong)] uppercase tracking-wide flex items-center gap-2">
           <Badge tone="red" size="sm" count={total}>
             Perlu Perhatian
           </Badge>
         </span>
-        <span className="text-gray-600 text-sm">{collapsed ? "▸" : "▾"}</span>
+        <span className="text-[var(--ink-muted)] text-sm">{collapsed ? "▸" : "▾"}</span>
       </button>
 
       {!collapsed && (
-        <div className="mt-2 bg-white border border-gray-100 rounded-xl overflow-hidden">
+        <div className="mt-2 bg-[var(--surface-strong)] border border-[var(--border)] rounded-xl overflow-hidden">
           <Tabs tabs={tabs} active={activeTab} onChange={setActiveTab} idPrefix="attention-inbox" fullWidth />
 
           <div className="p-3">
@@ -92,26 +92,26 @@ export default function AttentionInbox({
                       return (
                         <div
                           key={s.id}
-                          className="flex items-center gap-2 p-2 rounded-lg bg-orange-50 border border-orange-100"
+                          className="flex items-center gap-2 p-2 rounded-lg bg-[var(--bg-attention)] border border-[var(--border-attention)]"
                         >
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-gray-800 truncate">
+                            <p className="text-xs font-semibold text-[var(--ink-strong)] truncate">
                               {name}
                             </p>
-                            <p className="text-xs text-orange-700">
+                            <p className="text-xs text-[var(--ink-attention)]">
                               {dayLabel(s.date)} · {s.durationHours}j
                               {s.time ? ` · ${s.time}` : ""}
                             </p>
                           </div>
                           <button
                             onClick={() => onCapture(s.id)}
-                            className="flex-shrink-0 text-xs bg-blue-600 text-white px-2.5 py-1.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                            className="flex-shrink-0 text-xs bg-[var(--brand-solid)] text-[var(--on-strong)] px-2.5 py-1.5 rounded-lg font-semibold hover:bg-[var(--brand-solid)] transition-colors"
                           >
                             Catat
                           </button>
                           <button
                             onClick={() => onResolveMissed(s)}
-                            className="flex-shrink-0 text-xs bg-orange-100 text-orange-700 px-2 py-1.5 rounded-lg font-semibold hover:bg-orange-200 transition-colors"
+                            className="flex-shrink-0 text-xs bg-[var(--bg-attention)] text-[var(--ink-attention)] px-2 py-1.5 rounded-lg font-semibold hover:bg-[var(--bg-attention-strong)] transition-colors"
                           >
                             Atur
                           </button>
@@ -148,18 +148,18 @@ export default function AttentionInbox({
                       return (
                         <div
                           key={f.id}
-                          className="flex items-center gap-2 p-2 rounded-lg bg-blue-50 border border-blue-100"
+                          className="flex items-center gap-2 p-2 rounded-lg bg-[var(--brand-tint)] border border-[var(--brand-tint-strong)]"
                         >
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-gray-700 truncate">
+                            <p className="text-xs font-semibold text-[var(--ink-strong)] truncate">
                               {f.text}
                             </p>
-                            <p className="text-xs text-blue-500">{sName}</p>
+                            <p className="text-xs text-[var(--ink-brand)]">{sName}</p>
                           </div>
                           <button
                             onClick={() => onCompleteFollowUp(f.id)}
                             aria-label={`Tandai follow-up "${f.text}" selesai`}
-                            className="flex-shrink-0 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-lg font-semibold hover:bg-blue-200"
+                            className="flex-shrink-0 text-xs bg-[var(--brand-tint-strong)] text-[var(--ink-brand)] px-2 py-1 rounded-lg font-semibold hover:bg-[var(--brand-tint-strong)]"
                           >
                             ✓
                           </button>

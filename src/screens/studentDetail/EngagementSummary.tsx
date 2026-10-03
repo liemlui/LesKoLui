@@ -49,18 +49,18 @@ export default function EngagementSummary({
   const phonePct = counted > 0 ? Math.round((phoneCount / counted) * 100) : 0;
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-        <h2 className="font-semibold text-gray-700">Keseriusan Belajar</h2>
-        <span className="text-xs text-gray-500">
+    <div className="bg-[var(--surface-strong)] rounded-2xl shadow-sm border border-[var(--border)] overflow-hidden">
+      <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between">
+        <h2 className="font-semibold text-[var(--ink-strong)]">Keseriusan Belajar</h2>
+        <span className="text-xs text-[var(--ink-muted)]">
           {counted} dari {engSessions.length} sesi berdata
         </span>
       </div>
 
       {/* Cakupan data — jujur soal apa yang TIDAK dicatat (audit P3 #17) */}
       {noObservationPct > 0 && (
-        <div className="mx-4 mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2">
-          <p className="text-xs text-amber-800">
+        <div className="mx-4 mt-3 rounded-xl border border-[var(--border-warn)] bg-[var(--bg-warn)] px-3 py-2">
+          <p className="text-xs text-[var(--ink-warn)]">
             {counted === 0 ? (
               <>
                 <span className="font-semibold">Belum ada sesi yang mencatat pengamatan kondisi.</span>{" "}
@@ -79,7 +79,7 @@ export default function EngagementSummary({
       )}
 
       {/* Summary row */}
-      <div className="grid grid-cols-3 divide-x divide-gray-100">
+      <div className="grid grid-cols-3 divide-x divide-[var(--border)]">
         <div className="p-3 text-center">
           {avgEngScore !== null && (() => {
             const { text, color } = scoreLabel(avgEngScore);
@@ -90,7 +90,7 @@ export default function EngagementSummary({
                     tone={avgEngScore >= 7 ? "green" : avgEngScore >= 4 ? "amber" : "red"} />
                 </div>
                 <p className="text-xs font-medium mt-0.5" style={{ color }}>{text}</p>
-                <p className="text-xs text-gray-500">rata-rata dari {counted} sesi</p>
+                <p className="text-xs text-[var(--ink-muted)]">rata-rata dari {counted} sesi</p>
               </>
             );
           })()}
@@ -99,24 +99,24 @@ export default function EngagementSummary({
           <p className="text-2xl">
             {engTrend === "up" ? "📈" : engTrend === "down" ? "📉" : "➡️"}
           </p>
-          <p className="text-xs font-medium text-gray-600">
+          <p className="text-xs font-medium text-[var(--ink-muted)]">
             {engTrend === "up" ? "Membaik" : engTrend === "down" ? "Menurun" : engTrend === "stable" ? "Stabil" : "—"}
           </p>
-          <p className="text-xs text-gray-500">trend</p>
+          <p className="text-xs text-[var(--ink-muted)]">trend</p>
         </div>
         <div className="p-3 text-center">
-          <p className="text-2xl font-bold text-red-500">{phonePct}%</p>
-          <p className="text-xs font-medium text-red-400">Main HP</p>
+          <p className="text-2xl font-bold text-[var(--ink-danger)]">{phonePct}%</p>
+          <p className="text-xs font-medium text-[var(--ink-danger)]">Main HP</p>
           {/* Penyebut, bukan "dari sesi" — kata terakhir itu menyiratkan
               seluruh riwayat padahal hanya sesi berdata. */}
-          <p className="text-xs text-gray-500">dari {counted} sesi berdata</p>
+          <p className="text-xs text-[var(--ink-muted)]">dari {counted} sesi berdata</p>
         </div>
       </div>
 
       {/* Sumbu 2 — kualitas respons akademik (audit P3 #17) */}
       {responseStats && responseStats.rows.length > 0 && (
-        <div className="border-t border-gray-100 px-4 py-3">
-          <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-2">
+        <div className="border-t border-[var(--border)] px-4 py-3">
+          <p className="text-xs text-[var(--ink-muted)] font-semibold uppercase tracking-wide mb-2">
             Kualitas Respons Akademik
           </p>
           <div className="space-y-1.5">
@@ -124,16 +124,16 @@ export default function EngagementSummary({
               const pct = Math.round((row.count / responseStats.answered) * 100);
               return (
                 <div key={row.label} className="flex items-center gap-2">
-                  <span className="w-32 shrink-0 truncate text-xs text-gray-600">{row.label}</span>
-                  <span className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
-                    <span className="block h-full rounded-full bg-blue-500" style={{ width: `${pct}%` }} />
+                  <span className="w-32 shrink-0 truncate text-xs text-[var(--ink-muted)]">{row.label}</span>
+                  <span className="h-2 flex-1 overflow-hidden rounded-full bg-[var(--bg-subtle)]">
+                    <span className="block h-full rounded-full bg-[var(--brand-solid)]" style={{ width: `${pct}%` }} />
                   </span>
-                  <span className="w-14 shrink-0 text-right text-xs text-gray-500">{row.count}× · {pct}%</span>
+                  <span className="w-14 shrink-0 text-right text-xs text-[var(--ink-muted)]">{row.count}× · {pct}%</span>
                 </div>
               );
             })}
           </div>
-          <p className="mt-2 text-xs text-gray-500">
+          <p className="mt-2 text-xs text-[var(--ink-muted)]">
             Dari {responseStats.answered} sesi yang mencatat respons akademik.
           </p>
         </div>
@@ -142,12 +142,12 @@ export default function EngagementSummary({
       {/* Trend summary */}
       {recentEng.length > 0 && (
         <div className="px-4 pb-3">
-          <p className="text-xs text-gray-500">
-            📈 Rata-rata fokus: <span className="font-semibold text-gray-700">{avgEngScore}/10</span>
+          <p className="text-xs text-[var(--ink-muted)]">
+            📈 Rata-rata fokus: <span className="font-semibold text-[var(--ink-strong)]">{avgEngScore}/10</span>
             {" "}dari {recentEng.length} sesi terakhir
-            {engTrend === "up" && <span className="text-green-500 ml-1">↑ meningkat</span>}
-            {engTrend === "down" && <span className="text-red-500 ml-1">↓ menurun</span>}
-            {engTrend === "stable" && <span className="text-gray-500 ml-1">→ stabil</span>}
+            {engTrend === "up" && <span className="text-[var(--ink-success)] ml-1">↑ meningkat</span>}
+            {engTrend === "down" && <span className="text-[var(--ink-danger)] ml-1">↓ menurun</span>}
+            {engTrend === "stable" && <span className="text-[var(--ink-muted)] ml-1">→ stabil</span>}
             {" "}— lihat grafik di atas
           </p>
         </div>
@@ -155,7 +155,7 @@ export default function EngagementSummary({
 
       {/* Trend chart: skor 15 sesi terakhir (konteks visual pergerakan fokus) */}
       {recentEng.length >= 3 && (
-        <div className="px-4 pb-3 border-t border-gray-100 pt-3">
+        <div className="px-4 pb-3 border-t border-[var(--border)] pt-3">
           <LineChart
             series={[{
               label: "Engagement",
@@ -167,35 +167,35 @@ export default function EngagementSummary({
             dateXAxis={false}
             formatY={(v) => `${Math.round(v)}`}
           />
-          <p className="mt-1 text-center text-xs text-gray-500">Skor fokus per sesi — 15 sesi terakhir</p>
+          <p className="mt-1 text-center text-xs text-[var(--ink-muted)]">Skor fokus per sesi — 15 sesi terakhir</p>
         </div>
       )}
 
       {/* Per-subject breakdown */}
       {subjectEngStats.length > 0 && (
-        <div className="border-t border-gray-100 px-4 py-3">
-          <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-2">Per Mata Pelajaran</p>
+        <div className="border-t border-[var(--border)] px-4 py-3">
+          <p className="text-xs text-[var(--ink-muted)] font-semibold uppercase tracking-wide mb-2">Per Mata Pelajaran</p>
           <div className="space-y-2.5">
             {paginatedSubjectEngStats.map((stat) => {
               const { color, bg } = scoreLabel(stat.avgScore);
               return (
                 <div key={stat.subject}>
                   <div className="flex items-center justify-between mb-0.5">
-                    <span className="text-sm font-medium text-gray-700">{stat.subject}</span>
+                    <span className="text-sm font-medium text-[var(--ink-strong)]">{stat.subject}</span>
                     <div className="flex items-center gap-2">
                       <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ color, background: bg }}>
                         {stat.avgScore}/10
                       </span>
-                      <span className="text-xs text-gray-500">{stat.count}×</span>
+                      <span className="text-xs text-[var(--ink-muted)]">{stat.count}×</span>
                     </div>
                   </div>
-                  <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="flex-1 h-1.5 bg-[var(--bg-subtle)] rounded-full overflow-hidden">
                     <div className="h-full rounded-full transition-all" style={{ width: `${(stat.avgScore / 10) * 100}%`, background: color }} />
                   </div>
                   <div className="flex gap-3 mt-1">
-                    {stat.prepRate > 0 && <span className="text-xs text-green-600">📚 Siap {stat.prepRate}%</span>}
-                    {stat.phoneRate > 0 && <span className="text-xs text-red-500">📱 Main HP {stat.phoneRate}%</span>}
-                    {stat.drowsyRate > 0 && <span className="text-xs text-orange-700">😴 Ngantuk {stat.drowsyRate}%</span>}
+                    {stat.prepRate > 0 && <span className="text-xs text-[var(--ink-success)]">📚 Siap {stat.prepRate}%</span>}
+                    {stat.phoneRate > 0 && <span className="text-xs text-[var(--ink-danger)]">📱 Main HP {stat.phoneRate}%</span>}
+                    {stat.drowsyRate > 0 && <span className="text-xs text-[var(--ink-attention)]">😴 Ngantuk {stat.drowsyRate}%</span>}
                   </div>
                 </div>
               );
@@ -212,8 +212,8 @@ export default function EngagementSummary({
 
       {/* Ringkasan kalimat — penyebutnya disebut, bukan disamarkan (P3 #17) */}
       {counted >= 5 && avgEngScore !== null && (
-        <div className="mx-4 mb-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
-          <p className="text-xs text-gray-600 leading-relaxed">
+        <div className="mx-4 mb-3 p-3 bg-[var(--surface)] rounded-xl border border-[var(--border)]">
+          <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
             <span className="font-semibold">📊 Insight: </span>
             Dari {counted} sesi yang mencatat kondisi (dari total {engSessions.length} sesi),{" "}
             {student.name.split(" ")[0]} rata-rata mendapat skor{" "}

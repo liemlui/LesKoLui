@@ -77,22 +77,22 @@ export default function IaEeTracker({ student, projects, notify }: IaEeTrackerPr
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+    <div className="bg-[var(--surface-strong)] rounded-2xl shadow-sm border border-[var(--border)] overflow-hidden">
+      <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between">
         <div>
-          <h2 className="font-semibold text-gray-700">IA / EE / PP Tracker</h2>
-          <p className="text-xs text-gray-500 mt-0.5">IA = Internal Assessment (DP) · EE = Extended Essay (DP) · PP = Personal Project (MYP)</p>
+          <h2 className="font-semibold text-[var(--ink-strong)]">IA / EE / PP Tracker</h2>
+          <p className="text-xs text-[var(--ink-muted)] mt-0.5">IA = Internal Assessment (DP) · EE = Extended Essay (DP) · PP = Personal Project (MYP)</p>
         </div>
         <button
           onClick={() => { setShowForm((v) => !v); resetForm(); }}
-          className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-semibold">
+          className="text-xs bg-[var(--brand-solid)] text-[var(--on-strong)] px-3 py-1.5 rounded-lg font-semibold">
           + Proyek
         </button>
       </div>
 
       {/* Form proyek baru */}
       {showForm && (
-        <div className="px-4 py-3 border-b border-gray-100 space-y-2 bg-blue-50">
+        <div className="px-4 py-3 border-b border-[var(--border)] space-y-2 bg-[var(--brand-tint)]">
           <div>
             <select className="input" value={type} aria-label="Jenis proyek"
               onChange={(e) => setType(e.target.value as IaEeType)}>
@@ -100,7 +100,7 @@ export default function IaEeTracker({ student, projects, notify }: IaEeTrackerPr
               <option value="EE">EE — Extended Essay (esai riset DP)</option>
               <option value="PP">PP — Personal Project (proyek pribadi MYP)</option>
             </select>
-            <p className="text-xs text-blue-700 mt-1">
+            <p className="text-xs text-[var(--ink-brand)] mt-1">
               {type === "IA" && "Internal Assessment: tugas resmi dari satu mapel DP, dinilai internal + moderasi IB."}
               {type === "EE" && "Extended Essay: esai riset mandiri ±4.000 kata dari salah satu mapel DP."}
               {type === "PP" && "Personal Project: proyek mandiri siswa MYP — tidak terikat satu mapel."}
@@ -119,11 +119,11 @@ export default function IaEeTracker({ student, projects, notify }: IaEeTrackerPr
             onChange={(e) => setNotes(e.target.value)} />
           <div className="flex gap-2">
             <button onClick={() => setShowForm(false)}
-              className="flex-1 py-2 rounded-xl bg-gray-100 text-gray-600 text-sm font-semibold">Batal</button>
+              className="flex-1 py-2 rounded-xl bg-[var(--bg-subtle)] text-[var(--ink-muted)] text-sm font-semibold">Batal</button>
             <button
               disabled={saving || !title || (type !== "PP" && !subject)}
               onClick={() => void saveProject()}
-              className="flex-1 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold disabled:opacity-50">
+              className="flex-1 py-2 rounded-xl bg-[var(--brand-solid)] text-[var(--on-strong)] text-sm font-semibold disabled:opacity-50">
               {saving ? "Menyimpan..." : "Simpan"}
             </button>
           </div>
@@ -131,10 +131,10 @@ export default function IaEeTracker({ student, projects, notify }: IaEeTrackerPr
       )}
 
       {projects.length === 0 && !showForm && (
-        <p className="text-gray-500 text-sm text-center py-6">Belum ada proyek IA/EE/PP.<br /><span className="text-xs text-gray-400">Tambahkan proyek untuk melacak milestone per tahap.</span></p>
+        <p className="text-[var(--ink-muted)] text-sm text-center py-6">Belum ada proyek IA/EE/PP.<br /><span className="text-xs text-[var(--ink-muted)]">Tambahkan proyek untuk melacak milestone per tahap.</span></p>
       )}
 
-      <div className="divide-y divide-gray-100">
+      <div className="divide-y divide-[var(--border)]">
         {projects.map((proj) => {
           const done = proj.milestones.filter((m) => m.status === "done").length;
           const total = proj.milestones.length;
@@ -150,28 +150,28 @@ export default function IaEeTracker({ student, projects, notify }: IaEeTrackerPr
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${proj.type === "IA" ? "bg-blue-100 text-blue-700" : proj.type === "EE" ? "bg-purple-100 text-purple-700" : "bg-emerald-100 text-emerald-700"}`}>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${proj.type === "IA" ? "bg-[var(--brand-tint-strong)] text-[var(--ink-brand)]" : proj.type === "EE" ? "bg-[var(--accent-tint)] text-[var(--ink-purple)]" : "bg-[var(--bg-success)] text-[var(--ink-success)]"}`}>
                         {proj.type}
                       </span>
-                      <span className="text-xs text-gray-500">{proj.subject}</span>
+                      <span className="text-xs text-[var(--ink-muted)]">{proj.subject}</span>
                       {daysLeft !== null && (
-                        <span className={`text-xs font-semibold ${daysLeft < 0 ? "text-red-700" : daysLeft < 14 ? "text-orange-700" : "text-gray-500"}`}>
+                        <span className={`text-xs font-semibold ${daysLeft < 0 ? "text-[var(--ink-danger)]" : daysLeft < 14 ? "text-[var(--ink-attention)]" : "text-[var(--ink-muted)]"}`}>
                           {daysLeft < 0 ? `${Math.abs(daysLeft)}h terlambat` : `${daysLeft}h lagi`}
                         </span>
                       )}
                     </div>
-                    <p className="text-sm font-semibold text-gray-800 mt-1 line-clamp-2">{proj.title}</p>
+                    <p className="text-sm font-semibold text-[var(--ink-strong)] mt-1 line-clamp-2">{proj.title}</p>
                   </div>
-                  <span className="text-gray-500 flex-shrink-0">{isExpanded ? "▲" : "▼"}</span>
+                  <span className="text-[var(--ink-muted)] flex-shrink-0">{isExpanded ? "▲" : "▼"}</span>
                 </div>
                 {total > 0 && (
                   <div className="mt-2">
-                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                    <div className="flex justify-between text-xs text-[var(--ink-muted)] mb-1">
                       <span>{done}/{total} milestone</span>
                       <span>{pct}%</span>
                     </div>
-                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${pct}%` }} />
+                    <div className="h-1.5 bg-[var(--bg-subtle)] rounded-full overflow-hidden">
+                      <div className="h-full rounded-full bg-[var(--brand-solid)] transition-all" style={{ width: `${pct}%` }} />
                     </div>
                   </div>
                 )}
@@ -179,42 +179,42 @@ export default function IaEeTracker({ student, projects, notify }: IaEeTrackerPr
 
               {isExpanded && (
                 <div className="mt-3 space-y-2">
-                  {proj.notes && <p className="text-xs text-gray-500 italic">{proj.notes}</p>}
+                  {proj.notes && <p className="text-xs text-[var(--ink-muted)] italic">{proj.notes}</p>}
 
                   {proj.milestones.map((m) => (
-                    <div key={m.id} className="flex items-start gap-2 bg-gray-50 rounded-xl px-3 py-2">
+                    <div key={m.id} className="flex items-start gap-2 bg-[var(--surface)] rounded-xl px-3 py-2">
                       <button
                         onClick={() => void cycleMilestone(proj.id, m)}
                         aria-label={`Ubah status milestone ${m.title}`}
                         className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center text-xs transition-colors mt-0.5 ${
-                          m.status === "done" ? "bg-green-500 border-green-500 text-white" :
-                          m.status === "in_progress" ? "bg-amber-400 border-amber-400 text-white" :
-                          "border-gray-300 bg-white"
+                          m.status === "done" ? "bg-[var(--bg-success-strong)] border-[var(--border-success)] text-[var(--on-strong)]" :
+                          m.status === "in_progress" ? "bg-[var(--bg-warn-strong)] border-[var(--border-warn)] text-[var(--on-strong)]" :
+                          "border-[var(--border)] bg-[var(--surface-strong)]"
                         }`}>
                         {m.status === "done" ? "✓" : m.status === "in_progress" ? "…" : ""}
                       </button>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium ${m.status === "done" ? "line-through text-gray-500" : "text-gray-700"}`}>
+                        <p className={`text-sm font-medium ${m.status === "done" ? "line-through text-[var(--ink-muted)]" : "text-[var(--ink-strong)]"}`}>
                           {m.title}
                         </p>
                         {m.dueAt && (
-                          <p className="text-xs text-gray-500 mt-0.5">Due: {m.dueAt}</p>
+                          <p className="text-xs text-[var(--ink-muted)] mt-0.5">Due: {m.dueAt}</p>
                         )}
-                        {m.notes && <p className="text-xs text-gray-500 italic mt-0.5">{m.notes}</p>}
+                        {m.notes && <p className="text-xs text-[var(--ink-muted)] italic mt-0.5">{m.notes}</p>}
                       </div>
                       <button
                         onClick={async () => {
                           if (confirm(`Hapus milestone "${m.title}"?`)) await deleteMilestone(proj.id, m.id);
                         }}
                         aria-label={`Hapus milestone ${m.title}`}
-                        className="text-gray-500 hover:text-red-400 p-1 flex-shrink-0">
+                        className="text-[var(--ink-muted)] hover:text-[var(--ink-danger)] p-1 flex-shrink-0">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
                       </button>
                     </div>
                   ))}
 
                   {msFormFor === proj.id ? (
-                    <div className="space-y-2 bg-blue-50 rounded-xl px-3 py-2">
+                    <div className="space-y-2 bg-[var(--brand-tint)] rounded-xl px-3 py-2">
                       <input className="input text-sm" placeholder="mis. Draft proposal, Bab 1, Revisi, Submit final" value={msTitle}
                         onChange={(e) => setMsTitle(e.target.value)} autoFocus />
                       <input className="input text-sm" type="date" value={msDue}
@@ -222,7 +222,7 @@ export default function IaEeTracker({ student, projects, notify }: IaEeTrackerPr
                         onChange={(e) => setMsDue(e.target.value)} />
                       <div className="flex gap-2">
                         <button onClick={() => { setMsFormFor(null); setMsTitle(""); setMsDue(""); }}
-                          className="flex-1 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-xs font-semibold">Batal</button>
+                          className="flex-1 py-1.5 rounded-lg bg-[var(--bg-subtle)] text-[var(--ink-muted)] text-xs font-semibold">Batal</button>
                         <button
                           disabled={!msTitle}
                           onClick={async () => {
@@ -233,14 +233,14 @@ export default function IaEeTracker({ student, projects, notify }: IaEeTrackerPr
                             });
                             setMsFormFor(null); setMsTitle(""); setMsDue("");
                           }}
-                          className="flex-1 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold disabled:opacity-50">
+                          className="flex-1 py-1.5 rounded-lg bg-[var(--brand-solid)] text-[var(--on-strong)] text-xs font-semibold disabled:opacity-50">
                           + Tambah
                         </button>
                       </div>
                     </div>
                   ) : (
                     <button onClick={() => { setMsFormFor(proj.id); setMsTitle(""); setMsDue(""); }}
-                      className="w-full py-2 rounded-xl border border-dashed border-gray-300 text-xs text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-colors">
+                      className="w-full py-2 rounded-xl border border-dashed border-[var(--border)] text-xs text-[var(--ink-muted)] hover:border-[var(--border-brand)] hover:text-[var(--ink-brand)] transition-colors">
                       + Milestone
                     </button>
                   )}
@@ -253,7 +253,7 @@ export default function IaEeTracker({ student, projects, notify }: IaEeTrackerPr
                         notify("Proyek dihapus");
                       }
                     }}
-                    className="w-full py-1.5 rounded-xl text-xs text-red-400 hover:bg-red-50 transition-colors">
+                    className="w-full py-1.5 rounded-xl text-xs text-[var(--ink-danger)] hover:bg-[var(--bg-danger)] transition-colors">
                     🗑 Hapus Proyek
                   </button>
                 </div>

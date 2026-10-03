@@ -50,20 +50,20 @@ export default function PengeluaranTab({ month, monthExpenses, cashInMonth, setM
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Pengeluaran periode</p>
-          <h2 className="mt-0.5 text-base font-bold text-slate-800">{monthLabel(month)}</h2>
-          <p className="mt-1 text-xs text-slate-500">Catat semua uang yang keluar pada bulan keuangan ini.</p>
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--ink-muted)]">Pengeluaran periode</p>
+          <h2 className="mt-0.5 text-base font-bold text-[var(--ink-strong)]">{monthLabel(month)}</h2>
+          <p className="mt-1 text-xs text-[var(--ink-muted)]">Catat semua uang yang keluar pada bulan keuangan ini.</p>
         </div>
         <ActionBar emphasis>
           <button onClick={() => setShowExpenseModal(true)}
-            className="shrink-0 px-3 py-2 rounded-[var(--radius-card)] bg-[var(--bg-danger-strong)] text-white text-body font-semibold hover:opacity-90 transition-colors">
+            className="shrink-0 px-3 py-2 rounded-[var(--radius-card)] bg-[var(--bg-danger-strong)] text-[var(--on-strong)] text-body font-semibold hover:opacity-90 transition-colors">
             + Catat
           </button>
         </ActionBar>
       </div>
 
       {isHistoricalMonth && (
-        <div className="rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs leading-relaxed text-blue-700">
+        <div className="rounded-xl border border-[var(--brand-tint-strong)] bg-[var(--brand-tint)] px-3 py-2 text-xs leading-relaxed text-[var(--ink-brand)]">
           Anda sedang membuka bulan lampau. Saat menambah pengeluaran, tanggal awal diatur ke 1 {monthLabel(month)}; periksa tanggal transaksi sebelum menyimpan.
         </div>
       )}
@@ -84,24 +84,24 @@ export default function PengeluaranTab({ month, monthExpenses, cashInMonth, setM
 
       {/* Ringkasan pengeluaran per kategori — dengan proporsi visual */}
       {monthExpenses.length > 0 && (
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 space-y-2">
-          <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Pengeluaran per Kategori</p>
+        <div className="bg-[var(--surface-strong)] rounded-xl p-4 shadow-sm border border-[var(--border)] space-y-2">
+          <p className="text-xs text-[var(--ink-muted)] font-medium uppercase tracking-wide">Pengeluaran per Kategori</p>
           <div className="space-y-1.5">
             {categories.map(([cat, total]) => {
               const pct = expenseTotal > 0 ? (total / expenseTotal) * 100 : 0;
               return (
                 <div key={cat}>
                   <div className="flex items-center justify-between text-xs mb-0.5">
-                    <span className="font-medium text-gray-600">{EXPENSE_LABELS[cat as keyof typeof EXPENSE_LABELS] ?? cat}</span>
+                    <span className="font-medium text-[var(--ink-muted)]">{EXPENSE_LABELS[cat as keyof typeof EXPENSE_LABELS] ?? cat}</span>
                     <span className="flex items-center gap-2">
-                      <span className="font-semibold text-gray-700">{formatRupiah(total)}</span>
+                      <span className="font-semibold text-[var(--ink-strong)]">{formatRupiah(total)}</span>
                       {expenseTotal > 0 && (
-                        <span className="text-xs text-gray-500 w-8 text-right">{Math.round(pct)}%</span>
+                        <span className="text-xs text-[var(--ink-muted)] w-8 text-right">{Math.round(pct)}%</span>
                       )}
                     </span>
                   </div>
-                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-red-500 rounded-full" style={{ width: `${pct}%` }} />
+                  <div className="h-1.5 bg-[var(--bg-subtle)] rounded-full overflow-hidden">
+                    <div className="h-full bg-[var(--bg-danger-strong)] rounded-full" style={{ width: `${pct}%` }} />
                   </div>
                 </div>
               );
@@ -110,48 +110,48 @@ export default function PengeluaranTab({ month, monthExpenses, cashInMonth, setM
         </div>
       )}
 
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+      <div className="bg-[var(--surface-strong)] rounded-xl p-4 shadow-sm border border-[var(--border)]">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Rincian {monthLabel(month)}</p>
-          <span className="text-xs text-gray-500">Terbaru di atas</span>
+          <p className="text-xs text-[var(--ink-muted)] font-medium uppercase tracking-wide">Rincian {monthLabel(month)}</p>
+          <span className="text-xs text-[var(--ink-muted)]">Terbaru di atas</span>
         </div>
         {monthExpenses.length === 0 ? (
           <EmptyState
             title={`Belum ada pengeluaran pada ${monthLabel(month)}`}
             message="Catat pengeluaran pertama bulan ini supaya sisa kas ikut terhitung."
             action={
-              <button onClick={() => setShowExpenseModal(true)} className="text-body font-semibold text-[var(--brand)]">
+              <button onClick={() => setShowExpenseModal(true)} className="text-body font-semibold text-[var(--ink-brand)]">
                 Catat pengeluaran pertama
               </button>
             }
           />
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-[var(--border)]">
             {[...monthExpenses].reverse().map((expense) => (
               <div key={expense.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                    <span className="rounded-full bg-[var(--bg-subtle)] px-2 py-0.5 text-xs font-semibold text-[var(--ink-muted)]">
                       {EXPENSE_LABELS[expense.category] ?? expense.category}
                     </span>
-                    <span className="text-xs text-gray-500">{dayLabel(expense.date)}</span>
+                    <span className="text-xs text-[var(--ink-muted)]">{dayLabel(expense.date)}</span>
                   </div>
-                  <p className="mt-1 text-sm font-medium text-gray-700 break-words">{expense.description}</p>
+                  <p className="mt-1 text-sm font-medium text-[var(--ink-strong)] break-words">{expense.description}</p>
                   {expense.studentId && (
-                    <span className="mt-0.5 inline-flex rounded-full bg-indigo-50 px-1.5 py-0.5 text-xs font-semibold text-indigo-600">
+                    <span className="mt-0.5 inline-flex rounded-full bg-[var(--accent-tint)] px-1.5 py-0.5 text-xs font-semibold text-[var(--ink-accent)]">
                       {studentMap.get(expense.studentId) ?? "—"}
                     </span>
                   )}
                 </div>
                 <div className="flex-shrink-0 text-right">
-                  <p className="text-sm font-bold text-red-600">{formatRupiah(expense.amount)}</p>
+                  <p className="text-sm font-bold text-[var(--ink-danger)]">{formatRupiah(expense.amount)}</p>
                   <div className="mt-1 flex justify-end gap-2">
                     <button type="button" aria-label={`Edit pengeluaran ${expense.description}`}
                       onClick={() => setEditTarget(expense)}
-                      className="text-xs text-gray-500 hover:text-blue-600 px-1.5 py-1 -mx-1.5 rounded transition-colors">Edit</button>
+                      className="text-xs text-[var(--ink-muted)] hover:text-[var(--ink-brand)] px-1.5 py-1 -mx-1.5 rounded transition-colors">Edit</button>
                     <button type="button" aria-label={`Hapus pengeluaran ${expense.description}`}
                       onClick={() => setDeleteTarget({ id: expense.id, description: expense.description })}
-                      className="text-xs text-gray-500 hover:text-red-600 px-1.5 py-1 -mx-1.5 rounded transition-colors">Hapus</button>
+                      className="text-xs text-[var(--ink-muted)] hover:text-[var(--ink-danger)] px-1.5 py-1 -mx-1.5 rounded transition-colors">Hapus</button>
                   </div>
                 </div>
               </div>

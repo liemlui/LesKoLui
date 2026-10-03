@@ -12,7 +12,7 @@ interface Props {
 
 /** Shimmer loader for async/suspense boundaries. */
 export default function Skeleton({ variant = "text", lines = 3, width, height, className = "" }: Props) {
-  const shimmer = "animate-pulse bg-slate-200 rounded";
+  const shimmer = "animate-pulse bg-[var(--bg-subtle)] rounded";
 
   if (variant === "text") {
     return (
@@ -33,7 +33,7 @@ export default function Skeleton({ variant = "text", lines = 3, width, height, c
 
   if (variant === "card") {
     return (
-      <div className={`rounded-2xl border border-slate-100 p-4 space-y-3 ${className}`} aria-hidden="true">
+      <div className={`rounded-2xl border border-[var(--border)] p-4 space-y-3 ${className}`} aria-hidden="true">
         <div className="flex items-center gap-3">
           <div className={`${shimmer} rounded-full`} style={{ width: 40, height: 40 }} />
           <div className="flex-1 space-y-2">
@@ -57,7 +57,7 @@ export default function Skeleton({ variant = "text", lines = 3, width, height, c
 
   if (variant === "chart") {
     return (
-      <div className={`rounded-xl bg-slate-50 border border-slate-100 p-4 space-y-3 ${className}`} aria-hidden="true">
+      <div className={`rounded-xl bg-[var(--surface)] border border-[var(--border)] p-4 space-y-3 ${className}`} aria-hidden="true">
         <div className={`${shimmer}`} style={{ width: "40%", height: 14 }} />
         <div className={`${shimmer} rounded`} style={{ width: "100%", height: height ?? 160 }} />
       </div>

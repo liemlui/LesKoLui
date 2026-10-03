@@ -1,18 +1,23 @@
 # ROADMAP — Gelombang 2 & 3 (22 tugas)
 
-> **Status:** aktif · Diperbarui: 2026-10-03 · Baseline: v1.86.0 (691 tes)
+> **Status:** aktif · Diperbarui: 2026-10-03 · Baseline: v1.87.0 (691 tes)
 > **Cara pakai:** baca ATURAN-AI §0. Tentukan tier SEBELUM mulai. Satu putaran = satu tugas (kecuali batch 📦).
 > Kolom Tier = perkiraan; tier final ditetapkan saat tugas dimulai (§6.2 butir 1).
+>
+> **Target G2-02 (revisi — menggantikan "889→≤190"):** **0 kelas warna langsung di luar berkas §2.1**.
+> Angka 889/≤190 berasal dari penghitung 4-pola yang **buta** terhadap `slate`/`blue`/`indigo`/`text-white`,
+> dan baseline sebenarnya **2976 kelas**. Terukur sesudah sapu: **0 kelas warna hidup di 72 berkas**;
+> sisa 42 kelas ada di 3 berkas §2.1 (`engagement.ts` 24 · `invoicePresentation.ts` 12 · `finance.ts` 6).
 
 ## Status ringkas
 
 | Ukuran | Nilai |
 |---|---|
 | Total tugas | 22 |
-| Selesai | 3 (G2-00, G2-00b, G2-01) |
-| Berjalan | 1 (G2-02 sapu) |
-| Belum | 18 |
-| Progress | ~14% |
+| Selesai | 4 (G2-00, G2-00b, G2-01, G2-02) |
+| Berjalan | 0 |
+| Belum | 18 (22 − 4) |
+| Progress | ~18% |
 
 ## Gelombang 2
 
@@ -21,7 +26,7 @@
 | G2-00 | Smart Gating (docs) | T0 | — | ATURAN-AI, ROADMAP | — | ✅ |
 | G2-00b | Line Endings A15/A16 (docs) | T0 | — | .gitattributes, ATURAN-AI | — | ✅ |
 | G2-01 | token + 7 primitif + Q25 | T3 | — | index.css, components/ui/* | L | ✅ v1.86.0 |
-| G2-02 | sapu kelas warna 889→≤190 | T2 | G2-01 | src/**/*.tsx, engagementContrast.test.ts | L | 🔄 |
+| G2-02 | sapu kelas warna → token semantik | T2 | G2-01 | src/**/*.tsx, src/index.css | L | ✅ v1.87.0 |
 | G2-03 | kunci light-only permanen | T1 | G2-01 | index.css (komentar), playwright.config | S | ⬜ |
 | G2-04 | satu pintu uang (TASK-08) | T2 | G2-01 | useMoneyVisible, MaskedMoney, 5 layar | L | ⬜ |
 | G2-05 | verifikasi input Android (manual) | T1 | G2-01 | tidak ada | S | ⬜ |

@@ -44,10 +44,10 @@ export default function ChangelogModal() {
   if (!entry) return null;
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Catatan perubahan" className={`fixed inset-0 ${Z.dialog} bg-black/50 flex items-end sm:items-center justify-center p-4`}>
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-slide-up">
+    <div role="dialog" aria-modal="true" aria-label="Catatan perubahan" className={`fixed inset-0 ${Z.dialog} bg-[var(--scrim)]/50 flex items-end sm:items-center justify-center p-4`}>
+      <div className="bg-[var(--surface-strong)] rounded-t-2xl sm:rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-slide-up">
         {/* Header */}
-        <div className="bg-gradient-to-br from-blue-600 to-indigo-600 px-5 pt-6 pb-4 text-white">
+        <div className="bg-gradient-to-br from-blue-600 to-indigo-600 px-5 pt-6 pb-4 text-[var(--on-strong)]">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-2xl">✨</span>
             <p className="text-xs font-semibold tracking-wide opacity-80">{entry.date}</p>
@@ -62,8 +62,8 @@ export default function ChangelogModal() {
             <ul className="space-y-3">
               {entry.items.map((item, i) => (
                 <li key={i} className="flex items-start gap-2.5">
-                  <span className="text-blue-500 text-sm mt-0.5 flex-shrink-0">✦</span>
-                  <span className="text-sm text-gray-700 leading-relaxed">{item}</span>
+                  <span className="text-[var(--ink-brand)] text-sm mt-0.5 flex-shrink-0">✦</span>
+                  <span className="text-sm text-[var(--ink-strong)] leading-relaxed">{item}</span>
                 </li>
               ))}
             </ul>
@@ -76,7 +76,7 @@ export default function ChangelogModal() {
         <div className="px-5 pb-5 pt-2">
           <button
             onClick={handleClose}
-            className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-colors"
+            className="w-full py-3 rounded-xl bg-[var(--brand-solid)] hover:bg-[var(--brand-solid)] text-[var(--on-strong)] font-semibold text-sm transition-colors"
           >
             Mengerti, Terima Kasih ✨
           </button>

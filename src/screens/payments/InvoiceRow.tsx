@@ -41,7 +41,7 @@ const REPORT_DISPLAY_STATUS_LABEL: Record<ReturnType<typeof reportDisplayStatus>
 };
 
 const REPORT_DISPLAY_STATUS_CLASS: Record<ReturnType<typeof reportDisplayStatus>, string> = {
-  draft: "bg-amber-100 text-amber-700", final: "bg-emerald-100 text-emerald-700", shared: "bg-violet-100 text-violet-700",
+  draft: "bg-[var(--bg-warn)] text-[var(--ink-warn)]", final: "bg-[var(--bg-success)] text-[var(--ink-success)]", shared: "bg-[var(--accent-tint)] text-[var(--ink-accent)]",
 };
 
 export default function InvoiceRow({
@@ -75,36 +75,36 @@ export default function InvoiceRow({
   return (
     <li>
       <button type="button" aria-expanded={expanded} onClick={onOpen}
-        className="flex w-full items-center gap-2 py-2.5 text-left transition-colors hover:bg-gray-50">
-        <span aria-hidden="true" className={`shrink-0 text-xs text-gray-400 transition-transform ${expanded ? "rotate-90" : ""}`}>▶</span>
+        className="flex w-full items-center gap-2 py-2.5 text-left transition-colors hover:bg-[var(--surface)]">
+        <span aria-hidden="true" className={`shrink-0 text-xs text-[var(--ink-muted)] transition-transform ${expanded ? "rotate-90" : ""}`}>▶</span>
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline justify-between gap-2">
-            <span className="min-w-0 truncate text-sm font-semibold text-gray-800">{student?.name ?? "(dihapus)"}</span>
-            <span className={`shrink-0 text-sm font-bold ${paid ? "text-green-700" : "text-gray-800"}`}>{formatRupiah(invoice.totalCost)}</span>
+            <span className="min-w-0 truncate text-sm font-semibold text-[var(--ink-strong)]">{student?.name ?? "(dihapus)"}</span>
+            <span className={`shrink-0 text-sm font-bold ${paid ? "text-[var(--ink-success)]" : "text-[var(--ink-strong)]"}`}>{formatRupiah(invoice.totalCost)}</span>
           </span>
           <span className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
             <span className={`shrink-0 rounded px-1.5 py-0.5 text-[13px] font-bold ${INVOICE_ORIGIN_CLASS[origin]}`}>{INVOICE_ORIGIN_LABEL[origin]}</span>
-            <span className="truncate text-xs text-gray-500">{metaLine}</span>
+            <span className="truncate text-xs text-[var(--ink-muted)]">{metaLine}</span>
           </span>
           <span className="mt-0.5 block text-xs font-semibold">
-            {paid ? <span className="text-green-700">Lunas{invoice.paidAt ? ` · ${invoice.paidAt}` : ""}</span> : <span className="text-amber-700">Belum dibayar{ageLabel ? ` · ${ageLabel}` : ""}</span>}
+            {paid ? <span className="text-[var(--ink-success)]">Lunas{invoice.paidAt ? ` · ${invoice.paidAt}` : ""}</span> : <span className="text-[var(--ink-warn)]">Belum dibayar{ageLabel ? ` · ${ageLabel}` : ""}</span>}
           </span>
         </span>
       </button>
 
-      {expanded && <div className="mb-3 space-y-3 rounded-xl border border-gray-100 bg-gray-50/70 p-3">
+      {expanded && <div className="mb-3 space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 p-3">
         <div className="flex flex-wrap items-center gap-1.5 text-xs">
           <span className={statusPillClass(paid)}>{paid ? "Lunas" : "Belum dibayar"}</span>
           {report && <span className={`inline-flex rounded-full px-1.5 py-0.5 font-bold ${REPORT_DISPLAY_STATUS_CLASS[reportDisplayStatus(report)]}`}>Laporan: {REPORT_DISPLAY_STATUS_LABEL[reportDisplayStatus(report)]}</span>}
-          {origin === "package" && <span className="inline-flex rounded-full bg-indigo-100 px-1.5 py-0.5 font-bold text-indigo-700">{report?.finalBillingBatch ? "Paket penutup" : `Paket ${report?.billingSessionCount ?? sessions.length} pertemuan`}</span>}
+          {origin === "package" && <span className="inline-flex rounded-full bg-[var(--accent-tint)] px-1.5 py-0.5 font-bold text-[var(--ink-accent)]">{report?.finalBillingBatch ? "Paket penutup" : `Paket ${report?.billingSessionCount ?? sessions.length} pertemuan`}</span>}
         </div>
-        <div className="rounded-lg bg-white px-2.5 py-1.5 text-xs leading-relaxed text-slate-600">
+        <div className="rounded-lg bg-[var(--surface-strong)] px-2.5 py-1.5 text-xs leading-relaxed text-[var(--ink-muted)]">
           <p>Periode pertemuan: <strong>{periodLbl || "Tanpa sesi"}</strong></p><p>Bulan tagihan: <strong>{monthLabel(invoice.month)}</strong></p><p>Jatuh tempo: <strong>{invoiceDueAt(invoice) ?? "—"}</strong></p>
         </div>
-        <div className="flex items-center gap-2"><label htmlFor={`amount-${invoice.id}`} className="text-xs text-gray-500">Rp</label><input id={`amount-${invoice.id}`} aria-label={`Nominal tagihan ${student?.name ?? "murid"}`} className="input flex-1 py-1.5 text-sm" inputMode="numeric" value={amount} disabled={paid} onChange={(event) => onAmountChange(event.target.value)} onBlur={onAmountSave} /></div>
+        <div className="flex items-center gap-2"><label htmlFor={`amount-${invoice.id}`} className="text-xs text-[var(--ink-muted)]">Rp</label><input id={`amount-${invoice.id}`} aria-label={`Nominal tagihan ${student?.name ?? "murid"}`} className="input flex-1 py-1.5 text-sm" inputMode="numeric" value={amount} disabled={paid} onChange={(event) => onAmountChange(event.target.value)} onBlur={onAmountSave} /></div>
         {!paid && recovery && (
-          <div className="space-y-1.5 rounded-lg bg-white px-2.5 py-2">
-            <label htmlFor={`due-${invoice.id}`} className="block text-xs font-semibold text-gray-600">Jatuh tempo</label>
+          <div className="space-y-1.5 rounded-lg bg-[var(--surface-strong)] px-2.5 py-2">
+            <label htmlFor={`due-${invoice.id}`} className="block text-xs font-semibold text-[var(--ink-muted)]">Jatuh tempo</label>
             <div className="flex items-center gap-2">
               <input
                 id={`due-${invoice.id}`}
@@ -117,30 +117,30 @@ export default function InvoiceRow({
                 type="button"
                 disabled={recovery.dueAtSaving || dueAtDraft.length !== 10 || dueAtDraft === dueAt}
                 onClick={() => recovery.onSaveDueAt(dueAtDraft)}
-                className="rounded-lg border border-indigo-200 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-lg border border-[var(--border-accent)] px-2.5 py-1.5 text-xs font-semibold text-[var(--ink-accent)] transition-colors hover:bg-[var(--accent-tint)] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {recovery.dueAtSaving ? "Menyimpan..." : "Ubah jatuh tempo"}
               </button>
             </div>
-            <p className="text-xs leading-relaxed text-gray-500">
+            <p className="text-xs leading-relaxed text-[var(--ink-muted)]">
               Hanya untuk tagihan belum dibayar. Mengubah jatuh tempo memengaruhi umur piutang dan nada pesan WA, bukan nominalnya.
             </p>
           </div>
         )}
         <div className="flex flex-wrap gap-2">
-          {phone && !paid && <a href={`https://wa.me/${phone}?text=${encodeURIComponent(waText)}`} target="_blank" rel="noopener noreferrer" className="min-w-[120px] flex-1 rounded-lg bg-green-500 py-2 text-center text-xs font-semibold text-white transition-colors hover:bg-green-600">Kirim tagihan via WA</a>}
-          <button onClick={onTogglePaid} className={`min-w-[120px] flex-1 rounded-lg py-2 text-xs transition-colors ${paid ? "border border-gray-200 text-gray-600 font-medium hover:bg-gray-50" : "bg-blue-600 text-white font-semibold hover:bg-blue-700"}`}>{paid ? "Tandai belum dibayar" : "Tandai sudah dibayar"}</button>
+          {phone && !paid && <a href={`https://wa.me/${phone}?text=${encodeURIComponent(waText)}`} target="_blank" rel="noopener noreferrer" className="min-w-[120px] flex-1 rounded-lg bg-[var(--bg-success-strong)] py-2 text-center text-xs font-semibold text-[var(--on-strong)] transition-colors hover:bg-[var(--bg-success-strong)]">Kirim tagihan via WA</a>}
+          <button onClick={onTogglePaid} className={`min-w-[120px] flex-1 rounded-lg py-2 text-xs transition-colors ${paid ? "border border-[var(--border)] text-[var(--ink-muted)] font-medium hover:bg-[var(--surface)]" : "bg-[var(--brand-solid)] text-[var(--on-strong)] font-semibold hover:bg-[var(--brand-solid)]"}`}>{paid ? "Tandai belum dibayar" : "Tandai sudah dibayar"}</button>
         </div>
         <div className="flex flex-wrap gap-2">
-          {student && <button onClick={onOpenReport} className="min-w-[88px] flex-1 rounded-lg border border-blue-200 py-1.5 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50">{report ? "Buka laporan" : "Lengkapi laporan"}</button>}
-          {student && <button onClick={onOpenInvoice} className="min-w-[88px] flex-1 rounded-lg border border-gray-200 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50">Unduh invoice PDF</button>}
-          {report?.billingMode === "session_count" && !paid && invoice.source !== "manual" && <button type="button" disabled={cancelBusy} onClick={onCancelPackage} className="min-w-[128px] flex-1 rounded-lg border border-red-200 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:cursor-wait disabled:opacity-50">{cancelBusy ? "Membatalkan..." : report.finalBillingBatch ? "Batalkan tagihan penutup" : "Batalkan tagihan paket"}</button>}
+          {student && <button onClick={onOpenReport} className="min-w-[88px] flex-1 rounded-lg border border-[var(--brand-tint-strong)] py-1.5 text-xs font-medium text-[var(--ink-brand)] transition-colors hover:bg-[var(--brand-tint)]">{report ? "Buka laporan" : "Lengkapi laporan"}</button>}
+          {student && <button onClick={onOpenInvoice} className="min-w-[88px] flex-1 rounded-lg border border-[var(--border)] py-1.5 text-xs font-medium text-[var(--ink-muted)] transition-colors hover:bg-[var(--surface)]">Unduh invoice PDF</button>}
+          {report?.billingMode === "session_count" && !paid && invoice.source !== "manual" && <button type="button" disabled={cancelBusy} onClick={onCancelPackage} className="min-w-[128px] flex-1 rounded-lg border border-[var(--border-danger)] py-1.5 text-xs font-medium text-[var(--ink-danger)] transition-colors hover:bg-[var(--bg-danger)] disabled:cursor-wait disabled:opacity-50">{cancelBusy ? "Membatalkan..." : report.finalBillingBatch ? "Batalkan tagihan penutup" : "Batalkan tagihan paket"}</button>}
           {recovery?.cancelLabel && (
             <button
               type="button"
               disabled={recovery.cancelBusy}
               onClick={recovery.onCancel}
-              className="min-w-[128px] flex-1 rounded-lg border border-red-200 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:cursor-wait disabled:opacity-50"
+              className="min-w-[128px] flex-1 rounded-lg border border-[var(--border-danger)] py-1.5 text-xs font-medium text-[var(--ink-danger)] transition-colors hover:bg-[var(--bg-danger)] disabled:cursor-wait disabled:opacity-50"
             >
               {recovery.cancelBusy ? "Memproses..." : recovery.cancelLabel}
             </button>

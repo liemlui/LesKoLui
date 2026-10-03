@@ -30,8 +30,8 @@ export class ErrorBoundary extends Component<Props, State> {
         this.props.fallback ?? (
           <div className="p-6 text-center space-y-3">
             <p className="text-4xl">😵</p>
-            <p className="text-lg font-bold text-gray-800">Ada yang tidak beres</p>
-            <p className="text-sm text-gray-500">
+            <p className="text-lg font-bold text-[var(--ink-strong)]">Ada yang tidak beres</p>
+            <p className="text-sm text-[var(--ink-muted)]">
               {this.state.error?.message ?? "Terjadi error yang tidak terduga."}
             </p>
             <button
@@ -39,7 +39,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 this.setState({ hasError: false, error: undefined });
                 window.location.reload();
               }}
-              className="mt-2 px-6 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-colors"
+              className="mt-2 px-6 py-2.5 rounded-xl bg-[var(--brand-solid)] text-[var(--on-strong)] font-semibold text-sm hover:bg-[var(--brand-solid)] transition-colors"
             >
               Muat Ulang
             </button>

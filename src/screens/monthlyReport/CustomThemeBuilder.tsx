@@ -61,8 +61,8 @@ export function CustomThemeBuilder({ onSave }: {
   };
 
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
-      <p className="font-bold text-gray-800 text-sm">🎨 Custom Theme Builder</p>
+    <div className="bg-[var(--surface-strong)] rounded-2xl p-4 shadow-sm border border-[var(--border)] space-y-3">
+      <p className="font-bold text-[var(--ink-strong)] text-sm">🎨 Custom Theme Builder</p>
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label htmlFor="mr-nama-tema" className="label">Nama Tema</label>
@@ -142,7 +142,7 @@ export function CustomThemeBuilder({ onSave }: {
       </div>
 
       {/* Preview mini */}
-      <div className="rounded-xl overflow-hidden border border-gray-200">
+      <div className="rounded-xl overflow-hidden border border-[var(--border)]">
         <div style={{ background: bg, padding: "12px 10px", fontFamily: fontBody, color: ink }}>
           <div style={{ fontFamily: fontDisplay, fontWeight: 700, fontSize: 18, color: accent, textAlign: "center" }}>
             {headerText}

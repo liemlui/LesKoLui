@@ -10,29 +10,29 @@ export default function EvidenceCard({ avgEngScore, engSessions }: EvidenceCardP
   const interpretation = (() => {
     if (avgEngScore === null) return null;
     if (avgEngScore >= 7)
-      return { text: "Sangat fokus saat les — potensi nilai bisa terus meningkat.", color: "text-blue-500" };
+      return { text: "Sangat fokus saat les — potensi nilai bisa terus meningkat.", color: "text-[var(--ink-brand)]" };
     if (avgEngScore >= 5)
-      return { text: "Cukup fokus, masih bisa ditingkatkan dengan latihan tambahan.", color: "text-orange-700" };
-    return { text: "Perlu perhatian ekstra untuk meningkatkan fokus saat les.", color: "text-red-500" };
+      return { text: "Cukup fokus, masih bisa ditingkatkan dengan latihan tambahan.", color: "text-[var(--ink-attention)]" };
+    return { text: "Perlu perhatian ekstra untuk meningkatkan fokus saat les.", color: "text-[var(--ink-danger)]" };
   })();
 
   return (
-    <div className="bg-white rounded-2xl p-4 border border-gray-100 space-y-3">
-      <h2 className="text-base font-semibold text-gray-700">Bukti Keaktifan</h2>
-      <p className="text-xs text-gray-500">Keaktifan sesi sebagai bukti progres belajar.</p>
+    <div className="bg-[var(--surface-strong)] rounded-2xl p-4 border border-[var(--border)] space-y-3">
+      <h2 className="text-base font-semibold text-[var(--ink-strong)]">Bukti Keaktifan</h2>
+      <p className="text-xs text-[var(--ink-muted)]">Keaktifan sesi sebagai bukti progres belajar.</p>
 
-      <div className={`rounded-xl p-3 text-center ${avgEngScore === null ? "bg-gray-50" : avgEngScore >= 7 ? "bg-blue-50" : avgEngScore >= 5 ? "bg-yellow-50" : "bg-red-50"}`}>
-        <p className={`text-xl font-bold ${avgEngScore === null ? "text-gray-500" : avgEngScore >= 7 ? "text-blue-700" : avgEngScore >= 5 ? "text-yellow-600" : "text-red-600"}`}>
+      <div className={`rounded-xl p-3 text-center ${avgEngScore === null ? "bg-[var(--surface)]" : avgEngScore >= 7 ? "bg-[var(--brand-tint)]" : avgEngScore >= 5 ? "bg-[var(--bg-warn)]" : "bg-[var(--bg-danger)]"}`}>
+        <p className={`text-xl font-bold ${avgEngScore === null ? "text-[var(--ink-muted)]" : avgEngScore >= 7 ? "text-[var(--ink-brand)]" : avgEngScore >= 5 ? "text-[var(--ink-warn)]" : "text-[var(--ink-danger)]"}`}>
           {avgEngScore !== null ? `${avgEngScore}` : "—"}
         </p>
-        <p className="text-xs font-medium text-gray-500 mt-0.5">Avg Fokus</p>
+        <p className="text-xs font-medium text-[var(--ink-muted)] mt-0.5">Avg Fokus</p>
         {engSessions.length > 0 && (
-          <p className="text-xs text-gray-500 mt-0.5">{engSessions.length} sesi</p>
+          <p className="text-xs text-[var(--ink-muted)] mt-0.5">{engSessions.length} sesi</p>
         )}
       </div>
 
       {interpretation && (
-        <div className="rounded-xl p-3 bg-gray-50 border border-gray-100">
+        <div className="rounded-xl p-3 bg-[var(--surface)] border border-[var(--border)]">
           <p className={`text-xs font-semibold ${interpretation.color}`}>{interpretation.text}</p>
         </div>
       )}

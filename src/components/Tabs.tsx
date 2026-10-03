@@ -62,7 +62,7 @@ export default function Tabs({ tabs, active, onChange, idPrefix, children, fullW
 
   return (
     <div>
-      <div className={`flex ${fullWidth ? "overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" : "gap-1 overflow-x-auto"} border-b border-slate-200`} role="tablist">
+      <div className={`flex ${fullWidth ? "overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" : "gap-1 overflow-x-auto"} border-b border-[var(--border)]`} role="tablist">
         {tabs.map((tab, index) => {
           const isActive = tab.key === active;
           return (
@@ -83,8 +83,8 @@ export default function Tabs({ tabs, active, onChange, idPrefix, children, fullW
                   : "px-3 text-sm"
               } ${
                 isActive
-                  ? "text-blue-700"
-                  : "text-slate-600 hover:text-slate-700"
+                  ? "text-[var(--ink-brand)]"
+                  : "text-[var(--ink-muted)] hover:text-[var(--ink-strong)]"
               }`}>
               <span className="flex items-center justify-center gap-1 min-w-0">
                 {tab.compactLabel && <span className="sm:hidden">{tab.compactLabel}</span>}
@@ -96,7 +96,7 @@ export default function Tabs({ tabs, active, onChange, idPrefix, children, fullW
                 </span>
                 {tab.count != null && tab.count > 0 && (
                   <span className={`shrink-0 rounded-full px-1.5 py-0 text-[12px] font-bold ${
-                    isActive ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600"
+                    isActive ? "bg-[var(--brand-tint-strong)] text-[var(--ink-brand)]" : "bg-[var(--bg-subtle)] text-[var(--ink-muted)]"
                   }`}>
                     {tab.count > 99 ? "99+" : tab.count}
                   </span>
@@ -105,7 +105,7 @@ export default function Tabs({ tabs, active, onChange, idPrefix, children, fullW
               {/* Animated underline */}
               <span
                 className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-full transition-all duration-200 ${
-                  isActive ? "bg-blue-600 scale-x-100" : "bg-transparent scale-x-0"
+                  isActive ? "bg-[var(--brand-solid)] scale-x-100" : "bg-transparent scale-x-0"
                 }`}
               />
             </button>

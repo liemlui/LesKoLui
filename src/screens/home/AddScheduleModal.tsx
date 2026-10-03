@@ -65,9 +65,9 @@ export default function AddScheduleModal({ date, students, onClose, onResult }: 
     <Modal onClose={onClose} ariaLabel="Jadwalkan sesi" showCloseButton={false}>
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-lg">Jadwalkan Sesi</h3>
-        <button aria-label="Tutup" onClick={onClose} className="text-gray-500 text-xl leading-none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        <button aria-label="Tutup" onClick={onClose} className="text-[var(--ink-muted)] text-xl leading-none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
       </div>
-      <p className="text-sm text-gray-500 -mt-2">{dayLabel(date)}</p>
+      <p className="text-sm text-[var(--ink-muted)] -mt-2">{dayLabel(date)}</p>
 
       <div>
         <label htmlFor="as-murid" className="label">Murid</label>
@@ -87,7 +87,7 @@ export default function AddScheduleModal({ date, students, onClose, onResult }: 
           {DURATIONS.map((d) => (
             <button key={d} type="button"
               onClick={() => { setDuration(d); void checkConflicts(weekdays, time, d, repeat); }}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${duration === d ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300"}`}>
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${duration === d ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]" : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)]"}`}>
               {d}j
             </button>
           ))}
@@ -95,7 +95,7 @@ export default function AddScheduleModal({ date, students, onClose, onResult }: 
       </div>
       <div className="flex items-center gap-3">
         <Toggle checked={repeat} onChange={(v) => { setRepeat(v); void checkConflicts(weekdays, time, duration, v); }} label="Ulangi setiap minggu" />
-        <span className="text-sm font-medium text-gray-700">Ulangi setiap minggu (selamanya)</span>
+        <span className="text-sm font-medium text-[var(--ink-strong)]">Ulangi setiap minggu (selamanya)</span>
       </div>
       {repeat && (
         <div>
@@ -107,21 +107,21 @@ export default function AddScheduleModal({ date, students, onClose, onResult }: 
                   const next = weekdays.includes(dow) ? weekdays.filter((x) => x !== dow) : [...weekdays, dow];
                   setWeekdays(next); void checkConflicts(next, time, duration, repeat);
                 }}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${weekdays.includes(dow) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300"}`}>
+                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${weekdays.includes(dow) ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]" : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)]"}`}>
                 {label}
               </button>
             ))}
           </div>
-          <p className="text-xs text-gray-500 mt-1.5">Jadwal otomatis dibuat ~1 tahun ke depan</p>
+          <p className="text-xs text-[var(--ink-muted)] mt-1.5">Jadwal otomatis dibuat ~1 tahun ke depan</p>
         </div>
       )}
       {conflicts.length > 0 && (
-        <div className="bg-orange-50 border border-orange-200 rounded-xl p-3">
-          <p className="text-sm font-semibold text-orange-700 mb-1">⚠️ Berpotensi tabrakan</p>
+        <div className="bg-[var(--bg-attention)] border border-[var(--border-attention)] rounded-xl p-3">
+          <p className="text-sm font-semibold text-[var(--ink-attention)] mb-1">⚠️ Berpotensi tabrakan</p>
           {conflicts.slice(0, 4).map((c, i) => (
-            <p key={i} className="text-xs text-orange-600">{c.date} {c.time} — {c.studentName}</p>
+            <p key={i} className="text-xs text-[var(--ink-attention)]">{c.date} {c.time} — {c.studentName}</p>
           ))}
-          {conflicts.length > 4 && <p className="text-xs text-orange-400">+{conflicts.length - 4} lainnya</p>}
+          {conflicts.length > 4 && <p className="text-xs text-[var(--ink-attention)]">+{conflicts.length - 4} lainnya</p>}
         </div>
       )}
       <button onClick={handleSave} disabled={saving} className="btn-primary w-full py-3 font-semibold">

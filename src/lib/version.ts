@@ -11,6 +11,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.87.0",
+    date: "2026-10-03",
+    title: "Warna di seluruh layar kini seragam dan teksnya lolos ambang keterbacaan",
+    items: [
+      "Warna yang selama ini ditulis langsung di tiap layar (sekitar 3.000 penulisan warna di 72 berkas) kini diambil dari satu set warna bertema di `src/index.css` — 23 warna bertema baru mendampingi yang sudah ada sejak rilis lalu. Akibat paling terasa: warna untuk hal yang sama akhirnya sama di mana-mana. Sebelumnya “berhasil” bisa hijau tua di satu layar dan hijau muda di layar lain, dan “perlu ditindak” bercampur antara kuning tua dan oranye.",
+      "Setiap warna teks yang dipakai di atas latar terang sudah diuji dengan hitungan keterbacaan (ambang WCAG AA 4,5:1) pada semua latar yang benar-benar muncul di aplikasi — termasuk latar bergaris dan berwarna lembut, bukan hanya latar putih. Rasio terburuk yang terukur adalah 4,94:1. Diuji oleh skrip `.design-audit/g2-02-contrast.mjs`.",
+      "Ditambahkan warna khusus untuk status “perlu ditindak” (oranye), dipisahkan dari peringatan “backup menua” (kuning tua). Sebelumnya keduanya memakai warna yang sama, sehingga sulit dibedakan sekilas; pemisahan ini mengikuti keputusan pemilik Q33.",
+      "Opasitas warna tetap terjaga. Warna bertema yang dipakai dengan tingkat transparansi (mis. tirai gelap 40% di belakang panel) benar-benar dirender sesuai tingkatnya, bukan jadi pekat. Dibuktikan dengan memeriksa keluaran CSS: 34 dari 34 kombinasi menghasilkan `color-mix` yang benar.",
+      "Tirai gelap di belakang panel dan modal dikembalikan ke definisi yang benar. Saat penyapuan, ke-17 titik tirai sempat menunjuk nama warna yang belum pernah didefinisikan, sehingga tirai kehilangan latarnya — ketahuan dari pemeriksaan keluaran CSS dan langsung diperbaiki di rilis ini. Tirai juga kini memakai satu nama warna yang sama di semua panel.",
+      "Dua warna yang sudah tidak dipakai lagi dibuang dari berkas tema: latar abu `--bg-muted` dan skala biru mentah `--color-brand-*` (7 langkah, sudah digantikan warna bertema bernama peran). Satu warna tirai (`--color-scrim`) sengaja tetap ada karena masih menjadi nilai dari `--scrim` yang dipakai 17 kali.",
+      "Dua berkas masih memuat 42 warna mentah dan **belum** disapu di rilis ini karena berstatus dilindungi (`src/lib/engagement.ts` 24 · `src/lib/invoicePresentation.ts` 12 · `src/lib/finance.ts` 6). Isinya tidak berubah, jadi tidak ada yang rusak — hanya belum ikut seragam. Statusnya dilaporkan terbuka di laporan G2-02.",
+    ],
+  },
+  {
     version: "v1.86.0",
     date: "2026-10-03",
     title: "Fondasi tampilan: skala ukuran teks akhirnya berlaku di tombol & kolom isian",

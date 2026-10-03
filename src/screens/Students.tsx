@@ -248,7 +248,7 @@ export default function Students() {
       const timeStr = next.time ? ` ${next.time}` : "";
       return (
         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${
-          diff === 0 ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-700"
+          diff === 0 ? "bg-[var(--brand-solid)] text-[var(--on-strong)]" : "bg-[var(--brand-tint)] text-[var(--ink-brand)]"
         }`}>
           📅 {label}{timeStr}
         </span>
@@ -256,11 +256,11 @@ export default function Students() {
     })();
 
     return (
-      <div key={s.id} className="bg-white rounded-xl shadow-sm border border-gray-100">
+      <div key={s.id} className="bg-[var(--surface-strong)] rounded-xl shadow-sm border border-[var(--border)]">
         <Link to={`/students/${s.id}`} className="block p-4">
           <div className="flex items-start gap-3">
             {/* Avatar */}
-            <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
+            <div className="w-11 h-11 rounded-full flex items-center justify-center text-[var(--on-strong)] font-bold text-lg flex-shrink-0"
               style={{ background: colorForStudent(s.id) }}>
               {s.name.charAt(0).toUpperCase()}
             </div>
@@ -269,22 +269,22 @@ export default function Students() {
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="font-bold text-base">{s.name}</p>
                 {!s.active && (
-                  <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">nonaktif</span>
+                  <span className="text-xs bg-[var(--bg-subtle)] text-[var(--ink-muted)] px-2 py-0.5 rounded-full">nonaktif</span>
                 )}
                 {nextChip}
               </div>
 
               {/* Level + subjects */}
-              <p className="text-sm text-gray-500 truncate">
+              <p className="text-sm text-[var(--ink-muted)] truncate">
                 {levelLabel(s)}{s.school ? ` · ${s.school}` : ""}
               </p>
               {s.subjects.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1">
                   {s.subjects.slice(0, 4).map((sub) => (
-                    <span key={sub} className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{sub}</span>
+                    <span key={sub} className="text-xs bg-[var(--brand-tint)] text-[var(--ink-brand)] px-2 py-0.5 rounded-full">{sub}</span>
                   ))}
                   {s.subjects.length > 4 && (
-                    <span className="text-xs text-gray-500">+{s.subjects.length - 4}</span>
+                    <span className="text-xs text-[var(--ink-muted)]">+{s.subjects.length - 4}</span>
                   )}
                 </div>
               )}
@@ -304,17 +304,17 @@ export default function Students() {
               {/* Stats row */}
               <div className="flex items-center gap-3 mt-2 flex-wrap">
                 {stats ? (
-                  <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                  <span className="text-xs font-semibold text-[var(--ink-brand)] bg-[var(--brand-tint)] px-2 py-0.5 rounded-full">
                     Bulan ini: {stats.count} sesi · {stats.hours}j
                   </span>
                 ) : (
-                  <span className="text-xs text-gray-500">Belum ada sesi bulan ini</span>
+                  <span className="text-xs text-[var(--ink-muted)]">Belum ada sesi bulan ini</span>
                 )}
                 {monthsSince > 0 && (
-                  <span className="text-xs text-gray-500">{monthsSince} bulan bersama</span>
+                  <span className="text-xs text-[var(--ink-muted)]">{monthsSince} bulan bersama</span>
                 )}
                 {s.parentContact?.name && (
-                  <span className="text-xs text-gray-500 truncate">👤 {s.parentContact.name}</span>
+                  <span className="text-xs text-[var(--ink-muted)] truncate">👤 {s.parentContact.name}</span>
                 )}
               </div>
             </div>
@@ -322,35 +322,35 @@ export default function Students() {
             {/* Edit btn */}
             <button
               onClick={(e) => { e.preventDefault(); requirePin("edit", s); }}
-              className="w-11 h-11 flex items-center justify-center rounded-full bg-gray-100 hover:bg-blue-100 text-gray-500 hover:text-blue-600 flex-shrink-0 transition-colors text-sm"
+              className="w-11 h-11 flex items-center justify-center rounded-full bg-[var(--bg-subtle)] hover:bg-[var(--brand-tint-strong)] text-[var(--ink-muted)] hover:text-[var(--ink-brand)] flex-shrink-0 transition-colors text-sm"
               aria-label="Edit murid" title="Edit murid"
             >✏️</button>
           </div>
         </Link>
 
         {/* Action bar */}
-        <div className="border-t border-gray-50 px-4 py-2 flex gap-2 justify-end">
+        <div className="border-t border-[var(--border)] px-4 py-2 flex gap-2 justify-end">
           {s.active ? (
             <button
               onClick={() => requirePin("deactivate", s)}
               aria-label={`Nonaktifkan ${s.name}`}
-              className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1 rounded-lg hover:bg-slate-50 transition-colors"
+              className="text-xs text-[var(--ink-muted)] hover:text-[var(--ink-strong)] px-2 py-1 rounded-lg hover:bg-[var(--surface)] transition-colors"
             >
               Nonaktifkan
             </button>
           ) : (
             <button
               onClick={() => requirePin("activate", s)}
-              className="text-xs text-green-600 hover:text-green-800 px-2 py-1 rounded-lg hover:bg-green-50 transition-colors"
+              className="text-xs text-[var(--ink-success)] hover:text-[var(--ink-success)] px-2 py-1 rounded-lg hover:bg-[var(--bg-success)] transition-colors"
             >
               Aktifkan
             </button>
           )}
-          <span aria-hidden="true" className="h-4 w-px bg-gray-200" />
+          <span aria-hidden="true" className="h-4 w-px bg-[var(--bg-subtle)]" />
           <button
             onClick={() => requirePin("delete", s)}
             aria-label={`Hapus permanen ${s.name}`}
-            className="text-xs font-semibold text-red-600 hover:text-red-700 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors"
+            className="text-xs font-semibold text-[var(--ink-danger)] hover:text-[var(--ink-danger)] px-2 py-1 rounded-lg hover:bg-[var(--bg-danger)] transition-colors"
           >
             Hapus
           </button>
@@ -364,7 +364,7 @@ export default function Students() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Murid</h1>
         <button
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold bg-blue-600 text-white shadow transition-colors"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold bg-[var(--brand-solid)] text-[var(--on-strong)] shadow transition-colors"
           onClick={() => { setEditing(null); setShowForm(true); }}
         >
           <span className="text-base leading-none">+</span>
@@ -379,22 +379,22 @@ export default function Students() {
 
       {/* Post-add guidance */}
       {showFirstScheduleGuide && justAddedStudent && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-start gap-2">
+        <div className="bg-[var(--brand-tint)] border border-[var(--brand-tint-strong)] rounded-xl p-3 flex items-start gap-2">
           <span className="text-xl">🎯</span>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-blue-900">
+            <p className="text-sm font-semibold text-[var(--ink-brand)]">
               Murid "{justAddedStudent.name}" sudah terdaftar!
             </p>
-            <p className="text-xs text-blue-700 mt-0.5">
+            <p className="text-xs text-[var(--ink-brand)] mt-0.5">
               Langkah berikutnya: buat jadwal sesi pertama mereka.
             </p>
             <div className="flex gap-2 mt-2">
               <button onClick={() => navigate("/")}
-                className="text-xs font-semibold bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition-colors">
+                className="text-xs font-semibold bg-[var(--brand-solid)] text-[var(--on-strong)] px-3 py-1.5 rounded-lg hover:bg-[var(--brand-solid)] transition-colors">
                 Buka Kalender
               </button>
               <button onClick={() => setJustAddedId(null)}
-                className="text-xs font-semibold text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors">
+                className="text-xs font-semibold text-[var(--ink-brand)] px-3 py-1.5 rounded-lg hover:bg-[var(--brand-tint-strong)] transition-colors">
                 Nanti saja
               </button>
             </div>
@@ -404,9 +404,9 @@ export default function Students() {
 
       {/* Needs-attention summary */}
       {needsAttentionCount > 0 && (
-        <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+        <div className="flex items-center gap-2 bg-[var(--bg-warn)] border border-[var(--border-warn)] rounded-xl px-3 py-2">
           <span>🔔</span>
-          <p className="text-xs font-semibold text-amber-800">
+          <p className="text-xs font-semibold text-[var(--ink-warn)]">
             {needsAttentionCount} murid butuh perhatian (follow-up atau tagihan)
           </p>
         </div>
@@ -414,10 +414,10 @@ export default function Students() {
 
       {/* Summary banner */}
       {totalMonthSessions > 0 && (
-        <div className="bg-blue-50 rounded-xl p-3 flex items-center justify-between">
+        <div className="bg-[var(--brand-tint)] rounded-xl p-3 flex items-center justify-between">
           <div>
-            <p className="text-xs text-blue-500 font-medium uppercase tracking-wide">{monthLabel(currentMonth)}</p>
-            <p className="text-sm font-bold text-blue-900">{totalMonthSessions} sesi · {active.length} murid aktif</p>
+            <p className="text-xs text-[var(--ink-brand)] font-medium uppercase tracking-wide">{monthLabel(currentMonth)}</p>
+            <p className="text-sm font-bold text-[var(--ink-brand)]">{totalMonthSessions} sesi · {active.length} murid aktif</p>
           </div>
           <span className="text-2xl">📈</span>
         </div>
@@ -440,7 +440,7 @@ export default function Students() {
 
       {/* Search */}
       <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">🔍</span>
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)] text-sm">🔍</span>
         <input
           className="input pl-9 w-full"
           inputMode="search"
@@ -451,18 +451,18 @@ export default function Students() {
           onChange={(e) => { setSearch(e.target.value); setActivePage(1); setHistPage(1); }}
         />
         {search && (
-          <button aria-label="Hapus pencarian" onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+          <button aria-label="Hapus pencarian" onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)] hover:text-[var(--ink-muted)]"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
         )}
       </div>
 
       {/* Tab selector */}
-      <div className="flex gap-2 bg-gray-100 rounded-xl p-1">
+      <div className="flex gap-2 bg-[var(--bg-subtle)] rounded-xl p-1">
         <button onClick={() => setTab("aktif")}
-          className={`flex-1 py-1.5 rounded-lg text-sm font-semibold transition-colors ${tab === "aktif" ? "bg-white text-blue-700 shadow-sm" : "text-gray-500"}`}>
+          className={`flex-1 py-1.5 rounded-lg text-sm font-semibold transition-colors ${tab === "aktif" ? "bg-[var(--surface-strong)] text-[var(--ink-brand)] shadow-sm" : "text-[var(--ink-muted)]"}`}>
           Aktif ({active.length})
         </button>
         <button onClick={() => setTab("historis")}
-          className={`flex-1 py-1.5 rounded-lg text-sm font-semibold transition-colors ${tab === "historis" ? "bg-white text-gray-700 shadow-sm" : "text-gray-500"}`}>
+          className={`flex-1 py-1.5 rounded-lg text-sm font-semibold transition-colors ${tab === "historis" ? "bg-[var(--surface-strong)] text-[var(--ink-strong)] shadow-sm" : "text-[var(--ink-muted)]"}`}>
           Historis ({inactive.length})
         </button>
       </div>
@@ -472,13 +472,13 @@ export default function Students() {
         <>
           {active.length === 0 ? (
             q ? (
-              <p className="text-gray-500 text-center py-8">Tidak ada hasil untuk "{search}".</p>
+              <p className="text-[var(--ink-muted)] text-center py-8">Tidak ada hasil untuk "{search}".</p>
             ) : (
               <div className="text-center py-8">
-                <p className="text-gray-500">Belum ada murid aktif.</p>
+                <p className="text-[var(--ink-muted)]">Belum ada murid aktif.</p>
                 <button
                   onClick={() => { setEditing(null); setShowForm(true); }}
-                  className="mt-3 text-sm font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-xl transition-colors"
+                  className="mt-3 text-sm font-semibold text-[var(--ink-brand)] bg-[var(--brand-tint)] hover:bg-[var(--brand-tint-strong)] px-4 py-2 rounded-xl transition-colors"
                 >
                   + Tambah murid pertama
                 </button>
@@ -498,9 +498,9 @@ export default function Students() {
         <>
           {inactive.length === 0 ? (
             q ? (
-              <p className="text-gray-500 text-center py-8">Tidak ada hasil untuk "{search}".</p>
+              <p className="text-[var(--ink-muted)] text-center py-8">Tidak ada hasil untuk "{search}".</p>
             ) : (
-              <p className="text-gray-500 text-center py-8">Tidak ada murid nonaktif.</p>
+              <p className="text-[var(--ink-muted)] text-center py-8">Tidak ada murid nonaktif.</p>
             )
           ) : (
             <div className="space-y-2">
@@ -516,16 +516,16 @@ export default function Students() {
         <Modal
           onClose={() => { setPendingAction(null); pin.resetPin(); }}
           ariaLabel="Konfirmasi PIN"
-          panelClassName="relative bg-white w-full max-w-xs rounded-2xl p-5 space-y-4 shadow-xl mx-4"
+          panelClassName="relative bg-[var(--surface-strong)] w-full max-w-xs rounded-2xl p-5 space-y-4 shadow-xl mx-4"
         >
           <div>
-            <p className="font-bold text-base text-gray-800">
+            <p className="font-bold text-base text-[var(--ink-strong)]">
               {pendingAction.action === "delete" && "Hapus Murid"}
               {pendingAction.action === "deactivate" && "Nonaktifkan Murid"}
               {pendingAction.action === "activate" && "Aktifkan Murid"}
               {pendingAction.action === "edit" && "Edit Murid"}
             </p>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-[var(--ink-muted)] mt-1">
               {pendingAction.action === "delete"
                 ? `Data "${pendingAction.student.name}" akan dihapus permanen.`
                 : pendingAction.action === "deactivate"
@@ -536,14 +536,14 @@ export default function Students() {
             </p>
 
             {pendingAction.action === "deactivate" && (upcomingCountMap.get(pendingAction.student.id) ?? 0) > 0 && (
-              <p className="mt-2 rounded-lg bg-amber-50 border border-amber-200 p-2 text-xs text-amber-900">
+              <p className="mt-2 rounded-lg bg-[var(--bg-warn)] border border-[var(--border-warn)] p-2 text-xs text-[var(--ink-warn)]">
                 ⚠️ Masih ada {upcomingCountMap.get(pendingAction.student.id)} jadwal mendatang yang belum selesai.
                 Pertimbangkan untuk membatalkan atau mengatur ulang jadwal tersebut.
               </p>
             )}
 
             {pendingAction.action === "delete" && deleteSummary && (
-              <div className="mt-2 rounded-lg bg-red-50 border border-red-100 p-2 text-xs text-red-800">
+              <div className="mt-2 rounded-lg bg-[var(--bg-danger)] border border-[var(--border-danger)] p-2 text-xs text-[var(--ink-danger)]">
                 <p className="font-semibold mb-1">Yang akan ikut terhapus:</p>
                 <ul className="space-y-0.5">
                   {deleteSummary.sessions > 0 && <li>• {deleteSummary.sessions} sesi</li>}
@@ -562,23 +562,23 @@ export default function Students() {
           </div>
           {settings?.financialPin && (
             <div>
-              <p className="text-xs text-gray-500 mb-1">Masukkan PIN untuk konfirmasi</p>
+              <p className="text-xs text-[var(--ink-muted)] mb-1">Masukkan PIN untuk konfirmasi</p>
               <input type="password" inputMode="numeric" maxLength={6} placeholder="PIN"
                 value={pin.pinInput}
                 onChange={(e) => { pin.setPinInput(e.target.value.replace(/\D/g, "").slice(0, 6)); pin.setPinError(""); }}
                 onKeyDown={(e) => { if (e.key === "Enter") handlePinConfirm(); }}
                 className="input text-center tracking-widest text-lg w-full" autoFocus />
-              {pin.pinError && <p className="text-xs text-red-500 mt-1">{pin.pinError}</p>}
+              {pin.pinError && <p className="text-xs text-[var(--ink-danger)] mt-1">{pin.pinError}</p>}
             </div>
           )}
           <div className="flex gap-2">
             <button onClick={() => { setPendingAction(null); pin.resetPin(); }}
-              className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-600 font-semibold text-sm">
+              className="flex-1 py-2.5 rounded-xl bg-[var(--bg-subtle)] text-[var(--ink-muted)] font-semibold text-sm">
               Batal
             </button>
             <button
               onClick={handlePinConfirm}
-              className={`flex-1 py-2.5 rounded-xl text-white font-semibold text-sm ${pendingAction.action === "delete" ? "bg-red-500 hover:bg-red-600" : pendingAction.action === "deactivate" ? "bg-orange-500 hover:bg-orange-600" : pendingAction.action === "activate" ? "bg-green-600 hover:bg-green-700" : "bg-blue-600 hover:bg-blue-700"}`}>
+              className={`flex-1 py-2.5 rounded-xl text-[var(--on-strong)] font-semibold text-sm ${pendingAction.action === "delete" ? "bg-[var(--bg-danger-strong)] hover:bg-[var(--bg-danger-strong)]" : pendingAction.action === "deactivate" ? "bg-[var(--bg-attention-strong)] hover:bg-[var(--bg-attention-strong)]" : pendingAction.action === "activate" ? "bg-[var(--bg-success-strong)] hover:bg-[var(--bg-success-strong)]" : "bg-[var(--brand-solid)] hover:bg-[var(--brand-solid)]"}`}>
               {pendingAction.action === "delete" ? "Hapus" : pendingAction.action === "deactivate" ? "Nonaktifkan" : pendingAction.action === "activate" ? "Aktifkan" : "Edit"}
             </button>
           </div>
@@ -586,7 +586,7 @@ export default function Students() {
           {pendingAction.action === "delete" && (
             <button
               onClick={() => { setPendingAction({ action: "deactivate", student: pendingAction.student }); pin.resetPin(); }}
-              className="w-full text-center text-xs font-semibold text-gray-500 hover:text-gray-700 py-1">
+              className="w-full text-center text-xs font-semibold text-[var(--ink-muted)] hover:text-[var(--ink-strong)] py-1">
               Alih-alih hapus, nonaktifkan saja →
             </button>
           )}

@@ -70,17 +70,17 @@ function StudentRow({
   const nextAction = row.nextAction;
   return (
     <li>
-      <div className={`rounded-xl border p-3 ${nextAction ? "border-amber-200 bg-amber-50/40" : "border-gray-100 bg-white"}`}>
+      <div className={`rounded-xl border p-3 ${nextAction ? "border-[var(--border-warn)] bg-[var(--bg-warn)]/40" : "border-[var(--border)] bg-[var(--surface-strong)]"}`}>
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-gray-800 truncate">{row.student.name}</p>
-            <p className="text-xs text-gray-500">
+            <p className="text-sm font-semibold text-[var(--ink-strong)] truncate">{row.student.name}</p>
+            <p className="text-xs text-[var(--ink-muted)]">
               {POLICY_LABEL[billingPolicyOf(row.student)] ?? "—"}
               {row.potential > 0 && ` · ${formatRupiah(row.potential)} potensi`}
               {row.unpaidAmount > 0 && (
                 <>
                   {" · "}
-                  <span className="font-semibold text-amber-700">{formatRupiah(row.unpaidAmount)} belum dibayar</span>
+                  <span className="font-semibold text-[var(--ink-warn)]">{formatRupiah(row.unpaidAmount)} belum dibayar</span>
                 </>
               )}
             </p>
@@ -89,17 +89,17 @@ function StudentRow({
             <button
               type="button"
               onClick={() => navigate(ACTION[nextAction].route + row.student.id)}
-              className="shrink-0 rounded-lg border border-blue-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-50"
+              className="shrink-0 rounded-lg border border-[var(--brand-tint-strong)] bg-[var(--surface-strong)] px-2.5 py-1.5 text-xs font-semibold text-[var(--ink-brand)] transition-colors hover:bg-[var(--brand-tint)]"
             >
               {ACTION[nextAction].label} ↗
             </button>
           ) : (
-            <span className="shrink-0 rounded-lg bg-green-100 px-2.5 py-1.5 text-xs font-semibold text-green-700">
+            <span className="shrink-0 rounded-lg bg-[var(--bg-success)] px-2.5 py-1.5 text-xs font-semibold text-[var(--ink-success)]">
               ✓ Sinkron
             </span>
           )}
         </div>
-        <p className="mt-1.5 text-xs text-gray-500">{stateSentence(row)}</p>
+        <p className="mt-1.5 text-xs text-[var(--ink-muted)]">{stateSentence(row)}</p>
       </div>
     </li>
   );
@@ -118,13 +118,13 @@ export default function FinancePipelineBoard({
   const needsAction = needsActionRows.length;
 
   return (
-    <section aria-labelledby="pipeline-title" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <section aria-labelledby="pipeline-title" className="rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] p-4 shadow-sm">
       <div className="mb-3">
-        <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Status per murid</p>
-        <h2 id="pipeline-title" className="text-base font-bold text-slate-800">
+        <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--ink-muted)]">Status per murid</p>
+        <h2 id="pipeline-title" className="text-base font-bold text-[var(--ink-strong)]">
           Sesi → Laporan → Tagihan → Lunas → Dibagikan
         </h2>
-        <p className="mt-1 text-xs leading-relaxed text-slate-500">
+        <p className="mt-1 text-xs leading-relaxed text-[var(--ink-muted)]">
           {summary ?? (needsAction === 0
             ? "Semua alur penagihan sinkron — tidak ada yang perlu ditindaklanjuti."
             : `${needsAction} murid perlu tindakan. Gunakan tombol di tiap baris untuk membuka langkahnya.`)}
@@ -138,7 +138,7 @@ export default function FinancePipelineBoard({
           ))}
         </ul>
       ) : (
-        <p className="rounded-lg bg-green-50 px-3 py-2.5 text-xs text-green-700">
+        <p className="rounded-lg bg-[var(--bg-success)] px-3 py-2.5 text-xs text-[var(--ink-success)]">
           Semua murid pada {monthLabel(month)} sudah sinkron.
         </p>
       )}
@@ -149,7 +149,7 @@ export default function FinancePipelineBoard({
             type="button"
             onClick={() => setShowSynced((v) => !v)}
             aria-expanded={showSynced}
-            className="mt-3 w-full rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 transition-colors hover:bg-gray-50"
+            className="mt-3 w-full rounded-lg border border-[var(--border)] px-3 py-2 text-xs font-semibold text-[var(--ink-muted)] transition-colors hover:bg-[var(--surface)]"
           >
             {showSynced ? "Sembunyikan" : "Lihat"} {syncedRows.length} murid yang sudah sinkron
             <span aria-hidden="true" className="ml-1">{showSynced ? "▾" : "▸"}</span>
@@ -165,7 +165,7 @@ export default function FinancePipelineBoard({
       )}
 
       {rows.length === 0 && (
-        <p className="mt-3 rounded-lg bg-gray-50 px-3 py-2.5 text-xs text-gray-500">
+        <p className="mt-3 rounded-lg bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--ink-muted)]">
           Belum ada murid pada {monthLabel(month)}.
         </p>
       )}

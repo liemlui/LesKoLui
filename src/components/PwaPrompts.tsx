@@ -150,31 +150,31 @@ export function PwaPrompts() {
   return (
     <>
       {(updateReady || chunkError) && (
-        <div className="fixed top-3 inset-x-3 z-50 mx-auto max-w-md rounded-xl bg-gray-900 p-3 text-white shadow-xl">
+        <div className="fixed top-3 inset-x-3 z-50 mx-auto max-w-md rounded-xl bg-[var(--surface-inverse)] p-3 text-[var(--on-strong)] shadow-xl">
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-semibold">{chunkError ? "Versi aplikasi perlu dimuat ulang." : "Pembaruan aplikasi siap dipasang."}</p>
-            <button type="button" onClick={chunkError ? recoverChunk : () => void applyUpdate()} className="rounded-lg bg-white px-3 py-2 text-sm font-semibold text-gray-900">{chunkError ? "Muat ulang" : "Perbarui"}</button>
+            <button type="button" onClick={chunkError ? recoverChunk : () => void applyUpdate()} className="rounded-lg bg-[var(--surface-strong)] px-3 py-2 text-sm font-semibold text-[var(--ink-strong)]">{chunkError ? "Muat ulang" : "Perbarui"}</button>
           </div>
         </div>
       )}
       {/* Install prompt */}
       {showInstall && (
         <div className="fixed inset-x-0 z-50 px-4" style={{ bottom: "calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 0.75rem)" }}>
-          <div className="max-w-md mx-auto bg-blue-600 text-white rounded-2xl p-4 shadow-xl flex items-center justify-between gap-3">
+          <div className="max-w-md mx-auto bg-[var(--brand-solid)] text-[var(--on-strong)] rounded-2xl p-4 shadow-xl flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold">Pasang di layar utama</p>
-              <p className="text-xs text-blue-200 mt-0.5">Akses lebih cepat tanpa buka browser</p>
+              <p className="text-xs text-[var(--brand-tint-strong)] mt-0.5">Akses lebih cepat tanpa buka browser</p>
             </div>
             <div className="flex gap-2 flex-shrink-0">
               <button
                 onClick={dismissInstall}
-                className="text-blue-200 text-sm px-2 py-2"
+                className="text-[var(--brand-tint-strong)] text-sm px-2 py-2"
               >
                 Nanti
               </button>
               <button
                 onClick={handleInstall}
-                className="bg-white text-blue-600 font-semibold px-4 py-2 rounded-xl text-sm"
+                className="bg-[var(--surface-strong)] text-[var(--ink-brand)] font-semibold px-4 py-2 rounded-xl text-sm"
               >
                 Pasang
               </button>
