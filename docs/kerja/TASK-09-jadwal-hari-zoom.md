@@ -272,7 +272,8 @@ di gambar; teks di gambar tidak kosong; berfungsi di Chrome/Edge.
 
 | Tanggal | Langkah | Yang terjadi | Keputusan |
 |---|---|---|---|
-| | | | |
+| 2026-10-03 | L1–L2 | Dikerjakan sebagai **G2-07** dan **berhenti di Langkah 2**: `DAY_DENSITY` 27/54/97, `useDayDensity()` (memori sesi), `densityForHeight()`, tombol ⇱, batas bawah blok 22 px, label jam 11,5–12 px | DoD gelombang menuntut **hanya `DayView.tsx` berubah**; Langkah 3–4 (mode tangkapan + `src/lib/captureScheduleImage.ts`) butuh berkas baru dan **belum** dikerjakan. Rentang ⇱ = 06:00–24:00 (18 jam) → 486 px pada kerapatan rapat |
+| 2026-10-03 | L2 | Rentang default saat ⇱ tetap bisa **melebar** bila ada sesi di luar 06:00–24:00 | Perilaku lama dipertahankan sesuai §3 Langkah 2 aturan 3 — ⇱ tidak boleh menyembunyikan sesi |
 
 ## 9. Progres
 

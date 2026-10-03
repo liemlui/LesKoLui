@@ -11,6 +11,22 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.88.0",
+    date: "2026-10-03",
+    title: "Angka uang akhirnya benar-benar tertutup, Beranda bebas dari uang, dan jadwal harian bisa dimuat sehari penuh",
+    items: [
+      "PIN Keuangan sekarang benar-benar menjaga seluruh angka uang, bukan hanya halaman Keuangan. Sebelumnya tarif murid di Detail murid, biaya sesi di riwayat, dan total di Laporan bulanan masih tampil terbuka — jadi PIN-nya praktis tidak ada artinya. Sekarang angka-angka itu berbentuk `Rp ••••••` dengan lambang gembok yang bisa diketuk untuk membuka. Buka sekali, dan angka uang terbuka di seluruh aplikasi sampai kamu menekan tombol **Kunci** di halaman Keuangan atau menutup aplikasi (sesuai keputusan lama: tidak terkunci sendiri oleh waktu).",
+      "Beranda tidak lagi menampilkan uang sama sekali. Pintasan Pengeluaran di kepala Beranda dihapus (kemampuannya tetap ada di Keuangan → Pengeluaran), dan gantinya Beranda memberi satu baris tanpa nominal — mis. “3 tagihan perlu ditindak” — dengan tombol menuju layar Uang. Sekali lagi: tidak ada angka uang di Beranda, bukan angka yang disamarkan.",
+      "Beranda kini satu blok, bukan dua yang bersaing. Ringkasan minggu (persentase sesi tercatat + jumlah murid aktif) digabung ke dalam blok “Hari Ini”, judul “Operasional hari ini” dihapus, dan grafik tren mini disembunyikan bila belum ada sesi selesai — garis rata di dasar bukan informasi.",
+      "Kalender bulanan bisa dibaca tanpa menebak. Ditambahkan satu baris legenda warna tanggal (hijau ≥7 · kuning 4–6 · merah <4 = rata-rata skor sesi), setiap tanggal mengumumkan “hari, tanggal, N sesi” ke pembaca layar, sel per tanggal dinaikkan tingginya, dan tumpukan sesi dibatasi dua dengan penanda “+N”. Kotak “Perlu Perhatian” kini mengingat pilihan lipatmu setelah halaman dimuat ulang.",
+      "Jadwal hari bisa dirapatkan. Ada tiga tingkat kerapatan (rapat / normal / lega) dan tombol **Muat sehari penuh (⇱)** yang mengatur rentang ke 06.00–24.00 lalu memilih kerapatan terbesar yang masih muat — jadi jadwal pagi sampai malam bisa ditangkap dalam satu gambar. Pilihan kerapatan diingat selama aplikasi terbuka. Sesi yang jadwalnya di luar 06.00–24.00 tetap ditampilkan utuh, tidak pernah dipotong.",
+      "Modal “Jadwalkan Sesi” berhenti menyembunyikan risiko. Saat jam yang dipilih bentrok, peringatannya kini menyebut jumlah bentrok (“Bentrok dengan 2 sesi lain pada jam ini”), dan tombol simpannya berubah menjadi **“Tetap simpan (2 bentrok)”** dengan warna peringatan — bukan tombol “Simpan” biasa yang membuat tabrakan lewat tanpa disadari.",
+      "Kontrol kecil dinaikkan ukurannya agar tidak salah tekan di HP: tombol panah kalender, tombol ikon, saringan daftar tagihan, chip topik, dan sakelar (rel 26 px → 32 px dengan area sentuh 44 px). Dua tautan nomor WhatsApp di Detail murid yang tadinya hanya 20 px tinggi kini 44 px. Tombol **Hapus** murid dipisahkan ke barisnya sendiri, tidak lagi berdempetan dengan **Nonaktifkan**.",
+      "Saat penyimpanan perangkat gagal menjawab, enam layar (Murid, Detail murid, Keuangan, Laporan, Catat Sesi, Form murid) kini berhenti menggantung tanpa jalan keluar: semuanya menampilkan pesan yang sama dengan tombol **Coba lagi**. Sebelumnya hanya layar Pengaturan yang punya jalan keluar ini.",
+      "Emoji pada judul dan tombol utama diganti ikon gambar yang seragam (delapan ikon baru: kilau AI, grafik, simpan, gambar, segarkan, mata, cetak, daftar periksa). Emoji dekoratif — label grafik, teks banner, keadaan kosong — sengaja tetap. Penggantian ini **belum selesai seluruhnya**: chip dan label kecil di dalam wizard Catat Sesi masih memakai emoji, dan angka pastinya hanya bisa diukur dengan `npm run e2e:uiux`.",
+    ],
+  },
+  {
     version: "v1.87.0",
     date: "2026-10-03",
     title: "Warna di seluruh layar kini seragam dan teksnya lolos ambang keterbacaan",

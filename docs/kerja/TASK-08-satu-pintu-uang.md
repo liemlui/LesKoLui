@@ -291,7 +291,11 @@ di salah satu layar itu **menggagalkan** tes.
 
 | Tanggal | Langkah | Yang terjadi | Keputusan |
 |---|---|---|---|
-| | | | |
+| 2026-10-03 | L2 | `MaskedMoney` ditaruh di `src/components/ui/MaskedMoney.tsx` (bukan `src/components/`), dan panel PIN-nya dirender lewat **portal** ke `document.body` | Mengikuti `TASK-08` Langkah 2 (path `ui/`) sekaligus menghindari `<div>` di dalam `<p>`/`<td>` — tanpa portal, parser HTML menutup `<p>` lebih awal dan merusak tata letak |
+| 2026-10-03 | L3 | Blok **"Perlu keputusan"** tanpa nominal **tidak** dibuat di Beranda pada tugas ini | Dikerjakan di **G2-08** bersama penggabungan blok "Hari Ini" (B-04/B-05) supaya Beranda tidak dirombak dua kali. Nominal memang tidak pernah muncul — hanya jumlah tagihan + umur piutang (`invoiceAgeDays`) |
+| 2026-10-03 | L4 | Dua titik dari tabel §2 ternyata **sudah bersih sejak lama**: `home/OperationalSnapshot.tsx` dan `screens/Students.tsx` (0 kemunculan `Rp`/`formatRupiah`/`tolowerCase` uang) | Tidak dikerjakan ulang; dicatat sebagai "sudah tertutup". Kebocoran nyata ada di `StudentDetail.tsx` (tarif `toLocaleString`, biaya di modal edit) dan `studentDetail/SessionDetailModal.tsx` |
+| 2026-10-03 | L5 | Perintah verifikasi K3 (§0) **tidak** menghasilkan 0 baris secara keseluruhan | 106 baris yang tersisa semuanya di `src/screens/payments/**` — modul yang **hanya bisa dirender setelah gerbang penuh `Payments.tsx` lolos** (K3.4 lapisan kedua). Masking ~106 titik di dalam modul keuangan sengaja **tidak** dikerjakan (di luar daftar berkas tugas ini, dan berisiko pada nilai uang). Sisa 19 baris di luar `payments/` adalah **data** (`totalCost` sebagai variabel/prop) atau `formatRupiah` untuk pesan validasi tarif maksimum — bukan tampilan. Perlu keputusan pemilik: pindahkan `src/screens/payments/**` keluar dari cakupan perintah §6, atau jadikan tugas lanjutan |
+| 2026-10-03 | L6 | **Tes jaga `moneyGate.test.ts` tidak ditulis** | Keputusan pemilik: tugas sisa Gelombang 2 dikerjakan tanpa tes. Karena itu DoD "mencoba menambah `formatRupiah` baru menggagalkan tes" **belum terpenuhi** — jangan anggap tugas ini punya penjaga regresi sampai tes itu ditulis |
 
 ## 9. Progres
 

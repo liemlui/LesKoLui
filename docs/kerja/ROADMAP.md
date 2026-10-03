@@ -1,6 +1,6 @@
 # ROADMAP — Gelombang 2 & 3 (22 tugas)
 
-> **Status:** aktif · Diperbarui: 2026-10-03 · Baseline: v1.87.0 (691 tes)
+> **Status:** aktif · Diperbarui: 2026-10-03 · Baseline: v1.88.0 (gate dijalankan untuk v1.88.0: `npx tsc -b` saja — keputusan pemilik tanpa lint/tes/e2e)
 > **Cara pakai:** baca ATURAN-AI §0. Tentukan tier SEBELUM mulai. Satu putaran = satu tugas (kecuali batch 📦).
 > Paralelisasi: hanya sah kalau tidak ada chat lain yang menyentuh berkas itu. Karena satu tugas bisa memegang puluhan berkas src/**, aturan default = SERIAL. Paralel butuh git worktree terpisah.
 > Kolom Tier = perkiraan; tier final ditetapkan saat tugas dimulai (§6.2 butir 1).
@@ -15,10 +15,11 @@
 | Ukuran | Nilai |
 |---|---|
 | Total tugas | 22 |
-| Selesai | 5 (G2-00, G2-00b, G2-01, G2-02, G2-03) |
-| Berjalan | 0 |
-| Belum | 17 (22 − 5) |
-| Progress | ~23% hitung tugas · ~16% bobot usaha (S=1/M=2/L=4; sisa Gelombang 3 semuanya L/M) |
+| Selesai | 10 (G2-00, G2-00b, G2-01, G2-02, G2-03, G2-04, G2-06, G2-07, G2-08, G2-10) |
+| Sebagian | 1 (G2-09 — judul & tombol utama sudah SVG, chip wizard belum) |
+| Manual | 1 (G2-05 — butuh HP Android; tanpa perubahan kode) |
+| Belum | 10 (G3-01 … G3-10) |
+| Progress | ~45% hitung tugas (10 dari 22) · ~39% bobot usaha (S=1/M=2/L=4; G2-09 dihitung separuh) |
 
 ## Gelombang 2
 
@@ -29,13 +30,13 @@
 | G2-01 | token + 7 primitif + Q25 | T3 | — | index.css, components/ui/* | L | ✅ v1.86.0 |
 | G2-02 | sapu kelas warna → token semantik | T2 | G2-01 | src/**/*.tsx, src/index.css | L | ✅ v1.87.0 |
 | G2-03 | kunci light-only permanen | T1 | G2-01 | index.css (komentar), playwright.config | S | ✅ v1.87.0 |
-| G2-04 | satu pintu uang (TASK-08) | T2 | G2-01 | useMoneyVisible, MaskedMoney, 5 layar | L | ⬜ |
+| G2-04 | satu pintu uang (TASK-08) | T2 | G2-01 | useMoneyVisible, MaskedMoney, 5 layar | L | ✅ v1.88.0 |
 | G2-05 | verifikasi input Android (manual) | T1 | G2-01, owner | tidak ada | S | ⛔ manual (butuh HP Android) |
-| G2-06 | tap target ≥44px | T2 | G2-01 | 9 berkas layar | M | ⬜ |
-| G2-07 | DayView kerapatan 27/54/97 | T1 | G2-01 | home/DayView.tsx | M | ⬜ |
-| G2-08 | Beranda non-uang | T2 | G2-04 | home/*.tsx | M | ⬜ |
-| G2-09 | emoji→SVG | T2 | G2-01 | icons.tsx + layar pemakai | M | ⬜ |
-| G2-10 | jalur galat tunggal useLiveQuery | T3 | G2-01 | useSettingsQuery + 6 layar | M | ⬜ |
+| G2-06 | tap target ≥44px | T2 | G2-01 | 9 berkas layar | M | ✅ v1.88.0 |
+| G2-07 | DayView kerapatan 27/54/97 | T1 | G2-01 | home/DayView.tsx | M | ✅ v1.88.0 |
+| G2-08 | Beranda non-uang | T2 | G2-04 | home/*.tsx | M | ✅ v1.88.0 |
+| G2-09 | emoji→SVG | T2 | G2-01 | icons.tsx + layar pemakai | M | 🟡 sebagian v1.88.0 (judul + tombol utama; chip wizard belum) |
+| G2-10 | jalur galat tunggal useLiveQuery | T3 | G2-01 | useSettingsQuery + 6 layar | M | ✅ v1.88.0 |
 
 ## Gelombang 3
 
