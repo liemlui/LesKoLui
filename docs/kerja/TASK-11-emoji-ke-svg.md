@@ -1,123 +1,81 @@
-# TASK-11 — Menuntaskan emoji → SVG pada kontrol (lanjutan G2-09)
+# TASK-11 — Kebijakan emoji pada kontrol (lanjutan G2-09)
 
-> **STATUS:** `menunggu keputusan pemilik` · **PEMILIK:** agen AI
-> **DIBUAT:** 2026-10-03 · **BASELINE:** v1.88.0
+> **STATUS:** **diputuskan & dikerjakan** (opsi A, keputusan pemilik 2026-10-03) · **PEMILIK:** agen AI
+> **DIBUAT:** 2026-10-03 · **DIPERBARUI:** 2026-10-03 · **BASELINE:** v1.88.0
 > **MERUPAKAN:** lanjutan **G2-09** (bukan tugas baru di daftar 22) — ROADMAP tetap 22 tugas
 > **INDUK:** [`GELOMBANG-2.md`](../arsip/GELOMBANG-2.md) §G2-09 · **ATURAN:** [`ATURAN-AI.md`](ATURAN-AI.md)
-> **BACA DULU:** [`03-PLAYBOOK-AUDIT-UIUX-VISUAL.md`](../03-PLAYBOOK-AUDIT-UIUX-VISUAL.md) §5.3.3
 
-## 0. Ringkas: apa yang sudah selesai dan apa yang tidak
+## 0. DoD yang berlaku sekarang (menggantikan rumusan lama)
 
-| Bagian | Status |
-|---|---|
-| Emoji yang **tertulis langsung di JSX** (judul + tombol) | ✅ **0** — diukur `.design-audit/g2-09-check.cjs` |
-| Metrik emoji di guard `e2e:uiux` | ✅ ditambahkan (`emojiInControlsCount`, `test.fixme` + residual) |
-| Emoji yang hidup di **berkas DATA** (`icon: "…"`) | ❌ **70 entri di 7 berkas** — 14 situs render-nya ada **di dalam `<button>`** |
+> **0 emoji pada kontrol dan heading, KECUALI kosakata keadaan afektif yang ditandai eksplisit.**
 
-Artinya doa DoD G2-09 (“0 emoji pada `<button>`/heading”) **belum** tercapai meski JSX sudah bersih.
-Berkas ini menyebutkan tepatnya apa yang tersisa dan dua cara menutupnya.
+- **Kontrol** = `button`, `a[href]`, `[role=button]`, dan `h1…h6`.
+- **Kosakata keadaan afektif** = mood, situasi, indikator perilaku, tag respons, dan level sesi —
+  dirender dari berkas data dan **wajib** membawa atribut `data-emoji-vocab="affect"`.
+- Guard `e2e:uiux` melewati elemen ber-penanda itu, lalu **menuntut 0** di luar penanda
+  (`emojiInControlsCount`). Bukan `test.fixme` — angka 0 adalah syarat.
 
-## 1. Angka terukur (2026-10-03)
+Alasan kebijakan ini dipilih: emoji memang alat terbaik untuk **keadaan emosional/keadaan tubuh**
+(Frustrasi, Cemas, Gelisah, Sibuk sendiri). Ikon stroke generik untuk hal-hal itu berisiko terbaca
+salah — dan ini dibaca tutor untuk menilai kondisi murid. Sebaliknya, kontrol **aksi/struktural**
+(backup, restore, kamera, tipe sesi, unduh) memang tempatnya ikon SVG.
 
-Alat: `.design-audit/g2-09-inventaris.cjs` · `.design-audit/g2-09-trace-render.cjs` · `.design-audit/g2-09-check.cjs`
+## 1. Yang dikerjakan (2026-10-03)
 
-| Ukuran | Nilai |
-|---|---|
-| Entri `icon:` di berkas data | **70** — `responseTaxonomy.ts` 26 · `captureSession/constants.ts` 19 · `template/layouts/*` 9 · `moods.ts` 5 · `sessionTemplates.ts` 6 · `engagement.ts` 3 · (`constants.ts` STEP_META 6 memakai nama ikon, bukan emoji) |
-| Situs render `{x.icon}` **di dalam `<button>`** | **14** — `CaptureSession.tsx` 9 · `SessionDetailModal.tsx` 4 · `ScheduleStep.tsx` 1 |
-| Situs render **di luar** kontrol | **9** — tooltip, chip `<span>` di RiwayatSesi, templat laporan |
-
-Situs yang menentukan DoD (14 tempat):
-
-| Berkas | Ekspresi | Sumber data |
+| # | Pekerjaan | Bukti |
 |---|---|---|
-| `CaptureSession.tsx` | `{opt.icon}` | `SESSION_TYPE_OPTIONS` (6) |
-| `CaptureSession.tsx` | `{meta.icon}` ×2 | `ENGAGEMENT_FLAG_META` (12) |
-| `CaptureSession.tsx` | `{c.icon}` | `SITUASI_CHIPS` (7) |
-| `CaptureSession.tsx` | `{m.icon}` | `MOODS` (5) |
-| `CaptureSession.tsx` | `{tag.icon}` ×4 | `RESPONSE_TAGS` (26) |
-| `SessionDetailModal.tsx` | `{t.icon}` ×2, `{opt.icon}`, `{m.icon}` | `RESPONSE_TAGS`, `SESSION_TYPE_OPTIONS`, `MOODS` |
-| `ScheduleStep.tsx` | `{option.icon}` | `SESSION_TYPE_OPTIONS` |
+| 1 | Emoji **literal di JSX** disapu (17 ikon SVG, 23 berkas) | `.design-audit/g2-09-check.cjs` → 0 |
+| 2 | Emoji di dalam **`<a href>`** (tombol "Kirim ke Orang Tua" & tautan WA murid) → `ChatIcon` | 3 titik, `Task-11-tidy.cjs` |
+| 3 | Label tombol yang tersisa dimulai spasi (bekas sapuan) dirapikan | 4 titik |
+| 4 | **Tipe sesi** (satu-satunya kelompok struktural) → `Icon` komponen: Book, Clipboard, Wrench, Lightbulb, Refresh, Star | `SESSION_TYPE_OPTIONS` + `ScheduleStep.tsx` |
+| 5 | **13 tombol** kosakata afektif ditandai `data-emoji-vocab="affect"` | `CaptureSession.tsx` 9 · `SessionDetailModal.tsx` 4 |
+| 6 | Guard: metrik mencakup kontrol + tautan, melewati penanda, **menuntut 0** | `e2e-uiux/uiux-metrics.spec.ts` |
 
-## 2. Klasifikasi emoji menurut risiko penggantian
+Pemeriksa mandiri dengan **selektor yang sama** dengan guard: `.design-audit/task-11-check.cjs`
+→ **0 pelanggaran**.
 
-### 2.1 Kelompok 1 — padanan ikon **sudah ada** (aman, tanpa desain baru)
+## 2. Yang SENGAJA tetap emoji (dan tetap dihitung sebagai residual "di luar kontrol")
 
-`📚`→BookIcon · `📋`→ClipboardIcon · `🔄`→RefreshIcon · `⏳`→HourglassIcon · `🔍`→SearchIcon ·
-`📝`→PencilIcon · `🎯`→TargetIcon · `⚡`→BoltIcon · `📱`→PhoneIcon · `❌`→CloseIcon ·
-`⏰`→ClockIcon · `⛔`→BanIcon · `⚠️`→WarningIcon · `🚫`→BanIcon
+| Sumber | Jumlah | Dipakai di |
+|---|---:|---|
+| `responseTaxonomy.ts` | 26 | chip tag respons (afektif) + 12 tag perilaku |
+| `captureSession/constants.ts` | 19 | chip situasi (7) + indikator perilaku (12) |
+| `moods.ts` | 5 | chip mood |
+| `engagement.ts` | 3 | level sesi (lancar/biasa/berat) — **berkas dilindungi §2.1, tidak disentuh** |
+| `template/layouts/*` | 9 | dekorasi di dalam templat laporan |
 
-Catatan: `📝`, `📚`, `🔄`, `🌤️`, `✅` masing-masing dipakai **dua kontrol berbeda** — persis seperti
-hari ini. Menggantinya dengan ikon yang sama **tidak** menambah tabrakan baru.
+## 3. Catatan penyimpangan & hal yang masih terbuka
 
-### 2.2 Kelompok 2 — butuh ikon baru, tetapi bentuknya **tidak ambigu** (risiko rendah)
+1. **`⭐ ✅ 🟡 🔴` tidak dikonversi** meski sempat masuk rencana. Alasan: keempatnya hidup di dalam
+   `RESPONSE_TAGS`, satu array yang dirender sebagai **satu kelompok chip**. Mengonversi 4 dari 26
+   entri akan membuat satu baris chip bercampur ikon-dan-emoji — persis yang dihindari kebijakan ini.
+   Kalau nanti keempatnya mau jadi ikon (mereka sebenarnya "hasil akademik", bukan afek), cara bersihnya:
+   **pisahkan mereka ke array sendiri** (`OUTCOME_TAGS`) sehingga batas kelompoknya eksplisit.
+2. **Batas cakupan: `label`, `<span>`, tooltip, dan teks paragraf tidak disapu.** Contoh yang tersisa:
+   `🗂️ Tipe Sesi` (label di `ScheduleStep`), `🔁` di baris tindak lanjut `CloseOutSheet`, emoji di
+   tooltip tag AI. Itu bukan kontrol, jadi di luar DoD — tetapi terlihat di layar.
+3. **Guard-nya belum pernah dijalankan.** Angka 0 di atas berasal dari pemeriksa statis dan
+   pengukuran mandiri; `npm run e2e:uiux` adalah satu-satunya pembuktian runtime. Gate itu dimatikan
+   atas keputusan pemilik.
+4. **Pelajaran teknis:** komentar di dalam blok `measure()` berada di **dalam template literal** —
+   satu backtick di sana menutup template lebih awal dan merusak seluruh spec. Sudah pernah terjadi
+   di sini dan diperbaiki (kesalahan tertangkap karena spec diperiksa `tsc --noEmit` terpisah).
 
-`🌟`/`⭐`→StarIcon · `🟡`/`🔴`→CircleDotIcon (2 warna) · `✅`→CheckCircleIcon · `🎲`→DiceIcon ·
-`🗣️`→SpeechIcon · `💨`→WindIcon · `🌧️`→RainIcon · `🔧`/`🛠️`→WrenchIcon · `💡`→LightbulbIcon ·
-`👀`→EyesIcon · `📌`→PinIcon · `🔥`→FlameIcon · `🌙`→MoonIcon · `🌤️`→SunIcon · `🧩`→PuzzleIcon ·
-`🚀`→RocketIcon · `💬`→ChatIcon
+## 4. Verifikasi yang dijalankan
 
-⚠️ Satu hal yang harus diputuskan di sini: **`🌟` dan `⭐` dipakai dua tag berbeda di dalam modul yang
-sama** (`Antusias` vs `Benar mandiri`). Kalau keduanya jadi StarIcon, perbedaan itu hilang — perlu
-varian (mis. bintang penuh vs bintang garis) atau salah satunya pindah makna.
-
-### 2.3 Kelompok 3 — **emosi/keadaan tubuh**: butuh desain khusus, dan salah gambar = informasi salah
-
-21 emoji. Ini yang membuat konversi tidak bisa dikerjakan “asal jadi”:
-
-| Emoji | Label | Kontrol |
-|---|---|---|
-| `💪` | Percaya diri | tag respons |
-| `🪞` | Reflektif | tag respons |
-| `🤝` | Dialog aktif | tag respons |
-| `🧘` | Tenang | tag respons |
-| `🤔` | Terlalu hati-hati | tag respons |
-| `🔭` | Eksploratif | tag respons |
-| `😤` | Frustrasi | tag respons |
-| `😰` | Cemas | tag respons |
-| `🧠` | (prasyarat belum siap) | tag respons |
-| `😷` `😴` `🏃` `🍚` `🎉` `💭` | Habis sakit · Kurang tidur · Habis ekskul · Belum makan · Ada acara keluarga · Ada masalah pribadi | chip situasi |
-| `🙋` `🥱` `🚻` `🦘` `🙈` | Aktif bertanya · Mengantuk · Sering ke toilet · Gelisah · Sibuk sendiri | indikator perilaku |
-
-Alasan kenapa ini bukan sekadar “tambah 21 ikon”: indikator perilaku dipakai tutor untuk **membaca
-kondisi murid**. Ikon stroke generik untuk “Gelisah” atau “Sibuk sendiri” besar kemungkinan terbaca
-salah, dan salah baca di sini lebih buruk daripada emoji yang sudah dikenal semua orang.
-
-### 2.4 Di luar lingkup
-
-9 emoji di `src/template/layouts/*` dirender **di dalam templat laporan**, bukan kontrol — tetap
-sebagai elemen dekoratif laporan.
-
-## 3. Kendala yang mengikat pilihan
-
-| Kendala | Akibat |
+| Perintah | Hasil |
 |---|---|
-| `src/lib/engagement.ts` **dilindungi §2.1** | Ikon `✅ 🌤️ ⚠️` tidak boleh diubah di sana. Solusi yang tidak melanggar: **peta emoji→ikon di sisi pemanggil** (`<EmojiIcon value={x.icon}/>`), berkas data tidak disentuh sama sekali |
-| `src/__tests__/captureSessionHelpers.test.ts:283-301` menjaga **keunikan ikon** `ENGAGEMENT_FLAG_META` vs `MOODS` dengan membandingkan **string** | Opsi konversi penuh **wajib menulis ulang tes itu** (membandingkan komponen, bukan emoji). Tes itu tidak bisa dijalankan di putaran terakhir karena gate tes dimatikan |
-| `npm run e2e:uiux` belum dijalankan | Angka residual **per layar** belum ada; yang ada baru angka statis |
+| `npx tsc -b` | exit 0 |
+| `npx tsc --noEmit --ignoreConfig … e2e-uiux/uiux-metrics.spec.ts` | exit 0 (spec valid) |
+| `.design-audit/task-11-check.cjs` (selektor = guard) | **0 pelanggaran** |
+| `.design-audit/g2-09-verify-metric.cjs` | 21/21 contoh sesuai (regex + allowlist) |
+| `node scripts/check-md-links.mjs` | 0 tautan rusak |
+| `npm run e2e:uiux` | **belum dijalankan** |
+| `npm test` | **belum dijalankan** |
 
-## 4. Tiga opsi (pilih satu)
-
-| Opsi | Isi | Dampak DoD | Perkiraan |
-|---|---|---|---|
-| **A — persempit DoD** | DoD jadi “0 emoji pada kontrol **selain** kosakata semantik (tag respons, chip situasi, indikator perilaku)”. 21 emoji Kelompok 3 tetap, dan pencapaiannya didaftarkan di guard sebagai `test.fixme` dengan alasan tertulis | DoD asli **tidak** tercapai, tetapi tercapai versi yang disepakati | S (0,5 jam) |
-| **B — konversi penuh** | Kelompok 1 + 2 + 3 → ±38 ikon baru, 14 situs render diganti, tes keunikan ikon ditulis ulang, guard dijalankan | DoD asli **tercapai** | L (±1 gelombang) |
-| **C — hibrida** | Konversi Kelompok 1 + 2 pada kontrol yang **tidak bercampur** (`MOODS`, `SESSION_TYPE_OPTIONS`, `SITUASI_CHIPS`, `ENGAGEMENT_FLAG_META`), `RESPONSE_TAGS` ditunda sampai desain Kelompok 3 disetujui | Sebagian; `RESPONSE_TAGS` tetap emoji | M |
-
-Rekomendasi teknis: **A atau B**, jangan C — C meninggalkan dua bahasa visual di dalam satu layar
-(chip situasi bersih, chip respons masih emoji) dan itu lebih buruk daripada keduanya.
-
-## 5. Rencana verifikasi (berlaku untuk B)
-
-1. `npx tsc -b` → 0 (gate yang berlaku sekarang).
-2. Skrip peta: pastikan **setiap** emoji yang muncul di berkas data punya entri peta (menangkap
-   emoji baru yang ditambahkan kelak tanpa ikon).
-3. Skrip keunikan: tidak ada dua entri **dalam satu modul** yang memakai ikon sama.
-4. `npm test` (termasuk tes keunikan yang ditulis ulang) dan `npm run e2e:uiux` — dua gate yang saat
-   ini dimatikan; tanpa keduanya, hasilnya tetap “terimplementasi”, bukan “terbukti”.
-
-## 6. Riwayat
+## 5. Riwayat
 
 | Tanggal | Perubahan |
 |---|---|
-| 2026-10-03 | Dibuat dari sisa G2-09: JSX sudah bersih (0), sisa 70 entri `icon:` di berkas data dengan 14 situs render di dalam kontrol; 21 di antaranya butuh keputusan desain |
+| 2026-10-03 | Dibuat dari sisa G2-09: JSX bersih (0), sisa 70 entri `icon:` di berkas data, 14 situs render di dalam kontrol, 21 emoji emosi butuh keputusan |
+| 2026-10-03 | **Keputusan pemilik: opsi A.** DoD diganti menjadi "0 emoji di kontrol kecuali kosakata afektif ber-penanda". Tipe sesi dikonversi ke SVG, 13 tombol ditandai, guard menuntut 0 |
