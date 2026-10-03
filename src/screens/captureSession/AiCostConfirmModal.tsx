@@ -31,7 +31,7 @@ export default function AiCostConfirmModal({
       onClose={onCancel}
       panelClassName="relative bg-[var(--surface-strong)] w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 pb-8 space-y-4 max-h-[92vh] overflow-y-auto overscroll-contain outline-none"
     >
-      <h3 className="font-bold text-base">✨ Draft Catatan dengan AI</h3>
+      <h3 className="font-bold text-base">Draft Catatan dengan AI</h3>
       <div className="bg-[var(--accent-tint)] rounded-xl p-3 space-y-1">
         <p className="text-sm font-semibold text-[var(--ink-accent)]">Estimasi biaya DeepSeek</p>
         <p className="text-xs text-[var(--ink-accent)]">
@@ -64,7 +64,7 @@ export default function AiCostConfirmModal({
             <button key={style} type="button"
               onClick={() => onStyleChange(style)}
               className={`py-2 rounded-xl text-xs font-bold border transition-colors ${aiNoteStyle === style ? "bg-[var(--accent-solid)] text-[var(--on-strong)] border-[var(--border-accent)]" : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)] hover:border-[var(--border-accent)]"}`}>
-              {style === "rapikan" ? "✍️ Rapikan" : style === "perluas" ? "📖 Perluas" : "✂️ Ringkas"}
+              {style === "rapikan" ? "Rapikan" : style === "perluas" ? "Perluas" : "Ringkas"}
             </button>
           ))}
         </div>

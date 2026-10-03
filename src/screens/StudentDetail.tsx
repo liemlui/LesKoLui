@@ -1055,7 +1055,7 @@ export default function StudentDetail() {
       {/* Bantuan siklus tagihan */}
       {showBillingHelp && (
         <Modal onClose={() => setShowBillingHelp(false)} ariaLabel="Cara kerja siklus tagihan">
-          <h3 className="font-bold text-base">💳 Siklus Tagihan</h3>
+          <h3 className="font-bold text-base">Siklus Tagihan</h3>
           <p className="text-xs leading-relaxed text-[var(--ink-muted)]">
             Cara murid ini ditagih. Ubah lewat <strong>Edit Profil → Siklus Tagihan</strong>; perubahan hanya memengaruhi sesi yang belum ditagih.
           </p>

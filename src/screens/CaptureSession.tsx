@@ -1,5 +1,5 @@
 import Skeleton from "../components/Skeleton";
-import { TargetIcon, BookIcon, SmileIcon, ClipboardIcon, PencilIcon, CameraIcon } from "../components/icons";
+import { TargetIcon, BookIcon, SmileIcon, ClipboardIcon, PencilIcon, CameraIcon, ChartIcon, ImageIcon } from "../components/icons";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -700,7 +700,7 @@ export default function CaptureSession() {
       <div className="pb-24">
         <Breadcrumb />
         <div className="px-4 pt-4 pb-3">
-          <h1 className="text-2xl font-bold text-[var(--ink-strong)]">📓 Catat Sesi</h1>
+          <h1 className="text-2xl font-bold text-[var(--ink-strong)]"><ClipboardIcon size={22} className="mr-1.5 inline align-[-3px]" /> Catat Sesi</h1>
           <p className="text-xs text-[var(--ink-muted)] mt-0.5">Draf tersimpan menunggu keputusan</p>
         </div>
         <div className="mx-4 rounded-2xl border border-[var(--border-warn)] bg-[var(--bg-warn)] p-4">
@@ -745,7 +745,7 @@ export default function CaptureSession() {
       {/* ── PAGE HEADER ── */}
       <div className="px-4 pt-4 pb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-[var(--ink-strong)]">📓 Catat Sesi</h1>
+          <h1 className="text-2xl font-bold text-[var(--ink-strong)]"><ClipboardIcon size={22} className="mr-1.5 inline align-[-3px]" /> Catat Sesi</h1>
           <p className="text-xs text-[var(--ink-muted)] mt-0.5">Langkah {currentStep} dari {STEPS.length}</p>
         </div>
         {/* Status draf berada di baris ber-tinggi tetap: perubahan status tidak
@@ -1613,7 +1613,7 @@ export default function CaptureSession() {
             <button type="button" onClick={() => setShowAiContext((v) => !v)}
               aria-expanded={showAiContext}
               className="flex w-full items-center justify-between gap-2 px-3.5 py-3 text-left">
-              <span className="text-xs font-bold text-[var(--ink-brand)] uppercase tracking-wide">📊 Konteks yang dipakai AI</span>
+              <span className="text-xs font-bold text-[var(--ink-brand)] uppercase tracking-wide"><ChartIcon size={13} className="mr-1 inline align-[-2px]" />Konteks yang dipakai AI</span>
               <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold text-[var(--ink-brand)]">
                 {showAiContext ? "Sembunyikan" : "Lihat"}
                 <span aria-hidden="true">{showAiContext ? "▲" : "▼"}</span>
@@ -1735,7 +1735,7 @@ export default function CaptureSession() {
                 <button type="button" disabled={aiNoteLoading}
                   onClick={() => setShowAiCostModal(true)}
                   className="flex items-center gap-1.5 text-xs font-semibold text-[var(--ink-accent)] bg-[var(--accent-tint)] hover:bg-[var(--accent-tint)] border border-[var(--border-accent)] px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
-                  {aiNoteLoading ? "⏳ Draft AI..." : "✨ Draft AI"}
+                  {aiNoteLoading ? "Draft AI..." : "Draft AI"}
                 </button>
               )}
             </div>
@@ -1832,9 +1832,9 @@ export default function CaptureSession() {
                 className="absolute -top-2 -right-2 bg-[var(--bg-danger-strong)] text-[var(--on-strong)] rounded-full w-10 h-10 text-sm flex items-center justify-center shadow-md"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
               <div className="absolute bottom-2 right-2 flex gap-1.5">
                 <button onClick={() => cameraRef.current?.click()}
-                  className="bg-[var(--scrim)]/60 text-[var(--on-strong)] text-xs px-2.5 py-1 rounded-full">📷 Kamera</button>
+                  className="bg-[var(--scrim)]/60 text-[var(--on-strong)] text-xs px-2.5 py-1 rounded-full"><CameraIcon size={13} className="mr-1 inline align-[-2px]" />Kamera</button>
                 <button onClick={() => galleryRef.current?.click()}
-                  className="bg-[var(--scrim)]/60 text-[var(--on-strong)] text-xs px-2.5 py-1 rounded-full">🖼️ Galeri</button>
+                  className="bg-[var(--scrim)]/60 text-[var(--on-strong)] text-xs px-2.5 py-1 rounded-full"><ImageIcon size={13} className="mr-1 inline align-[-2px]" />Galeri</button>
               </div>
               <span className="absolute top-2 left-2 bg-[var(--scrim)]/50 text-[var(--on-strong)] text-xs px-2 py-0.5 rounded-full">📅 timestamp ✓</span>
             </div>
@@ -1931,7 +1931,7 @@ export default function CaptureSession() {
             <button onClick={goNext} disabled={saving}
               className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm text-[var(--on-strong)] transition-all disabled:opacity-50 shadow-md"
               style={{ background: saving ? "#93c5fd" : currentStep === 6 ? "linear-gradient(135deg,#16a34a,#15803d)" : "linear-gradient(135deg,#2563eb,#1d4ed8)" }}>
-              {saving ? "⏳ Menyimpan..." : currentStep === 6 ? "✅ Simpan Sesi" : "Lanjut →"}
+              {saving ? "Menyimpan..." : currentStep === 6 ? "Simpan Sesi" : "Lanjut →"}
             </button>
           </div>
         </div>

@@ -158,7 +158,7 @@ export function CustomThemeBuilder({ onSave }: {
         </div>
       </div>
 
-      <button className="btn btn-primary w-full text-sm" onClick={save}>💾 Simpan Tema Kustom</button>
+      <button className="btn btn-primary w-full text-sm" onClick={save}>Simpan Tema Kustom</button>
     </div>
   );
 }

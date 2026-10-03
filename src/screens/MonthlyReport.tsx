@@ -42,6 +42,7 @@ import { formatRupiahDisplay } from "../lib/moneyDisplay";
 import MaskedMoney from "../components/ui/MaskedMoney";
 import SettingsLoadError from "../components/SettingsLoadError";
 import { useMoneyVisible } from "../hooks/useMoneyVisible";
+import { TrashIcon, EyeIcon } from "../components/icons";
 import { useSettingsQuery } from "../hooks/useSettingsQuery";
 import { useReportExport } from "./monthlyReport/useReportExport";
 import { useReportGeneration } from "./monthlyReport/useReportGeneration";
@@ -1720,7 +1721,7 @@ export default function MonthlyReportPage() {
                   <div className="flex gap-2 flex-wrap">
                     <button className="btn btn-primary flex-1 text-sm disabled:opacity-40" disabled={!availability.ok || reportMutationBusy}
                       onClick={() => handleCreateOrSwitch()}>
-                      {reportMutationBusy ? "Memproses..." : report ? (reportStatus(report) === "confirmed" ? "🔄 Update Laporan" : "✏️ Update Draft") : "📝 Buat Laporan"}
+                      {reportMutationBusy ? "Memproses..." : report ? (reportStatus(report) === "confirmed" ? "Update Laporan" : "Update Draft") : "Buat Laporan"}
                     </button>
                     {report && reportStatus(report) === "draft" && (
                       <button className="btn flex-1 text-sm bg-[var(--bg-success-strong)] text-[var(--on-strong)] hover:bg-[var(--bg-success-strong)] disabled:opacity-40" disabled={!availability.ok || reportMutationBusy}
@@ -1737,14 +1738,14 @@ export default function MonthlyReportPage() {
                   {report && reportStatus(report) === "draft" && (
                     <button className="w-full py-2 text-xs text-[var(--ink-danger)] hover:bg-[var(--bg-danger)] rounded-lg transition-colors"
                       onClick={handleDiscard}>
-                      🗑 Batalkan Draft
+                      <TrashIcon size={13} className="mr-1 inline align-[-2px]" />Batalkan Draft
                     </button>
                   )}
                   {report && settings?.ai?.enabled && settings.ai.apiKey && (
                     <button className="w-full btn text-sm bg-[var(--accent-solid)] text-[var(--on-strong)] hover:bg-[var(--accent-solid)] disabled:opacity-50"
                       onClick={() => setShowNarrativesModal(true)} disabled={aiLoading || !availability.ok}
                       title="AI mengisi semua isian: narasi tiap sesi (per batch kecil) + ringkasan, catatan guru, kutipan & rencana depan">
-                      {aiLoading ? `⏳ AI ${aiProgress?.step ?? "…"}` : "🤖 Isi Semua dengan AI"}
+                      {aiLoading ? `AI ${aiProgress?.step ?? "…"}` : "Isi Semua dengan AI"}
                     </button>
                   )}
 
@@ -1791,18 +1792,18 @@ export default function MonthlyReportPage() {
                   {/* Row 1: Random + Pilih tema + Cover toggle */}
                   <div className="flex flex-wrap items-center gap-2">
                     <button className="btn btn-secondary min-h-[44px] text-sm py-1.5 px-2 flex-shrink-0 whitespace-nowrap"
-                      onClick={handleRegenerate}>🎲 Acak</button>
+                      onClick={handleRegenerate}>Acak</button>
                     <button className="btn btn-secondary min-h-[44px] text-sm py-1.5 px-2 flex-shrink-0 whitespace-nowrap"
                       onClick={() => setShowThemeList((v) => !v)}
                       aria-expanded={showThemeList}
                       title="Tampilkan semua tema. Untuk memilih layout, buka tombol “Layout”.">
-                      {showThemeList ? "🙈 Sembunyikan tema" : "🎨 Pilih tema"}
+                      {showThemeList ? "Sembunyikan tema" : "Pilih tema"}
                     </button>
                     <button className="btn btn-secondary min-h-[44px] text-sm py-1.5 px-2 flex-shrink-0 whitespace-nowrap"
                       onClick={() => setShowLayoutList((v) => !v)}
                       aria-expanded={showLayoutList}
                       title="Tampilkan semua layout halaman laporan.">
-                      {showLayoutList ? "🙈 Sembunyikan layout" : "📐 Layout"}
+                      {showLayoutList ? "Sembunyikan layout" : "Layout"}
                     </button>
                     {undoStack.length > 0 && (
                       <button className="btn btn-secondary min-h-[44px] text-sm py-1.5 px-2 flex-shrink-0"
@@ -1848,7 +1849,7 @@ export default function MonthlyReportPage() {
                     )}
                     <button onClick={() => setCoverPage((v) => !v)}
                       className={`inline-flex min-h-[44px] items-center text-sm py-1.5 px-2 rounded-lg border transition-colors whitespace-nowrap ${coverPage ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]" : "bg-[var(--surface)] text-[var(--ink-muted)] border-[var(--border)]"}`}>
-                      {coverPage ? "📄 Cover ✓" : "📄 Cover"}
+                      {coverPage ? "Cover ✓" : "Cover"}
                     </button>
                   </div>
 
@@ -1857,7 +1858,7 @@ export default function MonthlyReportPage() {
                   <div className="flex gap-2">
                     <button className="btn btn-secondary min-h-[44px] text-xs py-1 px-2 flex-1"
                       onClick={() => setShowCustomBuilder((v) => !v)}>
-                      {showCustomBuilder ? "❌ Tutup" : "🎨 Custom Theme"}
+                      {showCustomBuilder ? "Tutup" : "Custom Theme"}
                     </button>
                   </div>
 
@@ -1929,7 +1930,7 @@ export default function MonthlyReportPage() {
                     <div className="relative w-full max-w-[248px] rounded-2xl bg-[var(--surface-strong)] p-3 shadow-xl">
                       <div className="mb-2 flex items-center justify-between gap-2">
                         <p className="truncate text-xs font-semibold text-[var(--ink-strong)]">
-                          👁 {LAYOUTS.find((l) => l.id === previewLayoutId)?.name ?? "Preview"}
+                          <EyeIcon size={13} className="mr-1 inline align-[-2px]" />{LAYOUTS.find((l) => l.id === previewLayoutId)?.name ?? "Preview"}
                         </p>
                         <button
                           type="button"
@@ -2198,7 +2199,7 @@ export default function MonthlyReportPage() {
                           </button>
                           {settings?.ai?.enabled && settings.ai.apiKey && (
                             <p className="pt-1 text-xs text-[var(--ink-muted)]">
-                              Ringkasan, catatan guru & rencana depan ikut diisi oleh tombol <strong>🤖 Isi Semua dengan AI</strong> di panel atas.
+                              Ringkasan, catatan guru & rencana depan ikut diisi oleh tombol <strong>Isi Semua dengan AI</strong> di panel atas.
                             </p>
                           )}
                         </>
@@ -2268,7 +2269,7 @@ export default function MonthlyReportPage() {
       {/* Isi Semua dengan AI cost modal — satu-satunya tombol AI di halaman ini */}
       <AiCostModal
         open={showNarrativesModal}
-        title="🤖 Isi Semua dengan AI"
+        title="Isi Semua dengan AI"
         estimatedIDR={estimateNarrativesCost(forceNarratives ? reportSessions.length : narrativeDirtyCount) + estimateReportSummaryCost(reportSessions.length)}
         description={`Narasi ${forceNarratives ? reportSessions.length : narrativeDirtyCount} sesi ditulis dalam batch kecil (maks 8 sesi per panggilan) supaya laporan panjang tidak lagi gagal karena batas token, lalu satu panggilan ringkasan mengisi ringkasan, catatan guru, kutipan & rencana depan untuk ${student?.name ?? "murid"}.${!forceNarratives && narrativeDirtyCount === 0 ? " Semua narasi sudah terbaru — ringkasan, catatan guru & rencana depan tetap diisi." : ""}`}
         dataSent="Nama dan level murid, periode laporan, serta ID, tanggal, mapel dan catatan sesi yang dipilih. Bila tersedia: mood, topik, area perhatian, prediksi dan nilai akhir, refleksi nilai, skor engagement, label perilaku dan respons, serta rata-rata engagement periode sebelumnya."

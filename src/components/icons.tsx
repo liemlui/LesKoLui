@@ -242,3 +242,83 @@ export function UnlockIcon(props: IconProps) {
     </IconBase>
   );
 }
+
+/* ── G2-09: ikon pengganti emoji pada kontrol fungsional ───────────────────── */
+
+export function SparkleIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 3.5 13.9 9l5.6 2-5.6 2-1.9 5.5L10.1 13 4.5 11l5.6-2L12 3.5Z" />
+      <path d="M18.5 16.5l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7.7-2Z" />
+    </IconBase>
+  );
+}
+
+export function ChartIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M4 20.5h16" />
+      <path d="M7 20.5V12M12 20.5V6.5M17 20.5v-5" />
+    </IconBase>
+  );
+}
+
+export function SaveIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M5.5 4.5h10L20 9v10.5a1 1 0 0 1-1 1H5.5a1 1 0 0 1-1-1v-14a1 1 0 0 1 1-1Z" />
+      <path d="M8.5 4.5v5h6v-5" />
+      <path d="M8.5 20.5v-5h7v5" />
+    </IconBase>
+  );
+}
+
+export function ImageIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <rect x="3.5" y="5" width="17" height="14" rx="2" />
+      <circle cx="9" cy="10" r="1.5" />
+      <path d="m4.5 17 4.7-4.7 3.3 3.3 2.5-2.5 4.5 4.4" />
+    </IconBase>
+  );
+}
+
+export function RefreshIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M20 11.5A8 8 0 0 0 6.3 6.3L4 8.5" />
+      <path d="M4 5.5v3h3" />
+      <path d="M4 12.5A8 8 0 0 0 17.7 17.7L20 15.5" />
+      <path d="M20 18.5v-3h-3" />
+    </IconBase>
+  );
+}
+
+export function EyeIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
+      <circle cx="12" cy="12" r="3" />
+    </IconBase>
+  );
+}
+
+export function PrinterIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M7 9V4h10v5" />
+      <rect x="4" y="9" width="16" height="7" rx="2" />
+      <path d="M7 16h10v4H7z" />
+    </IconBase>
+  );
+}
+
+export function ChecklistIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M4 7.5 6 9.5l3-3" />
+      <path d="M4 16.5 6 18.5l3-3" />
+      <path d="M12.5 7.5h8M12.5 17h8" />
+    </IconBase>
+  );
+}
