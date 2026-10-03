@@ -352,22 +352,23 @@ Laporan akhir AI pelaksana harus menyebut: fase selesai, file utama yang berubah
 | 2026-09-13 | **D/PWA runtime** | Menambah `playwright.sw.config.ts` + `e2e-pwa/pwa-runtime.spec.ts` (build produksi via `vite preview`, port 4174) dan skrip `npm run e2e:pwa`: (a) SW produksi mengontrol halaman & app tetap terbuka offline termasuk rute lazy, (b) restore dari file `.jles` hasil aplikasi sendiri benar-benar mengganti seluruh data dan draf lokal dibersihkan | `npm run e2e:pwa` ✅ 2/2 (39,7 dtk) · `npm run build` ✅ (precache 137 entri) | Verifikasi dua build berbeda (uji pembaruan antar-deploy) belum dijalankan — §13 |
 | 2026-09-13 | **Bukti kriteria §5–§9** | Menambah tes yang belum punya bukti: legacy `monthClosings` diterima & ditolak untuk tabel asing lain, backup pra-restore gagal → restore batal, `bulkAdd` gagal → rollback penuh termasuk draf, validasi gagal → `onPreRestoreBackup` tidak dipanggil, nominal string dengan lokasi `sessions.ses1.cost`, root/field salah tipe untuk **semua** 7 parser AI + respons minimal valid, retry batch tidak membuka follow-up selesai, migrasi PIN legacy & PIN yang sudah diganti, gagal `put` tanpa perubahan parsial | `npx vitest run backup backupValidation aiValidation settingsRepo repos` ✅ (4 berkas, 83 tes) · `npm test -- --reporter=dot` ✅ (47 berkas, 491 tes) · `npm run lint` ✅ 0/0 · `npm run build` ✅ | 2 kriteria Fase E + 1 kriteria Fase F masih tanpa bukti otomatis → §13 |
 
-## 13. Sisa verifikasi (per 2026-09-13)
+## 13. Sisa verifikasi (diperbarui 2026-10-04)
 
-Tiga kriteria masih **tidak dicentang** karena memang belum punya bukti otomatis. Semuanya berada di
-lapisan hook/komponen (`useReportGeneration`, form Pengaturan), sedangkan suite saat ini adalah unit/integration
-repo + E2E alur; menutupnya butuh tes komponen (mis. React Testing Library) yang belum jadi bagian toolchain.
+Ketiga kriteria yang dulu tanpa bukti otomatis **sudah tertutup**. Dua di antaranya sudah punya tesnya
+sejak v1.79.1 (2026-09-30) — yang basi adalah catatan di dokumen ini, bukan kodenya. Ketiganya hijau pada
+gate 2026-10-04 (`npm run test:sandbox`: 58 berkas / 698 tes lulus).
 
-| # | Kriteria | Kenapa belum | Cara menutup |
+| # | Kriteria | Bukti | Status |
 |---|---|---|---|
-| 1 | Fase E: respons AI gagal mempertahankan teks lama + hash lama, retry sukses baru memperbarui | Logika ada di `src/screens/monthlyReport/useReportGeneration.ts`; tidak ada tes komponen | Tes hook dengan mock `aiClient` + DB fake: respons ditolak → `narrative`/`aiNarrativeHash` tidak berubah; retry sukses → berubah |
-| 2 | Fase E: respons terlambat setelah pergantian murid/periode tidak menimpa scope lain | Butuh kontrol urutan promise di lapisan hook (request invalidation) | Tes hook: mulai permintaan untuk murid A, ganti ke murid B, selesaikan permintaan A → tidak ada mutasi untuk B |
-| 3 | Fase F: metadata backup terbaru tetap utuh saat form profil disimpan | Jaminan repo sudah ada dan diuji; yang belum tertutup adalah form (`handleSave`) yang masih mengirim snapshot Settings lengkap, sehingga backup yang dipicu dari **luar** form saat Pengaturan terbuka bisa mengembalikan `lastBackupAt` basi | Terapkan dirty-field tracking di `Settings.tsx` (kirim hanya field yang diubah) lalu uji skenarionya |
+| 1 | Fase E: respons AI gagal mempertahankan teks lama + hash lama, retry sukses baru memperbarui | `src/__tests__/useReportGeneration.test.ts:115` — "respons gagal tidak mengubah narasi atau fingerprint lama; retry sukses baru menulis" | ✅ |
+| 2 | Fase E: respons terlambat setelah pergantian murid/periode tidak menimpa scope lain | `src/__tests__/useReportGeneration.test.ts:144` — "mengabaikan respons terlambat setelah request diinvalidasi karena scope berubah". Mekanismenya nyata di layar: `MonthlyReport.tsx:772,1002` memanggil `invalidateAiRequests()` saat `reportScopeKey` berganti | ✅ |
+| 3 | Fase F: metadata backup terbaru tetap utuh saat form profil disimpan | `src/lib/settingsDirtyPatch.ts` + `src/__tests__/settingsDirtyPatch.test.ts` (6 tes, termasuk "hanya mengirim field profil yang diubah, tanpa metadata backup dari snapshot lama" dan skenario PIN), dipakai di titik simpan `Settings.tsx:434` → `saveSettings(settingsDirtyPatch(savedFormRef.current ?? form, form))` | ✅ pada tingkat unit + titik panggil — **belum** ada tes tingkat komponen untuk `handleSave` |
+| — | (opsional) PWA: pembaruan antar-**dua build** berbeda | baru **satu** build produksi yang terbukti (`e2e-pwa/pwa-runtime.spec.ts`) | ⬜ terbuka — butuh deploy kedua |
 
-Di luar tiga kriteria di atas, satu bukti PWA masih lebih lemah dari yang diminta §6: verifikasi **dua build
-produksi berbeda** (pembaruan antar-deploy: halaman lama masih bisa membuka route lazy setelah deploy baru).
-Yang sudah terbukti di `e2e-pwa/pwa-runtime.spec.ts` adalah **satu** build produksi dengan SW aktif — offline
-reload dan rute lazy dari precache. Uji dua build belum dijalankan.
+**Catatan metode:** `useReportGeneration.test.ts` memakai harness sendiri (`renderToStaticMarkup` + probe
+komponen), jadi **React Testing Library tidak diperlukan** untuk menutup ketiga kriteria ini. Diverifikasi
+2026-10-04: `@testing-library/*` dan `jsdom` **tidak** ada di `package.json` (sempat dipasang, lalu dicabut
+kembali karena ternyata tidak dibutuhkan).
 
-Konsekuensinya dokumen ini **belum** dipindahkan ke `arsip/`: pindahkan setelah tiga kriteria di atas ditutup
-(dan opsional: uji dua build), sesuai aturan pemeliharaan di `README.md`.
+Konsekuensinya dokumen ini **sudah bisa** dipindahkan ke `arsip/` — syarat pemeliharaannya (tiga kriteria
+tertutup) terpenuhi; sisa satu-satunya adalah uji dua build PWA yang bersifat opsional. Keputusan pemilik.
