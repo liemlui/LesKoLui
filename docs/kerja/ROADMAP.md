@@ -12,6 +12,7 @@
 > dan baseline sebenarnya **2976 kelas**. Terukur sesudah sapu: **0 kelas warna hidup di 72 berkas**;
 > sisa kelas warna hidup **hanya** di 3 berkas §2.1 (`engagement.ts` · `invoicePresentation.ts` · `finance.ts`) — jangkar, angka terukur 2026-10-04, dan keputusan Q42/Q43 ada di [`docs/README.md`](../README.md) §4.2 #26.
 > **Jangan pakai angka sebagai DoD:** penghitung `g2-02-scan.mjs` ikut menghitung komentar & teks changelog (terukur 2026-10-04: 9 dari 55 kemunculan bukan kelas hidup). Ukurannya = daftar berkas + jangkar.
+> **Q42/Q43 = opsi B (2026-10-04):** pemakaian kelas §2.1 oleh UI dipindah ke peta token `src/lib/toneStyles.ts` (berkas §2.1 tidak disentuh); `AGE_BUCKET_CLASS` 0 konsumen. Verifikasi: `e2e:uiux` 48 lulus/8 skip/0 gagal.
 
 ## Status ringkas
 
