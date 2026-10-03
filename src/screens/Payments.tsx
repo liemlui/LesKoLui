@@ -138,7 +138,7 @@ export default function PaymentsPage() {
         <p className="text-4xl">🔐</p>
         <p className="font-bold text-lg text-[var(--ink-strong)]">Data Keuangan</p>
         <p className="text-sm text-[var(--ink-muted)] text-center">Masukkan PIN Keuangan. Sekali dibuka, angka uang juga terbuka di layar lain sampai dikunci lagi.</p>
-        <input type="password" inputMode="numeric" maxLength={6} placeholder="PIN (6 digit)"
+        <input type="password" inputMode="numeric" maxLength={6} placeholder="PIN (6 digit)" aria-label="PIN Keuangan (6 digit)"
           value={pinInput} onChange={(e) => { setPinInput(e.target.value.replace(/\D/g, "").slice(0, 6)); money.clearError(); }}
           onKeyDown={(e) => { if (e.key === "Enter" && pinInput.length === 6) void money.unlock(pinInput); }}
           className="input text-center tracking-widest text-xl w-40" autoFocus />

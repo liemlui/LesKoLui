@@ -2038,7 +2038,7 @@ export default function CaptureSession() {
               <div className="border-t border-[var(--border)] pt-3">
                 <p className="text-xs text-[var(--ink-muted)] font-semibold uppercase tracking-wide mb-2">Custom</p>
                 <div className="flex gap-2">
-                  <input className="input flex-1 text-sm" placeholder="Ketik mapel lain..."
+                  <input className="input flex-1 text-sm" placeholder="Ketik mapel lain..." aria-label="Ketik mapel lain"
                     value={ibCustom} onChange={(e) => setIbCustom(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {

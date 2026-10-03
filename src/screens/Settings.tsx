@@ -986,8 +986,8 @@ export default function SettingsPage() {
                 </p>
               </div>
               <div>
-                <label className="label">Model</label>
-                <div className="input bg-[var(--surface)] text-[var(--ink-strong)] text-sm flex items-center gap-2 cursor-default">
+                <p id="set-model-label" className="label">Model</p>
+                <div role="group" aria-labelledby="set-model-label" className="input bg-[var(--surface)] text-[var(--ink-strong)] text-sm flex items-center gap-2 cursor-default">
                   <span className="font-semibold">{DEEPSEEK_MODEL_LABEL}</span>
                 </div>
                 <p className="text-xs text-[var(--ink-muted)] mt-1">
