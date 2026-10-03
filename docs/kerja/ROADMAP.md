@@ -2,6 +2,7 @@
 
 > **Status:** aktif · Diperbarui: 2026-10-03 · Baseline: v1.87.0 (691 tes)
 > **Cara pakai:** baca ATURAN-AI §0. Tentukan tier SEBELUM mulai. Satu putaran = satu tugas (kecuali batch 📦).
+> Paralelisasi: hanya sah kalau tidak ada chat lain yang menyentuh berkas itu. Karena satu tugas bisa memegang puluhan berkas src/**, aturan default = SERIAL. Paralel butuh git worktree terpisah.
 > Kolom Tier = perkiraan; tier final ditetapkan saat tugas dimulai (§6.2 butir 1).
 >
 > **Target G2-02 (revisi — menggantikan "889→≤190"):** **0 kelas warna langsung di luar berkas §2.1**.
@@ -29,7 +30,7 @@
 | G2-02 | sapu kelas warna → token semantik | T2 | G2-01 | src/**/*.tsx, src/index.css | L | ✅ v1.87.0 |
 | G2-03 | kunci light-only permanen | T1 | G2-01 | index.css (komentar), playwright.config | S | ⬜ |
 | G2-04 | satu pintu uang (TASK-08) | T2 | G2-01 | useMoneyVisible, MaskedMoney, 5 layar | L | ⬜ |
-| G2-05 | verifikasi input Android (manual) | T1 | G2-01 | tidak ada | S | ⬜ |
+| G2-05 | verifikasi input Android (manual) | T1 | G2-01, owner | tidak ada | S | ⛔ manual (butuh HP Android) |
 | G2-06 | tap target ≥44px | T2 | G2-01 | 9 berkas layar | M | ⬜ |
 | G2-07 | DayView kerapatan 27/54/97 | T1 | G2-01 | home/DayView.tsx | M | ⬜ |
 | G2-08 | Beranda non-uang | T2 | G2-04 | home/*.tsx | M | ⬜ |
