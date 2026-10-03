@@ -35,7 +35,7 @@
 | G2-06 | tap target ≥44px | T2 | G2-01 | 9 berkas layar | M | ✅ v1.88.0 |
 | G2-07 | DayView kerapatan 27/54/97 | T1 | G2-01 | home/DayView.tsx | M | ✅ v1.88.0 |
 | G2-08 | Beranda non-uang | T2 | G2-04 | home/*.tsx | M | ✅ v1.88.0 |
-| G2-09 | emoji→SVG | T2 | G2-01 | icons.tsx + layar pemakai | M | 🟡 literal **0** · sisa **69 ikon konstanta** di 7 berkas (1 dilindungi §2.1) |
+| G2-09 | emoji→SVG | T2 | G2-01 | icons.tsx + layar pemakai | M | 🟡 literal **0** · sisa **69 ikon konstanta** di 7 berkas (1 dilindungi §2.1) · **metrik guard sudah ada** (`test.fixme` + residual) |
 | G2-10 | jalur galat tunggal useLiveQuery | T3 | G2-01 | useSettingsQuery + 6 layar | M | ✅ v1.88.0 |
 
 ## Gelombang 3

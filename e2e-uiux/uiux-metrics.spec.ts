@@ -135,6 +135,25 @@ const COLLECT = `(() => {
 
   const headings = Array.from(document.querySelectorAll("h1,h2,h3,h4,h5,h6")).map((h) => h.tagName + ": " + (h.textContent || "").trim().slice(0, 40));
 
+  // L-05 / G2-09 — emoji di dalam kontrol & heading. Yang dihitung hanya
+  // piktograf (termasuk yang ber-default-teks tetapi dipakai dengan VS16 seperti
+  // ⬇️ ☁️ ♻️). Glyph tipografi ✓ ✕ ✗ ↩ ← → ↑ ↓ ↺ ⇱ × ↗ ▶ dikecualikan: itu bukan
+  // emoji berwarna dan justru lebih andal daripada ikon di tengah kalimat.
+  // ⚠️ Backslash ditulis ganda karena blok ini adalah isi template literal.
+  const EMOJI_RE = /\\p{Extended_Pictographic}\\uFE0F?/gu;
+  const TEXT_GLYPHS = new Set([
+    "\\u2713", "\\u2715", "\\u2717", "\\u21A9", "\\u2190", "\\u2192", "\\u2191", "\\u2193",
+    "\\u21BA", "\\u21F1", "\\u2194", "\\u2197", "\\u25B6", "\\u00D7",
+  ]);
+  const emojiInControls = [];
+  for (const el of Array.from(document.querySelectorAll("button, h1, h2, h3, h4, h5, h6"))) {
+    const text = (el.textContent || "").trim();
+    for (const m of text.matchAll(EMOJI_RE)) {
+      if (TEXT_GLYPHS.has(m[0][0])) continue;
+      emojiInControls.push({ tag: el.tagName, emoji: m[0], text: text.slice(0, 40) });
+    }
+  }
+
   return {
     url: location.pathname + location.search,
     viewport: { w: window.innerWidth, h: window.innerHeight },
@@ -148,6 +167,8 @@ const COLLECT = `(() => {
     under44Count: under44.length,
     tinyCount: tiny.length,
     truncCount: trunc.length,
+    emojiInControls: emojiInControls.slice(0, 40),
+    emojiInControlsCount: emojiInControls.length,
     tabs: tabs.length,
     tablists: document.querySelectorAll('[role=tablist]').length,
     tabpanels: document.querySelectorAll('[role=tabpanel]').length,
@@ -169,6 +190,8 @@ interface Metrics {
   under44Count: number;
   tinyCount: number;
   truncCount: number;
+  emojiInControls: Array<Record<string, unknown>>;
+  emojiInControlsCount: number;
   tabs: number;
   tablists: number;
   tabpanels: number;
@@ -308,6 +331,41 @@ const RESIDUAL_UKURAN: Record<string, string> = {
   "detail-murid":
     "L-03 sisa (2×): tautan telepon `a[href^=\"tel:\"]` berukuran 126×20 px (butuh ≥24 px). Tanggung jawab G2-06.",
 };
+
+/**
+ * L-05 sisa (G2-09). Emoji yang **sudah disapu** adalah yang tertulis langsung di
+ * JSX: terukur 0 (skrip `.design-audit/g2-09-check.cjs`, 2026-10-03). Yang tersisa
+ * hidup sebagai `icon:` di berkas DATA, sehingga tetap dirender ke dalam tombol
+ * tanpa terlihat oleh pemeriksa statis atas JSX:
+ *
+ *   `responseTaxonomy.ts` 26 · `captureSession/constants.ts` 19 · `moods.ts` 6 ·
+ *   `sessionTemplates.ts` 6 · `template/layouts/*` 9 · `engagement.ts` 3 (berkas dilindungi §2.1)
+ *
+ * Perbaikannya bukan pekerjaan kecil: butuh 26+ ikon baru dan mengubah bentuk data
+ * beserta pemanggilnya. Ada pula jaring yang harus ikut diperbarui —
+ * `src/__tests__/captureSessionHelpers.test.ts` menjaga **keunikan ikon antar-kontrol**
+ * (`ENGAGEMENT_FLAG_META` vs `MOODS`) dengan membandingkan string ikonnya, jadi
+ * mengubah tipe `icon` menjadi komponen membuat tes itu tidak lagi bermakna.
+ * Per-screen-nya angka tepatnya baru terlihat dari hasil jalannya tes ini.
+ */
+const RESIDUAL_EMOJI =
+  "L-05 sisa (G2-09): 69 ikon emoji hidup di berkas DATA (responseTaxonomy 26 · captureSession/constants 19 · " +
+  "moods 6 · sessionTemplates 6 · template/layouts 9 · engagement.ts 3 — berkas dilindungi §2.1). " +
+  "Emoji yang tertulis di JSX sudah 0. Perbaikan lanjutan butuh keputusan pemilik + 26 ikon baru.";
+
+test.describe("guard metrik UI — emoji di kontrol/heading (L-05)", () => {
+  for (const screen of SCREENS) {
+    test(`${screen.title}`, async ({ page }) => {
+      test.fixme(true, RESIDUAL_EMOJI);
+      await openScreen(page, screen.id);
+      const data = await measure(page, screen.id);
+      expect(
+        data.emojiInControlsCount,
+        `emoji di dalam kontrol/heading:\n${show(data.emojiInControls)}`,
+      ).toBe(0);
+    });
+  }
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Struktur: heading + pola tab.  Semua layar WAJIB lulus.
