@@ -26,8 +26,9 @@ npm test          # harapan: 561+ lulus, 0 gagal
 npm run build     # harapan: built + dist/sw.js
 
 # Peta jalur AI — setelah selesai, hasilnya hanya boleh menyebut satu jalur
-Select-String -Path "src\**\*.tsx" -Pattern "AiCostModal|AiCostConfirmModal|useAiAction|estimate.*Cost\(" |
-  ForEach-Object { "{0}:{1}: {2}" -f $_.Filename, $_.LineNumber, $_.Line.Trim() }
+# (REKURSIF: pola lama `Select-String -Path "src\**\*.tsx"` tidak menjangkau subfolder)
+Get-ChildItem -Recurse src -Include *.tsx -File | Select-String -Pattern "AiCostModal|AiCostConfirmModal|useAiAction|estimate.*Cost\(" |
+  ForEach-Object { "{0}:{1}: {2}" -f $_.Path, $_.LineNumber, $_.Line.Trim() }
 ```
 
 ## 1. Tujuan & definisi selesai
@@ -42,7 +43,7 @@ bulan ini?"*, dan tidak ada pagar belanja.
 - [ ] **Satu jalur**: `useAiAction()` — estimasi → modal → eksekusi → catat pemakaian
 - [ ] **Tidak ada tombol AI tanpa harga** (label memuat `· ~RpNN`), dan **modal selalu muncul** sebelum panggilan
 - [ ] **Satu komponen modal** (berkas `AiCostModal.tsx` yang lama digantikan)
-- [ ] **Batas bulanan** di `Settings.ai.monthlyBudgetIdr` + pesan jelas saat terlampaui
+- [ ] **Batas bulanan opsional** di `Settings.ai.monthlyBudgetIdr` — **default kosong = tanpa batas** (Q1 2026-10-01); bila diisi & terlampaui, pesannya jelas
 - [ ] **Setiap panggilan dicatat** sebagai `AuditEntry` dengan `action: "ai.call"`, `costIdr`, `aiFeature`
 - [ ] **Tanpa API key / anggaran habis → fitur inti tetap jalan** dari aturan lokal
 - [ ] Estimator baru **tidak** dibuat; yang ada dipakai (`aiClient.ts:343,348,353,357,361,499,576`)
@@ -168,9 +169,10 @@ export function useAiAction<T>(): AiActionState<T> & {
 **Aturan:**
 
 1. `run()` **hanya** dipanggil setelah tombol `Jalankan` ditekan. Membatalkan modal = **nol** panggilan API.
-2. Sebelum menjalankan: periksa `Settings.ai.apiKey` dan batas bulanan (`getAiUsage` + `monthlyBudgetIdr`).
+2. Sebelum menjalankan: periksa `Settings.ai.apiKey`, lalu batas bulanan (`getAiUsage` + `monthlyBudgetIdr`).
    - API key kosong → `error = "AI belum diaktifkan."` dan **jangan** buka modal.
-   - Anggaran terlampaui → `error = "Batas belanja AI bulan ini sudah tercapai (Rp x / Rp y)."`
+   - **`monthlyBudgetIdr` kosong/undefined → tidak ada penolakan** (ini keadaan default; Q1 2026-10-01).
+   - `monthlyBudgetIdr` diisi **dan** pemakaian ≥ batas → `error = "Batas belanja AI bulan ini sudah tercapai (Rp x / Rp y)."`
      dan tombol di luar menampilkan keadaan nonaktif dengan alasan yang terlihat.
 3. Setelah `run()` sukses: panggil `logAiCall` dengan **estimasi** yang ditampilkan di modal
    (`estimatedIDR`) — bukan perhitungan ulang dari token yang mungkin tidak tersedia.
@@ -178,8 +180,9 @@ export function useAiAction<T>(): AiActionState<T> & {
 5. **Jangan** menangani galat dengan membuang hasil lama. Hasil sebelumnya tetap ditampilkan.
 
 **Selesai bila:** hook ada + tes: (a) membatalkan modal tidak memanggil `run`, (b) tanpa API key tidak
-membuka modal, (c) anggaran terlampaui memblokir, (d) sukses → `logAiCall` terpanggil sekali dengan
-`costIdr` yang sama seperti `estimatedIDR`.
+membuka modal, (c) **batas kosong → tidak memblokir** *(tes ini WAJIB, menggantikan tes lama)*, (d) batas
+diisi & terlampaui → memblokir *(**opsional** — dikerjakan bila waktu cukup; Q1 2026-10-01)*, (e) sukses →
+`logAiCall` terpanggil sekali dengan `costIdr` yang sama seperti `estimatedIDR`.
 
 **Verifikasi:** perintah standar §0 + `npm test -- useAiAction`.
 
@@ -219,7 +222,8 @@ export function AiCostModal(props: AiCostModalProps): JSX.Element | null;
 3. Panel: *Nama murid ikut terkirim?* · *Catatan bebas terkirim?* · **Perkiraan biaya** `~Rp 60`
 4. Catatan kecil: `DEEPSEEK_COST_NOTE` + tautan `DEEPSEEK_PRICING_URL` (**pertahankan** — sudah ada)
 5. Tombol `Jalankan` (lebar penuh) + `Batal`
-6. Baris paling bawah: `Pemakaian AI bulan ini: Rp 3.400 · 11 panggilan · batas Rp 25.000`
+6. Baris paling bawah: `Pemakaian AI bulan ini: Rp 3.400 · 11 panggilan` (tanpa batas — keadaan default,
+   Q1 2026-10-01). Bila pengguna **mengisi** batas, tambahkan `· batas Rp 25.000`.
 
 **Aturan:**
 
@@ -267,16 +271,19 @@ bagian di atas; `Select-String` untuk `AiCostConfirmModal` di `src/**/*.tsx` →
 
 ---
 
-### Langkah 5 — Pagar anggaran di Pengaturan
+### Langkah 5 — Pemakaian AI & batas opsional di Pengaturan
 
-**Tujuan:** pemilik bisa menetapkan batas, dan melihat pemakaian.
+**Tujuan:** pemilik bisa **melihat pemakaian** dan (bila mau) menetapkan batas. Batas **tidak** dipasang
+secara default — *keputusan pemilik 2026-10-01 (Q1)*.
 
 **Berkas:** `src/screens/Settings.tsx` (bagian AI)
 
 **Yang dilakukan:**
 
-1. Tambah kolom **"Batas belanja AI per bulan"** (rupiah). Kosong = tanpa batas.
-2. Tampilkan pemakaian bulan berjalan: `Rp 3.400 dari Rp 25.000 · 11 panggilan`.
+1. Tambah kolom **"Batas belanja AI per bulan"** (rupiah). **Default: kosong = tanpa batas** —
+   jangan mengisi nilai awal apa pun.
+2. Tampilkan pemakaian bulan berjalan: tanpa batas → `Rp 3.400 · 11 panggilan bulan ini`;
+   dengan batas → `Rp 3.400 dari Rp 25.000 · 11 panggilan`.
    Tombol `Atur ulang` (hapus batas) dan `Lihat riwayat` (daftar 20 `ai.call` terakhir: waktu, fitur, biaya).
 3. Simpan lewat jalur penyimpanan `Settings` yang **sudah ada**. Jangan membuat kunci `localStorage` baru.
 4. Kalau `monthlyBudgetIdr` diisi di bawah pemakaian bulan berjalan, beri peringatan lembut —
@@ -368,7 +375,7 @@ selisih estimasi vs pemakaian tercatat di §9.
 - [ ] **L2 — `useAiAction`.** 4 kasus tes lulus: ___
 - [ ] **L3 — Satu modal.** Sisa impor modal kedua: ___
 - [ ] **L4 — 7 titik dipindahkan.** Pemanggilan `aiClient` langsung dari komponen: ___
-- [ ] **L5 — Pagar anggaran.** `npm test -- aiSettings`: ___
+- [ ] **L5 — Pemakaian & batas opsional.** `npm test -- aiSettings`: ___ · default tanpa batas: ya/tidak
 - [ ] **L6 — AI opsional.** 3 skenario lulus: ___ · selisih estimasi vs pemakaian: ___%
 
 ## 10. Riwayat tugas
@@ -376,3 +383,4 @@ selisih estimasi vs pemakaian tercatat di §9.
 | Tanggal | Perubahan | Versi | Hasil |
 |---|---|---|---|
 | 2026-09-25 | Dibuat dari keputusan pemilik: semua AI lewat tombol biaya | v1.75.1 | `todo` |
+| 2026-10-01 | Amandemen **Q1 (B4)**: batas belanja AI **default kosong = tanpa batas**; tes blokir jadi opsional; Langkah 5 menjadi "Pemakaian AI & batas opsional" | v1.79.3 | `todo` |

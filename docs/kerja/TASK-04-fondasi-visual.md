@@ -1,4 +1,4 @@
-# TASK-04 — Fondasi Visual (token, primitif, ganti 471 hardcode, dark mode)
+# TASK-04 — Fondasi Visual (token, primitif, ganti 904 hardcode, light-only)
 
 > **STATUS:** `todo`
 > **PEMILIK:** agen AI
@@ -22,38 +22,48 @@ npx eslint src    # harapan: tanpa keluaran
 npm test          # harapan: 561 lulus, 0 gagal
 npm run build     # harapan: built + dist/sw.js
 
-# Penghitung utang kelas warna (jalankan sebelum & sesudah tiap langkah, catat angkanya)
-(Select-String -Path "src\**\*.tsx" -Pattern "bg-white|bg-gray-|text-gray-|border-gray-" -ErrorAction SilentlyContinue).Count
+# Penghitung utang kelas warna — REKURSIF (jalankan sebelum & sesudah tiap langkah, catat angkanya).
+# ⚠️ Perintah lama `Select-String -Path "src\**\*.tsx"` HANYA menjangkau 38 berkas (kedalaman 1) dan
+# melaporkan 470; angka sebenarnya 904 (diukur 2026-10-01). Pakai perintah rekursif ini.
+(Get-ChildItem -Recurse src -Include *.tsx -File | Select-String -Pattern "bg-white|bg-gray-|text-gray-|border-gray-").Count
 ```
 
 > **Kegagalan yang bukan regresi:** tes kontras (`src/__tests__/engagementContrast.test.ts`) membaca
 > pasangan warna dari `src/lib/engagement.ts`. Kalau gagal setelah token diubah, **perbarui pasangan
-> warnanya**, jangan matikan tesnya. Ini memang fungsinya.
+> warnanya di sumber yang memakainya**, jangan matikan tesnya. Ini memang fungsinya.
+>
+> ⚠️ **`src/lib/engagement.ts` TERLARANG disentuh** (`ATURAN-AI.md` §2.1). Yang boleh diperbaiki: token di
+> `src/index.css`, kelas/warna di komponen **pemanggil**, serta peta warna laporan di
+> `src/template/layouts/helpers.tsx:425-429` — dan itu pun **hanya bila** pemilik memberi pengecualian
+> tertulis untuk `src/template/**` (sekarang masih terlarang). Kalau sebuah perbaikan kontras hanya bisa
+> dilakukan di berkas terlarang → **berhenti dan lapor**. *(Amandemen 2026-10-01 — A7: instruksi lama
+> menyuruh memperbaiki warna dengan mengedit `engagement.ts`.)*
 
 ## 1. Tujuan & definisi selesai
 
-UI sekarang tidak punya sistem: 471 kelas warna ditulis langsung di `.tsx`, tidak ada skala tipografi
+UI sekarang tidak punya sistem: **904** kelas warna ditulis langsung di `.tsx` (angka terkoreksi 2026-10-01;
+kontrak lama menulis 471 karena perintah penghitungnya tidak rekursif), tidak ada skala tipografi
 (didominasi 12px & 14px), tidak ada skala elevasi, dan dark mode mati karena token tidak dipakai
 (`src/index.css` baris 48–51). Selama fondasi ini belum ada, setiap rombakan layar berikutnya akan
 melahirkan utang baru.
 
 **Selesai berarti:**
 
-- [ ] Jumlah kelas warna hardcode turun **≥60%** dari angka awal (target: ≤190 dari ~471)
+- [ ] Jumlah kelas warna hardcode turun **≥60%** dari angka awal (target: **≤190** dari **904**, baseline 2026-10-01)
 - [ ] Tipografi memakai **4 langkah** saja; tidak ada konten terbaca di bawah 13px
 - [ ] Ada **7 primitif** di `src/components/ui/` dan dipakai minimal di 3 layar
-- [ ] **Dark mode hidup** kembali dan lolos tes kontras
+- [x] ~~Dark mode hidup kembali~~ → **DIBATALKAN (keputusan pemilik 2026-10-01, Q4): aplikasi light-only permanen**
 - [ ] `npm test`, `npm run build`, `npm run lint` hijau
 
 ## 2. Kondisi awal (angka nyata, 2026-09-25)
 
 | Ukuran | Sekarang | Target | Cara mengukur |
 |---|---:|---:|---|
-| Kelas warna hardcode | **471** | ≤190 | perintah di §0 |
+| Kelas warna hardcode | **904** (2026-10-01; perintah lama melaporkan 471 karena tidak rekursif) | ≤190 | perintah di §0 |
 | Langkah tipografi di `@theme` | 0 | 4 | baca `src/index.css` |
 | Tingkat elevasi | 1 (`--shadow-soft`) + campur `shadow-sm`/`shadow-xl` | 2 | `grep "shadow-" src/**/*.tsx` |
 | Berkas primitif `components/ui/` | folder belum ada | 7 | `Get-ChildItem src\components\ui` |
-| Dark mode | mati | hidup | `@media (prefers-color-scheme: dark)` ada di `index.css` |
+| Dark mode | mati | **mati permanen — light-only (Q4)** | tidak ada `@media (prefers-color-scheme: dark)` di `index.css` |
 | Teks <13px pada konten | banyak (`text-xs` 12px) | 0 untuk konten | audit manual per layar |
 
 **Cara mengukur ulang:** jalankan perintah di §0 dan tempel angkanya ke tabel ini.
@@ -256,39 +266,25 @@ memakai token yang sama; jumlah banner yang bisa tampil bersamaan tetap seperti 
 
 ---
 
-### Langkah 6 — Hidupkan dark mode
+### Langkah 6 — ~~Hidupkan dark mode~~ **DIBATALKAN** (keputusan pemilik 2026-10-01, Q4)
 
-**Tujuan:** token yang sudah dipakai membuat dark mode mungkin; sekarang dihidupkan dan diuji.
+**Status:** ❌ **tidak dikerjakan.** Aplikasi **light-only permanen**. Langkah ini dipertahankan di berkas
+hanya sebagai catatan sejarah + daftar hal yang tetap wajib beres.
 
-**Jangkar:** cari komentar `Dark mode DEAKTIVASI` di `src/index.css` (sekarang baris 48–51).
+**Yang HARUS dilakukan sebagai ganti langkah ini:**
 
-**Yang dilakukan:**
+1. **Jangan** menambahkan `@media (prefers-color-scheme: dark)` di `src/index.css`. Biarkan komentar
+   `Dark mode DEAKTIVASI` (baris 48–51) dan perjelas dengan catatan: *"light-only permanen — keputusan
+   pemilik 2026-10-01 (Q4)"*.
+2. **Hapus project `mobile-dark`** dari `playwright.config.ts` (baris 17) supaya matriks screenshot/E2E
+   tidak lagi memuat mode yang tak bermakna. Perbarui `docs/03-PLAYBOOK-AUDIT-UIUX-VISUAL.md` §3.1 & §5.1
+   dan `docs/README.md` §4.1 baris TASK-04.
+3. **Kontras tetap diperiksa** — tetapi sebagai bagian Langkah 5 (ukuran & warna), bukan lewat mode gelap.
+   Pasangan terburuk yang wajib lulus ada di `docs/06-AUDIT-UIUX-2026-10-01.md` §3 (L-01a…L-01g).
+4. Perbaikan warna **tidak boleh** menyentuh `src/lib/engagement.ts` (terlarang). *(Amandemen A7.)*
 
-1. Karena komponen kini memakai token, cukup **mendefinisikan ulang nilainya**, bukan menulis
-   `@media` berisi ratusan penimpaan:
-
-```css
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-surface:        #0b1220;
-    --color-surface-strong: #111a2b;
-    --color-surface-soft:   #172033;
-    --color-border:         #26324a;
-    --color-text:           #e6ecf6;
-    --color-text-muted:     #a8b4c8;
-  }
-}
-```
-
-2. Hapus komentar "DEAKTIVASI" dan ganti dengan catatan tanggal + alasan dihidupkan.
-3. Jalankan ulang tes kontras. **Kalau ada pasangan warna yang gagal 4,5:1**, perbaiki warnanya
-   di `src/lib/engagement.ts` (atau sumber pasangannya) — jangan matikan tes.
-
-**Selesai bila:** dark mode aktif; tes kontras lulus; semua layar utama dibuka dalam mode gelap
-tanpa teks yang tak terbaca.
-
-**Verifikasi:** perintah standar §0, lalu buka `Hari Ini`, `Uang`, `Murid`, `Catat` dengan
-`prefers-color-scheme: dark`.
+**Selesai bila:** tidak ada `@media (prefers-color-scheme: dark)` di `src/`; project `mobile-dark` hilang;
+`npm run build` hijau; tes kontras tetap lulus.
 
 ## 4. Pola umum
 
@@ -317,7 +313,7 @@ tanpa teks yang tak terbaca.
 | Tampilan berubah padahal katanya token saja | ada kelas lama yang dihapus, bukan hanya diganti | Bandingkan screenshot layar yang sama sebelum/sesudah |
 | Tes snapshot/E2E gagal oleh kelas CSS | selector memakai nama kelas Tailwind lama | Perbarui selector di tugas yang sama, catat di §8 |
 | Dark mode: teks gelap di atas gelap | ada berkas yang belum dimigrasi | Jalankan penghitung §0; berkas dengan hardcode = penyebabnya |
-| Hitungan kelas warna tidak turun | `Select-String` membaca berkas lain (mis. `dist/`) | Batasi path ke `src\**\*.tsx` |
+| Hitungan kelas warna tidak turun | penghitung membaca berkas lain (mis. `dist/`) | Pakai perintah **rekursif** di §0 (`Get-ChildItem -Recurse src …`); **jangan** kembali ke `Select-String -Path "src\**\*.tsx"` — pola itu tidak rekursif dan melaporkan angka yang salah (470, bukan 904) |
 
 > Jangan menutupi macet dengan menambah penimpaan CSS. Setiap penimpaan baru = utang baru.
 > Berhenti dan catat di §8.
@@ -343,17 +339,18 @@ tanpa teks yang tak terbaca.
 
 Catat angka sebelum → sesudah setiap langkah. Angka ini adalah buktinya.
 
-- [ ] **L1 — Token.** Hardcode: ___ → ___
+- [ ] **L1 — Token.** Hardcode: **904** → ___
 - [ ] **L2 — 7 primitif.** `src/components/ui/` berisi ___ berkas
 - [ ] **L3 — Gelombang 1 (7 komponen).** Hardcode: ___ → ___
 - [ ] **L4 — Gelombang 2 (nav & header).** Hardcode: ___ → ___
 - [ ] **L5 — Ukuran teks.** Sisa konten <13px: ___
-- [ ] **L6 — Dark mode.** Tes kontras: lulus / gagal (sebutkan pasangan yang diperbaiki)
+- [x] **L6 — DIBATALKAN (Q4 2026-10-01).** Light-only permanen · project `mobile-dark` dihapus · tes kontras tetap jalan di L1–L5
 
-**Angka akhir (2026-09-25):** hardcode **471** → target **≤190**
+**Angka awal (2026-09-25):** hardcode **471** (perintah tidak rekursif) · **Angka awal terkoreksi (2026-10-01):** **904** → target **≤190**
 
 ## 10. Riwayat tugas
 
 | Tanggal | Perubahan | Versi | Hasil |
 |---|---|---|---|
 | 2026-09-25 | Dibuat | v1.75.1 | `todo` |
+| 2026-10-01 | Amandemen: **L6 dark mode dibatalkan** (light-only permanen, Q4) · penghitung kelas warna dibuat **rekursif**, baseline dikoreksi **471 → 904** (A8) · larangan `src/lib/engagement.ts` ditegaskan pada instruksi kontras (A7) | v1.79.3 | `todo` |

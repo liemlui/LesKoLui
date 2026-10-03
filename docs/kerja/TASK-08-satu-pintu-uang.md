@@ -24,10 +24,11 @@ npx eslint src    # harapan: tanpa keluaran
 npm test          # harapan: 561+ lulus, 0 gagal
 npm run build     # harapan: built + dist/sw.js
 
-# Peta kebocoran: layar yang menyentuh uang TANPA hook uang (target akhir: 0)
-Select-String -Path "src\screens\*.tsx","src\screens\**\*.tsx" -Pattern "formatRupiah|totalCost|rateSnapshot" |
+# Peta kebocoran: layar yang menyentuh uang TANPA hook uang (target akhir: 0).
+# REKURSIF di dalam src\screens (pola lama "src\screens\**\*.tsx" tidak menjangkau kedalaman >2).
+Get-ChildItem -Recurse src\screens -Include *.tsx -File | Select-String -Pattern "formatRupiah|totalCost|rateSnapshot" |
   Where-Object { $_.Line -notmatch "useMoneyVisible|money-safe|formatRupiahDisplay" } |
-  ForEach-Object { "{0}:{1}: {2}" -f $_.Filename, $_.LineNumber, $_.Line.Trim() }
+  ForEach-Object { "{0}:{1}: {2}" -f $_.Path, $_.LineNumber, $_.Line.Trim() }
 ```
 
 > **Kegagalan yang bukan regresi:** `npm test` memuat tes PIN (`crypto.test.ts`). Tes itu menguji

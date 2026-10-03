@@ -20,6 +20,12 @@
 - **Enam langkah tetap enam.** `STEP_META` (`src/screens/captureSession/constants.ts:67`) tidak boleh
   berubah jumlahnya — ada tes yang mengunci itu (`captureSessionHelpers.test.ts:176`).
 
+> **Amandemen 2026-10-01 (Q2) — tombol simpan.** Sesi **boleh disimpan dari langkah 5**: tombol `Simpan Sesi`
+> aktif di langkah 5 **dan** 6. Ini **bukan** pengurangan langkah — `STEP_META` tetap 6 dan langkah 6 tetap
+> menawarkan Bukti (foto/TTD). Yang berubah hanya boleh menyelesaikan lebih awal, bukan menghilangkan langkah.
+> **Dua tes baru wajib** (di `captureSessionHelpers` atau tes komponen yang setara):
+> (a) simpan dari langkah 5 tanpa Bukti → sesi tersimpan dengan catatan; (b) bila Bukti diisi, Bukti ikut tersimpan.
+
 **Perintah verifikasi standar (dari `les-ko-lui/`):**
 
 ```powershell
@@ -45,6 +51,7 @@ di luar wizard ada **tiga jalur** untuk mengelola sesi yang sama (`Catat`, `Edit
 - [ ] Setiap langkah mengisi layar dengan fokus penuh; bilah aksi **selalu** di tempat yang sama
 - [ ] Transisi antar langkah terasa jelas (arah maju/mundur terlihat)
 - [ ] Menutup wizard di tengah jalan **tidak** menghilangkan draf (perilaku sekarang dipertahankan)
+- [ ] Tombol **`Simpan Sesi` aktif di langkah 5 dan 6**; menyimpan dari langkah 5 boleh tanpa Bukti (Q2 2026-10-01)
 - [ ] `EditSessionModal` + `ResolveMissedSessionModal` **menjadi satu** sheet "Kelola sesi"
 - [ ] Aksi sesi terlewat: `Catat` · `Batal les` · `Tidak hadir`; `Jadwalkan ulang` pindah ke `⋯`
 - [ ] `[Catat]` dari beranda membuka wizard **dengan murid + tanggal + jam terisi** (keputusan B3)
@@ -176,7 +183,7 @@ interface ManageSessionSheetProps {
 **Selesai bila:** kedua modal lama tidak lagi diimpor; keenam aksi di tabel masih bisa dijalankan;
 `reason` tetap tersimpan.
 
-**Verifikasi:** perintah standar §0 + `Select-String -Path "src\**\*.tsx" -Pattern "EditSessionModal|ResolveMissedSessionModal"` (kosong) + `npm run e2e`.
+**Verifikasi:** perintah standar §0 + `(Get-ChildItem -Recurse src -Include *.tsx -File | Select-String -Pattern "EditSessionModal|ResolveMissedSessionModal").Count` (**harus 0** — pola lama `src\**\*.tsx` tidak menjangkau `src/screens/home/`) + `npm run e2e`.
 
 ---
 
@@ -234,6 +241,7 @@ langkah tetap 6; alur tanpa `scheduleId` tidak berubah.
 | Jebakan | Gejala | Cara menghindar |
 |---|---|---|
 | Menggabung langkah "supaya cepat" | data engagement jadi kosong/datar | **Dilarang** di tugas ini; enam langkah tetap enam |
+| Mengira menyimpan dari langkah 5 = mengurangi langkah | ragu melanggar kontrak | **Bukan pelanggaran** (Q2 2026-10-01): `STEP_META` tetap 6; tombol `Simpan Sesi` aktif di langkah 5 & 6; langkah 6 tetap menawarkan Bukti |
 | Mengubah bentuk draf | pengguna kehilangan isian saat app ditutup | Kunci penyimpanan & bentuk data tidak diubah |
 | Menghapus `Jadwalkan ulang` | kemampuan hilang tanpa disadari | Pindahkan ke `⋯`, jangan hapus |
 | Mengubah URL `?scheduleId=` | deep link & E2E patah | Pertahankan bentuk URL |
@@ -278,9 +286,11 @@ langkah tetap 6; alur tanpa `scheduleId` tidak berubah.
 - [ ] **L4 — Sheet Kelola sesi.** Enam aksi bisa dijalankan: ___ dari 6
 - [ ] **L5 — `[Catat]` terisi.** Langkah 1 terisi dari `scheduleId`: ya/tidak
 - [ ] **L6 — Verifikasi manual + E2E.** 12 kotak `docs/README.md` §4.3: ___ / 12 · Waktu alur cepat: ___ detik
+- [ ] **L7 — Simpan dari langkah 5 (Q2).** 2 tes baru: simpan tanpa Bukti ya/tidak · Bukti tersimpan bila ada ya/tidak
 
 ## 10. Riwayat tugas
 
 | Tanggal | Perubahan | Versi | Hasil |
 |---|---|---|---|
 | 2026-09-25 | Dibuat; wizard **dipertahankan** sesuai keputusan pemilik | v1.75.1 | `todo` |
+| 2026-10-01 | Amandemen **Q2**: tombol `Simpan Sesi` aktif di langkah 5 & 6; `STEP_META` tetap 6; langkah 6 tetap menawarkan Bukti; +2 tes baru (L7) | v1.79.3 | `todo` |

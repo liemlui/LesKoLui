@@ -25,6 +25,14 @@ interface CloseOutSheetProps {
   aiWaLoading: boolean;
   aiError: string | null;
   onClearAiWa: () => void;
+  /**
+   * Audit Q16d: kegagalan menyimpan tindak lanjut ditampilkan DI DALAM modal ini.
+   * Banner halaman tidak bisa dipakai karena `Modal` mengunci fokus di dalam
+   * dialog — tombol "Coba lagi" di luar dialog tidak terjangkau keyboard.
+   */
+  closeOutError: string | null;
+  /** Ulangi aksi yang gagal (menyimpan tindak lanjut), bukan menyimpan sesi lagi. */
+  onRetry: () => void;
   engagement?: { score: number; color: string; background: string; text: string; narrative: string };
 }
 
@@ -33,7 +41,7 @@ export default function CloseOutSheet({
   studentName, parentName, session, followUps, followUpText, setFollowUpText,
   saving, waNumber, originalWaMessage, aiWaText, onAddFollowUp, onDeleteFollowUp,
   onDone, onClose, onFixNote, onPolishWa, aiWaEnabled, aiWaLoading, aiError,
-  onClearAiWa, engagement,
+  onClearAiWa, closeOutError, onRetry, engagement,
 }: CloseOutSheetProps) {
   const [followUpPage, setFollowUpPage] = useState(1);
   const safeFollowUpPage = clampPage(followUpPage, followUps.length);
@@ -77,11 +85,25 @@ export default function CloseOutSheet({
             <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: engagement.color }}>😊 Kondisi Belajar</p>
             <div className="flex items-center gap-3"><div className="relative w-16 h-16 flex-shrink-0"><svg viewBox="0 0 36 36" className="w-16 h-16 -rotate-90"><circle cx="18" cy="18" r="14" fill="none" stroke="rgba(0,0,0,.06)" strokeWidth="3.5" /><circle cx="18" cy="18" r="14" fill="none" stroke={engagement.color} strokeWidth="3.5" strokeDasharray={`${(engagement.score / 10) * 100 * 0.879} 100`} strokeLinecap="round" /></svg><span className="absolute inset-0 flex items-center justify-center font-black text-base" style={{ color: engagement.color }}>{engagement.score}</span></div><div className="flex-1"><p className="font-black text-base" style={{ color: engagement.color }}>{engagement.text}</p><p className="text-xs text-gray-700 mt-1 leading-relaxed">{engagement.narrative}</p></div></div>
           </div>}
-          <div><p className="text-xs font-black text-gray-500 uppercase tracking-widest mb-2">🔁 Fokus Sesi Berikutnya <span className="font-normal normal-case text-gray-500">(opsional)</span></p><div className="flex gap-2"><input className="input flex-1 text-sm" placeholder="Topik/hal yang perlu dilanjutkan..." value={followUpText} onChange={(e) => setFollowUpText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && onAddFollowUp()} /><button onClick={onAddFollowUp} disabled={!followUpText.trim()} className="px-3 py-2 rounded-xl bg-amber-500 text-white text-sm font-bold disabled:opacity-40 hover:bg-amber-600 transition-colors">+</button></div>
-            {followUps.length > 0 && <div className="mt-2 space-y-1.5">{paginatedFollowUps.map((followUp) => <div key={followUp.id} className="flex items-center gap-2 bg-amber-50 rounded-xl px-3 py-2.5 border border-amber-100"><span className="text-amber-400">🔁</span><p className="flex-1 text-sm font-semibold text-gray-700">{followUp.text}</p><button onClick={() => onDeleteFollowUp(followUp.id)} className="text-gray-500 hover:text-red-400"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg></button></div>)}<PaginationControls page={safeFollowUpPage} total={followUps.length} onPageChange={setFollowUpPage} label="follow-up" /></div>}
+          <div><p className="text-xs font-black text-gray-500 uppercase tracking-widest mb-2">🔁 Fokus Sesi Berikutnya <span className="font-normal normal-case text-gray-500">(opsional)</span></p><div className="flex gap-2"><input className="input flex-1 text-sm" aria-label="Fokus sesi berikutnya (opsional)" placeholder="Topik/hal yang perlu dilanjutkan..." value={followUpText} onChange={(e) => setFollowUpText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && onAddFollowUp()} /><button onClick={onAddFollowUp} disabled={!followUpText.trim()} className="px-3 py-2 rounded-xl bg-amber-500 text-white text-sm font-bold disabled:opacity-40 hover:bg-amber-600 transition-colors">+</button></div>
+            {followUps.length > 0 && <div className="mt-2 space-y-1.5">{paginatedFollowUps.map((followUp) => <div key={followUp.id} className="flex items-center gap-2 bg-amber-50 rounded-xl px-3 py-2.5 border border-amber-100"><span className="text-amber-400">🔁</span><p className="flex-1 text-sm font-semibold text-gray-700">{followUp.text}</p><button onClick={() => onDeleteFollowUp(followUp.id)} aria-label={`Hapus tindak lanjut: ${followUp.text}`} className="text-gray-500 hover:text-red-400"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg></button></div>)}<PaginationControls page={safeFollowUpPage} total={followUps.length} onPageChange={setFollowUpPage} label="follow-up" /></div>}
           </div>
           {waNumber && <div><p className="text-xs font-black text-gray-500 uppercase tracking-widest mb-2">💬 Update Orang Tua</p>{aiError && <p className="text-xs text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-2">{aiError}</p>}<div className="bg-green-50 border border-green-200 rounded-2xl p-3.5 mb-2"><pre className="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed font-sans">{waMessage}</pre></div>{aiWaEnabled && <div className="flex gap-2 mb-2"><button type="button" disabled={aiWaLoading} onClick={onPolishWa} className="flex-1 flex items-center justify-center gap-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-2.5 rounded-xl transition-colors disabled:opacity-50">{aiWaLoading ? "⏳ Poles AI..." : "✨ Poles AI"}</button>{aiWaText && <button type="button" onClick={onClearAiWa} className="text-xs text-gray-500 hover:text-gray-600 px-3 py-2 rounded-xl border border-gray-200 bg-white font-semibold">↩ Original</button>}</div>}<a href={`https://wa.me/${waNumber}?text=${encodeURIComponent(waMessage)}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl bg-green-500 text-white font-black text-sm hover:bg-green-600 transition-colors shadow-md shadow-green-200"><span className="text-lg">💬</span> Kirim ke {parentName || "Orang Tua"}</a></div>}
           <button type="button" onClick={onFixNote} className="w-full py-3 rounded-2xl border border-gray-300 bg-white text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors">✏️ Perbaiki catatan sesi</button>
+          {/* Audit Q16d: jalan keluar kegagalan harus berada di dalam dialog. */}
+          {closeOutError && (
+            <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
+              <span className="flex-1">{closeOutError}</span>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={onRetry}
+                className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-lg border border-red-300 bg-white px-3 text-sm font-bold text-red-700 transition hover:bg-red-100 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              >
+                Coba lagi
+              </button>
+            </div>
+          )}
           <button onClick={onDone} disabled={saving} className="w-full py-4 rounded-2xl font-black text-base text-white transition-all disabled:opacity-50 shadow-lg" style={{ background: "linear-gradient(135deg, #1f2937, #374151)" }}>{saving ? "⏳ Menyimpan..." : "🏁 Selesai & Lihat Profil"}</button>
         </div>
       </div>

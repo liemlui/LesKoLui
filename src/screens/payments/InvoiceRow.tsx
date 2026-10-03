@@ -129,7 +129,7 @@ export default function InvoiceRow({
         )}
         <div className="flex flex-wrap gap-2">
           {phone && !paid && <a href={`https://wa.me/${phone}?text=${encodeURIComponent(waText)}`} target="_blank" rel="noopener noreferrer" className="min-w-[120px] flex-1 rounded-lg bg-green-500 py-2 text-center text-xs font-semibold text-white transition-colors hover:bg-green-600">Kirim tagihan via WA</a>}
-          <button onClick={onTogglePaid} className={`min-w-[120px] flex-1 rounded-lg py-2 text-xs transition-colors ${paid ? "border border-gray-200 text-gray-600 font-medium hover:bg-gray-50" : "bg-blue-600 text-white font-semibold hover:bg-blue-700"}`}>{paid ? "Batalkan pelunasan" : "Tandai sudah dibayar"}</button>
+          <button onClick={onTogglePaid} className={`min-w-[120px] flex-1 rounded-lg py-2 text-xs transition-colors ${paid ? "border border-gray-200 text-gray-600 font-medium hover:bg-gray-50" : "bg-blue-600 text-white font-semibold hover:bg-blue-700"}`}>{paid ? "Tandai belum dibayar" : "Tandai sudah dibayar"}</button>
         </div>
         <div className="flex flex-wrap gap-2">
           {student && <button onClick={onOpenReport} className="min-w-[88px] flex-1 rounded-lg border border-blue-200 py-1.5 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50">{report ? "Buka laporan" : "Lengkapi laporan"}</button>}

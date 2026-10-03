@@ -507,3 +507,27 @@ pemilik (semua rekomendasi dipakai — lihat §6 dan pintasan di §0). Ringkasan
 
 Seluruh nomor baris di §3 diverifikasi pada **2026-09-30** terhadap worktree `main` @ `2e40b02`;
 nomor baris dapat bergeser — gunakan **jangkar teks** sebagai acuan dan verifikasi ulang sebelum menyentuh berkas.
+
+---
+
+## 13. Amandemen 2026-10-01 — K-01 (tugas lanjutan, di luar L0–L9)
+
+> Dokumen ini **tetap selesai** untuk lingkupnya; amandemen ini **tidak** mengubah hasil L0–L9. Ia mencatat
+> satu perilaku yang **akan** diubah tugas lanjutan — ditulis di `docs/kerja/GELOMBANG-3.md` (G3-02).
+> Terdaftar juga di `docs/README.md` §4.2 baris 16.
+
+**Perilaku sekarang (yang akan diubah):** baris §5 **"Ubah nominal"** — menyentuh kolom nominal (auto-save
+`onBlur`) langsung memanggil `updatePaymentAmountById`, yang menulis `{ totalCost, source: "manual" }`
+(`paymentRepo.ts:1160`). Efeknya **senyap**: tombol "Batalkan tagihan" mati (`TagihanTab.tsx:57` — butuh
+`source === "auto"`), daftar sesi jadi kosong (`useInvoiceFilters.ts:100-103` → metaLine "0 pertemuan"),
+dan teks WhatsApp beralih ke versi manual.
+
+**Keputusan pemilik (2026-10-01, keputusan #1):** beri **peringatan** sebelum mengubah asal tagihan, dan
+sediakan **tombol eksplisit** bila asal tagihan memang ingin diubah — bukan mengubah `source` diam-diam
+(seperti sekarang) dan bukan pula menghapus kemampuan mengubahnya.
+
+**Batas tugas lanjutan:** logika `paymentRepo.ts` terlarang diubah (`TASK-05` §7). Perbaikan dilakukan di
+**lapisan UI**: konfirmasi yang menyebut konsekuensi, tampilan asal tagihan asli, dan pesan hasil.
+
+**Catatan gate:** setelah `playwright.config.ts` kehilangan project `mobile-dark` (keputusan Q4 2026-10-01),
+angka E2E di laporan lama (39/39 di **tiga** project) tidak lagi sebanding — sekarang **dua** project.

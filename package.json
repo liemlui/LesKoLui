@@ -1,15 +1,17 @@
 {
   "name": "les-ko-lui",
   "private": true,
-  "version": "1.79.3",
+  "version": "1.85.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test": "vitest run",
+    "test:sandbox": "vitest run --pool=threads --maxWorkers=2",
     "test:watch": "vitest",
     "e2e": "playwright test",
+    "e2e:uiux": "playwright test --config=playwright.uiux.config.ts",
     "e2e:pwa": "playwright test --config=playwright.sw.config.ts",
     "e2e:shot": "playwright test --config=playwright.config.ts e2e/screenshot-katalog.spec.ts",
     "preview": "vite preview"

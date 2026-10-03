@@ -41,3 +41,46 @@ describe("settingsDirtyPatch", () => {
     expect(settingsDirtyPatch(before, after)).toEqual({ driveBackup: undefined });
   });
 });
+
+/**
+ * S-03 (G1-09) — jalur "Simpan PIN" memakai patch yang sama dengan "Simpan Pengaturan".
+ *
+ * Sebelumnya `handleSetPin` menulis snapshot `{ ...form }` penuh, sehingga metadata
+ * operasional dari form yang bisa lebih tua daripada IndexedDB (mis. `lastBackupAt`
+ * atau `driveBackup` yang baru saja ditulis alur backup lain) ikut ditulis balik.
+ */
+describe("settingsDirtyPatch — skenario PIN (audit S-03)", () => {
+  it("menyimpan PIN hanya mengirim field PIN, bukan metadata backup dari snapshot lama", () => {
+    // Form dibuka SEBELUM backup lain selesai → snapshotnya lebih tua daripada IndexedDB.
+    const before = makeSettings();
+    const updated: Settings = {
+      ...before,
+      financialPin: "pbkdf2v2:pin-baru",
+      securityQuestion: "Warna favorit?",
+      securityAnswer: "pbkdf2v2:jawaban-baru",
+    };
+
+    const patch = settingsDirtyPatch(before, updated);
+    expect(patch).toEqual({
+      financialPin: "pbkdf2v2:pin-baru",
+      securityQuestion: "Warna favorit?",
+      securityAnswer: "pbkdf2v2:jawaban-baru",
+    });
+    expect(patch).not.toHaveProperty("lastBackupAt");
+    expect(patch).not.toHaveProperty("driveBackup");
+  });
+
+  it("editan yang belum disimpan ikut terkirim bersama PIN, jadi `dirty` boleh dimatikan", () => {
+    const before = makeSettings();
+    const updated: Settings = {
+      ...before,
+      tutorProfile: { ...before.tutorProfile, phone: "0899" },
+      financialPin: "pbkdf2v2:pin-baru",
+    };
+
+    expect(settingsDirtyPatch(before, updated)).toEqual({
+      tutorProfile: { phone: "0899" },
+      financialPin: "pbkdf2v2:pin-baru",
+    });
+  });
+});

@@ -148,3 +148,76 @@ export function appendSituasi(current: string, label: string): string {
 export function hasSituasi(current: string, label: string): boolean {
   return current.split(",").map((s) => s.trim()).includes(label);
 }
+
+/**
+ * Apa yang harus ditampilkan blok "sesi hari ini" di Beranda (audit B-01).
+ *
+ * `useLiveQuery` mengembalikan `undefined` selama query pertama berjalan. Sebelum
+ * pemisahan ini, keadaan "belum siap" tidak bisa dibedakan dari "memang tidak ada
+ * sesi", sehingga Beranda sempat berkata "Tidak ada sesi hari ini" padahal datanya
+ * belum datang. Fungsi murni supaya aturan ini bisa diuji tanpa merender layar.
+ */
+export function todayHeroLoadState(
+  todaySessions: readonly unknown[] | undefined,
+  students: readonly unknown[] | undefined,
+): "loading" | "ready" {
+  return todaySessions === undefined || students === undefined ? "loading" : "ready";
+}
+
+/**
+ * Kata kunci yang menandai kalimat sebagai kegagalan. Dipakai bersama oleh
+ * `feedbackTypeForResult` dan (sebagai kontrak) oleh pesan yang dihasilkan
+ * `saveErrorMessage` — inilah sebabnya dua fungsi itu tinggal serumah.
+ */
+const KATA_GAGAL = /^(Gagal|Pilih)\b|Gagal:|^Penyimpanan perangkat penuh|^Perangkat menolak menyimpan/i;
+
+/**
+ * Jenis umpan balik untuk hasil sebuah aksi (audit L-08).
+ *
+ * Sebelumnya seluruh hasil dikirim lewat `toast.info` sehingga
+ * "Jadwal ditambahkan ✓" dan "Gagal: …" tampak sama. Aturannya berdasarkan pesan
+ * karena di Beranda pesan itu datang dari empat modal berbeda dan tidak seragam:
+ * `AddScheduleModal`/`ResolveMissedSessionModal`/`EditSessionModal` memakai
+ * awalan "Gagal: …" atau "Pilih …", sedangkan "tidak hadir ditandai" adalah hasil
+ * yang BERHASIL.
+ *
+ * Dua kata kunci terakhir menjaga pesan dari `saveErrorMessage` (layar Catat Sesi)
+ * tetap terbaca sebagai kegagalan bila kelak ditampilkan sebagai toast — tanpa itu,
+ * pesan "Penyimpanan perangkat penuh…" akan lolos sebagai keberhasilan.
+ */
+export function feedbackTypeForResult(text: string): "success" | "error" {
+  const t = text.trim();
+  return KATA_GAGAL.test(t) ? "error" : "success";
+}
+
+/**
+ * Terjemahkan kegagalan simpan sesi ke bahasa manusia (audit C-11).
+ *
+ * Sebelumnya banner menampilkan `e.message` MENTAH — tutor melihat
+ * "QuotaExceededError: ..." atau "AbortError ..." yang tidak memberi tahu apa
+ * yang harus dilakukan, lalu menekan Simpan berulang.
+ *
+ * Sengaja HANYA memetakan dua sebab yang benar-benar bisa dipastikan dari nilai
+ * error-nya (nama `QuotaExceededError` dan pesan kegagalan tulis `localStorage`).
+ * Sebab lain tetap ditampilkan apa adanya sebagai "Simpan gagal: <pesan>" —
+ * menerka-nerka arti nama error lain akan menghasilkan instruksi pemulihan yang
+ * belum pernah diuji.
+ */
+export function saveErrorMessage(e: unknown, fallback = "terjadi kesalahan."): string {
+  const name = typeof e === "object" && e !== null
+    ? String((e as { name?: unknown }).name ?? "")
+    : "";
+  const raw = e instanceof Error ? e.message : String(e ?? "");
+  const text = raw.trim() || fallback;
+
+  if (name === "QuotaExceededError") {
+    return "Penyimpanan perangkat penuh. Unduh backup dari Pengaturan lalu hapus foto sesi lama — sesi ini belum tersimpan.";
+  }
+  // Catatan pola: alternasi diperiksa berurutan, jadi `storage is not` HARUS
+  // berada setelah `storage` — kalau didahulukan, pesan DOM yang hanya memuat
+  // "Storage" tidak akan cocok (bug yang ditemukan test ini).
+  if (name === "SecurityError" || /storage|penyimpanan/i.test(text)) {
+    return "Perangkat menolak menyimpan data (penyimpanan diblokir atau penuh). Sesi ini belum tersimpan.";
+  }
+  return `Simpan gagal: ${text}`;
+}

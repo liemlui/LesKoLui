@@ -155,7 +155,7 @@ export default function IaEeTracker({ student, projects, notify }: IaEeTrackerPr
                       </span>
                       <span className="text-xs text-gray-500">{proj.subject}</span>
                       {daysLeft !== null && (
-                        <span className={`text-xs font-semibold ${daysLeft < 0 ? "text-red-500" : daysLeft < 14 ? "text-orange-500" : "text-gray-500"}`}>
+                        <span className={`text-xs font-semibold ${daysLeft < 0 ? "text-red-700" : daysLeft < 14 ? "text-orange-700" : "text-gray-500"}`}>
                           {daysLeft < 0 ? `${Math.abs(daysLeft)}h terlambat` : `${daysLeft}h lagi`}
                         </span>
                       )}

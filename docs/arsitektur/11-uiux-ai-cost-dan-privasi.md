@@ -18,8 +18,8 @@ Keadaan v1.75.1 (diukur, bukan dikira-kira):
 
 | Fakta | Angka | Bukti |
 |---|---|---|
-| Kelas warna hardcode | **471** kemunculan `bg-white`/`bg-gray-*`/`text-gray-*`/`border-gray-*` | `grep` atas `src/**/*.tsx` |
-| Dark mode | **mati** sejak 2026-09-11 | komentar di `src/index.css` baris 48–51 |
+| Kelas warna hardcode | **904** kemunculan (2026-10-01) — angka **471** di versi sebelumnya berasal dari perintah **tidak rekursif** yang hanya menjangkau 38 berkas | `Get-ChildItem -Recurse src -Include *.tsx -File` + `Select-String` |
+| Dark mode | **mati permanen** (sejak 2026-09-11; dikunci light-only 2026-10-01, Q4) | komentar di `src/index.css` baris 48–51 |
 | Skala tipografi | tidak ada; `text-xs` (12px) dan `text-sm` (14px) mendominasi | `src/index.css` `@theme` hanya memuat warna |
 | Titik pemanggil AI | **7** tempat, **2 modal biaya** berbeda (`AiCostModal`, `AiCostConfirmModal`), **8 fungsi estimasi** | `src/components/AiCostModal.tsx`, `src/screens/captureSession/AiCostConfirmModal.tsx`, `src/lib/aiClient.ts` |
 | Gerbang uang | hanya `/payments` | `src/screens/Payments.tsx:107,123` |
@@ -56,8 +56,9 @@ komponen  →  useAiAction()  →  estimasi biaya  →  modal konfirmasi  →  a
 1. **Tidak ada tombol AI tanpa harga.** Label minimum: `Jalankan · ~Rp60`. Di layar sempit (label panjang),
    harga boleh pindah ke modal — tetapi modal **wajib** tampil sebelum panggilan, tanpa pengecualian.
 2. **Modal konfirmasi menyebut:** (a) apa yang akan dilakukan, (b) data apa yang dikirim, (c) apakah nama
-   murid / catatan bebas ikut terkirim, (d) perkiraan biaya, (e) pemakaian bulan berjalan + batas.
-3. **Batas anggaran bulanan** disimpan di `Settings`; saat terlampaui, tombol AI menonaktif
+   murid / catatan bebas ikut terkirim, (d) perkiraan biaya, (e) pemakaian bulan berjalan + batas (bila diisi).
+3. **Batas anggaran bulanan** disimpan di `Settings` tetapi **tidak dipasang secara default** (kosong = tanpa batas;
+   *keputusan pemilik 2026-10-01, Q1*). Bila pengguna mengisinya dan terlampaui, tombol AI menonaktif
    dengan alasan yang terlihat (bukan diam-diam gagal).
 4. **Setiap panggilan dicatat** sebagai `AuditEntry` dengan aksi baru `ai.call` (lihat §4). Tabel `auditLog`
    sudah ada dan **tidak** ikut backup — sesuai sifatnya sebagai catatan lokal.
@@ -83,8 +84,8 @@ komponen  →  useAiAction()  →  estimasi biaya  →  modal konfirmasi  →  a
 ### K4 — Token, bukan kelas warna langsung
 
 1. Komponen **tidak boleh** memakai `bg-white`, `bg-gray-*`, `text-gray-*`, `border-gray-*` secara langsung.
-   Warna diambil dari token (`--surface`, `--line`, `--text-mute`, …). 471 kemunculan itu utang yang
-   dilunasi bertahap — lihat `TASK-04`.
+   Warna diambil dari token (`--surface`, `--line`, `--text-mute`, …). **904** kemunculan (terkoreksi 2026-10-01;
+   kontrak lama menulis 471 karena perintahnya tidak rekursif) itu utang yang dilunasi bertahap — lihat `TASK-04`.
 2. **Skala tipografi terbatas 4 langkah**: `display` 24 · `title` 18 · `body` 15 · `caption` 13.
    Tidak ada teks di bawah 13px pada konten yang harus dibaca (10–11px hanya untuk label sumbu/grafik).
 3. **Elevasi 2 tingkat** (`--e1` datar, `--e2` mengambang). Tidak ada `shadow-sm` bercampur `shadow-xl`.
@@ -102,15 +103,26 @@ komponen  →  useAiAction()  →  estimasi biaya  →  modal konfirmasi  →  a
 | B1 | Di `Murid`, uang ditutup juga? | **Ya** — tarif & rincian sesi ikut `useMoneyVisible()` | `TASK-08` Langkah 4 |
 | B2 | Setelah uang dibuka, dikunci otomatis setelah 5 menit? | **Tidak** — berlaku selama aplikasi terbuka + tombol `Kunci` | `TASK-08` Langkah 1 & 6 |
 | B3 | `[Catat]` dari beranda membuka wizard dengan murid+tanggal+jam terisi? | **Ya** — **tanpa** mengurangi jumlah langkah (tetap 6) | `TASK-06` Langkah 5 |
-| B4 | Anggaran AI bulanan default? | **Rp 25.000** (bisa diubah, bisa dimatikan) | `TASK-07` Langkah 5 |
+| B4 | Anggaran AI bulanan default? | **Tidak dipasang** — kolom ada, kosong = tanpa batas (**diubah 2026-10-01, Q1**; sebelumnya Rp 25.000) | `TASK-07` Langkah 5 |
 
 Keputusan lain yang ikut terkunci (karena muncul saat brainstorming):
 
 - **Wizard Catat Sesi dipertahankan** — hanya diperkuat; dilarang menggabung/mengurangi langkah.
+  **Sesi boleh disimpan dari langkah 5** (langkah tetap 6, `STEP_META` tidak berubah) — *amandemen 2026-10-01, Q2*.
 - **Nav = 3 pintu + 1 aksi di dalam nav** — tanpa FAB mengambang (FAB menutupi konten; bukti di
   `docs/mockups/home-2026-09-24.html` frame ②).
 - **Semua panggilan AI lewat modal biaya** — tanpa pengecualian.
 - **Home tidak menampilkan uang sama sekali** — bukan `***`, bukan `••••`: tidak ada barisnya.
+- **Papan pipeline dipertahankan** (bukan dibubarkan) dan hidup di dalam blok "Perlu ditagih" —
+  *amandemen 2026-10-01, Q3*.
+- **Light-only permanen** — dark mode tidak dihidupkan lagi — *amandemen 2026-10-01, Q4*.
+- **Peta tab layar Murid = Ringkas / Sesi / Progres / Proyek**; uang adalah blok di dalam Ringkas —
+  *amandemen 2026-10-01, Q5*.
+- **Fokus Android** — tidak ada aturan input 16px demi iOS — *amandemen 2026-10-01, Q7*.
+- **Refactor terbatas** `CaptureSession.tsx` (sebelum G3-01) & `MonthlyReport.tsx` (sebelum G3-05) —
+  *amandemen 2026-10-01, Q9*.
+
+Daftar amandemen lengkap ada di [`kerja/ATURAN-AI.md`](../kerja/ATURAN-AI.md) §1.
 
 Kalau ada yang ingin diubah, **ubah tabel ini lebih dulu**, baru tugasnya.
 
@@ -184,15 +196,17 @@ Titik kebocoran yang harus ditutup `TASK-08`. Kolom "jangkar" dipakai untuk menc
 Setelah `TASK-04`, `TASK-07`, dan `TASK-08` selesai, ketiganya harus lulus perintah ini dari `les-ko-lui/`:
 
 ```powershell
-# K4 — sisa kelas warna hardcode di komponen (target: turun, dicatat per gelombang)
-(Select-String -Path "src\**\*.tsx" -Pattern "bg-white|bg-gray-|text-gray-|border-gray-" -ErrorAction SilentlyContinue).Count
+# K4 — sisa kelas warna hardcode di komponen (target ≤190, dicatat per gelombang).
+# ⚠️ Perintah lama `Select-String "src\**\*.tsx"` TIDAK rekursif: hanya menjangkau 38 berkas → 470.
+# Baseline 2026-10-01: 904 (rekursif) · git grep berkas terlacak = 902 (selisih 2 = `src/App.tsx`).
+(Get-ChildItem -Recurse src -Include *.tsx -File | Select-String -Pattern "bg-white|bg-gray-|text-gray-|border-gray-").Count
 
-# K3 — layar yang menyentuh format uang tanpa hook uang (target: 0)
-Select-String -Path "src\screens\*.tsx","src\screens\**\*.tsx" -Pattern "formatRupiah|totalCost|rateSnapshot" |
-  Where-Object { $_.Line -notmatch "useMoneyVisible|// money-safe" }
+# K3 — layar yang menyentuh format uang tanpa hook uang (target: 0). REKURSIF di dalam src\screens.
+Get-ChildItem -Recurse src\screens -Include *.tsx -File | Select-String -Pattern "formatRupiah|totalCost|rateSnapshot" |
+  Where-Object { $_.Line -notmatch "useMoneyVisible|money-safe|formatRupiahDisplay" }
 
 # K2 — titik panggilan AI (target: semua lewat useAiAction)
-Select-String -Path "src\**\*.tsx" -Pattern "AiCostModal|AiCostConfirmModal"
+Get-ChildItem -Recurse src -Include *.tsx -File | Select-String -Pattern "AiCostModal|AiCostConfirmModal"
 
 npx tsc -b          # harapan: tanpa keluaran
 npx eslint src      # harapan: tanpa keluaran
@@ -208,3 +222,4 @@ npm run build       # harapan: built + dist/sw.js
 |---|---|---|---|
 | 2026-09-25 | Kontrak awal ditulis dari hasil brainstorming UI/UX | v1.75.1 | `draft` |
 | 2026-09-25 | Keputusan B1–B4 dikunci pemilik · status `final` | v1.75.1 | `final` |
+| 2026-10-01 | **Amandemen Q1–Q9**: B4 default kosong (tanpa batas) · pipeline dipertahankan di blok "Perlu ditagih" · light-only permanen · simpan dari langkah 5 · peta tab Murid Ringkas/Sesi/Progres/Proyek · fokus Android · refactor terbatas | v1.79.3 | `final` |

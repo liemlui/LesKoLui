@@ -12,7 +12,7 @@ export default function EvidenceCard({ avgEngScore, engSessions }: EvidenceCardP
     if (avgEngScore >= 7)
       return { text: "Sangat fokus saat les — potensi nilai bisa terus meningkat.", color: "text-blue-500" };
     if (avgEngScore >= 5)
-      return { text: "Cukup fokus, masih bisa ditingkatkan dengan latihan tambahan.", color: "text-orange-500" };
+      return { text: "Cukup fokus, masih bisa ditingkatkan dengan latihan tambahan.", color: "text-orange-700" };
     return { text: "Perlu perhatian ekstra untuk meningkatkan fokus saat les.", color: "text-red-500" };
   })();
 

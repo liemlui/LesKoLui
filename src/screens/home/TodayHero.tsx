@@ -3,6 +3,7 @@ import type { StudentMap } from "../../lib/studentColor";
 import Badge from "../../components/Badge";
 import EmptyState from "../../components/EmptyState";
 import ProgressBar from "../../components/charts/ProgressBar";
+import Skeleton from "../../components/Skeleton";
 import SessionPill, { type SessionActions } from "./SessionPill";
 
 interface Props extends SessionActions {
@@ -10,10 +11,19 @@ interface Props extends SessionActions {
   sessions: Session[];
   studentMap: StudentMap;
   onAdd: (date: string) => void;
+  /**
+   * Data hari ini BELUM selesai dimuat (audit B-01).
+   *
+   * Tanpa ini, `sessions` kosong karena masih memuat tidak bisa dibedakan dari
+   * "memang tidak ada sesi", sehingga Beranda sempat berkata "Tidak ada sesi hari
+   * ini" padahal datanya belum datang. `useLiveQuery` mengembalikan `undefined`
+   * selama query pertama berjalan — itulah yang diteruskan ke sini.
+   */
+  loading?: boolean;
 }
 
 /** Agenda-first hero v2: progress bar, visual separators between time blocks, badge summaries. */
-export default function TodayHero({ today, sessions, studentMap, onAdd, ...actions }: Props) {
+export default function TodayHero({ today, sessions, studentMap, onAdd, loading = false, ...actions }: Props) {
   const ordered = [...sessions].sort((a, b) => (a.time ?? "").localeCompare(b.time ?? ""));
   const done    = sessions.filter((s) => s.status === "DONE").length;
   const waiting = sessions.filter((s) => s.status === "SCHEDULED").length;
@@ -24,7 +34,11 @@ export default function TodayHero({ today, sessions, studentMap, onAdd, ...actio
       {/* Header with progress bar */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-gray-800">Hari Ini</p>
+          {/* Audit L-07: judul blok utama Beranda harus heading sungguhan, bukan
+              <p> — kalau tidak, navigasi heading pembaca layar nyaris kosong.
+              Kelasnya tidak berubah, jadi tampilannya tetap sama (preflight
+              Tailwind menyetel ulang ukuran/berat huruf heading). */}
+          <h2 className="text-sm font-bold text-gray-800">Hari Ini</h2>
           {sessions.length > 0 && (
             <div className="flex items-center gap-2 mt-0.5">
               <p className="text-xs text-gray-600">
@@ -61,7 +75,12 @@ export default function TodayHero({ today, sessions, studentMap, onAdd, ...actio
       )}
 
       {/* Session pills with visual separation between time blocks */}
-      {ordered.length === 0 ? (
+      {loading ? (
+        // Audit B-01: data belum siap → SKELETON, bukan empty state "tidak ada sesi".
+        <div data-loading="true" aria-busy="true" aria-label="Memuat jadwal hari ini">
+          <Skeleton variant="text" lines={3} height={16} />
+        </div>
+      ) : ordered.length === 0 ? (
         <EmptyState icon="🎉" message="Tidak ada sesi hari ini" />
       ) : (
         <div className="space-y-0.5">

@@ -65,9 +65,9 @@ Diukur dari kode v1.75.1. **Tidak ada baris yang boleh dibiarkan kosong.**
 | `screens/payments/TagihanTab.tsx` | 794 | **Menjadi** daftar `BarisTagihan` tunggal | TASK-05 |
 | `screens/payments/PengeluaranTab.tsx` | — | **Pertahankan** sebagai sub-layar `▸` | TASK-05 |
 | `screens/payments/RekapTab.tsx` | 253 | **Lipat** — 8 kolom → 3 kolom + "lihat lengkap" | TASK-05 |
-| `screens/payments/FinancePipelineBoard.tsx` | — | **Bubarkan** — isinya jadi aksi per baris | TASK-05 |
+| `screens/payments/FinancePipelineBoard.tsx` | — | **Redesign** — board+list, tap-driven; hidup **di dalam blok "Perlu ditagih"** (tidak jadi blok ke-4). *Amandemen 2026-10-01 (Q3): sebelumnya "Bubarkan"* | TASK-05 |
 | `screens/Students.tsx` | 592 | **Pertahankan** struktur; uang ditutup | TASK-08 |
-| `screens/StudentDetail.tsx` | 1.037 | **Rombak** jadi tab (Ringkas/Sesi/Nilai/Uang); uang ditutup | TASK-04, TASK-08 |
+| `screens/StudentDetail.tsx` | 1.037 | **Rombak** jadi tab **Ringkas / Sesi / Progres / Proyek**; uang menjadi **blok di dalam tab Ringkas**. *Amandemen 2026-10-01 (Q5): sebelumnya "(Ringkas/Sesi/Nilai/Uang)"* | TASK-04, TASK-08 |
 | `screens/Settings.tsx` | 1.118 | **Pecah** jadi 3 grup bersarang | TASK-04 |
 | `components/BottomNav.tsx` | 82 | **Rombak** — 5 tab + FAB → 3 pintu + 1 aksi di nav | TASK-04 |
 | `components/AiCostModal.tsx` + `screens/captureSession/AiCostConfirmModal.tsx` | — | **Satukan** jadi satu jalur `useAiAction` | TASK-07 |
@@ -75,6 +75,14 @@ Diukur dari kode v1.75.1. **Tidak ada baris yang boleh dibiarkan kosong.**
 **Aturan nav (dari kontrak K1.1):** pintu = `Hari Ini` · `Murid` · `Uang`; aksi utama = tombol di dalam nav
 (`+ Catat sesi`), **bukan** FAB mengambang. Alasan tertulis: FAB mengambang menutupi konten pada layar
 padat — terbukti pada mockup `docs/mockups/home-2026-09-24.html` frame ②.
+
+> **Amandemen 2026-10-01 (Q1–Q9) yang mengubah tabel di atas:**
+> `FinancePipelineBoard` **di-redesign** (bukan dibubarkan) dan diletakkan di dalam blok "Perlu ditagih" — Q3 ·
+> **Peta tab `StudentDetail` = Ringkas / Sesi / Progres / Proyek**, uang jadi blok di dalam **Ringkas** — Q5 ·
+> **light-only permanen**, tidak ada langkah menghidupkan dark mode — Q4 ·
+> **refactor terbatas** `CaptureSession.tsx` (sebelum G3-01) & `MonthlyReport.tsx` (sebelum G3-05) — Q9 ·
+> **batas AI default kosong** — Q1 · **sesi boleh disimpan dari langkah 5** (6 langkah tetap) — Q2.
+> Rincian: [`ATURAN-AI.md`](ATURAN-AI.md) §1.
 
 ## 3. Enam prinsip arah + cara memeriksanya
 
@@ -111,7 +119,7 @@ padat — terbukti pada mockup `docs/mockups/home-2026-09-24.html` frame ②.
 | Menyentuh `src/db/db.ts` versi schema tanpa tugas khusus | Migrasi salah = kehilangan data pengguna nyata |
 | Mengubah `src/lib/crypto.ts` cara PIN disimpan | Risiko mengunci pengguna dari datanya; butuh tugas terpisah |
 | Menghapus kemampuan dengan alasan "menyederhanakan" | Semua kemampuan lama harus tetap tercapai (paling jauh: lewat `▸`) |
-| Menambah pustaka UI/animasi baru | Fondasi ini sengaja dibuat dari token + CSS; pustaka baru = 471 utang baru |
+| Menambah pustaka UI/animasi baru | Fondasi ini sengaja dibuat dari token + CSS; pustaka baru = **904** utang baru (angka terkoreksi 2026-10-01) |
 | Menulis angka uang langsung tanpa `useMoneyVisible()` | Melanggar kontrak K3 |
 | Memanggil `aiClient` langsung dari komponen | Melanggar kontrak K2 |
 | Mengubah `MonthlyReport` template engine (rotation/tema) | Itu mesin lain (`docs/arsitektur/04`, `05`); butuh tugas terpisah |
@@ -147,4 +155,5 @@ padat — terbukti pada mockup `docs/mockups/home-2026-09-24.html` frame ②.
 
 | Tanggal | Perubahan | Versi | Hasil |
 |---|---|---|---|
+| 2026-10-01 | Amandemen Q1–Q9: pipeline di-redesign (di blok "Perlu ditagih"), peta tab Murid → Ringkas/Sesi/Progres/Proyek (uang di Ringkas), light-only permanen, simpan dari langkah 5, batas AI default kosong, refactor terbatas | v1.79.3 | `todo` |
 | 2026-09-25 | Dibuat dari brainstorming UI/UX + 3 mockup | v1.75.1 | `todo` |

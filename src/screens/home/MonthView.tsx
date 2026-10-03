@@ -50,7 +50,7 @@ export default function MonthView({
         <button aria-label="Bulan berikutnya" onClick={() => setCalMonth(nextMonth(calMonth))} className="text-gray-600 hover:text-gray-800 text-xl w-10 h-10 flex items-center justify-center">›</button>
       </div>
       <div className="grid grid-cols-7 text-center border-b border-gray-100">
-        {DOW_LABELS.map((d, i) => <div key={d} className={`py-1.5 text-xs font-medium ${i === 0 ? "text-red-500" : "text-gray-600"}`}>{d}</div>)}
+        {DOW_LABELS.map((d, i) => <div key={d} className={`py-1.5 text-xs font-medium ${i === 0 ? "text-red-700" : "text-gray-600"}`}>{d}</div>)}
       </div>
       <div className="grid grid-cols-7">
         {cells.map((date, i) => {
@@ -76,7 +76,7 @@ export default function MonthView({
               <span className={`text-xs font-medium w-5 h-5 flex items-center justify-center rounded-full mb-0.5 self-center ${
                 isToday ? "bg-blue-600 text-white"
                 : isPast ? "text-gray-600"
-                : isSunday ? "text-red-500"
+                : isSunday ? "text-red-700"
                 : "text-gray-600"
               }`}>
                 {dayNum}

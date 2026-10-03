@@ -23,6 +23,7 @@ import ResolveMissedSessionModal from "./ResolveMissedSessionModal";
 import OperationalSnapshot from "./OperationalSnapshot";
 import QuickExpenseModal from "../../components/QuickExpenseModal";
 import type { SessionActions } from "./SessionPill";
+import { feedbackTypeForResult, todayHeroLoadState } from "../captureSession/helpers";
 
 export default function Home() {
   const today = todayWIB();
@@ -96,7 +97,17 @@ export default function Home() {
   const missed       = (missedSchedules ?? []).filter((s) => inFilter(s.studentId));
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
-  const msg = useCallback((t: string) => { toast.info(t); }, [toast]);
+  /**
+   * Umpan balik hasil aksi dari modal Beranda (audit L-08).
+   *
+   * Dulu SEMUA hasil lewat `toast.info` (abu-abu), sehingga "Jadwal ditambahkan ✓"
+   * dan "Gagal: …" tampak sama. Klasifikasinya ada di `feedbackTypeForResult`
+   * (fungsi murni, ada tesnya) supaya aturan itu tidak tersembunyi di komponen.
+   */
+  const msg = useCallback((t: string) => {
+    if (feedbackTypeForResult(t) === "error") toast.error(t);
+    else toast.success(t);
+  }, [toast]);
 
   const openAdd = (date: string) => { setSelectedDay(date); setAddDate(date); };
   const jumpToday = () => { setCalMonth(monthOf(today)); setAnchor(today); setSelectedDay(today); };
@@ -157,7 +168,15 @@ export default function Home() {
         weeklyTrend={weeklyTrend ?? []}
         onActiveStudentsClick={() => navigate("/students")}
       />
-      <TodayHero today={today} sessions={todayList} studentMap={studentMap} onAdd={openAdd} {...actions} />
+      <TodayHero
+        today={today}
+        sessions={todayList}
+        studentMap={studentMap}
+        onAdd={openAdd}
+        // Audit B-01: `useLiveQuery` mengembalikan undefined selama query pertama
+        // berjalan — itu "belum siap", bukan "tidak ada sesi hari ini".
+        loading={todayHeroLoadState(todaySessions, students) === "loading"}
+        {...actions} />
 
       {/* Perlu Perhatian */}
       <div>
@@ -170,6 +189,11 @@ export default function Home() {
       />
       </div>
 
+      {/* Audit L-07: blok kalender diberi heading agar navigasi heading pembaca
+          layar punya tujuan. Judulnya disembunyikan karena blok ini sudah dikenali
+          dari tombol Bulan/Minggu/Hari — menambah teks terlihat berarti menambah
+          kepadatan above-fold (temuan B-05). */}
+      <h2 className="sr-only">Kalender</h2>
       {/* View toggle + filter murid */}
       <div className="mx-4 mb-3 mt-2 space-y-2">
         <div className="bg-gray-100 rounded-xl p-1 grid grid-cols-3">

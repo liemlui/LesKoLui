@@ -15,6 +15,7 @@ import { db } from "../../db/db";
 import ActivityRing from "../../components/dashboard/ActivityRing";
 import { ProgressBar } from "../../components/charts";
 import ConfirmSheet from "../../components/ConfirmSheet";
+import { useToastCtx } from "../../components/ToastProvider";
 import PinConfirmModal from "../../components/PinConfirmModal";
 import InvoiceModal from "./InvoiceModal";
 import { ITEMS_PER_PDF_PAGE } from "../../lib/invoicePresentation";
@@ -72,6 +73,8 @@ export default function TagihanTab({
   const [showBillingHelp, setShowBillingHelp] = useState(false);
   const [reportInvoiceBusy, setReportInvoiceBusy] = useState<Record<string, boolean>>({});
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
+  /** Pesan mengambang untuk aksi krusial + tombol "Urungkan" (K-02). */
+  const toast = useToastCtx();
   const [agingFilter, setAgingFilter] = useState<AgeBucket | "all">("all");
   /**
    * Baris tagihan terbuka. Daftar ditampilkan sebagai baris ringkas agar 60+
@@ -252,6 +255,60 @@ export default function TagihanTab({
     const n = Number(raw);
     if (!isValidCurrencyAmount(n)) { setMessage(`Nominal harus 1 sampai ${formatRupiah(MAX_PAYMENT_AMOUNT)}.`); return; }
     if (n !== fallback) await updatePaymentAmountById(paymentId, n);
+  };
+
+  /**
+   * K-02: menandai lunas / membatalkan pelunasan mengubah UANG MASUK, jadi tidak boleh
+   * terjadi hanya karena satu ketukan tak sengaja. Sekarang lewat `ConfirmSheet` yang
+   * menyebutkan akibatnya, dan hasilnya bisa diurungkan lewat tombol di pesan.
+   *
+   * Aksi intinya sendiri tidak berubah: `markPaymentTransferredById` /
+   * `markPaymentUnpaidById` tetap dipanggil apa adanya. Urungkan bukan operasi baru —
+   * kedua fungsi itu saling membalikkan (status + `paidAt` + alokasi sesi/tagihan).
+   */
+  const togglePaid = async (payment: Payment, wasPaid: boolean) => {
+    try {
+      if (wasPaid) await markPaymentUnpaidById(payment.id);
+      else await markPaymentTransferredById(payment.id);
+    } catch (error) {
+      setMessage(`Gagal mengubah status tagihan: ${(error as Error).message}`);
+      return;
+    }
+
+    const nominal = formatRupiah(payment.totalCost);
+    if (wasPaid) {
+      setMessage(`Pelunasan dibatalkan · uang masuk −${nominal}, piutang +${nominal} ✓`);
+      toast.show(
+        `Pelunasan dibatalkan · uang masuk −${nominal}`,
+        "info", 8000,
+        { label: "Urungkan", onClick: () => void markPaymentTransferredById(payment.id) },
+      );
+    } else {
+      toast.show(
+        `Ditandai lunas · uang masuk +${nominal}`,
+        "success", 8000,
+        { label: "Urungkan", onClick: () => void markPaymentUnpaidById(payment.id) },
+      );
+    }
+  };
+
+  const askTogglePaid = (payment: Payment, studentName: string) => {
+    if (payment.status === "PAID") {
+      setConfirmState({
+        title: "Tandai belum dibayar?",
+        message: `Tagihan ${studentName} (${formatRupiah(payment.totalCost)}) akan kembali dihitung sebagai piutang — uang masuk berkurang dan tagihan ini kembali muncul di daftar belum dibayar.`,
+        confirmLabel: "Tandai belum dibayar",
+        danger: true,
+        onConfirm: () => { setConfirmState(null); void togglePaid(payment, true); },
+      });
+      return;
+    }
+    setConfirmState({
+      title: "Tandai sudah dibayar?",
+      message: `Uang masuk +${formatRupiah(payment.totalCost)} dan piutang −${formatRupiah(payment.totalCost)} untuk tagihan ${studentName}. Tagihan ini akan berstatus lunas.`,
+      confirmLabel: "Tandai lunas",
+      onConfirm: () => { setConfirmState(null); void togglePaid(payment, false); },
+    });
   };
 
   return (
@@ -671,7 +728,7 @@ export default function TagihanTab({
                   setBillEdits((previous) => ({ ...previous, [payment.id]: raw }));
                 }}
                 onAmountSave={() => void saveBillAmount(payment.id, payment.totalCost)}
-                onTogglePaid={() => void (payment.status === "PAID" ? markPaymentUnpaidById(payment.id) : markPaymentTransferredById(payment.id))}
+                onTogglePaid={() => askTogglePaid(payment, student?.name ?? "murid")}
                 onOpenReport={() => navigate(report ? `/report?reportId=${encodeURIComponent(report.id)}` : `/report?studentId=${encodeURIComponent(payment.studentId)}`)}
                 onOpenInvoice={() => student && setInvoiceTarget({ payment, student })}
                 onCancelPackage={() => void handleCancelSessionCountInvoice(

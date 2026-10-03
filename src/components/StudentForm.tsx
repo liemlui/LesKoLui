@@ -361,7 +361,7 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
           <span className="text-sm text-gray-500">/ {billingPolicy === "session_count" ? "pertemuan" : "jam"}</span>
         </div>
         {settings?.defaultRate && hourlyRate === settings.defaultRate && (
-          <p className="text-xs text-orange-500">Menggunakan tarif default dari Pengaturan</p>
+          <p className="text-xs text-orange-700">Menggunakan tarif default dari Pengaturan</p>
         )}
         {showRepriceChoice && (
           <label className="mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-xs leading-relaxed text-amber-900">

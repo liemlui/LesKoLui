@@ -273,7 +273,10 @@ test("close-out gagal: isian bertahan, tanpa tindak lanjut parsial, retry menyim
   }, FAIL_FLAG);
   await doneButton.click();
 
-  await expect(page.getByText(/Tindak lanjut belum tersimpan; coba lagi\./))
+  // Teks diperbarui mengikuti G1-06 (`CaptureSession.tsx`: "Sesi sudah tersimpan;
+  // tindak lanjut belum tersimpan. " + saveErrorMessage(e)). Spec lama masih
+  // menuntut kalimat pra-G1-06 sehingga selalu gagal (temuan Q20, ditutup di G1-11).
+  await expect(page.getByText(/Sesi sudah tersimpan; tindak lanjut belum tersimpan\./))
     .toBeVisible({ timeout: 30_000 });
   // Modal & seluruh teks tetap ada, dan TIDAK ada navigasi sukses.
   await expect(report).toBeVisible();

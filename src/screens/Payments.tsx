@@ -182,6 +182,7 @@ export default function PaymentsPage() {
           ]}
           active={activeTab}
           onChange={handleTabChange}
+          idPrefix="payments"
           fullWidth
         />
       </div>
@@ -204,6 +205,10 @@ export default function PaymentsPage() {
           </div>
         )}
 
+        {/* Audit L-06: panel per tab SELALU ada di DOM supaya `aria-controls`
+            setiap tab menunjuk elemen nyata; komponen tab hanya di-mount saat
+            aktif agar useLiveQuery-nya tetap lazy. */}
+        <div role="tabpanel" id="payments-panel-ringkasan" aria-labelledby="payments-tab-ringkasan" hidden={activeTab !== "ringkasan"}>
         {/* Tab components mount on demand so each tab's useLiveQuery runs lazily. */}
         {activeTab === "ringkasan" && (
           <RingkasanTab
@@ -218,6 +223,9 @@ export default function PaymentsPage() {
             setMessage={setMessage}
           />
         )}
+        </div>
+
+        <div role="tabpanel" id="payments-panel-tagihan" aria-labelledby="payments-tab-tagihan" hidden={activeTab !== "tagihan"}>
         {activeTab === "tagihan" && (
           <TagihanTab
             payments={payments}
@@ -229,6 +237,9 @@ export default function PaymentsPage() {
             requestedStudentId={requestedStudentId}
           />
         )}
+        </div>
+
+        <div role="tabpanel" id="payments-panel-pengeluaran" aria-labelledby="payments-tab-pengeluaran" hidden={activeTab !== "pengeluaran"}>
         {activeTab === "pengeluaran" && (
           <PengeluaranTab
             month={month}
@@ -238,12 +249,16 @@ export default function PaymentsPage() {
             students={students ?? []}
           />
         )}
+        </div>
+
+        <div role="tabpanel" id="payments-panel-rekap" aria-labelledby="payments-tab-rekap" hidden={activeTab !== "rekap"}>
         {activeTab === "rekap" && (
           <RekapTab
             payments={payments}
             students={students}
           />
         )}
+        </div>
       </div>
     </div>
   );

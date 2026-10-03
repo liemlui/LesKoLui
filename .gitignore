@@ -39,3 +39,8 @@ dist-ssr
 # Scratch & local data (jangan di-commit)
 typecheck-output.txt
 leskolui-data-*.csv
+
+# Artefak audit di luar repo (bukti runtime G1-05..G1-11, screenshot audit).
+# Guard `npm run e2e:uiux` menulisnya ke `<repo>/../.design-audit/` — di luar
+# repo. Baris ini hanya jaring pengaman bila kelak OUT_DIR dipindah ke dalam.
+.design-audit/

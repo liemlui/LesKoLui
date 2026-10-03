@@ -87,7 +87,7 @@
 
 > Run: `npx playwright test --config=playwright.config.ts e2e/screenshot-audit.spec.ts`
 
-### 3.1 Edit `playwright.config.ts` (tambah project mobile + dark)
+### 3.1 Edit `playwright.config.ts` (tambah project mobile)
 
 Saat ini hanya project `chromium` (Desktop). Ubah blok `projects` menjadi:
 
@@ -95,11 +95,14 @@ Saat ini hanya project `chromium` (Desktop). Ubah blok `projects` menjadi:
 projects: [
   { name: "chromium", use: { ...devices["Desktop Chrome"] } },
   { name: "mobile", use: { ...devices["Pixel 7"], deviceScaleFactor: 2 } },
-  { name: "mobile-dark", use: { ...devices["Pixel 7"], deviceScaleFactor: 2, colorScheme: "dark" } },
 ],
 ```
 
-Verifikasi: `import { defineConfig, devices }` sudah ada di baris 1. `colorScheme` valid Playwright ≥ 1.5. Tidak ubah `webServer` / `baseURL`.
+> **Project `mobile-dark` dihapus 2026-10-01** (keputusan pemilik Q4: aplikasi **light-only permanen**).
+> Sebelumnya ada project ketiga dengan `colorScheme: "dark"`; hasilnya 29 dari 37 screenshot identik
+> byte-per-byte dengan mode terang, jadi tidak bermakna. Jangan ditambahkan kembali.
+
+Verifikasi: `import { defineConfig, devices }` sudah ada di baris 1. Tidak ubah `webServer` / `baseURL`.
 
 ### 3.2 File baru `e2e/screenshot-audit.spec.ts`
 
@@ -353,7 +356,7 @@ Klasifikasi: P1 (kritis usabiltas/kontras/dark) · P2 (wayfinding/konsistens/iko
 
 **Langkah 2 — verifikasi**: `npm run build` hijau; `Get-ChildItem src -Recurse -Include *.tsx | Select-String 'prefers-color-scheme'` → 0 hasil.
 
-**Langkah 3 (opsional)**: bila user confirm, hapus project `mobile-dark` dari playbook §3.1 + `playwright.config.ts` — **tidak default**; catat di dokumen audit.
+**Langkah 3 — DILAKUKAN 2026-10-01**: project `mobile-dark` dihapus dari playbook §3.1 + `playwright.config.ts`. Alasan: keputusan pemilik **light-only permanen** (Q4) — aplikasi tidak menghidupkan dark mode lagi, sehingga project mode gelap selalu identik dengan mode terang. Lihat `docs/kerja/ATURAN-AI.md` §1.
 
 ### 5.2 P1-b — Kontras tombol "Tersimpan ✓" (Settings)
 
@@ -423,6 +426,9 @@ _Tandai checkbox sesuai progres; set hasil verifikasi di baris paling atas._
 - [x] Fase 0 — regen katalog audit/ (87 PNG) + hapus basi
 - [x] Fase 1 — dokumen audit visual templated → `arsip/UI-UX-AUDIT-VISUAL-2026-09-11.md`
 - [x] Fase 2 — P1-a dark deaktivasi · P1-b kontras · P2 wayfinding/nonaktifkan · P3 glossary (emoji→SVG = backlog)
+  > **Kelanjutan 2026-10-01:** dark mode dinonaktifkan **permanen** (light-only, Q4) — project `mobile-dark` dihapus
+  > dari `playwright.config.ts`. Audit UI/UX baru: [`06-AUDIT-UIUX-2026-10-01.md`](06-AUDIT-UIUX-2026-10-01.md) +
+  > validasi/rencana [`07-VALIDASI-RENCANA-2026-10-01.md`](07-VALIDASI-RENCANA-2026-10-01.md).
 - [x] Fase 3 — guard rail test + e2e smoke + docs final (2026-09-11)
 
 > **Fase 3 — hasil (2026-09-11):**

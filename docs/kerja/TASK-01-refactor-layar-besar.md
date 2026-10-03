@@ -445,3 +445,32 @@ Setiap kali selesai: perbarui juga `TODO.md` (bagian 🔵) dan baris "Diperbarui
 | Tanggal | Perubahan | Versi | Hasil |
 |---|---|---|---|
 | 2026-09-13 | Dibuat sebagai lanjutan refactor putaran 1 | v1.75.1 | 2 modul + 2 komponen sudah dipindah sebelumnya; 6 langkah tersisa di §3 |
+
+---
+
+## 10. Amandemen 2026-10-01 — refactor terbatas (Q9 + **A13**/Q11)
+
+**Keputusan pemilik (Q9 = C, diperluas Q11 = A):** refactor dikerjakan **terbatas — hanya pada berkas yang
+akan disentuh wave fitur berikutnya — dan sebelum wave itu dimulai.** Target **tidak dibuat baru**; semuanya
+diambil dari §2 dokumen ini.
+
+| Dikerjakan sebelum | Berkas | Target (§2) | Baris sekarang | Kenapa |
+|---|---|---|---|---|
+| **G3-01** (Catat Sesi) | `src/screens/CaptureSession.tsx` | **≤ 1.900** | 2.073 | G3-01 menyentuh bilah aksi, stepper, Langkah 4 |
+| **G3-02** (Keuangan) | `src/screens/payments/TagihanTab.tsx` | **≤ 800** | 978 | G3-02 menyentuh daftar tagihan, filter, dan panel nominal |
+| **G3-05** (Laporan) | `src/screens/MonthlyReport.tsx` | **≤ 1.500** | 2.296 | G3-05 menyentuh pratinjau, autosave narasi, ekspor |
+| **G3-06** (Proyek & tab) | `src/screens/StudentDetail.tsx` | **≤ 800** | 1.068 | G3-06 merombak peta tab (Ringkas/Sesi/Progres/Proyek) |
+| **G3-09** (Pengaturan) | `src/screens/Settings.tsx` | **≤ 700** | 1.205 | G3-09 menyentuh bilah simpan, urutan section, restore, dialog |
+
+**Aturan:**
+
+1. **Kelima berkas itu** (tidak lebih) di-refactor lebih dulu, masing-masing **tepat sebelum** wave-nya.
+   Berkas lain di §2 yang tidak punya wave (`RiwayatSesi`, `IaEeTracker`, dst. — sudah selesai) tidak disentuh.
+2. Refactor tetap mematuhi §0: **memindah, bukan memperbaiki**; jangan mengubah perilaku, teks yang
+   dilihat pengguna, atau `STEP_META`.
+3. **Fitur tidak boleh hilang.** Seluruh item fitur wave terkait tetap ditulis lengkap di dokumen
+   gelombang; yang menunggu ditandai ⏸ "setelah refactor", bukan dihapus.
+4. Bila setelah refactor ada fitur yang **ternyata sudah tertutup**, catat di bagian "Catatan" dokumen
+   gelombang dengan alasan tertulis — jangan hapus senyap.
+5. Urutan di dalam tiap gelombang: **refactor → verifikasi hijau → fitur**. Refactor yang tidak hijau
+   (tsc/eslint/test/build) membatalkan wave itu; jangan lanjut.

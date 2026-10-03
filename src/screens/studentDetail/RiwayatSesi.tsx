@@ -197,7 +197,7 @@ export default function RiwayatSesi({
                             aria-label="Edit catatan sesi"
                             className="text-gray-500 hover:text-blue-500 transition-colors text-xs p-1.5 -m-1.5 rounded-full hover:bg-gray-100">✏️</button>
                         )}
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.status === "DONE" ? "bg-green-50 text-green-600" : s.status === "CANCELLED" ? "bg-red-50 text-red-500" : "bg-blue-50 text-blue-600"}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.status === "DONE" ? "bg-green-50 text-green-600" : s.status === "CANCELLED" ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-600"}`}>
                           {s.status === "DONE" ? `${s.durationHours}j` : s.status}
                         </span>
                       </div>

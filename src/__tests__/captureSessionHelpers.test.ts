@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   buildWaMessage, topicLevelHint, draftStamp,
   mergeTopics, splitTopics, mergeTopicUnits, recentTopics,
-  appendSituasi, hasSituasi,
+  appendSituasi, hasSituasi, saveErrorMessage, feedbackTypeForResult, todayHeroLoadState,
 } from "../screens/captureSession/helpers";
 import {
   DURATIONS, STEP_META, isValidStep, ENGAGEMENT_FLAG_META, SITUASI_CHIPS,
@@ -168,6 +168,94 @@ describe("appendSituasi / hasSituasi", () => {
 
   it("tahan spasi berlebih", () => {
     expect(hasSituasi("  Habis sakit  ,  Kurang tidur ", "Kurang tidur")).toBe(true);
+  });
+});
+
+describe("saveErrorMessage (audit C-11)", () => {
+  it("menjelaskan penyimpanan penuh + langkah pemulihannya untuk QuotaExceededError", () => {
+    const e = new Error("The quota has been exceeded.");
+    e.name = "QuotaExceededError";
+    const msg = saveErrorMessage(e);
+    expect(msg).toContain("Penyimpanan perangkat penuh");
+    expect(msg).toContain("backup");
+    // Pesan mentah browser tidak boleh bocor ke tutor.
+    expect(msg).not.toContain("quota has been exceeded");
+  });
+
+  it("mengenali kegagalan tulis localStorage dari pesannya", () => {
+    const msg = saveErrorMessage(new Error("Failed to execute 'setItem' on 'Storage': quota exceeded"));
+    expect(msg).toContain("Perangkat menolak menyimpan data");
+    expect(msg).toContain("belum tersimpan");
+  });
+
+  it("mengenali SecurityError (penyimpanan diblokir)", () => {
+    const e = new Error("The operation is insecure.");
+    e.name = "SecurityError";
+    expect(saveErrorMessage(e)).toContain("Perangkat menolak menyimpan data");
+  });
+
+  it("memakai kalimat generik + pesan asli untuk error lain", () => {
+    expect(saveErrorMessage(new Error("AbortError: transaksi dibatalkan"))).toBe(
+      "Simpan gagal: AbortError: transaksi dibatalkan",
+    );
+  });
+
+  it("tidak menampilkan 'undefined' untuk error kosong, non-Error, atau undefined", () => {
+    const fallback = "Simpan gagal: terjadi kesalahan.";
+    expect(saveErrorMessage(new Error(""))).toBe(fallback);
+    expect(saveErrorMessage("gagal total")).toBe("Simpan gagal: gagal total");
+    expect(saveErrorMessage(undefined)).toBe(fallback);
+    expect(saveErrorMessage(null)).toBe(fallback);
+    expect(saveErrorMessage(undefined as unknown as Error)).not.toContain("undefined");
+  });
+});
+
+describe("feedbackTypeForResult (audit L-08)", () => {
+  it("menandai kegagalan sebagai error (awalan Gagal/Pilih)", () => {
+    expect(feedbackTypeForResult("Gagal: QuotaExceededError")).toBe("error");
+    expect(feedbackTypeForResult("Gagal: transaksi dibatalkan")).toBe("error");
+    expect(feedbackTypeForResult("Pilih murid dulu.")).toBe("error");
+  });
+
+  it("mengenali 'Gagal:' di tengah kalimat", () => {
+    expect(feedbackTypeForResult("Pengeluaran Gagal: koneksi putus")).toBe("error");
+  });
+
+  it("hasil yang berhasil (termasuk yang tidak berbunyi ✓) tetap success", () => {
+    expect(feedbackTypeForResult("Jadwal ditambahkan ✓")).toBe("success");
+    expect(feedbackTypeForResult("3 jadwal dibuat ✓")).toBe("success");
+    expect(feedbackTypeForResult("Jadwal diperbarui ✓")).toBe("success");
+    expect(feedbackTypeForResult("Sesi dijadwalkan ulang ✓")).toBe("success");
+    expect(feedbackTypeForResult("Tidak hadir ditandai — tetap ditagihkan.")).toBe("success");
+    expect(feedbackTypeForResult("Tandai selesai ✓")).toBe("success");
+  });
+
+  it("tahan spasi berlebih di awal pesan", () => {
+    expect(feedbackTypeForResult("  Pilih murid dulu.  ")).toBe("error");
+  });
+
+  it("pesan dari saveErrorMessage juga terbaca sebagai kegagalan", () => {
+    // Kontrak silang: pesan mapper (dipakai banner Catat Sesi) TIDAK boleh lolos
+    // sebagai keberhasilan bila kelak dikirim lewat toast.
+    const quota = new Error("x");
+    quota.name = "QuotaExceededError";
+    expect(feedbackTypeForResult(saveErrorMessage(quota))).toBe("error");
+    expect(feedbackTypeForResult(saveErrorMessage(new Error("setItem on 'Storage' gagal")))).toBe("error");
+    expect(feedbackTypeForResult(saveErrorMessage(new Error("AbortError")))).toBe("error");
+  });
+});
+
+describe("todayHeroLoadState (audit B-01)", () => {
+  it("belum siap selama salah satu query belum mengembalikan nilai", () => {
+    expect(todayHeroLoadState(undefined, [])).toBe("loading");
+    expect(todayHeroLoadState([], undefined)).toBe("loading");
+    expect(todayHeroLoadState(undefined, undefined)).toBe("loading");
+  });
+
+  it("siap begitu keduanya sudah mengembalikan nilai — termasuk daftar kosong", () => {
+    // Daftar kosong yang SUDAH dimuat tetap "ready": empty state-nya sah.
+    expect(todayHeroLoadState([], [])).toBe("ready");
+    expect(todayHeroLoadState([{ id: "s1" }], [{ id: "m1" }])).toBe("ready");
   });
 });
 

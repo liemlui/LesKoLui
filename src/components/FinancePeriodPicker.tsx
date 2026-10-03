@@ -78,7 +78,7 @@ export default function FinancePeriodPicker({
           type="button"
           onClick={() => onChange(currentMonth)}
           disabled={month === currentMonth}
-          className="h-9 shrink-0 rounded-xl border border-blue-200 bg-blue-50 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100 disabled:cursor-default disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+          className="h-9 shrink-0 rounded-xl border border-blue-200 bg-blue-50 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100 disabled:cursor-default disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-600"
         >
           Bulan ini
         </button>

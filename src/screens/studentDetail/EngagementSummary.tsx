@@ -195,7 +195,7 @@ export default function EngagementSummary({
                   <div className="flex gap-3 mt-1">
                     {stat.prepRate > 0 && <span className="text-xs text-green-600">📚 Siap {stat.prepRate}%</span>}
                     {stat.phoneRate > 0 && <span className="text-xs text-red-500">📱 Main HP {stat.phoneRate}%</span>}
-                    {stat.drowsyRate > 0 && <span className="text-xs text-orange-500">😴 Ngantuk {stat.drowsyRate}%</span>}
+                    {stat.drowsyRate > 0 && <span className="text-xs text-orange-700">😴 Ngantuk {stat.drowsyRate}%</span>}
                   </div>
                 </div>
               );

@@ -14,7 +14,8 @@ export default defineConfig({
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "mobile", use: { ...devices["Pixel 7"], deviceScaleFactor: 2 } },
-    { name: "mobile-dark", use: { ...devices["Pixel 7"], deviceScaleFactor: 2, colorScheme: "dark" } },
+    // Project `mobile-dark` DIHAPUS 2026-10-01 (keputusan pemilik Q4): aplikasi light-only permanen,
+    // sehingga screenshot mode gelap selalu identik byte-per-byte dengan mode terang (terbukti 29/37 file).
   ],
   webServer: {
     // Port di-pin agar cocok dengan baseURL — tanpa ini vite default ke 5173

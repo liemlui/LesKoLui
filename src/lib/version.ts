@@ -11,6 +11,74 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.85.0",
+    date: "2026-10-03",
+    title: "Judul layar Murid, Laporan, dan Pengaturan akhirnya terbaca pembaca layar",
+    items: [
+      "Tiga layar terakhir yang masih “tanpa judul” kini punya satu: daftar Murid, layar Laporan, dan Pengaturan. Sebelumnya ketiganya hanya punya judul halaman, sehingga pengguna pembaca layar yang menelusuri daftar judul (heading) tidak menemukan satu pun bagian yang bisa dilompati — judul bagian di dalam Pengaturan pun hanya tombol akordeon, dan judul di layar Laporan hanya muncul di dalam panel. Judul barunya sengaja tidak terlihat di layar (hanya untuk pembaca layar) supaya layar tidak bertambah padat.",
+      "Ada penjaga otomatis baru untuk mutu tampilan: perintah “npm run e2e:uiux” memeriksa 7 layar utama di dua ukuran layar sekaligus — kontras teks (ambang WCAG AA 4,5:1), ukuran kontrol yang bisa ditekan (minimal 24 px), urutan judul, dan hubungan tab dengan panel isinya. Penjaga ini dijalankan terpisah dan tidak memperlambat pemeriksaan rutin, tetapi sejak sekarang setiap kali tampilan disentuh, kemunduran angka ini ketahuan lebih dulu.",
+      "Penjaga itu langsung menemukan sisa yang belum tuntas dan mencatatnya apa adanya, bukan menyembunyikannya: 16 titik kontras masih di bawah 4,5:1 (terbanyak di layar Keuangan dan detail murid — mis. “Perlu ditindaklanjuti” 3,10:1 dan tautan nomor telepon 3,22:1) dan 2 tautan nomor telepon masih setinggi 20 px. Semuanya sudah terdaftar untuk pekerjaan token warna dan target sentuh di Gelombang 2, dan akan tetap terpantau penjaga ini sampai selesai.",
+      "Kegagalan menyimpan tindak lanjut sesi kembali punya tes otomatis. Spec-nya menuntut kalimat lama (“Tindak lanjut belum tersimpan; coba lagi.”) yang sudah diganti sejak v1.80.0, sehingga tes itu sebenarnya tidak pernah benar-benar memeriksa tombol “Coba lagi” — termasuk saat perbaikan v1.84.0 memindahkan tombol itu ke dalam laporan sesi.",
+    ],
+  },
+  {
+    version: "v1.84.0",
+    date: "2026-10-03",
+    title: "Tab, judul, dan pesan status kini bisa dipahami pembaca layar",
+    items: [
+      "Tab di tiga layar bertab (detail Murid, Keuangan, dan kotak “Perlu Perhatian” di Beranda) kini benar-benar terhubung dengan isinya. Sebelumnya hanya tombolnya yang ditandai sebagai tab: tidak ada hubungan ke panel isi, jadi pembaca layar tidak pernah tahu bagian mana yang sedang terbuka, dan setiap tab ikut terkena tombol Tab sehingga berpindah tab berarti menekan Tab berkali-kali. Sekarang setiap tab menyatakan panel mana yang dibukanya (semua panel tetap ada di halaman), hanya tab aktif yang bisa dijangkau Tab, dan panah ←/→ (plus Home/End) memindahkan fokus sekaligus membuka tabnya — sama seperti pola tab yang lazim di aplikasi lain.",
+      "Beranda akhirnya punya judul blok yang bisa dilompati. “Hari Ini” sebelumnya hanya teks tebal biasa, bukan heading; “Perlu Perhatian” dan “Kalender” sama sekali tanpa judul, sehingga daftar heading Beranda hampir kosong bagi pengguna pembaca layar — hanya ada “Operasional hari ini”. Sekarang keempat blok adalah heading sungguhan. Judul “Kalender” sengaja tidak terlihat karena blok itu sudah dikenali dari tombol Bulan/Minggu/Hari — menambah teks terlihat hanya akan menambah kepadatan layar (catatan yang sama dengan temuan B-05).",
+      "Pesan hasil aksi di layar Laporan kini dibacakan menurut jenisnya: keberhasilan diumumkan sebagai status (tidak memotong ucapan lain), kegagalan sebagai peringatan (langsung diumumkan). Sebelumnya keduanya bisu — kegagalan AI atau ekspor hanya terlihat kalau layarnya diperhatikan, dan tidak terdengar sama sekali oleh pengguna pembaca layar.",
+      "Gagal menyimpan tindak lanjut sesi kini punya tombol “Coba lagi” DI DALAM laporan sesi. Sebelumnya tombol itu berada di halaman di belakang laporan, padahal laporan mengunci fokus keyboard di dalam dirinya — akibatnya tutor yang bekerja dengan keyboard tidak bisa mengulang penyimpanan sama sekali dan harus menutup laporan lebih dulu. Sesi tetap tidak tersimpan dua kali: tombol itu mengulang penyimpanan tindak lanjut saja.",
+      "Tombol ✓ pada daftar Follow-up di Beranda kini punya nama yang bisa dibacakan, mis. “Tandai follow-up \"Kirim past paper Physics HL 2024\" selesai” — sebelumnya hanya tanda centang tanpa keterangan. Kolom “Fokus Sesi Berikutnya” di laporan sesi juga diberi nama yang sama, karena sebelumnya hanya mengandalkan teks abu-abu di atasnya.",
+      "Keterangan “Hapus Semua Data” menyebut satu hal yang memang tersisa: “catatan audit (kecuali satu jejak reset)”. Reset menghapus tabel catatan audit lalu menulis satu entri “Reset semua data”, jadi kalimat sebelumnya yang menyebut catatan audit ikut terhapus terlalu luas.",
+    ],
+  },
+  {
+    version: "v1.83.0",
+    date: "2026-10-01",
+    title: "Teks “Hapus Semua Data” berhenti menjanjikan yang salah",
+    items: [
+      "Layar Pengaturan tidak lagi berkata “Pengaturan, profil, dan PIN tetap aman” pada bagian Hapus Semua Data — kalimat itu tidak benar. Yang dikosongkan termasuk tabel pengaturan, sehingga PIN Keuangan, pertanyaan keamanan, kunci API AI, logo, profil tutor, dan rekening bank ikut terhapus, beserta catatan audit, draf Catat Sesi yang belum tersimpan, dan pengingat backup terakhir. Sekarang semuanya ditulis apa adanya, diikuti keterangan apa yang tetap ada: file backup yang sudah Anda unduh (termasuk yang di Google Drive) dan kata sandi backup yang mungkin tersimpan di browser.",
+      "Menyimpan PIN Keuangan tidak lagi bisa memundurkan waktu backup terakhir. Sebelumnya jalur “Simpan PIN” menulis ulang seluruh isi form Pengaturan — padahal isi form itu snapshot dari saat layar dibuka, sehingga backup yang selesai dari tempat lain setelahnya tertimpa nilai lama. Kini yang ditulis hanya kolom yang benar-benar berubah, sama seperti tombol “Simpan Pengaturan”.",
+      "Setelah PIN disimpan, badge “Belum disimpan” tidak lagi bertahan. Dulu jalur PIN tidak pernah menandai form sebagai tersimpan, jadi badge merah dan tombol “Simpan Pengaturan” tetap tampak menunggu walau PIN sudah masuk. Sekarang statusnya kembali “Tersimpan ✓”. Bila penyimpanan PIN gagal, muncul notifikasi merah dengan sebabnya — sebelumnya kegagalan itu lewat tanpa pemberitahuan.",
+      "Catatan teknis: spec E2E “keadaan memuat & gagal” kini hanya berjalan di project chromium — uji yang memakai CDP (perlambatan CPU) tidak lagi menggandakan waktu CI di project mobile.",
+    ],
+  },
+  {
+    version: "v1.82.0",
+    date: "2026-10-01",
+    title: "Aksi yang mengubah uang & menghapus data kini minta konfirmasi",
+    items: [
+      "Menandai tagihan sudah dibayar (dan membatalkannya) tidak lagi terjadi karena satu ketukan yang salah. Muncul konfirmasi yang menyebut akibatnya lebih dulu — mis. “Uang masuk +Rp 480.000 dan piutang −Rp 480.000” — dan setelah dijalankan ada tombol “Urungkan” selama 8 detik untuk membalikkannya. Tombol “Batalkan pelunasan” diganti nama menjadi “Tandai belum dibayar” agar jelas arah tindakannya.",
+      "Menghapus foto bukti, tanda tangan murid, dan tindak lanjut sesi kini minta konfirmasi karena semuanya tidak bisa dikembalikan (foto harus diambil ulang dari kamera). Tombol hapus tindak lanjut juga punya nama yang bisa dibacakan pembaca layar, mis. “Hapus tindak lanjut: Latihan soal vektor”.",
+      "Menghapus foto sesi lama (permanen, dan foto yang sudah dihapus tidak ada di file backup mana pun) sekarang minta konfirmasi dan dijelaskan sebagai tindakan permanen dengan tombol bergaris merah. Sebaliknya “Perkecil foto” yang tidak menghapus apa pun berjalan langsung tanpa dialog — sebelumnya justru terbalik: yang permanen langsung jalan, yang aman malah bertanya.",
+      "“Hapus Cache & Muat Ulang” menjadi “🧹 Bersihkan Cache (butuh internet setelahnya)” dan minta konfirmasi yang menjelaskan konsekuensinya: setelah dibersihkan aplikasi butuh internet untuk dibuka, sedangkan data murid, sesi, tagihan, laporan, dan pengaturan tidak ikut terhapus. Tombolnya dipindah ke baris terakhir bagian Aplikasi (PWA).",
+      "Baris “Penyimpanan Lokal” di Pengaturan tidak lagi hilang diam-diam. Bila browser tidak menyediakan perkiraan penyimpanan (atau perkiraannya gagal), yang tampil adalah penjelasan “Perkiraan penyimpanan tidak tersedia di browser ini” — sebelumnya barisnya menghilang tanpa keterangan.",
+    ],
+  },
+  {
+    version: "v1.81.0",
+    date: "2026-10-01",
+    title: "Beranda & Pengaturan tidak lagi tampak kosong atau menggantung",
+    items: [
+      "Beranda tidak lagi berkata “Tidak ada sesi hari ini” padahal datanya masih dibaca dari perangkat. Selama pembacaan pertama berjalan, kartu “Hari Ini” menampilkan rangka (skeleton) — jadi yang tidak ada sesi bisa dibedakan dari yang belum siap dibaca. Sebelumnya kalimat itu muncul sekejap setiap aplikasi dibuka.",
+      "Layar Pengaturan tidak bisa lagi menggantung selamanya tanpa penjelasan. Sebelumnya saat data pengaturan belum siap hanya ada teks “Memuat pengaturan...” tanpa bentuk dan tanpa jalan keluar. Sekarang ada rangka saat memuat, dan bila pembacaan gagal (atau tidak menjawab lebih dari 8 detik) muncul kotak “Pengaturan gagal dimuat” dengan tombol “Coba lagi” yang benar-benar membaca ulang pengaturan dari perangkat.",
+    ],
+  },
+  {
+    version: "v1.80.0",
+    date: "2026-10-01",
+    title: "Kegagalan tidak lagi tampil seperti keberhasilan",
+    items: [
+      "Umpan balik hasil aksi dipisah menurut jenisnya. Sebelumnya satu jenis notifikasi dipakai untuk semuanya, sehingga “Jadwal ditambahkan ✓” dan “Gagal: …” tampak sama. Sekarang keberhasilan tampil hijau dan kegagalan tampil merah: di Pengaturan (simpan pengaturan, PIN, backup, restore, ekspor CSV, verifikasi backup, relay, reset, baca file) dan di Beranda (jadwal ditambah/diubah, sesi dijadwalkan ulang, pengeluaran dicatat).",
+      "Gagal menyimpan sesi les tidak lagi menampilkan pesan teknis mentah. Dulu yang muncul adalah pesan asli browser — mis. “QuotaExceededError: …” — yang tidak memberi tahu tutor apa yang harus dilakukan. Sekarang pesan itu diterjemahkan ke bahasa manusia: penyimpanan penuh → “Penyimpanan perangkat penuh. Unduh backup dari Pengaturan lalu hapus foto sesi lama — sesi ini belum tersimpan.”",
+      "Banner kegagalan simpan kini punya tombol “Coba lagi”. Tombolnya memanggil ulang aksi yang gagal — dan pada kegagalan menulis tindak lanjut (sesi sudah tersimpan, hanya tindak lanjutnya yang belum) tombolnya menyimpan tindak lanjut saja, bukan mengulang penyimpanan sesi sehingga tidak ada sesi ganda.",
+      "Tujuh pasang warna teks dengan rasio kontras di bawah ambang WCAG AA dinaikkan (audit kontras UI/UX). Contoh terburuk: label “Besok” pada pengingat backup 2,07:1 → 4,87:1, dan tombol “Backup” 2,15:1 → 5,05:1. Semua titik yang diperbaiki kini ≥4,5:1; sisanya digantikan token warna pada pekerjaan fondasi visual.",
+      "Pengingat backup mingguan tidak lagi menutupi konten halaman. Tinggi pengingat itu diukur dan dihitung ke dalam jarak bawah halaman (80 px → 196 px saat tampil), jadi baris terakhir tetap bisa dijangkau dan digulir sampai terlihat. Tombol tutup baru (44×44 px) menahan pengingat itu selama 7 hari, dan pengingat disembunyikan saat layar Catat Sesi terbuka atau saat ada panel/modal di atasnya.",
+    ],
+  },
+  {
     version: "v1.79.3",
     date: "2026-10-01",
     title: "Banner “Pasang di layar utama” tidak lagi muncul terus",

@@ -16,7 +16,9 @@ import { todayWIB } from "../lib/format";
 import { compressPhoto } from "../lib/foto";
 import { downloadBlob } from "../lib/download";
 import { APP_VERSION } from "../lib/version";
-import { saveButtonState } from "../lib/settingsPresentation";
+import { saveButtonState, settingsLoadGate, SETTINGS_LOAD_TIMEOUT_MS, storageUsageState } from "../lib/settingsPresentation";
+import Skeleton from "../components/Skeleton";
+import ConfirmSheet from "../components/ConfirmSheet";
 import { DEEPSEEK_MODEL, DEEPSEEK_MODEL_LABEL, DEEPSEEK_DOCS_URL, DEEPSEEK_PRICING_URL, DEEPSEEK_COST_NOTE } from "../lib/aiConfig";
 import type { Settings, AuditAction } from "../db/types";
 import { settingsDirtyPatch } from "../lib/settingsDirtyPatch";
@@ -61,21 +63,36 @@ function passStrength(p: string): { label: string; color: string; pct: number } 
 
 function StorageUsage() {
   const [info, setInfo] = useState<{ used: number; quota: number } | null>(null);
+  const [unavailable, setUnavailable] = useState(false);
   useEffect(() => {
-    navigator.storage?.estimate().then((e) => {
-      if (e.usage != null && e.quota != null) setInfo({ used: e.usage, quota: e.quota });
-    });
+    let cancelled = false;
+    if (!navigator.storage?.estimate) { setUnavailable(true); return; }
+    navigator.storage.estimate()
+      .then((e) => {
+        if (cancelled) return;
+        if (storageUsageState(e) === "ready") setInfo({ used: e.usage ?? 0, quota: e.quota ?? 0 });
+        else setUnavailable(true);
+      })
+      .catch(() => { if (!cancelled) setUnavailable(true); });
+    return () => { cancelled = true; };
   }, []);
-  if (!info) return null;
-  const pct = Math.round((info.used / info.quota) * 100);
+  // Estimasi gagal / API tidak ada: beri tahu, jangan hilangkan barisnya diam-diam.
+  if (!info && !unavailable) return null;
+  const pct = info ? Math.round((info.used / info.quota) * 100) : 0;
   const mb = (b: number) => (b / 1024 / 1024).toFixed(1) + " MB";
   return (
     <div className="bg-gray-50 rounded-xl p-3 space-y-1">
       <p className="text-xs font-semibold text-gray-500">Penyimpanan Lokal</p>
-      <div className="w-full bg-gray-200 rounded-full h-2">
-        <div className="bg-blue-500 h-2 rounded-full transition-all" style={{ width: `${Math.min(pct, 100)}%` }} />
-      </div>
-      <p className="text-xs text-gray-500">{mb(info.used)} digunakan dari {mb(info.quota)} ({pct}%)</p>
+      {info ? (
+        <>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="bg-blue-500 h-2 rounded-full transition-all" style={{ width: `${Math.min(pct, 100)}%` }} />
+          </div>
+          <p className="text-xs text-gray-500">{mb(info.used)} digunakan dari {mb(info.quota)} ({pct}%)</p>
+        </>
+      ) : (
+        <p className="text-xs text-gray-600">Perkiraan penyimpanan tidak tersedia di browser ini</p>
+      )}
     </div>
   );
 }
@@ -91,6 +108,32 @@ function PhotoMaintenance({ onToast }: { onToast: (m: string) => void }) {
   }, []);
   const oldCount = useLiveQuery(() => countSessionPhotos(cutoff), [cutoff]);
   const [busy, setBusy] = useState(false);
+  /** S-10: HAPUS itu permanen → konfirmasi. PERKECIL tidak → langsung jalan. */
+  const [confirmPrune, setConfirmPrune] = useState(false);
+
+  const prune = async () => {
+    setConfirmPrune(false);
+    setBusy(true);
+    try {
+      const n = await pruneSessionPhotosBefore(cutoff);
+      onToast(`${n} foto lama dihapus ✓`);
+    } catch (e) {
+      onToast("Gagal hapus foto: " + ((e as Error).message || "coba lagi"));
+    } finally { setBusy(false); }
+  };
+
+  const shrink = async () => {
+    setBusy(true);
+    try {
+      const r = await shrinkSessionPhotosBefore(cutoff, shrinkPhotoBlob);
+      onToast(r.shrunk > 0
+        ? `${r.shrunk} foto diperkecil · hemat ±${Math.round(r.savedBytes / 1024)} KB ✓`
+        : "Tidak ada foto yang bisa diperkecil lagi ✓");
+    } catch (e) {
+      onToast("Gagal perkecil foto: " + ((e as Error).message || "coba lagi"));
+    } finally { setBusy(false); }
+  };
+
   if (!oldCount) return null;
   return (
     <div className="bg-amber-50 rounded-xl p-3 space-y-2">
@@ -101,34 +144,25 @@ function PhotoMaintenance({ onToast }: { onToast: (m: string) => void }) {
         catatan &amp; tanda tangan sesi tidak pernah diubah.
       </p>
       <button disabled={busy}
-        onClick={async () => {
-          setBusy(true);
-          try {
-            const n = await pruneSessionPhotosBefore(cutoff);
-            onToast(`${n} foto lama dihapus ✓`);
-          } catch (e) {
-            onToast("Gagal hapus foto: " + ((e as Error).message || "coba lagi"));
-          } finally { setBusy(false); }
-        }}
-        className="w-full py-2 rounded-xl bg-amber-500 text-white text-sm font-medium disabled:opacity-60">
+        onClick={() => setConfirmPrune(true)}
+        className="w-full py-2 rounded-xl border border-red-300 bg-white text-red-700 text-sm font-semibold hover:bg-red-50 disabled:opacity-60 transition-colors">
         {busy ? "Menghapus..." : `Hapus ${oldCount} foto lama`}
       </button>
       <button disabled={busy}
-        onClick={async () => {
-          if (!confirm(`Perkecil ${oldCount} foto sesi lebih lama dari 6 bulan? Foto tetap ada, hanya resolusinya yang turun.`)) return;
-          setBusy(true);
-          try {
-            const r = await shrinkSessionPhotosBefore(cutoff, shrinkPhotoBlob);
-            onToast(r.shrunk > 0
-              ? `${r.shrunk} foto diperkecil · hemat ±${Math.round(r.savedBytes / 1024)} KB ✓`
-              : "Tidak ada foto yang bisa diperkecil lagi ✓");
-          } catch (e) {
-            onToast("Gagal perkecil foto: " + ((e as Error).message || "coba lagi"));
-          } finally { setBusy(false); }
-        }}
-        className="w-full py-2 rounded-xl border border-amber-300 bg-white text-amber-800 text-sm font-medium disabled:opacity-60">
-        Perkecil foto (tanpa menghapus)
+        onClick={() => void shrink()}
+        className="w-full py-2 rounded-xl bg-amber-700 text-white text-sm font-medium disabled:opacity-60">
+        {busy ? "Memproses..." : "Perkecil foto (tanpa menghapus)"}
       </button>
+
+      <ConfirmSheet
+        open={confirmPrune}
+        title={`Hapus ${oldCount} foto lama?`}
+        message={`Foto sesi lebih lama dari 6 bulan akan DIHAPUS PERMANEN. Tindakan ini tidak bisa dibatalkan dan foto yang sudah dihapus TIDAK ada di file backup mana pun. Catatan & tanda tangan sesi tetap utuh.\n\nKalau hanya ingin menghemat ruang, pakai "Perkecil foto (tanpa menghapus)".`}
+        confirmLabel="Hapus permanen"
+        danger
+        onCancel={() => setConfirmPrune(false)}
+        onConfirm={() => void prune()}
+      />
     </div>
   );
 }
@@ -269,6 +303,29 @@ function Section({
   );
 }
 
+/** Keadaan gagal baca pengaturan — satu-satunya jalan keluar: coba lagi / muat ulang. */
+function SettingsLoadFailed({ busy, onRetry }: { busy: boolean; onRetry: () => void }) {
+  return (
+    <div className="p-4" role="alert">
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-4 space-y-2">
+        <p className="text-sm font-bold text-red-700">Pengaturan gagal dimuat</p>
+        <p className="text-xs text-red-700">
+          Data pengaturan belum bisa dibaca dari perangkat ini. Muat ulang halaman bila
+          tombol di bawah tetap tidak berhasil.
+        </p>
+        <button
+          type="button"
+          onClick={onRetry}
+          disabled={busy}
+          className="w-full py-3 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-60 transition-colors"
+        >
+          {busy ? "Mencoba lagi..." : "Coba lagi"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /**
  * SettingsPage — halaman pengaturan aplikasi.
  * Section: Profil, PIN, Backup/Restore, Google Drive, Relay Server,
@@ -278,7 +335,13 @@ function Section({
  * @route /settings
  */
 export default function SettingsPage() {
-  const settings  = useLiveQuery(() => getSettings(), []);
+  const [settingsNonce, setSettingsNonce] = useState(0);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  const [settingsTimedOut, setSettingsTimedOut] = useState(false);
+  const [settingsRetrying, setSettingsRetrying] = useState(false);
+  /** S-08: bersihkan cache (service worker + Cache Storage) butuh konfirmasi. */
+  const [confirmClearCache, setConfirmClearCache] = useState(false);
+  const settings  = useLiveQuery(() => getSettings(), [settingsNonce]);
   const [form,        setForm]        = useState<Settings | null>(null);
   const [logoUrl,     setLogoUrl]     = useState<string | undefined>();
   const [dirty,       setDirty]       = useState(false);
@@ -328,13 +391,80 @@ export default function SettingsPage() {
     return () => URL.revokeObjectURL(url);
   }, [form?.logo]);
 
-  if (!settings || !form) return <div className="p-4 text-gray-500">Memuat pengaturan...</div>;
+  // ── Loading / kegagalan pembacaan pengaturan (audit L-09) ───────────────────
+  /**
+   * Pastikan penyimpanan benar-benar menjawab. Selama `settings` masih undefined
+   * kita tidak tahu apakah datanya belum datang atau query sudah mati — karena itu
+   * ada dua jaring: probe di bawah (menangkap galat) dan batas tunggu ini.
+   * Keduanya dipasang SEBELUM early-return supaya urutan hook tidak berubah.
+   */
+  useEffect(() => {
+    if (settings) return;
+    const t = setTimeout(() => setSettingsTimedOut(true), SETTINGS_LOAD_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, [settings, settingsNonce]);
+
+  /**
+   * Probe independen ke store yang sama. `useLiveQuery` pada hook ini tidak
+   * meneruskan galat (observable-nya hanya membawa nilai), sehingga tanpa probe
+   * kegagalan baca tidak terlihat sama sekali. Setelah gagal, probe TIDAK dijalankan
+   * ulang sampai tombol "Coba lagi" ditekan (nonce berubah) — tanpa penjaga itu,
+   * kegagalan permanen berubah menjadi loop request tanpa akhir.
+   */
+  useEffect(() => {
+    if (settings || settingsError) return;
+    let cancelled = false;
+    db.settings.get("app")
+      .then(() => {
+        if (cancelled) return;
+        setSettingsTimedOut(false);
+        setSettingsRetrying(false);
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        setSettingsRetrying(false);
+        setSettingsError((e as Error)?.message || "pengaturan tidak bisa dibaca");
+      });
+    return () => { cancelled = true; };
+  }, [settings, settingsNonce, settingsError]);
+
+  const settingsView = settingsLoadGate({
+    settingsLoaded: settings !== undefined,
+    formReady: form !== null,
+    error: settingsError,
+    timedOut: settingsTimedOut,
+  });
+
+  if (settingsView !== "ready") {
+    if (settingsView === "loading") {
+      return (
+        <div className="p-4 space-y-3" role="status" aria-busy="true" aria-label="Memuat pengaturan">
+          <Skeleton variant="card" />
+          <Skeleton variant="text" lines={3} />
+        </div>
+      );
+    }
+    return (
+      <SettingsLoadFailed
+        busy={settingsRetrying}
+        onRetry={() => {
+          setSettingsRetrying(true);
+          setSettingsError(null);
+          setSettingsTimedOut(false);
+          setSettingsNonce((n) => n + 1);
+        }}
+      />
+    );
+  }
+
+  // Gerbang di atas sudah memastikan keduanya terisi; penyempitan tipe ini membuat
+  // sisanya tidak perlu `!` berulang (dan tetap aman bila gerbangnya kelak berubah).
+  if (!settings || !form) throw new Error("SettingsView ready tanpa data pengaturan");
 
   const update = <K extends keyof Settings>(key: K, value: Settings[K]) => {
     setForm((f) => (f ? { ...f, [key]: value } : f));
     setDirty(true);
   };
-
   const updateProfile = (field: string, value: string) => {
     setForm((f) => f ? { ...f, tutorProfile: { ...f.tutorProfile, [field]: value } } : f);
     setDirty(true);
@@ -364,9 +494,9 @@ export default function SettingsPage() {
       await saveSettings(settingsDirtyPatch(savedFormRef.current ?? form, form));
       savedFormRef.current = form;
       setDirty(false);
-      toastCtx.info("Pengaturan disimpan ✓");
+      toastCtx.success("Pengaturan disimpan ✓");
     } catch (e) {
-      toastCtx.info("Gagal: " + ((e as Error).message || "terjadi kesalahan."));
+      toastCtx.error("Gagal: " + ((e as Error).message || "terjadi kesalahan."));
     } finally {
       setSaving(false);
     }
@@ -380,7 +510,7 @@ export default function SettingsPage() {
     try {
       update("logo", await compressPhoto(file));
     } catch (err) {
-      toastCtx.info("Logo gagal diproses: " + (err as Error).message);
+      toastCtx.error("Logo gagal diproses: " + (err as Error).message);
     } finally {
       e.target.value = "";
     }
@@ -431,17 +561,26 @@ export default function SettingsPage() {
     if (!secQ.trim()) { setPinError("Pertanyaan keamanan wajib diisi."); return; }
     if (!form?.securityAnswer && !secA.trim()) { setPinError("Jawaban wajib diisi untuk PIN baru."); return; }
     
-    const hashed = await hashPin(newPin);
-    let hashedAns = form?.securityAnswer;
-    if (secA.trim()) {
-      hashedAns = await hashPin(secA.trim().toLowerCase());
+    try {
+      const hashed = await hashPin(newPin);
+      let hashedAns = form?.securityAnswer;
+      if (secA.trim()) {
+        hashedAns = await hashPin(secA.trim().toLowerCase());
+      }
+
+      const updated: Settings = { ...form, financialPin: hashed, securityQuestion: secQ.trim(), securityAnswer: hashedAns };
+      // Patch, bukan snapshot Settings penuh: `form` bisa lebih tua daripada isi
+      // IndexedDB (mis. backup selesai dari layar/prompt lain), sehingga menulis
+      // snapshot penuh akan memundurkan `lastBackupAt`/`driveBackup`.
+      await saveSettings(settingsDirtyPatch(savedFormRef.current ?? form, updated));
+      savedFormRef.current = updated;
+      setForm(updated);
+      setDirty(false);
+      toastCtx.success("PIN berhasil diperbarui ✓");
+      setPinMode("view"); setNewPin(""); setNewPinConf(""); setPinError(""); setSecQ(""); setSecA("");
+    } catch (e) {
+      toastCtx.error("PIN gagal disimpan: " + ((e as Error).message || "terjadi kesalahan."));
     }
-    
-    const updated = { ...form, financialPin: hashed, securityQuestion: secQ.trim(), securityAnswer: hashedAns };
-    await saveSettings(updated as Settings);
-    toastCtx.info("PIN berhasil diperbarui ✓");
-    setPinMode("view"); setNewPin(""); setNewPinConf(""); setPinError(""); setSecQ(""); setSecA("");
-    setForm(updated as Settings);
   };
 
   const requireFinancialPin = (action: typeof pinAction) => {
@@ -462,7 +601,7 @@ export default function SettingsPage() {
     await saveSettings({ lastBackupAt });
     setForm((f) => f ? { ...f, lastBackupAt } : f);
     markBackupReminderCurrent();
-    toastCtx.info("Backup berhasil diunduh ✓");
+    toastCtx.success("Backup berhasil diunduh ✓");
   };
 
 
@@ -486,7 +625,7 @@ export default function SettingsPage() {
       setRestoreProgress("");
     }
     await logAudit("data.restore", "data", undefined, "dari file");
-    toastCtx.info("Restore berhasil! Memuat ulang... ✓");
+    toastCtx.success("Restore berhasil! Memuat ulang... ✓");
     setTimeout(() => location.reload(), 1500);
   };
 
@@ -500,7 +639,7 @@ export default function SettingsPage() {
     await saveSettings({ driveBackup, lastBackupAt: now });
     setForm((f) => f ? { ...f, driveBackup, lastBackupAt: now } : f);
     markBackupReminderCurrent();
-    toastCtx.info("Backup ke Google Drive berhasil ✓");
+    toastCtx.success("Backup ke Google Drive berhasil ✓");
   };
 
   const doDriveRestore = async () => {
@@ -526,14 +665,14 @@ export default function SettingsPage() {
       setRestoreProgress("");
     }
     await logAudit("data.restore", "data", undefined, "dari Google Drive");
-    toastCtx.info("Restore dari Drive berhasil! Memuat ulang... ✓");
+    toastCtx.success("Restore dari Drive berhasil! Memuat ulang... ✓");
     setTimeout(() => location.reload(), 1500);
   };
 
   const doExportCsv = async () => {
     const blob = await exportDataCsvBlob();
     downloadBlob(blob, `leskolui-data-${todayWIB()}.csv`);
-    toastCtx.info("Data diekspor ke CSV ✓");
+    toastCtx.success("Data diekspor ke CSV ✓");
   };
 
   // Verifikasi backup Drive: unduh + dekripsi untuk pastikan file valid & terbaca.
@@ -548,9 +687,9 @@ export default function SettingsPage() {
       const nM = summary.tableCounts.students;
       const nS = summary.tableCounts.sessions;
       const when = new Date(found.modifiedTime).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" });
-      toastCtx.info(`Backup valid ✓ ${nM} murid, ${nS} sesi (${when})`);
+      toastCtx.success(`Backup valid ✓ ${nM} murid, ${nS} sesi (${when})`);
     } catch (e) {
-      toastCtx.info("Verifikasi gagal: " + ((e as Error).message || "kata sandi salah / file rusak"));
+      toastCtx.error("Verifikasi gagal: " + ((e as Error).message || "kata sandi salah / file rusak"));
     } finally {
       setVerifying(false);
     }
@@ -565,9 +704,9 @@ export default function SettingsPage() {
     setRelayBusy(true);
     try {
       await testRelay();
-      toastCtx.info("Relay backup OK ✓ — token diperoleh tanpa popup");
+      toastCtx.success("Relay backup OK ✓ — token diperoleh tanpa popup");
     } catch (e) {
-      toastCtx.info("Relay gagal: " + ((e as Error).message || "cek setup server"));
+      toastCtx.error("Relay gagal: " + ((e as Error).message || "cek setup server"));
     } finally {
       setRelayBusy(false);
     }
@@ -579,7 +718,7 @@ export default function SettingsPage() {
       localStorage.setItem("leskolui_drive_auto", "1");
       localStorage.setItem("leskolui_drive_pass", backupPass);
       setDriveAuto(true);
-      toastCtx.info("Auto backup Drive aktif ✓ (passphrase tersimpan di perangkat)");
+      toastCtx.success("Auto backup Drive aktif ✓ (passphrase tersimpan di perangkat)");
     } else {
       localStorage.removeItem("leskolui_drive_auto");
       localStorage.removeItem("leskolui_drive_pass");
@@ -600,7 +739,7 @@ export default function SettingsPage() {
     });
     // Catat reset setelah clear agar jejak auditnya tetap ada (satu entri).
     await logAudit("data.reset", "data");
-    toastCtx.info("Semua data berhasil dihapus ✓ Memuat ulang...");
+    toastCtx.success("Semua data berhasil dihapus ✓ Memuat ulang...");
     setTimeout(() => location.reload(), 1500);
   };
 
@@ -616,7 +755,7 @@ export default function SettingsPage() {
       if (pinAction === "exportCsv") await doExportCsv();
       setPinAction(null);
     } catch (e) {
-      toastCtx.info("Gagal: " + ((e as Error).message || "terjadi kesalahan."));
+      toastCtx.error("Gagal: " + ((e as Error).message || "terjadi kesalahan."));
     }
   };
 
@@ -678,6 +817,10 @@ export default function SettingsPage() {
           </span>
         )}
       </div>
+      {/* Audit L-07 / Q22(b): layar ini dulu hanya punya `h1` — judul bagian di bawah
+          ini adalah tombol akordeon, bukan heading. Satu `h2` sr-only cukup agar
+          hierarki heading dan ambang guard G1-11 ("setiap layar ≥1 h2") terpenuhi. */}
+      <h2 className="sr-only">Bagian pengaturan</h2>
 
       {/* ── Profil Tutor ── */}
       <Section title="Profil Tutor" icon={<UserIcon size={18} />}>
@@ -1023,7 +1166,7 @@ export default function SettingsPage() {
                     const counts = summary.tableCounts;
                     toastCtx.info(`File terbaca ✓ ${counts.students} murid · ${counts.sessions} sesi · ${counts.reports} laporan · ${counts.payments} tagihan (${new Date(summary.exportedAt).toLocaleDateString("id-ID", { dateStyle: "medium" })})`);
                   } catch (e) {
-                    toastCtx.info("File tidak bisa dibaca: " + ((e as Error).message || "kata sandi salah / file rusak"));
+                    toastCtx.error("File tidak bisa dibaca: " + ((e as Error).message || "kata sandi salah / file rusak"));
                   } finally {
                     setRestoreProgress("");
                   }
@@ -1125,7 +1268,14 @@ export default function SettingsPage() {
             ⚠️ Menghapus semua data murid, sesi, tagihan, laporan, dan pengeluaran.
           </p>
           <p className="text-xs text-gray-500">
-            Database tidak dihapus — hanya dikosongkan. Pengaturan, profil, dan PIN tetap aman.
+            Ikut terhapus juga: PIN Keuangan, pertanyaan keamanan, kunci API AI, logo, profil tutor,
+            dan rekening bank — beserta catatan audit (kecuali satu jejak reset), draf Catat Sesi
+            yang belum tersimpan, dan pengingat backup terakhir.
+          </p>
+          <p className="text-xs text-gray-500">
+            Yang tetap ada: file backup yang sudah Anda unduh (termasuk yang di Google Drive) dan
+            kata sandi backup yang mungkin tersimpan di browser ini. Setelah reset, aplikasi terbuka
+            dengan pengaturan bawaan — tanpa PIN.
           </p>
           <button
             onClick={async () => {
@@ -1169,29 +1319,42 @@ export default function SettingsPage() {
           </div>
 
           <button
-            onClick={async () => {
-              if ("serviceWorker" in navigator) {
-                const registrations = await navigator.serviceWorker.getRegistrations();
-                for (const reg of registrations) await reg.unregister();
-              }
-              if ("caches" in window) {
-                const keys = await caches.keys();
-                await Promise.all(keys.map((k) => caches.delete(k)));
-              }
-              toastCtx.info("Cache dibersihkan ✓ Muat ulang...");
-              setTimeout(() => location.reload(), 1000);
-            }}
-            className="w-full py-2.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-semibold hover:bg-gray-200 transition-colors">
-            🗑️ Hapus Cache & Muat Ulang
-          </button>
-
-          <button
             onClick={() => setShowExitModal(true)}
             className="w-full py-2.5 rounded-xl bg-red-50 text-red-600 text-sm font-semibold hover:bg-red-100 transition-colors">
             ⏻ Keluar Aplikasi
           </button>
+
+          <button
+            onClick={() => setConfirmClearCache(true)}
+            className="w-full py-2.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-semibold hover:bg-gray-200 transition-colors">
+            🧹 Bersihkan Cache (butuh internet setelahnya)
+          </button>
         </div>
       </Section>
+
+      {/* S-08: bersihkan cache melepas service worker — setelah itu app butuh internet. */}
+      <ConfirmSheet
+        open={confirmClearCache}
+        title="Bersihkan cache?"
+        message={"Setelah ini aplikasi butuh internet untuk dibuka.\n\nData murid, sesi, tagihan, laporan, dan pengaturan TIDAK terhapus — yang dibuang hanya salinan berkas aplikasi di perangkat. Halaman akan dimuat ulang setelah dibersihkan."}
+        confirmLabel="Bersihkan cache"
+        onCancel={() => setConfirmClearCache(false)}
+        onConfirm={() => {
+          setConfirmClearCache(false);
+          void (async () => {
+            if ("serviceWorker" in navigator) {
+              const registrations = await navigator.serviceWorker.getRegistrations();
+              for (const reg of registrations) await reg.unregister();
+            }
+            if ("caches" in window) {
+              const keys = await caches.keys();
+              await Promise.all(keys.map((k) => caches.delete(k)));
+            }
+            toastCtx.success("Cache dibersihkan ✓ Muat ulang...");
+            setTimeout(() => location.reload(), 1000);
+          })();
+        }}
+      />
 
       {showExitModal && <ExitAppModal onClose={() => setShowExitModal(false)} />}
 

@@ -493,9 +493,14 @@ export default function StudentDetail() {
         ]}
         active={detailTab}
         onChange={setDetailTab}
+        idPrefix="student"
         fullWidth
       />
 
+      {/* Audit L-06: panel per tab SELALU ada di DOM supaya `aria-controls` setiap
+          tab menunjuk elemen nyata; isi panel tetap hanya dirender saat tabnya
+          aktif (pekerjaan/query tetap lazy). */}
+      <div role="tabpanel" id="student-panel-ringkasan" aria-labelledby="student-tab-ringkasan" hidden={detailTab !== "ringkasan"}>
       {detailTab === "ringkasan" && (<>
       {/* Info card */}
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-2">
@@ -652,6 +657,9 @@ export default function StudentDetail() {
         />
       )}
       </>)}
+      </div>
+
+      <div role="tabpanel" id="student-panel-sesi" aria-labelledby="student-tab-sesi" hidden={detailTab !== "sesi"}>
       {detailTab === "sesi" && (<>
 
       {/* ── BUKTI KEAKTIFAN ── */}
@@ -691,11 +699,17 @@ export default function StudentDetail() {
       />
       </>
       )}
+      </div>
+
+      <div role="tabpanel" id="student-panel-iaee" aria-labelledby="student-tab-iaee" hidden={detailTab !== "iaee"}>
       {detailTab === "iaee" && (<>
 
       {/* ── IA / EE / PP TRACKER (diekstrak ke studentDetail/IaEeTracker.tsx) ── */}
       <IaEeTracker student={student!} projects={iaeeProjects ?? []} notify={msg} />
       </>)}
+      </div>
+
+      <div role="tabpanel" id="student-panel-nilai" aria-labelledby="student-tab-nilai" hidden={detailTab !== "nilai"}>
       {detailTab === "nilai" && (
         <NilaiRapor
           engSessions={engSessions}
@@ -709,6 +723,7 @@ export default function StudentDetail() {
           responseStats={responseStats}
         />
       )}
+      </div>
       {/* Modals — always render regardless of tab */}
 
       {/* ── EDIT SESSION NOTES MODAL ── */}
@@ -843,7 +858,7 @@ export default function StudentDetail() {
                   <textarea id="sd-refleksi" className="input text-sm" rows={2} value={editGradeReflection}
                     onChange={(e) => { setEditGradeReflection(e.target.value); setEditGradeError(""); }}
                     placeholder="Kenapa nilai akhir lebih rendah dari prediksi? (mis. soal ujian lebih sulit, materi belum dikuasai, kondisi murid...)" />
-                  <p className="text-xs text-orange-500 mt-1">Prediksi ({editPredictedGrade}) lebih tinggi dari nilai akhir ({editActualGrade}) — refleksi wajib diisi.</p>
+                  <p className="text-xs text-orange-700 mt-1">Prediksi ({editPredictedGrade}) lebih tinggi dari nilai akhir ({editActualGrade}) — refleksi wajib diisi.</p>
                   {editGradeError && <p className="text-xs text-red-500 mt-1">{editGradeError}</p>}
                 </div>
               )}

@@ -32,6 +32,10 @@
      Di-set otomatis dari tingginya; dipakai .app-shell agar judul halaman tidak
      tertutup (audit C-12). */
   --top-banner-h: 0px;
+  /* Tinggi nag backup mingguan yang mengambang di atas bottom-nav (audit L-02).
+     Di-set otomatis dari tinggi nag; 0px saat nag tidak tampil. Dipakai
+     .app-shell agar elemen terbawah halaman tetap bisa dijangkau saat nag ada. */
+  --nag-h: 0px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --surface: var(--color-surface);
@@ -69,7 +73,9 @@ a, button, input, select, textarea {
 .app-shell {
   /* Konten tidak boleh tersembunyi di balik banner atas yang mengambang. */
   padding-top: var(--top-banner-h, 0px);
-  padding-bottom: calc(var(--bottom-nav-h) + var(--safe-bottom) + 1rem);
+  /* + --nag-h: ruang untuk nag backup mingguan supaya elemen terbawah halaman
+     tetap bisa di-scroll keluar dari baliknya (audit L-02). */
+  padding-bottom: calc(var(--bottom-nav-h) + var(--safe-bottom) + 1rem + var(--nag-h, 0px));
 }
 
 @keyframes slide-up {

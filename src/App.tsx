@@ -1,5 +1,5 @@
 import { useEffect, lazy, Suspense, useState, useCallback } from "react";
-import { createBrowserRouter, RouterProvider, Outlet, Navigate, useNavigate } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Outlet, Navigate, useNavigate, useLocation } from "react-router-dom";
 import BottomNav from "./components/BottomNav";
 import { PwaPrompts } from "./components/PwaPrompts";
 import ChangelogModal from "./components/ChangelogModal";
@@ -29,6 +29,11 @@ const Settings = lazy(() => import("./screens/Settings"));
 
 const AUTO_BACKUP_KEY = "leskolui_last_auto_backup_prompt";
 const AUTO_BACKUP_INTERVAL_DAYS = 7;
+// Penolakan nag backup (audit L-02): pengguna menekan tombol tutup → jangan
+// tawarkan lagi selama satu siklus mingguan. Pola "sampai" yang sama seperti
+// `lib/pwaInstall.ts` (INSTALL_SNOOZE_KEY), bukan state React — supaya tahan reload.
+const NAG_SNOOZE_KEY = "leskolui_nag_snooze_until";
+const NAG_SNOOZE_DAYS = 7;
 const STALE_BACKUP_DAYS = 14; // ambang peringatan keras "backup menua"
 const DRIVE_AUTO_KEY = "leskolui_drive_auto";
 const DRIVE_PASS_KEY = "leskolui_drive_pass";
@@ -54,6 +59,9 @@ function Layout() {
 
   // Backup otomatis mingguan — tanya user
   const checkAutoBackup = useCallback(() => {
+    // Sudah ditutup pengguna → hormati sampai batas snooze lewat (audit L-02).
+    const snoozeUntil = Number(localStorage.getItem(NAG_SNOOZE_KEY) || 0);
+    if (Date.now() < snoozeUntil) return;
     const last = localStorage.getItem(AUTO_BACKUP_KEY);
     if (!last) { setBackupPrompt(true); return; }
     const daysSince = (Date.now() - Number(last)) / 86400000;
@@ -165,6 +173,34 @@ function Layout() {
     return () => { observer?.disconnect(); root.style.removeProperty("--top-banner-h"); };
   });
 
+  // Ukur tinggi nag backup mingguan → `.app-shell` memberi ruang setinggi itu
+  // sehingga elemen terbawah halaman tetap bisa dijangkau (audit L-02).
+  // Tanpa dep array: query ulang setiap render, jadi saat nag muncul/hilang
+  // nilainya ikut berubah (0px saat tidak tampil).
+  useEffect(() => {
+    const root = document.documentElement;
+    const el = document.querySelector<HTMLElement>("[data-nag]");
+    if (!el) { root.style.setProperty("--nag-h", "0px"); return; }
+    const apply = () => root.style.setProperty("--nag-h", `${el.offsetHeight}px`);
+    apply();
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(apply) : null;
+    observer?.observe(el);
+    return () => { observer?.disconnect(); root.style.setProperty("--nag-h", "0px"); };
+  });
+
+  // Nag tidak boleh menutupi tugas inti: sembunyikan saat modal apa pun terbuka
+  // (mis. modal Laporan bulanan) — semua modal memakai role="dialog" (Modal.tsx:62).
+  const [dialogOpen, setDialogOpen] = useState(false);
+  useEffect(() => {
+    const sync = () => setDialogOpen(!!document.querySelector("[role='dialog']"));
+    sync();
+    const mo = new MutationObserver(sync);
+    mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["role"] });
+    return () => mo.disconnect();
+  }, []);
+
+  const onTaskScreen = useLocation().pathname.startsWith("/capture");
+
   return (
     <ErrorBoundary>
     <ToastProvider>
@@ -222,26 +258,26 @@ function Layout() {
           banner "backup menua"/penyimpanan menang atas nag mingguan.
           z-[55]: di atas nav (z-50) tapi DI BAWAH semua modal (Modal z-60,
           Changelog z-90) — nag tidak boleh menghalangi tombol modal. */}
-      {backupPrompt && !staleBackup && !storageWarn && (
-        <div className={`fixed inset-x-0 ${Z.nag} px-4`} style={{ bottom: "calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 0.75rem + var(--task-bar-h, 0px))" }}>
-          <div className="max-w-md mx-auto bg-amber-50 border border-amber-300 rounded-2xl px-4 py-3 shadow-xl flex items-center justify-between gap-3">
+      {backupPrompt && !staleBackup && !storageWarn && !onTaskScreen && !dialogOpen && (
+        <div data-nag className={`fixed inset-x-0 ${Z.nag} px-4`} style={{ bottom: "calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 0.75rem + var(--task-bar-h, 0px))" }}>
+          <div className="max-w-md mx-auto bg-amber-50 border border-amber-300 rounded-2xl pl-4 pr-2 py-3 shadow-xl flex items-center justify-between gap-2">
             <div className="flex items-start gap-2">
               <BackupIcon size={18} className="mt-0.5 shrink-0 text-amber-700" />
               <div>
                 <p className="text-sm font-semibold text-amber-800">Saatnya backup mingguan</p>
-                <p className="text-xs text-amber-600 mt-0.5">
+                <p className="text-xs text-amber-700 mt-0.5">
                   {driveAutoOn() ? "Backup terenkripsi langsung ke Google Drive" : "Lindungi datamu dengan file backup terenkripsi"}
                 </p>
               </div>
             </div>
-            <div className="flex gap-2 flex-shrink-0">
+            <div className="flex items-center gap-1 flex-shrink-0">
               <button
                 onClick={() => {
                   const remindTomorrow = Date.now() - (AUTO_BACKUP_INTERVAL_DAYS - 1) * 86400000;
                   localStorage.setItem(AUTO_BACKUP_KEY, String(remindTomorrow));
                   setBackupPrompt(false);
                 }}
-                className="text-xs text-amber-500 px-2 py-1.5">Besok</button>
+                className="text-xs text-amber-700 px-2 py-1.5">Besok</button>
               {driveAutoOn() ? (
                 <button
                   disabled={driveBusy}
@@ -253,8 +289,18 @@ function Layout() {
               ) : (
                 <button
                   onClick={() => { localStorage.setItem(AUTO_BACKUP_KEY, String(Date.now())); setBackupPrompt(false); navigate("/settings"); }}
-                  className="bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl">Backup</button>
+                  className="bg-amber-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl">Backup</button>
               )}
+              {/* Tutup = tolak nag satu siklus mingguan (localStorage, tahan reload). */}
+              <button
+                onClick={() => {
+                  localStorage.setItem(NAG_SNOOZE_KEY, String(Date.now() + NAG_SNOOZE_DAYS * 86400000));
+                  setBackupPrompt(false);
+                }}
+                aria-label="Tutup pengingat backup"
+                className="h-11 w-11 shrink-0 inline-flex items-center justify-center rounded-xl text-amber-800 hover:bg-amber-100 transition-colors">
+                <CloseIcon size={16} />
+              </button>
             </div>
           </div>
         </div>

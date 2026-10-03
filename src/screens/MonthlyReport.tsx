@@ -1136,12 +1136,19 @@ export default function MonthlyReportPage() {
     ? [...students, student].sort((a, b) => a.name.localeCompare(b.name))
     : students;
 
+  // Audit R-13: banner hasil aksi harus punya semantik supaya pembaca layar tahu
+  // apakah aksi berhasil atau gagal — pola yang sama sudah dipakai Payments.tsx.
+  const messageFailed = message.startsWith("Gagal") || message.startsWith("Error");
+
   return (
     <div className="pb-20">
       <Breadcrumb />
       <div className="p-4 space-y-4">
         <header>
           <h1 className="text-2xl font-bold text-gray-900">Laporan Perkembangan</h1>
+          {/* Audit L-07 / Q22(b): layar ini dulu hanya punya `h1` (h2 hanya muncul di
+              dalam modal), jadi hierarki heading dan ambang guard G1-11 gagal. */}
+          <h2 className="sr-only">Periode dan pratinjau laporan</h2>
           <p className="mt-1 text-sm leading-relaxed text-gray-600">
             Susun perkembangan belajar untuk murid dan orang tua. Finalisasi laporan tidak menerbitkan invoice;
             penagihan dikelola terpisah melalui menu Keuangan.
@@ -1158,7 +1165,10 @@ export default function MonthlyReportPage() {
         )}
         {message && (
           <div className="space-y-1.5">
-            <div className={`flex items-start gap-2 rounded-lg p-3 text-sm ${message.includes("✓") ? "bg-green-50 text-green-700" : message.startsWith("Gagal") || message.startsWith("Error") ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700"}`}>
+            <div
+              role={messageFailed ? "alert" : "status"}
+              aria-live={messageFailed ? "assertive" : "polite"}
+              className={`flex items-start gap-2 rounded-lg p-3 text-sm ${message.includes("✓") ? "bg-green-50 text-green-700" : messageFailed ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700"}`}>
               <span className="flex-1">{message}</span>
               <button
                 type="button"

@@ -47,7 +47,12 @@ export default function AttentionInbox({
   const safeFollowUpPage = clampPage(followUpPage, follows.length);
 
   return (
-    <div className="mx-4 mb-2">
+    <section className="mx-4 mb-2" aria-labelledby="attention-inbox-title">
+      {/* Audit L-07: "Perlu Perhatian" adalah satu blok utama Beranda, jadi
+          judulnya heading sungguhan. Judul yang TERLIHAT ada di dalam Badge milik
+          tombol lipat, dan heading tidak boleh berada di dalam <button> — karena
+          itu teks heading disediakan untuk pembaca layar. */}
+      <h2 id="attention-inbox-title" className="sr-only">Perlu Perhatian</h2>
       <button
         onClick={() => setCollapsed((c) => !c)}
         aria-expanded={!collapsed}
@@ -63,9 +68,18 @@ export default function AttentionInbox({
 
       {!collapsed && (
         <div className="mt-2 bg-white border border-gray-100 rounded-xl overflow-hidden">
-          <Tabs tabs={tabs} active={activeTab} onChange={setActiveTab} fullWidth />
+          <Tabs tabs={tabs} active={activeTab} onChange={setActiveTab} idPrefix="attention-inbox" fullWidth />
 
           <div className="p-3">
+            {/* Audit L-06: panel per tab SELALU ada di DOM supaya `aria-controls`
+                setiap tab menunjuk elemen nyata; isinya hanya dirender untuk tab
+                yang aktif (pekerjaan tetap lazy). */}
+            <div
+              role="tabpanel"
+              id="attention-inbox-panel-missed"
+              aria-labelledby="attention-inbox-tab-missed"
+              hidden={activeTab !== "missed"}
+            >
             {/* Missed sessions */}
             {activeTab === "missed" && (
               <div className="space-y-2">
@@ -84,7 +98,7 @@ export default function AttentionInbox({
                             <p className="text-xs font-semibold text-gray-800 truncate">
                               {name}
                             </p>
-                            <p className="text-xs text-orange-600">
+                            <p className="text-xs text-orange-700">
                               {dayLabel(s.date)} · {s.durationHours}j
                               {s.time ? ` · ${s.time}` : ""}
                             </p>
@@ -114,8 +128,15 @@ export default function AttentionInbox({
                 )}
               </div>
             )}
+            </div>
 
             {/* Follow-ups */}
+            <div
+              role="tabpanel"
+              id="attention-inbox-panel-follows"
+              aria-labelledby="attention-inbox-tab-follows"
+              hidden={activeTab !== "follows"}
+            >
             {activeTab === "follows" && (
               <div className="space-y-2">
                 {follows.length === 0 ? (
@@ -137,6 +158,7 @@ export default function AttentionInbox({
                           </div>
                           <button
                             onClick={() => onCompleteFollowUp(f.id)}
+                            aria-label={`Tandai follow-up "${f.text}" selesai`}
                             className="flex-shrink-0 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-lg font-semibold hover:bg-blue-200"
                           >
                             ✓
@@ -154,9 +176,10 @@ export default function AttentionInbox({
                 )}
               </div>
             )}
+            </div>
           </div>
         </div>
       )}
-    </div>
+    </section>
   );
 }

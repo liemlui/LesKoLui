@@ -350,7 +350,7 @@ export default function Students() {
           <button
             onClick={() => requirePin("delete", s)}
             aria-label={`Hapus permanen ${s.name}`}
-            className="text-xs font-semibold text-red-500 hover:text-red-700 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors"
+            className="text-xs font-semibold text-red-600 hover:text-red-700 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors"
           >
             Hapus
           </button>
@@ -371,6 +371,11 @@ export default function Students() {
           Tambah Murid
         </button>
       </div>
+
+      {/* Audit L-07 / Q22(b): layar ini sebelumnya hanya punya `h1`, sehingga daftar
+          heading pembaca layar kosong dan ambang guard G1-11 ("setiap layar ≥1 h2")
+          gagal. Judul blok dibuat sr-only supaya kepadatan layar tidak bertambah. */}
+      <h2 className="sr-only">Daftar murid</h2>
 
       {/* Post-add guidance */}
       {showFirstScheduleGuide && justAddedStudent && (

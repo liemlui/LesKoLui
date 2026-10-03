@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { useRef, type KeyboardEvent, type ReactNode } from "react";
 
 export interface Tab {
   key: string;
@@ -13,26 +13,70 @@ interface Props {
   tabs: Tab[];
   active: string;
   onChange: (key: string) => void;
+  /**
+   * Awalan id pasangan tab↔panel (audit L-06). Kontraknya:
+   * tab = `<idPrefix>-tab-<key>`, panel = `<idPrefix>-panel-<key>`.
+   *
+   * Pemanggil WAJIB menyediakan elemen `role="tabpanel"` ber-id panel itu untuk
+   * SETIAP key (boleh `hidden` saat tidak aktif) — kalau tidak, `aria-controls`
+   * menunjuk elemen yang tidak ada dan gunanya hilang.
+   */
+  idPrefix: string;
   /** Render below the tabs */
   children?: ReactNode;
   /** Full-width tabs stretching to container */
   fullWidth?: boolean;
 }
 
-/** Reusable pill-style tab switcher with animated underline indicator. */
-export default function Tabs({ tabs, active, onChange, children, fullWidth }: Props) {
+/**
+ * Indeks tab tujuan untuk tombol panah/Home/End (pola APG). `null` = tombol itu
+ * bukan tanggung jawab tablist, jadi jangan dicegah (`preventDefault`).
+ */
+function arrowTargetIndex(key: string, index: number, count: number): number | null {
+  if (count === 0) return null;
+  if (key === "ArrowRight") return index + 1 >= count ? 0 : index + 1;
+  if (key === "ArrowLeft") return index - 1 < 0 ? count - 1 : index - 1;
+  if (key === "Home") return 0;
+  if (key === "End") return count - 1;
+  return null;
+}
+
+/**
+ * Reusable pill-style tab switcher with animated underline indicator.
+ *
+ * Audit L-06: pola tab dibuat lengkap — setiap tab punya `id` + `aria-controls`,
+ * hanya tab aktif yang bisa di-Tab (tabIndex bergilir), dan panah ←/→ (plus
+ * Home/End) memindahkan fokus sekaligus membuka panelnya.
+ */
+export default function Tabs({ tabs, active, onChange, idPrefix, children, fullWidth }: Props) {
+  const buttons = useRef<Array<HTMLButtonElement | null>>([]);
+
+  const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    const next = arrowTargetIndex(e.key, index, tabs.length);
+    if (next === null) return;
+    e.preventDefault();
+    buttons.current[next]?.focus();
+    const target = tabs[next];
+    if (target) onChange(target.key);
+  };
+
   return (
     <div>
       <div className={`flex ${fullWidth ? "overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" : "gap-1 overflow-x-auto"} border-b border-slate-200`} role="tablist">
-        {tabs.map((tab) => {
+        {tabs.map((tab, index) => {
           const isActive = tab.key === active;
           return (
             <button
               key={tab.key}
+              ref={(el) => { buttons.current[index] = el; }}
+              id={`${idPrefix}-tab-${tab.key}`}
               role="tab"
               aria-selected={isActive}
+              aria-controls={`${idPrefix}-panel-${tab.key}`}
               aria-label={tab.label}
+              tabIndex={isActive ? 0 : -1}
               onClick={() => onChange(tab.key)}
+              onKeyDown={(e) => onKeyDown(e, index)}
               className={`relative py-2.5 font-semibold transition-colors whitespace-nowrap ${
                 fullWidth
                   ? "flex-1 min-w-0 basis-0 px-1 text-xs sm:px-1.5 sm:text-sm"

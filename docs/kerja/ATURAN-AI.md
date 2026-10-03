@@ -27,11 +27,24 @@
 | **B1** | Tarif & rincian sesi di layar `Murid` **ikut ditutup** | Semua layar murid wajib lewat `useMoneyVisible()` |
 | **B2** | Uang **tidak** terkunci otomatis setelah 5 menit | Sekali buka = berlaku selama aplikasi terbuka; hanya tombol `Kunci` yang menutup |
 | **B3** | `[Catat]` dari beranda **mengisi** murid+tanggal+jam | **Jumlah langkah wizard tetap 6.** Yang dihemat pengisian, bukan langkah |
-| **B4** | Batas belanja AI default **Rp 25.000/bulan** | Melewatinya = tombol AI nonaktif dengan alasan terlihat; fitur inti tetap jalan dari aturan lokal |
+| **B4** | Batas belanja AI **tidak dipasang secara default** (kolom tetap ada; kosong = tanpa batas) — **diubah 2026-10-01 (Q1)** | Bila pengguna **mengisi** batas: melewatinya = tombol AI nonaktif dengan alasan terlihat. Bila kosong: tidak ada penolakan. Fitur inti tetap jalan dari aturan lokal |
 
 Keputusan lain yang juga terkunci: **wizard Catat Sesi dipertahankan apa adanya (hanya diperkuat)**;
 **Nav = 3 pintu + 1 aksi di dalam nav** (tanpa FAB mengambang); **semua AI lewat modal biaya**;
 **Home tidak menampilkan uang sama sekali**.
+
+**Amandemen 2026-10-01 (Q1–Q9) — ikut terkunci:**
+
+- **Sesi boleh disimpan dari langkah 5** (tombol `Simpan Sesi` aktif di langkah 5 **dan** 6). **Jumlah langkah tetap 6**,
+  `STEP_META` tidak berubah, dan langkah 6 tetap menawarkan Bukti (foto/TTD). *(Q2)*
+- **Papan pipeline dipertahankan**, bukan dibubarkan; hidup **di dalam blok "Perlu ditagih"** pada layar Uang
+  (tidak menambah blok ke-4). *(Q3)*
+- **Light-only permanen** — dark mode tidak dihidupkan lagi. *(Q4)*
+- **Peta tab layar Murid = Ringkas / Sesi / Progres / Proyek**; uang menjadi **blok di dalam tab Ringkas**
+  (bukan tab terpisah, bukan di Progres). *(Q5)*
+- **Fokus Android** — tidak ada aturan input 16px demi iOS; token `body` tetap 15px. *(Q7)*
+- **Refactor terbatas sebelum wave fitur**: `CaptureSession.tsx` sebelum G3-01 dan `MonthlyReport.tsx`
+  sebelum G3-05; berkas lain tidak disentuh. Fitur tetap ditulis lengkap di dokumen tugas. *(Q9)*
 
 ---
 
@@ -56,7 +69,7 @@ Keputusan lain yang juga terkunci: **wizard Catat Sesi dipertahankan apa adanya 
 
 | ❌ | Kenapa |
 |---|---|
-| Menggabung/mengurangi langkah wizard Catat Sesi | keputusan pemilik; merusak mutu data engagement |
+| Menggabung/mengurangi langkah wizard Catat Sesi | keputusan pemilik; merusak mutu data engagement. **Menyimpan dari langkah 5 BUKAN pelanggaran** (Q2 2026-10-01): `STEP_META` tetap 6 |
 | Menghapus kemampuan dengan alasan "menyederhanakan" | paling jauh dipindah ke `⋯` atau sub-layar `▸` |
 | Menambah dependensi/pustaka UI atau animasi | fondasi dibangun dari token + CSS |
 | `npx tsc -b` / `eslint` / `test` dijalankan lalu **diakali** (menonaktifkan tes, menaikkan batas) | tes adalah buktinya; kalau gagal, perbaiki sebabnya |
@@ -106,7 +119,15 @@ Alasan: selector E2E hanya boleh patah sekali.
 | 08 | Satu pintu uang (tutup 6 kebocoran) | `docs/kerja/TASK-08-satu-pintu-uang.md` | 04 |
 | 09 | Jadwal hari: zoom + mode tangkapan | `docs/kerja/TASK-09-jadwal-hari-zoom.md` | 04 |
 
-**Urutan pengerjaan (risiko terendah dulu):** 04 → 08 → 09 → 06 → 05 → 07.
+**Urutan pengerjaan (risiko terendah dulu):** 04 → 08 → 09 → 06 → 05 → 07 → **tetapi `TASK-07` naik sebelum Langkah laporan `TASK-05`** — lihat **A14**.
+
+> **A14 — urutan `TASK-06`/`TASK-05`/`TASK-07` (keputusan pemilik 2026-10-01, Q12 = A).**
+> Urutan kerja bergelombang yang berlaku: `G3-01 (TASK-06) → G3-02 (TASK-05 non-papan) → G3-03 (papan pipeline) →
+> **G3-04 (TASK-07) → G3-05 (laporan `TASK-05`)** → G3-06 → …`
+> **Alasan:** panel hasil AI di layar Laporan **butuh** `useAiAction` dari `TASK-07`, sehingga `TASK-07`
+> tidak bisa benar-benar "paling akhir". Konsekuensi yang diterima: `TASK-07` menyentuh 7 titik pemanggilan AI
+> **sebelum** laporan dirombak — titik-titik itu harus sudah stabil saat laporan dikerjakan.
+> Urutan lama (`06 → 05 → 07`) tetap berlaku untuk pekerjaan **non-laporan** di `TASK-05`.
 
 **Kapan membaca berkas lain:**
 
@@ -124,8 +145,8 @@ Alasan: selector E2E hanya boleh patah sekali.
 
 | Fakta | Nilai | Lokasi |
 |---|---:|---|
-| Kelas warna hardcode | **471** (target ≤190) | `src/**/*.tsx` |
-| Dark mode | **mati** | `src/index.css` (cari `Dark mode DEAKTIVASI`) |
+| Kelas warna hardcode | **904** (target ≤190) — angka kontrak lama **471** berasal dari perintah **tidak rekursif** yang hanya menjangkau 38 berkas; angka terkoreksi 2026-10-01 | `Get-ChildItem -Recurse src -Include *.tsx -File` + `Select-String` |
+| Dark mode | **mati — permanen, light-only (Q4 2026-10-01)** | `src/index.css` (cari `Dark mode DEAKTIVASI`) |
 | Langkah wizard | **6** | `captureSession/constants.ts` → `STEP_META` |
 | Kerapatan timeline | `PX_PER_HR = 64` tetap | `home/DayView.tsx:18` |
 | 6 kebocoran uang | Home · OperationalSnapshot · Students · StudentDetail · SessionDetailModal · MonthlyReport | rincian + jangkar: `TASK-08` §2 |
@@ -144,22 +165,26 @@ npx eslint src    # harapan: tanpa keluaran
 npm test          # harapan: 561+ lulus, 0 gagal
 npm run build     # harapan: built + dist/sw.js
 npm run e2e       # harapan: lulus
+npm run e2e:uiux  # guard metrik UI (G1-11) — 7 layar × 2 project; BUKAN bagian CI utama (Q10 = A),
+                  # spec-nya di `e2e-uiux/` supaya `npm run e2e` tidak ikut melambat
 ```
 
 Penghitung khusus (angka wajib dilaporkan sebelum → sesudah langkah):
 
 ```powershell
-# TASK-04 — utang kelas warna
-(Select-String -Path "src\**\*.tsx" -Pattern "bg-white|bg-gray-|text-gray-|border-gray-" -ErrorAction SilentlyContinue).Count
+# TASK-04 — utang kelas warna (REKURSIF — perintah lama "src\**\*.tsx" hanya menjangkau 38 berkas → 470)
+(Get-ChildItem -Recurse src -Include *.tsx -File | Select-String -Pattern "bg-white|bg-gray-|text-gray-|border-gray-").Count
+# baseline 2026-10-01 = 904 (git grep = 902) · target ≤190
 
-# TASK-05 — pipeline harus hilang
-Select-String -Path "src\**\*.tsx" -Pattern "FinancePipelineBoard"
+# TASK-05 — pipeline harus TETAP ADA & tetap diimpor (Q3 2026-10-01: redesign, bukan bubarkan)
+(Get-ChildItem -Recurse src -Include *.tsx -File | Select-String -Pattern "FinancePipelineBoard").Count
+# harapan: TIDAK kosong
 
-# TASK-07 — jalur AI harus satu
-Select-String -Path "src\**\*.tsx" -Pattern "AiCostConfirmModal|AiCostModal"
+# TASK-07 — jalur AI harus satu (REKURSIF — pola lama "src\**\*.tsx" tidak menjangkau subfolder)
+Get-ChildItem -Recurse src -Include *.tsx -File | Select-String -Pattern "AiCostConfirmModal|AiCostModal"
 
-# TASK-08 — kebocoran uang harus 0
-Select-String -Path "src\screens\*.tsx","src\screens\**\*.tsx" -Pattern "formatRupiah|totalCost|rateSnapshot" |
+# TASK-08 — kebocoran uang harus 0 (REKURSIF di dalam src\screens saja)
+Get-ChildItem -Recurse src\screens -Include *.tsx -File | Select-String -Pattern "formatRupiah|totalCost|rateSnapshot" |
   Where-Object { $_.Line -notmatch "useMoneyVisible|money-safe|formatRupiahDisplay" }
 ```
 
@@ -167,6 +192,30 @@ Select-String -Path "src\screens\*.tsx","src\screens\**\*.tsx" -Pattern "formatR
 `npm test`/`npm run e2e` lebih lambat pada putaran pertama (cache vitest/Playwright);
 tes kontras `engagementContrast.test.ts` gagal **karena warna memang diubah** → perbaiki pasangan
 warnanya di sumber, **jangan** matikan tesnya.
+
+### 6.1 Kalau dijalankan di sandbox (workaround, BUKAN default)
+
+Di sandbox yang melarang proses anak dengan pipa stdio, `npm test` **tidak bisa start**:
+Vite (Windows) memanggil `child_process.exec("net use")` di `optimizeSafeRealPathSync()` → `spawn EPERM`,
+lalu pool `forks` milik vitest menggantung. Pakai skrip ini sebagai gantinya:
+
+```powershell
+npm run test:sandbox      # = vitest run --pool=threads --maxWorkers=2
+```
+
+Kalau Vite masih berhenti di `spawn EPERM` sebelum tes jalan, tambahkan shim di **direktori temp**
+(bukan di repo) yang menjawab `exec` seperti cabang gagal milik Vite, lalu jalankan lagi:
+
+```powershell
+# 1) buat sekali: %TEMP%\dsh-no-exec.cjs — override child_process.exec/execFile agar mengembalikan
+#    galat EPERM tanpa spawn (perilaku Vite saat "net use" gagal: peta drive jaringan dibiarkan kosong)
+# 2) pakai:
+$env:NODE_OPTIONS="--require $env:TEMP\dsh-no-exec.cjs"; npm run test:sandbox
+```
+
+`npm run e2e` (Playwright) **tetap butuh akses lebih luas**: browser dan dev server harus
+di-spawn. Di sandbox, jalankan dengan eskalasi, atau lewati dan catat di §8 tugas terkait —
+**jangan** mengubah `vite.config.ts` atau `playwright.config.ts` demi sandbox.
 
 ---
 
@@ -204,3 +253,4 @@ Jangan menyalin isi berkas, jangan menjelaskan dokumen, jangan merangkum tugas.
 | Tanggal | Perubahan | Versi |
 |---|---|---|
 | 2026-09-25 | Dibuat; B1–B4 dikunci `final` | v1.75.1 |
+| 2026-10-01 | **Amandemen Q1–Q9**: B4 default kosong · pipeline dipertahankan (di dalam blok "Perlu ditagih") · light-only permanen · simpan dari langkah 5 (6 langkah tetap) · peta tab Murid Ringkas/Sesi/Progres/Proyek · fokus Android (tanpa aturan 16px) · refactor terbatas sebelum wave fitur · penghitung kelas warna dibuat rekursif (baseline 904) | v1.79.3 |

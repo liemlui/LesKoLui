@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { saveButtonState } from "../lib/settingsPresentation";
+import { settingsDirtyPatch } from "../lib/settingsDirtyPatch";
+import type { Settings } from "../db/types";
 
 describe("saveButtonState (audit V-02)", () => {
   it("menonaktifkan tombol dan pakai kontras AA saat tidak ada perubahan", () => {
@@ -26,5 +28,56 @@ describe("saveButtonState (audit V-02)", () => {
     expect(s.disabled).toBe(true);
     expect(s.label).toBe("Menyimpan...");
     expect(s.className).toContain("disabled:cursor-not-allowed");
+  });
+});
+
+/**
+ * S-03 (G1-09) — keadaan tombol Simpan setelah PIN disimpan.
+ *
+ * `handleSetPin` dulu hanya menulis snapshot penuh dan tidak pernah memanggil
+ * `setDirty(false)`, jadi badge "Belum disimpan" bertahan walau PIN sudah tersimpan.
+ * Urutan sukses yang benar: tulis patch → samakan snapshot (`savedFormRef`) →
+ * `setDirty(false)`. Dua tes di bawah menjaga urutan itu pada tingkat helper.
+ */
+function makeSettings(): Settings {
+  return {
+    id: "app", tutorProfile: { name: "Ko Lui", phone: "0812" }, defaultRate: 100_000, paymentInfo: "",
+    subjects: ["Matematika"], ai: { enabled: true, apiKey: "key-lama", model: "deepseek-chat" },
+    bankAccounts: { bca: "123", accountName: "Ko Lui" },
+    lastBackupAt: "2026-09-01T00:00:00.000Z", templatePref: {},
+  };
+}
+
+/** Meniru urutan sukses `handleSetPin`: tulis patch → snapshot disamakan → dirty dimatikan. */
+function pinSaveTransition(before: Settings, updated: Settings) {
+  const patch = settingsDirtyPatch(before, updated);
+  const button = saveButtonState(false, false);
+  return { patch, button };
+}
+
+describe("tombol Simpan setelah PIN disimpan (audit S-03)", () => {
+  it("tombol kembali nonaktif 'Tersimpan ✓' setelah PIN disimpan dari form yang bersih", () => {
+    const before = makeSettings();
+    const updated: Settings = { ...before, financialPin: "pbkdf2v2:pin-baru" };
+
+    const { patch, button } = pinSaveTransition(before, updated);
+    expect(patch).toEqual({ financialPin: "pbkdf2v2:pin-baru" });
+    expect(button.disabled).toBe(true);
+    expect(button.label).toBe("Tersimpan ✓");
+  });
+
+  it("editan profil yang belum disimpan tetap membuat tombol aktif sampai benar-benar disimpan", () => {
+    const before = makeSettings();
+    const edited: Settings = { ...before, tutorProfile: { ...before.tutorProfile, name: "Ko Baru" } };
+    // Sebelum simpan: form kotor → tombol aktif.
+    expect(saveButtonState(true, false).disabled).toBe(false);
+
+    const updated: Settings = { ...edited, financialPin: "pbkdf2v2:pin-baru" };
+    const { patch, button } = pinSaveTransition(before, updated);
+
+    // Editan profil ikut tertulis bersama PIN, jadi `dirty=false` memang jujur.
+    expect(patch).toEqual({ tutorProfile: { name: "Ko Baru" }, financialPin: "pbkdf2v2:pin-baru" });
+    expect(button.disabled).toBe(true);
+    expect(button.label).toBe("Tersimpan ✓");
   });
 });

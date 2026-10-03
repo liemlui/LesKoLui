@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "../db/db";
 import { getSettings, initSettings, saveSettings } from "../db/repos";
 import { hashPin, verifyPin } from "../lib/crypto";
+import { settingsDirtyPatch } from "../lib/settingsDirtyPatch";
 import type { Settings } from "../db/types";
 
 /** Row minimal untuk menguji migrasi PIN tanpa menyeret seluruh form Pengaturan. */
@@ -102,5 +103,44 @@ describe("atomic settings repository", () => {
     expect(financialPin).toBe(replaced);
     await expect(verifyPin("999999", financialPin!)).resolves.toBe(true);
     await expect(verifyPin("123456", financialPin!)).resolves.toBe(false);
+  });
+});
+
+/**
+ * S-03 (G1-09) — jalur "Simpan PIN" di layar Pengaturan.
+ *
+ * `form` di layar itu adalah snapshot yang diambil saat form dibuka; backup yang
+ * selesai SETELAH itu (prompt mingguan, auto-backup Drive) menulis `lastBackupAt`
+ * yang lebih baru ke IndexedDB. Snapshot lama masih membawa nilai LAMA, sehingga
+ * menulis snapshot penuh berarti memundurkan metadata itu; menulis patch tidak.
+ */
+const BACKUP_LAMA = "2026-09-01T00:00:00.000Z";
+const BACKUP_BARU = "2026-09-12T10:00:00.000Z";
+
+describe("jalur PIN tidak memundurkan metadata backup (audit S-03)", () => {
+  it("bukti bug: snapshot Settings penuh memang memundurkan lastBackupAt", async () => {
+    await initSettings();
+    await saveSettings({ lastBackupAt: BACKUP_LAMA });   // backup lama …
+    const formLama = await getSettings();                // … form dibuka (snapshot membawa nilai lama)
+    await saveSettings({ lastBackupAt: BACKUP_BARU });   // backup BARU selesai setelah form terbuka
+    await saveSettings(formLama);                        // pola LAMA: `saveSettings(updated as Settings)`
+
+    const settings = await getSettings();
+    expect(settings.lastBackupAt).toBe(BACKUP_LAMA);
+  });
+
+  it("menyimpan PIN dengan settingsDirtyPatch membiarkan metadata backup yang lebih baru", async () => {
+    await initSettings();
+    await saveSettings({ lastBackupAt: BACKUP_LAMA });
+    const formLama = await getSettings();
+    await saveSettings({ lastBackupAt: BACKUP_BARU });
+    const updated: Settings = { ...formLama, financialPin: "pbkdf2v2:pin-baru" };
+
+    await saveSettings(settingsDirtyPatch(formLama, updated)); // pola BARU
+
+    await expect(getSettings()).resolves.toMatchObject({
+      financialPin: "pbkdf2v2:pin-baru",
+      lastBackupAt: BACKUP_BARU,
+    });
   });
 });

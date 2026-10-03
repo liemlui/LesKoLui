@@ -34,6 +34,7 @@ import AiCostConfirmModal from "./captureSession/AiCostConfirmModal";
 import AiTagTooltip from "./captureSession/AiTagTooltip";
 import useAiFill from "./captureSession/useAiFill";
 import CloseOutSheet from "./captureSession/CloseOutSheet";
+import ConfirmSheet from "../components/ConfirmSheet";
 import ScheduleStep from "./captureSession/ScheduleStep";
 import useTopicSelection from "./captureSession/useTopicSelection";
 import type { CaptureDraft, CaptureDraftForm } from "../db/types";
@@ -44,7 +45,7 @@ import {
 import type { StepMeta, StepNum } from "./captureSession/constants";
 import {
   buildWaMessage, topicLevelHint, draftStamp, splitTopics,
-  appendSituasi, hasSituasi,
+  appendSituasi, hasSituasi, saveErrorMessage,
 } from "./captureSession/helpers";
 
 /** Ikon per langkah ditempelkan di sini (bukan di `constants.ts`) supaya berkas
@@ -115,7 +116,14 @@ export default function CaptureSession() {
   const [needsWork,      setNeedsWork]       = useState("");
   const [sessionDate,    setSessionDate]     = useState(today);
   const [saving,         setSaving]          = useState(false);
-  const [message, setMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
+  const [message, setMessage] = useState<{ kind: "success" | "error"; text: string; retry: "save" | "closeout" | null } | null>(null);
+
+  /**
+   * C-05: hapus foto bukti / tanda tangan / tindak lanjut tidak bisa dikembalikan —
+   * fotonya harus diambil ulang dari kamera. Karena itu ketiganya lewat satu
+   * `ConfirmSheet` (satu state, tiga kemungkinan aksi) alih-alih menghapus langsung.
+   */
+  const [confirmDelete, setConfirmDelete] = useState<{ title: string; message: string; confirmLabel: string; onConfirm: () => void } | null>(null);
 
   // Session type
   const [sessionType, setSessionType] = useState<SessionType | undefined>();
@@ -329,18 +337,18 @@ export default function CaptureSession() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setMessage({ kind: "error", text: "File harus berupa gambar (JPG/PNG/WebP)." });
+      setMessage({ kind: "error", text: "File harus berupa gambar (JPG/PNG/WebP).", retry: null });
       e.target.value = ""; return;
     }
     if (file.size > 50 * 1024 * 1024) {
-      setMessage({ kind: "error", text: "Foto terlalu besar (maks 50 MB)" });
+      setMessage({ kind: "error", text: "Foto terlalu besar (maks 50 MB)", retry: null });
       e.target.value = ""; return;
     }
     try {
       const compressed = await compressPhoto(file);
       const stamped    = await stampPhoto(compressed, sessionDate);
       setPhoto(stamped);
-    } catch { setMessage({ kind: "error", text: "Gagal kompres foto" }); }
+    } catch { setMessage({ kind: "error", text: "Gagal kompres foto", retry: null }); }
     e.target.value = "";
   };
 
@@ -361,7 +369,7 @@ export default function CaptureSession() {
   const handleSave = async () => {
     // Sudah tersimpan & laporan belum selesai → jangan buat sesi kedua.
     if (coSessionData && !editingSavedSession) {
-      setMessage({ kind: "success", text: "Sesi ini sudah tersimpan. Selesaikan tindak lanjutnya di laporan sesi." });
+      setMessage({ kind: "success", text: "Sesi ini sudah tersimpan. Selesaikan tindak lanjutnya di laporan sesi.", retry: null });
       setShowCloseOut(true);
       return;
     }
@@ -496,7 +504,7 @@ export default function CaptureSession() {
       setEditingSavedSession(false);
       setShowCloseOut(true);
     } catch (e) {
-      setMessage({ kind: "error", text: "Gagal: " + (e as Error).message });
+      setMessage({ kind: "error", text: saveErrorMessage(e), retry: "save" });
     } finally {
       setSaving(false);
     }
@@ -506,6 +514,19 @@ export default function CaptureSession() {
     if (!coFollowUpText.trim()) return;
     setCoFollowUps((prev) => [...prev, { id: crypto.randomUUID(), text: coFollowUpText.trim() }]);
     setCoFollowUpText("");
+  };
+
+  /** C-05: hapus tindak lanjut minta konfirmasi dulu (teksnya tidak bisa dipulihkan). */
+  const requestDeleteFollowUp = (id: string) => {
+    const item = coFollowUps.find((f) => f.id === id);
+    setConfirmDelete({
+      title: "Hapus tindak lanjut?",
+      message: item?.text
+        ? `"${item.text}" akan dihapus dari fokus sesi berikutnya dan tidak bisa dikembalikan.`
+        : "Tindak lanjut ini akan dihapus dan tidak bisa dikembalikan.",
+      confirmLabel: "Hapus",
+      onConfirm: () => { setCoFollowUps((prev) => prev.filter((f) => f.id !== id)); setConfirmDelete(null); },
+    });
   };
 
   const handleCloseOutDone = async () => {
@@ -522,7 +543,14 @@ export default function CaptureSession() {
       setCoSessionData(null);
       navigate("/students/" + savedStudentId);
     } catch (e) {
-      setMessage({ kind: "error", text: "Sesi sudah tersimpan. Tindak lanjut belum tersimpan; coba lagi. " + (e as Error).message });
+      // Sesi SUDAH tersimpan; yang gagal hanya tindak lanjutnya. Karena itu
+      // tombol "Coba lagi" harus memanggil `handleCloseOutDone`, BUKAN
+      // `handleSave` — memanggil ulang handleSave akan menyimpan sesi kedua kali.
+      setMessage({
+        kind: "error",
+        text: "Sesi sudah tersimpan; tindak lanjut belum tersimpan. " + saveErrorMessage(e),
+        retry: "closeout",
+      });
     } finally {
       coSavingRef.current = false;
       setCoSaving(false);
@@ -547,7 +575,7 @@ export default function CaptureSession() {
    *  dari bawah — pada layar yang sudah digulir pesannya berada di luar viewport
    *  (audit C-03, terukur rect.top = −92 px). */
   const showValidationError = (text: string, focusId?: string) => {
-    setMessage({ kind: "error", text });
+    setMessage({ kind: "error", text, retry: null });
     requestAnimationFrame(() => {
       const field = focusId ? document.getElementById(focusId) : null;
       if (field) {
@@ -846,7 +874,11 @@ export default function CaptureSession() {
       </div>
 
       {/* ── MESSAGE ── */}
-      {message && (
+      {/* Audit Q16d: saat laporan sesi masih terbuka, kegagalan MENYIMPAN TINDAK
+          LANJUT ditampilkan di dalam modal itu (lihat prop `closeOutError` di
+          bawah) — banner halaman tidak terjangkau keyboard selama fokus terkunci
+          di dialog. Pesan yang sama tidak boleh tampil dua kali. */}
+      {message && !(showCloseOut && message.retry === "closeout") && (
         <div className="mx-4 mb-3">
           <div
             ref={messageRef}
@@ -855,6 +887,24 @@ export default function CaptureSession() {
             className={`flex items-start gap-2 rounded-xl border p-3 text-sm font-medium outline-none ${
             message.kind === "success" ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-600"}`}>
             <span className="flex-1">{message.text}</span>
+            {/* Audit C-11: kegagalan simpan harus punya jalan keluar, bukan hanya
+                pesan. Tombolnya memanggil handler yang SESUAI dengan kegagalannya
+                (`handleSave` vs `handleCloseOutDone`) — lihat dua catch di atas. */}
+            {message.kind === "error" && message.retry !== null && (
+              <button
+                type="button"
+                disabled={saving || coSaving}
+                onClick={() => {
+                  const target = message.retry;
+                  setMessage(null);
+                  if (target === "save") handleSave();
+                  else handleCloseOutDone();
+                }}
+                className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-lg border border-red-300 bg-white px-3 text-sm font-bold text-red-700 transition hover:bg-red-100 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              >
+                Coba lagi
+              </button>
+            )}
             <button
               type="button"
               aria-label="Tutup pesan"
@@ -1765,7 +1815,12 @@ export default function CaptureSession() {
           {photoUrl ? (
             <div className="relative">
               <img src={photoUrl} alt="preview" className="w-full h-52 object-cover rounded-2xl shadow-md" />
-              <button aria-label="Hapus foto" onClick={() => setPhoto(undefined)}
+              <button aria-label="Hapus foto" onClick={() => setConfirmDelete({
+                title: "Hapus foto bukti?",
+                message: "Foto bukti kehadiran akan dihapus dan tidak bisa dikembalikan — ambil ulang dari kamera bila masih diperlukan.",
+                confirmLabel: "Hapus foto",
+                onConfirm: () => { setPhoto(undefined); setConfirmDelete(null); },
+              })}
                 className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-10 h-10 text-sm flex items-center justify-center shadow-md"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
               <div className="absolute bottom-2 right-2 flex gap-1.5">
                 <button onClick={() => cameraRef.current?.click()}
@@ -1802,7 +1857,12 @@ export default function CaptureSession() {
               <p className="text-xs text-gray-500 font-medium mb-1.5">✍️ Tanda Tangan Murid</p>
               <div className="relative bg-white rounded-xl border border-gray-200 p-2">
                 <img src={signatureUrl} alt="TTD" className="max-h-24 w-full object-contain" />
-                <button aria-label="Hapus tanda tangan" onClick={() => { setSignature(undefined); setShowSigPad(false); }}
+                <button aria-label="Hapus tanda tangan" onClick={() => setConfirmDelete({
+                  title: "Hapus tanda tangan?",
+                  message: "Tanda tangan murid akan dihapus dan tidak bisa dikembalikan — minta tanda tangan ulang bila masih diperlukan.",
+                  confirmLabel: "Hapus tanda tangan",
+                  onConfirm: () => { setSignature(undefined); setShowSigPad(false); setConfirmDelete(null); },
+                })}
                   className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-8 h-8 text-xs flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
               </div>
             </div>
@@ -2025,7 +2085,7 @@ export default function CaptureSession() {
           originalWaMessage={originalWaMessage}
           aiWaText={aiWaText}
           onAddFollowUp={addCoFollowUp}
-          onDeleteFollowUp={(id) => setCoFollowUps((prev) => prev.filter((item) => item.id !== id))}
+          onDeleteFollowUp={requestDeleteFollowUp}
           onDone={handleCloseOutDone}
           onClose={closeReport}
           onFixNote={handleFixNote}
@@ -2034,6 +2094,8 @@ export default function CaptureSession() {
           aiWaLoading={aiWaLoading}
           aiError={aiError}
           onClearAiWa={() => setAiWaText(null)}
+          closeOutError={message?.retry === "closeout" ? message.text : null}
+          onRetry={() => { setMessage(null); handleCloseOutDone(); }}
           engagement={engTouched && engScoreInfo ? {
             score: engScore, color: engScoreInfo.color, background: engScoreInfo.bg, text: engScoreInfo.text,
             narrative: generateEngagementNarrative(
@@ -2046,6 +2108,17 @@ export default function CaptureSession() {
           } : undefined}
         />
       )}
+      {/* C-05: konfirmasi hapus foto bukti / tanda tangan / tindak lanjut (semua permanen). */}
+      <ConfirmSheet
+        open={confirmDelete !== null}
+        title={confirmDelete?.title ?? ""}
+        message={confirmDelete?.message ?? ""}
+        confirmLabel={confirmDelete?.confirmLabel}
+        danger
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={() => confirmDelete?.onConfirm()}
+      />
+
       {/* Poles WA AI modal */}
       <AiCostModal
         open={showAiWaModal}

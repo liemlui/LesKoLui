@@ -39,7 +39,7 @@ tanda arsitektur informasinya sudah tidak bisa menjelaskan diri.
 
 - [ ] **4 tab → 1 layar** (Uang) dengan 3 blok tetap: Ringkasan AI · Perlu ditagih · Bulan ini
 - [ ] **5 mekanisme tagih → 1 daftar** `BarisTagihan`, mekanisme tampil sebagai label (`mode` + `cakupan`)
-- [ ] `FinancePipelineBoard` **dibubarkan**; isinya menjadi aksi di dalam tiap baris
+- [ ] `FinancePipelineBoard` **di-redesign** (board + list, tap-driven) dan hidup **di dalam blok "Perlu ditagih"** — *amandemen 2026-10-01 (Q3), sebelumnya "dibubarkan"*
 - [ ] `RekapTab` 8 kolom → 3 kolom + "lihat lengkap"
 - [ ] Navigasi bawah: **5 pintu + FAB → 3 pintu + 1 aksi di nav**
 - [ ] AI **hanya** memilih & mengurutkan; jumlah rupiah dihitung aturan
@@ -281,6 +281,8 @@ Blok 3  BULAN INI             — 3 angka (Masuk · Keluar · Sisa) + 3 baris �
    **dipakai ulang apa adanya**, jangan ditulis ulang.
 4. Status DB mentah **tidak boleh** tampil; terjemahkan ke bahasa manusia (`keadaan` → label).
 5. Semua nominal dibungkus `MaskedMoney` (hasil `TASK-08`).
+6. **Papan pipeline hidup di dalam blok 2** ("Perlu ditagih") — lihat Langkah 6. **Jangan** menambah blok
+   ke-4, dan **jangan** memindahkan papan ke layar lain. *(Amandemen 2026-10-01, Q3.)*
 
 **Selesai bila:** layar Uang memuat tepat 3 blok + 3 baris `▸`; tidak ada tabel >4 kolom; 3 baris
 teratas untuk data contoh sama dengan yang ditampilkan `TagihanTab` sekarang.
@@ -309,14 +311,30 @@ teratas untuk data contoh sama dengan yang ditampilkan `TagihanTab` sekarang.
 
 ---
 
-### Langkah 6 — Bubarkan `FinancePipelineBoard`
+### Langkah 6 — Redesign `FinancePipelineBoard` (bukan dibubarkan)
 
-**Tujuan:** menghapus konsep yang tidak cocok dengan pekerjaan satu tutor.
+> **Amandemen 2026-10-01 (Q3).** Keputusan pemilik: papan **dipertahankan** dan di-redesign.
+> Langkah ini sebelumnya berbunyi *"Bubarkan"*; DoD & perintah verifikasinya **diganti**.
+> Papan tetap hidup **di dalam blok 2 "Perlu ditagih"** (tidak menambah blok ke-4).
 
-**Berkas:** hapus pemakaian `src/screens/payments/FinancePipelineBoard.tsx`; **berkas tidak dihapus**
-sampai pemakaiannya nol (biar mudah dikembalikan bila ternyata diinginkan).
+**Tujuan:** memakai kekuatan papan (melihat "langkah berikutnya per murid" sekaligus) tanpa
+kerumitan konsep yang tidak cocok dengan pekerjaan satu tutor.
 
-**Pemetaan isi → aksi (jangan kehilangan satu pun):**
+**Berkas:** `src/screens/payments/FinancePipelineBoard.tsx` (di-redesign) + `RingkasanTab.tsx` (tempat render).
+
+**Yang dilakukan (tap-driven — TIDAK ada pustaka DnD baru, `ATURAN-AI` §2.2):**
+
+1. **Bentuk board+list:** rail kartu `snap-x snap-mandatory` (kartu `w-[78%]`) + daftar baris di bawahnya
+   untuk tahap yang sedang difokuskan. Ruang efektif 412px ≈ 382px → **jangan** 5 kolom sejajar.
+2. **Kartu hidup:** status, nominal (dibungkus `MaskedMoney`), umur piutang (derive `invoiceAgeDays`/
+   `ageBucket` dari `lib/finance.ts`), dan **satu aksi `nextAction`** + menu `⋯` berisi aksi lain.
+3. **Mode ringkas:** tombol yang meringkas papan jadi 3 baris prioritas (dipakai saat tidak sedang menagih).
+4. **Filter cerdas:** chip tahap (pola `TagihanTab.tsx:270`) + tombol "Tampilkan yang perlu tindakan".
+5. **Warna konsisten:** pakai token hasil Langkah 1–3 (TASK-04), bukan kelas warna langsung.
+6. **Aksesibilitas:** perbaiki tooltip/ukuran teks grafik bila grafik dipakai di kartu
+   (`docs/06-AUDIT-UIUX-2026-10-01.md` K-09) — tooltip harus bisa difokus keyboard.
+
+**Pemetaan kemampuan lama → tempat baru (jangan kehilangan satu pun):**
 
 | Langkah pipeline sekarang | Menjadi |
 |---|---|
@@ -327,10 +345,11 @@ sampai pemakaiannya nol (biar mudah dikembalikan bila ternyata diinginkan).
 | `mark-paid` — "Tandai lunas" | aksi `tandai-lunas` |
 | `share-report` — "Bagikan laporan" | aksi `rincian` → laporan |
 
-**Selesai bila:** tidak ada impor `FinancePipelineBoard` di `src/`; keenam kemampuan di atas
-masih tercapai (buktikan dengan daftar centang di §9).
+**Selesai bila:** papan tetap ada **dan tetap diimpor**; keempat aturan Langkah 4 tetap dipatuhi
+(1 layar, 3 blok tetap); keenam kemampuan di atas tercapai (buktikan dengan daftar centang di §9).
 
-**Verifikasi:** perintah standar §0 + `Select-String -Path "src\**\*.tsx" -Pattern "FinancePipelineBoard"` (kosong).
+**Verifikasi:** perintah standar §0 + `(Get-ChildItem -Recurse src -Include *.tsx -File | Select-String -Pattern "FinancePipelineBoard").Count`
+→ **harus TIDAK kosong** (kebalikan dari perintah lama).
 
 ---
 
@@ -440,7 +459,7 @@ tanpa API key layar tetap berisi `ringkasLokal`.
 - [ ] **L3 — `financeOverview.ts`.** `npm test -- financeOverview`: ___
 - [ ] **L4 — Layar Uang (3 blok).** Angka blok 2 & 3 sama dengan versi lama: ya/tidak
 - [ ] **L5 — Rekap 3 kolom.** CSV identik: ya/tidak
-- [ ] **L6 — Pipeline dibubarkan.** Enam kemampuan masih tercapai: ___ dari 6
+- [ ] **L6 — Pipeline di-redesign.** Papan tetap ada & tetap diimpor: ya/tidak · berada di dalam blok "Perlu ditagih": ya/tidak · keenam kemampuan tercapai: ___ dari 6
 - [ ] **L7 — Nav 3 pintu + aksi.** E2E lulus: ya/tidak
 - [ ] **L8 — Tombol biaya AI.** Batal = tidak memanggil API: ya/tidak
 
@@ -449,3 +468,4 @@ tanpa API key layar tetap berisi `ringkasLokal`.
 | Tanggal | Perubahan | Versi | Hasil |
 |---|---|---|---|
 | 2026-09-25 | Dibuat dari keputusan pemilik: keuangan prioritas rombak | v1.75.1 | `todo` |
+| 2026-10-01 | Amandemen **Q3**: Langkah 6 berubah dari *Bubarkan `FinancePipelineBoard`* → **Redesign** (board+list tap-driven, hidup di dalam blok "Perlu ditagih"); DoD & perintah verifikasi diganti (impor harus **tetap ada**) | v1.79.3 | `todo` |
