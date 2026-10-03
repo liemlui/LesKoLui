@@ -25,6 +25,8 @@ import { clampPage, paginateItems } from "../lib/pagination";
 import ClockTimePicker from "../components/ClockTimePicker";
 import SignaturePad from "../components/SignaturePad";
 import Modal from "../components/Modal";
+import MaskedMoney from "../components/ui/MaskedMoney";
+import { useMoneyVisible } from "../hooks/useMoneyVisible";
 import { Z } from "../lib/zIndex";
 import { compressPhoto, stampPhoto } from "../lib/foto";
 import { getResponseTag } from "../lib/responseTaxonomy";
@@ -99,10 +101,9 @@ export default function StudentDetail() {
   // seluruhnya pindah ke `studentDetail/IaEeTracker.tsx` karena tidak ada bagian
   // lain layar ini yang memakainya (audit utang teknis #3).
 
-  // Tarif les (PIN-protected reveal + edit)
-  const [rateUnlocked,  setRateUnlocked]  = useState(false);
-  const [ratePinInput,  setRatePinInput]  = useState("");
-  const [ratePinError,  setRatePinError]  = useState("");
+  // Tarif les — visibilitas uang lewat SATU hook (kontrak K3.1/K3.6), bukan state
+  // lokal per layar. Gerbang PIN untuk aksi (ganti tarif, hapus sesi) tetap ada.
+  const money = useMoneyVisible();
   const [showRateEdit,  setShowRateEdit]  = useState(false);
   const [newRate,       setNewRate]       = useState(0);
   const [rateSaving,    setRateSaving]    = useState(false);
@@ -130,15 +131,6 @@ export default function StudentDetail() {
     msg("Sesi dihapus");
   };
 
-  const handleUnlockRate = async () => {
-    if (!settings?.financialPin) { setRatePinError("Buat PIN Keuangan di Pengaturan dulu."); return; }
-    const delay = getPinLockoutDelay();
-    if (delay > 0) { setRatePinError(`Tunggu ${Math.ceil(delay / 1000)} detik.`); return; }
-    const ok = await verifyPin(ratePinInput, settings.financialPin);
-    if (!ok) { recordPinFailure(); setRatePinError("PIN salah."); return; }
-    resetPinLockout(); setRatePinError(""); setRateUnlocked(true); setRatePinInput("");
-  };
-
   const handleSaveRate = async () => {
     if (!id || !isValidCurrencyAmount(newRate, MAX_HOURLY_RATE)) { msg(`Tarif harus 1 sampai ${formatRupiah(MAX_HOURLY_RATE)}.`); return; }
     const rateChanged = newRate !== student?.hourlyRate;
@@ -149,7 +141,7 @@ export default function StudentDetail() {
       // yang memakai tarif baru.
       await updateStudent(id, { hourlyRate: newRate }, { repriceUnbilledSessions: applyRetroactive });
       msg(applyRetroactive ? "Tarif & sesi lama diperbarui ✓" : "Tarif diperbarui ✓");
-      setShowRateEdit(false); setRateUnlocked(false); setRepriceUnbilledSessions(false);
+      setShowRateEdit(false); setRepriceUnbilledSessions(false);
     }
     catch (e) { msg("Gagal: " + (e as Error).message); }
     finally { setRateSaving(false); }
@@ -552,10 +544,10 @@ export default function StudentDetail() {
           </div>
         )}
 
-        {/* Tarif les — masked, unlock with PIN to reveal or edit */}
+        {/* Tarif les — satu bentuk terkunci `Rp ••••••` + gembok (K3.2/K3.6) */}
         <div className="flex items-center gap-2 text-sm pt-1 border-t border-[var(--border)]">
           <span className="text-[var(--ink-muted)] w-28 flex-shrink-0">Tarif les</span>
-          {rateUnlocked ? (
+          {money.visible ? (
             showRateEdit ? (
               <div className="flex flex-1 flex-col gap-2">
                 <div className="flex items-center gap-2">
@@ -587,29 +579,23 @@ export default function StudentDetail() {
               </div>
             ) : (
               <div className="flex items-center gap-2 flex-1">
-                <span className="text-[var(--ink-strong)] font-medium">Rp {student.hourlyRate.toLocaleString("id-ID")}/{studentBillingPolicy === "session_count" ? "pertemuan" : "jam"}</span>
+                <span className="text-[var(--ink-strong)] font-medium"><MaskedMoney amount={student.hourlyRate} />/{studentBillingPolicy === "session_count" ? "pertemuan" : "jam"}</span>
                 <button onClick={() => { setShowRateEdit(true); setNewRate(student.hourlyRate); }}
                   className="ml-auto text-xs bg-[var(--bg-subtle)] hover:bg-[var(--bg-subtle)] text-[var(--ink-muted)] px-2 py-1 rounded-lg">✏️ Edit</button>
-                <button onClick={() => { setRateUnlocked(false); setRatePinInput(""); }}
-                  className="text-xs text-[var(--ink-muted)] px-1.5 py-1">🔒</button>
+                <button onClick={money.lock} aria-label="Kunci angka uang"
+                  className="inline-flex h-8 w-8 items-center justify-center text-xs text-[var(--ink-muted)] px-1.5 py-1">🔒</button>
               </div>
             )
           ) : (
             <div className="flex items-center gap-2 flex-1">
-              <span className="text-[var(--ink-muted)] tracking-widest text-base">•••••</span>
-              {settings?.financialPin ? (
-                <div className="flex items-center gap-1.5 ml-auto">
-                  <input type="password" inputMode="numeric" maxLength={6} placeholder="PIN"
-                    value={ratePinInput} onChange={(e) => { setRatePinInput(e.target.value); setRatePinError(""); }}
-                    className="w-16 text-xs border border-[var(--border)] rounded-lg px-2 py-1 text-center" />
-                  <button onClick={handleUnlockRate}
-                    className="text-xs bg-[var(--bg-subtle)] hover:bg-[var(--bg-subtle)] text-[var(--ink-muted)] px-2 py-1 rounded-lg">🔒 Buka</button>
-                </div>
-              ) : (
+              <MaskedMoney amount={student.hourlyRate} className="text-base" hideUnlock={money.needsSetup} />
+              {money.needsSetup && (
                 <button onClick={() => navigate("/settings")}
                   className="ml-auto text-xs bg-[var(--bg-danger)] hover:bg-[var(--bg-danger)] text-[var(--ink-danger)] px-2 py-1 rounded-lg">Buat PIN</button>
               )}
-              {ratePinError && <span className="text-xs text-[var(--ink-danger)]">{ratePinError}</span>}
+              {money.locked && (
+                <span className="ml-auto text-xs text-[var(--ink-muted)]">Tarif dikunci</span>
+              )}
             </div>
           )}
         </div>
@@ -761,7 +747,7 @@ export default function StudentDetail() {
                 </div>
                 <div>
                   <label className="label">💰 Biaya</label>
-                  {isEditingCost ? (
+                  {money.visible && isEditingCost ? (
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-[var(--ink-muted)] text-sm font-medium">Rp</span>
                       <input
@@ -788,15 +774,13 @@ export default function StudentDetail() {
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-base font-bold text-[var(--ink-strong)]">
-                        {formatRupiah(editCostOverride ?? editCost)}
-                      </span>
-                      {editCostOverride !== null && (
+                      <MaskedMoney amount={editCostOverride ?? editCost} className="text-base font-bold text-[var(--ink-strong)]" />
+                      {money.visible && editCostOverride !== null && (
                         <span className="text-xs bg-[var(--bg-warn)] text-[var(--ink-warn)] px-1.5 py-0.5 rounded-full font-medium">
                           Manual
                         </span>
                       )}
-                      {editCostOverride !== null && (
+                      {money.visible && editCostOverride !== null && (
                         <button
                           type="button"
                           onClick={() => setEditCostOverride(null)}
@@ -806,22 +790,24 @@ export default function StudentDetail() {
                           ↺ Reset
                         </button>
                       )}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsEditingCost(true);
-                          if (editCostOverride === null) setEditCostOverride(editCost);
-                        }}
-                        className="text-xs text-[var(--ink-brand)] hover:text-[var(--ink-brand)] ml-auto"
-                        title="Edit biaya manual"
-                      >
-                        ✏️ Edit
-                      </button>
+                      {money.visible && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsEditingCost(true);
+                            if (editCostOverride === null) setEditCostOverride(editCost);
+                          }}
+                          className="text-xs text-[var(--ink-brand)] hover:text-[var(--ink-brand)] ml-auto"
+                          title="Edit biaya manual"
+                        >
+                          ✏️ Edit
+                        </button>
+                      )}
                     </div>
                   )}
-                  {editCostOverride === null && (
+                  {money.visible && editCostOverride === null && (
                     <p className="text-xs text-[var(--ink-muted)] mt-0.5">
-                      {editSession.rateSnapshot.toLocaleString("id-ID")}/jam × {editNoteDuration}j
+                      <MaskedMoney amount={editSession.rateSnapshot} />/jam × {editNoteDuration}j
                     </p>
                   )}
                 </div>

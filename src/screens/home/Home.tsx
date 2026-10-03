@@ -21,7 +21,6 @@ import AddScheduleModal from "./AddScheduleModal";
 import EditSessionModal from "./EditSessionModal";
 import ResolveMissedSessionModal from "./ResolveMissedSessionModal";
 import OperationalSnapshot from "./OperationalSnapshot";
-import QuickExpenseModal from "../../components/QuickExpenseModal";
 import type { SessionActions } from "./SessionPill";
 import { feedbackTypeForResult, todayHeroLoadState } from "../captureSession/helpers";
 
@@ -38,7 +37,6 @@ export default function Home() {
   const [editTarget, setEditTarget] = useState<Session | null>(null);
   const [resolveMissedTarget, setResolveMissedTarget] = useState<Session | null>(null);
   const [filterStudentId, setFilterStudentId] = useState<string>("");
-  const [showExpenseModal, setShowExpenseModal] = useState(false);
 
   const toast = useToastCtx();
   // ── Data ──────────────────────────────────────────────────────────────────
@@ -149,10 +147,9 @@ export default function Home() {
           <p className="text-[var(--ink-muted)] text-xs">{dayLabel(today)}</p>
         </div>
         <div className="flex items-center gap-1.5">
-          <button onClick={() => setShowExpenseModal(true)}
-            className="bg-[var(--brand-solid)] text-[var(--on-strong)] rounded-xl px-3.5 py-2.5 text-sm font-semibold flex items-center gap-1.5 hover:bg-[var(--brand-solid)] transition-colors shadow-sm">
-            <span>💸</span> Pengeluaran
-          </button>
+          {/* G2-04 (K3.5): akses uang — termasuk pintasan Pengeluaran — tidak
+              lagi hidup di Beranda. Kemampuannya tetap ada di Keuangan →
+              Pengeluaran; Beranda hanya jadwal & murid. */}
           <Link to="/settings" aria-label="Pengaturan"
             className="text-[var(--ink-muted)] hover:text-[var(--ink-strong)] hover:bg-[var(--bg-subtle)] rounded-xl w-[44px] h-[44px] flex items-center justify-center text-lg transition-colors">
             ⚙️
@@ -259,12 +256,6 @@ export default function Home() {
           studentName={studentMap.get(resolveMissedTarget.studentId)?.name ?? "Murid"}
           onClose={() => setResolveMissedTarget(null)}
           onResult={msg}
-        />
-      )}
-      {showExpenseModal && (
-        <QuickExpenseModal
-          onClose={() => setShowExpenseModal(false)}
-          onSaved={msg}
         />
       )}
     </div>

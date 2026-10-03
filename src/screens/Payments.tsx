@@ -9,7 +9,8 @@ import {
 } from "../db/repos";
 import { todayWIB, monthLabel } from "../lib/format";
 import { reportStatus } from "../db/types";
-import { usePinGate } from "../hooks/usePinGate";
+import { useMoneyVisible } from "../hooks/useMoneyVisible";
+import { LockIcon } from "../components/icons";
 import Breadcrumb from "../components/Breadcrumb";
 import Tabs from "../components/Tabs";
 import FinancePeriodPicker from "../components/FinancePeriodPicker";
@@ -54,7 +55,10 @@ export default function PaymentsPage() {
   // becomes inactive, so finance intentionally loads active + inactive rows.
   const students  = useLiveQuery(() => listStudents(), []);
   const settings  = useLiveQuery(() => getSettings(), []);
-  const pin = usePinGate();
+  // G2-04 (K3.4): gerbang layar ini tetap penuh — lapisan kedua — tetapi status
+  // buka-kuncinya sekarang BERBAGI dengan layar lain lewat `useMoneyVisible`.
+  const money = useMoneyVisible();
+  const [pinInput, setPinInput] = useState("");
   const requestedStudentId = searchParams.get("studentId") ?? "";
 
   // Tab disinkronkan dengan URL agar bisa di-bookmark / di-share.
@@ -120,19 +124,21 @@ export default function PaymentsPage() {
     );
   }
 
-  if (settings.financialPin && !pin.unlocked) {
+  if (!money.visible) {
     return (
       <div className="p-4 flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <p className="text-4xl">🔐</p>
         <p className="font-bold text-lg text-[var(--ink-strong)]">Data Keuangan</p>
-        <p className="text-sm text-[var(--ink-muted)] text-center">Masukkan PIN untuk mengakses keuangan</p>
+        <p className="text-sm text-[var(--ink-muted)] text-center">Masukkan PIN Keuangan. Sekali dibuka, angka uang juga terbuka di layar lain sampai dikunci lagi.</p>
         <input type="password" inputMode="numeric" maxLength={6} placeholder="PIN (6 digit)"
-          value={pin.pinInput} onChange={(e) => pin.setPinInput(e.target.value.replace(/\D/g, "").slice(0, 6))}
+          value={pinInput} onChange={(e) => { setPinInput(e.target.value.replace(/\D/g, "").slice(0, 6)); money.clearError(); }}
+          onKeyDown={(e) => { if (e.key === "Enter" && pinInput.length === 6) void money.unlock(pinInput); }}
           className="input text-center tracking-widest text-xl w-40" autoFocus />
-        {pin.pinError && <p className="text-sm text-[var(--ink-danger)]">{pin.pinError}</p>}
+        {money.error && <p role="alert" className="text-sm text-[var(--ink-danger)]">{money.error}</p>}
         <button
-          onClick={async () => { await pin.attemptPin(settings.financialPin!); }}
-          className="px-8 py-3 rounded-xl bg-[var(--brand-solid)] text-[var(--on-strong)] font-bold text-sm hover:bg-[var(--brand-solid)] transition-colors">
+          onClick={async () => { if (await money.unlock(pinInput)) setPinInput(""); }}
+          disabled={pinInput.length !== 6}
+          className="px-8 py-3 rounded-xl bg-[var(--brand-solid)] text-[var(--on-strong)] font-bold text-sm hover:bg-[var(--brand-solid)] transition-colors disabled:opacity-40">
           Buka
         </button>
         <button onClick={() => navigate(-1)} className="text-sm text-[var(--ink-muted)] hover:text-[var(--ink-muted)]">← Kembali</button>
@@ -163,9 +169,20 @@ export default function PaymentsPage() {
         <div className="space-y-2 px-4 pb-2 pt-1">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
             <h1 className="text-xl font-bold">Keuangan</h1>
-            <p aria-live="polite" className="text-sm font-semibold text-[var(--ink-strong)]">
-              {monthLabel(month)}
-            </p>
+            <div className="flex items-center gap-[var(--space-2)]">
+              <p aria-live="polite" className="text-sm font-semibold text-[var(--ink-strong)]">
+                {monthLabel(month)}
+              </p>
+              {/* Kontrak K3.4: tombol Kunci manual selalu tersedia. */}
+              <button
+                type="button"
+                onClick={money.lock}
+                className="inline-flex min-h-[44px] items-center gap-1 rounded-[var(--radius-card)] bg-[var(--surface-soft)] px-[var(--space-3)] text-caption font-semibold text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-subtle)]"
+              >
+                <LockIcon size={13} />
+                Kunci
+              </button>
+            </div>
           </div>
           <FinancePeriodPicker month={month} onChange={handleMonthChange} />
           <p className="text-xs leading-relaxed text-[var(--ink-muted)]">

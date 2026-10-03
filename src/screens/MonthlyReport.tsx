@@ -37,7 +37,10 @@ import PinConfirmModal from "../components/PinConfirmModal";
 import { getTheme, THEMES } from "../template/themes";
 import { LAYOUTS, gradeDelta } from "../template/layouts";
 import { ReportRenderer } from "../template/ReportRenderer";
-import { dayLabel, monthLabel, todayWIB, monthOf, periodLabel, formatRupiah } from "../lib/format";
+import { dayLabel, monthLabel, todayWIB, monthOf, periodLabel } from "../lib/format";
+import { formatRupiahDisplay } from "../lib/moneyDisplay";
+import MaskedMoney from "../components/ui/MaskedMoney";
+import { useMoneyVisible } from "../hooks/useMoneyVisible";
 import { useReportExport } from "./monthlyReport/useReportExport";
 import { useReportGeneration } from "./monthlyReport/useReportGeneration";
 import { blobToDataUrl } from "../lib/imageUtils";
@@ -105,6 +108,8 @@ export default function MonthlyReportPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const students = useLiveQuery(() => listStudents(true), []);
   const settings = useLiveQuery(() => getSettings(), []);
+  // G2-04 (K3.3/K3.6): laporan bulanan kini ikut gerbang uang yang sama.
+  const money = useMoneyVisible();
 
   // ── Mode rekap: bulan kalender / paket N pertemuan tertua / rentang tanggal ──
   type RecapMode = "bulan" | "jumlah" | "range";
@@ -1254,7 +1259,7 @@ export default function MonthlyReportPage() {
                               {periodLabel(r.periodStart, r.periodEnd) || monthLabel(r.month)}
                               {" · "}
                               {status === "confirmed" ? "Final" : "Draft"}
-                              {" · "}{formatRupiah(r.totalCost)}
+                              {" · "}<MaskedMoney amount={r.totalCost} />
                             </p>
                             {/* Rentang penuh + jumlah sesi apa adanya: di sinilah
                                 terlihat kalau sebuah laporan diam-diam mengunci
@@ -1308,7 +1313,7 @@ export default function MonthlyReportPage() {
                     {drafts.map((d) => (
                       <div key={d.id} className="flex items-center justify-between gap-1 text-xs">
                         <span className="text-[var(--ink-strong)] truncate font-medium">{periodLabel(d.periodStart, d.periodEnd)}</span>
-                        <span className="text-[var(--ink-muted)]">{formatRupiah(d.totalCost)}</span>
+                        <MaskedMoney amount={d.totalCost} className="text-[var(--ink-muted)]" />
                         <div className="flex gap-1 shrink-0">
                           <button onClick={() => jumpToDraft(d)}
                             className="px-2 py-0.5 rounded bg-[var(--brand-tint-strong)] text-[var(--ink-brand)] text-xs font-medium hover:bg-[var(--brand-tint-strong)] transition-colors">
@@ -1620,7 +1625,7 @@ export default function MonthlyReportPage() {
                           totalHours, totalCost,
                         }) && (
                           <p className="mt-2 rounded-lg bg-[var(--surface-strong)]/70 px-2.5 py-1.5 text-xs font-medium leading-relaxed">
-                            Total laporan final ini dibekukan di {formatRupiah(report.totalCost)}. Perubahan sesi
+                            Total laporan final ini dibekukan di {formatRupiahDisplay(report.totalCost, money.visible)}. Perubahan sesi
                             setelah final tidak mengubah nominal yang sudah dikirim. Bila yang salah justru
                             laporannya, batalkan tagihannya di Keuangan (yang belum lunas) lalu pakai
                             “Buka kunci laporan” di bawah; bila sesinya menyusul, terbitkan laporan susulan.
@@ -1672,7 +1677,7 @@ export default function MonthlyReportPage() {
                             </p>
                             <p className="mt-0.5 text-xs opacity-80">
                               {payment
-                                ? `Bulan tagihan ${monthLabel(payment.month)} · ${formatRupiah(payment.totalCost)}`
+                                ? `Bulan tagihan ${monthLabel(payment.month)} · ${formatRupiahDisplay(payment.totalCost, money.visible)}`
                                 : "Finalisasi laporan tidak otomatis membuat invoice. Buat tagihannya dari tombol di bawah."}
                             </p>
                           </div>
@@ -1696,7 +1701,7 @@ export default function MonthlyReportPage() {
                         </div>
                         {olderUnpaidPayments.length > 0 && (
                           <p className="mt-2 rounded-lg border border-[var(--border-warn)] bg-[var(--bg-warn)] px-2.5 py-1.5 text-xs font-medium leading-relaxed text-[var(--ink-warn)]">
-                            ⚠ {olderUnpaidPayments.length} tagihan bulan sebelumnya belum lunas · {formatRupiah(olderUnpaidTotal)}. Buka Keuangan agar piutang tidak menumpuk.
+                            ⚠ {olderUnpaidPayments.length} tagihan bulan sebelumnya belum lunas · {formatRupiahDisplay(olderUnpaidTotal, money.visible)}. Buka Keuangan agar piutang tidak menumpuk.
                           </p>
                         )}
                       </div>
@@ -2276,7 +2281,7 @@ export default function MonthlyReportPage() {
         title="Buka kunci laporan final ini?"
         message={
           `Laporan ${student?.name ?? "murid"} periode ${periodLabel(periodStart, periodEnd) || monthLabel(month)} `
-          + `(${formatRupiah(report?.totalCost ?? 0)}) kembali menjadi draft sehingga sesi, periode, dan nominalnya bisa diperbaiki.\n\n`
+          + `(${formatRupiahDisplay(report?.totalCost ?? 0, money.visible)}) kembali menjadi draft sehingga sesi, periode, dan nominalnya bisa diperbaiki.\n\n`
           + "Perbaikannya: perbaiki lalu finalkan lagi, kemudian terbitkan tagihan baru dari Keuangan → Tagihan. "
           + "Angka yang sudah dikirim ke orang tua tidak bisa ditarik — kirim ulang versi barunya."
           + (report && reportDisplayStatus(report) === "shared"

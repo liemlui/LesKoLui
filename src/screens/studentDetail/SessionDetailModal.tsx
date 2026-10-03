@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Session, Settings, EngagementLevel } from "../../db/types";
-import { dayLabel, formatRupiah } from "../../lib/format";
+import { dayLabel } from "../../lib/format";
+import MaskedMoney from "../../components/ui/MaskedMoney";
 import { Z } from "../../lib/zIndex";
 import { ENGAGEMENT_LEVELS, scoreLabel, engagementScoreBasis, calcEngagementScore } from "../../lib/engagement";
 import { BEHAVIOR_TAGS, RESPONSE_TAGS, getResponseTag } from "../../lib/responseTaxonomy";
@@ -215,11 +216,11 @@ export default function SessionDetailModal({
             </div>
           )}
 
-          {/* Biaya */}
+          {/* Biaya — satu bentuk terkunci (K3.2); angkanya ikut status buka-kunci global */}
           {s.cost > 0 && (
             <div className="bg-[var(--bg-success)] rounded-xl p-3">
               <p className="text-xs text-[var(--ink-success)] font-medium">Biaya Sesi</p>
-              <p className="text-sm font-bold text-[var(--ink-success)] mt-0.5">{formatRupiah(s.cost)}</p>
+              <p className="text-sm font-bold text-[var(--ink-success)] mt-0.5"><MaskedMoney amount={s.cost} /></p>
             </div>
           )}
 
