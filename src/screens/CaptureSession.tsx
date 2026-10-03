@@ -19,6 +19,7 @@ import { toggleArrayItem } from "../lib/arrays";
 import { ENGAGEMENT_LEVELS, scoreBasisLabel } from "../lib/engagement";
 import { IB_MYP_SUBJECTS, IB_DP_GROUPS, getSubjectGroups, CURRICULUM_META } from "../lib/ibSubjects";
 import { generateNote, generateEngagementNarrative } from "../lib/sessionTemplates";
+import { engagementLevelClass } from "../lib/toneStyles";
 import { BEHAVIOR_TAGS, RESPONSE_TAGS } from "../lib/responseTaxonomy";
 import type { SessionType } from "../lib/sessionTemplates";
 import { MIN_DURATION } from "../db/types";
@@ -1244,7 +1245,7 @@ export default function CaptureSession() {
                     aria-pressed={active}
                     onClick={() => setEngLevel(active ? undefined : opt.value)}
                     className={`flex items-center gap-3 rounded-xl border-2 px-3 py-2.5 text-left transition-all ${
-                      active ? opt.activeClass + " shadow-sm" : opt.idleClass
+                      active ? engagementLevelClass(opt.value, true) + " shadow-sm" : engagementLevelClass(opt.value, false)
                     }`}>
                     <span className="text-lg">{opt.icon}</span>
                     <span className="min-w-0">

@@ -4,9 +4,10 @@ import { reportDisplayStatus } from "../../db/types";
 import { formatRupiah, monthLabel, periodLabel } from "../../lib/format";
 import { AGE_BUCKET_LABEL, ageBucket, invoiceAgeDays, invoiceDueAt } from "../../lib/finance";
 import {
-  INVOICE_ORIGIN_CLASS, INVOICE_ORIGIN_LABEL, buildManualBillingText,
-  invoiceOriginOf, statusPillClass, toneForPayment,
+  INVOICE_ORIGIN_LABEL, buildManualBillingText,
+  invoiceOriginOf, toneForPayment,
 } from "../../lib/invoicePresentation";
+import { INVOICE_ORIGIN_TONE, paymentStatusPillClass } from "../../lib/toneStyles";
 import { buildBillingMessage, toWaNumber } from "../../lib/waBilling";
 
 interface InvoiceRowProps {
@@ -83,7 +84,7 @@ export default function InvoiceRow({
             <span className={`shrink-0 text-sm font-bold ${paid ? "text-[var(--ink-success)]" : "text-[var(--ink-strong)]"}`}>{formatRupiah(invoice.totalCost)}</span>
           </span>
           <span className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-            <span className={`shrink-0 rounded px-1.5 py-0.5 text-[13px] font-bold ${INVOICE_ORIGIN_CLASS[origin]}`}>{INVOICE_ORIGIN_LABEL[origin]}</span>
+            <span className={`shrink-0 rounded px-1.5 py-0.5 text-[13px] font-bold ${INVOICE_ORIGIN_TONE[origin]}`}>{INVOICE_ORIGIN_LABEL[origin]}</span>
             <span className="truncate text-xs text-[var(--ink-muted)]">{metaLine}</span>
           </span>
           <span className="mt-0.5 block text-xs font-semibold">
@@ -94,7 +95,7 @@ export default function InvoiceRow({
 
       {expanded && <div className="mb-3 space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 p-3">
         <div className="flex flex-wrap items-center gap-1.5 text-xs">
-          <span className={statusPillClass(paid)}>{paid ? "Lunas" : "Belum dibayar"}</span>
+          <span className={paymentStatusPillClass(paid)}>{paid ? "Lunas" : "Belum dibayar"}</span>
           {report && <span className={`inline-flex rounded-full px-1.5 py-0.5 font-bold ${REPORT_DISPLAY_STATUS_CLASS[reportDisplayStatus(report)]}`}>Laporan: {REPORT_DISPLAY_STATUS_LABEL[reportDisplayStatus(report)]}</span>}
           {origin === "package" && <span className="inline-flex rounded-full bg-[var(--accent-tint)] px-1.5 py-0.5 font-bold text-[var(--ink-accent)]">{report?.finalBillingBatch ? "Paket penutup" : `Paket ${report?.billingSessionCount ?? sessions.length} pertemuan`}</span>}
         </div>

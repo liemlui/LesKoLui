@@ -4,6 +4,7 @@ import { dayLabel } from "../../lib/format";
 import MaskedMoney from "../../components/ui/MaskedMoney";
 import { Z } from "../../lib/zIndex";
 import { ENGAGEMENT_LEVELS, scoreLabel, engagementScoreBasis, calcEngagementScore } from "../../lib/engagement";
+import { engagementLevelClass } from "../../lib/toneStyles";
 import { BEHAVIOR_TAGS, RESPONSE_TAGS, getResponseTag } from "../../lib/responseTaxonomy";
 import { MOODS } from "../../lib/moods";
 import { TrashIcon, PencilIcon } from "../../components/icons";
@@ -353,7 +354,7 @@ export default function SessionDetailModal({
                             aria-pressed={draftLevel === opt.value}
                             onClick={() => setDraftLevel(draftLevel === opt.value ? undefined : opt.value)}
                             className={`rounded-full border px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                              draftLevel === opt.value ? opt.activeClass : opt.idleClass
+                              engagementLevelClass(opt.value, draftLevel === opt.value)
                             }`}>
                             {opt.icon} {opt.label}
                           </button>
