@@ -349,9 +349,10 @@ const RESIDUAL_UKURAN: Record<string, string> = {
  * Per-screen-nya angka tepatnya baru terlihat dari hasil jalannya tes ini.
  */
 const RESIDUAL_EMOJI =
-  "L-05 sisa (G2-09): 69 ikon emoji hidup di berkas DATA (responseTaxonomy 26 · captureSession/constants 19 · " +
-  "moods 6 · sessionTemplates 6 · template/layouts 9 · engagement.ts 3 — berkas dilindungi §2.1). " +
-  "Emoji yang tertulis di JSX sudah 0. Perbaikan lanjutan butuh keputusan pemilik + 26 ikon baru.";
+  "L-05 sisa (G2-09): emoji yang tertulis di JSX sudah 0, tetapi 70 entri `icon:` masih hidup di berkas DATA " +
+  "dan 14 situs render-nya berada di dalam <button> (CaptureSession 9 · SessionDetailModal 4 · ScheduleStep 1). " +
+  "21 di antaranya adalah emosi/keadaan tubuh yang butuh keputusan desain; sisanya punya padanan ikon yang jelas. " +
+  "Rincian + tiga opsi: docs/kerja/TASK-11-emoji-ke-svg.md";
 
 test.describe("guard metrik UI — emoji di kontrol/heading (L-05)", () => {
   for (const screen of SCREENS) {
