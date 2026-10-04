@@ -27,6 +27,18 @@ export default function ResponseStep({
   responseTag, setResponseTag, needsWork, setNeedsWork,
   engScore, engScoreInfo, engBasis,
 }: ResponseStepProps) {
+  /**
+   * **Satu-satunya penulis `responseTag` di langkah ini (C-03).**
+   *
+   * Sebelumnya tombol "Isi cepat" menulis tag langsung, sedangkan daftar panjang
+   * di bawah menyalakan/mematikan pilihannya sendiri — dua jalan yang bisa
+   * berbeda arti tanpa terlihat. Sekarang keduanya memakai fungsi ini, jadi
+   * menyorot pilihan di satu grup selalu menyorot pilihan yang sama di grup lain.
+   * Ketuk pilihan yang sama = membatalkan pilihan (perilaku daftar panjang yang
+   * sudah berlaku sejak awal).
+   */
+  const chooseResponse = (id: string) => setResponseTag(responseTag === id ? undefined : id);
+
   return (
     <div className="px-4 space-y-4">
 
@@ -34,23 +46,37 @@ export default function ResponseStep({
           "Fokus perbaikan"; hapus otomatis isian pengguna dihapus di sini
           karena itu kehilangan data tanpa peringatan — audit C-04) */}
       <div>
-        <label className="label">⚡ Isi cepat (respons) <span className="text-[var(--ink-muted)] font-normal text-xs">(pilih satu)</span></label>
+        <label className="label" id="cs-isi-cepat">⚡ Isi cepat (respons) <span className="text-[var(--ink-muted)] font-normal text-xs">(pilih satu)</span></label>
         <div className="flex flex-wrap gap-2">
-          <button type="button"
-            onClick={() => setResponseTag("correct-independent")}
-            className="px-3 py-2 rounded-full text-sm font-semibold bg-[var(--bg-success)] text-[var(--ink-success)] border border-[var(--border-success)] hover:bg-[var(--bg-success)] transition-colors">
+          {/* C-03: tiga tombol ini satu grup pilihan (radio), bukan tiga aksi
+              lepas — dan "Kosongkan" sengaja di LUAR grup karena ia bukan
+              pilihan respons. */}
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-labelledby="cs-isi-cepat">
+          <button type="button" role="radio" aria-checked={responseTag === "correct-independent"}
+            onClick={() => chooseResponse("correct-independent")}
+            className={`px-3 py-2 rounded-full text-sm font-semibold border transition-colors ${
+              responseTag === "correct-independent"
+                ? "bg-[var(--bg-success-strong)] text-[var(--on-strong)] border-[var(--border-success)]"
+                : "bg-[var(--bg-success)] text-[var(--ink-success)] border-[var(--border-success)] hover:bg-[var(--bg-success)]"}`}>
              Lancar
           </button>
-          <button type="button"
-            onClick={() => setResponseTag("partial-correct")}
-            className="px-3 py-2 rounded-full text-sm font-semibold bg-[var(--bg-warn)] text-[var(--ink-warn)] border border-[var(--border-warn)] hover:bg-[var(--bg-warn)] transition-colors">
+          <button type="button" role="radio" aria-checked={responseTag === "partial-correct"}
+            onClick={() => chooseResponse("partial-correct")}
+            className={`px-3 py-2 rounded-full text-sm font-semibold border transition-colors ${
+              responseTag === "partial-correct"
+                ? "bg-[var(--bg-warn-strong)] text-[var(--on-strong)] border-[var(--border-warn)]"
+                : "bg-[var(--bg-warn)] text-[var(--ink-warn)] border-[var(--border-warn)] hover:bg-[var(--bg-warn)]"}`}>
              Butuh Latihan
           </button>
-          <button type="button"
-            onClick={() => setResponseTag("misconception")}
-            className="px-3 py-2 rounded-full text-sm font-semibold bg-[var(--bg-danger)] text-[var(--ink-danger)] border border-[var(--border-danger)] hover:bg-[var(--bg-danger)] transition-colors">
+          <button type="button" role="radio" aria-checked={responseTag === "misconception"}
+            onClick={() => chooseResponse("misconception")}
+            className={`px-3 py-2 rounded-full text-sm font-semibold border transition-colors ${
+              responseTag === "misconception"
+                ? "bg-[var(--bg-danger-strong)] text-[var(--on-strong)] border-[var(--ink-danger)]"
+                : "bg-[var(--bg-danger)] text-[var(--ink-danger)] border-[var(--border-danger)] hover:bg-[var(--bg-danger)]"}`}>
              Miskonsepsi
           </button>
+          </div>
           <button type="button"
             onClick={() => { setResponseTag(undefined); setNeedsWork(""); }}
             className="px-3 py-2 rounded-full text-sm font-semibold bg-[var(--surface-strong)] text-[var(--ink-muted)] border border-[var(--border)] hover:bg-[var(--surface)] transition-colors">
@@ -62,10 +88,12 @@ export default function ResponseStep({
         </p>
       </div>
 
-      {/* Kualitas Respons Akademik */}
+      {/* Kualitas Respons Akademik — satu grup pilihan (C-03). Tiga blok di
+          dalamnya hanya pengelompokan visual; pilihannya tetap satu grup, jadi
+          `role="radiogroup"` dipasang di wadah ini (bukan di tiap blok). */}
       <div>
-        <label className="label">🎓 Kualitas Respons Akademik <span className="text-[var(--ink-muted)] font-normal text-xs">(pilih satu)</span></label>
-        <div className="space-y-3 mt-2">
+        <label className="label" id="cs-kualitas-respons">🎓 Kualitas Respons Akademik <span className="text-[var(--ink-muted)] font-normal text-xs">(pilih satu)</span></label>
+        <div className="space-y-3 mt-2" role="radiogroup" aria-labelledby="cs-kualitas-respons">
           {/* ── Pemahaman Baik ── */}
           <div>
             <p className="text-xs font-semibold text-[var(--ink-success)] uppercase tracking-wide mb-1.5">✨ Pemahaman Baik</p>
@@ -73,8 +101,8 @@ export default function ResponseStep({
               {RESPONSE_TAGS.filter(t => ["correct-independent","correct-with-prompt","can-explain-orally","transfer-attempt","metacognitive"].includes(t.id)).map((tag) => {
                 const score = tag.id === "correct-independent" ? "+2" : "+1";
                 return (
-                  <button data-emoji-vocab="affect" key={tag.id} type="button"
-                    onClick={() => setResponseTag(responseTag === tag.id ? undefined : tag.id)}
+                  <button data-emoji-vocab="affect" key={tag.id} type="button" role="radio" aria-checked={responseTag === tag.id}
+                    onClick={() => chooseResponse(tag.id)}
                     className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                       responseTag === tag.id
                         ? "bg-[var(--bg-success-strong)] text-[var(--on-strong)] border-[var(--border-success)] shadow-sm"
@@ -94,8 +122,8 @@ export default function ResponseStep({
               {RESPONSE_TAGS.filter(t => ["partial-correct","can-do-procedurally","guessing"].includes(t.id)).map((tag) => {
                 const score = tag.id === "guessing" ? "−1" : "0";
                 return (
-                  <button data-emoji-vocab="affect" key={tag.id} type="button"
-                    onClick={() => setResponseTag(responseTag === tag.id ? undefined : tag.id)}
+                  <button data-emoji-vocab="affect" key={tag.id} type="button" role="radio" aria-checked={responseTag === tag.id}
+                    onClick={() => chooseResponse(tag.id)}
                     className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                       responseTag === tag.id
                         ? "bg-[var(--bg-warn-strong)] text-[var(--on-strong)] border-[var(--border-warn)] shadow-sm"
@@ -114,8 +142,8 @@ export default function ResponseStep({
             <div className="flex flex-wrap gap-1.5">
               {RESPONSE_TAGS.filter(t => ["misconception","prerequisite-gap"].includes(t.id)).map((tag) => {
                 return (
-                  <button data-emoji-vocab="affect" key={tag.id} type="button"
-                    onClick={() => setResponseTag(responseTag === tag.id ? undefined : tag.id)}
+                  <button data-emoji-vocab="affect" key={tag.id} type="button" role="radio" aria-checked={responseTag === tag.id}
+                    onClick={() => chooseResponse(tag.id)}
                     className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                       responseTag === tag.id
                         ? "bg-[var(--bg-danger-strong)] text-[var(--on-strong)] border-[var(--ink-danger)] shadow-sm"
