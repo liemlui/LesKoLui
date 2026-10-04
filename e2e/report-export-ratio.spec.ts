@@ -58,20 +58,24 @@ for (const layoutName of REPRESENTATIVE_LAYOUTS) {
     await expect(page.locator("[data-report-page]").first()).toBeVisible({ timeout: 10_000 });
 
     // ── Ganti layout via chip di toolbar desain ─────────────────────────
-    // `<details>` dikontrol state (open={designOpen}) — klik summary bisa
-    // kalah race dengan re-render sehingga details tertutup lagi. Buka ulang
-    // sampai chip layout benar-benar terlihat (maks 4 percobaan).
+    // Sejak pemilih layout menjadi daftar chip di balik tombol "Layout"
+    // (`showLayoutList`), chip TIDAK terlihat sebelum dua langkah ini:
+    // (1) buka `<details>` "Ubah tema & layout", (2) klik tombol "Layout".
     const designDetails = page.locator("details").filter({ hasText: "🎨 Tema:" });
+    const layoutToggle = page.getByRole("button", { name: "Layout", exact: true });
     const layoutChip = page.getByRole("button", { name: layoutName, exact: true });
-    let chipVisible = await layoutChip.isVisible().catch(() => false);
-    for (let attempt = 0; attempt < 4 && !chipVisible; attempt++) {
+    if (!(await layoutToggle.isVisible().catch(() => false))) {
       await designDetails.locator("summary").click();
-      try {
-        await layoutChip.waitFor({ state: "visible", timeout: 4000 });
-        chipVisible = true;
-      } catch { /* details tertutup lagi — klik summary sekali lagi */ }
     }
-    expect(chipVisible, `chip layout "${layoutName}" tidak muncul setelah membuka toolbar desain`).toBe(true);
+    await expect(layoutToggle).toBeVisible({ timeout: 10_000 });
+    for (let attempt = 0; attempt < 4 && !(await layoutChip.isVisible().catch(() => false)); attempt++) {
+      await layoutToggle.click();
+      await page.waitForTimeout(200);
+    }
+    expect(
+      await layoutChip.isVisible().catch(() => false),
+      `chip layout "${layoutName}" tidak muncul setelah daftar layout dibuka`,
+    ).toBe(true);
     await layoutChip.click();
     await expect(page.getByText("Layout diganti!")).toBeVisible({ timeout: 15_000 });
     await expect(page.locator("[data-report-export-root] [data-report-page]").first()).toBeVisible({ timeout: 15_000 });

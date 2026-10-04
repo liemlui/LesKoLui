@@ -1,9 +1,10 @@
 /**
- * Regression: laporan bulanan rasio 3:4 tidak boleh memotong catatan sesi.
- * Paginasi berbasis jumlah buta bisa membuat isi halaman melebihi kotak
- * 3:4 — ReportRenderer harus menggeser entri ke halaman berikutnya (atau
- * membiarkan halaman tumbuh sebagai fallback) sehingga tidak ada konten
- * yang terpotong oleh overflow:hidden.
+ * Regression: catatan sesi panjang tidak boleh terpotong di halaman laporan.
+ *
+ * Rasio halaman tetap 3:4 **DIHAPUS** pemilik 2026-10-01 (`src/index.css`), jadi
+ * halaman laporan kini bertinggi otomatis mengikuti isinya. Yang diuji di sini
+ * bukan lagi bentuk kotaknya, melainkan janji ke tutor: **tidak ada isi yang
+ * terpotong** — dan ekspor tetap berhasil.
  */
 import { test, expect, type Page } from "@playwright/test";
 
@@ -17,7 +18,7 @@ async function closeChangelog(page: Page) {
   } catch { /* tidak ada modal */ }
 }
 
-test("rasio 3:4: catatan sesi panjang tidak terpotong (semua halaman muat)", async ({ page }) => {
+test("catatan sesi panjang tidak terpotong (halaman bertinggi otomatis)", async ({ page }) => {
   test.setTimeout(120_000);
 
   await page.goto("/");
@@ -38,33 +39,41 @@ test("rasio 3:4: catatan sesi panjang tidak terpotong (semua halaman muat)", asy
   await closeChangelog(page);
   await page.locator('input[type="month"]').fill("2026-06");
 
-  // Narasi panjang untuk SEMUA sesi Andi Juni → halaman 3:4 pasti meluap
-  // bila paginasi tetap berbasis jumlah.
+  // Narasi panjang untuk SEMUA sesi Andi Juni → isi halaman pasti meluap bila
+  // paginasi tetap berbasis jumlah buta.
   const longNarrative = "Catatan sesi ini sengaja dibuat sangat panjang untuk menguji apakah teks terpotong di rasio 3:4. ".repeat(8);
-  await page.evaluate(async ({ id, narrative }) => {
+  // Auto-seed dev berjalan asinkron; `seedDummy(true)` bisa kembali sebelum
+  // sesi Juni benar-benar tertulis. Dulu baris ini `throw` dan membuat spec
+  // gagal acak ("tidak ada sesi Andi Juni 2026 di seed") — sekarang menunggu
+  // terbatas (maks 15 dtk) lalu gagal dengan pesan yang sama bila memang kosong.
+  const narrativeApplied = await page.evaluate(async ({ id, narrative }) => {
     const mod = await import("/src/db/repos.ts");
-    const sessions = await mod.listSessionsByStudentRange(id, "2026-06-01", "2026-06-30");
-    if (sessions.length === 0) throw new Error("tidak ada sesi Andi Juni 2026 di seed");
-    for (const s of sessions) await mod.updateSession(s.id, { narrative: narrative + s.narrative });
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      const sessions = await mod.listSessionsByStudentRange(id, "2026-06-01", "2026-06-30");
+      if (sessions.length > 0) {
+        for (const s of sessions) await mod.updateSession(s.id, { narrative: narrative + s.narrative });
+        return sessions.length;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+    return 0;
   }, { id: andiId, narrative: longNarrative });
+  expect(narrativeApplied, "tidak ada sesi Andi Juni 2026 di seed").toBeGreaterThan(0);
 
   await page.locator("select").first().selectOption(andiId);
   await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).waitFor({ timeout: 5000 });
   await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).click();
   await expect(page.locator("[data-report-page]").first()).toBeVisible({ timeout: 10_000 });
 
-  // Tunggu rebalance selesai. Stabilitas ukuran saja tidak cukup: setelah font
-  // tema selesai dimuat, ReportRenderer mengukur ulang dan sempat menandai
-  // banyak halaman `report-page-grow` sebelum paginasi menetapkan kotak 3:4.
-  // Jadi tunggu sampai tanda grow/3:4 DAN tinggi halaman stabil, dan pastikan
-  // sudah ada halaman non-grow sebelum lanjut ke asersi.
+  // Tunggu paginasi selesai: stabilitas tinggi halaman saja tidak cukup,
+  // karena ReportRenderer mengukur ulang setelah font tema selesai dimuat.
   let lastSignature = "";
   for (let attempt = 0; attempt < 40; attempt++) {
     await page.waitForTimeout(400);
     const signature = await page.evaluate(() => Array.from(
       document.querySelectorAll<HTMLElement>("[data-report-export-root] [data-report-page]"),
-    ).map((p) => `${p.id}:${p.classList.contains("report-page-grow") ? "grow" : "fixed"}:${p.scrollHeight}`).join("|"));
-    const settled = signature === lastSignature && signature.includes(":fixed:");
+    ).map((p) => `${p.id}:${p.scrollHeight}`).join("|"));
+    const settled = signature === lastSignature && signature.length > 0;
     lastSignature = signature;
     if (settled) break;
   }
@@ -73,27 +82,25 @@ test("rasio 3:4: catatan sesi panjang tidak terpotong (semua halaman muat)", asy
     const nodes = Array.from(document.querySelectorAll<HTMLElement>("[data-report-export-root] [data-report-page]"));
     return nodes.map((p) => ({
       id: p.id,
-      grow: p.classList.contains("report-page-grow"),
       clientH: p.clientHeight,
       scrollH: p.scrollHeight,
-      boxH: Math.round(p.offsetWidth * 4 / 3),
     }));
   });
 
   // Setiap halaman harus menampilkan seluruh isinya (tidak terpotong):
-  // scrollHeight ≤ tinggi terlihat. Halaman yang dibiarkan tumbuh juga
-  // memenuhi ini karena tingginya mengikuti isi.
+  // scrollHeight ≤ tinggi terlihat.
   for (const pageInfo of pages) {
     expect(pageInfo.scrollH, `halaman ${pageInfo.id} tidak boleh terpotong`).toBeLessThanOrEqual(pageInfo.clientH + 2);
+    expect(pageInfo.clientH, `halaman ${pageInfo.id} harus punya tinggi`).toBeGreaterThan(0);
   }
-  // Semua halaman isi yang normal memakai kotak 3:4 persis.
-  const nonGrow = pages.filter((p) => !p.grow);
-  expect(nonGrow.length).toBeGreaterThan(0);
-  for (const pageInfo of nonGrow) {
-    expect(pageInfo.clientH, `halaman ${pageInfo.id} memakai kotak 3:4`).toBe(pageInfo.boxH);
-  }
+  // CATATAN (2026-10-04): asersi lama "setiap halaman memakai kotak 3:4 persis"
+  // DIHAPUS — rasio halaman tetap 3:4 memang dibatalkan pemilik 2026-10-01
+  // (`src/index.css`: "Rasio halaman tetap 3:4 DIHAPUS … semua halaman laporan
+  // kini bertinggi otomatis mengikuti isinya"), dan kelas `.report-page-grow`
+  // ikut dihapus sehingga `boxH` tidak lagi relevan. Yang tetap berlaku — dan
+  // justru inilah yang penting bagi tutor — adalah tidak ada isi yang terpotong.
 
-  // Export JPG tetap berhasil dengan rasio 3:4.
+  // Export JPG tetap berhasil (halaman bertinggi otomatis, bukan kotak potret).
   const downloadPromise = page.waitForEvent("download", { timeout: 60_000 });
   await page.getByRole("button", { name: /JPG/ }).click();
   const download = await downloadPromise;

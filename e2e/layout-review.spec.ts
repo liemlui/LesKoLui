@@ -3,6 +3,10 @@
  * bulan Juni lalu screenshot halaman pertamanya ke e2e/screenshots/layouts/.
  * Untuk audit paginasi & estetika (bukan test assert).
  *
+ * Pemilih layout = **daftar chip di balik tombol "Layout"** di dalam
+ * `<details>` "Ubah tema & layout" (diperbarui 2026-10-04; sebelumnya `<select>`,
+ * yang membuat spec ini merah sejak pemilihnya berganti).
+ *
  * Jalankan: npx playwright test e2e/layout-review.spec.ts
  */
 import { expect, test, type Page } from "@playwright/test";
@@ -57,7 +61,12 @@ async function captureFirstReportPage(page: Page, id: string) {
 }
 
 test("render semua layout laporan", async ({ page }) => {
-  test.setTimeout(360_000);
+  // Generator tangkapan (26 layout × screenshot) sengaja OPT-IN: ia tidak
+  // mengassert apa pun, jadi menjalankannya di setiap `npm run e2e` hanya
+  // menambah ~7 menit CI tanpa nilai regresi. Jalankan manual dengan:
+  //   $env:LAYOUT_REVIEW=1; npx playwright test e2e/layout-review.spec.ts
+  test.skip(process.env.LAYOUT_REVIEW !== "1", "Generator audit — set LAYOUT_REVIEW=1 untuk menjalankannya.");
+  test.setTimeout(900_000);
 
   // Tunggu auto-seed dev BENAR-BENAR selesai (sinyal console) — memanggil
   // seedDummy(true) manual bisa jadi no-op karena guard _seeding saat auto-seed
@@ -96,26 +105,27 @@ test("render semua layout laporan", async ({ page }) => {
   await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).click();
   await page.locator("[data-report-page]").first().waitFor({ timeout: 10_000 });
 
-  // Tunggu toolbar tema selesai ter-render (report + reportData siap), lalu
-  // BUKA <details> — dropdown layout di dalamnya tersembunyi saat ditutup.
-  const layoutSelect = page.locator("select").nth(1);
-  await expect(layoutSelect.locator("option").first()).toBeAttached({ timeout: 10_000 });
+  // Pemilih layout kini DAFTAR CHIP di balik tombol "Layout" di dalam <details>
+  // "Ubah tema & layout". Enumerasi dibaca dari chip itu sendiri supaya spec
+  // tidak perlu memelihara daftar layout terpisah.
   await page.locator("summary").filter({ hasText: "Ubah tema" }).click();
-  await expect(layoutSelect).toBeVisible();
-  const layouts = await layoutSelect.locator("option").evaluateAll(
-    (opts) => (opts as HTMLOptionElement[]).map((o) => ({
-      id: o.value,
-      label: o.textContent?.trim() || o.value,
-    })),
-  );
-  console.log(`[layout-review] ${layouts.length} layout: ${layouts.map((layout) => layout.id).join(", ")}`);
+  const layoutToggle = page.getByRole("button", { name: "Layout", exact: true });
+  await expect(layoutToggle).toBeVisible({ timeout: 10_000 });
+  await layoutToggle.click();
+  const chips = page.locator('button[title="Cocok untuk narasi panjang"], button[title="Ringkas"]');
+  await expect(chips.first()).toBeVisible({ timeout: 10_000 });
+  const layouts = await chips.evaluateAll((els) => els.map((el) => {
+    const label = el.textContent?.trim() || "";
+    return { id: label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""), label };
+  }));
+  console.log(`[layout-review] ${layouts.length} layout: ${layouts.map((layout) => layout.label).join(", ")}`);
 
   for (const { id, label } of layouts) {
-    await layoutSelect.selectOption(id);
-    await expect(layoutSelect).toHaveValue(id);
-    // Ini menandakan nilai baru sudah tersimpan dan kembali dari live query;
-    // lebih andal daripada menebak lama proses IndexedDB dengan timeout statis.
-    await expect(page.locator("summary").filter({ hasText: label })).toBeVisible({ timeout: 10_000 });
+    await page.getByRole("button", { name: label, exact: true }).click();
+    // Sinyal paling andal bahwa layout benar-benar berganti (nilai tersimpan →
+    // live query → render ulang) adalah toast yang sama dengan yang dilihat
+    // pengguna; lebih baik daripada menebak lama proses IndexedDB.
+    await expect(page.getByText("Layout diganti!")).toBeVisible({ timeout: 15_000 });
     const { count, height } = await captureFirstReportPage(page, id);
     console.log(`[layout-review] ${id}: ${count} node halaman, tinggi hal-1 = ${Math.round(height)}px`);
   }
