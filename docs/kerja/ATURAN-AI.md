@@ -172,7 +172,7 @@ npm test          # harapan: 561+ lulus, 0 gagal
 npm run build     # harapan: built + dist/sw.js
 npm run e2e       # harapan: lulus
 npm run e2e:uiux  # guard metrik UI (G1-11) — 7 layar × 2 project; BUKAN bagian CI utama (Q10 = A),
-                  # spec-nya di `e2e-uiux/` supaya `npm run e2e` tidak ikut melambat
+                  # letak RESMI spec = e2e-uiux/ + playwright.uiux.config.ts (Q23/A19)
 ```
 
 Penghitung khusus (angka wajib dilaporkan sebelum → sesudah langkah):
@@ -331,3 +331,4 @@ Jangan menyalin isi berkas, jangan menjelaskan dokumen, jangan merangkum tugas.
 | 2026-10-03 | **A16** — Line Endings: semua berkas teks **WAJIB LF**, dikunci `.gitattributes` · rujuk §6.3 | — |
 | 2026-10-04 | **A17 (Q44)** — cakupan K3 §6 dipersempit: `src/screens/payments/**` **dikecualikan** karena hanya bisa dirender setelah gerbang penuh `Payments.tsx` lolos; residual 109 baris diterima & didaftarkan di §5 | — |
 | 2026-10-04 | **A18 (Q45)** — definisi tap target K4 ditegaskan: **≥44 px hanya untuk kontrol utama** (aksi primer, nav, ikon aksi); chip & kontrol sekunder **24–36 px diterima** (WCAG 2.5.8 ambang keras 24 px). Residual 52 kontrol (proksi statis `g2-06-scan.cjs`) ditutup sebagai pengecualian tertulis | — |
+| 2026-10-04 | **A19 (Q23)** — letak **resmi** spec guard metrik UI: `e2e-uiux/` + `playwright.uiux.config.ts` (`testDir: "./e2e-uiux"`), dijalankan lewat `npm run e2e:uiux`. DoD G1-11 yang menyebut `e2e/uiux-metrics.spec.ts` **ditandai usang**; `playwright.config.ts` tidak disentuh. Konsisten dengan Q10 = A (guard UI bukan bagian CI utama) | — |
