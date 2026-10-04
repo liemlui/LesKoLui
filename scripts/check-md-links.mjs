@@ -34,3 +34,8 @@ for (const file of files) {
 }
 
 console.log(`\nberkas md diperiksa: ${files.length} | tautan lokal diperiksa: ${checked} | rusak: ${broken}`);
+
+// Keluar NON-NOL bila ada tautan rusak. Sebelum 2026-10-05 skrip ini selalu keluar 0,
+// sehingga dipakai sebagai gate ia tidak pernah bisa gagal — gate yang selalu hijau
+// lebih berbahaya daripada tidak ada gate, karena ia memberi rasa aman yang salah.
+if (broken > 0) process.exit(1);

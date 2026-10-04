@@ -3,9 +3,9 @@
 ```yaml
 jenis: indeks
 status: aktif
-diperbarui: 2026-10-04
+diperbarui: 2026-10-05
 versi_app: v1.90.0
-test: 706 lulus / 60 berkas (terukur 2026-10-04, gate Tier 3 G3-01 L9)
+test: tidak ditulis di sini — jalankan `npm run test:sandbox` (angka yang disalin ke dokumen selalu basi; dijaga `npm run check:docs`)
 baca_ini_kalau: kamu (manusia atau AI) perlu tahu dokumen mana yang harus dibuka
 jangan_baca_berurutan: pakai tabel §2
 ```

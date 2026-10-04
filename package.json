@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "check:docs": "node scripts/check-md-links.mjs && node scripts/check-docs.mjs",
     "test": "vitest run",
     "test:sandbox": "vitest run --pool=threads --maxWorkers=2",
     "test:watch": "vitest",
