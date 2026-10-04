@@ -1064,6 +1064,30 @@ export default function CaptureSession() {
                 ))}
               </div>
             )}
+            {/* Hasil pencarian ditempatkan LANGSUNG di bawah kolom isian
+                (G3-01 2026-10-04): dulu blok ini berada di bawah "Topik sesi
+                lalu" dan "daftar bab", sehingga pada layar HP hasil pencarian
+                sering berada di luar viewport tepat setelah tutor mengetik. */}
+            {topicResults.length > 0 && (
+              <div className="mt-1">
+                {topicOffLevel && topicAllowOffLevel && (
+                  <p className="mb-1 rounded-lg border border-[var(--border-warn)] bg-[var(--bg-warn)] px-2.5 py-1.5 text-xs text-[var(--ink-warn)]">
+                    ⚠️ Topik di bawah berasal dari <span className="font-semibold">{topicMeta?.otherLevels.join(", ")}</span> — <span className="font-semibold">bukan</span> jenjang murid ini.
+                  </p>
+                )}
+                <div className="bg-[var(--surface-strong)] border border-[var(--border)] rounded-xl overflow-hidden shadow-sm max-h-52 overflow-y-auto">
+                  {topicResults.map((t, i) => (
+                    <button key={`${t.topic}-${i}`} type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      className={`block w-full text-left px-3.5 py-2.5 border-b border-[var(--border)] last:border-0 hover:bg-[var(--brand-tint)] transition-colors ${topics.includes(t.topic) ? "bg-[var(--brand-tint)]" : ""}`}
+                      onClick={() => addTopic(t.topic, t.unit)}>
+                      <span className="font-semibold text-[var(--ink-strong)] text-sm">{t.topic}</span>
+                      <span className={`text-xs ml-2 ${topicOffLevel ? "text-[var(--ink-warn)] font-medium" : "text-[var(--ink-muted)]"}`}>{t.gradeLabel} · {t.unit}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* Topik sesi lalu (audit P1 #8) — 1 ketuk untuk kasus paling umum */}
             {recentTopicChips.length > 0 && (
               <div className="mt-2">
@@ -1086,7 +1110,9 @@ export default function CaptureSession() {
               </div>
             )}
             {/* Pilih dari daftar bab (audit P1 #7) — untuk tutor yang ingin
-                MEMBACA pilihan, bukan mengingat kata kunci. */}
+                MEMBACA pilihan, bukan mengingat kata kunci. Panel ini terbuka
+                sejak awal (G3-01 2026-10-04): sebelumnya jalur "baca pilihan"
+                satu ketukan lebih jauh daripada jalur "ingat kata kunci". */}
             {browseSubjects.length > 0 && currentStudent?.curriculum && (
               <div className="mt-3 rounded-xl border border-[var(--border)] overflow-hidden">
                 <button type="button"
@@ -1109,74 +1135,64 @@ export default function CaptureSession() {
                         }. Pakai pencarian atau tulis topik sendiri di bawah.
                       </p>
                     ) : (
-                      browseGroups.map((group) => {
-                        const open = openUnit === group.unit;
-                        const selectedCount = group.topics.filter((t) => topics.includes(t.topic)).length;
-                        return (
-                          <div key={group.unit}>
-                            <button type="button"
-                              onClick={() => setOpenUnit(open ? null : group.unit)}
-                              aria-expanded={open}
-                              className="flex w-full items-center justify-between gap-2 px-3.5 py-2.5 text-left hover:bg-[var(--brand-tint)] transition-colors">
-                              <span className="min-w-0">
-                                <span className="block truncate text-sm font-medium text-[var(--ink-strong)]">{group.unit}</span>
-                                <span className="block text-xs text-[var(--ink-muted)]">
-                                  {group.topics.length} topik · {group.topics[0]?.gradeLabel}
-                                </span>
-                              </span>
-                              <span className="flex shrink-0 items-center gap-1.5">
-                                {selectedCount > 0 && (
-                                  <span className="rounded-full bg-[var(--brand-tint-strong)] px-1.5 py-0.5 text-xs font-bold text-[var(--ink-brand)]">
-                                    {selectedCount}
+                      <>
+                        {/* `browseTopicsForSubjects` membatasi daftar pada 8 bab
+                            terdekat dengan jenjang murid, jadi keterbatasan itu
+                            disebut apa adanya + jalan keluarnya. */}
+                        {browseGroups.length >= 8 && (
+                          <p className="px-3.5 py-2.5 text-xs text-[var(--ink-muted)]">
+                            Menampilkan <span className="font-semibold">8 bab</span> terdekat dengan jenjang murid.
+                            Bab lain bisa ditemukan lewat pencarian di atas.
+                          </p>
+                        )}
+                        {browseGroups.map((group) => {
+                          const open = openUnit === group.unit;
+                          const selectedCount = group.topics.filter((t) => topics.includes(t.topic)).length;
+                          return (
+                            <div key={group.unit}>
+                              <button type="button"
+                                onClick={() => setOpenUnit(open ? null : group.unit)}
+                                aria-expanded={open}
+                                className="flex w-full items-center justify-between gap-2 px-3.5 py-2.5 text-left hover:bg-[var(--brand-tint)] transition-colors">
+                                <span className="min-w-0">
+                                  <span className="block truncate text-sm font-medium text-[var(--ink-strong)]">{group.unit}</span>
+                                  <span className="block text-xs text-[var(--ink-muted)]">
+                                    {group.topics.length} topik · {group.topics[0]?.gradeLabel}
                                   </span>
-                                )}
-                                <span className="text-[var(--ink-muted)]" aria-hidden="true">{open ? "▲" : "▼"}</span>
-                              </span>
-                            </button>
-                            {open && (
-                              <div className="space-y-1 px-3.5 pb-3">
-                                {group.topics.map((t) => {
-                                  const checked = topics.includes(t.topic);
-                                  return (
-                                    <label key={`${t.unit}::${t.topic}`}
-                                      className={`flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors ${
-                                        checked ? "bg-[var(--brand-tint)] text-[var(--ink-brand)]" : "text-[var(--ink-strong)] hover:bg-[var(--surface)]"
-                                      }`}>
-                                      <input type="checkbox" checked={checked} className="mt-0.5"
-                                        onChange={() => (checked ? removeTopic(t.topic) : addTopic(t.topic, t.unit))} />
-                                      <span className="min-w-0">{t.topic}</span>
-                                    </label>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })
+                                </span>
+                                <span className="flex shrink-0 items-center gap-1.5">
+                                  {selectedCount > 0 && (
+                                    <span className="rounded-full bg-[var(--brand-tint-strong)] px-1.5 py-0.5 text-xs font-bold text-[var(--ink-brand)]">
+                                      {selectedCount}
+                                    </span>
+                                  )}
+                                  <span className="text-[var(--ink-muted)]" aria-hidden="true">{open ? "▲" : "▼"}</span>
+                                </span>
+                              </button>
+                              {open && (
+                                <div className="space-y-1 px-3.5 pb-3">
+                                  {group.topics.map((t) => {
+                                    const checked = topics.includes(t.topic);
+                                    return (
+                                      <label key={`${t.unit}::${t.topic}`}
+                                        className={`flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors ${
+                                          checked ? "bg-[var(--brand-tint)] text-[var(--ink-brand)]" : "text-[var(--ink-strong)] hover:bg-[var(--surface)]"
+                                        }`}>
+                                        <input type="checkbox" checked={checked} className="mt-0.5"
+                                          onChange={() => (checked ? removeTopic(t.topic) : addTopic(t.topic, t.unit))} />
+                                        <span className="min-w-0">{t.topic}</span>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </>
                     )}
                   </div>
                 )}
-              </div>
-            )}
-            {/* Dropdown hasil pencarian */}
-            {topicResults.length > 0 && (
-              <div className="mt-1">
-                {topicOffLevel && topicAllowOffLevel && (
-                  <p className="mb-1 rounded-lg border border-[var(--border-warn)] bg-[var(--bg-warn)] px-2.5 py-1.5 text-xs text-[var(--ink-warn)]">
-                    ⚠️ Topik di bawah berasal dari <span className="font-semibold">{topicMeta?.otherLevels.join(", ")}</span> — <span className="font-semibold">bukan</span> jenjang murid ini.
-                  </p>
-                )}
-                <div className="bg-[var(--surface-strong)] border border-[var(--border)] rounded-xl overflow-hidden shadow-sm max-h-52 overflow-y-auto">
-                  {topicResults.map((t, i) => (
-                    <button key={`${t.topic}-${i}`} type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      className={`block w-full text-left px-3.5 py-2.5 border-b border-[var(--border)] last:border-0 hover:bg-[var(--brand-tint)] transition-colors ${topics.includes(t.topic) ? "bg-[var(--brand-tint)]" : ""}`}
-                      onClick={() => addTopic(t.topic, t.unit)}>
-                      <span className="font-semibold text-[var(--ink-strong)] text-sm">{t.topic}</span>
-                      <span className={`text-xs ml-2 ${topicOffLevel ? "text-[var(--ink-warn)] font-medium" : "text-[var(--ink-muted)]"}`}>{t.gradeLabel} · {t.unit}</span>
-                    </button>
-                  ))}
-                </div>
               </div>
             )}
             {/* Tidak ada topik pada jenjang murid — tawarkan pilihan SADAR

@@ -22,7 +22,12 @@ export default function useTopicSelection({
   const [topicSearch, setTopicSearch] = useState("");
   const [topicResponse, setTopicResponse] = useState<TopicSearchResponse | null>(null);
   const [topicAllowOffLevel, setTopicAllowOffLevel] = useState(false);
-  const [showBrowse, setShowBrowse] = useState(false);
+  /** Panel "pilih dari daftar bab" **terbuka sejak awal** (2026-10-04, G3-01):
+   *  sebelum ini isinya hanya bisa dibaca setelah satu ketukan pada tombolnya,
+   *  padahal `browseGroups` menarik katalog mapel itu dari 1.538 topik — jalur
+   *  "baca pilihan" jadi satu ketukan lebih jauh daripada jalur "ingat kata
+   *  kunci". Daftar bab tetap bisa ditutup tutor lewat tombol yang sama. */
+  const [showBrowse, setShowBrowse] = useState(true);
   const [openUnit, setOpenUnit] = useState<string | null>(null);
 
   const topicResults = topicResponse?.results ?? [];
