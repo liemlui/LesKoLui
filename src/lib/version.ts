@@ -11,6 +11,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.89.0",
+    date: "2026-10-04",
+    title: "Ikon dan warna kini benar-benar konsisten di seluruh tombol — dan alat pemeriksanya akhirnya dijalankan",
+    items: [
+      "Janji rilis lalu soal emoji ternyata belum tuntas, dan sekarang baru benar-benar terpenuhi. Enam emoji yang masih lolos — ikon Pengaturan di kepala Beranda, “Murid aktif” di kartu ringkasan, lonceng pada badge follow-up, ikon kartu pada badge tagihan, ikon orang di baris nama orang tua, dan pensil pada judul “Catatan Belajar” — sudah berganti ikon gambar yang seragam. Alat pemeriksanya (yang sebelumnya ditulis tetapi belum pernah dijalankan) kini dijalankan: **48 pemeriksaan lulus, 8 dilewati, 0 gagal** di tujuh layar pada dua ukuran layar.",
+      "Warna chip **Kondisi les** (Lancar / Biasa / Berat), badge asal tagihan (Paket / Bulanan / Laporan / Manual), dan pil status **Lunas / Belum dibayar** kini diambil dari warna bertema yang sama dengan sisa aplikasi, bukan lagi dari daftar warna yang ditulis di dalam berkas data. Karena itu ronanya bergeser sedikit — mis. badge “Bulanan” dan “Laporan” kini sama-sama keluarga biru dengan kepekatan berbeda. Tiga berkas data yang dilindungi (rumus skor, teks tagihan, dan rumus uang) sengaja tidak disentuh sama sekali; yang berpindah hanya tempat keputusan tampilannya.",
+      "Kolom isian yang tadinya hanya bisa ditebak dari petunjuk kelabu kini punya nama yang benar untuk pembaca layar: kolom **PIN Keuangan**, kolom **“Ketik mapel lain”** di langkah Materi, dan label **Model** di Pengaturan (label itu sebelumnya menempel pada kotak yang bukan kolom isian, jadi tidak terbaca sebagai pasangan).",
+      "Label tombol penutup alur Catat Sesi dirapikan: tombol di langkah 6 kini berbunyi **“Simpan Sesi”** dan tombol penutup laporan berbunyi **“Selesai & Lihat Profil”** — tanpa lambang centang/bendera di depannya, dan tanpa spasi menggantung.",
+      "Tiga uji otomatis laporan yang sudah lama merah akhirnya dibereskan — bukan dengan melonggarkan ujiannya, tetapi karena ujiannya memang menguji hal yang sudah dibatalkan: rasio halaman tetap 3:4 dihapus pada 1 Oktober (sejak itu halaman laporan bertinggi mengikuti isinya). Yang diuji sekarang adalah janji yang benar-benar berlaku bagi tutor: **catatan sesi panjang tidak terpotong**. Satu uji lain diperbaiki dari kegagalan acak (data contoh belum selesai dimuat saat diuji), dan generator tangkapan audit dijadikan opt-in supaya tidak memperlambat pemeriksaan rutin.",
+      "Catatan kecil: satu uji lain yang gagal saat seluruh pemeriksaan dijalankan bersamaan (yaitu uji Keuangan) terbukti lulus saat dijalankan sendirian — jadi sifatnya kepayahan mesin, bukan kerusakan aplikasi. Ini dilaporkan terbuka, bukan disembunyikan.",
+    ],
+  },
+  {
     version: "v1.88.0",
     date: "2026-10-03",
     title: "Angka uang akhirnya benar-benar tertutup, Beranda bebas dari uang, dan jadwal harian bisa dimuat sehari penuh",
