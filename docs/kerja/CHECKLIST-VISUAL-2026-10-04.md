@@ -10,6 +10,10 @@
 > multi-halaman hanya menyimpan berkas terakhir → **diperbaiki di v1.89.2** (berkas pertama tersimpan
 > langsung, sisanya jadi tombol "Unduh halaman N"). Ringkasan lengkap: `docs/README.md` §4.4.1.
 > Pemeriksaan **H (Chrome Android)** menutup `G2-05`.
+> **Tambahan v1.90.0:** langkah **Materi** (bagian **D1–D4**) berubah bentuk setelah pemeriksaan di atas —
+> bentuk barunya **sudah dinilai pemilik** ("sudah bagus") pada 2026-10-04, dengan satu permintaan
+> lanjutan (perkuat daftar topik & pencarian) yang ikut dikerjakan di rilis yang sama. Jadi untuk bagian D
+> dan **I**, yang berlaku adalah hasil v1.90.0 — bukan tabel di bawah.
 
 ---
 
@@ -19,11 +23,12 @@
 |---|---|---|
 | **Dev di laptop** | `npm run dev` → `http://localhost:5173` | Data contoh **masuk otomatis** saat database kosong (murid IB MYP/DP, Cambridge IGCSE, AP, Nasional) · **PIN Keuangan = `123456`** |
 | **Dari HP** | `npm run dev -- --host` → buka `http://<IP-laptop>:5173` dari HP (satu Wi-Fi) | Untuk uji "pasang aplikasi"/PWA, pakai `npm run build` + `npm run preview -- --host` |
-| **Situs** | leskolui.vercel.app | Hanya setelah Vercel selesai membangun dari `main` |
+| **Situs** | **les-ko-lui.vercel.app** | Hanya setelah Vercel selesai membangun dari `main`. ⚠️ Koreksi 2026-10-04: `leskolui.vercel.app` (yang tertulis sebelumnya, juga di `PROMPT-AI-IKLAN.md:78`) **404 — deployment tidak ditemukan**; host yang benar adalah `les-ko-lui.vercel.app` |
 
 - Saat pertama dibuka, modal **"Catatan perubahan"** muncul (versi baru). Tekan **Mengerti** dulu.
 - Kalau data contoh tidak muncul: buka DevTools → Console → ketik `seedDummy(true)` lalu Enter.
 - Warna v1.89.1 = tampilan masa kini; kalau Anda membandingkan dengan HP yang masih versi lama, muat ulang dulu.
+- **v1.90.0 (2026-10-04)** — langkah **Materi** di Catat Sesi berubah bentuk: chip mapel terbuka langsung di layar (tanpa tombol `+ Tambah Mapel`), baris ringkasan **"Dipilih (…)"** muncul begitu ada mapel terketuk, panel **"Pilih dari daftar bab"** sudah terbuka, dan **hasil pencarian topik** kini tepat di bawah kolom isian. Jumlah langkah tetap 6. Bagian yang paling terkait: **D1–D3** (chip & tombol alur Catat Sesi), **D4** (kolom CUSTOM di langkah 2), dan **I** (alur Catat Sesi 12 langkah).
 
 **Tabel centang cepat**
 

@@ -4,13 +4,13 @@
 jenis: indeks
 status: aktif
 diperbarui: 2026-10-04
-versi_app: v1.89.2
+versi_app: v1.90.0
 test: 706 lulus / 60 berkas (terukur 2026-10-04, gate Tier 3 G3-01 L9)
 baca_ini_kalau: kamu (manusia atau AI) perlu tahu dokumen mana yang harus dibuka
 jangan_baca_berurutan: pakai tabel §2
 ```
 
-> **Sekilas** · Jenis: **indeks dokumentasi (pintu masuk)** · Status: **aktif** · Diperbarui: 2026-10-04 (v1.89.2).
+> **Sekilas** · Jenis: **indeks dokumentasi (pintu masuk)** · Status: **aktif** · Diperbarui: 2026-10-04 (v1.90.0).
 > **Untuk siapa:** pemilik aplikasi (Ko Lui) dan agen AI yang merawat repo ini.
 > **Isi:** peta "mau X → buka Y" (§2) · aturan penamaan (§3) · **status pekerjaan (§4)** · riwayat rilis (§5) · aturan pemeliharaan (§6).
 > **Berkas lain tidak perlu dibaca berurutan.** Tabel §2 adalah router-nya.
@@ -207,7 +207,7 @@ Penomoran mengikuti [`kerja/CHECKLIST-VISUAL-2026-10-04.md`](kerja/CHECKLIST-VIS
 | **G3** ekspor JPG/PNG/PDF | ❌ **BUG DITEMUKAN** → **diperbaiki di v1.89.2** (lihat §5) |
 | **G4** modal changelog | ✅ "aman" |
 | **H1–H5** Chrome Android | ✅ "aman semua" → **menutup `G2-05`** (verifikasi manual yang sejak awal terblokir karena butuh HP) |
-| **I** alur Catat Sesi (§4.3) | Permintaan pemilik: alur dibuat **lebih cepat & sederhana** — ditegaskan 2026-10-04: **BUKAN diisi otomatis dari sesi lalu**, melainkan **langkah & pemilihannya yang diefisienkan** (mis. pemilih mapel tanpa panel bersarang, urutan chip lebih ringkas, jumlah ketukan per langkah). Jadi **masukan G3-01** (Catat Sesi), bukan perubahan di luar wizard. §4.2 #11 **tetap terbuka** sampai 12 langkah §4.3 dikonfirmasi |
+| **I** alur Catat Sesi (§4.3) | Permintaan pemilik: alur dibuat **lebih cepat & sederhana** — ditegaskan 2026-10-04: **BUKAN diisi otomatis dari sesi lalu**, melainkan **langkah & pemilihannya yang diefisienkan** (mis. pemilih mapel tanpa panel bersarang, urutan chip lebih ringkas, jumlah ketukan per langkah). Jadi **masukan G3-01** (Catat Sesi), bukan perubahan di luar wizard. §4.2 #11 **tetap terbuka** sampai 12 langkah §4.3 dikonfirmasi. **Sebagian sudah dikerjakan & dinilai pemilik 2026-10-04 → v1.90.0:** bentuk baru langkah 2 (chip mapel datar + daftar bab terbuka + hasil pencarian di bawah kolom isian) dinilai **“sudah bagus”**, dengan satu permintaan lanjutan: **perkuat daftar topik & pencariannya** — dikerjakan di rilis yang sama |
 
 **Cacat yang ditemukan pemeriksaan ini (G3), apa adanya:** ekspor JPG/PNG memicu unduhan berurutan sendiri,
 dan peramban hanya mengizinkan satu unduhan otomatis per gestur → **hanya berkas terakhir yang tersimpan**
@@ -218,6 +218,7 @@ tombol **"Unduh halaman 2"**, dst. — tiap ketukan satu gestur sah.
 
 | Tanggal | Peristiwa | Versi |
 |---|---|---|
+| 2026-10-04 | **Rilis v1.90.0 — Catat Sesi lebih cepat: pilih mapel & topik tanpa panel bersarang.** Menggabungkan dua pekerjaan G3-01: pemilih mapel jadi baris chip datar di langkah 2 (satu mapel **1 ketukan**, dulu 3; mapel kedua +1, dulu +4) dan daftar topik/pencarian diperkuat (panel bab terbuka sejak awal, hasil pencarian tepat di bawah kolom isian, batas 8 bab diberitahukan). **Jumlah langkah tetap 6** — yang berubah cara memilihnya, bukan langkahnya. Gate: `tsc` ✓ · `eslint` ✓ · **706/706 tes** ✓ · `build` ✓ · `e2e` **78 lulus/6 skip/0 gagal** · `e2e:uiux` 56 lulus/0 gagal · `md-links` 0 rusak. Verifikasi manusia di perangkat: **menunggu** (12 kotak §4.3) | v1.90.0 |
 | 2026-10-04 | **Ekspor JPG/PNG multi-halaman diperbaiki** — cacat ditemukan pada pemeriksaan visual: aplikasi memicu unduhan berurutan sendiri dan peramban hanya mengizinkan satu unduhan otomatis per gestur, sehingga hanya berkas terakhir tersimpan. Kini berkas pertama tersimpan langsung dan halaman sisanya menjadi tombol **"Unduh halaman N"** (satu ketukan = satu berkas); di HP seluruh halaman dikirim lewat satu kali Web Share. Sekaligus dicatat: **pemeriksaan visual pemilik atas 14 titik selesai, semuanya aman**, dan **Chrome Android aman** → menutup `G2-05`. Gate: `tsc` ✓ · `eslint` ✓ · 698/698 tes ✓ · `build` ✓ · spec ekspor chromium ✓ | v1.89.2 |
 | 2026-10-04 | **Daftar topik & pencarian di Catat Sesi diperkuat (G3-01 L9, commit `38eb8c9`)** — (a) panel **"Pilih dari daftar bab" terbuka sejak awal**, jadi katalog topik mapel itu bisa langsung dibaca tanpa satu ketukan pembuka; (b) **hasil pencarian dipindah tepat di bawah kolom isian** — sebelumnya blok ini berada di bawah chip "Topik sesi lalu" dan panel bab, sehingga di layar HP hasil sering berada di luar viewport tepat setelah tutor mengetik; (c) daftar bab menyebut **batas 8 bab** (batas itu sudah ada di `browseTopicsForSubjects(..., maxGroups = 8)` tetapi belum pernah diberitahukan) beserta jalan keluarnya "cari lewat ketikan". Dijaga 2 tes baru `src/__tests__/topicBrowseDefault.test.tsx`. Gate: `tsc` ✓ · `eslint` ✓ · **706/706 tes** ✓ · build ✓ · `e2e` **78 lulus/6 skip/0 gagal** · `e2e:uiux` 56 lulus/0 gagal. **Belum dilihat manusia di perangkat** | — |
 | 2026-10-04 | **Pemilih mapel di Catat Sesi jadi lebih cepat (G3-01 L8, commit `4fcbaf4`)** — tombol `+ Tambah Mapel` yang membuka panel dari bawah dihapus; chip mapel sekarang dieja datar di langkah 2, jadi satu mapel **1 ketukan** (dulu 3: buka panel → pilih → `Selesai`) dan dua mapel **2 ketukan** (dulu 5, karena panelnya harus dibuka ulang). Ringkasan "Dipilih (n)" muncul begitu ada mapel terpilih, menggantikan umpan balik tombol `Selesai`. Bentuk modalnya **tetap ada** di komponen (`variant="modal"`), tetapi sudah tidak dipakai dari wizard. Dijaga 6 tes baru `src/__tests__/subjectPickerInline.test.tsx`; hitungan ketukan per langkah dicatat di `TASK-06` §9.1. Gate: `tsc` ✓ · `eslint` ✓ · **704/704 tes** ✓ · build ✓ · `e2e` 76 lulus/6 skip/2 gagal (dua merah jalur laporan **lulus 10/10 sendirian** → flake beban) · `e2e:uiux` 56 lulus/0 gagal. **Belum diverifikasi manusia di perangkat** — 12 kotak `docs/README.md` §4.3 masih menunggu centang | — |

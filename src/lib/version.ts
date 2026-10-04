@@ -11,6 +11,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.90.0",
+    date: "2026-10-04",
+    title: "Catat Sesi lebih cepat: pilih mapel & topik tanpa panel bersarang",
+    items: [
+      "Di langkah **Materi**, daftar mata pelajaran sekarang **terbuka langsung di layar** — tidak lagi harus menekan `+ Tambah Mapel` dulu, memilih, lalu menutup panel. Satu mapel jadi **satu ketukan** (dulu tiga), dan menambah mapel kedua **satu ketukan lagi** (dulu empat karena panelnya harus dibuka ulang).",
+      "Pilihan mapel yang sudah Anda ketuk muncul sebagai baris **“Dipilih (…)”.** Dulu umpan baliknya adalah tombol `Selesai` yang menutup panel; karena panelnya kini tidak ada, baris ringkasan itu yang memastikan pilihan Anda tercatat.",
+      "**Jumlah langkah tidak berubah** — langkah Materi tetap satu dari enam langkah Catat Sesi; yang dihemat hanya cara memilihnya.",
+      "Daftar bab topik sekarang **terbuka sejak awal** — dulu isinya baru terbaca setelah satu ketukan pembuka, jadi mencari lewat daftar terasa lebih jauh daripada mengetik kata kunci.",
+      "**Hasil pencarian topik muncul tepat di bawah kolom isian.** Sebelumnya hasilnya berada setelah chip “Topik sesi lalu” dan daftar bab, sehingga di layar HP sering berada di luar layar tepat setelah Anda mengetik.",
+      "Bila daftar bab menampilkan **8 bab** terdekat dengan jenjang murid, itu sekarang **diberitahukan** beserta jalan keluarnya (cari lewat ketikan) — sebelumnya batas ini tidak terlihat sehingga daftarnya bisa disangka lengkap.",
+    ],
+  },
+  {
     version: "v1.89.2",
     date: "2026-10-04",
     title: "Ekspor JPG/PNG multi-halaman akhirnya menyimpan semua halaman",
