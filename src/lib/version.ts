@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.89.1",
+    date: "2026-10-04",
+    title: "Ikon Pengaturan kembali bergerigi, sesuai hasil pemeriksaanmu",
+    items: [
+      "Ikon tombol **Pengaturan** di kepala Beranda diganti menjadi **gerigi** (cog) — versi pertama rilis lalu berbentuk “garis penyesuaian” dan itu tidak cukup terbaca sebagai Pengaturan. Ikon baru digambar dari bentuk dasar (cincin, delapan gigi, dan lubang tengah) supaya tetap tajam di ukuran kecil.",
+      "Dua hasil pemeriksaanmu yang lain dicatat apa adanya: rona chip **Kondisi les** dan badge asal tagihan dinilai **sudah jelas**, dan **catatan sesi panjang di laporan tidak terpotong**. Yang terakhir ini menegaskan bahwa tiga uji laporan yang dulu merah memang uji yang sudah basi (menguji kotak rasio 3:4 yang dihapus 1 Oktober), bukan kerusakan aplikasi.",
+    ],
+  },
+  {
     version: "v1.89.0",
     date: "2026-10-04",
     title: "Ikon dan warna kini benar-benar konsisten di seluruh tombol — dan alat pemeriksanya akhirnya dijalankan",

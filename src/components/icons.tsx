@@ -475,19 +475,30 @@ export function UsersIcon(props: IconProps) {
   );
 }
 
-/** Pengaturan/penyesuaian — menggantikan emoji ⚙️ pada tautan Pengaturan. */
+/** Gerigi (cog) — menggantikan emoji ⚙️ pada tautan Pengaturan.
+ *
+ *  Digambar dari bentuk dasar (cincin + 8 gigi + lubang tengah) dan bukan satu
+ *  jalur SVG panjang, supaya tetap tajam di ukuran kecil (dipakai 20 px di
+ *  kepala Beranda) dan mudah disetel tanpa risiko jalur salah bentuk.
+ *  Versi pertama ikon ini berbentuk garis penyesuaian (sliders); atas tinjauan
+ *  pemilik 2026-10-04 diganti gerigi karena itu yang terbaca sebagai
+ *  "Pengaturan". */
 export function SettingsIcon(props: IconProps) {
   return (
     <IconBase {...props}>
-      <path d="M4 7h8" />
-      <path d="M17 7h3" />
-      <circle cx="14.5" cy="7" r="2.5" />
-      <path d="M4 12h3" />
-      <path d="M12 12h8" />
-      <circle cx="9.5" cy="12" r="2.5" />
-      <path d="M4 17h8" />
-      <path d="M17 17h3" />
-      <circle cx="14.5" cy="17" r="2.5" />
+      <circle cx="12" cy="12" r="6.3" />
+      <circle cx="12" cy="12" r="2.3" />
+      {[0, 45, 90, 135, 180, 225, 270, 315].map((deg) => (
+        <rect
+          key={deg}
+          x="11.1"
+          y="3"
+          width="1.8"
+          height="3"
+          rx="0.6"
+          transform={`rotate(${deg} 12 12)`}
+        />
+      ))}
     </IconBase>
   );
 }
