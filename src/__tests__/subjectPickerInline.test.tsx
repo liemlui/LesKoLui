@@ -112,4 +112,36 @@ describe("SubjectPickerSheet — bentuk inline (Q-2 opsi A)", () => {
     expect(markup).toContain("Pilih Mata Pelajaran");
     expect(markup).toContain("Selesai");
   });
+
+  it("mapel profil tampil SEKALI saja: diangkat ke kelompok pertama, bukan dua kali", () => {
+    // Kasus nyata yang dilaporkan pemilik 2026-10-04: murid IB MYP dengan mapel
+    // profil `Mathematics` melihat mapel itu dua kali — sekali di baris chip
+    // profil, sekali lagi di kelompok katalog "Mathematics".
+    const markup = renderToStaticMarkup(
+      <SubjectPickerSheet
+        variant="inline"
+        student={student({ curriculum: "IB MYP" })}
+        {...props({ profileSubjects: ["Mathematics"] })}
+      />,
+    );
+    const mathChips = markup.split("Mathematics").length - 1;
+    expect(mathChips).toBe(1);
+    // Kelompoknya diberi nama supaya tutor tahu itu mapel murid, bukan katalog.
+    expect(markup).toContain("Mapel murid ini");
+    const profileGroupAt = markup.indexOf("Mapel murid ini");
+    const catalogGroupAt = markup.indexOf("Language &amp; Literature");
+    expect(profileGroupAt).toBeGreaterThan(-1);
+    expect(profileGroupAt).toBeLessThan(catalogGroupAt);
+  });
+
+  it("tanpa mapel profil, tidak ada kelompok `Mapel murid ini`", () => {
+    const markup = renderToStaticMarkup(
+      <SubjectPickerSheet
+        variant="inline"
+        student={student({ curriculum: "IB MYP" })}
+        {...props()}
+      />,
+    );
+    expect(markup).not.toContain("Mapel murid ini");
+  });
 });

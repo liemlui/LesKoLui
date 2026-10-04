@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import Modal from "../../components/Modal";
 import { IB_MYP_SUBJECTS, IB_DP_GROUPS, getSubjectGroups, CURRICULUM_META } from "../../lib/ibSubjects";
 import type { Student } from "../../db/types";
@@ -19,6 +20,9 @@ interface SubjectPickerSheetProps {
   onToggleSubject: (subject: string) => void;
   /** `inline` merender daftar mapel ejaan datar di layar (bukan panel dari bawah). */
   variant?: "modal" | "inline";
+  /** Mapel dari profil murid. Ditampilkan sebagai kelompok pertama dan
+   *  dikeluarkan dari kelompok katalognya supaya tidak muncul dua kali. */
+  profileSubjects?: string[];
 }
 
 /**
@@ -40,16 +44,42 @@ interface SubjectPickerSheetProps {
  *    tidak ada tombol itu, jadi umpan baliknya dipindah ke baris ringkasan.
  *
  * Pemilihan mapel tetap selalu terlihat meski murid belum punya mapel di profil.
- * Teks, urutan, dan perilaku pilihan tidak berubah dari versi modal.
+ *
+ * **Dua pengecualian dari "teks & urutan tidak berubah", keduanya disengaja:**
+ * 1. **Urutan kelompok** — bila `profileSubjects` diisi, kelompok "Mapel murid
+ *    ini" diletakkan paling atas (jalan cepat), dan kelompok katalog yang
+ *    memuat mapel itu kehilangan anggotanya supaya tidak tampil dua kali.
+ * 2. **Bentuk `inline`** tidak punya header/tombol penutup — alasannya di
+ *    komentar `variant` di bawah.
  */
 export default function SubjectPickerSheet({
   student, subjects, setSubjects, onClose,
   ibTab, setIbTab, ibCustom, setIbCustom, onToggleSubject,
-  variant = "modal",
+  variant = "modal", profileSubjects = [],
 }: SubjectPickerSheetProps) {
+  /** Mapel profil diangkat menjadi kelompok pertama, dan dikeluarkan dari
+   *  kelompok katalognya — supaya satu mapel tidak muncul dua kali di layar
+   *  (keluhan pemilik 2026-10-04: `Mathematics` tampil dua kali untuk murid IB
+   *  MYP). Kelompok besar diletakkan paling atas karena itu jalan tercepat:
+   *  mapel yang benar-benar dipakai murid biasanya ada di situ. */
+  const groups = useMemo(() => {
+    const all = student?.curriculum ? getSubjectGroups(student.curriculum) : [];
+    const fromProfile = new Set(profileSubjects);
+    const profileGroup = profileSubjects.length > 0
+      ? {
+          group: "Mapel murid ini",
+          subjects: all.flatMap((g) => g.subjects).filter((s) => fromProfile.has(s)),
+        }
+      : null;
+    const rest = all
+      .map((g) => ({ ...g, subjects: g.subjects.filter((s) => !fromProfile.has(s)) }))
+      .filter((g) => g.subjects.length > 0);
+    return profileGroup && profileGroup.subjects.length > 0 ? [profileGroup, ...rest] : rest;
+  }, [student?.curriculum, profileSubjects]);
+
   const subjectList = student?.curriculum ? (
     <div className="p-4 space-y-4">
-      {getSubjectGroups(student.curriculum).map((grp) => (
+      {groups.map((grp) => (
         <div key={grp.group}>
           <p className="text-xs text-[var(--ink-muted)] font-semibold uppercase tracking-wide mb-2">{grp.group}</p>
           <div className="flex flex-wrap gap-2">

@@ -964,10 +964,16 @@ export default function CaptureSession() {
       {currentStep === 2 && (
         <div className="px-4 space-y-4">
 
-          {/* Mapel — chip dari profil murid + daftar mapel ejaan datar.
+          {/* Mapel — daftar mapel ejaan datar (tanpa panel bersarang).
               Permintaan pemilik 2026-10-04 (Q-2 opsi A): dulu satu mapel butuh
               3 ketukan (buka panel → pilih → `Selesai`) dan dua mapel 5 ketukan
-              karena panelnya harus dibuka ulang. Sekarang tidak ada panel. */}
+              karena panelnya harus dibuka ulang. Sekarang tidak ada panel.
+              Koreksi 2026-10-04 (v1.90.0): baris chip mapel PROFIL dihapus —
+              mapel profil (mis. `Mathematics` murid IB MYP) sudah ada di daftar
+              kurikulum di bawah, sehingga tampil dua kali. Jalan cepatnya
+              diganti: kelompok yang memuat mapel profil diangkat ke paling atas
+              oleh `SubjectPickerSheet`, dan mapel yang sudah terpilih tetap
+              ditandai ✓ di daftarnya + muncul di baris "Dipilih (…)". */}
           <section>
             <label className="label">
               📖 Mata Pelajaran
@@ -976,19 +982,6 @@ export default function CaptureSession() {
                 : <span className="text-[var(--ink-muted)] font-normal text-xs ml-1">(opsional)</span>}
             </label>
             <div className="mt-1 rounded-xl border border-[var(--border)] overflow-hidden bg-[var(--surface-strong)]">
-              {studentSubjects.length > 0 && (
-                <div className="flex flex-wrap gap-2 p-4 pb-0">
-                  {studentSubjects.map((s) => (
-                    <button key={s} type="button"
-                      className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                        subjects.includes(s) ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]" : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)]"}`}
-                      onClick={() => toggleSubject(s)}>{s}</button>
-                  ))}
-                </div>
-              )}
-              {/* Daftar mapel selalu terlihat: kalau murid sudah punya mapel di
-                  profil, kelompok yang memuatnya diberi tanda ✓ oleh komponen
-                  pemilih itu sendiri, jadi tidak ada chip kembar. */}
               <SubjectPickerSheet
                 variant="inline"
                 student={currentStudent}
@@ -1000,6 +993,7 @@ export default function CaptureSession() {
                 ibCustom={ibCustom}
                 setIbCustom={setIbCustom}
                 onToggleSubject={toggleSubject}
+                profileSubjects={studentSubjects}
               />
             </div>
           </section>
