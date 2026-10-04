@@ -76,7 +76,7 @@ Pemeriksa mandiri dengan **selektor yang sama** dengan guard: `.design-audit/tas
 | `.design-audit/g2-09-verify-metric.cjs` | 21/21 contoh sesuai (regex + allowlist) |
 | `node scripts/check-md-links.mjs` | 0 tautan rusak |
 | `npm run e2e:uiux` | **48 lulus · 8 skip · 0 gagal** (2026-10-04, setelah `f035451`) |
-| `npm test` | **58 berkas · 698 tes lulus** (2026-10-04) |
+| `npm test` | **58 berkas · 698 tes lulus** (potret 2026-10-04; jumlah hari ini: `npm run test:sandbox`) |
 
 ## 5. Riwayat
 

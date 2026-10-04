@@ -2,7 +2,7 @@
 
 > **STATUS:** `todo`
 > **PEMILIK:** agen AI
-> **DIBUAT:** 2026-09-25 · **BASELINE:** v1.75.1 (561 tes / 50 berkas)
+> **DIBUAT:** 2026-09-25 · **Portret dokumen:** v1.75.1 (angka mutakhir lewat `npm run measure`)
 > **PERKIRAAN:** 6 langkah × 25–40 menit
 > **INDUK:** [`TASK-03-blueprint-uiux.md`](TASK-03-blueprint-uiux.md) · **KONTRAK:** [`arsitektur/11`](../arsip/arsitektur/11-uiux-ai-cost-dan-privasi.md) §K3
 > **PRASYARAT:** [`TASK-04`](TASK-04-fondasi-visual.md) Langkah 1–3 (token & primitif) — atau kerjakan mandiri dengan kelas warna yang ada sekarang

@@ -34,7 +34,7 @@ Persetujuan meliputi implementasi lokal dan tes yang diperlukan. Ini tidak mengi
 
 ## 2. Fakta dasar dan batas audit
 
-Audit membaca kode kerja, termasuk perubahan pengguna yang belum di-commit. Pada audit awal, `npm.cmd test -- --reporter=dot` menghasilkan **33 file tes / 351 tes lulus**, dan `npm.cmd run build` berhasil. Hasil tersebut bukan bukti bahwa skenario kegagalan di dokumen ini sudah tertangani. Audit awal tidak menjalankan E2E maupun memverifikasi PWA di HP.
+Audit membaca kode kerja, termasuk perubahan pengguna yang belum di-commit. Pada audit awal (2026-09-05), `npm.cmd test -- --reporter=dot` menghasilkan **33 berkas uji / 351 tes lulus** — angka mutakhir: `npm run test:sandbox`, dan `npm.cmd run build` berhasil. Hasil tersebut bukan bukti bahwa skenario kegagalan di dokumen ini sudah tertangani. Audit awal tidak menjalankan E2E maupun memverifikasi PWA di HP.
 
 Lokasi proyek aplikasi adalah root repo (`les-ko-lui/`, folder yang memuat `package.json`). Semua path di dokumen ini relatif terhadap direktori tersebut, kecuali yang menunjuk dokumen arsitektur (`arsitektur/…`).
 
@@ -356,7 +356,7 @@ Laporan akhir AI pelaksana harus menyebut: fase selesai, file utama yang berubah
 
 Ketiga kriteria yang dulu tanpa bukti otomatis **sudah tertutup**. Dua di antaranya sudah punya tesnya
 sejak v1.79.1 (2026-09-30) — yang basi adalah catatan di dokumen ini, bukan kodenya. Ketiganya hijau pada
-gate 2026-10-04 (`npm run test:sandbox`: 58 berkas / 698 tes lulus).
+gate 2026-10-04 (`npm run test:sandbox` hijau, seluruh suite lulus).
 
 | # | Kriteria | Bukti | Status |
 |---|---|---|---|

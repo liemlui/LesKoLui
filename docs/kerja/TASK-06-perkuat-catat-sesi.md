@@ -2,7 +2,7 @@
 
 > **STATUS:** `todo`
 > **PEMILIK:** agen AI
-> **DIBUAT:** 2026-09-25 · **BASELINE:** v1.75.1 (561 tes / 50 berkas)
+> **DIBUAT:** 2026-09-25 · **Portret dokumen:** v1.75.1 (angka mutakhir lewat `npm run measure`)
 > **PERKIRAAN:** 6 langkah × 30–45 menit
 > **INDUK:** [`TASK-03-blueprint-uiux.md`](TASK-03-blueprint-uiux.md) · **PRASYARAT:** [`TASK-04`](TASK-04-fondasi-visual.md)
 > **PENTING:** [`TASK-01`](TASK-01-refactor-layar-besar.md) sudah memecah `CaptureSession.tsx`.

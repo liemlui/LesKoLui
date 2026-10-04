@@ -2,7 +2,7 @@
 
 > **STATUS:** `todo`
 > **PEMILIK:** agen AI
-> **DIBUAT:** 2026-09-25 · **BASELINE:** v1.75.1 (561 tes / 50 berkas)
+> **DIBUAT:** 2026-09-25 · **Portret dokumen:** v1.75.1 (angka mutakhir lewat `npm run measure`)
 > **PERKIRAAN:** 8 langkah × 30–50 menit
 > **INDUK:** [`TASK-03-blueprint-uiux.md`](TASK-03-blueprint-uiux.md) · **KONTRAK:** [`arsitektur/11`](../arsip/arsitektur/11-uiux-ai-cost-dan-privasi.md) §K1
 > **BACA DULU:** [`ATURAN-AI.md`](ATURAN-AI.md) — kontrak kerja, keputusan terkunci, daftar larangan

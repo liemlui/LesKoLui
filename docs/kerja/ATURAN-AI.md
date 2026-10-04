@@ -1,7 +1,8 @@
 # ATURAN-AI — Kontrak kerja rombak UI/UX (WAJIB dibaca sebelum menyentuh kode)
 
 > **STATUS:** `final` — keputusan pemilik dikunci 2026-09-25
-> **BASELINE:** v1.75.1 · **561 tes / 50 berkas** · Dexie v15
+> **BASELINE (potret saat berkas ini dibuat):** v1.75.1 · 561 tes / 50 berkas · Dexie v15 —
+> jumlah hari ini: `npm run test:sandbox` (lihat §5).
 > **PANJANG:** pendek sengaja. Rincian ada di berkas yang ditunjuk. **Jangan baca berkas lain
 > sebelum membaca ini.**
 

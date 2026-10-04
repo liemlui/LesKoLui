@@ -2,7 +2,7 @@
 
 > **STATUS:** `todo`
 > **PEMILIK:** agen AI
-> **DIBUAT:** 2026-09-25 · **BASELINE:** v1.75.1 (561 tes / 50 berkas)
+> **DIBUAT:** 2026-09-25 · **Portret dokumen:** v1.75.1 (angka mutakhir lewat `npm run measure`)
 > **PERKIRAAN:** 5 langkah × 25–40 menit
 > **INDUK:** [`TASK-03-blueprint-uiux.md`](TASK-03-blueprint-uiux.md)
 > **LAMPIRAN VISUAL:** [`docs/mockups/hari-2026-09-24.html`](../mockups/hari-2026-09-24.html) (5 layar)

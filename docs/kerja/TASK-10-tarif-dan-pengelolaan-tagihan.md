@@ -1,7 +1,7 @@
 # TASK-10 — Tarif sesi & pengelolaan tagihan (pembatalan, pemulihan, jatuh tempo)
 
 > **Sekilas** · Jenis: dokumen tugas (handoff + checklist) · Status: **SELESAI diimplementasikan (L0–L8)**
-> **Basis:** v1.76.0 · Dexie **v15** · **599 tes / 53 berkas** (sebelumnya 567/52) · HEAD `2e40b02` (`main`)
+> **Basis (potret saat ditulis):** v1.76.0 · skema Dexie v15 · HEAD `2e40b02`. **Angka tes/berkas tidak ditulis di sini** — pakai `npm run test:sandbox` (`npm run measure` untuk ringkasannya)
 > **Bukti verifikasi:** §9.4 + §10 · **Gate E2E tidak hijau karena sebab yang sudah ada sebelumnya**
 > (2 spec basi + seed dev) — detail di §10 baris terakhir, **bukan** regresi tugas ini.
 > **Untuk siapa:** AI pelaksana yang mengerjakan **satu langkah per putaran**.

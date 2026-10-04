@@ -2,7 +2,7 @@
 
 > **STATUS:** `in_progress` — 4 dari 6 langkah selesai
 > **PEMILIK:** agen AI mana pun (panduan ini ditulis untuk model kecil: ikuti urutan, jangan improvisasi)
-> **DIBUAT:** 2026-09-13 · **BASELINE:** v1.75.1 · 561 test lulus
+> **DIBUAT:** 2026-09-13 · **Portret dokumen:** potret awal v1.75.1 (`git log` untuk keadaan hari ini; angka mutakhir lewat `npm run measure`)
 > **PERKIRAAN:** 4–6 langkah × 20–40 menit
 
 ---

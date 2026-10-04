@@ -2,7 +2,7 @@
 
 > **STATUS:** `todo`
 > **PEMILIK:** agen AI + pemilik produk (keputusan ada di pemilik)
-> **DIBUAT:** 2026-09-25 · **BASELINE:** v1.75.1 (561 tes / 50 berkas)
+> **DIBUAT:** 2026-09-25 · **Portret dokumen:** v1.75.1 (angka mutakhir lewat `npm run measure`)
 > **PERKIRAAN:** 6 langkah × 15–30 menit (dokumen ini **tidak** mengubah kode fitur; ia menetapkan urutan)
 > **INDUK:** berkas ini sendiri · **BACA DULU:** [`ATURAN-AI.md`](ATURAN-AI.md) — kontrak kerja, keputusan terkunci, daftar larangan
 > **LAMPIRAN VISUAL:** [`docs/mockups/`](../mockups/) (tiga berkas HTML + `_shared.css`)

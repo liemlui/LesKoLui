@@ -7,12 +7,12 @@ diperbarui: 2026-10-05
 versi_app: v1.90.0
 test: tidak ditulis di sini — jalankan `npm run test:sandbox` (angka yang disalin ke dokumen selalu basi; dijaga `npm run check:docs`)
 baca_ini_kalau: kamu (manusia atau AI) perlu tahu dokumen mana yang harus dibuka
-jangan_baca_berurutan: pakai tabel §2
+baca_berurutan: tidak — pakai tabel §2
 ```
 
 > **Sekilas** · Jenis: **indeks dokumentasi (pintu masuk)** · Status: **aktif** · Diperbarui: 2026-10-04 (v1.90.0).
 > **Untuk siapa:** pemilik aplikasi (Ko Lui) dan agen AI yang merawat repo ini.
-> **Isi:** peta "mau X → buka Y" (§2) · aturan penamaan (§3) · **status pekerjaan (§4)** · riwayat rilis (§5) · aturan pemeliharaan (§6).
+> **Isi:** peta "mau X → buka Y" (§2) · persyaratan dokumentasi (§3) · aturan penamaan (§4) · **status pekerjaan (§5)** · riwayat rilis (§6) · aturan pemeliharaan (§7).
 > **Berkas lain tidak perlu dibaca berurutan.** Tabel §2 adalah router-nya.
 
 ---
@@ -36,6 +36,7 @@ jangan_baca_berurutan: pakai tabel §2
 |---|---|---|
 | **memulai pekerjaan apa pun** di rombak UI/UX | [`kerja/ATURAN-AI.md`](kerja/ATURAN-AI.md) | **pintu masuk wajib** — kontrak, keputusan terkunci, daftar larangan, bentuk laporan |
 | **lihat daftar pekerjaan & urutan eksekusi** | [`kerja/PEKERJAAN.md`](kerja/PEKERJAAN.md) | **satu-satunya** daftar pekerjaan (menggantikan `ROADMAP.md` + §4 halaman ini) |
+| tahu **aturan struktur dokumentasi** (angka, arsip, satu daftar pekerjaan) | [`07-PERSYARATAN-DOKUMENTASI.md`](07-PERSYARATAN-DOKUMENTASI.md) | kontrak dokumen; dijaga `npm run check:docs` |
 | **lihat ringkasan TASK-01…TASK-10** | [`kerja/CHEATSHEET.md`](kerja/CHEATSHEET.md) | 1 halaman per tugas |
 | tahu **cara menulis dokumen tugas** yang bisa dieksekusi model kecil | [`kerja/TASK-02-format-dokumen-tugas-ai.md`](kerja/TASK-02-format-dokumen-tugas-ai.md) | spesifikasi format + anti-pola |
 | mengerjakan **refactor layar besar** (6 langkah, belum selesai) | [`kerja/TASK-01-refactor-layar-besar.md`](kerja/TASK-01-refactor-layar-besar.md) | ikuti urutan §3, jangan improvisasi |
@@ -60,7 +61,17 @@ jangan_baca_berurutan: pakai tabel §2
 
 ---
 
-## 3. Aturan penamaan berkas
+## 3. Persyaratan dokumentasi (kontraknya di berkas sendiri)
+
+Struktur dokumentasi, larangan menyalin angka, aturan arsip, dan cara memeriksanya ada di
+[`07-PERSYARATAN-DOKUMENTASI.md`](07-PERSYARATAN-DOKUMENTASI.md) — **berlaku**, dengan ukuran dan
+cara verifikasi. Ringkasnya: angka mutakhir lewat perintah (`npm run measure` / `npm run test:sandbox`),
+satu daftar pekerjaan (`kerja/PEKERJAAN.md`), satu urutan baca, dan dokumen tak berlaku pindah ke `arsip/`
+dengan banner + satu baris inventaris.
+
+---
+
+## 4. Aturan penamaan berkas
 
 | Pola nama | Letak | Arti |
 |---|---|---|
@@ -77,19 +88,19 @@ jangan_baca_berurutan: pakai tabel §2
 
 ---
 
-## 4. Pekerjaan terbuka
+## 5. Pekerjaan terbuka
 
 > **Dipindah 2026-10-05.** Daftar pekerjaan **tidak lagi** ada di halaman ini — ia hidup di satu tempat:
 > [`kerja/PEKERJAAN.md`](kerja/PEKERJAAN.md) (gelombang, urutan eksekusi, pekerjaan tanpa dokumen tugas,
-> dan daftar periksa manual). Halaman ini memuat **router** (§2), riwayat rilis (§5), dan aturan
-> pemeliharaan (§6) saja.
+> dan daftar periksa manual). Halaman ini memuat **router** (§2), persyaratan (§3), riwayat rilis (§6), dan aturan
+> pemeliharaan (§7) saja.
 >
-> Isi §4 versi lama (termasuk tabel Q9–Q28 dan daftar periksa manual 2026-10-04) dibekukan di
+> Isi §5 versi lama (termasuk tabel Q9–Q28 dan daftar periksa manual 2026-10-04) dibekukan di
 > [`arsip/RIWAYAT-PEKERJAAN-2026-10.md`](arsip/RIWAYAT-PEKERJAAN-2026-10.md).
 
 ---
 
-## 5. Riwayat rilis (ringkas — jejak lengkap di `arsip/README.md`)
+## 6. Riwayat rilis (ringkas — jejak lengkap di `arsip/README.md`)
 
 | Tanggal | Peristiwa | Versi |
 |---|---|---|
@@ -138,23 +149,39 @@ jangan_baca_berurutan: pakai tabel §2
 
 ---
 
-## 6. Aturan pemeliharaan (supaya tidak berantakan lagi)
+## 7. Aturan pemeliharaan (supaya tidak berantakan lagi)
 
-### 6.1 Untuk manusia
+### 7.1 Untuk manusia
 
-1. **Dokumen selesai → pindahkan ke `docs/arsip/`** dan tambahkan satu baris di [`arsip/README.md`](arsip/README.md): tanggal · target versi · status akhir · hasil.
-2. **Nama berkas di `arsip/` tidak diganti.** Isi arsip dibekukan; yang boleh berubah hanya **rujukan path** agar tidak menunjuk lokasi lama.
-3. **Dokumen dengan pekerjaan terbuka tetap di `docs/` atau `docs/kerja/`** dan wajib punya blok "Sekilas" di baris atas.
-4. **Jangan menaruh dokumentasi penting di luar repo.** Folder induk (`Private Tutor/`) tidak dikelola git.
-5. **Artefak tidak masuk repo**: `dist/`, `test-results/`, `typecheck-output.txt`, ekspor `leskolui-data-*.csv` sudah diabaikan `.gitignore`.
+1. **Dokumen selesai/usang → pindahkan ke `docs/arsip/`** dan tambahkan **satu baris** di
+   [`arsip/README.md`](arsip/README.md): tanggal · status akhir · kenapa masih berguna.
+   Beri **banner** di baris atas berkasnya: kapan diarsipkan, kenapa, ke mana penggantinya.
+2. **Nama berkas di `arsip/` tidak diganti.** Isi arsip dibekukan; yang boleh berubah hanya **rujukan
+   path** agar tidak menunjuk lokasi lama. **Angka di arsip tidak pernah diperbarui.**
+3. **Pekerjaan terbuka tidak boleh ikut terarsip.** Kalau dokumennya diarsipkan, butir yang belum
+   selesai dipindah ke [`kerja/PEKERJAAN.md`](kerja/PEKERJAAN.md) pada putaran yang sama.
+4. **Dokumen aktif wajib punya blok "Sekilas"** di baris atas (jenis · status · untuk siapa · baca kalau).
+5. **Jangan menaruh dokumentasi penting di luar repo.** Folder induk (`Private Tutor/`) tidak dikelola git.
+6. **Artefak tidak masuk repo**: `dist/`, `test-results/`, `typecheck-output.txt`, ekspor `leskolui-data-*.csv` sudah diabaikan `.gitignore`.
 
-### 6.2 Untuk agen AI (dan manusia yang menulis untuk AI)
+### 7.2 Untuk agen AI (dan manusia yang menulis untuk AI)
 
-1. **Sebelum mengerjakan apa pun di rombak UI/UX, baca [`kerja/ATURAN-AI.md`](kerja/ATURAN-AI.md).** Berkas itu memuat keputusan yang sudah dikunci (B1–B4), daftar berkas yang **dilarang** disentuh, perintah verifikasi, dan bentuk laporan yang diminta. Ia sengaja pendek supaya hemat token. Urutan menang kalau ada konflik: `ATURAN-AI.md` → `arsitektur/11` → `TASK-XX` → lainnya.
-2. **Dokumen tugas masuk `docs/kerja/`** dengan format di [`kerja/TASK-02-format-dokumen-tugas-ai.md`](kerja/TASK-02-format-dokumen-tugas-ai.md). Dokumen tugas **wajib** memuat: jangkar kode (bukan hanya nomor baris), kontrak prop/fungsi yang bisa disalin, perintah verifikasi, tabel larangan, dan bagian "kalau macet".
-3. **Jangan membaca berkas >500 baris secara utuh.** Empat berkas terbesar (terukur 2026-10-04): `MonthlyReport.tsx` (2.351), `CaptureSession.tsx` (**1.901**, turun dari 2.155 lewat refactor G3-01), `Settings.tsx` (1.308), `StudentDetail.tsx` (1.083). Pakai jangkar teks, baca ±40 baris di sekitarnya.
-4. **Satu langkah per putaran, lalu berhenti.** Jangan melanjutkan ke langkah berikutnya tanpa verifikasi.
-5. **Jangan menaruh daftar pekerjaan di `README.md` akar repo** — dulu ada `TODO.md` di akar dan tidak pernah terbaca. Daftar pekerjaan hidup di §4 halaman ini.
-6. **Setelah mengubah perilaku:** tambahkan entri di `src/lib/version.ts` (`CHANGELOG`) dan satu baris di §5 halaman ini.
-7. **Kalau menemukan fakta yang bertentangan dengan dokumen:** perbaiki dokumennya di putaran yang sama, atau catat di `docs/kerja/TASK-*.md` §8. Jangan biarkan dua dokumen saling bertentangan.
-8. **Versi di `docs/arsitektur/` tidak selalu terbaru.** Seri itu menjelaskan **cara** aplikasi dibangun, bukan keadaan hari ini. Untuk keadaan hari ini: kode + `src/lib/version.ts` + §5 halaman ini.
+1. **Sebelum mengerjakan apa pun: [`kerja/ATURAN-AI.md`](kerja/ATURAN-AI.md).** Ia memuat keputusan
+   terkunci, berkas yang **dilarang** disentuh (§2.1), perintah verifikasi (§6, termasuk §6.1 lingkungan
+   sandbox), gate 4 tier (§6.2), dan bentuk laporan (§8). Urutan menang kalau ada konflik:
+   `ATURAN-AI.md` → `06-ARSITEKTUR-KODE.md` → `TASK-XX` → lainnya.
+2. **Daftar pekerjaan hanya satu:** [`kerja/PEKERJAAN.md`](kerja/PEKERJAAN.md). Jangan menaruh daftar
+   pekerjaan di `README.md` (akar repo maupun halaman ini) — dulu ada `TODO.md` di akar dan tidak pernah terbaca.
+3. **Dokumen tugas masuk `docs/kerja/`** dengan format di
+   [`kerja/TASK-02-format-dokumen-tugas-ai.md`](kerja/TASK-02-format-dokumen-tugas-ai.md).
+4. **Angka mutakhir tidak ditulis di dokumen.** Versi = `package.json`; jumlah tes = `npm run test:sandbox`;
+   baris berkas = `npm run measure`. Kalau sebuah angka memang harus muncul, tulis beserta tanggal+versinya.
+   Dijaga `npm run check:docs`.
+5. **Jangan membaca berkas >500 baris secara utuh.** Pakai jangkar teks, baca ±40 baris di sekitarnya;
+   daftar berkasnya lewat `npm run measure`.
+6. **Satu langkah per putaran, lalu berhenti.** Jangan melanjutkan ke langkah berikutnya tanpa verifikasi.
+7. **Setelah mengubah perilaku:** tambahkan entri di `src/lib/version.ts` (`CHANGELOG`) dan satu baris di §6 halaman ini.
+8. **Kalau menemukan fakta yang bertentangan dengan dokumen:** perbaiki dokumennya di putaran yang sama,
+   atau catat di `docs/kerja/TASK-*.md` §8. Jangan biarkan dua dokumen saling bertentangan.
+9. **Seri `arsitektur/` sudah diarsipkan** (`arsip/arsitektur/`) — ia potret v1.70–v1.75. Untuk keadaan
+   hari ini: kode + `package.json` + `src/lib/version.ts` + §6 halaman ini.
