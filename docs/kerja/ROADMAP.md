@@ -1,7 +1,7 @@
 # ROADMAP — Gelombang 2 & 3 (22 tugas)
 
-> **Status:** aktif · Diperbarui: 2026-10-04 · Baseline: **v1.89.0** (gate v1.89.0: `eslint` ✓ · **698/698 tes** ✓ · `build` ✓ · `e2e:uiux` **48 lulus / 8 skip / 0 gagal** ✓ · `e2e` sisa merah = flake beban, terukur)
-> **GATE SUDAH DIJALANKAN 2026-10-04** (keputusan pemilik): `npx eslint .` ✓ · `npm test` ✓ **58 berkas / 698 tes lulus** (`moneyGate.test.ts` 7/7 — penjaga G2-04 kini **terbukti**) · `npm run build` ✓ · **`npm run e2e` ✗ — 68 lulus / 12 gagal / 4 skip, semuanya di jalur laporan** (atribusi belum terbukti; `src/template/**` tak tersentuh sejak v1.79.0) · **`npm run e2e:uiux` ✗ — 42 lulus / 6 gagal / 8 skip**, gagalnya = **guard emoji TASK-11** (Beranda 2 · Murid — daftar 11 · Detail murid 1; identik chromium & mobile) — **keenamnya sudah ditutup `f035451`** sehingga guard kini **48 lulus / 8 skip / 0 gagal**; 8 skip = 4 `test.fixme` Q24. Rincian, bukti, dan langkah diagnostik berikutnya: `.design-audit/g2-gate-2026-10-04.md`
+> **Status:** aktif · Diperbarui: 2026-10-04 · Baseline: **v1.89.2** (gate v1.89.2: `eslint` ✓ · **698/698 tes** ✓ · `build` ✓ · `e2e:uiux` **56 lulus / 0 skip / 0 gagal** ✓ — fixme Q24 dihapus setelah diukur · `e2e` sisa merah = flake beban, terukur)
+> **GATE SUDAH DIJALANKAN 2026-10-04** (keputusan pemilik): `npx eslint .` ✓ · `npm test` ✓ **58 berkas / 698 tes lulus** (`moneyGate.test.ts` 7/7 — penjaga G2-04 kini **terbukti**) · `npm run build` ✓ · **`npm run e2e` ✗ — 68 lulus / 12 gagal / 4 skip, semuanya di jalur laporan** (atribusi belum terbukti; `src/template/**` tak tersentuh sejak v1.79.0) · **`npm run e2e:uiux` ✗ — 42 lulus / 6 gagal / 8 skip**, gagalnya = **guard emoji TASK-11** (Beranda 2 · Murid — daftar 11 · Detail murid 1; identik chromium & mobile) — **keenamnya sudah ditutup `f035451`** sehingga guard kini **48 lulus / 8 skip / 0 gagal** pada saat itu — **8 skip itu residual Q24**, dan pada 2026-10-04 fixme-nya **dihapus** setelah diukur (guard sekarang **56 lulus / 0 skip / 0 gagal**). Rincian, bukti, dan langkah diagnostik berikutnya: `.design-audit/g2-gate-2026-10-04.md`
 > **Masih `test.fixme` di guard yang sama (4):** 3 pemeriksaan kontras (Murid · Detail murid · Keuangan) + 1 ukuran (`detail-murid`). Penghapusannya (Q24) menuntut `npm run e2e:uiux` benar-benar dijalankan — **bukan** menaikkan ambang.
 > **Cara pakai:** baca ATURAN-AI §0. Tentukan tier SEBELUM mulai. Satu putaran = satu tugas (kecuali batch 📦).
 > Paralelisasi: hanya sah kalau tidak ada chat lain yang menyentuh berkas itu. Karena satu tugas bisa memegang puluhan berkas src/**, aturan default = SERIAL. Paralel butuh git worktree terpisah.
@@ -45,7 +45,7 @@
 
 | ID | Judul | Tier | Dep | Berkas inti | Est | Status |
 |---|---|---|---|---|---|---|
-| G3-01 | Catat Sesi (refactor + C) | T3 | G2-01, G2-06 | CaptureSession.tsx, captureSession/* | L | ⬜ |
+| G3-01 | Catat Sesi (refactor + C) | T3 | G2-01, G2-06 | CaptureSession.tsx, captureSession/* | L | ⬜ — **＋ permintaan pemilik 2026-10-04:** alur dibuat **lebih cepat & sederhana** dengan **mengefisienkan langkah & pemilihan** (*bukan* mengisi otomatis dari sesi lalu, dan **bukan** mengurangi jumlah langkah — `STEP_META` tetap 6) |
 | G3-02 | Keuangan (refactor + K) | T3 | G2-04 | TagihanTab.tsx, useInvoiceFilters.ts | L | ⬜ |
 | G3-03 | Redesign pipeline | T2 | G3-02 | FinancePipelineBoard.tsx, RingkasanTab.tsx | L | ⬜ |
 | G3-04 | Kontrak AI (TASK-07) | T3 | G1-01, G2-01 | useAiAction, AiCostModal, Settings | L | ⬜ |
