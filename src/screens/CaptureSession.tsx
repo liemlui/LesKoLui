@@ -867,7 +867,7 @@ export default function CaptureSession() {
       </div>
 
       {/* ── STEP HEADER CARD ── */}
-      <div className="mx-4 mb-4 rounded-2xl border border-[var(--border)] bg-gradient-to-r from-gray-50 to-white px-4 py-3 flex items-center gap-3 shadow-sm">
+      <div className="mx-4 mb-4 rounded-2xl border border-[var(--border)] bg-gradient-to-r from-[var(--surface)] to-[var(--surface-strong)] px-4 py-3 flex items-center gap-3 shadow-sm">
         <div className="w-10 h-10 rounded-xl bg-[var(--brand-tint-strong)] text-[var(--ink-brand)] flex items-center justify-center flex-shrink-0">
           <stepMeta.Icon size={20} />
         </div>

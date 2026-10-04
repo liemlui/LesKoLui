@@ -48,7 +48,7 @@ export default function ChangelogModal() {
     <div role="dialog" aria-modal="true" aria-label="Catatan perubahan" className={`fixed inset-0 ${Z.dialog} bg-[var(--scrim)]/50 flex items-end sm:items-center justify-center p-4`}>
       <div className="bg-[var(--surface-strong)] rounded-t-2xl sm:rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-slide-up">
         {/* Header */}
-        <div className="bg-gradient-to-br from-blue-600 to-indigo-600 px-5 pt-6 pb-4 text-[var(--on-strong)]">
+        <div className="bg-gradient-to-br from-[var(--brand-solid)] to-[var(--accent-solid)] px-5 pt-6 pb-4 text-[var(--on-strong)]">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-2xl">✨</span>
             <p className="text-xs font-semibold tracking-wide opacity-80">{entry.date}</p>
