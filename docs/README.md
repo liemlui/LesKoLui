@@ -183,20 +183,42 @@ Perlu mata manusia karena gate otomatis tidak menilai **bentuk ikon**, **keterba
 
 #### 4.4.1 Hasil tinjauan visual pemilik — 2026-10-04
 
+Penomoran mengikuti [`kerja/CHECKLIST-VISUAL-2026-10-04.md`](kerja/CHECKLIST-VISUAL-2026-10-04.md).
+
 | Item | Hasil |
 |---|---|
-| **A1** ikon Pengaturan | Bentuk "garis penyesuaian" **diganti** → diminta **bergerigi**; ikon kini cog (cincin + 8 gigi + lubang tengah) di **v1.89.1** |
-| **A6** rona chip Kondisi les & badge asal tagihan | ✅ "jelas kok" — pergeseran rona akibat Q42/Q43 opsi B diterima |
-| **E12/E13** laporan catatan panjang & ekspor | ✅ "sudah oke" → **menegaskan §4.2 #28**: yang basi memang spec-nya (menguji kotak 3:4 yang dihapus 2026-10-01), bukan paginasi aplikasi |
-| **A2–A5** (ikon dua orang, lonceng/struk, orang tua, pensil) | belum dilaporkan |
-| **B/C/D** (emoji afektif, label pembaca layar, label tombol) | belum dilaporkan |
-| **F** Chrome Android → menutup `G2-05` | masih **terblokir** (butuh HP) |
-| **G** §4.3 (12 langkah Catat Sesi) → menutup §4.2 #11 | belum dijalankan |
+| **A1** ikon Pengaturan | ✅ "sudah oke" (setelah diganti gerigi di v1.89.1) |
+| **A2** kartu "Murid aktif" | ✅ "terbaca baik" |
+| **A3** kartu lain konsisten | ✅ "ok kok" |
+| **B1** badge & ikon baris murid | ✅ "rapi dan oke" |
+| **B2** banner "butuh perhatian" | ✅ "aman" |
+| **C1** judul "Catatan Belajar" | ✅ "aman" |
+| **C2** chip Kondisi les | ✅ "aman" |
+| **C3** chip suasana hati | ✅ "aman" |
+| **D1** chip langkah 3 Catat Sesi | ✅ "aman" |
+| **D2** tombol "Simpan Sesi" | ✅ "aman" |
+| **D3** tombol "Selesai & Lihat Profil" | ✅ "oke kok" |
+| **D4** kolom CUSTOM (langkah 2) | ✅ "terlihat baik" |
+| **E1** badge asal tagihan & pil status | ✅ "aman" |
+| **E2** kolom PIN Keuangan | ✅ "aman" · catatan pemilik: **Enter kini juga bisa submit** (memang sudah ada sejak K-13; tinggal terpakai) |
+| **F1–F3** label pembaca layar | ✅ "aman" |
+| **G1** catatan panjang tidak terpotong | ✅ "oke kok" — **menegaskan §4.2 #28**: yang basi memang spec-nya, bukan paginasi |
+| **G2** daftar 26 chip layout | ✅ "aman, tidak terpotong" |
+| **G3** ekspor JPG/PNG/PDF | ❌ **BUG DITEMUKAN** → **diperbaiki di v1.89.2** (lihat §5) |
+| **G4** modal changelog | ✅ "aman" |
+| **H1–H5** Chrome Android | ✅ "aman semua" → **menutup `G2-05`** (verifikasi manual yang sejak awal terblokir karena butuh HP) |
+| **I** alur Catat Sesi (§4.3) | Permintaan pemilik: **"kalau bisa malah dibuat lebih cepat dan sederhana"** → butuh keputusan, karena berbenturan dengan aturan terkunci "6 langkah tetap 6" (`ATURAN-AI` §2.2 · B1/B3/Q2). §4.2 #11 **tetap terbuka** sampai 12 langkah §4.3 dikonfirmasi |
+
+**Cacat yang ditemukan pemeriksaan ini (G3), apa adanya:** ekspor JPG/PNG memicu unduhan berurutan sendiri,
+dan peramban hanya mengizinkan satu unduhan otomatis per gestur → **hanya berkas terakhir yang tersimpan**
+(PDF aman karena satu berkas). Perbaikannya: berkas pertama diunduh sekarang, sisanya ditawarkan sebagai
+tombol **"Unduh halaman 2"**, dst. — tiap ketukan satu gestur sah.
 
 ## 5. Riwayat rilis (ringkas — jejak lengkap di `arsip/README.md`)
 
 | Tanggal | Peristiwa | Versi |
 |---|---|---|
+| 2026-10-04 | **Ekspor JPG/PNG multi-halaman diperbaiki** — cacat ditemukan pada pemeriksaan visual: aplikasi memicu unduhan berurutan sendiri dan peramban hanya mengizinkan satu unduhan otomatis per gestur, sehingga hanya berkas terakhir tersimpan. Kini berkas pertama tersimpan langsung dan halaman sisanya menjadi tombol **"Unduh halaman N"** (satu ketukan = satu berkas); di HP seluruh halaman dikirim lewat satu kali Web Share. Sekaligus dicatat: **pemeriksaan visual pemilik atas 14 titik selesai, semuanya aman**, dan **Chrome Android aman** → menutup `G2-05`. Gate: `tsc` ✓ · `eslint` ✓ · 698/698 tes ✓ · `build` ✓ · spec ekspor chromium ✓ | v1.89.2 |
 | 2026-10-04 | **Tinjauan visual pemilik** (hasil di §4.4.1): rona chip Kondisi les & badge asal tagihan **jelas**, catatan sesi panjang di laporan **tidak terpotong** (menegaskan §4.2 #28 — yang basi spec-nya, bukan paginasi), dan ikon Pengaturan diminta **bergerigi** → ikon diganti cog (cincin + 8 gigi + lubang tengah). Gate: `tsc` ✓ · `eslint` ✓ · 698/698 tes ✓ · build ✓ | v1.89.1 |
 | 2026-10-04 | **Penutupan Gelombang 2 + pemberesan hutangnya**: (a) **kebijakan emoji dituntaskan** — 6 emoji struktural yang masih lolos (ikon Pengaturan di Beranda, “Murid aktif”, lonceng badge follow-up, ikon kartu badge tagihan, ikon orang tua, pensil judul “Catatan Belajar”) diganti ikon SVG; guard `e2e:uiux` **dijalankan pertama kali** dan menuntut 0 → **48 lulus / 8 skip / 0 gagal**; (b) **Q42/Q43 opsi B** — warna chip Kondisi les, badge asal tagihan, dan pil status bayar dipindah dari berkas data §2.1 ke peta **token** `src/lib/toneStyles.ts` (ketiga berkas dilindungi tidak disentuh; `AGE_BUCKET_CLASS` 0 konsumen); (c) **Q19** — tiga label form terasosiasi (`aria-label` PIN Keuangan, “Ketik mapel lain”, grup “Model”); (d) **Q44/A17 + Q45/A18** dikunci (cakupan §6 K3 dipersempit ke luar `payments/**`; 44 px = kontrol utama, chip 24–36 px diterima); (e) **Q23/A19** — letak resmi spec guard = `e2e-uiux/`; (f) **3 uji laporan basi dibereskan** (asersi kotak 3:4 dihapus karena rasio itu dibatalkan 2026-10-01; race seed diperbaiki; generator audit jadi opt-in) dan **terbukti bukan regresi** lewat bisect 4 commit (merah bahkan di v1.77.0 yang menulis spec itu); (g) **§4.2 #9 ditutup** — 3 kriteria ketahanan data ternyata sudah berujian sejak v1.79.1 (React Testing Library tidak diperlukan); (h) sisa merah `npm run e2e` = **flake beban** (timeout 30 dtk), bukan regresi — `finance` lulus sendirian. Gate: `tsc` ✓ · `eslint` ✓ · **698/698 tes** ✓ · build ✓ · `e2e:uiux` **48/8/0** | v1.89.0 |
 | 2026-10-03 | **Sisa Gelombang 2 dikerjakan (5 tugas + 1 sebagian)**: (a) **G2-04 satu pintu uang** — `useMoneyVisible()` (satu status tingkat modul) + `<MaskedMoney/>`; 6 titik kebocoran ditutup (tarif & biaya sesi, total laporan, tautan WA), Beranda kehilangan seluruh akses uang, dan gerbang `/payments` kini **berbagi** status buka-kunci dengan layar lain + tombol `Kunci`; (b) **G2-08 Beranda non-uang** — legenda warna kalender, `aria-label` per tanggal, sel 64→76 px, chip 11 px maks 2 + “+N”, inbox “Perlu Perhatian” persisten di `localStorage`, tombol simpan jadwal menyebut jumlah bentrok, ringkasan minggu **digabung** ke satu blok “Hari Ini”; (c) **G2-06 tap target** — ikon 44 px, chip 32–36 px, `Toggle` 26→32 px rel dengan area 44 px, tautan WA 20→44 px, “Hapus” murid dipisah dari “Nonaktifkan”; (d) **G2-07 DayView** — kerapatan 27/54/97 + tombol `Muat sehari penuh` (18 jam), `PX_PER_HR` dihapus total, batas bawah blok 22 px; (e) **G2-10 jalur galat tunggal** — `useSettingsQuery()` + `<SettingsLoadError/>`, probe/watchdog G1-07 pindah dari `Settings.tsx` ke hook, **6 layar** lain mendapat keadaan gagal yang sama (`role=alert` + “Coba lagi”); (f) **G2-09 + kebijakan TASK-11** — emoji **literal** disapu sampai **0**, termasuk 3 emoji di dalam tombol-tautan WhatsApp; **tipe sesi** (kelompok struktural) pindah ke ikon SVG (Book · Clipboard · Wrench · Lightbulb · Refresh · Star); **13 tombol** kosakata afektif (mood, situasi, indikator perilaku, tag respons, level sesi) ditandai `data-emoji-vocab="affect"`; guard kini **menuntut 0** emoji di kontrol/heading di luar penanda itu (**bukan** lagi `test.fixme`). Pemeriksa mandiri dengan selektor yang sama → **0 pelanggaran**. **Gate yang dijalankan: `npx tsc -b` saja** (keputusan pemilik: tanpa lint/tes/e2e) — lihat `.design-audit/g2-sisa-LAPORAN.md` | v1.88.0 |

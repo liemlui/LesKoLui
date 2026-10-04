@@ -5,6 +5,11 @@
 > bentuk ikon, rasa, dan keterbacaan. Empat belas titik di bawah ini butuh mata manusia.
 > **Cara lapor:** sebut **nomor bagian** + apa yang terlihat. Contoh: `A2: ikon dua orang turun ke baris
 > kedua di lebar 360 px`. Tidak perlu rapi — nomor + gejala sudah cukup.
+>
+> **HASIL pemeriksaan 2026-10-04 (pemilik):** seluruh titik **aman** kecuali **G3** — ekspor JPG/PNG
+> multi-halaman hanya menyimpan berkas terakhir → **diperbaiki di v1.89.2** (berkas pertama tersimpan
+> langsung, sisanya jadi tombol "Unduh halaman N"). Ringkasan lengkap: `docs/README.md` §4.4.1.
+> Pemeriksaan **H (Chrome Android)** menutup `G2-05`.
 
 ---
 

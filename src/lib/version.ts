@@ -11,6 +11,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.89.2",
+    date: "2026-10-04",
+    title: "Ekspor JPG/PNG multi-halaman akhirnya menyimpan semua halaman",
+    items: [
+      "Ketika laporan lebih dari satu halaman, menekan **JPG** atau **PNG** dulu membuat aplikasi memicu unduhan berurutan sendiri — dan peramban hanya mengizinkan **satu** unduhan otomatis per ketukan, sehingga hanya berkas terakhir yang tersimpan (ditemukan saat pemeriksaan visual). Sekarang: berkas **pertama** langsung tersimpan, lalu halaman sisanya muncul sebagai tombol **“Unduh halaman 2”, “Unduh halaman 3”, …** di bawah tombol ekspor. Satu ketukan = satu berkas, jadi tidak ada halaman yang hilang. **PDF tidak terpengaruh** karena keluarannya satu berkas.",
+      "Di HP, kotak **Bagikan** (Web Share) dipakai lebih dulu dan kini juga untuk banyak berkas sekaligus — Android/iOS bisa mengirim seluruh halaman dalam satu kali bagikan, tanpa unduhan berurutan sama sekali.",
+      "Pemeriksaan visual pemilik atas rilis sebelumnya selesai dan hasilnya dicatat: **seluruh 14 titik aman** — ikon, badge, chip warna, label, laporan (termasuk catatan panjang yang tidak terpotong), dan **Chrome Android**. Pemeriksaan Android itu menutup pekerjaan `G2-05` yang sejak awal terblokir karena butuh HP.",
+    ],
+  },
+  {
     version: "v1.89.1",
     date: "2026-10-04",
     title: "Ikon Pengaturan kembali bergerigi, sesuai hasil pemeriksaanmu",

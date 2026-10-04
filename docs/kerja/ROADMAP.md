@@ -19,10 +19,10 @@
 | Ukuran | Nilai |
 |---|---|
 | Total tugas | 22 |
-| Selesai | 11 (G2-00, G2-00b, G2-01, G2-02, G2-03, G2-04, G2-06, G2-07, G2-08, G2-09, G2-10) |
-| Manual | 1 (G2-05 — butuh HP Android; tanpa perubahan kode) |
+| Selesai | 12 (G2-00, G2-00b, G2-01, G2-02, G2-03, G2-04, G2-05, G2-06, G2-07, G2-08, G2-09, G2-10) |
+| Manual | 0 — G2-05 **sudah diverifikasi pemilik** di Chrome Android (2026-10-04) |
 | Belum | 10 (G3-01 … G3-10) |
-| Progress | ~50% hitung tugas (11 dari 22) · ~41% bobot usaha (S=1/M=2/L=4) |
+| Progress | ~55% hitung tugas (12 dari 22) · bobot usaha naik **+1 S** (G2-05) dari hitungan sebelumnya |
 
 ## Gelombang 2
 
@@ -34,7 +34,7 @@
 | G2-02 | sapu kelas warna → token semantik | T2 | G2-01 | src/**/*.tsx, src/index.css | L | ✅ v1.87.0 |
 | G2-03 | kunci light-only permanen | T1 | G2-01 | index.css (komentar), playwright.config | S | ✅ v1.87.0 |
 | G2-04 | satu pintu uang (TASK-08) | T2 | G2-01 | useMoneyVisible, MaskedMoney, 5 layar | L | ✅ v1.88.0 — cakupan §6 dipersempit: `src/screens/payments/**` dikecualikan (Q44/A17); residual **109 baris** didaftarkan di `ATURAN-AI` §5 |
-| G2-05 | verifikasi input Android (manual) | T1 | G2-01, owner | tidak ada | S | ⛔ manual (butuh HP Android) |
+| G2-05 | verifikasi input Android (manual) | T1 | G2-01, owner | tidak ada | S | ✅ **selesai 2026-10-04** — pemilik memeriksa di Chrome Android: ketuk kolom isian tidak memicu zoom, kolom PIN (papan ketik angka, 6 digit) nyaman, target sentuh ikon & chip aman, bottom-nav tidak menutupi aksi. Butir H1–H5 di [`CHECKLIST-VISUAL-2026-10-04.md`](CHECKLIST-VISUAL-2026-10-04.md) |
 | G2-06 | tap target ≥44px | T2 | G2-01 | 9 berkas layar | M | ✅ v1.88.0 — DoD ditegaskan: **44 px = kontrol utama**, chip/sekunder **24–36 px diterima** (Q45/A18); residual **52 kontrol** (proksi statis) tercatat di `ATURAN-AI` §5 |
 | G2-07 | DayView kerapatan 27/54/97 | T1 | G2-01 | home/DayView.tsx | M | ✅ v1.88.0 |
 | G2-08 | Beranda non-uang | T2 | G2-04 | home/*.tsx | M | ✅ v1.88.0 |
