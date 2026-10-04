@@ -23,6 +23,38 @@ async function closeChangelog(page: Page) {
 
 const REPRESENTATIVE_LAYOUTS = ["Cards", "Infografis Expert", "Analitik"];
 
+/**
+ * Buka panel tema & layout, tampilkan daftar chip layout, lalu klik chip yang
+ * diminta.
+ *
+ * Panel `<details>` ini dikontrol state React (`open={designOpen}`), jadi klik
+ * pada summary bisa kalah balapan dengan render ulang — dan daftar chip-nya
+ * sendiri tersembunyi di balik tombol "Layout" (`showLayoutList`). Karena itu
+ * pemilihan diulang sambil **memeriksa keadaan sebenarnya** (atribut `open` dan
+ * visibilitas tombol), bukan menebak jumlah klik. Versi yang menebak 4 klik
+ * membuat spec ini merah acak — layout yang gagal berubah tiap run.
+ */
+async function pickLayout(page: Page, layoutName: string) {
+  const details = page.locator("details").filter({ hasText: "🎨 Tema:" });
+  const summary = details.locator("summary").first();
+  const toggle = page.getByRole("button", { name: "Layout", exact: true });
+  const chip = page.getByRole("button", { name: layoutName, exact: true });
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    if (await chip.isVisible().catch(() => false)) {
+      await chip.click();
+      return;
+    }
+    const open = await details.evaluate((el) => (el as HTMLDetailsElement).open).catch(() => false);
+    if (!open) await summary.click({ timeout: 5_000 }).catch(() => { /* coba putaran berikutnya */ });
+    else if (await toggle.isVisible().catch(() => false)) {
+      await toggle.click({ timeout: 5_000 }).catch(() => { /* coba putaran berikutnya */ });
+    }
+    await page.waitForTimeout(250);
+  }
+  throw new Error(`chip layout "${layoutName}" tidak muncul setelah panel tema & layout dibuka`);
+}
+
 for (const layoutName of REPRESENTATIVE_LAYOUTS) {
   test(`export JPG+PNG+PDF pada layout "${layoutName}" tanpa error (3:4 & auto)`, async ({ page }) => {
     test.setTimeout(300_000); // 9x rasterisasi + font embed butuh waktu
@@ -58,25 +90,10 @@ for (const layoutName of REPRESENTATIVE_LAYOUTS) {
     await expect(page.locator("[data-report-page]").first()).toBeVisible({ timeout: 10_000 });
 
     // ── Ganti layout via chip di toolbar desain ─────────────────────────
-    // Sejak pemilih layout menjadi daftar chip di balik tombol "Layout"
-    // (`showLayoutList`), chip TIDAK terlihat sebelum dua langkah ini:
-    // (1) buka `<details>` "Ubah tema & layout", (2) klik tombol "Layout".
-    const designDetails = page.locator("details").filter({ hasText: "🎨 Tema:" });
-    const layoutToggle = page.getByRole("button", { name: "Layout", exact: true });
-    const layoutChip = page.getByRole("button", { name: layoutName, exact: true });
-    if (!(await layoutToggle.isVisible().catch(() => false))) {
-      await designDetails.locator("summary").click();
-    }
-    await expect(layoutToggle).toBeVisible({ timeout: 10_000 });
-    for (let attempt = 0; attempt < 4 && !(await layoutChip.isVisible().catch(() => false)); attempt++) {
-      await layoutToggle.click();
-      await page.waitForTimeout(200);
-    }
-    expect(
-      await layoutChip.isVisible().catch(() => false),
-      `chip layout "${layoutName}" tidak muncul setelah daftar layout dibuka`,
-    ).toBe(true);
-    await layoutChip.click();
+    // Chip layout hanya terlihat setelah panel `<details>` terbuka DAN tombol
+    // "Layout" ditekan — `pickLayout` menangani keduanya dengan memeriksa
+    // keadaan sebenarnya (lihat catatan di helper itu).
+    await pickLayout(page, layoutName);
     await expect(page.getByText("Layout diganti!")).toBeVisible({ timeout: 15_000 });
     await expect(page.locator("[data-report-export-root] [data-report-page]").first()).toBeVisible({ timeout: 15_000 });
 
