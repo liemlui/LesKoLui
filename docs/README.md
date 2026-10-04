@@ -147,7 +147,9 @@ Satu-satunya cara menutup pekerjaan §4.2 #4. Jalankan dengan data dev (fungsi `
 
 ### 4.4 Daftar periksa manual — hasil kerja 2026-10-04 (±15 menit)
 
-Perlu mata manusia karena gate otomatis tidak menilai **bentuk ikon**, **keterbacaan**, dan **rasa**. Prasyarat: `npm run dev` (atau build produksi) dengan data dev (`seedDummy` terisi otomatis). **Belum ada yang di-deploy** — `main` masih 29 commit di depan `origin/main`, jadi periksa di lokal/LAN dulu.
+Perlu mata manusia karena gate otomatis tidak menilai **bentuk ikon**, **keterbacaan**, dan **rasa**. Prasyarat: `npm run dev` (atau build produksi) dengan data dev (`seedDummy` terisi otomatis, PIN Keuangan data contoh = `123456`). **Rilis v1.89.1 sudah di `main`** (Vercel membangun dari sana) — pastikan versi yang Anda periksa benar dengan melihat entri **v1.89.1** di modal "Catatan perubahan" saat aplikasi dibuka.
+
+> **Versi RINCI per bagian** (lokasi persis, apa yang benar, tanda salah, cara lapor): [`kerja/CHECKLIST-VISUAL-2026-10-04.md`](kerja/CHECKLIST-VISUAL-2026-10-04.md) — 14 titik, termasuk pembaca layar (TalkBack) dan bagian yang sengaja tidak berubah.
 
 **A. Ikon baru (paling perlu — bentuknya dirancang tangan, belum pernah dilihat mata)**
 1. **Beranda** → tombol kanan atas (44×44 px): kini ikon **garis penyesuaian (sliders)**, bukan gerigi ⚙️. Apakah terbaca sebagai "Pengaturan"? Kalau Anda mau gerigi, saya ganti.
