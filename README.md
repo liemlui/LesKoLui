@@ -12,7 +12,7 @@ langkah yang sama dengan pemindahannya — sampai saat itu daftarnya masih di `d
 |---|---|
 | Saya agen AI dan mau **mengerjakan** sesuatu | [`docs/kerja/`](docs/kerja/) — kontrak + dokumen tugas + daftar pekerjaan |
 | Saya mau **memakai/merawat** aplikasi | [`docs/README.md`](docs/README.md) §2 (panduan tagihan, backup Drive, playbook audit) |
-| Saya mau tahu **cara aplikasi dibangun** | `docs/arsitektur/` — **diarsipkan**; ringkasannya di `docs/06-ARSITEKTUR-KODE.md` |
+| Saya mau tahu **cara aplikasi dibangun** | [`docs/06-ARSITEKTUR-KODE.md`](docs/06-ARSITEKTUR-KODE.md) — peta kode + aturan yang tidak boleh dilanggar (seri lama di `docs/arsip/arsitektur/`) |
 | Saya mencari **keputusan lama** | [`docs/arsip/README.md`](docs/arsip/README.md) |
 
 > **Angka tidak disalin ke dokumen.** Versi aplikasi = `package.json`. Jumlah tes = keluaran

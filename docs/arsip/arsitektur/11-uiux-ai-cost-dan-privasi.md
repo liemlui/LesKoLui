@@ -2,7 +2,7 @@
 
 > **STATUS:** `final` — keputusan §3 dikunci pemilik 2026-09-25
 > **DIBUAT:** 2026-09-25 · **BASELINE:** v1.75.1 (561 tes / 50 berkas)
-> **PINTU MASUK AGEN:** [`docs/kerja/ATURAN-AI.md`](../kerja/ATURAN-AI.md) — baca itu lebih dulu;
+> **PINTU MASUK AGEN:** [`docs/kerja/ATURAN-AI.md`](../../kerja/ATURAN-AI.md) — baca itu lebih dulu;
 > berkas ini rinciannya.
 > **GUNAKAN INI KETIKA:** menambah layar, menambah fitur AI, atau menampilkan angka uang di mana pun
 
@@ -122,7 +122,7 @@ Keputusan lain yang ikut terkunci (karena muncul saat brainstorming):
 - **Refactor terbatas** `CaptureSession.tsx` (sebelum G3-01) & `MonthlyReport.tsx` (sebelum G3-05) —
   *amandemen 2026-10-01, Q9*.
 
-Daftar amandemen lengkap ada di [`kerja/ATURAN-AI.md`](../kerja/ATURAN-AI.md) §1.
+Daftar amandemen lengkap ada di [`kerja/ATURAN-AI.md`](../../kerja/ATURAN-AI.md) §1.
 
 Kalau ada yang ingin diubah, **ubah tabel ini lebih dulu**, baru tugasnya.
 

@@ -21,11 +21,10 @@ jangan_baca_berurutan: pakai tabel §2
 
 | Folder | Isi | Sifat |
 |---|---|---|
-| `docs/` (folder ini) | dokumentasi **operasional** yang masih dipakai + indeks | aktif |
-| `docs/kerja/` | **dokumen tugas** untuk agen AI: langkah, jangkar kode, kontrak, verifikasi | aktif (dikerjakan) |
-| `docs/arsitektur/` | seri **cara aplikasi dibangun** (`01`–`11`): stack, data model, template, rotation, AI, export, backup, **UI/UX + biaya AI + privasi** | referensi (sebagian bertanggal) |
+| `docs/` (folder ini) | dokumentasi **operasional** yang masih dipakai + indeks + `06-ARSITEKTUR-KODE.md` | aktif |
+| `docs/kerja/` | **kontrak + dokumen tugas** untuk agen AI: langkah, jangkar kode, kontrak, verifikasi | aktif (dikerjakan) |
 | `docs/mockups/` | **gambar hidup** (HTML mandiri) hasil brainstorming UI/UX — **bukan** kode produksi | usulan |
-| `docs/arsip/` | dokumen **selesai/usang** — dibekukan, hanya untuk sejarah | beku |
+| `docs/arsip/` | dokumen **tidak berlaku lagi** — dibekukan, hanya untuk sejarah. Termasuk seri `arsitektur/` | beku |
 
 ---
 
@@ -41,7 +40,8 @@ jangan_baca_berurutan: pakai tabel §2
 | tahu **cara menulis dokumen tugas** yang bisa dieksekusi model kecil | [`kerja/TASK-02-format-dokumen-tugas-ai.md`](kerja/TASK-02-format-dokumen-tugas-ai.md) | spesifikasi format + anti-pola |
 | mengerjakan **refactor layar besar** (6 langkah, belum selesai) | [`kerja/TASK-01-refactor-layar-besar.md`](kerja/TASK-01-refactor-layar-besar.md) | ikuti urutan §3, jangan improvisasi |
 | mengerjakan **rombak UI/UX** (fondasi visual, keuangan, catat sesi, AI berbiaya, privasi uang) | [`kerja/TASK-03-blueprint-uiux.md`](kerja/TASK-03-blueprint-uiux.md) → lalu §5 di berkas itu | **baca `ATURAN-AI.md` dulu**; pekerjaan `TASK-04`–`TASK-09` tidak boleh dijalankan tanpa §2 larangannya |
-| tahu **aturan yang mengikat semua tugas UI/UX** | [`arsitektur/11-uiux-ai-cost-dan-privasi.md`](arsitektur/11-uiux-ai-cost-dan-privasi.md) | kontrak; kalau tugas bertentangan, kontrak yang menang |
+| tahu **cara aplikasi dibangun** & apa yang dilarang disentuh | [`06-ARSITEKTUR-KODE.md`](06-ARSITEKTUR-KODE.md) | peta kode + daftar perusak data/uang; seri lama ada di [`arsip/arsitektur/`](arsip/arsitektur/README.md) |
+| tahu **aturan yang mengikat semua tugas UI/UX** | [`kerja/ATURAN-AI.md`](kerja/ATURAN-AI.md) §1–§3 | kontrak; kalau tugas bertentangan, kontrak yang menang. Versi potret lama: [`arsip/arsitektur/11-uiux-ai-cost-dan-privasi.md`](arsip/arsitektur/11-uiux-ai-cost-dan-privasi.md) |
 | melihat **gambar usulan tampilan** sebelum menulis kode | [`mockups/`](mockups/) | HTML mandiri, buka langsung tanpa server |
 | tahu **daftar seluruh pekerjaan terbuka** | §4 di halaman ini | |
 
@@ -54,7 +54,8 @@ jangan_baca_berurutan: pakai tabel §2
 | mengaudit tampilan aplikasi secara sistematis (berbasis screenshot) | [`03-PLAYBOOK-AUDIT-UIUX-VISUAL.md`](03-PLAYBOOK-AUDIT-UIUX-VISUAL.md) | ±30 mnt |
 | mengubah backup/restore, draf Catat Sesi, respons AI, atau `saveSettings` | [`04-RENCANA-KETAHANAN-DATA.md`](04-RENCANA-KETAHANAN-DATA.md) | ±20 mnt |
 | membangun app lain dengan pola offline-first seperti ini | [`05-ARSITEKTUR-REPLIKASI-OFFLINE.md`](05-ARSITEKTUR-REPLIKASI-OFFLINE.md) | ±25 mnt |
-| tahu **bagaimana aplikasi ini dibangun** | [`arsitektur/README.md`](arsitektur/README.md) | sesuai kebutuhan |
+| tahu **bagaimana aplikasi ini dibangun** | [`06-ARSITEKTUR-KODE.md`](06-ARSITEKTUR-KODE.md) | sesuai kebutuhan |
+| melihat potret arsitektur lama (v1.70–v1.75) | [`arsip/arsitektur/README.md`](arsip/arsitektur/README.md) | beku — jangan dikutip angkanya |
 | mencari keputusan lama (audit & panduan selesai) | [`arsip/README.md`](arsip/README.md) | sesuai kebutuhan |
 
 ---
@@ -63,11 +64,11 @@ jangan_baca_berurutan: pakai tabel §2
 
 | Pola nama | Letak | Arti |
 |---|---|---|
-| `NN-<JUDUL>.md` | `docs/` | dokumen operasional, urutan baca `01`…`05` |
+| `NN-<JUDUL>.md` | `docs/` | dokumen operasional, urutan baca `01`…`06` (`06` = peta kode/arsitektur) |
 | `README.md` | tiap folder | router/pintu masuk folder itu |
 | `TASK-NN-<slug>.md` | `docs/kerja/` | dokumen tugas untuk agen AI (lihat `TASK-02` untuk formatnya) |
 | `ATURAN-AI.md` | `docs/kerja/` | **pintu masuk wajib** agen: kontrak, keputusan terkunci, larangan (pendek & padat) |
-| `NN-<topik>.md` | `docs/arsitektur/` | seri build guide (`01`–`11`); **tidak semua bertanggal sama** |
+| `PEKERJAAN.md` | `docs/kerja/` | satu-satunya daftar pekerjaan terbuka |
 | `<topik>-<tanggal>.html` + `_shared.css` | `docs/mockups/` | mockup tampilan; nama berkas memuat tanggal keputusan |
 | `<JUDUL-BEBAS>.md` | `docs/arsip/` | dibekukan; nama dipertahankan, **tidak** diberi nomor |
 

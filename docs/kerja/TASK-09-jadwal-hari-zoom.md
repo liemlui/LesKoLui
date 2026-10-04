@@ -170,7 +170,7 @@ export async function renderScheduleImage(opts: {
 1. **Cara render — pilih satu dan tulis alasannya di §8.** Dua pilihan:
    (a) `<canvas>` + menggambar sendiri (paling ringan, tanpa dependensi, tetapi menyalin gaya);
    (b) memakai API bawaan browser untuk mengubah DOM menjadi gambar. Kalau (b) menuntut dependensi baru,
-   **dilarang** (kontrak [`arsitektur/11`](../arsitektur/11-uiux-ai-cost-dan-privasi.md) §6: jangan menambah pustaka UI).
+   **dilarang** (kontrak [`arsitektur/11`](../arsip/arsitektur/11-uiux-ai-cost-dan-privasi.md) §6: jangan menambah pustaka UI).
 2. Di mode tangkapan: sembunyikan bilah zoom, tombol editor, dan navigasi; tampilkan
    **kepala** (`Jadwal — Rabu, 24 Sep 2026` + ringkasan `7 sesi · 9,5 jam · 06.00–24.00`) dan
    **kaki** (`Dibuat 24 Sep 2026, 09.41 WIB` + `Les Ko Lui`).

@@ -4,7 +4,7 @@
 > **PEMILIK:** agen AI
 > **DIBUAT:** 2026-09-25 · **BASELINE:** v1.75.1 (561 tes / 50 berkas)
 > **PERKIRAAN:** 6 langkah × 30–45 menit
-> **INDUK:** [`TASK-03-blueprint-uiux.md`](TASK-03-blueprint-uiux.md) · **KONTRAK:** [`arsitektur/11`](../arsitektur/11-uiux-ai-cost-dan-privasi.md) §K2
+> **INDUK:** [`TASK-03-blueprint-uiux.md`](TASK-03-blueprint-uiux.md) · **KONTRAK:** [`arsitektur/11`](../arsip/arsitektur/11-uiux-ai-cost-dan-privasi.md) §K2
 > **PRASYARAT:** [`TASK-04`](TASK-04-fondasi-visual.md) (primitif `Sheet`)
 > **BACA DULU:** [`ATURAN-AI.md`](ATURAN-AI.md) — kontrak kerja, keputusan terkunci, daftar larangan
 
@@ -75,7 +75,7 @@ bulan ini?"*, dan tidak ada pagar belanja.
 
 **Berkas:** `src/db/types.ts` (tambah field), `src/db/repos/auditRepo.ts` (tambah fungsi baca)
 
-**Perubahan tipe (sesuai kontrak [`arsitektur/11`](../arsitektur/11-uiux-ai-cost-dan-privasi.md) §4):**
+**Perubahan tipe (sesuai kontrak [`arsitektur/11`](../arsip/arsitektur/11-uiux-ai-cost-dan-privasi.md) §4):**
 
 ```ts
 // AuditAction — tambah satu anggota
@@ -258,7 +258,7 @@ bagian di atas; `Select-String` untuk `AiCostConfirmModal` di `src/**/*.tsx` →
 2. **Pertahankan** `estimate*Cost()` yang sudah ada sebagai nilai `estimatedIDR`. Estimator adalah
    bagian yang sudah teruji (`aiCost.test.ts`) — jangan diubah.
 3. `dataSent` dan `includesStudentNames` **wajib** diisi dengan jujur. Rujuk tabel pengiriman data di
-   [`docs/arsitektur/06-ai-generation.md`](../arsitektur/06-ai-generation.md) — tabel itu sudah
+   [`docs/arsitektur/06-ai-generation.md`](../arsip/arsitektur/06-ai-generation.md) — tabel itu sudah
    mendaftar apa yang dikirim per menu. **Selaraskan**, dan kalau ada yang berbeda, perbaiki dokumen 06
    di putaran yang sama (aturan pemeliharaan `docs/README.md` §6.2 poin 4).
 4. Setelah semua selesai: perbarui `docs/arsitektur/06-ai-generation.md` untuk menyebut satu jalur
@@ -307,7 +307,7 @@ fitur, dan biaya; `npm test -- aiSettings` tetap lulus.
      (untuk keuangan: `buildFinanceOverview().ringkasLokal` dari [`TASK-05`](TASK-05-rombak-keuangan.md));
    - (b) anggaran terlampaui → jalur yang sama memakai hasil lokal;
    - (c) panggilan AI gagal (mock) → hasil lokal tetap tampil dan galat tidak menutupi layar.
-2. **Perbarui** [`docs/arsitektur/06-ai-generation.md`](../arsitektur/06-ai-generation.md):
+2. **Perbarui** [`docs/arsitektur/06-ai-generation.md`](../arsip/arsitektur/06-ai-generation.md):
    tambah bagian **"Kalau AI tidak tersedia"** yang menyebut perilaku tiap fitur AI saat tanpa API key.
 3. Catat hasil pengukuran pemakaian: jalankan 3 fitur AI sekali, lalu tampilkan
    `getAiUsage(bulan)` dan bandingkan dengan estimasi modal. Selisihnya wajar bila ≤±20%;

@@ -4,7 +4,7 @@
 > **Untuk siapa:** pemilik (Ko Lui) dan agen AI yang akan mengeksekusi perbaikan.
 > **Baca kalau:** sebelum mengerjakan apa pun dari [`06-AUDIT-UIUX-2026-10-01.md`](06-AUDIT-UIUX-2026-10-01.md).
 > **Isi:** §1 ringkasan eksekutif · §2 hasil verifikasi 92 temuan · §3 validasi 13 keputusan pemilik · §4 dampak & risiko · §5 rencana eksekusi 3 gelombang · §6 checkpoint · §7 ditunda/dihapus + backlog · §8 pertanyaan balik.
-> **Dasar:** `les-ko-lui` v1.79.3 (HEAD `8abbe29`), kontrak [`kerja/ATURAN-AI.md`](../kerja/ATURAN-AI.md) + [`arsitektur/11`](../arsitektur/11-uiux-ai-cost-dan-privasi.md), TASK-03…TASK-10.
+> **Dasar:** `les-ko-lui` v1.79.3 (HEAD `8abbe29`), kontrak [`kerja/ATURAN-AI.md`](../kerja/ATURAN-AI.md) + [`arsitektur/11`](../arsip/arsitektur/11-uiux-ai-cost-dan-privasi.md), TASK-03…TASK-10.
 
 **Satu kalimat:** rencana perbaikan **bisa dieksekusi**; 5 keputusan pemilik bertabrakan dengan keputusan kontrak yang sudah dikunci `final`, dan **4 di antaranya sudah diputuskan 2026-10-01** (§1.2), sehingga prasyarat Gelombang 1 tinggal **satu** (Q5, peta tab murid) ditambah 6 amandemen teknis yang tidak butuh keputusan pemilik.
 

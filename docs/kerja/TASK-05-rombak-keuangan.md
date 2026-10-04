@@ -4,7 +4,7 @@
 > **PEMILIK:** agen AI
 > **DIBUAT:** 2026-09-25 · **BASELINE:** v1.75.1 (561 tes / 50 berkas)
 > **PERKIRAAN:** 8 langkah × 30–50 menit
-> **INDUK:** [`TASK-03-blueprint-uiux.md`](TASK-03-blueprint-uiux.md) · **KONTRAK:** [`arsitektur/11`](../arsitektur/11-uiux-ai-cost-dan-privasi.md) §K1
+> **INDUK:** [`TASK-03-blueprint-uiux.md`](TASK-03-blueprint-uiux.md) · **KONTRAK:** [`arsitektur/11`](../arsip/arsitektur/11-uiux-ai-cost-dan-privasi.md) §K1
 > **BACA DULU:** [`ATURAN-AI.md`](ATURAN-AI.md) — kontrak kerja, keputusan terkunci, daftar larangan
 > **PRASYARAT:** [`TASK-04`](TASK-04-fondasi-visual.md) (token + primitif), [`TASK-08`](TASK-08-satu-pintu-uang.md) (uang tertutup)
 > **LAMPIRAN VISUAL:** [`docs/mockups/uang-2026-09-24.html`](../mockups/uang-2026-09-24.html)

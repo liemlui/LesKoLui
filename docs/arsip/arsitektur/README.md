@@ -4,12 +4,21 @@
 
 **Working title:** Les Ko Lui (app name finalized).
 
-> **Status dokumentasi:** diselaraskan dengan kode aktual **v1.73.0** (2026-09-13).
-> Folder ini sengaja hanya memuat dokumen yang **masih berlaku** (seri spec `01`–`10` + panduan build ini).
+> **📦 SELURUH FOLDER INI DIARSIPKAN 2026-10-05.** Seri `01`–`11` adalah **potret** v1.70–v1.75 dan sudah
+> tidak cocok dengan kode. Penggantinya: [`../../06-ARSITEKTUR-KODE.md`](../../06-ARSITEKTUR-KODE.md)
+> (peta kode + aturan yang tidak boleh dilanggar) dan, untuk kontrak UI/UX yang **masih mengikat**,
+> [`../../kerja/ATURAN-AI.md`](../../kerja/ATURAN-AI.md).
+>
+> Isi di bawah ini **dibiarkan apa adanya** sebagai catatan sejarah: angka, versi, dan daftar tabelnya
+> adalah keadaan **saat dokumen itu ditulis**, bukan keadaan hari ini. Untuk keadaan terkini:
+> `package.json` + `src/lib/version.ts` + kode sumber. **Jangan kutip angkanya.**
+>
+> _(Blok status lama, disimpan sebagai konteks:)_
+>
+> ~~**Status dokumentasi:** diselaraskan dengan kode aktual **v1.73.0** (2026-09-13).~~
+> ~~Folder ini sengaja hanya memuat dokumen yang **masih berlaku** (seri spec `01`–`10` + panduan build ini).~~
 > **Indeks dokumentasi aplikasi + riwayat kronologis:** [`../README.md`](../README.md)
-> — di sana dokumen bernomor urut baca `00`–`05` (**operasional aplikasi**), berbeda dari seri `01`–`10` di
-> folder ini (**arsitektur sistem**).
-> Semua dokumen yang sudah selesai/historis kini dibekukan di [`../arsip/`](../arsip/README.md)
+> Semua dokumen yang sudah selesai/historis dibekukan di [`../arsip/`](../../arsip/README.md)
 
 > ⚠️ **BACA SEBELUM MENGUTIP ANGKA DARI FOLDER INI.**
 > Seri ini menjelaskan **CARA** aplikasi dibangun, bukan **keadaan hari ini**. Beberapa berkas memuat
@@ -17,12 +26,12 @@
 > **v1.78.0**. Untuk keadaan terkini pakai: **kode sumber** + [`../../src/lib/version.ts`](../../src/lib/version.ts) (CHANGELOG)
 > + [`../README.md`](../README.md) §5 (riwayat).
 >
-> **`03-capture-flow.md` sudah dipindahkan ke [`../arsip/03-capture-flow.md`](../arsip/03-capture-flow.md)**
+> **`03-capture-flow.md` sudah dipindahkan ke [`../arsip/03-capture-flow.md`](../../arsip/03-capture-flow.md)**
 > karena urutan UI di dalamnya tidak lagi cocok dengan aplikasi (kini 6 langkah, plus pemilih topik berbasis bab
 > dan kondisi 3 lapis).
 > (12 dokumen, termasuk `CHECKLIST.md`, `DOC-AUDIT.md`, audit UI/UX 2026-09, serta audit Catat Sesi & Keuangan 2026-09-12)
 > — dipindahkan ke sana agar historisnya ikut terversi di repo aplikasi.
-> Rencana ketahanan data ([`../04-RENCANA-KETAHANAN-DATA.md`](../04-RENCANA-KETAHANAN-DATA.md)):
+> Rencana ketahanan data ([`../04-RENCANA-KETAHANAN-DATA.md`](../../04-RENCANA-KETAHANAN-DATA.md)):
 > enam fase A–F sudah **diimplementasikan**; verifikasi E2E close-out gagal (Fase B) dan runtime/PWA restore
 > (Fase D) sudah **dijalankan** 2026-09-13 (`e2e/capture-closeout-failure.spec.ts`, `npm.cmd run e2e:pwa`).
 > Sisa: 3 kriteria yang butuh tes komponen + uji dua build PWA — rincian di §13 dokumen itu.

@@ -10,7 +10,7 @@
 ## 0. Cara pakai berkas ini
 
 - Berkas ini **induk**. Tugas lain (`TASK-04`…`TASK-09`) merujuk ke sini; kalau ada pertentangan,
-  yang menang adalah [`docs/arsitektur/11-uiux-ai-cost-dan-privasi.md`](../arsitektur/11-uiux-ai-cost-dan-privasi.md).
+  yang menang adalah [`docs/arsitektur/11-uiux-ai-cost-dan-privasi.md`](../arsip/arsitektur/11-uiux-ai-cost-dan-privasi.md).
 - **Satu langkah per putaran.** Jangan gabung dua langkah.
 - Perintah verifikasi wajib dijalankan sesudah **setiap** langkah, bukan di akhir.
 - **Hemat token:** jangan membaca berkas >500 baris secara utuh. Pakai jangkar teks yang disebut
@@ -149,7 +149,7 @@ padat — terbukti pada mockup `docs/mockups/home-2026-09-24.html` frame ②.
 - [ ] **L3** — Lampiran mockup ditautkan dari sini dan dari setiap tugas turunan
 - [ ] **L4** — `docs/README.md` §4.1 memuat `TASK-03`…`TASK-09`
 - [ ] **L5** — §6 daftar larangan disalin ke `TASK-04`…`TASK-09`
-- [ ] **L6** — Kontrak di [`arsitektur/11`](../arsitektur/11-uiux-ai-cost-dan-privasi.md) §3 (B1–B4) **terkunci 2026-09-25**; `ATURAN-AI.md` ada dan ditautkan dari setiap tugas turunan
+- [ ] **L6** — Kontrak di [`arsitektur/11`](../arsip/arsitektur/11-uiux-ai-cost-dan-privasi.md) §3 (B1–B4) **terkunci 2026-09-25**; `ATURAN-AI.md` ada dan ditautkan dari setiap tugas turunan
 
 ## 10. Riwayat tugas
 

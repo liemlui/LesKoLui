@@ -6,7 +6,7 @@
 > tidak lagi menggeser skor; ada pemilih topik berbasis bab + penyimpanan bab). Isi aslinya
 > dibekukan sebagai catatan historis.
 > **Yang berlaku sekarang:** untuk perilaku terkini baca kode `src/screens/CaptureSession.tsx`
-> serta [`../arsitektur/10-conventions-and-pitfalls.md`](../arsitektur/10-conventions-and-pitfalls.md).
+> serta [`../arsitektur/10-conventions-and-pitfalls.md`](../arsip/arsitektur/10-conventions-and-pitfalls.md).
 
 Goal: record one completed session quickly, fully offline. Screen: `screens/CaptureSession.tsx`. Helpers: `lib/foto.ts`, `lib/engagement.ts`.
 
