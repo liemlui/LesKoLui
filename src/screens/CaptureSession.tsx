@@ -40,6 +40,8 @@ import ScheduleStep from "./captureSession/ScheduleStep";
 import ResponseStep from "./captureSession/ResponseStep";
 import SubjectPickerSheet from "./captureSession/SubjectPickerSheet";
 import useTopicSelection from "./captureSession/useTopicSelection";
+import { withFollowUpRestored } from "./captureSession/undoDeletion";
+import { useToastCtx } from "../components/ToastProvider";
 import type { CaptureDraft, CaptureDraftForm } from "../db/types";
 import { MOODS } from "../lib/moods";
 import {
@@ -101,11 +103,13 @@ export default function CaptureSession() {
     setTopicResponse, topicAllowOffLevel, setTopicAllowOffLevel,
     topicResults, topicMeta, topicOffLevel, topic, runTopicSearch,
     showBrowse, setShowBrowse, openUnit, setOpenUnit, browseSubjects, browseGroups,
-    topicUnit, recentTopicChips, addTopic, addTopicsFromInput, removeTopic,
+    topicUnit, recentTopicChips, addTopic, addTopicsFromInput, removeTopic, restoreTopic,
   } = useTopicSelection({
     subjects, studentSubjects, student: currentStudent,
     recentSessions: studentRecentSessions,
   });
+  /** C-13: hapus topik / tindak lanjut bisa diurungkan lewat toast selama 8 dtk. */
+  const toast = useToastCtx();
   const [ibTab,          setIbTab]           = useState<"MYP" | "DP">("MYP");
   const [ibCustom,       setIbCustom]        = useState("");
   const [shortNote,      setShortNote]       = useState("");
@@ -528,7 +532,24 @@ export default function CaptureSession() {
         ? `"${item.text}" akan dihapus dari fokus sesi berikutnya dan tidak bisa dikembalikan.`
         : "Tindak lanjut ini akan dihapus dan tidak bisa dikembalikan.",
       confirmLabel: "Hapus",
-      onConfirm: () => { setCoFollowUps((prev) => prev.filter((f) => f.id !== id)); setConfirmDelete(null); },
+      onConfirm: () => {
+        // C-13: konfirmasi saja masih menyisakan satu ketukan yang tidak bisa
+        // dibatalkan. Posisi asal disimpan supaya "Urungkan" mengembalikannya
+        // ke urutan semula, bukan menambahkannya di ujung daftar.
+        const index = coFollowUps.findIndex((f) => f.id === id);
+        setCoFollowUps((prev) => prev.filter((f) => f.id !== id));
+        setConfirmDelete(null);
+        if (item) {
+          toast.show(
+            "Tindak lanjut dihapus",
+            "info", 8000,
+            {
+              label: "↩ Urungkan",
+              onClick: () => setCoFollowUps((prev) => withFollowUpRestored(prev, item, index)),
+            },
+          );
+        }
+      },
     });
   };
 
@@ -1049,7 +1070,22 @@ export default function CaptureSession() {
                       )}
                     </span>
                     <button type="button"
-                      onClick={() => removeTopic(t)}
+                      onClick={() => {
+                        // C-13: hapus topik kini bisa diurungkan. Posisi & bab
+                        // disimpan lebih dulu supaya "Urungkan" memulihkan
+                        // urutan chip yang sudah disusun tutor.
+                        const index = topics.indexOf(t);
+                        const unit = topicUnits[t];
+                        removeTopic(t);
+                        toast.show(
+                          `Topik "${t}" dihapus`,
+                          "info", 8000,
+                          {
+                            label: "↩ Urungkan",
+                            onClick: () => restoreTopic(t, unit, index),
+                          },
+                        );
+                      }}
                       aria-label={`Hapus topik ${t}`}
                       className="-m-1 p-1 rounded-full text-[var(--ink-brand)] hover:text-[var(--ink-brand)] transition-colors">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>

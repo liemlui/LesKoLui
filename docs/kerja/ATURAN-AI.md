@@ -12,7 +12,7 @@
 1. Baca berkas ini **seluruhnya** (±150 baris). Ini satu-satunya bacaan wajib.
 2. Buka **hanya satu** `TASK-XX` sesuai pekerjaan aktif, dan **hanya langkah yang sedang dikerjakan**.
 3. **Jangan** membaca `TASK-01`, arsip, atau seluruh `arsitektur/`. Rujuk §5 kalau butuh.
-4. **Jangan** membaca berkas >500 baris secara utuh (`CaptureSession.tsx` 1.901 — turun dari 2.155 lewat refactor G3-01 2026-10-04,
+4. **Jangan** membaca berkas >500 baris secara utuh (`CaptureSession.tsx` 1.931 — 2.155 → 1.891 lewat refactor G3-01, lalu naik lagi oleh tiga langkah fitur L8/L9/L10,
    `MonthlyReport.tsx` 2.351, `Settings.tsx` 1.308, `StudentDetail.tsx` 1.083).
    Pakai **jangkar** yang disebut di tugas: cari teksnya, baca ±40 baris di sekitarnya.
 5. **Satu langkah per putaran.** Verifikasi → lapor → berhenti. Jangan lanjut sendiri.
@@ -154,7 +154,7 @@ Alasan: selector E2E hanya boleh patah sekali.
 > naik lagi ke **1.901** begitu fiturnya ditulis. Selisih 82 baris itu sudah ada sebelum ada yang mengerjakan.
 > **Selalu ukur sendiri** sebelum memakai angka apa pun: `(Get-Content <berkas>).Count`, lalu perbarui
 > **semua** tempat yang menyebutnya di putaran yang sama. Jangan menyalin angka dari dokumen ini.
-> Terukur terakhir 2026-10-04 (setelah G3-01 L9): `CaptureSession.tsx` **1.901** · `MonthlyReport.tsx` **2.351** ·
+> Terukur terakhir 2026-10-04 (setelah G3-01 L10 — undo hapus topik & tindak lanjut): `CaptureSession.tsx` **1.931** · `MonthlyReport.tsx` **2.351** ·
 > `Settings.tsx` **1.308** · `StudentDetail.tsx` **1.083** · `payments/TagihanTab.tsx` **1.035**.
 
 | Fakta | Nilai | Lokasi |

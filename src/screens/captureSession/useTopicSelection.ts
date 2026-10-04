@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { browseTopicsForSubjects, searchTopicsExpanded } from "../../lib/ibTopics";
 import type { TopicSearchResponse } from "../../lib/ibTopics";
 import { mergeTopics, mergeTopicUnits, recentTopics } from "./helpers";
+import { withTopicRestored } from "./undoDeletion";
 import type { Session, Student } from "../../db/types";
 
 interface UseTopicSelectionParams {
@@ -117,11 +118,25 @@ export default function useTopicSelection({
     });
   };
 
+  /**
+   * Kebalikan `removeTopic` (G3-01 fitur #7 — C-13): topik kembali **pada posisi
+   * asalnya**, bersama bab katalognya. Aturan pemulihannya ada di
+   * `undoDeletion.ts` supaya bisa diuji tanpa merender layar.
+   *
+   * Pencarian tidak disentuh: yang menentukan isi chip adalah `topics`, dan
+   * membersihkan kolom isian di tengah undo akan membuang ketikan tutor.
+   */
+  const restoreTopic = (topicName: string, unit: string | undefined, index: number) => {
+    const restored = withTopicRestored(topics, topicUnits, topicName, unit, index);
+    setTopics(restored.topics);
+    setTopicUnits(restored.topicUnits);
+  };
+
   return {
     topics, setTopics, topicUnits, setTopicUnits, topicSearch, setTopicSearch,
     topicResponse, setTopicResponse, topicAllowOffLevel, setTopicAllowOffLevel,
     topicResults, topicMeta, topicOffLevel, topic, runTopicSearch,
     showBrowse, setShowBrowse, openUnit, setOpenUnit, browseSubjects, browseGroups,
-    topicUnit, recentTopicChips, addTopic, addTopicsFromInput, removeTopic,
+    topicUnit, recentTopicChips, addTopic, addTopicsFromInput, removeTopic, restoreTopic,
   };
 }
