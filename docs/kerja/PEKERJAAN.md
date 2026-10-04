@@ -88,7 +88,6 @@ G3-02 · `MonthlyReport.tsx` sebelum G3-05 · `StudentDetail.tsx` sebelum G3-06 
 | 7 | **Sisa spec basi di `npm run e2e`** — beberapa merah = flake beban, bukan regresi | `.design-audit/g2-gate-2026-10-04.md` | Bisect sudah tuntas (bukan regresi). Kalau sebuah spec merah: **jalankan sendirian dulu** sebelum menyimpulkan |
 | 8 | **K-01 — peringatan saat mengubah nominal tagihan** (mengubah nominal memindahkan asal tagihan ke `manual` secara senyap → daftar sesi hilang dari ekspor & WA) | keputusan pemilik #1 (2026-10-01) · [`../arsip/07-VALIDASI-RENCANA-2026-10-01.md`](../arsip/07-VALIDASI-RENCANA-2026-10-01.md) §3 | Dijadwalkan sebagai bagian **G3-02** |
 | 9 | **Temuan audit UI/UX yang masih tersisa** dari audit 2026-10-01 | [`../arsip/06-AUDIT-UIUX-2026-10-01.md`](../arsip/06-AUDIT-UIUX-2026-10-01.md) | 73 temuan tetap, 18 sebagian, 1 klaim dibatalkan. **Wajib baca berkas 07 lebih dulu** sebelum mengerjakan |
-| 10 | **Satu URL 404 di dalam teks iklan** (`leskolui.vercel.app` → `les-ko-lui.vercel.app`) | [`../arsip/PROMPT-AI-IKLAN.md`](../arsip/PROMPT-AI-IKLAN.md) | Di dalam teks iklan, jadi bisa ikut tercetak/terkirim. **Boleh dibersihkan agen** — sebutkan di laporan |
 
 ---
 
@@ -142,3 +141,4 @@ DoD/kontrak. Di luar ketiganya: **putuskan sendiri dan cantumkan alasannya** di 
 | Tanggal | Perubahan |
 |---|---|
 | 2026-10-05 | Dibuat dari penggabungan `ROADMAP.md` + §4 `docs/README.md` (keputusan pemilik Q-13 opsi A). `ROADMAP.md` dipindahkan ke `../arsip/`. |
+| 2026-10-05 | **Butir §4 #10 ditutup** — URL 404 di dalam teks iklan (`arsip/PROMPT-AI-IKLAN.md:78`) sudah dibetulkan menjadi host yang benar; barisnya dihapus dari daftar karena pekerjaan tuntas tidak boleh tinggal di daftar pekerjaan. |

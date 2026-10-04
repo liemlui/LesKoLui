@@ -75,7 +75,7 @@ Folder screenshot aplikasi (14 gambar, resolusi tinggi) — isinya:
 - Slide 5: "Keuangan Rapi" — screenshot rekap + invoice
 - Slide 6: "AI Bantu Kamu" — visual AI narasi + chat WA
 - Slide 7: "Data Aman, Bisa Offline" — ikon backup + offline badge
-- Slide 8 (CTA): "Coba gratis di leskolui.vercel.app" + QR code (bisa digenerate sendiri)
+- Slide 8 (CTA): "Coba gratis di les-ko-lui.vercel.app" + QR code (bisa digenerate sendiri)
 - Style tiap slide: background gradien subtle (biru→ungu, biru→teal, dll), screenshot app diletakkan di tengah dengan mockup HP atau shadow card
 
 ---
