@@ -82,7 +82,7 @@ G3-10 (Reset total + PIN ulang) ← butuh G3-09
 4. Setiap ekstraksi: `npx tsc -b` → `npm test` (3 tes draf + `captureSessionHelpers` wajib hijau).
 
 **DoD refactor:**
-- [x] `CaptureSession.tsx` ≤ **1.900** baris. → **1.891** (terukur 2026-10-04, commit `925e4ff`; titik awal **2.155**, bukan 2.073)
+- [x] `CaptureSession.tsx` ≤ **1.900** baris. → **1.891** saat refactor tuntas (commit `925e4ff`, 2026-10-04; titik awal **2.155**, bukan 2.073) — **dan 1.901 sesudah fitur G3-01 mulai ditulis** (commit `4fcbaf4` pemilih mapel + `38eb8c9` daftar topik), jadi berkasnya kini **1 baris di atas ambang**. Yang memenuhi target adalah langkah **refactor**-nya; fitur lanjutan wajar menambah baris, dan turun lagi hanya lewat ekstraksi — bukan dengan memotong fitur
 - [x] `npm test` hijau; tidak ada teks yang dilihat pengguna yang berubah (`git diff` diperiksa manual). → 698/698 tes; badan Langkah 4 dibandingkan byte-per-baris dengan HEAD = **159 vs 159 baris, 0 beda**; modal pemilih mapel **126 vs 126 baris, 10 beda — semuanya penggantian identifier** (`currentStudent`→`student`, `toggleSubject`→`onToggleSubject`, `setShowIBPicker(false)`→`onClose`), literal teks ter-render di modal itu **identik 23/23**
 - [x] `STEP_META` tidak berubah (6 langkah). → `captureSessionHelpers.test.ts` 43 tes lulus; berkas `constants.ts` tidak disentuh
 - [ ] **Fitur §1 di bawah BELUM dikerjakan** — putaran ini sengaja hanya refactor (urutan §10 aturan 5: refactor → verifikasi hijau → fitur)

@@ -71,7 +71,7 @@ Memindahkan logika dan JSX dari layar-layar besar ke modul kecil, **tanpa mengub
 
 | Berkas | Baris | Target | Status |
 |---|---|---|---|
-| `src/screens/CaptureSession.tsx` | 2.591 | ≤ 1.900 | ✅ 1.891 (2026-10-04) |
+| `src/screens/CaptureSession.tsx` | 2.591 | ≤ 1.900 | ✅ **1.891** saat refactor tuntas 2026-10-04 (`925e4ff`) — kini **1.901** karena fitur G3-01 mulai ditulis (`4fcbaf4`, `38eb8c9`); 1 baris di atas ambang, diturunkan lagi hanya lewat ekstraksi |
 | `src/screens/MonthlyReport.tsx` | 2.097 | ≤ 1.500 | 🔄 belum |
 | `src/screens/Settings.tsx` | 1.109 | ≤ 700 | 🔄 belum |
 | `src/screens/StudentDetail.tsx` | 1.039 | ≤ 800 | 🔄 belum (6/7 seksi) |
@@ -438,7 +438,7 @@ Setiap kali selesai: perbarui juga `TODO.md` (bagian 🔵) dan baris "Diperbarui
 | | | | |
 | 2026-09-15 | 4 | `CloseOutSheet` berhasil dipindah, tetapi `CaptureSession.tsx` masih 2.270 baris (target ≤1.900). | Jangan centang; lanjutkan dengan ekstraksi terpisah. |
 | 2026-09-15 | 5 | `NilaiRapor` berhasil dipindah, tetapi `StudentDetail.tsx` masih 1.037 baris (target ≤800). | Jangan centang; ukur ulang dan pecah seksi lain dengan tugas terpisah. |
-| 2026-10-04 | 4 (lanjutan, G3-01) | Target `CaptureSession.tsx` **≤1.900** akhirnya tercapai, tetapi **bukan** lewat Langkah §3 nomor 4 saja: ia butuh **dua ekstraksi tambahan** — badan Langkah 4 wizard (161 baris → `captureSession/ResponseStep.tsx`) dan modal pemilih mapel (126 baris → `captureSession/SubjectPickerSheet.tsx`). Terukur: **2.155 → 1.891** baris. Alasan tidak bisa sekali pindah: blok terbesar di berkas itu hanya bernilai **228 baris net**, sedangkan kebutuhannya **≥256** — jadi dipilih pasangan dengan prop paling sedikit (**7 + 10**) yang tidak memindahkan state apa pun. | Centang Langkah 4 dengan catatan ini. Commit `925e4ff`; gate: tsc ✓ · eslint ✓ · 698/698 tes ✓ · build ✓ · `e2e` 78 lulus/6 skip/0 gagal · `e2e:uiux` 56 lulus/0 gagal · md-links 0 rusak. |
+| 2026-10-04 | 4 (lanjutan, G3-01) | Target `CaptureSession.tsx` **≤1.900** akhirnya tercapai, tetapi **bukan** lewat Langkah §3 nomor 4 saja: ia butuh **dua ekstraksi tambahan** — badan Langkah 4 wizard (161 baris → `captureSession/ResponseStep.tsx`) dan modal pemilih mapel (126 baris → `captureSession/SubjectPickerSheet.tsx`). Terukur: **2.155 → 1.891** baris (commit `925e4ff`). Alasan tidak bisa sekali pindah: blok terbesar di berkas itu hanya bernilai **228 baris net**, sedangkan kebutuhannya **≥256** — jadi dipilih pasangan dengan prop paling sedikit (**7 + 10**) yang tidak memindahkan state apa pun. **Sesudahnya berkas tumbuh lagi ke 1.901** saat fitur G3-01 ditulis (`4fcbaf4` + `38eb8c9`, +10 baris net) — jadi berkasnya **1 baris di atas ambang**; itu konsekuensi normal menulis fitur di berkas yang sama, bukan kegagalan refactor. | Centang Langkah 4 dengan catatan ini. Commit `925e4ff`; gate: tsc ✓ · eslint ✓ · 698/698 tes ✓ · build ✓ · `e2e` 78 lulus/6 skip/0 gagal · `e2e:uiux` 56 lulus/0 gagal · md-links 0 rusak. |
 
 ---
 
@@ -458,7 +458,7 @@ diambil dari §2 dokumen ini.
 
 | Dikerjakan sebelum | Berkas | Target (§2) | Baris sekarang | Kenapa |
 |---|---|---|---|---|
-| **G3-01** (Catat Sesi) | `src/screens/CaptureSession.tsx` | **≤ 1.900** | **1.891 ✅** (terukur 2026-10-04; sebelum refactor **2.155**, bukan 2.073 seperti tertulis) | G3-01 menyentuh bilah aksi, stepper, Langkah 4 |
+| **G3-01** (Catat Sesi) | `src/screens/CaptureSession.tsx` | **≤ 1.900** | **1.891 saat refactor tuntas** → kini **1.901** (fitur G3-01 mulai ditulis; terukur 2026-10-04, sebelum refactor **2.155**, bukan 2.073 seperti tertulis) | G3-01 menyentuh bilah aksi, stepper, Langkah 4 |
 | **G3-02** (Keuangan) | `src/screens/payments/TagihanTab.tsx` | **≤ 800** | 1.035 (terukur 2026-10-04; ⬜ belum di-refactor) | G3-02 menyentuh daftar tagihan, filter, dan panel nominal |
 | **G3-05** (Laporan) | `src/screens/MonthlyReport.tsx` | **≤ 1.500** | 2.351 (terukur 2026-10-04; ⬜ belum di-refactor) | G3-05 menyentuh pratinjau, autosave narasi, ekspor |
 | **G3-06** (Proyek & tab) | `src/screens/StudentDetail.tsx` | **≤ 800** | 1.083 (terukur 2026-10-04; ⬜ belum di-refactor) | G3-06 merombak peta tab (Ringkas/Sesi/Progres/Proyek) |
