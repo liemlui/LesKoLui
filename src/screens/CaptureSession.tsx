@@ -126,9 +126,11 @@ export default function CaptureSession() {
   const [message, setMessage] = useState<{ kind: "success" | "error"; text: string; retry: "save" | "closeout" | null } | null>(null);
 
   /**
-   * C-05: hapus foto bukti / tanda tangan / tindak lanjut tidak bisa dikembalikan —
-   * fotonya harus diambil ulang dari kamera. Karena itu ketiganya lewat satu
-   * `ConfirmSheet` (satu state, tiga kemungkinan aksi) alih-alih menghapus langsung.
+   * C-05: hapus foto bukti / tanda tangan tidak bisa dikembalikan — fotonya harus
+   * diambil ulang dari kamera. Karena itu ketiganya lewat satu `ConfirmSheet`
+   * (satu state, tiga kemungkinan aksi) alih-alih menghapus langsung.
+   * C-13: hapus **tindak lanjut** kini bisa diurungkan (tombol "↩ Urungkan"),
+   * jadi kalimatnya tidak lagi menjanjikan yang sebaliknya.
    */
   const [confirmDelete, setConfirmDelete] = useState<{ title: string; message: string; confirmLabel: string; onConfirm: () => void } | null>(null);
 
@@ -523,14 +525,14 @@ export default function CaptureSession() {
     setCoFollowUpText("");
   };
 
-  /** C-05: hapus tindak lanjut minta konfirmasi dulu (teksnya tidak bisa dipulihkan). */
+  /** C-05: hapus tindak lanjut minta konfirmasi dulu. C-13: sesudah dihapus masih ada "↩ Urungkan". */
   const requestDeleteFollowUp = (id: string) => {
     const item = coFollowUps.find((f) => f.id === id);
     setConfirmDelete({
       title: "Hapus tindak lanjut?",
       message: item?.text
-        ? `"${item.text}" akan dihapus dari fokus sesi berikutnya dan tidak bisa dikembalikan.`
-        : "Tindak lanjut ini akan dihapus dan tidak bisa dikembalikan.",
+        ? `"${item.text}" akan dihapus dari fokus sesi berikutnya. Setelah dihapus masih ada tombol "↩ Urungkan".`
+        : "Tindak lanjut ini akan dihapus. Setelah dihapus masih ada tombol \"↩ Urungkan\".",
       confirmLabel: "Hapus",
       onConfirm: () => {
         // C-13: konfirmasi saja masih menyisakan satu ketukan yang tidak bisa
