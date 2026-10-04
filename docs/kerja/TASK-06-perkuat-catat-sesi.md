@@ -280,6 +280,41 @@ langkah tetap 6; alur tanpa `scheduleId` tidak berubah.
 
 ## 9. Progres
 
+### 9.1 Hitungan ketukan per langkah — diukur 2026-10-04 (sebelum perubahan bentuk pemilih mapel)
+
+**Cara hitung (supaya bisa diulang dan diperiksa):** tiap `onClick`/`onChange`/`onKeyDown`
+pada kontrol yang benar-benar dibutuhkan untuk menyelesaikan langkah dihitung **1 ketukan**;
+mengetik dihitung 1 gerakan (fokus + tulis), bukan per karakter. Angka diambil dari **pembacaan
+kode**, bukan dari stopwatch di perangkat — jadi ini batas bawah yang bisa diverifikasi ulang,
+bukan pengukuran runtime. Titik yang paling mudah keliru: ketukan "Lanjut →" sebenarnya milik
+langkah **berikutnya** (ditekan setelah langkah selesai), sedangkan `Simpan Sesi` di langkah 6
+**tidak menambah** ketukan karena bilahnya sama.
+
+| Langkah | Jalur paling umum | Ketukan | Catatan |
+|---|---|---:|---|
+| 1 Jadwal | dari `[Catat]` beranda (`?scheduleId=`) | **1** | hanya `Lanjut →`; murid/tanggal/jam sudah terisi (B3) |
+| 1 Jadwal | buka `/capture` polos | **4** | murid · tanggal · jam · `Lanjut` |
+| 2 Materi | topik dari chip "sesi lalu" | **1** | tanpa mapel |
+| 2 Materi | + topik dari daftar bab | **2** | buka panel bab · centang topik |
+| 2 Materi | + topik via pencarian | **2** | ketik · pilih hasil |
+| 2 Materi | + mapel di luar profil | **2** | dulu **4** (buka panel · pilih · `Selesai` · ulang untuk mapel kedua) |
+| 3 Kondisi | kondisi les saja | **1** | satu ketukan sudah cukup untuk menyimpan fakta |
+| 3 Kondisi | + 1 indikator positif | **1** | 6 indikator terdepan sudah terlihat |
+| 3 Kondisi | + 1 indikator negatif | **2–3** | negatif ada di balik "indikator lain" |
+| 4 Detail | respons akademik saja | **1** | `Isi cepat (respons)` 1 ketuk |
+| 4 Detail | respons + fokus perbaikan | **0 tambahan** | mengetik = 1 gerakan |
+| 5 Catatan | isi dari chip saran | **1** | chip muncul sebelum mengetik |
+| 5 Catatan | tulis sendiri | **1** | mengetik |
+| 6 Bukti | lewati (opsional) | **0** | `Simpan Sesi` sudah aktif di langkah 6 |
+| 6 Bukti | foto + TTD | **2 + tanda tangan** | kamera/galeri · TTD di pad |
+
+**Jumlah ketukan "Lanjut →" sepanjang wizard = 5** (dari langkah 1→2→3→4→5→6; langkah 6 tidak
+punya `Lanjut`). Ini **tidak bisa diturunkan tanpa mengurangi langkah** — dan mengurangi langkah
+dilarang (§2.2 `ATURAN-AI`, keputusan pemilik). Jadi penghematan yang sah hanya datang dari
+**pemilih** di dalam tiap langkah, bukan dari jumlah langkah.
+
+### 9.2 Status per langkah
+
 - [ ] **L1 — Satu langkah satu layar.** Keenam langkah diperiksa di 390px & 430px: ___ *(prasyarat refactor sudah beres — `CaptureSession.tsx` 1.891, 2026-10-04)*
 - [ ] **L2 — Rasa (ukuran & target sentuh).** Kontrol <44px yang tersisa: ___
 - [ ] **L3 — Draf terlihat.** 3 tes draf lama lulus: ya/tidak
@@ -287,6 +322,7 @@ langkah tetap 6; alur tanpa `scheduleId` tidak berubah.
 - [ ] **L5 — `[Catat]` terisi.** Langkah 1 terisi dari `scheduleId`: ya/tidak
 - [ ] **L6 — Verifikasi manual + E2E.** 12 kotak `docs/README.md` §4.3: ___ / 12 · Waktu alur cepat: ___ detik
 - [ ] **L7 — Simpan dari langkah 5 (Q2).** 2 tes baru: simpan tanpa Bukti ya/tidak · Bukti tersimpan bila ada ya/tidak
+- [x] **L8 — Efisiensi pemilih mapel (Q-2 opsi A, 2026-10-04, commit `4fcbaf4`).** Modal `+ Tambah Mapel` dihapus; chip mapel dieja datar di langkah 2 (`SubjectPickerSheet` `variant="inline"`). Mapel di luar profil: **4 ketukan → 2**. Dijaga `src/__tests__/subjectPickerInline.test.tsx` (6 tes). **Belum diukur manusia di perangkat** — §4.3 `docs/README.md` masih menunggu centang
 
 ## 10. Riwayat tugas
 
@@ -295,3 +331,4 @@ langkah tetap 6; alur tanpa `scheduleId` tidak berubah.
 | 2026-09-25 | Dibuat; wizard **dipertahankan** sesuai keputusan pemilik | v1.75.1 | `todo` |
 | 2026-10-01 | Amandemen **Q2**: tombol `Simpan Sesi` aktif di langkah 5 & 6; `STEP_META` tetap 6; langkah 6 tetap menawarkan Bukti; +2 tes baru (L7) | v1.79.3 | `todo` |
 | 2026-10-04 | **Prasyarat refactor (Q9/A12) selesai — L1–L7 belum.** Ekstraksi G3-01: `CaptureSession.tsx` **2.155 → 1.891** (≤1.900 tercapai; badan Langkah 4 → `captureSession/ResponseStep.tsx`, modal pemilih mapel → `captureSession/SubjectPickerSheet.tsx`). Terbukti murni pemindahan: 159 vs 159 baris identik (langkah 4) dan 126 vs 126 baris dengan 10 beda yang semuanya penggantian identifier (modal). `STEP_META` tidak disentuh. Gate: tsc ✓ · eslint ✓ · **698/698 tes** ✓ · build ✓ · `e2e` 78 lulus/6 skip/0 gagal · `e2e:uiux` 56 lulus/0 gagal · md-links 0 rusak | v1.89.2 | commit `925e4ff` — **fitur L1–L7 putaran berikutnya** |
+| 2026-10-04 | **L8 selesai (Q-2 opsi A): pemilih mapel jadi chip datar.** Modal `+ Tambah Mapel` dihapus dari langkah 2; `SubjectPickerSheet` mendapat `variant="inline"` (chip katalog + kolom mapel bebas + ringkasan "Dipilih" muncul begitu ada yang terpilih, karena tombol `Selesai` tidak ada lagi). Ketukan mapel di luar profil: **4 → 2**; taksonomi chip dan teks tidak berubah. +6 tes (`subjectPickerInline.test.tsx`) sebagai penjaga bentuk. Gate: tsc ✓ · eslint ✓ · **704/704 tes** (59 berkas) ✓ · build ✓ · `e2e` **76 lulus / 6 skip / 2 gagal** — dua merah di jalur laporan (`report-export`, `report-export-ratio`) **lulus 10/10 saat dijalankan sendirian** → flake beban, bukan regresi · `e2e:uiux` 56 lulus/0 gagal | v1.89.2 | commit `4fcbaf4` |
