@@ -70,7 +70,7 @@ export default function ChangelogModal() {
             </ul>
           </div>
           <div aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-white to-transparent" />
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[var(--surface-strong)] to-transparent" />
         </div>
 
         {/* Footer */}

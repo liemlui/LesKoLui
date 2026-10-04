@@ -78,7 +78,7 @@ export default function ScheduleStep({
           {DURATIONS.map((item) => <button key={item} type="button"
             className={`snap-start flex-shrink-0 px-3 py-2 rounded-xl text-sm font-semibold border transition-colors ${duration === item ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]" : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)]"}`}
             onClick={() => onDurationChange(item)}>{item}j</button>)}
-        </div><div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent" aria-hidden="true" /></div>
+        </div><div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[var(--surface-strong)] to-transparent" aria-hidden="true" /></div>
       </div>
 
       <div>
