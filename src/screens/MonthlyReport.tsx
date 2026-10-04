@@ -688,7 +688,10 @@ export default function MonthlyReportPage() {
   const [reportData, setReportData] = useState<import("../template/types").ReportData | null>(null);
 
   // Export (JPG/PNG/PDF) + tandai sudah dibagikan — di-extract ke hook tersendiri.
-  const { exporting, reportExportRef, doExport, handleMarkReportShared } = useReportExport({
+  const {
+    exporting, reportExportRef, doExport, handleMarkReportShared,
+    pendingFiles, downloadPendingFile, clearPendingFiles,
+  } = useReportExport({
     student,
     report,
     reportData,
@@ -1994,6 +1997,34 @@ export default function MonthlyReportPage() {
                     {exporting === "pdf" ? "" : ""} PDF
                   </button>
                 </div>
+
+                {/* Sisa halaman JPG/PNG. Peramban hanya mengizinkan SATU unduhan
+                    otomatis per gestur pengguna, jadi berkas kedua dan seterusnya
+                    ditawarkan sebagai tombol per halaman — tiap ketukan adalah
+                    gestur yang sah, sehingga semua halaman benar-benar tersimpan.
+                    (Sebelumnya aplikasi mengklik unduhan berurutan sendiri dan
+                    hanya berkas terakhir yang tersimpan — laporan pemilik
+                    2026-10-04.) */}
+                {pendingFiles.length > 0 && (
+                  <div role="status" className="rounded-xl border border-[var(--border-warn)] bg-[var(--bg-warn)] p-3 space-y-2">
+                    <p className="text-xs font-semibold text-[var(--ink-warn)]">
+                      {pendingFiles.length} halaman belum terunduh — peramban hanya mengizinkan satu unduhan otomatis. Ketuk satu per satu:
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {pendingFiles.map(({ file, label }) => (
+                        <button key={file.name} type="button"
+                          className="btn btn-secondary text-xs min-h-[32px]"
+                          onClick={() => downloadPendingFile({ file, label })}>
+                          Unduh {label}
+                        </button>
+                      ))}
+                    </div>
+                    <button type="button" onClick={clearPendingFiles}
+                      className="text-[11px] underline text-[var(--ink-muted)]">
+                      Tutup daftar
+                    </button>
+                  </div>
+                )}
               </section>
             )}
 

@@ -155,30 +155,51 @@ export async function exportPdf(filenameBase: string, root: ParentNode = documen
   return new File([blob], `${filenameBase}.pdf`, { type: "application/pdf" });
 }
 
-export async function shareFiles(files: File[], title: string) {
-  if (files.length === 0) return;
+/** Unduh satu berkas lewat `<a download>` — satu gestur pengguna, satu berkas. */
+export function downloadFile(file: File) {
+  const url = URL.createObjectURL(file);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = file.name;
+  a.style.display = "none";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
 
-  // Try Web Share API first (mobile-friendly) — works best for single files
-  if (files.length === 1 && typeof navigator !== "undefined" && navigator.share) {
+/**
+ * Menyerahkan hasil ekspor ke pengguna, dan **mengembalikan berkas yang belum
+ * terkirim**.
+ *
+ * Kenapa tidak mengunduh semuanya sekaligus: peramban hanya mengizinkan **satu**
+ * unduhan otomatis per gestur pengguna. Versi lama fungsi ini mengklik N tautan
+ * `<a download>` berurutan (jeda 500 ms) — Chrome/Edge memblokirnya, dan di HP
+ * hanya berkas terakhir yang tersimpan. Dilaporkan pemilik 2026-10-04: "ekspor
+ * JPG/PNG menawarkan gambar berikutnya dan berikutnya, akhirnya yang terunduh
+ * hanya yang akhir; PDF aman karena satu berkas".
+ *
+ * Aturan sekarang:
+ *  - **1 berkas** → Web Share bila ada, jika tidak unduhan otomatis.
+ *  - **banyak berkas** → Web Share multi-berkas bila didukung (Android/iOS
+ *    mengirim semuanya sekaligus); jika tidak, berkas **pertama** diunduh
+ *    sekarang dan **sisanya dikembalikan** agar pemanggil menampilkannya sebagai
+ *    tombol unduh per halaman (tiap ketukan = gestur yang sah).
+ */
+export async function deliverFiles(files: File[], title: string): Promise<File[]> {
+  if (files.length === 0) return [];
+
+  const shareData = { files, title };
+  const shareSupported = typeof navigator !== "undefined"
+    && typeof navigator.share === "function"
+    && (files.length === 1 || navigator.canShare?.(shareData) === true);
+  if (shareSupported) {
     try {
-      await navigator.share({ files, title });
-      return;
-    } catch { /* fall through to download */ }
+      await navigator.share(shareData);
+      return [];
+    } catch { /* dibatalkan / gagal — jatuh ke unduhan */ }
   }
 
-  // Multi-file or share API unavailable: download sequentially
-  const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
-  for (const f of files) {
-    const url = URL.createObjectURL(f);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = f.name;
-    a.style.display = "none";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    // Delay between downloads so browser registers each as a separate click
-    await delay(500);
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
-  }
+  downloadFile(files[0]);
+  return files.slice(1);
 }
