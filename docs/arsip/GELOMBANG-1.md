@@ -2,7 +2,7 @@
 
 > **📦 DIARSIPKAN 2026-10-05** — seluruh 11 tugasnya **tuntas** (v1.85.0), jadi berkas ini tidak lagi
 > memegang pekerjaan apa pun. Dibaca untuk **sejarah keputusan & preseden prosedur G1**, bukan untuk
-> dikerjakan ulang. Tugas yang masih hidup: [`../kerja/ROADMAP.md`](../kerja/ROADMAP.md).
+> dikerjakan ulang. Tugas yang masih hidup: [`../kerja/ROADMAP.md`](ROADMAP.md).
 > Satu hal di dalamnya **masih terbuka dan tetap berlaku**: daftar periksa manual alur Catat Sesi
 > (kini dipelihara di [`../README.md`](../README.md) §4.3, 12 kotak).
 
@@ -11,7 +11,7 @@
 > **Prasyarat wajib dibaca lebih dulu:** [`ATURAN-AI.md`](../kerja/ATURAN-AI.md) (kontrak + larangan), lalu
 > [`../arsip/07-VALIDASI-RENCANA-2026-10-01.md`](../arsip/07-VALIDASI-RENCANA-2026-10-01.md) §3–§4.
 > **Isi:** 11 tugas — **SEMUA SELESAI** (G1-01…G1-11, v1.85.0). **Tidak ada perubahan skema Dexie. Tidak menyentuh perilaku uang/AI.**
-> **Estimasi total sisa:** **tidak ada** — Gelombang 1 tuntas; lanjut [`ROADMAP.md`](../kerja/ROADMAP.md).
+> **Estimasi total sisa:** **tidak ada** — Gelombang 1 tuntas; lanjut [`ROADMAP.md`](ROADMAP.md).
 
 ---
 
@@ -78,7 +78,7 @@ Alasannya: tiga tugas pertama tidak menyentuh berkas bersama, sehingga belum ada
 matriks screenshot.
 
 > **Status gelombang:** **11/11 selesai** (2026-10-03, v1.85.0). Tidak ada tugas tersisa di gelombang ini;
-> tugas berikutnya ada di [`ROADMAP.md`](../kerja/ROADMAP.md) (prasyarat "seluruh Gelombang 1 selesai" kini terpenuhi).
+> tugas berikutnya ada di [`ROADMAP.md`](ROADMAP.md) (prasyarat "seluruh Gelombang 1 selesai" kini terpenuhi).
 
 ---
 

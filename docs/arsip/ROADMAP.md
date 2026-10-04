@@ -1,5 +1,13 @@
 # ROADMAP — Gelombang 2 & 3 (22 tugas)
 
+> **📦 DIARSIPKAN 2026-10-05 — digantikan [`../kerja/PEKERJAAN.md`](../kerja/PEKERJAAN.md).**
+> Sejak tanggal itu hanya ada **satu** daftar pekerjaan; berkas ini + §4 `docs/README.md` (yang juga
+> diarsipkan ke [`RIWAYAT-PEKERJAAN-2026-10.md`](RIWAYAT-PEKERJAAN-2026-10.md)) digabung ke sana.
+> Isi di bawah adalah **potret 2026-10-04**: angka tes, baris berkas, dan statusnya bukan keadaan hari
+> ini. Jangan dikutip sebagai status.
+>
+> _(Blok status lama, disimpan sebagai konteks:)_
+>
 > **Status:** aktif · Diperbarui: 2026-10-04 · Baseline: **v1.90.0** (rilis 2026-10-04: G3-01 L8+L9 dipaketkan — pemilih mapel datar + daftar topik/pencarian diperkuat; gate: `tsc` ✓ · `eslint` ✓ · **706/706 tes / 60 berkas** ✓ · `build` ✓ · `e2e:uiux` **56 lulus / 0 skip / 0 gagal** ✓ · `e2e` **78 lulus / 6 skip / 0 gagal** ✓ · `md-links` 0 rusak)
 > **GATE SUDAH DIJALANKAN 2026-10-04** (keputusan pemilik): `npx eslint .` ✓ · `npm test` ✓ **58 berkas / 698 tes lulus** (`moneyGate.test.ts` 7/7 — penjaga G2-04 kini **terbukti**) · `npm run build` ✓ · **`npm run e2e` ✗ — 68 lulus / 12 gagal / 4 skip, semuanya di jalur laporan** (atribusi belum terbukti; `src/template/**` tak tersentuh sejak v1.79.0) · **`npm run e2e:uiux` ✗ — 42 lulus / 6 gagal / 8 skip**, gagalnya = **guard emoji TASK-11** (Beranda 2 · Murid — daftar 11 · Detail murid 1; identik chromium & mobile) — **keenamnya sudah ditutup `f035451`** sehingga guard kini **48 lulus / 8 skip / 0 gagal** pada saat itu — **8 skip itu residual Q24**, dan pada 2026-10-04 fixme-nya **dihapus** setelah diukur (guard sekarang **56 lulus / 0 skip / 0 gagal**). Rincian, bukti, dan langkah diagnostik berikutnya: `.design-audit/g2-gate-2026-10-04.md`
 > **Masih `test.fixme` di guard yang sama (4):** 3 pemeriksaan kontras (Murid · Detail murid · Keuangan) + 1 ukuran (`detail-murid`). Penghapusannya (Q24) menuntut `npm run e2e:uiux` benar-benar dijalankan — **bukan** menaikkan ambang.
@@ -38,7 +46,7 @@
 | G2-06 | tap target ≥44px | T2 | G2-01 | 9 berkas layar | M | ✅ v1.88.0 — DoD ditegaskan: **44 px = kontrol utama**, chip/sekunder **24–36 px diterima** (Q45/A18); residual **52 kontrol** (proksi statis) tercatat di `ATURAN-AI` §5 |
 | G2-07 | DayView kerapatan 27/54/97 | T1 | G2-01 | home/DayView.tsx | M | ✅ v1.88.0 |
 | G2-08 | Beranda non-uang | T2 | G2-04 | home/*.tsx | M | ✅ v1.88.0 |
-| G2-09 | emoji→SVG | T2 | G2-01 | icons.tsx + layar pemakai | M | ✅ v1.88.0 — kebijakan [TASK-11](TASK-11-emoji-ke-svg.md): emoji hanya untuk kosakata afektif ber-penanda; guard **asertif**. Guard dijalankan 2026-10-04: sempat **6 gagal**, ditutup `f035451` → **48 lulus / 8 skip / 0 gagal** |
+| G2-09 | emoji→SVG | T2 | G2-01 | icons.tsx + layar pemakai | M | ✅ v1.88.0 — kebijakan [TASK-11](../kerja/TASK-11-emoji-ke-svg.md): emoji hanya untuk kosakata afektif ber-penanda; guard **asertif**. Guard dijalankan 2026-10-04: sempat **6 gagal**, ditutup `f035451` → **48 lulus / 8 skip / 0 gagal** |
 | G2-10 | jalur galat tunggal useLiveQuery | T3 | G2-01 | useSettingsQuery + 6 layar | M | ✅ v1.88.0 |
 
 ## Gelombang 3

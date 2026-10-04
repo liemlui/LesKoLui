@@ -39,8 +39,8 @@ Tidak ada dokumen yang dihapus. Semua dipindahkan ke folder ini dan diringkas di
 | 15 | [`TODO-2026-09-13.md`](TODO-2026-09-13.md) | 2025-07-19 → rev. 2026-09-13 | v1.75.1 | ⚠️ **dipindah** ke `../README.md` §4 + `../kerja/` | Catatan utang teknis layar besar; daftar pekerjaan aktif kini hidup di indeks supaya hanya ada satu sumber kebenaran |
 | 16 | [`06-AUDIT-UIUX-2026-10-01.md`](06-AUDIT-UIUX-2026-10-01.md) | 2026-10-03 | v1.79.3 | ✅ selesai — diarsipkan 2026-10-03 | Audit UI/UX v1.79.3: 73 temuan tetap, 18 sebagian, 1 klaim dibatalkan; diarsipkan setelah validasi & ROADMAP dibuat |
 | 17 | [`07-VALIDASI-RENCANA-2026-10-01.md`](07-VALIDASI-RENCANA-2026-10-01.md) | 2026-10-03 | v1.79.3 | ✅ selesai — diarsipkan 2026-10-03 | Validasi + rencana eksekusi audit UI/UX, dipecah 3 gelombang (baseline kelas warna dikoreksi 904); diarsipkan setelah ROADMAP dibuat |
-| 18 | [`GELOMBANG-2.md`](GELOMBANG-2.md) | 2026-10-03 | v1.86.0 | ⚠️ **digantikan** — diarsipkan 2026-10-03 | Peta 11 tugas `G2-00`…`G2-10` (fondasi token/uang/jadwal); digantikan [`../kerja/ROADMAP.md`](../kerja/ROADMAP.md) |
-| 19 | [`GELOMBANG-3.md`](GELOMBANG-3.md) | 2026-10-03 | v1.86.0 | ⚠️ **digantikan** — diarsipkan 2026-10-03 | Peta 10 tugas `G3-01`…`G3-10` (alur sesi/keuangan/AI/laporan); digantikan [`../kerja/ROADMAP.md`](../kerja/ROADMAP.md) |
+| 18 | [`GELOMBANG-2.md`](GELOMBANG-2.md) | 2026-10-03 | v1.86.0 | ⚠️ **digantikan** — diarsipkan 2026-10-03 | Peta 11 tugas `G2-00`…`G2-10` (fondasi token/uang/jadwal); digantikan [`../kerja/ROADMAP.md`](ROADMAP.md) |
+| 19 | [`GELOMBANG-3.md`](GELOMBANG-3.md) | 2026-10-03 | v1.86.0 | ⚠️ **digantikan** — diarsipkan 2026-10-03 | Peta 10 tugas `G3-01`…`G3-10` (alur sesi/keuangan/AI/laporan); digantikan [`../kerja/ROADMAP.md`](ROADMAP.md) |
 
 ---
 

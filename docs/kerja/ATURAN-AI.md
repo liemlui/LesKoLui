@@ -9,17 +9,17 @@
 
 ## 0. Cara pakai (hemat token — patuhi)
 
-1. Baca berkas ini **seluruhnya** (±150 baris). Ini satu-satunya bacaan wajib.
-2. Buka **hanya satu** `TASK-XX` sesuai pekerjaan aktif, dan **hanya langkah yang sedang dikerjakan**.
-3. **Jangan** membaca `TASK-01`, arsip, atau seluruh `arsitektur/`. Rujuk §5 kalau butuh.
-4. **Jangan** membaca berkas >500 baris secara utuh (`CaptureSession.tsx` 1.931 — 2.155 → 1.891 lewat refactor G3-01, lalu naik lagi oleh tiga langkah fitur L8/L9/L10,
-   `MonthlyReport.tsx` 2.351, `Settings.tsx` 1.308, `StudentDetail.tsx` 1.083).
-   Pakai **jangkar** yang disebut di tugas: cari teksnya, baca ±40 baris di sekitarnya.
+1. Baca berkas ini **seluruhnya** (≈380 baris — ukur sendiri: `(Get-Content docs/kerja/ATURAN-AI.md).Count`). Ini satu-satunya bacaan wajib; sisanya referensi.
+2. **Buka [`CHEATSHEET.md`](CHEATSHEET.md) dulu, bukan `TASK-XX`.** Ia memuat 1 halaman per tugas dan cukup untuk ~95% kasus. Buka `TASK-XX` utuh hanya kalau butuh detail lebih, dan **hanya langkah yang sedang dikerjakan**.
+3. **Jangan** membaca seluruh `TASK-01`, seluruh `../arsip/`, atau berkas >500 baris secara utuh. Pakai **jangkar** yang disebut tugas: cari teksnya, baca ±40 baris di sekitarnya.
+4. **Jangan** membaca berkas >500 baris secara utuh. Daftar + perintah pengukurnya:
+   `npm run measure` (baris `MonthlyReport.tsx`, `CaptureSession.tsx`, `Settings.tsx`, `StudentDetail.tsx`, `TagihanTab.tsx`).
+   Angka baris **bukan** DoD — ia hanya penanda apakah berkas sudah dipecah.
 5. **Satu langkah per putaran.** Verifikasi → lapor → berhenti. Jangan lanjut sendiri.
 6. **Jangan menambah berkas baru** selain yang disebut kontrak, tanpa persetujuan.
-7. **Baca CHEATSHEET.md dulu, bukan TASK-XX.** `docs/kerja/CHEATSHEET.md` memuat 1 halaman per tugas (TASK-01…TASK-10) yang cukup untuk 95% kasus. Buka TASK-XX utuh kalau perlu detail lebih.
-8. **Kalau DSH baru:** baca urutan ini saja: §0 · §1 (B1–B4) · §2.1 (larangan berkas) · §6.2 (gate 4-tier) · ROADMAP.md · CHEATSHEET.md. Sisanya referensi.
-9. **ROADMAP.md menggantikan GELOMBANG-2/3.md** (keduanya sudah diarsipkan).
+7. **Kalau DSH baru:** baca urutan ini saja: §0 · §1 (B1–B4) · §2.1 (larangan berkas) · §6 (perintah) + §6.1 (sandbox) + §6.2 (gate 4-tier) · [`PEKERJAAN.md`](PEKERJAAN.md) (daftar pekerjaan aktif) · [`CHEATSHEET.md`](CHEATSHEET.md). Sisanya referensi.
+8. **[`PEKERJAAN.md`](PEKERJAAN.md) adalah satu-satunya daftar pekerjaan** — ia menggantikan `ROADMAP.md` (kini di `../arsip/`) **dan** §4 `docs/README.md` (kini di `../arsip/RIWAYAT-PEKERJAAN-2026-10.md`).
+9. **Angka mutakhir tidak ditulis di dokumen.** Versi = `package.json`; jumlah tes = `npm run test:sandbox`; baris berkas = `npm run measure`. `npm run check:docs` menolak klaim versi/angka yang salah.
 
 ---
 
@@ -85,8 +85,14 @@ Keputusan lain yang juga terkunci: **wizard Catat Sesi dipertahankan apa adanya 
 
 ### 2.3 Kalau menemukan konflik antar dokumen
 
-Urutan menang: **1)** berkas ini → **2)** `arsitektur/11-uiux-ai-cost-dan-privasi.md` →
-**3)** `TASK-XX` → **4)** dokumen lain. Tulis konfliknya di §8 tugas terkait pada putaran yang sama.
+Urutan menang: **1)** berkas ini → **2)** `docs/06-ARSITEKTUR-KODE.md`
+(aturan yang mengikat seluruh kode) → **3)** `TASK-XX` → **4)** dokumen lain.
+Tulis konfliknya di §8 tugas terkait pada putaran yang sama.
+
+> **Catatan (2026-10-05).** Penengah lama di sini adalah `arsitektur/11-uiux-ai-cost-dan-privasi.md`.
+> Dokumen itu **dipatok v1.75.1** dan sejak 2026-10-05 **diarsipkan** — dokumen pemenang konflik tidak
+> boleh jadi dokumen yang paling basi. Isi kontraknya yang masih berlaku sudah dinaikkan ke berkas ini
+> (§1 keputusan terkunci · §3 kontrak inti); sisanya potret sejarah.
 
 **Konflik yang sudah diselesaikan** (jangan diangkat lagi):
 `TASK-04` Langkah 4 **tidak** mengubah jumlah pintu nav; perubahan nav **hanya** di `TASK-05` Langkah 7.
@@ -94,7 +100,7 @@ Alasan: selector E2E hanya boleh patah sekali.
 
 ---
 
-## 3. Kontrak inti (ringkas — rincian di `arsitektur/11`)
+## 3. Kontrak inti (ringkas — rincian yang masih berlaku ada di berkas ini; potret lama di `../arsip/arsitektur/11-…`)
 
 - **K1 Arah** — satu blok keputusan per layar · urutan blok menyesuaikan keadaan, susunannya tetap ·
   kerumitan di balik `▸` · setiap angka bisa diklik ke sumbernya · bahasa manusia, bukan status DB mentah.
@@ -138,24 +144,29 @@ Alasan: selector E2E hanya boleh patah sekali.
 
 | Butuh | Baca |
 |---|---|
-| aturan penuh tiap kontrak | `docs/arsitektur/11-uiux-ai-cost-dan-privasi.md` |
-| melihat usulan tampilan | `docs/mockups/home-2026-09-24.html` · `uang-...` · `hari-...` (buka di browser) |
-| apa yang dikirim ke AI per menu | `docs/arsitektur/06-ai-generation.md` |
+| **daftar pekerjaan terbuka & urutan eksekusi** | [`PEKERJAAN.md`](PEKERJAAN.md) |
+| apa yang dilarang disentuh + peta kode | `docs/06-ARSITEKTUR-KODE.md` |
+| melihat usulan tampilan | `docs/mockups/home-2026-09-24.html` · `uang-…` · `hari-…` (buka di browser) |
 | cara menulis dokumen tugas | `docs/kerja/TASK-02-format-dokumen-tugas-ai.md` |
-| daftar pekerjaan terbuka | `docs/README.md` §4 |
+| potret lama (jangan dikutip sebagai keadaan sekarang) | `docs/arsip/arsitektur/11-uiux-ai-cost-dan-privasi.md` · `…/06-ai-generation.md` |
 
 ---
 
-## 5. Fakta kode yang mengikat (jangan diukur ulang, hemat token)
+## 5. Fakta kode yang mengikat
 
-> **⚠️ Angka baris berkas BUKAN fakta yang mengikat — anggap semua basi kecuali terukur hari ini.**
-> Riwayat nyata (2026-10-04): `CaptureSession.tsx` tertulis **2.099** di beberapa dokumen, dokumen lain
-> menulis **2.073**; pengukuran sesungguhnya **2.155** — lalu turun ke **1.891** lewat refactor G3-01 dan
-> naik lagi ke **1.901** begitu fiturnya ditulis. Selisih 82 baris itu sudah ada sebelum ada yang mengerjakan.
-> **Selalu ukur sendiri** sebelum memakai angka apa pun: `(Get-Content <berkas>).Count`, lalu perbarui
-> **semua** tempat yang menyebutnya di putaran yang sama. Jangan menyalin angka dari dokumen ini.
-> Terukur terakhir 2026-10-04 (setelah G3-01 L10 — undo hapus topik & tindak lanjut): `CaptureSession.tsx` **1.931** · `MonthlyReport.tsx` **2.351** ·
-> `Settings.tsx` **1.308** · `StudentDetail.tsx` **1.083** · `payments/TagihanTab.tsx` **1.035**.
+> **⚠️ Sejak 2026-10-05, angka MUTAKHIR tidak lagi ditulis di sini.** Dokumen ini memuat **perintah
+> pengukurnya**; hasilnya selalu basi begitu ada commit. Riwayat nyata: `CaptureSession.tsx` pernah
+> tertulis **2.099** di satu dokumen dan **2.073** di dokumen lain, padahal saat itu **2.155**.
+>
+> | Yang mau diketahui | Perintahnya |
+> |---|---|
+> | versi aplikasi | `node -p "require('./package.json').version"` |
+> | jumlah tes & berkas uji | `npm run test:sandbox` (angka resmi = keluaran vitest) |
+> | baris berkas besar | `npm run measure` |
+> | versi skema Dexie | `Select-String -Path src/db/db.ts -Pattern "this\.version\(" \| Select-Object -Last 1` |
+>
+> Kalau sebuah angka **harus** muncul di dokumen (mis. potret sebuah rilis), tulis beserta **tanggal +
+> versinya** — jangan sebagai "keadaan hari ini".
 
 | Fakta | Nilai | Lokasi |
 |---|---:|---|
@@ -175,15 +186,25 @@ Alasan: selector E2E hanya boleh patah sekali.
 
 ## 6. Verifikasi — perintah tetap, jalankan dari `les-ko-lui/`
 
+> **Di mesin ini (sandbox DSH) perintah yang WAJIB dipakai adalah yang ber-`sandbox`.** `npm test` polos
+> tidak bisa start di sini (Vite memanggil `child_process.exec("net use")` → `spawn EPERM`). Aturan
+> lengkap + shim: §6.1. Perintah tanpa `sandbox` hanya berlaku di mesin/CI biasa.
+
 ```powershell
-npx tsc -b        # harapan: tanpa keluaran
-npx eslint src    # harapan: tanpa keluaran
-npm test          # harapan: 561+ lulus, 0 gagal
-npm run build     # harapan: built + dist/sw.js
-npm run e2e       # harapan: lulus
-npm run e2e:uiux  # guard metrik UI (G1-11) — 7 layar × 2 project; BUKAN bagian CI utama (Q10 = A),
-                  # letak RESMI spec = e2e-uiux/ + playwright.uiux.config.ts (Q23/A19)
+.\node_modules\.bin\tsc.cmd -b                              # harapan: tanpa keluaran (jangan `npx`: EPERM _cacache)
+.\node_modules\.bin\eslint.cmd src --max-warnings 0          # harapan: tanpa keluaran
+npm run test:sandbox                                        # harapan: lulus, 0 gagal   ← ini yang resmi di sini
+node scripts/measure.mjs                                    # cetak jumlah tes, baris berkas besar, versi
+npm run build                                               # harapan: built + dist/sw.js (butuh shim, §6.1)
+npm run check:docs                                          # tautan md + klaim versi/angka di dokumen
+npm run e2e                                                 # harapan: lulus (butuh spawn browser → minta eskalasi)
+npm run e2e:uiux                                            # guard metrik UI — 7 layar × 2 project;
+                                                            # BUKAN CI utama (Q10 = A); letak RESMI e2e-uiux/ (Q23/A19)
 ```
+
+**Jangan menyalin hasil `npm run test:sandbox` ke dokumen.** Tulis perintahnya. Angka yang disalin
+selalu basi — terukur 2026-10-05: jumlah tes pernah tertulis di **18 tempat / 13 berkas**, dan hanya
+**3** yang benar. `npm run check:docs` kini menolak klaim versi yang salah di kepala dokumen aktif.
 
 Penghitung khusus (angka wajib dilaporkan sebelum → sesudah langkah):
 
@@ -222,40 +243,65 @@ Get-ChildItem -Recurse src\screens -Include *.tsx -File |
 tes kontras `engagementContrast.test.ts` gagal **karena warna memang diubah** → perbaiki pasangan
 warnanya di sumber, **jangan** matikan tesnya.
 
-### 6.1 Kalau dijalankan di sandbox (workaround, BUKAN default)
+### 6.1 Lingkungan terbatas (sandbox DSH) — INILAH DEFAULT DI MESIN INI
 
-Di sandbox yang melarang proses anak dengan pipa stdio, `npm test` **tidak bisa start**:
+> **Status aturan ini: resmi, bukan lagi "workaround".** Diputuskan pemilik 2026-10-05 (Q-15 opsi A).
+> Alasan: sebelum ini setiap sesi baru harus menemukan ulang jalan keluarnya, dan §6 menyuruh
+> perintah yang pasti gagal.
+
+**Gejalanya.** Di sandbox yang melarang proses anak dengan pipa stdio, `npm test` **tidak bisa start**:
 Vite (Windows) memanggil `child_process.exec("net use")` di `optimizeSafeRealPathSync()` → `spawn EPERM`,
-lalu pool `forks` milik vitest menggantung. Pakai skrip ini sebagai gantinya:
+lalu pool `forks` milik vitest menggantung. Gejala yang sama muncul untuk `npm run build`.
+
+**Cara yang berlaku (urutan ini):**
 
 ```powershell
+# 1) Shim kecil di TEMP (BUKAN di repo): menjawab exec/execFile dengan galat EPERM tanpa spawn —
+#    persis perilaku Vite saat "net use" gagal (peta drive jaringan dibiarkan kosong).
+#    $env:TEMP berubah tiap sesi, jadi shim HILANG antar-sesi → buat ulang kalau gagal EPERM.
+$shim = Join-Path $env:TEMP "dsh-no-exec.cjs"
+@'
+const cp = require("child_process");
+function epErr() { const e = new Error("spawn EPERM"); e.code = "EPERM"; return e; }
+const oE = cp.exec;
+cp.exec = function (cmd, opts, cb) {
+  if (typeof opts === "function") { cb = opts; opts = {}; }
+  if (typeof cb === "function") { process.nextTick(() => cb(epErr(), "", "")); return { on() {}, kill() {} }; }
+  return oE.apply(this, arguments);
+};
+const oF = cp.execFile;
+cp.execFile = function (file, args, opts, cb) {
+  if (typeof args === "function") { cb = args; args = []; opts = {}; }
+  else if (typeof opts === "function") { cb = opts; opts = {}; }
+  if (typeof cb === "function") { process.nextTick(() => cb(epErr(), "", "")); return { on() {}, kill() {} }; }
+  return oF.apply(this, arguments);
+};
+'@ | Set-Content -Encoding utf8 $shim
+
+# 2) Pakai untuk tes DAN build
+$env:NODE_OPTIONS="--require $shim"
 npm run test:sandbox      # = vitest run --pool=threads --maxWorkers=2
+npm run build
 ```
 
-Kalau Vite masih berhenti di `spawn EPERM` sebelum tes jalan, tambahkan shim di **direktori temp**
-(bukan di repo) yang menjawab `exec` seperti cabang gagal milik Vite, lalu jalankan lagi:
+**Yang tetap butuh eskalasi sandbox** (bukan bisa disiasati): `npm run e2e`, `npm run e2e:uiux`,
+`npx playwright test …` (browser + dev server harus di-spawn), dan `git push` (kredensial Windows /
+schannel). Bukti push yang sah: baris keluaran `abc..def  main -> main` **dan** `git status -sb` tanpa
+penanda ahead/behind — `git fetch` tetap gagal meski di-eskalasi, jadi jangan menunggu fetch.
 
-```powershell
-# 1) buat sekali: %TEMP%\dsh-no-exec.cjs — override child_process.exec/execFile agar mengembalikan
-#    galat EPERM tanpa spawn (perilaku Vite saat "net use" gagal: peta drive jaringan dibiarkan kosong)
-# 2) pakai:
-$env:NODE_OPTIONS="--require $env:TEMP\dsh-no-exec.cjs"; npm run test:sandbox
-```
-
-`npm run e2e` (Playwright) **tetap butuh akses lebih luas**: browser dan dev server harus
-di-spawn. Di sandbox, jalankan dengan eskalasi, atau lewati dan catat di §8 tugas terkait —
-**jangan** mengubah `vite.config.ts` atau `playwright.config.ts` demi sandbox.
+**Jangan** mengubah `vite.config.ts`, `playwright.config.ts`, atau skrip di `package.json` demi sandbox
+(config = keputusan pemilik / Tier 3).
 
 ### 6.2 Smart Gating — 4 tier (revisi 2026-10-03)
 
-**Kenapa 4 tier:** 3 tier lama terlalu gemuk — T2 & T3 sama-sama jalankan 691 tes, padahal blast radius berbeda. 4 tier menurunkan ~40% waktu gate tanpa mengurangi cakupan.
+**Kenapa 4 tier:** 3 tier lama terlalu gemuk — T2 & T3 sama-sama menjalankan seluruh suite, padahal blast radius berbeda. 4 tier menurunkan ~40% waktu gate tanpa mengurangi cakupan.
 
 | Tier | Kondisi | Gate | Durasi |
 |---|---|---|---|
-| T0 | Dokumen saja (docs/**, *.md) | `node scripts/check-md-links.mjs` | ~2 dtk |
+| T0 | Dokumen saja (`docs/**`, `*.md`) | `npm run check:docs` | ~2 dtk |
 | T1 | <3 berkas, tidak sentuh infra | `tsc -b` · `eslint src` · `vitest <berkas terkait>` | ~15 dtk |
-| T2 | Sentuh src/components/lib/db/hooks ATAU layar dipakai >3 layar | T1 + smoke suite (6 tes) + `e2e:uiux` bila menyentuh UI | ~45 dtk |
-| T3 | Tugas terakhir gelombang ATAU sentuh package.json/config ATAU blast radius seluruh aplikasi (token/ui/**) | T2 + full suite (691) + playwright semua spec | ~5 mnt |
+| T2 | Sentuh `src/components`/`lib`/`db`/`hooks` ATAU layar dipakai >3 layar | T1 + smoke suite (§ di bawah) + `e2e:uiux` bila menyentuh UI | ~45 dtk |
+| T3 | Tugas terakhir gelombang ATAU sentuh `package.json`/config ATAU blast radius seluruh aplikasi (token/`ui/**`) | T2 + **seluruh** suite + playwright semua spec | ~5 mnt |
 
 **Aturan wajib (7 butir):**
 1. Tentukan tier SEBELUM mulai, tulis `Tier: X — alasan: …` di laporan. Tier tanpa alasan = gate tidak sah.
@@ -263,10 +309,18 @@ di-spawn. Di sandbox, jalankan dengan eskalasi, atau lewati dan catat di §8 tug
 3. Naik tier di tengah jalan = wajar; turun = tidak. Tandai langkah baru "BARU".
 4. T3 = tugas terakhir gelombang ATAU mengubah package.json/scripts/config ATAU blast radius seluruh aplikasi (mis. token/primitif ui/** yang dipakai hampir semua layar). Selain itu T2 maksimum.
 5. `npm run e2e:uiux` tidak berubah — tetap dijalankan pada tugas yang menyentuh metrik UI.
-6. Batch 📦 — tugas kecil boleh digabung 1 putaran. Terdaftar di ROADMAP.md.
+6. Batch 📦 — tugas kecil boleh digabung 1 putaran. Terdaftar di PEKERJAAN.md §2.
 7. Tidak berlaku surut. Gelombang 1 tuntas di gate penuh; tidak diuji ulang.
 
-**Smoke suite = 6 tes inti:** engagementContrast · captureSessionHelpers · repos · backup · finance · settingsRepo.
+**Smoke suite = berkas inti berikut.** Perintahnya (jalankan dari `les-ko-lui/`, dengan shim §6.1):
+
+```powershell
+npm run test:sandbox -- engagementContrast captureSessionHelpers repos backup finance settingsRepo
+```
+
+(Urutan argumen tidak penting; vitest mencocokkan potongan nama berkas. Perintah ini **menjaring lebih
+dari 6 berkas** — terukur 2026-10-05: **8 berkas / 177 tes lulus** — karena nama seperti `repos`
+juga cocok dengan `captureDraftRepo`. Itu wajar: yang penting cepat dan mencakup inti.)
 
 **Kaidah pemutus:** kalau tugas menyentuh berkas §2.1 → tugasnya salah lingkup, bukan soal tier. Berhenti dan lapor.
 
@@ -342,3 +396,4 @@ Jangan menyalin isi berkas, jangan menjelaskan dokumen, jangan merangkum tugas.
 | 2026-10-04 | **A17 (Q44)** — cakupan K3 §6 dipersempit: `src/screens/payments/**` **dikecualikan** karena hanya bisa dirender setelah gerbang penuh `Payments.tsx` lolos; residual 109 baris diterima & didaftarkan di §5 | — |
 | 2026-10-04 | **A18 (Q45)** — definisi tap target K4 ditegaskan: **≥44 px hanya untuk kontrol utama** (aksi primer, nav, ikon aksi); chip & kontrol sekunder **24–36 px diterima** (WCAG 2.5.8 ambang keras 24 px). Residual 52 kontrol (proksi statis `g2-06-scan.cjs`) ditutup sebagai pengecualian tertulis | — |
 | 2026-10-04 | **A19 (Q23)** — letak **resmi** spec guard metrik UI: `e2e-uiux/` + `playwright.uiux.config.ts` (`testDir: "./e2e-uiux"`), dijalankan lewat `npm run e2e:uiux`. DoD G1-11 yang menyebut `e2e/uiux-metrics.spec.ts` **ditandai usang**; `playwright.config.ts` tidak disentuh. Konsisten dengan Q10 = A (guard UI bukan bagian CI utama) | — |
+| 2026-10-05 | **A20 — penataan dokumentasi (keputusan pemilik Q-9…Q-17 opsi A).** (a) **Angka mutakhir tidak ditulis di dokumen**: §5 diganti tabel perintah pengukur; alat baru `npm run measure` + `npm run check:docs` (menolak klaim versi/angka yang salah; `check-md-links` kini keluar non-nol saat ada tautan rusak — sebelumnya selalu 0). (b) **Lingkungan sandbox jadi resmi** (§6.1): `npm run test:sandbox` + shim `dsh-no-exec.cjs` adalah perintah default di mesin ini, bukan "workaround". (c) **Seri `arsitektur/01`–`11` diarsipkan**; penggantinya `docs/06-ARSITEKTUR-KODE.md` (tanpa angka) — penengah konflik §2.3 tidak lagi dokumen yang paling basi. (d) **[`PEKERJAAN.md`](PEKERJAAN.md) = satu-satunya daftar pekerjaan**; `ROADMAP.md` + §4 `docs/README.md` diarsipkan. (e) **Aturan arsip berlaku surut**: dokumen tuntas/usang pindah ke `../arsip/` (GELOMBANG-1, PROMPT-LANJUTAN-G3, CHECKLIST-VISUAL-2026-10-04, dan isi lama §4). (f) §0 diperbaiki: panjang berkas sebenarnya (**bukan** ±150 baris) dan urutan baca **satu** (CHEATSHEET sebelum TASK-XX) | v1.90.0 |

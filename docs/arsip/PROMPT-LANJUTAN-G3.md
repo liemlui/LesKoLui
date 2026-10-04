@@ -3,7 +3,7 @@
 > **📦 DIARSIPKAN 2026-10-05 — prompt sekali pakai yang sudah BASI.** Angka di dalamnya (jumlah tes,
 > baris berkas, commit terakhir) adalah potret sesi 2026-10-04; jangan dipakai sebagai fakta hari ini.
 > Penggantinya: [`../kerja/ATURAN-AI.md`](../kerja/ATURAN-AI.md) (kontrak) +
-> [`../kerja/ROADMAP.md`](../kerja/ROADMAP.md) (daftar pekerjaan). Disimpan hanya sebagai contoh
+> [`../kerja/ROADMAP.md`](ROADMAP.md) (daftar pekerjaan). Disimpan hanya sebagai contoh
 > bentuk "prompt serah-terima antar-sesi".
 
 > Tempel **seluruh** isi berkas ini sebagai pesan pertama di chat DSH baru.

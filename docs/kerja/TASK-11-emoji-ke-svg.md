@@ -2,7 +2,7 @@
 
 > **STATUS:** **diputuskan & dikerjakan** (opsi A, keputusan pemilik 2026-10-03) · **PEMILIK:** agen AI
 > **DIBUAT:** 2026-10-03 · **DIPERBARUI:** 2026-10-03 · **BASELINE:** v1.88.0
-> **MERUPAKAN:** lanjutan **G2-09** (bukan tugas baru di daftar 22) — ROADMAP tetap 22 tugas
+> **MERUPAKAN:** lanjutan **G2-09** (bukan tugas baru di daftar 22) — PEKERJAAN tetap 22 tugas
 > **INDUK:** [`GELOMBANG-2.md`](../arsip/GELOMBANG-2.md) §G2-09 · **ATURAN:** [`ATURAN-AI.md`](ATURAN-AI.md)
 
 ## 0. DoD yang berlaku sekarang (menggantikan rumusan lama)
