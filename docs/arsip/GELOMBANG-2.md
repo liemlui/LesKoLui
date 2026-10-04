@@ -14,7 +14,7 @@
 
 ## 0. Cara pakai
 
-Sama seperti [`GELOMBANG-1.md`](../kerja/GELOMBANG-1.md) §0: satu langkah per putaran, laporan 5 baris, dan
+Sama seperti [`GELOMBANG-1.md`](GELOMBANG-1.md) §0: satu langkah per putaran, laporan 5 baris, dan
 **jangan mengakali tes**.
 
 **Gate tidak lagi sama untuk semua tugas — mulai `G2-01` berlaku SMART GATING**

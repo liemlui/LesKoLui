@@ -360,7 +360,7 @@ Tiga gelombang disusun agar **tidak ada pekerjaan yang dikerjakan dua kali**: Ge
 | G3-09 | **Pengaturan lanjutan**: sticky save + guard, ringkasan status + urutan section, progres restore terpadu, tombol Salin sandi, dialog internal, a11y | `Settings.tsx`, `components/PwaPrompts.tsx`, `PinConfirmModal.tsx` | G1-09 | badge "Belum disimpan" terlihat tanpa scroll; restore Drive berprogres; tidak ada `confirm()`/`prompt()` native | M | S-02, S-04, S-05, S-06, S-11, S-12, S-13 |
 | G3-10 | **Reset total + jalur set PIN ulang** (keputusan #3) | `Settings.tsx:591-605,1127-1139` | G3-09 | teks menyebut PIN/kunci AI/logo hilang; 2 lapis dialog internal + PIN; setelah reset muncul ajakan memasang PIN | M | S-01(b), #3 |
 
-> **Dokumen tugasnya:** [`kerja/GELOMBANG-1.md`](../kerja/GELOMBANG-1.md) · [`../kerja/ROADMAP.md`](../kerja/ROADMAP.md) · [`../kerja/ROADMAP.md`](../kerja/ROADMAP.md).
+> **Dokumen tugasnya:** [`kerja/GELOMBANG-1.md`](GELOMBANG-1.md) · [`../kerja/ROADMAP.md`](../kerja/ROADMAP.md) · [`../kerja/ROADMAP.md`](../kerja/ROADMAP.md).
 > **Dua catatan saat menyusunnya:** (1) **Q12** (§8) — posisi `G3-04` vs `G3-05` menyimpang sementara dari `ATURAN-AI` §4; (2) 11 temuan modul **M** + **B-02** tidak punya tugas eksplisit di tabel di atas, sehingga dimasukkan ke `G3-06` dan `G2-08` **tanpa** menambah tugas baru.
 
 ---

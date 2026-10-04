@@ -11,7 +11,7 @@
 
 ## 0. Cara pakai
 
-Sama seperti [`GELOMBANG-1.md`](../kerja/GELOMBANG-1.md) §0 (satu putaran, gate wajib, laporan 5 baris).
+Sama seperti [`GELOMBANG-1.md`](GELOMBANG-1.md) §0 (satu putaran, gate wajib, laporan 5 baris).
 Tambahan khusus gelombang ini:
 
 1. **Lima tugas punya bagian "0. Refactor terbatas"** (G3-01, G3-02, G3-05, G3-06, G3-09). Kerjakan bagian 0

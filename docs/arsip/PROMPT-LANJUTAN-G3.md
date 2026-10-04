@@ -1,5 +1,11 @@
 # PROMPT — lanjutan finalisasi Les Ko Lui (Gelombang 3, mulai G3-01 sisa → G3-10)
 
+> **📦 DIARSIPKAN 2026-10-05 — prompt sekali pakai yang sudah BASI.** Angka di dalamnya (jumlah tes,
+> baris berkas, commit terakhir) adalah potret sesi 2026-10-04; jangan dipakai sebagai fakta hari ini.
+> Penggantinya: [`../kerja/ATURAN-AI.md`](../kerja/ATURAN-AI.md) (kontrak) +
+> [`../kerja/ROADMAP.md`](../kerja/ROADMAP.md) (daftar pekerjaan). Disimpan hanya sebagai contoh
+> bentuk "prompt serah-terima antar-sesi".
+
 > Tempel **seluruh** isi berkas ini sebagai pesan pertama di chat DSH baru.
 > Dibuat **2026-10-04** dari sesi yang menuntaskan Gelombang 2 (v1.88.0 → v1.89.2) **dan** memulai
 > Gelombang 3: refactor G3-01 + dua langkah efisiensi Catat Sesi → rilis **v1.90.0** + satu perbaikan bug.

@@ -1,5 +1,10 @@
 # Checklist visual — v1.89.1 (pemeriksaan manual pemilik)
 
+> **📦 DIARSIPKAN 2026-10-05 — sudah diperiksa pemilik, versinya pun sudah lewat.** Checklist ini
+> memotret **v1.89.1**; hasil & permintaan lanjutannya sudah dikerjakan di v1.90.0. Bentuk checklist
+> manual yang **masih hidup**: [`../README.md`](../README.md) §4.3 (alur Catat Sesi, 12 kotak) dan §4.4
+> (hasil pemeriksaan visual).
+
 > **Untuk siapa:** pemilik aplikasi · **Dibuat:** 2026-10-04 · **Diperiksa:** v1.89.1 (commit `85182fd`)
 > **Kenapa manual:** gate otomatis hanya mengukur kontras, ukuran sentuh, dan emoji. Ia **tidak** menilai
 > bentuk ikon, rasa, dan keterbacaan. Empat belas titik di bawah ini butuh mata manusia.
