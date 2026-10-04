@@ -16,7 +16,6 @@ import SignaturePad from "../components/SignaturePad";
 import { todayWIB, dayLabel } from "../lib/format";
 import { toggleArrayItem } from "../lib/arrays";
 import { ENGAGEMENT_LEVELS } from "../lib/engagement";
-import { CURRICULUM_META } from "../lib/ibSubjects";
 import { generateNote, generateEngagementNarrative } from "../lib/sessionTemplates";
 import { engagementLevelClass } from "../lib/toneStyles";
 import { BEHAVIOR_TAGS, RESPONSE_TAGS } from "../lib/responseTaxonomy";
@@ -107,7 +106,6 @@ export default function CaptureSession() {
     subjects, studentSubjects, student: currentStudent,
     recentSessions: studentRecentSessions,
   });
-  const [showIBPicker,   setShowIBPicker]    = useState(false);
   const [ibTab,          setIbTab]           = useState<"MYP" | "DP">("MYP");
   const [ibCustom,       setIbCustom]        = useState("");
   const [shortNote,      setShortNote]       = useState("");
@@ -360,7 +358,7 @@ export default function CaptureSession() {
   const toggleSubject = (s: string) => setSubjects((prev) => toggleArrayItem(prev, s));
 
   const resetForm = () => {
-    setSubjects([]); setShowIBPicker(false); setIbCustom("");
+    setSubjects([]); setIbCustom("");
     setShortNote(""); setPhoto(undefined);
     resetAll(); setPredictedGrade(""); setTopics([]); setTopicUnits({}); setTopicSearch(""); setTopicResponse(null);
     setShowBrowse(false); setOpenUnit(null);
@@ -966,35 +964,45 @@ export default function CaptureSession() {
       {currentStep === 2 && (
         <div className="px-4 space-y-4">
 
-          {/* Mapel */}
-          <div>
+          {/* Mapel — chip dari profil murid + daftar mapel ejaan datar.
+              Permintaan pemilik 2026-10-04 (Q-2 opsi A): dulu satu mapel butuh
+              3 ketukan (buka panel → pilih → `Selesai`) dan dua mapel 5 ketukan
+              karena panelnya harus dibuka ulang. Sekarang tidak ada panel. */}
+          <section>
             <label className="label">
               📖 Mata Pelajaran
               {studentSubjects.length > 0
                 ? <span className="text-[var(--ink-danger)] ml-1">*</span>
                 : <span className="text-[var(--ink-muted)] font-normal text-xs ml-1">(opsional)</span>}
             </label>
-            <div className="flex flex-wrap gap-2 mt-1">
-              {studentSubjects.map((s) => (
-                <button key={s} type="button"
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                    subjects.includes(s) ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]" : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)]"}`}
-                  onClick={() => toggleSubject(s)}>{s}</button>
-              ))}
-              {subjects.filter((s) => !studentSubjects.includes(s)).map((s) => (
-                <button key={s} type="button"
-                  className="px-3 py-1.5 rounded-full text-sm font-medium border bg-[var(--accent-solid)] text-[var(--on-strong)] border-[var(--border-accent)] flex items-center gap-1"
-                  onClick={() => setSubjects((prev) => prev.filter((x) => x !== s))}>
-                  {s} <span className="text-[var(--ink-purple)] text-xs"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></span>
-                </button>
-              ))}
-              <button type="button"
-                className="px-3 py-1.5 rounded-full text-sm font-medium border bg-[var(--surface-strong)] text-[var(--ink-muted)] border-dashed border-[var(--border)] hover:border-[var(--border-accent)] hover:text-[var(--ink-purple)] transition-colors"
-                onClick={() => { setShowIBPicker(true); setIbTab("MYP"); }}>
-                + Tambah Mapel{currentStudent?.curriculum ? ` (${CURRICULUM_META[currentStudent.curriculum].shortLabel})` : ""}
-              </button>
+            <div className="mt-1 rounded-xl border border-[var(--border)] overflow-hidden bg-[var(--surface-strong)]">
+              {studentSubjects.length > 0 && (
+                <div className="flex flex-wrap gap-2 p-4 pb-0">
+                  {studentSubjects.map((s) => (
+                    <button key={s} type="button"
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                        subjects.includes(s) ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]" : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)]"}`}
+                      onClick={() => toggleSubject(s)}>{s}</button>
+                  ))}
+                </div>
+              )}
+              {/* Daftar mapel selalu terlihat: kalau murid sudah punya mapel di
+                  profil, kelompok yang memuatnya diberi tanda ✓ oleh komponen
+                  pemilih itu sendiri, jadi tidak ada chip kembar. */}
+              <SubjectPickerSheet
+                variant="inline"
+                student={currentStudent}
+                subjects={subjects}
+                setSubjects={setSubjects}
+                onClose={() => {}}
+                ibTab={ibTab}
+                setIbTab={setIbTab}
+                ibCustom={ibCustom}
+                setIbCustom={setIbCustom}
+                onToggleSubject={toggleSubject}
+              />
             </div>
-          </div>
+          </section>
 
           {/* Topik — search + multi-select */}
           <div>
@@ -1800,22 +1808,8 @@ export default function CaptureSession() {
         />
       )}
 
-      {/* ══════════════════════════════════════════
-          SUBJECT PICKER MODAL
-          ══════════════════════════════════════════ */}
-      {showIBPicker && (
-        <SubjectPickerSheet
-          student={currentStudent}
-          subjects={subjects}
-          setSubjects={setSubjects}
-          onClose={() => setShowIBPicker(false)}
-          ibTab={ibTab}
-          setIbTab={setIbTab}
-          ibCustom={ibCustom}
-          setIbCustom={setIbCustom}
-          onToggleSubject={toggleSubject}
-        />
-      )}
+      {/* Pemilih mapel kini bagian dari langkah 2 (bentuk `inline`), bukan panel
+          dari bawah — lihat komentar di blok "Mapel" langkah 2. */}
 
       {showCloseOut && coSessionData && currentStudent && (
         <CloseOutSheet
