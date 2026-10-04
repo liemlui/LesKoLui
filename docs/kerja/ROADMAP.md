@@ -45,7 +45,7 @@
 
 | ID | Judul | Tier | Dep | Berkas inti | Est | Status |
 |---|---|---|---|---|---|---|
-| G3-01 | Catat Sesi (refactor + C) | T3 | G2-01, G2-06 | CaptureSession.tsx, captureSession/* | L | ⬜ — **＋ permintaan pemilik 2026-10-04:** alur dibuat **lebih cepat & sederhana** dengan **mengefisienkan langkah & pemilihan** (*bukan* mengisi otomatis dari sesi lalu, dan **bukan** mengurangi jumlah langkah — `STEP_META` tetap 6) |
+| G3-01 | Catat Sesi (refactor + C) | T3 | G2-01, G2-06 | CaptureSession.tsx, captureSession/* | L | 🟨 **refactor tuntas 2026-10-04 (commit `925e4ff`)** — `CaptureSession.tsx` **2.155 → 1.891** (target ≤1.900 tercapai; Langkah 4 → `captureSession/ResponseStep.tsx`, modal mapel → `SubjectPickerSheet.tsx`); gate: tsc ✓ · eslint ✓ · 698/698 tes ✓ · build ✓ · `e2e` 78 lulus/6 skip/0 gagal · `e2e:uiux` 56/0/0 · md-links 0 rusak. **Fitur C-01…C-13 + TASK-06 belum dikerjakan** (urutan §10 aturan 5: refactor → verifikasi hijau → fitur; langkah berikutnya = hitung ketukan per langkah, lalu Q-2 bentuk pemilih mapel) — **＋ permintaan pemilik 2026-10-04:** alur dibuat **lebih cepat & sederhana** dengan **mengefisienkan langkah & pemilihan** (*bukan* mengisi otomatis dari sesi lalu, dan **bukan** mengurangi jumlah langkah — `STEP_META` tetap 6) |
 | G3-02 | Keuangan (refactor + K) | T3 | G2-04 | TagihanTab.tsx, useInvoiceFilters.ts | L | ⬜ |
 | G3-03 | Redesign pipeline | T2 | G3-02 | FinancePipelineBoard.tsx, RingkasanTab.tsx | L | ⬜ |
 | G3-04 | Kontrak AI (TASK-07) | T3 | G1-01, G2-01 | useAiAction, AiCostModal, Settings | L | ⬜ |

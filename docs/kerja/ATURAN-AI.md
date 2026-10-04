@@ -12,8 +12,8 @@
 1. Baca berkas ini **seluruhnya** (±150 baris). Ini satu-satunya bacaan wajib.
 2. Buka **hanya satu** `TASK-XX` sesuai pekerjaan aktif, dan **hanya langkah yang sedang dikerjakan**.
 3. **Jangan** membaca `TASK-01`, arsip, atau seluruh `arsitektur/`. Rujuk §5 kalau butuh.
-4. **Jangan** membaca berkas >500 baris secara utuh (`CaptureSession.tsx` 2.099,
-   `MonthlyReport.tsx` 2.097, `Settings.tsx` 1.118, `StudentDetail.tsx` 1.037).
+4. **Jangan** membaca berkas >500 baris secara utuh (`CaptureSession.tsx` 1.891 — turun dari 2.155 lewat refactor G3-01 2026-10-04,
+   `MonthlyReport.tsx` 2.351, `Settings.tsx` 1.308, `StudentDetail.tsx` 1.083).
    Pakai **jangkar** yang disebut di tugas: cari teksnya, baca ±40 baris di sekitarnya.
 5. **Satu langkah per putaran.** Verifikasi → lapor → berhenti. Jangan lanjut sendiri.
 6. **Jangan menambah berkas baru** selain yang disebut kontrak, tanpa persetujuan.

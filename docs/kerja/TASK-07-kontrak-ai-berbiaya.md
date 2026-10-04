@@ -55,7 +55,7 @@ bulan ini?"*, dan tidak ada pagar belanja.
 | `src/components/AiCostModal.tsx` | 50 | modal biaya (nama ekspor: `AiCostModal`, **named**) |
 | `src/screens/captureSession/AiCostConfirmModal.tsx` | — | modal biaya kedua (default export) |
 | `src/screens/captureSession/useAiFill.ts` | — | 3 titik pemakaian |
-| `src/screens/CaptureSession.tsx` | 2.099 | 8 kemunculan (termasuk impor) |
+| `src/screens/CaptureSession.tsx` | 2.099 → **1.891** (terukur 2026-10-04, setelah refactor G3-01) | 8 kemunculan (termasuk impor) |
 | `src/screens/MonthlyReport.tsx` | 2.097 | 3 kemunculan |
 | `src/screens/payments/RingkasanTab.tsx` | 751 | 2 kemunculan |
 | `src/lib/aiClient.ts` | — | 8 estimator + pemanggil API |

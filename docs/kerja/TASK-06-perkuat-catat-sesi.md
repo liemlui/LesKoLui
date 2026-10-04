@@ -61,7 +61,7 @@ di luar wizard ada **tiga jalur** untuk mengelola sesi yang sama (`Catat`, `Edit
 | Ukuran | Sekarang | Target |
 |---|---:|---:|
 | Jumlah langkah | 6 (`STEP_META`) | **6** |
-| Baris `CaptureSession.tsx` | 2.099 (setelah `TASK-01`; awalnya 2.591) | turun setelah ekstraksi, bukan karena langkah dikurangi |
+| Baris `CaptureSession.tsx` | **1.891** (terukur 2026-10-04, setelah refactor G3-01; langkah 4 wizard & modal pemilih mapel pindah ke `captureSession/ResponseStep.tsx` + `SubjectPickerSheet.tsx`) | turun setelah ekstraksi, bukan karena langkah dikurangi |
 | Titik pemanggil "Catat" | `Home.tsx` (`onCapture`), `AttentionInbox.tsx`, `SessionPill` | satu jalur dengan `scheduleId` |
 | Modal pengelolaan sesi | `EditSessionModal` + `ResolveMissedSessionModal` | 1 sheet |
 | Target sentuh chip teks | 38–42 px (sengaja dibiarkan, `03-PLAYBOOK` §5.3) | ≥44 px untuk kontrol utama |
@@ -280,7 +280,7 @@ langkah tetap 6; alur tanpa `scheduleId` tidak berubah.
 
 ## 9. Progres
 
-- [ ] **L1 — Satu langkah satu layar.** Keenam langkah diperiksa di 390px & 430px: ___
+- [ ] **L1 — Satu langkah satu layar.** Keenam langkah diperiksa di 390px & 430px: ___ *(prasyarat refactor sudah beres — `CaptureSession.tsx` 1.891, 2026-10-04)*
 - [ ] **L2 — Rasa (ukuran & target sentuh).** Kontrol <44px yang tersisa: ___
 - [ ] **L3 — Draf terlihat.** 3 tes draf lama lulus: ya/tidak
 - [ ] **L4 — Sheet Kelola sesi.** Enam aksi bisa dijalankan: ___ dari 6
@@ -294,3 +294,4 @@ langkah tetap 6; alur tanpa `scheduleId` tidak berubah.
 |---|---|---|---|
 | 2026-09-25 | Dibuat; wizard **dipertahankan** sesuai keputusan pemilik | v1.75.1 | `todo` |
 | 2026-10-01 | Amandemen **Q2**: tombol `Simpan Sesi` aktif di langkah 5 & 6; `STEP_META` tetap 6; langkah 6 tetap menawarkan Bukti; +2 tes baru (L7) | v1.79.3 | `todo` |
+| 2026-10-04 | **Prasyarat refactor (Q9/A12) selesai — L1–L7 belum.** Ekstraksi G3-01: `CaptureSession.tsx` **2.155 → 1.891** (≤1.900 tercapai; badan Langkah 4 → `captureSession/ResponseStep.tsx`, modal pemilih mapel → `captureSession/SubjectPickerSheet.tsx`). Terbukti murni pemindahan: 159 vs 159 baris identik (langkah 4) dan 126 vs 126 baris dengan 10 beda yang semuanya penggantian identifier (modal). `STEP_META` tidak disentuh. Gate: tsc ✓ · eslint ✓ · **698/698 tes** ✓ · build ✓ · `e2e` 78 lulus/6 skip/0 gagal · `e2e:uiux` 56 lulus/0 gagal · md-links 0 rusak | v1.89.2 | commit `925e4ff` — **fitur L1–L7 putaran berikutnya** |
