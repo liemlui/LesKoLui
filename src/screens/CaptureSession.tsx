@@ -45,7 +45,7 @@ import { useToastCtx } from "../components/ToastProvider";
 import type { CaptureDraft, CaptureDraftForm } from "../db/types";
 import { MOODS } from "../lib/moods";
 import {
-  SITUASI_CHIPS, ENGAGEMENT_FLAG_META, STEP_META, TASK_BAR_H, isValidStep,
+  SITUASI_CHIPS, ENGAGEMENT_FLAG_META, STEP_META, TASK_BAR_H, isValidStep, canSaveFromStep,
 } from "./captureSession/constants";
 import type { StepMeta, StepNum } from "./captureSession/constants";
 import {
@@ -642,6 +642,20 @@ export default function CaptureSession() {
     setMessage(null);
     if (currentStep < 6) setCurrentStep((s) => (s + 1) as StepNum);
     else handleSave();
+  };
+
+  /**
+   * Q2 (keputusan pemilik 2026-10-01): sesi boleh disimpan dari langkah 5 —
+   * langkah 6 (Bukti) tetap opsional dan tetap menawarkan foto & tanda tangan.
+   * Jumlah langkah tidak berubah; yang ditambahkan hanya jalan menyimpan lebih
+   * awal. Validasi langkah ini dipakai apa adanya supaya pesan galat dan fokus
+   * kolomnya sama dengan jalur "Lanjut →".
+   */
+  const saveFromStep5 = async () => {
+    const err = validateCurrentStep();
+    if (err) { showValidationError(err.text, err.focusId); return; }
+    setMessage(null);
+    await handleSave();
   };
 
   const tutorName = settings?.tutorProfile?.name || "Ko Lui";
@@ -1834,6 +1848,15 @@ export default function CaptureSession() {
               <button onClick={skipStep}
                 className="flex items-center gap-1 px-4 py-2.5 rounded-xl border border-[var(--border)] text-[var(--ink-muted)] font-semibold text-sm hover:bg-[var(--surface)] transition-colors flex-shrink-0">
                 Lewati
+              </button>
+            )}
+            {/* Q2: di langkah 5 sesi sudah boleh disimpan tanpa melewati Bukti.
+                Di langkah 6 tombol utamanya sendiri sudah "Simpan Sesi", jadi
+                tombol ini tidak diulang di sana. */}
+            {currentStep === 5 && canSaveFromStep(currentStep) && (
+              <button onClick={saveFromStep5} disabled={saving}
+                className="flex items-center gap-1 px-4 py-2.5 rounded-xl border border-[var(--border-success)] bg-[var(--bg-success)] text-[var(--ink-success)] font-bold text-sm transition-colors disabled:opacity-50 flex-shrink-0">
+                Simpan Sesi
               </button>
             )}
             <button onClick={goNext} disabled={saving}

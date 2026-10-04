@@ -6,6 +6,7 @@ import {
 } from "../screens/captureSession/helpers";
 import {
   DURATIONS, STEP_META, isValidStep, ENGAGEMENT_FLAG_META, SITUASI_CHIPS,
+  SAVE_STEPS, canSaveFromStep,
 } from "../screens/captureSession/constants";
 import { PRIMARY_ENGAGEMENT_FLAGS, SECONDARY_ENGAGEMENT_FLAGS } from "../screens/captureSession/useEngagement";
 
@@ -273,6 +274,34 @@ describe("konstanta wizard", () => {
     expect(isValidStep(2.5)).toBe(false);
     expect(isValidStep("3")).toBe(false);
     expect(isValidStep(undefined)).toBe(false);
+  });
+
+  /**
+   * Q2 (L7): sesi boleh disimpan dari langkah 5 **dan** 6.
+   *
+   * Kenapa dijaga tes: sebelum 2026-10-05 aturan ini hanya hidup di dokumen,
+   * sedangkan `goNext()` menyimpan **hanya** di langkah 6 — jadi tutor yang tidak
+   * butuh Bukti tetap dipaksa melewati langkah 6. Tes ini mengunci aturannya,
+   * bukan sekadar bentuk tombolnya.
+   */
+  it("canSaveFromStep: simpan boleh dari langkah 5 dan 6 saja (Q2)", () => {
+    expect(canSaveFromStep(5)).toBe(true);
+    expect(canSaveFromStep(6)).toBe(true);
+    for (const step of [1, 2, 3, 4]) {
+      expect(canSaveFromStep(step), `langkah ${step} belum lengkap — jangan boleh disimpan`).toBe(false);
+    }
+    expect(canSaveFromStep(0)).toBe(false);
+    expect(canSaveFromStep(7)).toBe(false);
+    expect([...SAVE_STEPS]).toEqual([5, 6]);
+  });
+
+  /** Q2 tetap **bukan** pengurangan langkah: keenam langkah masih ada dan langkah
+   *  6 (Bukti) masih opsional — bukan langkah mati yang dilewati semua orang. */
+  it("Q2 tidak mengurangi langkah: STEP_META tetap 6 dan Bukti tetap opsional", () => {
+    expect(STEP_META).toHaveLength(6);
+    expect(STEP_META.find((s) => s.id === 5)?.label).toBe("Catatan");
+    expect(STEP_META.find((s) => s.id === 6)?.label).toBe("Bukti");
+    expect(STEP_META.find((s) => s.id === 6)?.optional).toBe(true);
   });
 
   it("durasi menaik dan mencakup nilai minimum aplikasi", () => {

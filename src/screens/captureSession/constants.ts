@@ -84,3 +84,22 @@ export const STEP_MAX: StepNum = 6;
 export function isValidStep(n: unknown): n is StepNum {
   return typeof n === "number" && Number.isInteger(n) && n >= STEP_MIN && n <= STEP_MAX;
 }
+
+/**
+ * Langkah tempat sesi boleh **disimpan** (Q2, keputusan pemilik 2026-10-01).
+ *
+ * Langkah 5 (Catatan) sudah memuat semua yang wajib; Bukti (foto & tanda tangan)
+ * ada di langkah 6 dan sifatnya opsional. Karena itu sesi boleh ditutup dari
+ * langkah 5, sementara langkah 6 **tetap** menawarkan Bukti bagi yang mau
+ * melengkapinya.
+ *
+ * **Bukan** pengurangan langkah: `STEP_META` tetap 6 langkah, `STEP_MIN`/`STEP_MAX`
+ * tidak berubah, dan langkah 6 bukan langkah mati — ia tetap jalan menuju
+ * laporan sesi. Yang ditambahkan hanya satu jalan menyimpan lebih awal.
+ */
+export const SAVE_STEPS: readonly StepNum[] = [5, 6];
+
+/** Apakah langkah `n` boleh menyimpan sesi? Lihat `SAVE_STEPS`. */
+export function canSaveFromStep(n: number): boolean {
+  return (SAVE_STEPS as readonly number[]).includes(n);
+}

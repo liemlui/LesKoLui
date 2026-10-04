@@ -402,6 +402,65 @@ describe("Session CRUD", () => {
     expect(sessionId).toBeTruthy();
   });
 
+  /**
+   * L7 / Q2 (2026-10-05) — dua sisi aturan "simpan dari langkah 5".
+   *
+   * Q2 mengizinkan sesi ditutup dari langkah 5 (Catatan) tanpa melewati langkah 6
+   * (Bukti: foto & tanda tangan). Yang dijaga di sini adalah **datanya**, bukan
+   * tombolnya: menyimpan tanpa bukti tidak boleh menyisakan bidang bukti kosong
+   * atau palsu, dan bukti yang memang ada tidak boleh hilang.
+   *
+   * Catatan lingkup: kedua tes memakai `createSession` — penulis baris yang sama
+   * yang dipanggil jalur wizard (`createSessionWithCloseoutDraft` memanggilnya).
+   * Mesin draf/revisinya sendiri sudah dijaga `captureDraft*.test.ts`.
+   */
+  it("menyimpan sesi tanpa Bukti menghasilkan sesi tanpa foto & tanda tangan (Q2/L7)", async () => {
+    const { createStudent, createSession } = await import("../db/repos");
+    const sid = await createStudent({
+      name: "Tanpa Bukti", level: "IBDP", subjects: [], parentContact: { phone: "086" },
+      hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30),
+    });
+    const sessionId = await createSession({
+      studentId: sid, date: wibDate(), durationHours: MIN_DURATION,
+      subjects: ["Math"], shortNote: "Sesi ditutup dari langkah 5", status: "DONE",
+    });
+
+    const saved = await db.sessions.get(sessionId);
+    expect(saved).toBeTruthy();
+    expect(saved!.status).toBe("DONE");
+    // Inti L7: tidak ada sisa bidang bukti — laporan tidak menggambar bingkai kosong.
+    expect(saved!.photo).toBeUndefined();
+    expect(saved!.signature).toBeUndefined();
+    // Dan sesinya tetap sah: catatan + langkah waktunya ikut tersimpan.
+    expect(saved!.shortNote).toBe("Sesi ditutup dari langkah 5");
+    expect(saved!.timeOut).toBeTruthy();
+    expect(saved!.timeIn).toBeTruthy();
+  });
+
+  it("foto & tanda tangan yang ada ikut tersimpan apa adanya (Q2/L7)", async () => {
+    const { createStudent, createSession } = await import("../db/repos");
+    const sid = await createStudent({
+      name: "Dengan Bukti", level: "IBDP", subjects: [], parentContact: { phone: "087" },
+      hourlyRate: DEFAULT_RATE, active: true, enrolledAt: wibDate(-30),
+    });
+    const photo = new Blob(["foto-sesi"], { type: "image/jpeg" });
+    const signature = new Blob(["ttd-murid"], { type: "image/png" });
+    const sessionId = await createSession({
+      studentId: sid, date: wibDate(), durationHours: MIN_DURATION,
+      subjects: ["Math"], shortNote: "Sesi dengan bukti", status: "DONE",
+      photo, signature,
+    });
+
+    const saved = await db.sessions.get(sessionId);
+    // Dibandingkan isinya, bukan identitas objeknya: IndexedDB menyimpan salinan.
+    expect(saved!.photo).toBeInstanceOf(Blob);
+    expect(saved!.signature).toBeInstanceOf(Blob);
+    expect(await saved!.photo!.text()).toBe("foto-sesi");
+    expect(await saved!.signature!.text()).toBe("ttd-murid");
+    expect(saved!.photo!.type).toBe("image/jpeg");
+    expect(saved!.signature!.type).toBe("image/png");
+  });
+
   it("rejects duration < MIN_DURATION", async () => {
     const { createStudent, createSession } = await import("../db/repos");
     const sid = await createStudent({
