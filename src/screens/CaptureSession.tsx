@@ -277,6 +277,31 @@ export default function CaptureSession() {
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const messageRef = useRef<HTMLDivElement>(null);
+  /** C-02: judul langkah — tujuan fokus saat pindah langkah. */
+  const stepHeadingRef = useRef<HTMLHeadingElement>(null);
+  /** C-02: langkah pertama bukan "pindah langkah" — jangan rebut fokus saat layar dibuka. */
+  const stepEnteredRef = useRef(false);
+
+  useEffect(() => {
+    /**
+     * **C-02 (aria-live + gulir & fokus saat pindah langkah).**
+     *
+     * Dua masalah yang diperbaiki bersamaan:
+     *  1. pembaca layar tidak diberi tahu bahwa langkahnya berubah (halaman tidak
+     *     dimuat ulang, jadi tidak ada pengumuman apa pun);
+     *  2. pandangan tutor tetap di posisi gulir lama, padahal tiap langkah lebih
+     *     panjang dari satu layar HP dan "Lanjut →" selalu ditekan dari bawah —
+     *     langkah berikutnya terbuka di tengah, bukan di awalnya.
+     *
+     * Fokus diarahkan ke **judul langkah** (bukan ke kolom pertama): urutan baca
+     * dimulai dari konteks ("Materi — mapel & topik"), bukan dari kolom isian yang
+     * belum tentu ada. Teksnya juga dibacakan lewat `aria-live` di penghitung
+     * "Langkah X dari 6" di kepala halaman.
+     */
+    if (!stepEnteredRef.current) { stepEnteredRef.current = true; return; }
+    window.scrollTo(0, 0);
+    stepHeadingRef.current?.focus({ preventScroll: true });
+  }, [currentStep]);
 
   useEffect(() => {
     if (!photo) { setPhotoUrl(undefined); return; }
@@ -807,7 +832,10 @@ export default function CaptureSession() {
       <div className="px-4 pt-4 pb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-2xl font-bold text-[var(--ink-strong)]"><ClipboardIcon size={22} className="mr-1.5 inline align-[-3px]" /> Catat Sesi</h1>
-          <p className="text-xs text-[var(--ink-muted)] mt-0.5">Langkah {currentStep} dari {STEPS.length}</p>
+          {/* C-02: penghitung langkah dibacakan saat berubah — tanpa ini, pindah
+              langkah tidak mengumumkan apa pun ke pembaca layar (halaman tidak
+              dimuat ulang). */}
+          <p className="text-xs text-[var(--ink-muted)] mt-0.5" aria-live="polite" aria-atomic="true">Langkah {currentStep} dari {STEPS.length}</p>
         </div>
         {/* Status draf berada di baris ber-tinggi tetap: perubahan status tidak
             boleh menggeser tata letak form (audit C-17). */}
@@ -945,7 +973,10 @@ export default function CaptureSession() {
           <stepMeta.Icon size={20} />
         </div>
         <div className="flex-1 min-w-0">
-          <h2 className="font-bold text-[var(--ink-strong)] text-base">{stepMeta.label}</h2>
+          {/* C-02: tujuan fokus saat pindah langkah. `outline-none` mengikuti pola
+              blok pesan (baris ~1000): elemen ini bukan kontrol, dan cincin fokus
+              di judul terbaca sebagai cacat visual pada tangkapan layar. */}
+          <h2 ref={stepHeadingRef} tabIndex={-1} className="font-bold text-[var(--ink-strong)] text-base outline-none">{stepMeta.label}</h2>
           <p className="text-xs text-[var(--ink-muted)]">{stepMeta.desc}</p>
         </div>
         {stepMeta.optional && (
