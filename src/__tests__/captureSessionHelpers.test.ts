@@ -3,6 +3,7 @@ import {
   buildWaMessage, topicLevelHint, draftStamp,
   mergeTopics, splitTopics, mergeTopicUnits, recentTopics,
   appendSituasi, hasSituasi, saveErrorMessage, feedbackTypeForResult, todayHeroLoadState,
+  isStepSkippable,
 } from "../screens/captureSession/helpers";
 import {
   DURATIONS, STEP_META, isValidStep, ENGAGEMENT_FLAG_META, SITUASI_CHIPS,
@@ -302,6 +303,31 @@ describe("konstanta wizard", () => {
     expect(STEP_META.find((s) => s.id === 5)?.label).toBe("Catatan");
     expect(STEP_META.find((s) => s.id === 6)?.label).toBe("Bukti");
     expect(STEP_META.find((s) => s.id === 6)?.optional).toBe(true);
+  });
+
+  /**
+   * C-08 (2026-10-05). Sebelum ini "Lewati" hanya muncul di langkah yang
+   * `optional: true` — akibatnya murid yang profilnya belum berisi mapel tetap
+   * melihat langkah Materi tanpa jalan keluar yang terlihat, padahal label
+   * kolomnya sendiri sudah berbunyi "(opsional)". Aturan barunya diuji di sini
+   * supaya ia tidak menghapus C-09 (langkah Bukti = satu tombol simpan).
+   */
+  it("isStepSkippable: C-08 menambah langkah Materi, C-09 tetap menahan langkah Bukti", () => {
+    const OPT = STEP_META.map((s) => s.optional);
+    // Langkah opsional tetap boleh dilewati.
+    expect(isStepSkippable(3, OPT[2], false)).toBe(true);
+    expect(isStepSkippable(4, OPT[3], false)).toBe(true);
+    // C-09: langkah Bukti tidak pernah punya "Lewati".
+    expect(isStepSkippable(6, true, false)).toBe(false);
+    expect(isStepSkippable(6, true, true)).toBe(false);
+    // C-08: langkah Materi boleh dilewati HANYA bila murid tanpa mapel profil.
+    expect(isStepSkippable(2, OPT[1], false)).toBe(true);
+    expect(isStepSkippable(2, OPT[1], true)).toBe(false);
+    // Langkah wajib lain tidak pernah bisa dilewati.
+    expect(isStepSkippable(1, OPT[0], false)).toBe(false);
+    expect(isStepSkippable(5, OPT[4], false)).toBe(false);
+    // Dan STEP_META memang tidak diubah untuk keperluan C-08:
+    expect(OPT[1]).toBe(false);
   });
 
   it("durasi menaik dan mencakup nilai minimum aplikasi", () => {

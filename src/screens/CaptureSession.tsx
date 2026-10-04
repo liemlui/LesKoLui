@@ -50,7 +50,7 @@ import {
 import type { StepMeta, StepNum } from "./captureSession/constants";
 import {
   buildWaMessage, topicLevelHint, draftStamp, splitTopics,
-  appendSituasi, hasSituasi, saveErrorMessage,
+  appendSituasi, hasSituasi, saveErrorMessage, isStepSkippable,
 } from "./captureSession/helpers";
 
 /** Ikon per langkah ditempelkan di sini (bukan di `constants.ts`) supaya berkas
@@ -696,6 +696,17 @@ export default function CaptureSession() {
 
   const waNumber     = currentStudent?.parentContact.phone.replace(/^0/, "62").replace(/[^0-9]/g, "") ?? "";
   const stepMeta     = STEPS[currentStep - 1];
+
+  /**
+   * Apakah bilah aksi menawarkan "Lewati" di langkah ini?
+   *
+   * Aturannya sendiri ada di `isStepSkippable()` (berkas helper, ada tesnya):
+   * langkah opsional boleh dilewati kecuali langkah Bukti (C-09), dan **C-08**
+   * menambahkan langkah Materi bagi murid yang profilnya belum berisi mapel —
+   * label kolomnya pun sudah berbunyi "(opsional)" untuk murid itu. `STEP_META`
+   * tidak disentuh.
+   */
+  const stepSkippable = isStepSkippable(currentStep, stepMeta.optional, studentSubjects.length > 0);
 
   // Status draf ditampilkan di header (baris tinggi tetap) — "saving" transien
   // TIDAK boleh diperlakukan sebagai galat (audit C-17 / C-07).
@@ -1844,7 +1855,7 @@ export default function CaptureSession() {
             ) : (
               <div className="w-2 flex-shrink-0" />
             )}
-            {stepMeta.optional && currentStep !== 6 && (
+            {stepSkippable && (
               <button onClick={skipStep}
                 className="flex items-center gap-1 px-4 py-2.5 rounded-xl border border-[var(--border)] text-[var(--ink-muted)] font-semibold text-sm hover:bg-[var(--surface)] transition-colors flex-shrink-0">
                 Lewati

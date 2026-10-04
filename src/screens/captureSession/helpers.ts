@@ -8,6 +8,7 @@
 import type { Student } from "../../db/types";
 import { dayLabel } from "../../lib/format";
 import { getStudentGradeLabel } from "../../lib/ibTopics";
+import { STEP_MAX } from "./constants";
 
 /** Bagian sesi yang dipakai untuk menyusun pesan WhatsApp ke orang tua. */
 export interface WaSessionSummary {
@@ -220,4 +221,35 @@ export function saveErrorMessage(e: unknown, fallback = "terjadi kesalahan."): s
     return "Perangkat menolak menyimpan data (penyimpanan diblokir atau penuh). Sesi ini belum tersimpan.";
   }
   return `Simpan gagal: ${text}`;
+}
+
+/**
+ * Langkah "Materi" (mapel & topik). Angkanya ditulis di sini — bukan diambil dari
+ * `STEP_META` — karena C-08 secara eksplisit tidak boleh mengubah `constants.ts`;
+ * kalau urutan langkah kelak bergeser, tes `isStepSkippable` akan menangkapnya.
+ */
+const MATERI_STEP = 2;
+
+/**
+ * Apakah bilah aksi menawarkan "Lewati" di langkah ini?
+ *
+ * Dua aturan yang bertemu di sini:
+ *
+ * - **C-09 (sudah berlaku sebelumnya):** langkah Bukti (6) **tidak** punya
+ *   "Lewati". Langkah itu optsional tetapi hanya boleh punya satu tombol simpan —
+ *   dulu ada tiga tombol berbeda untuk satu aksi yang sama.
+ * - **C-08 (2026-10-05):** langkah Materi (2) tidak wajib bagi murid yang
+ *   profilnya belum berisi mapel. Label kolomnya sudah berbunyi "(opsional)"
+ *   untuk murid itu, tetapi bilah aksi tetap hanya menawarkan "Lanjut →" —
+ *   tutor harus menebak bahwa langkah itu boleh dilewati. Kini tombolnya ikut
+ *   muncul, jadi label dan tombolnya mengatakan hal yang sama.
+ *
+ * `STEP_META` tidak disentuh oleh aturan ini: langkah tetap 6, dan langkah 2
+ * tetap bertanda tidak opsional (karena bagi murid yang sudah punya mapel ia
+ * memang wajib).
+ */
+export function isStepSkippable(step: number, stepOptional: boolean, hasProfileSubjects: boolean): boolean {
+  if (step === STEP_MAX) return false;      // C-09
+  if (stepOptional) return true;
+  return step === MATERI_STEP && !hasProfileSubjects; // C-08
 }

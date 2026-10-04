@@ -57,7 +57,7 @@ bisa memegang puluhan berkas `src/**`, aturan default = **SERJAL**. Paralel butu
 
 | ID | Judul | Tier | Dep | Berkas inti | Est | Status |
 |---|---|---|---|---|---|---|
-| G3-01 | Catat Sesi (refactor terbatas + C-01…C-13) | T3 | G2-01, G2-06 | `CaptureSession.tsx`, `captureSession/*` | L | 🟨 **sebagian** — refactor ✅ · L8 ✅ · L9 ✅ · L10 (undo, C-13/C-05) ✅ · L7 (simpan dari langkah 5, Q2) ✅ · **sisa: C-02 · C-03 · C-04 · C-08 · C-10 · L4 `ManageSessionSheet` · C-12 ⏸ menunggu G3-04** |
+| G3-01 | Catat Sesi (refactor terbatas + C-01…C-13) | T3 | G2-01, G2-06 | `CaptureSession.tsx`, `captureSession/*` | L | 🟨 **sebagian** — refactor ✅ · L8 ✅ · L9 ✅ · L10 (undo, C-13/C-05) ✅ · L7 (simpan dari langkah 5, Q2) ✅ · C-08 ("Lewati" di langkah 2) ✅ · **sisa: C-02 · C-03 · C-04 · C-10 · L4 `ManageSessionSheet` · C-12 ⏸ menunggu G3-04** |
 | G3-02 | Keuangan: refactor terbatas `TagihanTab.tsx` + satu layar, cari murid, badge terlambat, filter lanjutan, **K-01** | T3 | G2-04 | `payments/TagihanTab.tsx`, `useInvoiceFilters.ts` | L | ⬜ |
 | G3-03 | Redesign papan pipeline (tetap hidup di dalam blok "Perlu ditagih") | T2 | G3-02 | `FinancePipelineBoard.tsx`, `RingkasanTab.tsx` | L | ⬜ |
 | G3-04 | Kontrak AI berbiaya — satu jalur `useAiAction()` + satu modal biaya | T3 | G1-01, G2-01 | `useAiAction`, `AiCostModal`, `Settings` | L | ⬜ |
