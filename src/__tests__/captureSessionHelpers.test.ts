@@ -3,7 +3,7 @@ import {
   buildWaMessage, topicLevelHint, draftStamp,
   mergeTopics, splitTopics, mergeTopicUnits, recentTopics,
   appendSituasi, hasSituasi, saveErrorMessage, feedbackTypeForResult, todayHeroLoadState,
-  isStepSkippable,
+  isStepSkippable, isStepComplete, incompleteSteps,
 } from "../screens/captureSession/helpers";
 import {
   DURATIONS, STEP_META, isValidStep, ENGAGEMENT_FLAG_META, SITUASI_CHIPS,
@@ -328,6 +328,42 @@ describe("konstanta wizard", () => {
     expect(isStepSkippable(5, OPT[4], false)).toBe(false);
     // Dan STEP_META memang tidak diubah untuk keperluan C-08:
     expect(OPT[1]).toBe(false);
+  });
+
+  /**
+   * C-04 (2026-10-05): badge "!" di stepper untuk langkah wajib yang belum
+   * lengkap. Yang dijaga: aturannya **mencerminkan validasi "Lanjut →"**, jadi
+   * badge tidak boleh menyala di langkah yang sebenarnya sudah boleh ditinggalkan
+   * (mis. Materi bagi murid tanpa mapel — lihat C-08), dan sebaliknya tidak boleh
+   * diam di langkah yang pasti ditolak.
+   */
+  it("incompleteSteps: menandai langkah wajib yang belum lengkap, sesuai validasi Lanjut", () => {
+    const kosong = { studentId: "", subjects: [], profileSubjects: [], shortNote: "" };
+    const lengkap = { studentId: "s-1", subjects: ["Math"], profileSubjects: ["Math"], shortNote: "catatan" };
+
+    // Form kosong: langkah 1 & 5 memang wajib → ditandai; langkah 2 tidak, karena
+    // murid ini belum punya mapel profil.
+    expect(incompleteSteps(kosong, 1)).toEqual([1]);
+    expect(incompleteSteps(kosong, 2)).toEqual([1]);
+    expect(incompleteSteps(kosong, 5)).toEqual([1, 5]);
+    expect(incompleteSteps(lengkap, 6)).toEqual([]);
+
+    // Murid yang punya mapel profil: langkah 2 jadi wajib sampai ada pilihan.
+    expect(isStepComplete(2, { ...kosong, profileSubjects: ["Math"] })).toBe(false);
+    expect(isStepComplete(2, { ...kosong, profileSubjects: ["Math"], subjects: ["Math"] })).toBe(true);
+    // ...dan opsional bagi murid tanpa mapel profil (C-08).
+    expect(isStepComplete(2, kosong)).toBe(true);
+
+    // Langkah opsional (3, 4, 6) selalu dianggap lengkap.
+    for (const step of [3, 4, 6]) expect(isStepComplete(step, kosong)).toBe(true);
+
+    // Hanya langkah yang sudah dijalani yang ditandai: wizard yang baru dibuka
+    // tidak boleh langsung penuh tanda.
+    expect(incompleteSteps(lengkap, 1)).toEqual([]);
+    expect(incompleteSteps({ ...lengkap, shortNote: "" }, 4)).toEqual([]);   // langkah 5 belum dibuka
+    expect(incompleteSteps({ ...lengkap, shortNote: "" }, 5)).toEqual([5]);
+    // Spasi saja tidak dianggap terisi (sama seperti `shortNote.trim()` di layar).
+    expect(incompleteSteps({ ...lengkap, shortNote: "   " }, 6)).toEqual([5]);
   });
 
   it("durasi menaik dan mencakup nilai minimum aplikasi", () => {

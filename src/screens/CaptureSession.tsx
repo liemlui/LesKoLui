@@ -50,7 +50,7 @@ import {
 import type { StepMeta, StepNum } from "./captureSession/constants";
 import {
   buildWaMessage, topicLevelHint, draftStamp, splitTopics,
-  appendSituasi, hasSituasi, saveErrorMessage, isStepSkippable,
+  appendSituasi, hasSituasi, saveErrorMessage, isStepSkippable, incompleteSteps,
 } from "./captureSession/helpers";
 
 /** Ikon per langkah ditempelkan di sini (bukan di `constants.ts`) supaya berkas
@@ -708,6 +708,19 @@ export default function CaptureSession() {
    */
   const stepSkippable = isStepSkippable(currentStep, stepMeta.optional, studentSubjects.length > 0);
 
+  /**
+   * **C-04:** langkah wajib yang belum lengkap → badge `!` di stepper.
+   *
+   * Aturannya ada di `incompleteSteps()` (berkas helper, ada tesnya) dan
+   * mencerminkan validasi "Lanjut →", jadi badge tidak pernah bertentangan
+   * dengan pesan galat. Hanya langkah yang sudah dijalani (`<= currentStep`)
+   * yang ditandai — alasan lengkapnya ada di helper.
+   */
+  const missingSteps = incompleteSteps(
+    { studentId, subjects, profileSubjects: studentSubjects, shortNote },
+    currentStep,
+  );
+
   // Status draf ditampilkan di header (baris tinggi tetap) — "saving" transien
   // TIDAK boleh diperlakukan sebagai galat (audit C-17 / C-07).
   const draftStatusLabel =
@@ -883,6 +896,9 @@ export default function CaptureSession() {
             const done   = currentStep > step.id;
             const active = currentStep === step.id;
             const future = !done && !active;
+            // C-04: langkah wajib yang belum lengkap diberi badge "!".
+            const incomplete = missingSteps.includes(step.id);
+            const incompleteSuffix = incomplete ? ", belum lengkap" : "";
             return (
               <button
                 type="button"
@@ -891,17 +907,27 @@ export default function CaptureSession() {
                 onClick={() => done && setCurrentStep(step.id as StepNum)}
                 aria-current={active ? "step" : undefined}
                 aria-label={active
-                  ? `Langkah ${step.id}: ${step.label} (saat ini)`
+                  ? `Langkah ${step.id}: ${step.label} (saat ini)${incompleteSuffix}`
                   : done
-                    ? `Kembali ke langkah ${step.id}: ${step.label}`
+                    ? `Kembali ke langkah ${step.id}: ${step.label}${incompleteSuffix}`
                     : `Langkah ${step.id}: ${step.label} (belum aktif)`}
                 className={`flex flex-col items-center gap-1.5 z-10 relative flex-1 ${done ? "cursor-pointer" : "cursor-default"}`}
               >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all shadow-sm
+                <div className={`relative w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all shadow-sm
                   ${done   ? "bg-[var(--bg-success-strong)] text-[var(--on-strong)] scale-95"
                   : active ? "bg-[var(--brand-solid)] text-[var(--on-strong)] ring-4 ring-[var(--brand-tint-strong)] scale-110"
                   :          "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-2 border-[var(--border)]"}`}>
                   {done ? "✓" : <step.Icon size={16} />}
+                  {incomplete && (
+                    /* Satu karakter: guard `e2e:uiux` hanya memeriksa elemen yang
+                       memuat teks sendiri > 1 huruf, jadi tanda ini tidak dihitung
+                       sebagai "teks terlalu kecil". Keadaannya tetap dibacakan
+                       pembaca layar lewat akhiran aria-label tombolnya. */
+                    <span aria-hidden="true"
+                      className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--bg-danger-strong)] text-[11px] font-black text-[var(--on-strong)] shadow-sm">
+                      !
+                    </span>
+                  )}
                 </div>
                 <span className={`text-xs font-bold tracking-wide transition-colors
                   ${active ? "text-[var(--ink-brand)]" : done ? "text-[var(--ink-success)]" : "text-[var(--ink-muted)]"}`}>

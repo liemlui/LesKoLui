@@ -253,3 +253,50 @@ export function isStepSkippable(step: number, stepOptional: boolean, hasProfileS
   if (stepOptional) return true;
   return step === MATERI_STEP && !hasProfileSubjects; // C-08
 }
+
+/** Nomor langkah wajib lain yang diperiksa stepper (C-04). */
+const JADWAL_STEP = 1;
+const CATATAN_STEP = 5;
+
+/** Isi wizard yang menentukan apakah sebuah langkah wajib sudah lengkap. */
+export interface StepFillState {
+  studentId: string;
+  /** Mapel yang dipilih tutor di langkah ini. */
+  subjects: readonly string[];
+  /** Mapel dari profil murid; kosong = langkah Materi tidak wajib (C-08). */
+  profileSubjects: readonly string[];
+  shortNote: string;
+}
+
+/**
+ * Apakah syarat wajib satu langkah sudah terpenuhi?
+ *
+ * Sengaja mencerminkan `validateCurrentStep()` di layar Catat Sesi supaya badge
+ * dan pesan galat tidak pernah berbeda pendapat. Yang **tidak** diperiksa di sini:
+ * bentrok jadwal (`scheduleCaptureMismatch`) — itu bukan "belum diisi", melainkan
+ * "tidak cocok dengan jadwal", dan pesannya sudah punya jalur sendiri.
+ */
+export function isStepComplete(step: number, fill: StepFillState): boolean {
+  if (step === JADWAL_STEP)  return fill.studentId.trim().length > 0;
+  if (step === MATERI_STEP)  return fill.profileSubjects.length === 0 || fill.subjects.length > 0;
+  if (step === CATATAN_STEP) return fill.shortNote.trim().length > 0;
+  return true; // langkah opsional selalu "lengkap"
+}
+
+/**
+ * Langkah wajib yang **belum lengkap** dan sudah dijalani/dilewati tutor —
+ * dasar badge `!` di stepper (C-04).
+ *
+ * Kenapa hanya langkah yang `<= currentStep`: badge ini menjawab "apa yang
+ * tertinggal di belakang?", bukan "apa yang belum saya buka di depan?". Kalau
+ * langkah di depan ikut ditandai, wizard yang baru dibuka langsung penuh tanda
+ * dan tandanya berhenti bermakna.
+ */
+export function incompleteSteps(fill: StepFillState, currentStep: number): number[] {
+  const missing: number[] = [];
+  for (const step of [JADWAL_STEP, MATERI_STEP, CATATAN_STEP]) {
+    if (step > currentStep) continue;
+    if (!isStepComplete(step, fill)) missing.push(step);
+  }
+  return missing;
+}
