@@ -235,10 +235,23 @@ async function dismissOverlays(page: Page) {
 
 async function openPin(page: Page) {
   const pin = page.getByPlaceholder("PIN (6 digit)");
-  if (await pin.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await pin.fill("123456");
-    await page.getByRole("button", { name: "Buka", exact: true }).click();
-    await page.getByRole("heading", { name: "Keuangan", exact: true }).waitFor({ timeout: 8000 }).catch(() => {});
+  const heading = page.getByRole("heading", { name: "Keuangan", exact: true });
+
+  // Data contoh dev mengisi PIN `123456` saat seed berjalan (asinkron), jadi
+  // kolom PIN bisa muncul sebelum PIN-nya benar-benar tersimpan. Versi lama
+  // menunggu sekali lalu MENELAN kegagalannya (`.catch`), sehingga guard bisa
+  // mengukur layar yang MASIH TERKUNCI — dan layar terkunci tidak punya h1,
+  // jadi gejalanya muncul sebagai "layar tanpa h1", bukan sebagai masalah PIN.
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    if (await heading.isVisible().catch(() => false)) return;
+    if (await pin.isVisible({ timeout: 1_000 }).catch(() => false)) {
+      await pin.fill("123456");
+      await page.getByRole("button", { name: "Buka", exact: true }).click().catch(() => { /* coba lagi */ });
+    }
+    await page.waitForTimeout(500);
+  }
+  if (!(await heading.isVisible().catch(() => false))) {
+    throw new Error("Layar Keuangan tetap terkunci setelah PIN dimasukkan — data contoh belum siap?");
   }
 }
 
@@ -318,24 +331,18 @@ const show = (rows: Array<Record<string, unknown>>) => JSON.stringify(rows, null
  * dalam `@layer base`. Efeknya pada guard ini nihil: ambang kontras di sini
  * ditentukan ukuran >=/< 18,66px, dan 14px maupun 16px sama-sama butuh 4,5:1.
  */
-const RESIDUAL_KONTRAS: Record<string, string> = {
-  murid:
-    "L-01 sisa (6×): 4,39:1 — `text-gray-500` di atas `bg-gray-100` — 1× tab \"Historis (1)\" " +
-    "(Students.tsx:465, keadaan tidak terpilih) dan 5× tombol \"Edit murid\" (Students.tsx:325). " +
-    "Tanggung jawab G2-02 (sapu kelas warna ke token). G2-01 hanya menambah token — kelas lama belum disapu.",
-  "detail-murid":
-    "L-01 sisa (4×): tautan telepon 📞 3,22:1 (14px), \"Total Sesi\" `text-blue-500` di `bg-blue-50` 3,46:1 (12px), " +
-    "\"Total Jam\" `text-indigo-500` di `bg-indigo-50` 4,09:1 (12px). Tanggung jawab G2-02 (sapu kelas warna ke token). G2-01 hanya menambah token — kelas lama belum disapu.",
-  keuangan:
-    "L-01 sisa (6×): \"Perlu ditindaklanjuti\" 3,10:1 · tombol \"Tindak lanjuti di Tagihan\" putih di `bg-amber-600` 3,20:1 · " +
-    "\"Uang masuk & keluar\" `green-600` 3,47:1 · \"AI belum aktif\" (nonaktif) 3,20:1 · dua chip rentang grafik " +
-    "\"3 bulan\"/\"12 bulan\" 4,39:1 (RingkasanTab.tsx:689, `text-gray-500` di `bg-gray-100`). Tanggung jawab G2-02 (sapu kelas warna ke token). G2-01 hanya menambah token — kelas lama belum disapu.",
-};
-
-const RESIDUAL_UKURAN: Record<string, string> = {
-  "detail-murid":
-    "L-03 sisa (2×): tautan telepon `a[href^=\"tel:\"]` berukuran 126×20 px (butuh ≥24 px). Tanggung jawab G2-06.",
-};
+/*
+ * Residual L-01/L-03 (Q24) **DITUTUP 2026-10-04.** Keempat `test.fixme` yang dulu
+ * memarkir pelanggaran kontras (Murid / Detail murid / Keuangan) dan ukuran
+ * (Detail murid) sudah DIHAPUS — sesuai aturan Q24: hapus setelah diukur, bukan
+ * menaikkan ambang. Cara mengukurnya: guard dijalankan dengan fixme dilepas
+ * (`UIUX_MEASURE_RESIDUAL=1`) lalu hasilnya **56 lulus / 0 gagal**.
+ *
+ * Deskripsi residual lama memang sudah basi: kelas warna mentah yang disebutnya
+ * (`text-gray-500`, `bg-gray-100`, `text-blue-500`, `bg-indigo-500`) hilang oleh
+ * sapu G2-02, dan `a[href^="tel:"]` (tautan telepon 126x20 px) sudah tidak ada
+ * lagi di `src/`. Tidak ada residual yang disetel ulang ke ambang lebih longgar.
+ */
 
 /**
  * TASK-11 (lanjutan G2-09) — kebijakan emoji, bukan lagi residual.
@@ -387,27 +394,13 @@ test.describe("guard metrik UI — struktur (heading & tab)", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 2. Kontras teks (L-01) dan ukuran kontrol (L-03).
-//
-//    Layar yang masih menyimpan pelanggaran lama didaftarkan sebagai
-//    `test.fixme` — sesuai DoD G1-11: residual G1-04 didaftarkan dengan
-//    rujukan tugas, BUKAN dengan menaikkan ambang. Angka & elemennya diukur
-//    ulang setiap kali guard dijalankan (lihat `.design-audit/uiux-guard/`),
-//    dan tes "struktur" untuk layar yang sama tetap menulis angka itu sebagai
-//    bukti meski tes di bawah ini di-skip.
+// 2. Kontras teks (L-01) dan ukuran kontrol (L-03) — sekarang ASERTIF untuk
+//    semua layar: tidak ada lagi `test.fixme` (residual Q24 ditutup 2026-10-04,
+//    lihat catatan di blok komentar di atas).
 // ─────────────────────────────────────────────────────────────────────────────
 test.describe("guard metrik UI — kontras teks (<4,5:1)", () => {
   for (const screen of SCREENS) {
     test(`${screen.title}`, async ({ page }) => {
-      if (screen.id === "murid") {
-        test.fixme(true, RESIDUAL_KONTRAS.murid);
-      }
-      if (screen.id === "detail-murid") {
-        test.fixme(true, RESIDUAL_KONTRAS["detail-murid"]);
-      }
-      if (screen.id === "keuangan") {
-        test.fixme(true, RESIDUAL_KONTRAS.keuangan);
-      }
       await openScreen(page, screen.id);
       const data = await measure(page, screen.id);
       expect(data.contrastCount, `kontras < ambang AA:\n${show(data.contrast)}`).toBe(0);
@@ -418,9 +411,6 @@ test.describe("guard metrik UI — kontras teks (<4,5:1)", () => {
 test.describe("guard metrik UI — kontrol interaktif < 24 px", () => {
   for (const screen of SCREENS) {
     test(`${screen.title}`, async ({ page }) => {
-      if (screen.id === "detail-murid") {
-        test.fixme(true, RESIDUAL_UKURAN["detail-murid"]);
-      }
       await openScreen(page, screen.id);
       const data = await measure(page, screen.id);
       expect(data.smallControlsCount, `kontrol < 24 px:\n${show(data.smallControls)}`).toBe(0);
