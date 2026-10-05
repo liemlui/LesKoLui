@@ -152,9 +152,23 @@ export function validasiReschedule(
   return { ok: true, pesan: "" };
 }
 
-/** Daftar murid untuk `<select>`, dengan murid sesi ini selalu ada di dalamnya. */
-export function pilihanMurid(students: readonly Student[], session: Session): Student[] {
-  return students.filter((s) => s.active || s.id === session.studentId);
+/**
+ * Daftar murid untuk `<select>` — **semua** murid, urutan apa adanya.
+ *
+ * **Diperbaiki 2026-10-05 (laporan pemilik: "tidak bisa ganti ke murid lain").**
+ * Sebelumnya fungsi ini menyaring `s.active || s.id === session.studentId` dengan
+ * maksud "murid aktif + murid sesi ini". Maksud itu **tidak pernah tercapai**:
+ * `Home.tsx` memuat daftarnya lewat `listStudents(true)` (aktif saja), jadi murid
+ * nonaktif tidak ada di daftar masuk dan filter tidak bisa memasukkannya kembali —
+ * pemilihnya bahkan bisa kosong sama sekali.
+ *
+ * Sekarang seluruh daftar diteruskan, dan yang nonaktif **ditandai** di layar
+ * ("(nonaktif)") alih-alih disembunyikan. Pekerjaan pemilih ini adalah "sesi ini
+ * milik siapa", bukan "siapa yang boleh dijadwalkan baru" — murid yang berhenti les
+ * tetap mungkin perlu memikul sesi lama yang salah tempel.
+ */
+export function pilihanMurid(students: readonly Student[]): Student[] {
+  return [...students];
 }
 
 /**

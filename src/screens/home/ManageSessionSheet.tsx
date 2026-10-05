@@ -79,7 +79,15 @@ export default function ManageSessionSheet({
   const navigate = useNavigate();
   const berseri = Boolean(session.seriesId);
 
-  const [aksiId, setAksiId] = useState<AksiSesiId>(null);
+  /**
+   * Aksi terpilih. Untuk sesi **terjadwal**, `Simpan perubahan` sudah terpilih sejak
+   * awal sehingga kolom isiannya (Murid/Tanggal/Jam/Durasi) langsung terlihat — persis
+   * seperti modal lama (`EditSessionModal`). Sebelumnya sheet terbuka tanpa aksi
+   * terpilih, jadi tutor melihat tombol "Simpan perubahan" tanpa satu pun kolom yang
+   * bisa diubah (laporan pemilik 2026-10-05). Sesi **terlewat** tetap mulai tanpa
+   * pilihan: di sana yang utama adalah memilih hasil sesinya, bukan menyunting jadwal.
+   */
+  const [aksiId, setAksiId] = useState<AksiSesiId>(kontek === "terjadwal" ? "simpan-perubahan" : null);
   const [menuTerbuka, setMenuTerbuka] = useState(false);
   const [konfirmasi, setKonfirmasi] = useState<SesiAksi | null>(null);
   const [busy, setBusy] = useState(false);
@@ -253,15 +261,21 @@ export default function ManageSessionSheet({
     if (!info) return null;
     const kelas = info.merusak ? TOMBOL_BAHAYA : TOMBOL_NETRAL;
     return (
-      <button
-        key={info.id}
-        type="button"
-        aria-pressed={aktif}
-        onClick={() => jalankanAksi(info.id)}
-        className={`${kelas} ${aktif ? "ring-2 ring-[var(--border-brand)]" : ""}`}
-      >
-        {info.label}
-      </button>
+      // Keterangan akibat aksi diletakkan DI LUAR tombol: kalau di dalam, teksnya
+      // ikut ter-center dan tinggi target sentuh tombolnya berubah.
+      <div key={info.id}>
+        <button
+          type="button"
+          aria-pressed={aktif}
+          onClick={() => jalankanAksi(info.id)}
+          className={`${kelas} ${aktif ? "ring-2 ring-[var(--border-brand)]" : ""}`}
+        >
+          {info.label}
+        </button>
+        {info.keterangan && (
+          <p className="mt-[var(--space-1)] px-1 text-xs text-[var(--text-muted)] m-0">{info.keterangan}</p>
+        )}
+      </div>
     );
   };
 
@@ -322,8 +336,13 @@ export default function ManageSessionSheet({
                     value={form.muridId}
                     onChange={(e) => setForm((f) => ({ ...f, muridId: e.target.value }))}
                   >
-                    {pilihanMurid(students, session).map((s) => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
+                    {pilihanMurid(students).map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {/* Satu ekspresi, bukan dua bersebelahan: `renderToStaticMarkup`
+                            menyisipkan pemisah komentar di antara dua text node, dan
+                            tesnya jadi tidak bisa mencari "Budi (nonaktif)". */}
+                        {s.active ? s.name : `${s.name} (nonaktif)`}
+                      </option>
                     ))}
                   </select>
                   {/* Peringatan (bukan konfirmasi): akibatnya disebut tanpa angka rupiah

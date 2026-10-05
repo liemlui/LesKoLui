@@ -106,7 +106,10 @@ describe("ManageSessionSheet — panel dari bawah dengan aksi yang terlihat", ()
 
   it("keenam aksi konteks terlewat terlihat: tiga aksi utama + dua di `⋯`", () => {
     const html = markup("terlewat");
-    for (const label of ["Catat", "Batal les", "Tidak hadir"]) expect(html).toContain(label);
+    // Label `Batalkan sesi` dipakai di KEDUA konteks sejak 2026-10-05; sebelumnya
+    // konteks ini berbunyi "Batal les" padahal operasinya sama persis, dan perbedaan
+    // kata itu yang membuat tutor bertanya "bedanya apa?".
+    for (const label of ["Catat", "Batalkan sesi", "Tidak hadir"]) expect(html).toContain(label);
     // `⋯` menampilkan jumlahnya, isinya baru muncul setelah dibuka.
     expect(html).toContain("Aksi lain (2)");
     expect(html).not.toContain("Jadwalkan ulang");
@@ -118,9 +121,27 @@ describe("ManageSessionSheet — panel dari bawah dengan aksi yang terlihat", ()
     const html = markup("terjadwal");
     expect(html).toContain("Simpan perubahan");
     expect(html).not.toContain("Tidak hadir");
-    expect(html).not.toContain("Batal les");
     expect(html).not.toContain("Jadwalkan ulang");
     expect(html).toContain("Aksi lain (2)");
+  });
+
+  it("sesi terjadwal membuka kolom isian LANGSUNG, bukan tombol tanpa isian", () => {
+    // Laporan pemilik 2026-10-05: "ada button simpan perubahan, tapi tidak ada isian
+    // untuk diubah". Sebabnya sheet terbuka tanpa aksi terpilih, jadi kolomnya baru
+    // muncul setelah tombolnya ditekan. Sekarang kolomnya sudah terbuka sejak awal.
+    const html = markup("terjadwal");
+    expect(html).toContain('id="msm-murid"');
+    expect(html).toContain("Jam mulai");
+    expect(html).toContain("Durasi");
+    // Sesi terlewat tetap mulai tanpa aksi terpilih — di sana yang utama adalah
+    // memilih hasil sesinya (Catat / Batalkan sesi / Tidak hadir).
+    expect(markup("terlewat")).not.toContain('id="msm-murid"');
+  });
+
+  it("murid nonaktif tetap bisa dipilih dan ditandai (nonaktif)", () => {
+    const html = markup("terjadwal", session(), [student({ id: "s-9", name: "Budi", active: false })]);
+    expect(html).toContain("Budi (nonaktif)");
+    expect(html).toContain("Sari");
   });
 
   it("menyatakan akibat hapus sebelum konfirmasi diminta", () => {
@@ -161,10 +182,12 @@ describe("ManageSessionSheet — yang tidak boleh hilang dari aksi terpilih", ()
     expect(modeEfektif(true, "all")).toBe("all");
   });
 
-  it("daftar murid menyertakan murid sesi ini walau statusnya nonaktif", () => {
+  it("daftar murid memuat SEMUA murid — yang nonaktif ditandai, bukan disembunyikan", () => {
     const nonaktif = student({ id: "s-9", name: "Budi", active: false });
-    const daftar = pilihanMurid([nonaktif, student({ id: "s-2", active: true })], session({ studentId: "s-9" }));
-    expect(daftar.map((s) => s.id)).toEqual(["s-9", "s-2"]);
+    const aktif = student({ id: "s-2", name: "Andi", active: true });
+    // Urutan apa adanya: `pilihanMurid` tidak lagi menyaring maupun mengurutkan.
+    expect(pilihanMurid([nonaktif, aktif]).map((s) => s.id)).toEqual(["s-9", "s-2"]);
+    expect(pilihanMurid([nonaktif, aktif]).map((s) => s.name)).toEqual(["Budi", "Andi"]);
   });
 });
 

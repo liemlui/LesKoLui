@@ -37,7 +37,7 @@ const ketujuh: SesiAksi[] = [
 const id = (list: AksiSesi[]) => list.map((a) => a.id);
 
 describe("aksiUtama — aksi yang tampil lebar penuh", () => {
-  it("konteks terlewat: Catat · Batal les · Tidak hadir", () => {
+  it("konteks terlewat: Catat · Batalkan sesi · Tidak hadir", () => {
     expect(id(aksiUtama({ kontek: "terlewat" }))).toEqual(["catat", "batal-les", "tidak-hadir"]);
   });
 
@@ -104,7 +104,7 @@ describe("kelengkapan enam aksi (TASK-06 §9.2)", () => {
     for (const aksi of ketujuh) expect(semua.has(aksi)).toBe(true);
   });
 
-  it("Catat · Batal les · Tidak hadir (tiga aksi yang paling mudah hilang) ada di konteks terlewat", () => {
+  it("Catat · Batalkan sesi · Tidak hadir (tiga aksi yang paling mudah hilang) ada di konteks terlewat", () => {
     const semua = id(aksiSesi({ kontek: "terlewat", berseri: false }));
     expect(semua).toContain("catat");
     expect(semua).toContain("batal-les");
@@ -141,5 +141,48 @@ describe("aksiTerbuka — kolom isian mengikuti aksi yang dipilih", () => {
 
   it("tanpa pilihan, tidak ada aksi terbuka (sheet hanya menampilkan daftar)", () => {
     expect(aksiTerbuka({ kontek: "terlewat", berseri: false }, null)).toBeNull();
+  });
+});
+
+/**
+ * Keterangan aksi (permintaan pemilik 2026-10-05).
+ *
+ * Pertanyaan yang dilaporkan: "ada opsi batalkan sesi dan hapus, bedanya apa?" —
+ * jawabannya tidak boleh hanya ada di dialog konfirmasi **sesudah** ditekan, karena
+ * di situ keputusannya sudah diambil. Keterangan ini yang menjawabnya di tempat
+ * pilihan itu terlihat.
+ */
+describe("keterangan aksi — menjawab \"bedanya apa?\" di tempat keputusan", () => {
+  it("Batalkan sesi dan Hapus punya keterangan berbeda yang menyebut akibatnya", () => {
+    const batal = aksiTerbuka({ kontek: "terjadwal", berseri: false }, "batalkan-sesi")!;
+    const hapus = aksiTerbuka({ kontek: "terjadwal", berseri: false }, "hapus")!;
+    expect(batal.keterangan).toContain("tidak masuk tagihan");
+    expect(hapus.keterangan).toContain("tidak bisa dikembalikan");
+    expect(batal.keterangan).not.toBe(hapus.keterangan);
+  });
+
+  it("operasi pembatalan memakai label & keterangan yang sama di kedua konteks", () => {
+    const lewat = aksiUtama({ kontek: "terlewat" }).find((a) => a.id === "batal-les")!;
+    const terjadwal = aksiLainnya({ kontek: "terjadwal", berseri: false }).find((a) => a.id === "batalkan-sesi")!;
+    expect(lewat.label).toBe(terjadwal.label);
+    expect(lewat.keterangan).toBe(terjadwal.keterangan);
+  });
+
+  it("keterangan tidak memuat angka rupiah — Beranda dilarang menampilkan uang (K3/B1)", () => {
+    const semua = KEDUA_KONTEKS.flatMap((kontek) => aksiSesi({ kontek, berseri: true }));
+    for (const aksi of semua) {
+      if (!aksi.keterangan) continue;
+      expect(aksi.keterangan).not.toContain("Rp");
+      expect(aksi.keterangan).not.toMatch(/\d/);
+    }
+  });
+
+  it("aksi yang tidak merusak tidak perlu keterangan akibat", () => {
+    // Keterangan yang selalu muncul berhenti dibaca; hanya jalur yang mengubah
+    // keadaan sesi secara permanen yang menjelaskannya.
+    for (const aksi of KEDUA_KONTEKS.flatMap((kontek) => aksiSesi({ kontek, berseri: true }))) {
+      if (["batal-les", "batalkan-sesi", "hapus"].includes(aksi.id)) continue;
+      expect(aksi.keterangan, `${aksi.id} tidak seharusnya punya keterangan`).toBeUndefined();
+    }
   });
 });

@@ -282,10 +282,14 @@ export default function Home() {
       )}
       {manageTarget && (
         <ManageSessionSheet
+          key={manageTarget.session.id}
           session={manageTarget.session}
           kontek={manageTarget.kontek}
           studentName={studentMap.get(manageTarget.session.studentId)?.name ?? "Murid"}
-          students={students ?? []}
+          // Semua murid (termasuk nonaktif, ditandai "(nonaktif)" di pemilihnya):
+          // sheet ini memindahkan sesi yang SUDAH ada, sedangkan `AddScheduleModal`
+          // di bawah tetap memakai daftar aktif saja karena ia membuat jadwal baru.
+          students={allStudents ?? []}
           onClose={() => setManageTarget(null)}
           onResult={msg}
         />

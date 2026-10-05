@@ -41,6 +41,15 @@ export type SesiAksi =
 export interface AksiSesi {
   id: SesiAksi;
   label: string;
+  /**
+   * Satu kalimat yang menjelaskan **akibat** aksi; tampil di bawah labelnya.
+   *
+   * Kenapa ada (permintaan pemilik 2026-10-05): `Batalkan sesi` dan `Hapus` duduk
+   * berdampingan tanpa penjelasan, sehingga pertanyaan yang wajar — "bedanya apa?" —
+   * tidak bisa dijawab dari layarnya. Keterangan ini menyebut bedanya **di tempat
+   * keputusan diambil**, bukan hanya di dialog konfirmasi sesudahnya.
+   */
+  keterangan?: string;
   /** `true` = tombol lebar penuh di badan sheet; `false` = baris di dalam `⋯`. */
   utama: boolean;
   /** Aksi ini mengubah/menghapus sesi — diberi gaya bahaya, bukan gaya merek. */
@@ -74,7 +83,8 @@ const AKSI: Record<SesiAksi, Omit<AksiSesi, "utama">> = {
   },
   "batal-les": {
     id: "batal-les",
-    label: "Batal les",
+    label: "Batalkan sesi",
+    keterangan: "Sesi ditandai “Dibatalkan”, tetap terlihat di riwayat murid, dan tidak masuk tagihan.",
     merusak: true,
     butuhIsian: true,
     butuhCakupanSeri: true,
@@ -103,6 +113,7 @@ const AKSI: Record<SesiAksi, Omit<AksiSesi, "utama">> = {
   "batalkan-sesi": {
     id: "batalkan-sesi",
     label: "Batalkan sesi",
+    keterangan: "Sesi ditandai “Dibatalkan”, tetap terlihat di riwayat murid, dan tidak masuk tagihan.",
     merusak: true,
     butuhIsian: true,
     butuhCakupanSeri: true,
@@ -110,6 +121,7 @@ const AKSI: Record<SesiAksi, Omit<AksiSesi, "utama">> = {
   "hapus": {
     id: "hapus",
     label: "Hapus",
+    keterangan: "Barisnya dibuang dari jadwal dan riwayat — tidak bisa dikembalikan. Ditolak bila sesi sudah masuk tagihan paket.",
     merusak: true,
     butuhIsian: false,
     butuhCakupanSeri: false,
