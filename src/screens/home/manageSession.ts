@@ -1,10 +1,10 @@
 /**
  * Aturan aksi "Kelola sesi" (G3-01 L4 — `TASK-06` Langkah 4).
  *
- * **Apa yang tinggal di sini.** Satu sheet akan menggantikan dua modal lama
- * (`EditSessionModal` + `ResolveMissedSessionModal`). Tabel "aksi menurut konteks"
- * adalah inti kontraknya, jadi ia ditulis sebagai fungsi murni — bukan sebagai
- * rangkaian `{kontek === "…" && <button/>}` di dalam komponen.
+ * **Apa yang tinggal di sini.** Satu sheet menggantikan **dua modal lama** (satu
+ * untuk mengubah jadwal, satu untuk mengelola sesi terlewat). Tabel "aksi menurut
+ * konteks" adalah inti kontraknya, jadi ia ditulis sebagai fungsi murni — bukan
+ * sebagai rangkaian `{kontek === "…" && <button/>}` di dalam komponen.
  *
  * **Kenapa fungsi murni.** Toolchain ini belum punya React Testing Library
  * (lihat catatan yang sama di `captureSession/helpers.ts` dan `undoDeletion.ts`),
@@ -54,6 +54,14 @@ export interface AksiSesi {
    */
   butuhCakupanSeri: boolean;
 }
+
+/**
+ * Aksi yang **sedang dipilih** di sheet, atau `null` saat sheet baru terbuka.
+ *
+ * Dipakai berkas aturan bentuk (`manageSessionForm.ts`) dan komponennya; ditulis
+ * di sini supaya keduanya tidak perlu mengulang `SesiAksi | null`.
+ */
+export type AksiSesiId = SesiAksi | null;
 
 /** Rincian teknis per aksi; tabel konteks di bawah hanya menyusun ulang daftar ini. */
 const AKSI: Record<SesiAksi, Omit<AksiSesi, "utama">> = {

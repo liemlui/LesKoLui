@@ -20,8 +20,8 @@ import MonthView from "./MonthView";
 import WeekView from "./WeekView";
 import DayView from "./DayView";
 import AddScheduleModal from "./AddScheduleModal";
-import EditSessionModal from "./EditSessionModal";
-import ResolveMissedSessionModal from "./ResolveMissedSessionModal";
+import ManageSessionSheet from "./ManageSessionSheet";
+import type { SesiKontek } from "./manageSession";
 import OperationalSnapshot from "./OperationalSnapshot";
 import type { SessionActions } from "./SessionPill";
 import { feedbackTypeForResult, todayHeroLoadState } from "../captureSession/helpers";
@@ -37,8 +37,9 @@ export default function Home() {
   const [selectedDay, setSelectedDay] = useState<string | null>(today);
 
   const [addDate,    setAddDate]    = useState<string | null>(null);
-  const [editTarget, setEditTarget] = useState<Session | null>(null);
-  const [resolveMissedTarget, setResolveMissedTarget] = useState<Session | null>(null);
+  // Satu target untuk semua pengelolaan sesi dari Beranda (G3-01 L4): konteksnya
+  // yang menentukan aksi mana yang muncul, bukan dua modal berbeda.
+  const [manageTarget, setManageTarget] = useState<{ session: Session; kontek: SesiKontek } | null>(null);
   const [filterStudentId, setFilterStudentId] = useState<string>("");
 
   const toast = useToastCtx();
@@ -127,9 +128,9 @@ export default function Home() {
   const jumpToday = () => { setCalMonth(monthOf(today)); setAnchor(today); setSelectedDay(today); };
 
   const actions: SessionActions = useMemo(() => ({
-    onEdit:    (s: Session) => setEditTarget(s),
+    onEdit:    (s: Session) => setManageTarget({ session: s, kontek: "terjadwal" }),
     onCapture: (id: string) => navigate(`/capture?scheduleId=${id}`),
-    onResolveMissed: (s: Session) => setResolveMissedTarget(s),
+    onResolveMissed: (s: Session) => setManageTarget({ session: s, kontek: "terlewat" }),
   }), [navigate]);
 
   // ── Empty state / onboarding ────────────────────────────────────────────────
@@ -279,15 +280,13 @@ export default function Home() {
         <AddScheduleModal date={addDate} students={students ?? []}
           onClose={() => setAddDate(null)} onResult={msg} />
       )}
-      {editTarget && (
-        <EditSessionModal target={editTarget} students={students ?? []}
-          onClose={() => setEditTarget(null)} onResult={msg} />
-      )}
-      {resolveMissedTarget && (
-        <ResolveMissedSessionModal
-          session={resolveMissedTarget}
-          studentName={studentMap.get(resolveMissedTarget.studentId)?.name ?? "Murid"}
-          onClose={() => setResolveMissedTarget(null)}
+      {manageTarget && (
+        <ManageSessionSheet
+          session={manageTarget.session}
+          kontek={manageTarget.kontek}
+          studentName={studentMap.get(manageTarget.session.studentId)?.name ?? "Murid"}
+          students={students ?? []}
+          onClose={() => setManageTarget(null)}
           onResult={msg}
         />
       )}

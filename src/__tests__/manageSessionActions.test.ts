@@ -1,13 +1,12 @@
 /**
  * Penjaga tabel aksi "Kelola sesi" (G3-01 L4 — `TASK-06` §3 Langkah 4).
  *
- * **Kenapa tes ini ada.** L4 melebur dua modal (`EditSessionModal` +
- * `ResolveMissedSessionModal`) menjadi satu sheet. Risiko sesungguhnya bukan
- * tampilannya, melainkan **kemampuan yang hilang tanpa disadari** — persis
- * larangan `ATURAN-AI` §2.2 ("menghapus kemampuan dengan alasan
- * menyederhanakan"; paling jauh dipindah ke `⋯`). Tes ini mengunci tabel konteks
- * dan sifat tiap aksi sebelum komponennya ditulis, supaya penggantian modal tidak
- * bisa diam-diam mengurangi.
+ * **Kenapa tes ini ada.** L4 melebur **dua modal lama** menjadi satu sheet. Risiko
+ * sesungguhnya bukan tampilannya, melainkan **kemampuan yang hilang tanpa
+ * disadari** — persis larangan `ATURAN-AI` §2.2 ("menghapus kemampuan dengan
+ * alasan menyederhanakan"; paling jauh dipindah ke `⋯`). Tes ini mengunci tabel
+ * konteks dan sifat tiap aksi sebelum komponennya ditulis, supaya penggantian
+ * modal tidak bisa diam-diam mengurangi.
  *
  * **Cara uji.** Fungsi murni di `screens/home/manageSession.ts`; markup-nya
  * dijaga tahap berikutnya (`tsc`/`eslint`) dan E2E saat sheet-nya dijalankan
