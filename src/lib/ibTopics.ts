@@ -2954,6 +2954,321 @@ export const IB_TOPICS: TopicEntry[] = [
     "Inovasi lokal untuk masalah nyata",
     "Refleksi perjalanan desain",
   ]),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // IB DP — sepuluh mapel yang BELUM punya katalog (PEKERJAAN §4 #3, putaran 2)
+  //
+  // Kenapa ditambahkan: DP sudah punya 21 nama indeks, tetapi semuanya dari
+  // kelompok yang "akrab" (Matematika, Sains, Bahasa, Ekonomi/Sejarah/Geografi,
+  // Psikologi, ESS, TOK/EE/CAS). Sepuluh mapel DP yang sah di `IB_DP_GROUPS`
+  // — Filsafat, Politik Global, Masyarakat Digital, Teknologi Desain, SEHS, dan
+  // **seluruh kelompok 6 (Arts)** — tidak menemukan satu pun topiknya.
+  //
+  // Isi mengikuti kerangka resmi silabus DP (tema wajib + area/topik pilihan),
+  // dengan judul dalam bahasa yang dipakai tutor di layar. Level sengaja bernilai
+  // **"DP"** supaya lolos `curriculumLevelFilter("IB DP")` (perbandingan PERSIS
+  // `"dp"`, bukan awalan) dan mendapat bonus relevansi dari `targetLevelFor`.
+  //
+  // Kelompok 6 (Arts) sengaja TIDAK meminjam katalog MYP "Arts": isinya beda
+  // (DP menuntut perbandingan, kurasi, dan presentasi karya), dan levelnya beda —
+  // meminjam akan membuat tutor merekam topik MYP ke sesi DP.
+  // ═══════════════════════════════════════════════════════════════════════════
+  ...mk("Philosophy", "DP", "IB DP", "Core theme — Being human", [
+    "Tubuh & pikiran — apa itu manusia?",
+    "Identitas pribadi sepanjang waktu",
+    "Kebebasan & determinisme",
+    "Kesadaran & pengalaman subjektif",
+    "Manusia sebagai makhluk sosial",
+  ]),
+  ...mk("Philosophy", "DP", "IB DP", "Optional themes — Knowledge", [
+    "Sumber pengetahuan & rasionalisme vs empirisme",
+    "Skeptisisme & batas pengetahuan",
+    "Ilmu pengetahuan — metode & falsifiabilitas",
+    "Bias kognitif & keandalan kesaksian",
+    "Peran bahasa dalam pengetahuan",
+  ]),
+  ...mk("Philosophy", "DP", "IB DP", "Optional themes — Ethics & politics", [
+    "Teori etika — utilitarianisme, deontologi, keutamaan",
+    "Kebebasan berbicara & batasnya",
+    "Keadilan distributif",
+    "Hak asasi & kewajiban",
+    "Etika terapan (lingkungan, teknologi, kedokteran)",
+  ]),
+  ...mk("Philosophy", "DP", "IB DP", "Keterampilan filsafat", [
+    "Menganalisis argumen — premis & kesimpulan",
+    "Mengenali kekeliruan berpikir (fallacy)",
+    "Menulis esai filsafat berstruktur",
+    "Membandingkan dua pandangan filsuf",
+    "Menggunakan contoh nyata sebagai bukti",
+  ]),
+
+  ...mk("Global Politics", "DP", "IB DP", "People, power & politics", [
+    "Konsep kekuasaan & otoritas",
+    "Negara, bangsa & kedaulatan",
+    "Legitimasi & partisipasi politik",
+    "Aktor non-negara & perusahaan multinasional",
+    "Studi kasus: kekuasaan dalam kebijakan nyata",
+  ]),
+  ...mk("Global Politics", "DP", "IB DP", "Human rights", [
+    "Instrumen HAM internasional (UDHR, konvensi)",
+    "HAM & kedaulatan negara — debat intervensi",
+    "Pelanggaran HAM & mekanisme penegakan",
+    "Kelompok rentan & perlindungannya",
+    "Studi kasus: advokasi HAM",
+  ]),
+  ...mk("Global Politics", "DP", "IB DP", "Development", [
+    "Mengukur pembangunan — PDB vs indeks lain",
+    "Ketimpangan global & lokal",
+    "Bantuan pembangunan & utang",
+    "Pembangunan berkelanjutan (SDGs)",
+    "Studi kasus: pembangunan di negara berkembang",
+  ]),
+  ...mk("Global Politics", "DP", "IB DP", "Peace & conflict", [
+    "Penyebab konflik antarnegara & dalam negara",
+    "Peran PBB & organisasi regional",
+    "Perdamaian negatif vs positif",
+    "Resolusi konflik & rekonsiliasi",
+    "Studi kasus: perjanjian damai",
+  ]),
+  ...mk("Global Politics", "DP", "IB DP", "Engagement activity & HL extension", [
+    "Merancang aksi politik nyata (engagement activity)",
+    "Beberapa perspektif atas satu isu",
+    "Menulis laporan engagement activity",
+    "Pertanyaan penelitian untuk esai HL",
+    "Refleksi keterlibatan politik pribadi",
+  ]),
+
+  ...mk("Digital Society", "DP", "IB DP", "Data", [
+    "Data pribadi, privasi & persetujuan",
+    "Big data & profil otomatis",
+    "Kualitas data & bias data",
+    "Kepemilikan & tata kelola data",
+    "Studi kasus: kebocoran & penyalahgunaan data",
+  ]),
+  ...mk("Digital Society", "DP", "IB DP", "Algorithms", [
+    "Algoritma dalam keputusan sehari-hari",
+    "Rekomendasi & gelembung filter",
+    "Bias algoritmik & keadilan",
+    "Otomatisasi & pengawasan",
+    "Akuntabilitas sistem otomatis",
+  ]),
+  ...mk("Digital Society", "DP", "IB DP", "Computing & networks", [
+    "Internet, platform & infrastruktur",
+    "Keamanan siber & serangan umum",
+    "Komputasi awan & ketergantungan layanan",
+    "Perangkat pintar & internet of things",
+    "Dampak infrastruktur pada akses",
+  ]),
+  ...mk("Digital Society", "DP", "IB DP", "Konteks & keterampilan", [
+    "Masyarakat digital dalam konteks budaya",
+    "Kesenjangan digital (akses & literasi)",
+    "Kecerdasan artifisial & pekerjaan",
+    "Meneliti isu digital dengan bukti",
+    "Menulis rekomendasi kebijakan digital",
+  ]),
+
+  ...mk("Design Technology", "DP", "IB DP", "Human factors & ergonomics", [
+    "Antropometri & penyesuaian ukuran",
+    "Beban kognitif & kelelahan",
+    "Aksesibilitas & desain universal",
+    "Kenyamanan & keamanan pemakaian",
+    "Mengukur kebutuhan pengguna",
+  ]),
+  ...mk("Design Technology", "DP", "IB DP", "Resource management & sustainable production", [
+    "Siklus hidup produk & analisis dampak",
+    "Pemilihan bahan & sifatnya",
+    "Proses produksi & efisiensi energi",
+    "Limbah, daur ulang & ekonomi sirkular",
+    "Desain berkelanjutan & regulasi",
+  ]),
+  ...mk("Design Technology", "DP", "IB DP", "Modelling & digital fabrication", [
+    "Gambar teknik & toleransi",
+    "Pemodelan 3D & CAD",
+    "Pencetakan 3D & pemotongan laser",
+    "Pengujian purwarupa & pengukuran",
+    "Dokumentasi teknis produk",
+  ]),
+  ...mk("Design Technology", "DP", "IB DP", "Proyek desain (IA)", [
+    "Menyelidiki kebutuhan klien",
+    "Menetapkan spesifikasi desain",
+    "Mengembangkan & memilih konsep",
+    "Membuat & menguji produk",
+    "Evaluasi terhadap spesifikasi",
+  ]),
+
+  ...mk("SEHS", "DP", "IB DP", "Anatomy", [
+    "Sistem rangka & otot",
+    "Sendi, gerak & biomekanika dasar",
+    "Sistem kardiovaskular & pernapasan",
+    "Sistem saraf & kontrol gerak",
+    "Analisis gerak pada cabang olahraga",
+  ]),
+  ...mk("SEHS", "DP", "IB DP", "Exercise physiology", [
+    "Sistem energi (ATP-PC, glikolisis, aerobik)",
+    "Respons akut terhadap latihan",
+    "Adaptasi latihan jangka panjang",
+    "Latihan di ketinggian & panas",
+    "Pengukuran kapasitas aerobik (VO₂max)",
+  ]),
+  ...mk("SEHS", "DP", "IB DP", "Energy systems & nutrition", [
+    "Kebutuhan energi atlet",
+    "Karbohidrat, lemak & protein untuk performa",
+    "Hidrasi & elektrolit",
+    "Suplemen — bukti & risikonya",
+    "Perencanaan makan sebelum & sesudah latihan",
+  ]),
+  ...mk("SEHS", "DP", "IB DP", "Movement & performance", [
+    "Prinsip latihan (FITT & periodisasi)",
+    "Keterampilan & pembelajaran motorik",
+    "Psikologi olahraga — motivasi & kecemasan",
+    "Pencegahan & penanganan cedera",
+    "Merancang program latihan untuk atlet nyata",
+  ]),
+
+  ...mk("Visual Arts", "DP", "IB DP", "Theoretical practice", [
+    "Analisis karya seni — deskripsi sampai evaluasi",
+    "Membandingkan karya lintas budaya & zaman",
+    "Kurasi pameran & penataan ruang",
+    "Praktik seni dalam konteks sosial",
+    "Menulis pernyataan seniman (artist statement)",
+  ]),
+  ...mk("Visual Arts", "DP", "IB DP", "Art-making forms", [
+    "Dua dimensi — gambar, lukis, cetak, fotografi",
+    "Tiga dimensi — patung, instalasi, keramik",
+    "Media elektronik & seni digital",
+    "Eksperimen bahan & teknik",
+    "Seri karya dengan tema yang berkembang",
+  ]),
+  ...mk("Visual Arts", "DP", "IB DP", "Curatorial practice & pameran", [
+    "Memilih & menyusun karya untuk satu tema",
+    "Mengelola ruang & pencahayaan",
+    "Menyusun katalog & label karya",
+    "Mengundang & memandu penonton",
+    "Dokumentasi pameran",
+  ]),
+  ...mk("Visual Arts", "DP", "IB DP", "Comparative study & process portfolio", [
+    "Menganalisis tiga karya dari konteks berbeda",
+    "Menghubungkan karya pribadi dengan karya rujukan",
+    "Mendokumentasikan proses & revisi",
+    "Refleksi kritis atas keputusan artistik",
+    "Menyiapkan pameran akhir (exhibition)",
+  ]),
+
+  ...mk("Music", "DP", "IB DP", "Musical perception", [
+    "Analisis bentuk & struktur musik",
+    "Harmoni & progresi akor",
+    "Ritme, metrum & poliritme",
+    "Tekstur & orkestrasi",
+    "Mengenali gaya & periode musik",
+  ]),
+  ...mk("Music", "DP", "IB DP", "Creating", [
+    "Komposisi berdasarkan motif",
+    "Menulis untuk instrumen tertentu",
+    "Aranemen & adaptasi",
+    "Notasi & perangkat lunak musik",
+    "Presentasi komposisi sendiri",
+  ]),
+  ...mk("Music", "DP", "IB DP", "Performing", [
+    "Teknik instrumen/vokal tingkat lanjut",
+    "Latihan efektif & manajemen waktu",
+    "Penampilan solo dengan interpretasi",
+    "Bermain dalam ansambel",
+    "Mengatasi kecemasan panggung",
+  ]),
+  ...mk("Music", "DP", "IB DP", "Konteks & penyelidikan musik", [
+    "Musik sebagai ekspresi budaya",
+    "Musik tradisi Indonesia & dunia",
+    "Pengaruh teknologi pada produksi musik",
+    "Riset tentang satu genre atau komponis",
+    "Menghubungkan konteks dengan karya sendiri",
+  ]),
+
+  ...mk("Theatre", "DP", "IB DP", "Theatre in context", [
+    "Teater sebagai cermin masyarakat",
+    "Tradisi teater dunia & Indonesia",
+    "Pengaruh konteks pada pementasan",
+    "Dramaturgi & penafsiran naskah",
+    "Riset untuk produksi teater",
+  ]),
+  ...mk("Theatre", "DP", "IB DP", "Theatre processes", [
+    "Membangun karakter & latihan akting",
+    "Sutradara — konsep & penyutradaraan",
+    "Desain panggung, kostum & tata cahaya",
+    "Kolaborasi tim produksi",
+    "Dokumentasi proses latihan",
+  ]),
+  ...mk("Theatre", "DP", "IB DP", "Presenting theatre", [
+    "Pementasan untuk penonton nyata",
+    "Blocking, tempo & ritme pementasan",
+    "Mengelola panggung & teknis",
+    "Umpan balik penonton & evaluasi",
+    "Refleksi kinerja ensambel",
+  ]),
+  ...mk("Theatre", "DP", "IB DP", "Collaborative project & solonya", [
+    "Merancang proyek teater bersama",
+    "Berbagi peran dalam tim kolaboratif",
+    "Pertunjukan kolaboratif untuk publik",
+    "Karya teater solo (theatre in the making)",
+    "Menilai proses, bukan hanya hasil",
+  ]),
+
+  ...mk("Film", "DP", "IB DP", "Reading film", [
+    "Bahasa film — shot, angle, gerak kamera",
+    "Editing & kontinuitas",
+    "Suara, musik & desain bunyi",
+    "Genre & narasi film",
+    "Analisis adegan secara rinci",
+  ]),
+  ...mk("Film", "DP", "IB DP", "Contextualising film", [
+    "Film & konteks sosial-politik",
+    "Sinema nasional & gerakan film",
+    "Pengaruh teknologi pada produksi film",
+    "Representasi & keberagaman di layar",
+    "Riset untuk proyek film sendiri",
+  ]),
+  ...mk("Film", "DP", "IB DP", "Inquiry & production", [
+    "Menyusun naskah & storyboard",
+    "Merencanakan produksi (lokasi, jadwal, peran)",
+    "Menyutradarai & mengarahkan aktor",
+    "Produksi & pengambilan gambar",
+    "Penyuntingan & penyelesaian akhir",
+  ]),
+  ...mk("Film", "DP", "IB DP", "Collaborative film project", [
+    "Peran dalam tim produksi film",
+    "Anggaran & sumber daya terbatas",
+    "Menampilkan karya untuk penonton",
+    "Menerima kritik & merevisi",
+    "Refleksi kerja kolaboratif",
+  ]),
+
+  ...mk("Dance", "DP", "IB DP", "Composition & choreography", [
+    "Merancang gerak dari motif",
+    "Struktur koreografi — awal, perkembangan, akhir",
+    "Penggunaan ruang, level & arah",
+    "Musik & ritme dalam koreografi",
+    "Menampilkan koreografi sendiri",
+  ]),
+  ...mk("Dance", "DP", "IB DP", "Performance", [
+    "Teknik tari & kebugaran penari",
+    "Ekspresi & kehadiran panggung",
+    "Menari dalam kelompok (ensemble)",
+    "Latihan & keselamatan tubuh penari",
+    "Perbedaan gaya tari (tradisional & modern)",
+  ]),
+  ...mk("Dance", "DP", "IB DP", "Dance & world culture", [
+    "Tari sebagai ekspresi budaya",
+    "Tari tradisional Indonesia & dunia",
+    "Ritual, upacara & tari sosial",
+    "Pengaruh globalisasi pada tari",
+    "Analisis makna gerak dalam konteksnya",
+  ]),
+  ...mk("Dance", "DP", "IB DP", "Inquiry & reflection", [
+    "Meneliti satu koreografer atau gaya",
+    "Menghubungkan riset dengan karya sendiri",
+    "Mendokumentasikan proses koreografi",
+    "Refleksi kritis atas pilihan artistik",
+    "Menghubungkan karya dengan isu nyata",
+  ]),
 ];
 
 // ─── Kelompok mapel setara + alias ke nama indeks topik ─────────────────────
@@ -3036,6 +3351,30 @@ const TOPIC_SUBJECT_ALIASES: ReadonlyArray<{ key: string; aka: readonly string[]
   { key: "Arts", aka: ["Art", "Art and Design"] },
   { key: "PHE", aka: ["Physical and Health Education", "Physical Education"] },
   { key: "Design", aka: ["Design MYP", "Desain"] },
+  // ── Kelompok mapel DP yang katalognya baru diisi (PEKERJAAN §4 #3, putaran 2).
+  //
+  // `key` = nama yang dipakai pemilih mapel DP di `lib/ibSubjects.ts`. Nama resmi
+  // silabus didaftarkan sebagai `aka` supaya pencarian dengan nama resmi pun
+  // menemukan katalognya.
+  //
+  // Atribusi alias yang SENGAJA tidak dipakai (supaya tidak ada kata sepemakan
+  // yang menarik mapel dari kurikulum lain, seperti "seni"/"penjaskes" di MYP):
+  //   * "Politics" tidak didaftarkan untuk Global Politics — kata itu bisa
+  //     bertabrakan dengan Sejarah/PKn ketika kelak katalognya ditambahkan.
+  //   * "Seni" tidak didaftarkan untuk Visual Arts (mapel Seni Budaya Nasional).
+  //   * "Penjaskes"/"PJOK" tidak didaftarkan untuk SEHS (mapel Nasional).
+  //     "Sports Science" dan "Physical Education" didaftarkan karena keduanya
+  //     memang nama lain SEHS di negara berbahasa Inggris.
+  { key: "Philosophy", aka: ["Filsafat", "Philosophy SL", "Philosophy HL"] },
+  { key: "Global Politics", aka: ["Politik Global", "Global Politics SL", "Global Politics HL"] },
+  { key: "Digital Society", aka: ["Masyarakat Digital", "Digital Society SL", "Digital Society HL"] },
+  { key: "Design Technology", aka: ["Design and Technology", "DT", "Teknologi Desain"] },
+  { key: "SEHS", aka: ["Sports, Exercise and Health Science", "Sports Science", "Physical Education", "Ilmu Olahraga"] },
+  { key: "Visual Arts", aka: ["Visual Art", "Seni Visual", "Visual Arts SL", "Visual Arts HL"] },
+  { key: "Music", aka: ["Musik", "Music SL", "Music HL"] },
+  { key: "Theatre", aka: ["Theater", "Theatre Arts", "Teater", "Theatre SL", "Theatre HL"] },
+  { key: "Film", aka: ["Film SL", "Film HL", "Sinematografi"] },
+  { key: "Dance", aka: ["Tari", "Dance SL", "Dance HL"] },
   // ── AP: nama mapel AP harus didaftarkan apa adanya.
   //
   // `key` di sini adalah NAMA MAPEL AP yang benar-benar ada di indeks (mis.

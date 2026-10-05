@@ -52,17 +52,17 @@ if (which === "all" || which === "tests") {
     }
   };
   walk("src");
-  const hasil = existsSync(join(ROOT, "test-results/suite-summary.json"))
-    ? JSON.parse(readFileSync(join(ROOT, "test-results/suite-summary.json"), "utf8"))
+  const hasil = existsSync(join(ROOT, ".design-audit-suite.json"))
+    ? JSON.parse(readFileSync(join(ROOT, ".design-audit-suite.json"), "utf8"))
     : null;
   console.log("\nTes:");
   console.log(`  berkas uji di src/ : ${files}`);
   console.log(`  kasus (perkiraan dari \`it(\`/\`test(\`) : ${cases}   ← perkiraan; angka RESMI = keluaran vitest`);
   if (hasil) {
-    console.log(`  hasil run terakhir (test-results/suite-summary.json, ${hasil.measured_at}): ${hasil.tests} lulus / ${hasil.files} berkas`);
+    console.log(`  hasil run terakhir (.design-audit-suite.json, ${hasil.measured_at}): ${hasil.tests} lulus / ${hasil.files} berkas`);
     console.log(`  perintahnya: ${hasil.command}`);
   } else {
-    console.log("  hasil run terakhir: belum ada test-results/suite-summary.json → jalankan `npm run test:sandbox`");
+    console.log("  hasil run terakhir: belum ada .design-audit-suite.json → jalankan `npm run test:sandbox`");
   }
 }
 

@@ -55,16 +55,9 @@ const KNOWN_TOPIcless: ReadonlyArray<readonly [string, string]> = [
   //  Societies · Arts · PHE · Design — DIHAPUS dari daftar ini 2026-10-05 karena
   //  katalognya sudah ada di `IB_TOPICS`; lihat riwayat §PEKERJAAN #3.)
   // ── IB DP ──
-  ["IB DP", "Philosophy"],
-  ["IB DP", "Global Politics"],
-  ["IB DP", "Digital Society"],
-  ["IB DP", "Design Technology"],
-  ["IB DP", "SEHS"],
-  ["IB DP", "Visual Arts"],
-  ["IB DP", "Music"],
-  ["IB DP", "Theatre"],
-  ["IB DP", "Film"],
-  ["IB DP", "Dance"],
+  // (10 mapel DP — Philosophy · Global Politics · Digital Society · Design
+  //  Technology · SEHS · Visual Arts · Music · Theatre · Film · Dance — DIHAPUS
+  //  dari daftar ini 2026-10-05 karena katalognya sudah ada di `IB_TOPICS`.)
   // ── Cambridge IGCSE ──
   ["Cambridge IGCSE", "Combined Science (0653)"],
   ["Cambridge IGCSE", "Co-ordinated Sciences (0654)"],
@@ -275,7 +268,11 @@ describe("resolveSubjectAliases() — penggabungan nama kembar (audit T-08)", ()
   });
 
   it("mapel tanpa pemetaan mengembalikan bentuk normalisasinya, bukan mapel lain", () => {
-    expect(resolveSubjectAliases("Global Politics")).toEqual(["global politics"]);
+    // "Marine Science" sengaja dipakai sebagai contoh mapel yang memang belum
+    // punya katalog (masih terdaftar di `KNOWN_TOPIcless`) supaya contohnya tidak
+    // basi begitu katalog baru ditambahkan — dulu tes ini memakai "Global Politics",
+    // dan rusak begitu katalog DP-nya diisi (putaran 2 #3).
+    expect(resolveSubjectAliases("Marine Science")).toEqual(["marine science"]);
     expect(resolveSubjectAliases("Penjaskes")).toEqual(["penjaskes"]);
   });
 
@@ -345,16 +342,32 @@ describe("searchTopics() — level & mapel tidak boleh bocor", () => {
   });
 
   it("hasil level lain dilaporkan lewat meta, bukan disamarkan (audit T-03)", () => {
-    // Mapel ini belum punya katalog DP; hasil yang muncul HARUS ditandai.
+    // Perlu mapel yang topiknya HANYA ada di level lain. Dulu tes ini memakai
+    // "Global Politics" karena katalog DP-nya memang kosong; sejak katalog DP
+    // diisi (putaran 2 #3), contoh itu tidak lagi menghasilkan fallback — jadi
+    // dipakai "French (0520)" IGCSE (katalognya masih kosong) dengan kata yang
+    // benar-benar ada di topik "French B" (tingkat DP): "crite" dari
+    // "Compréhension écrite".
+    const { results, meta } = searchTopicsExpanded("crite", {
+      subject: "French (0520)", curriculum: "Cambridge IGCSE",
+    });
+    expect(results.length, "kueri ini harus punya hasil di level lain").toBeGreaterThan(0);
+    expect(meta.inLevel).toBe(false);
+    expect(meta.offLevelFallback).toBe(true);
+    expect(meta.otherLevels.length).toBeGreaterThan(0);
+    for (const r of results) expect(r.level).not.toBe("IGCSE");
+  });
+
+  it("mapel DP yang katalognya sudah ada TIDAK lagi memakai topik level lain (putaran 2 #3)", () => {
+    // Kebalikan dari tes di atas: sesudah katalog DP diisi, hasil untuk mapel DP
+    // harus berada di level DP dan tidak perlu diberi tanda "level lain".
     const { results, meta } = searchTopicsExpanded("power", {
       subject: "Global Politics", curriculum: "IB DP",
     });
-    expect(meta.inLevel).toBe(false);
-    if (results.length > 0) {
-      expect(meta.offLevelFallback).toBe(true);
-      expect(meta.otherLevels.length).toBeGreaterThan(0);
-      for (const r of results) expect(r.level).not.toBe("DP");
-    }
+    expect(results.length).toBeGreaterThan(0);
+    expect(meta.inLevel).toBe(true);
+    expect(meta.offLevelFallback).toBe(false);
+    for (const r of results) expect(r.level).toBe("DP");
   });
 
   it("meta melaporkan mapel hasil alias & level yang diinginkan", () => {

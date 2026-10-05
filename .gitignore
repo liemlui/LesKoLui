@@ -40,6 +40,11 @@ dist-ssr
 typecheck-output.txt
 leskolui-data-*.csv
 
+# Fakta suite terakhir yang dibaca `npm run check:docs` (aturan R2) + `npm run measure`.
+# Ditaruh di AKAR repo, bukan `test-results/`: folder itu milik Playwright dan
+# dibersihkan setiap `npm run e2e` (artefak ini pernah hilang dua kali karena itu).
+.design-audit-suite.json
+
 # Artefak audit di luar repo (bukti runtime G1-05..G1-11, screenshot audit).
 # Guard `npm run e2e:uiux` menulisnya ke `<repo>/../.design-audit/` — di luar
 # repo. Baris ini hanya jaring pengaman bila kelak OUT_DIR dipindah ke dalam.

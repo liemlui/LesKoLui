@@ -40,14 +40,43 @@ const ARSIP = join(DOCS, "arsip");
 const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
 const APP_VERSION = `v${pkg.version}`;
 
-/** Jumlah tes suite terakhir — dibaca dari artefak, tidak ditebak. */
+/**
+ * Jumlah tes suite terakhir — dibaca dari artefak, tidak ditebak.
+ *
+ * **Kenapa di akar repo, bukan `test-results/` (diperbaiki 2026-10-05).**
+ * `test-results/` adalah direktori keluaran **Playwright** (lihat `.gitignore`
+ * bagian "# Playwright") — setiap `npm run e2e` membersihkannya, sehingga
+ * artefak ini pernah terhapus **dua kali** dan gate-nya lalu melaporkan
+ * "belum ada (R2 tes dilewati)" sambil tetap **lulus**: pemeriksaan jumlah tes
+ * di kepala dokumen aktif mati tanpa satu pun galat. Di akar repo, tidak ada
+ * alat yang menghapusnya. Berkas tetap gitignored.
+ */
+const SUITE_ARTIFACT = ".design-audit-suite.json";
+const SUITE_ARTIFACT_LAMA = "test-results/suite-summary.json";
+
 function readTestFacts() {
-  const f = join(ROOT, "test-results", "suite-summary.json");
-  if (!existsSync(f)) return null;
+  const f = join(ROOT, SUITE_ARTIFACT);
+  if (!existsSync(f)) {
+    // Jejak versi lama: kalau berkasnya ADA di lokasi lama namun tidak terbaca
+    // (mis. BOM membuat JSON.parse gagal), itu kegagalan yang harus terlihat —
+    // bukan "tidak ada artefak".
+    const lama = join(ROOT, SUITE_ARTIFACT_LAMA);
+    if (existsSync(lama)) {
+      console.error(
+        `check-docs: PERINGATAN — ${SUITE_ARTIFACT_LAMA} ada tetapi TIDAK TERBACA ` +
+        `(JSON rusak?), dan lokasi resminya sekarang ${SUITE_ARTIFACT}. ` +
+        `Periksa byte pertama (harus 123 = "{", bukan BOM).`,
+      );
+    }
+    return null;
+  }
   try {
     const j = JSON.parse(readFileSync(f, "utf8"));
     if (typeof j.tests === "number" && typeof j.files === "number") return j;
-  } catch { /* artefak rusak = dianggap tidak ada */ }
+    console.error(`check-docs: PERINGATAN — ${SUITE_ARTIFACT} tidak memuat tests/files; R2 dilewati.`);
+  } catch (e) {
+    console.error(`check-docs: PERINGATAN — ${SUITE_ARTIFACT} gagal di-parse (${e.message}); R2 dilewati.`);
+  }
   return null;
 }
 const TESTS = readTestFacts();
