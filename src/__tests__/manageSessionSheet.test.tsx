@@ -303,3 +303,52 @@ describe("Ganti murid: peringatan di sheet + konfirmasi sebelum simpan (b)", () 
   });
 });
 
+/**
+ * Penjaga teks ter-encode ganda (2026-10-05).
+ *
+ * Berkas `home/ManageSessionSheet.tsx` pernah memuat 13 baris teks yang ter-encode
+ * dua kali (UTF-8 dibaca CP1252 lalu ditulis ulang), sehingga tutor melihat rangkaian
+ * karakter aneh pada tombol "Aksi lain (N)", subjudul sheet, dan empat pesan toast.
+ * Tidak ada gate yang menangkapnya: tsc, eslint, seluruh suite, e2e, dan build
+ * semuanya hijau — yang rusak memang hanya teks yang tampil.
+ *
+ * **Cara membaca sumbernya tanpa `node:fs`.** `tsconfig.app.json` memasang
+ * `types: ["vite/client", …]` tanpa `@types/node`, jadi berkas tes di `src/**`
+ * dilarang mengimpor builtin Node (percobaan pertama saya ditolak `tsc -b`). Vite
+ * menyediakan impor `?raw` dan tipenya sudah termasuk `vite/client` — jadi seluruh
+ * berkas sumber bisa dibaca sebagai teks tanpa mengubah config apa pun.
+ *
+ * **Bentuk rusaknya dihitung, bukan diketik.** `new TextDecoder("windows-1252")`
+ * TIDAK boleh dipakai: di Node ini rentang 0x80–0x9F dipetakan seperti latin1
+ * (terukur: byte `e2 80 94` → `00E2 0080 0094`), sehingga pasangannya tidak cocok —
+ * jebakan yang sudah memakan satu langkah di putaran ini. Tabel CP1252 kecil di bawah
+ * ini adalah pemetaan yang sebenarnya untuk karakter yang dipakai repo ini.
+ */
+const SEMUA_SUMBER = import.meta.glob("../**/*.{ts,tsx}", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+}) as Record<string, string>;
+
+describe("Sumber tidak memuat teks ter-encode ganda", () => {
+  const CP1252_KHUSUS = new Map<number, number>([
+    [0x80, 0x20ac], [0x8b, 0x2039], [0x93, 0x201c], [0x94, 0x201d], [0x9c, 0x0153],
+  ]);
+  const bentukRusak = (ch: string) => [...new TextEncoder().encode(ch)]
+    .map((b) => String.fromCodePoint(CP1252_KHUSUS.get(b) ?? b))
+    .join("");
+  const berkas = Object.keys(SEMUA_SUMBER);
+
+  it("memeriksa seluruh berkas sumber, bukan satu berkas saja", () => {
+    expect(berkas.length).toBeGreaterThan(50);
+  });
+
+  for (const benar of ["—", "·", "✓", "⋯"]) {
+    it(`tidak ada bentuk rusak dari "${benar}"`, () => {
+      const rusak = bentukRusak(benar);
+      const kena = berkas.filter((f) => SEMUA_SUMBER[f].includes(rusak));
+      expect(kena, `berkas yang memuat teks ter-encode ganda: ${kena.join(", ")}`).toEqual([]);
+    });
+  }
+});
+

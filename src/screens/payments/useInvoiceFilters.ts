@@ -9,8 +9,6 @@ import type { MonthlyReport, Payment, Session, Settings, Student } from "../../d
 import { reportStatus } from "../../db/types";
 import { compareSessionsChronologically, reportPeriodOf } from "../../db/repos";
 import { periodLabel, monthLabel } from "../../lib/format";
-import { ageBucket, invoiceAgeDays } from "../../lib/finance";
-import type { AgeBucket } from "../../lib/finance";
 import { buildBillingMessage, toWaNumber } from "../../lib/waBilling";
 import {
   buildManualBillingText, groupPdfPages, invoiceOriginOf, toneForPayment,
@@ -76,15 +74,9 @@ export function useInvoiceFilters({
     };
   }, [allPayments]);
 
-  // Distribusi umur piutang lintas bulan (0-30 / 31-60 / >60 hari).
-  const agingBuckets = useMemo(() => {
-    const buckets: Record<AgeBucket, number> = { "0-30": 0, "31-60": 0, ">60": 0 };
-    for (const p of allPayments) {
-      if (p.status !== "UNPAID") continue;
-      buckets[ageBucket(invoiceAgeDays(p))]++;
-    }
-    return buckets;
-  }, [allPayments]);
+  // Distribusi umur piutang lintas bulan hidup di `TagihanTab.tsx` (`agingRows`),
+  // yang menghitungnya dari `billRows` — ringkasan di sini dulu dihitung dua kali
+  // dan tidak pernah dibaca siapa pun; dibuang 2026-10-05.
 
   const billRows = useMemo<BillRow[]>(() => allPayments
     .map((p) => {
@@ -145,7 +137,6 @@ export function useInvoiceFilters({
   [reports, payments, studentMap]);
 
   const showReadySections = invoiceStatusFilter === "all" || invoiceStatusFilter === "semua" || invoiceStatusFilter === "ready";
-  const showIssuedList = invoiceStatusFilter !== "ready";
 
   // ── Daftar Tagihan WA (semua unpaid dengan nomor HP tercatat) ──
   const waAllRows = useMemo<WaAllRow[]>(() => payments
@@ -199,14 +190,12 @@ export function useInvoiceFilters({
     studentMap,
     allPayments,
     totals,
-    agingBuckets,
     billRows,
     filteredBillRows,
     filteredPayments,
     pdfPageGroups,
     readyReportRows,
     showReadySections,
-    showIssuedList,
     waAllRows,
   };
 }
