@@ -19,6 +19,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import ResponseStep from "../screens/captureSession/ResponseStep";
+import { nextRadioIndex } from "../screens/captureSession/helpers";
 
 type Props = Parameters<typeof ResponseStep>[0];
 
@@ -97,5 +98,58 @@ describe("ResponseStep — C-03 (satu pemilih, dua jalan pintas)", () => {
     expect(quickGroup).toContain("Miskonsepsi");
     expect(quickGroup, "\"Kosongkan\" tidak boleh jadi salah satu pilihan radio").not.toContain("Kosongkan");
     expect(quick.slice(end)).toContain("Kosongkan");
+  });
+});
+
+/**
+ * C-03 opsi **c2** (keputusan pemilik 2026-10-05): grup radio diberi perilaku
+ * keyboard pola WAI-ARIA — Tab masuk **sekali** ke pilihan aktif (roving
+ * tabindex), lalu panah memindahkan pilihan sekaligus memilihnya.
+ *
+ * Yang bisa dibuktikan tanpa DOM: **aturannya** (`nextRadioIndex`, fungsi murni)
+ * dan **struktur** tab stop-nya (atribut `tabindex` di markup). Yang TIDAK bisa:
+ * perpindahan fokus yang sesungguhnya — itu wilayah `npm run e2e`.
+ */
+describe("ResponseStep — keyboard grup radio (C-03 opsi c2)", () => {
+  it("panah memindahkan pilihan mengikuti urutan dan membungkus di ujung", () => {
+    expect(nextRadioIndex("ArrowRight", 0, 3)).toBe(1);
+    expect(nextRadioIndex("ArrowRight", 2, 3)).toBe(0);   // wrap ke pertama
+    expect(nextRadioIndex("ArrowLeft", 0, 3)).toBe(2);    // wrap ke terakhir
+    expect(nextRadioIndex("ArrowDown", 1, 10)).toBe(2);
+    expect(nextRadioIndex("ArrowUp", 0, 10)).toBe(9);
+    expect(nextRadioIndex("Home", 4, 10)).toBe(0);
+    expect(nextRadioIndex("End", 1, 10)).toBe(9);
+  });
+
+  it("pilihan yang belum ada: maju ke pertama, mundur ke terakhir", () => {
+    expect(nextRadioIndex("ArrowRight", -1, 10)).toBe(0);
+    expect(nextRadioIndex("ArrowDown", -1, 10)).toBe(0);
+    expect(nextRadioIndex("ArrowLeft", -1, 10)).toBe(9);
+  });
+
+  it("tombol lain TIDAK diambil alih (Tab/Enter/ketikan tetap perilaku bawaan)", () => {
+    for (const key of ["Tab", "Enter", " ", "Escape", "a", "Shift"]) {
+      expect(nextRadioIndex(key, 1, 10), `"${key}" seharusnya diabaikan`).toBeNull();
+    }
+    expect(nextRadioIndex("ArrowRight", 0, 0)).toBeNull(); // grup kosong
+  });
+
+  it("roving tabindex: hanya SATU pilihan per grup yang menerima fokus Tab", () => {
+    const { quick, full } = groups(markup({ responseTag: "misconception" }));
+    expect(count(quick, 'tabindex="0"')).toBe(1);
+    expect(count(quick, 'tabindex="-1"')).toBe(2);   // 3 tombol cepat − 1 tab stop
+    expect(count(full, 'tabindex="0"')).toBe(1);
+    expect(count(full, 'tabindex="-1"')).toBe(9);    // 10 tag daftar penuh − 1 tab stop
+    // Tab stop harus pilihan yang sedang aktif, bukan sekadar yang pertama.
+    expect(quick).toMatch(/aria-checked="true"[^>]*tabindex="0"/);
+    expect(full).toMatch(/aria-checked="true"[^>]*tabindex="0"/);
+  });
+
+  it("tanpa pilihan, tab stop jatuh ke pilihan pertama (grup tetap terjangkau Tab)", () => {
+    const { quick, full } = groups(markup({ responseTag: undefined }));
+    expect(count(quick, 'tabindex="0"')).toBe(1);
+    expect(count(full, 'tabindex="0"')).toBe(1);
+    expect(quick).toMatch(/aria-checked="false"[^>]*tabindex="0"/);
+    expect(full).toMatch(/aria-checked="false"[^>]*tabindex="0"/);
   });
 });

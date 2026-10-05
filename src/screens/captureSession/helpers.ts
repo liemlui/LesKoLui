@@ -300,3 +300,36 @@ export function incompleteSteps(fill: StepFillState, currentStep: number): numbe
   }
   return missing;
 }
+
+/**
+ * Perpindahan pilihan di dalam `radiogroup` saat tombol navigasi ditekan
+ * (**C-03 opsi c2**, keputusan pemilik 2026-10-05).
+ *
+ * Mengembalikan **indeks tujuan** (0-based), atau `null` bila tombolnya bukan
+ * tombol navigasi grup radio — penting: `null` berarti "jangan sentuh apa pun",
+ * sehingga Tab/Enter/ketikan tetap berperilaku bawaan.
+ *
+ * Aturan pola WAI-ARIA: panah ↓/→ maju, ↑/← mundur, keduanya **membungkus**
+ * (dari pilihan terakhir kembali ke pertama), `Home`/`End` lompat ke ujung.
+ * Pilihan yang belum ada (`currentIndex < 0`) diperlakukan sebagai "sebelum
+ * yang pertama", jadi panah maju masuk ke pilihan pertama dan panah mundur ke
+ * yang terakhir.
+ */
+export function nextRadioIndex(key: string, currentIndex: number, count: number): number | null {
+  if (count <= 0) return null;
+  const last = count - 1;
+  switch (key) {
+    case "ArrowRight":
+    case "ArrowDown":
+      return currentIndex < 0 ? 0 : (currentIndex + 1) % count;
+    case "ArrowLeft":
+    case "ArrowUp":
+      return currentIndex < 0 ? last : (currentIndex - 1 + count) % count;
+    case "Home":
+      return 0;
+    case "End":
+      return last;
+    default:
+      return null;
+  }
+}

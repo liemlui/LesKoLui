@@ -1,8 +1,11 @@
+import { useRef } from "react";
+import type { KeyboardEvent } from "react";
 import { RESPONSE_TAGS } from "../../lib/responseTaxonomy";
 import { scoreBasisLabel } from "../../lib/engagement";
 import type { EngagementScoreBasis } from "../../db/types";
 import { RefreshIcon } from "../../components/icons";
 import ProgressBar from "../../components/charts/ProgressBar";
+import { nextRadioIndex } from "./helpers";
 
 /**
  * Ambang warna bar skor (C-10).
@@ -22,6 +25,23 @@ const SCORE_TONE_THRESHOLDS = [
   { pct: 50, tone: "amber" as const },
   { pct: 30, tone: "red" as const },
 ];
+
+/**
+ * Urutan pilihan di tiap grup radio (C-03 opsi **c2**, keputusan pemilik
+ * 2026-10-05). Urutannya **sama dengan urutan visual**, karena panah ←/→
+ * memindahkan pilihan mengikuti urutan ini.
+ *
+ * `ALL_RESPONSE_IDS` menggabungkan ketiga blok daftar penuh menjadi **satu** grup
+ * (blok hanya pengelompokan visual) — sejalan dengan `role="radiogroup"` yang
+ * dipasang di wadahnya, bukan di tiap blok.
+ */
+const QUICK_IDS = ["correct-independent", "partial-correct", "misconception"] as const;
+const RESPONSE_GROUP_IDS = [
+  ["correct-independent", "correct-with-prompt", "can-explain-orally", "transfer-attempt", "metacognitive"],
+  ["partial-correct", "can-do-procedurally", "guessing"],
+  ["misconception", "prerequisite-gap"],
+] as const;
+const ALL_RESPONSE_IDS = RESPONSE_GROUP_IDS.flat();
 
 interface ResponseStepProps {
   /** Tag respons akademik terpilih (kunci `RESPONSE_TAGS`). */
@@ -59,6 +79,40 @@ export default function ResponseStep({
    */
   const chooseResponse = (id: string) => setResponseTag(responseTag === id ? undefined : id);
 
+  /**
+   * **C-03 opsi c2 (2026-10-05): perilaku keyboard pola radiogroup.**
+   *
+   * Pola WAI-ARIA untuk radiogroup: **Tab masuk sekali** ke pilihan yang sedang
+   * terpilih (`tabIndex` bergulir), lalu **panah** berpindah antar pilihan —
+   * dan perpindahan itu sekaligus memilih (`selection follows focus`). Sebelumnya
+   * Tab harus melewati ke-13 pilihan satu per satu dan panah tidak melakukan apa
+   * pun. Tombol `Kosongkan` tetap **di luar** grup, jadi ia tetap punya tempat di
+   * urutan Tab.
+   *
+   * `selectResponse` dipakai khusus oleh keyboard: panah **tidak boleh**
+   * mematikan pilihan seperti ketukan ulang (`chooseResponse`), karena
+   * "berpindah ke pilihan yang sudah aktif" bukan maksud membatalkan.
+   */
+  const optionRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  const selectResponse = (id: string) => setResponseTag(id);
+
+  /** Pilihan yang menerima fokus Tab di dalam satu grup (roving tabindex). */
+  const tabStopId = (ids: readonly string[]) =>
+    ids.includes(responseTag ?? "") ? (responseTag as string) : ids[0];
+
+  const handleGroupKeyDown = (ids: readonly string[]) => (e: KeyboardEvent<HTMLDivElement>) => {
+    const next = nextRadioIndex(e.key, ids.indexOf(responseTag ?? ""), ids.length);
+    if (next === null) return;          // bukan tombol navigasi grup → biarkan perilaku bawaan
+    e.preventDefault();
+    const id = ids[next];
+    selectResponse(id);
+    optionRefs.current[id]?.focus();
+  };
+
+  const quickTabStop = tabStopId(QUICK_IDS);
+  const fullTabStop = tabStopId(ALL_RESPONSE_IDS);
+
   return (
     <div className="px-4 space-y-4">
 
@@ -71,8 +125,10 @@ export default function ResponseStep({
           {/* C-03: tiga tombol ini satu grup pilihan (radio), bukan tiga aksi
               lepas — dan "Kosongkan" sengaja di LUAR grup karena ia bukan
               pilihan respons. */}
-          <div className="flex flex-wrap gap-2" role="radiogroup" aria-labelledby="cs-isi-cepat">
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-labelledby="cs-isi-cepat" onKeyDown={handleGroupKeyDown(QUICK_IDS)}>
           <button type="button" role="radio" aria-checked={responseTag === "correct-independent"}
+            tabIndex={quickTabStop === "correct-independent" ? 0 : -1}
+            ref={(el) => { optionRefs.current["correct-independent"] = el; }}
             onClick={() => chooseResponse("correct-independent")}
             className={`px-3 py-2 rounded-full text-sm font-semibold border transition-colors ${
               responseTag === "correct-independent"
@@ -81,6 +137,8 @@ export default function ResponseStep({
              Lancar
           </button>
           <button type="button" role="radio" aria-checked={responseTag === "partial-correct"}
+            tabIndex={quickTabStop === "partial-correct" ? 0 : -1}
+            ref={(el) => { optionRefs.current["partial-correct"] = el; }}
             onClick={() => chooseResponse("partial-correct")}
             className={`px-3 py-2 rounded-full text-sm font-semibold border transition-colors ${
               responseTag === "partial-correct"
@@ -89,6 +147,8 @@ export default function ResponseStep({
              Butuh Latihan
           </button>
           <button type="button" role="radio" aria-checked={responseTag === "misconception"}
+            tabIndex={quickTabStop === "misconception" ? 0 : -1}
+            ref={(el) => { optionRefs.current["misconception"] = el; }}
             onClick={() => chooseResponse("misconception")}
             className={`px-3 py-2 rounded-full text-sm font-semibold border transition-colors ${
               responseTag === "misconception"
@@ -113,7 +173,7 @@ export default function ResponseStep({
           `role="radiogroup"` dipasang di wadah ini (bukan di tiap blok). */}
       <div>
         <label className="label" id="cs-kualitas-respons">🎓 Kualitas Respons Akademik <span className="text-[var(--ink-muted)] font-normal text-xs">(pilih satu)</span></label>
-        <div className="space-y-3 mt-2" role="radiogroup" aria-labelledby="cs-kualitas-respons">
+        <div className="space-y-3 mt-2" role="radiogroup" aria-labelledby="cs-kualitas-respons" onKeyDown={handleGroupKeyDown(ALL_RESPONSE_IDS)}>
           {/* ── Pemahaman Baik ── */}
           <div>
             <p className="text-xs font-semibold text-[var(--ink-success)] uppercase tracking-wide mb-1.5">✨ Pemahaman Baik</p>
@@ -122,6 +182,8 @@ export default function ResponseStep({
                 const score = tag.id === "correct-independent" ? "+2" : "+1";
                 return (
                   <button data-emoji-vocab="affect" key={tag.id} type="button" role="radio" aria-checked={responseTag === tag.id}
+                    tabIndex={fullTabStop === tag.id ? 0 : -1}
+                    ref={(el) => { optionRefs.current[tag.id] = el; }}
                     onClick={() => chooseResponse(tag.id)}
                     className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                       responseTag === tag.id
@@ -143,6 +205,8 @@ export default function ResponseStep({
                 const score = tag.id === "guessing" ? "−1" : "0";
                 return (
                   <button data-emoji-vocab="affect" key={tag.id} type="button" role="radio" aria-checked={responseTag === tag.id}
+                    tabIndex={fullTabStop === tag.id ? 0 : -1}
+                    ref={(el) => { optionRefs.current[tag.id] = el; }}
                     onClick={() => chooseResponse(tag.id)}
                     className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                       responseTag === tag.id
@@ -163,6 +227,8 @@ export default function ResponseStep({
               {RESPONSE_TAGS.filter(t => ["misconception","prerequisite-gap"].includes(t.id)).map((tag) => {
                 return (
                   <button data-emoji-vocab="affect" key={tag.id} type="button" role="radio" aria-checked={responseTag === tag.id}
+                    tabIndex={fullTabStop === tag.id ? 0 : -1}
+                    ref={(el) => { optionRefs.current[tag.id] = el; }}
                     onClick={() => chooseResponse(tag.id)}
                     className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                       responseTag === tag.id
