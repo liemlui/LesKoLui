@@ -24,6 +24,10 @@
    putaran yang sama, dan banner arsipnya menyebutkan hal itu.
 5. **Setiap berkas yang diarsipkan diberi banner** di baris paling atas: kapan diarsipkan, kenapa, dan
    ke mana penggantinya.
+6. **Penomoran temuan bisa berbeda antar dokumen.** Beberapa audit menomori ulang temuan yang sama
+   (`C-xx`, `K-xx`, `L-xx`), jadi satu ID bisa berarti dua hal berbeda. **Yang mengikat untuk tugas yang
+   sedang dikerjakan adalah penomoran di [`../kerja/PEKERJAAN.md`](../kerja/PEKERJAAN.md) §3** — pernah
+   bikin salah baca 2026-10-05 (audit `C-08` = kontras warna, `GELOMBANG-3` `C-08` = tombol "Lewati").
 
 ---
 
@@ -42,7 +46,7 @@
 | 09 | [`WA-MESSAGE-ADJUSTMENT-2026-09-05.md`](WA-MESSAGE-ADJUSTMENT-2026-09-05.md) | 2026-09-05 | ✅ selesai | Alasan pesan ke orang tua ditulis hangat, bukan seperti penagih |
 | 10 | [`UI-UX-AUDIT-VISUAL-2026-09-11.md`](UI-UX-AUDIT-VISUAL-2026-09-11.md) | 2026-09-11 | ✅ 14/14 | Menetapkan **format tabel temuan** + legend severitas 🔴🟠🟡🟢 yang dipakai audit berikutnya |
 | 11 | [`AUDIT-UIUX-KEUANGAN-2026-09-12.md`](AUDIT-UIUX-KEUANGAN-2026-09-12.md) | 2026-09-12 | ✅ 10/10 | Metodenya (jalankan app dengan data realistis → ukur DOM → tulis sebelum→sesudah) jadi standar audit berikutnya |
-| 12 | [`AUDIT-UIUX-CATAT-SESI-2026-09-12.md`](AUDIT-UIUX-CATAT-SESI-2026-09-12.md) | 2026-09-12 | ✅ 17/17 | §9.3 mencatat **2 penyimpangan yang disengaja** (bottom-nav & chip teks) — masih berlaku sebagai keputusan |
+| 12 | [`AUDIT-UIUX-CATAT-SESI-2026-09-12.md`](AUDIT-UIUX-CATAT-SESI-2026-09-12.md) | 2026-09-12 | ✅ 17/17 | §9.3 mencatat **2 penyimpangan yang disengaja** (bottom-nav & chip teks) — masih berlaku sebagai keputusan. ⚠️ **Penomoran `C-xx` di berkas ini BUKAN yang dipakai tugas G3** — lihat §1 aturan 6 |
 | 13 | [`AUDIT-KONDISI-LES-DAN-TOPIK-2026-09-13.md`](AUDIT-KONDISI-LES-DAN-TOPIK-2026-09-13.md) | 2026-09-13 | ✅ P0–P3 | Satu-satunya audit soal **isi pilihan** (katalog topik vs nama mapel). Berguna saat menambah mapel baru |
 | 14 | [`03-capture-flow.md`](03-capture-flow.md) | — | ⚠️ **usang** | Alur Catat Sesi versi lama. **Jangan dipakai** sebagai acuan perilaku |
 | 15 | [`TODO-2026-09-13.md`](TODO-2026-09-13.md) | rev. 2026-09-13 | ⚠️ dipindah | Utang teknis yang dulu di akar repo; daftar aktifnya kini di `../kerja/PEKERJAAN.md` |
@@ -51,7 +55,7 @@
 | 18 | [`GELOMBANG-2.md`](GELOMBANG-2.md) | 2026-10-03 | ⚠️ digantikan | Peta 11 tugas G2 (fondasi token/uang/jadwal) → kini `../kerja/PEKERJAAN.md` |
 | 19 | [`GELOMBANG-3.md`](GELOMBANG-3.md) | 2026-10-03 | ⚠️ digantikan | Peta 10 tugas G3 (alur: sesi/keuangan/AI/laporan) → kini `../kerja/PEKERJAAN.md` |
 | 20 | [`GELOMBANG-1.md`](GELOMBANG-1.md) | 2026-10-05 | ✅ tuntas (v1.85.0) | 11 tugas G1-01…G1-11 lengkap dengan bukti & preseden prosedur |
-| 21 | [`PROMPT-LANJUTAN-G3.md`](PROMPT-LANJUTAN-G3.md) | 2026-10-05 | ⚠️ basi | Contoh bentuk "prompt serah-terima antar-sesi". **Angkanya potret 2026-10-04** |
+| 21 | [`PROMPT-LANJUTAN-G3.md`](PROMPT-LANJUTAN-G3.md) | 2026-10-05 | ⚠️ basi | Contoh bentuk "prompt serah-terima antar-sesi". **Angkanya potret 2026-10-04** · jebakan lingkungan/alatnya sudah dinaikkan ke `../kerja/ATURAN-AI.md` §6.4 (2026-10-05) |
 | 22 | [`CHECKLIST-VISUAL-2026-10-04.md`](CHECKLIST-VISUAL-2026-10-04.md) | 2026-10-05 | ✅ diperiksa pemilik | Checklist manual per titik (14 butir) — bentuk yang dipakai lagi untuk rilis berikutnya |
 | 23 | [`ROADMAP.md`](ROADMAP.md) | 2026-10-05 | ⚠️ digantikan | Peta gelombang 2 & 3 + catatan gate; digantikan `../kerja/PEKERJAAN.md` |
 | 24 | [`RIWAYAT-PEKERJAAN-2026-10.md`](RIWAYAT-PEKERJAAN-2026-10.md) | 2026-10-05 | ⚠️ digantikan | Isi lama §4 `docs/README.md`: tabel Q9–Q28 + daftar periksa manual 2026-10-04 |

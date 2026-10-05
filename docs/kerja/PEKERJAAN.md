@@ -73,9 +73,20 @@ per putaran: `CaptureSession.tsx` ✅ (2.155 → 1.891 saat refactor, sebelum G3
 G3-02 · `MonthlyReport.tsx` sebelum G3-05 · `StudentDetail.tsx` sebelum G3-06 · `Settings.tsx` sebelum G3-09.
 **Angka baris bukan DoD**: fitur boleh menaikkannya (lihat riwayat G3-01 di §6 dokumen tugasnya).
 
+**Di mana langkah rinci tiap tugas G3 (hemat pembacaan).** Rincian langkah `G3-02`…`G3-10` — termasuk item
+`K-01`…`K-13` dan sisa `C-xx` — ada di [`../arsip/GELOMBANG-3.md`](../arsip/GELOMBANG-3.md) §G3-02…§G3-10.
+Baca berkas itu sebagai **spesifikasi langkah**, bukan sumber angka: ia beku, dan angkanya potret 2026-10-01
+(lihat §4 #15 — spesifikasi itu seharusnya sudah pindah ke dokumen hidup).
+
+> **Batas ID yang mengikat (pernah bikin salah baca 2026-10-05).** Item `C-xx` yang dipakai di §3 dan
+> `TASK-06` mengikuti penomoran **`GELOMBANG-3`**, **bukan** penomoran audit
+> [`../arsip/AUDIT-UIUX-CATAT-SESI-2026-09-12.md`](../arsip/AUDIT-UIUX-CATAT-SESI-2026-09-12.md) — di berkas
+> audit itu `C-02`/`C-04`/`C-08` berarti hal yang sama sekali lain (mis. `C-08` di audit = kontras warna,
+> di `GELOMBANG-3` = tombol "Lewati" di langkah 2).
+
 ---
 
-## 4. Pekerjaan yang belum punya dokumen tugas (butuh keputusan manusia)
+## 4. Pekerjaan tanpa dokumen tugas (butuh keputusan pemilik, izin, atau belum dijadwalkan)
 
 | # | Pekerjaan | Di mana | Kenapa belum selesai |
 |---|---|---|---|
@@ -88,6 +99,12 @@ G3-02 · `MonthlyReport.tsx` sebelum G3-05 · `StudentDetail.tsx` sebelum G3-06 
 | 7 | **Sisa spec basi di `npm run e2e`** — beberapa merah = flake beban, bukan regresi | `.design-audit/g2-gate-2026-10-04.md` | Bisect sudah tuntas (bukan regresi). Kalau sebuah spec merah: **jalankan sendirian dulu** sebelum menyimpulkan |
 | 8 | **K-01 — peringatan saat mengubah nominal tagihan** (mengubah nominal memindahkan asal tagihan ke `manual` secara senyap → daftar sesi hilang dari ekspor & WA) | keputusan pemilik #1 (2026-10-01) · [`../arsip/07-VALIDASI-RENCANA-2026-10-01.md`](../arsip/07-VALIDASI-RENCANA-2026-10-01.md) §3 | Dijadwalkan sebagai bagian **G3-02** |
 | 9 | **Temuan audit UI/UX yang masih tersisa** dari audit 2026-10-01 | [`../arsip/06-AUDIT-UIUX-2026-10-01.md`](../arsip/06-AUDIT-UIUX-2026-10-01.md) | 73 temuan tetap, 18 sebagian, 1 klaim dibatalkan. **Wajib baca berkas 07 lebih dulu** sebelum mengerjakan |
+| 11 | **8 hex mentah sisa** (bilah aksi `CaptureSession.tsx` · kepala `captureSession/CloseOutSheet.tsx:56`) **tidak punya token berwarna sama** — token repo palet Tailwind **v4**, hex itu palet **v3** (jarak terdekat ΔRGB 30–39) | [`ATURAN-AI.md`](ATURAN-AI.md) §5 (baris "Warna heks mentah") | Menggantinya **mengubah warna yang terlihat** → keputusan pemilik. Pengukur: `.design-audit/a3-hex-token-match.cjs` |
+| 12 | **Konfirmasi saat keluar wizard lewat nav bawah** (sisa C-04) | [`TASK-06-perkuat-catat-sesi.md`](TASK-06-perkuat-catat-sesi.md) §10 riwayat 2026-10-05 | Keluar aplikasi/tab sudah dijaga `beforeunload` + draf tersimpan; memblokir nav menyentuh `BottomNav`/`App` → keputusan baru, bukan bagian G3-01 |
+| 13 | **Panah ←/→ di dalam `radiogroup`** respons akademik (Tab sudah melewati semua pilihan, jadi tidak ada yang tak terjangkau) | `captureSession/ResponseStep.tsx` | Sisa C-03; butuh penanganan fokus penuh, belum dijadwalkan |
+| 14 | **Rilis berikutnya + entri `CHANGELOG`** untuk 6 perubahan perilaku 2026-10-05 (L7 · C-02 · C-03 · C-04 · C-08 · C-10) | `src/lib/version.ts` + [`../README.md`](../README.md) §6 | Versi **tidak** dinaikkan karena gelombang belum tuntas (G3-01 sisa L4) → keputusan pemilik kapan merilis |
+| 15 | **Spesifikasi langkah G3-02…G3-10 masih tinggal di [`../arsip/GELOMBANG-3.md`](../arsip/GELOMBANG-3.md)** | §3 berkas ini | Pekerjaan terbuka tidak seharusnya tinggal di arsip (aturan [`../README.md`](../README.md) §7.1.3); angkanya sudah beku → pindahkan ke dokumen hidup saat gelombang itu mulai |
+| 16 | **Mockup `docs/mockups/` (home/uang/hari, 2026-09-24) — masih dipakai atau sudah usang?** | [`../mockups/`](../mockups/) · router [`../README.md`](../README.md) §2 | Tampilan yang digambarnya sudah diimplementasikan di Gelombang 2 (Beranda non-uang, satu pintu uang, zoom Jadwal Hari, v1.88.0) → kandidat **arsip**; tapi ia bisa masih berguna sebagai acuan gaya untuk G3. Keputusan pemilik, bukan agen |
 
 ---
 
