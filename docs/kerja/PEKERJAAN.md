@@ -59,7 +59,7 @@ bisa memegang puluhan berkas `src/**`, aturan default = **SERJAL**. Paralel butu
 
 | ID | Judul | Tier | Dep | Berkas inti | Est | Status |
 |---|---|---|---|---|---|---|
-| G3-01 | Catat Sesi (refactor terbatas + C-01…C-13) | T3 | G2-01, G2-06 | `CaptureSession.tsx`, `captureSession/*` | L | 🟨 **sebagian** — refactor ✅ · L8 ✅ · L9 ✅ · L10 (undo, C-13/C-05) ✅ · L7 (simpan dari langkah 5, Q2) ✅ · C-08 ("Lewati" di langkah 2) ✅ · C-03 (satu penulis `responseTag` + `role="radiogroup"`) ✅ · C-04 (badge `!` di stepper) ✅ · C-02 (`aria-live` + gulir & fokus saat pindah langkah) ✅ · C-10 (donat skor → `ProgressBar`) ✅ · **sisa: L4 `ManageSessionSheet` · C-12 ⏸ menunggu G3-04** |
+| G3-01 | Catat Sesi (refactor terbatas + C-01…C-13) | T3 | G2-01, G2-06 | `CaptureSession.tsx`, `captureSession/*` | L | 🟨 **sebagian** — refactor ✅ · L8 ✅ · L9 ✅ · L10 (undo, C-13/C-05) ✅ · L7 (simpan dari langkah 5, Q2) ✅ · C-08 ("Lewati" di langkah 2) ✅ · C-03 (satu penulis `responseTag` + `role="radiogroup"`) ✅ · C-04 (badge `!` di stepper) ✅ · C-02 (`aria-live` + gulir & fokus saat pindah langkah) ✅ · C-10 (donat skor → `ProgressBar`) ✅ · C-03 lanjutan **opsi c2** (keyboard grup radio: Tab sekali + panah/Home/End) ✅ · **sisa: L4 `ManageSessionSheet` · C-12 ⏸ menunggu G3-04** |
 | G3-02 | Keuangan: refactor terbatas `TagihanTab.tsx` + satu layar, cari murid, badge terlambat, filter lanjutan, **K-01** | T3 | G2-04 | `payments/TagihanTab.tsx`, `useInvoiceFilters.ts` | L | ⬜ |
 | G3-03 | Redesign papan pipeline (tetap hidup di dalam blok "Perlu ditagih") | T2 | G3-02 | `FinancePipelineBoard.tsx`, `RingkasanTab.tsx` | L | ⬜ |
 | G3-04 | Kontrak AI berbiaya — satu jalur `useAiAction()` + satu modal biaya | T3 | G1-01, G2-01 | `useAiAction`, `AiCostModal`, `Settings` | L | ⬜ |
@@ -90,23 +90,22 @@ Baca berkas itu sebagai **spesifikasi langkah**, bukan sumber angka: ia beku, da
 
 ## 4. Pekerjaan tanpa dokumen tugas (butuh keputusan pemilik, izin, atau belum dijadwalkan)
 
+> **Ditutup 2026-10-05** — nomor lamanya dipertahankan di [`ATURAN-AI.md`](ATURAN-AI.md) §1 "Amandemen
+> 2026-10-05" supaya rujukan tidak putus: **#1** verifikasi PWA → ditangani pemilik lewat Vercel ·
+> **#5** timeout Playwright → dinaikkan ke 60 dtk · **#6** CI GitHub → **tidak** diaktifkan ·
+> **#11** 10 hex mentah → sudah jadi token · **#12** konfirmasi nav bawah → opsi b3 (baris kepastian draf) ·
+> **#13** panah radiogroup → selesai (opsi c2) · **#16** mockup → dipertahankan (opsi e1).
+
 | # | Pekerjaan | Di mana | Kenapa belum selesai |
 |---|---|---|---|
-| 1 | **Verifikasi PWA dua build berbeda** (halaman lama masih bisa membuka route lazy setelah deploy baru) | [`04-RENCANA-KETAHANAN-DATA.md`](../04-RENCANA-KETAHANAN-DATA.md) §13 | Baru **satu** build produksi yang terbukti; uji dua build butuh deploy kedua → **manusia** |
-| 2 | **Verifikasi manual alur Catat Sesi** (§5 di bawah) | §5 berkas ini | Butuh mata manusia di perangkat; sedang dikerjakan bertahap lewat G3-01 |
-| 3 | **Katalog topik untuk mapel yang belum punya** (mis. Arts MYP, Group 6 DP, ICT IGCSE) | [`../arsip/AUDIT-KONDISI-LES-DAN-TOPIK-2026-09-13.md`](../arsip/AUDIT-KONDISI-LES-DAN-TOPIK-2026-09-13.md) §7 P3 #19 | Terdaftar sadar di `KNOWN_TOPIcless` (`src/__tests__/topicCoverage.test.ts`); **pengetahuan pemilik** — isi berdasar mapel yang benar-benar diajar, jangan dikejar rata |
+| 2 | **Verifikasi manual alur Catat Sesi** (§5 di bawah — 20 butir; 13–20 baru 2026-10-05) | §5 berkas ini | Butuh mata manusia di perangkat |
+| 3 | **Katalog topik untuk 78 mapel yang belum punya** (mis. `IB MYP :: Language & Literature`, `IB DP :: Global Politics`) | [`../arsip/AUDIT-KONDISI-LES-DAN-TOPIK-2026-09-13.md`](../arsip/AUDIT-KONDISI-LES-DAN-TOPIK-2026-09-13.md) §7 P3 #19 · daftar sadarnya di `KNOWN_TOPIcless` (`src/__tests__/topicCoverage.test.ts`) | **Keputusan #3 (2026-10-05): dikerjakan agen**, bukan menunggu pengetahuan pemilik — cari topik **sebanyak mungkin**, topik yang sama boleh dipakai lintas mapel yang mirip. Jaga `npm run test:sandbox -- topicCoverage` tetap hijau |
 | 4 | **2 hal yang sengaja TIDAK dikerjakan** (keputusan, bukan lupa) | [`../arsip/AUDIT-UIUX-CATAT-SESI-2026-09-12.md`](../arsip/AUDIT-UIUX-CATAT-SESI-2026-09-12.md) §9.3 | bottom-nav dibiarkan tampil selama wizard; chip teks 38–42 px dibiarkan (≥24 px, lolos WCAG 2.5.8) |
-| 5 | **Timeout Playwright 30 dtk** (penyebab flake saat 2 project + spec generator berjalan bersama) | `playwright.config.ts` | Menunggu izin perubahan config (**Tier 3**) |
-| 6 | **CI GitHub Actions tidak berjalan** (kedua job gagal dalam 2 detik, `steps: []`) | `.github/workflows/ci.yml` | Perlu diaktifkan pemilik di GitHub → Settings → Actions. Sementara itu: **jalankan gate lokal** |
-| 7 | **Sisa spec basi di `npm run e2e`** — beberapa merah = flake beban, bukan regresi | `.design-audit/g2-gate-2026-10-04.md` | Bisect sudah tuntas (bukan regresi). Kalau sebuah spec merah: **jalankan sendirian dulu** sebelum menyimpulkan |
+| 7 | **Semua spec `npm run e2e` harus hijau** (keputusan #7, 2026-10-05) | `e2e/**` · catatan flake `.design-audit/g2-gate-2026-10-04.md` | Perlu **eskalasi sandbox** (browser + dev server). Urutannya: jalankan seluruh suite → spec merah **jalankan sendirian** dulu (flake beban sudah terbukti bukan regresi) → baru perbaiki yang benar-benar gagal. Batas waktu tes kini 60 dtk (#5) |
 | 8 | **K-01 — peringatan saat mengubah nominal tagihan** (mengubah nominal memindahkan asal tagihan ke `manual` secara senyap → daftar sesi hilang dari ekspor & WA) | keputusan pemilik #1 (2026-10-01) · [`../arsip/07-VALIDASI-RENCANA-2026-10-01.md`](../arsip/07-VALIDASI-RENCANA-2026-10-01.md) §3 | Dijadwalkan sebagai bagian **G3-02** |
 | 9 | **Temuan audit UI/UX yang masih tersisa** dari audit 2026-10-01 | [`../arsip/06-AUDIT-UIUX-2026-10-01.md`](../arsip/06-AUDIT-UIUX-2026-10-01.md) | 73 temuan tetap, 18 sebagian, 1 klaim dibatalkan. **Wajib baca berkas 07 lebih dulu** sebelum mengerjakan |
-| 11 | **10 hex mentah sisa di 2 berkas** — `CaptureSession.tsx:1932` (bilah aksi) · `CloseOutSheet.tsx:56` (kepala sheet) · **`CloseOutSheet.tsx:108`** (tombol "Selesai & Lihat Profil") — **tidak punya token berwarna sama**: token repo palet Tailwind **v4**, hex itu palet **v3**. Hanya `#1f2937` nyaris identik dengan `--surface-inverse` (ΔRGB **3**); sisanya **ΔRGB 30–173** | [`ATURAN-AI.md`](ATURAN-AI.md) §5 (baris "Warna heks mentah") | Menggantinya **mengubah warna yang terlihat** → keputusan pemilik (pilihan: biarkan · ganti ke token terdekat · tambah token baru bernilai sama). Pengukur: `.design-audit/a3-hex-token-match.cjs` |
-| 12 | **Konfirmasi saat keluar wizard lewat nav bawah** (sisa C-04) | [`TASK-06-perkuat-catat-sesi.md`](TASK-06-perkuat-catat-sesi.md) §10 riwayat 2026-10-05 | Keluar aplikasi/tab sudah dijaga `beforeunload` + draf tersimpan; memblokir nav menyentuh `BottomNav`/`App` → keputusan baru, bukan bagian G3-01 |
-| 13 | **Panah ←/→ di dalam `radiogroup`** respons akademik (Tab sudah melewati semua pilihan, jadi tidak ada yang tak terjangkau) | `captureSession/ResponseStep.tsx` | Sisa C-03; butuh penanganan fokus penuh, belum dijadwalkan |
-| 14 | **Rilis berikutnya + entri `CHANGELOG`** untuk 6 perubahan perilaku 2026-10-05 (L7 · C-02 · C-03 · C-04 · C-08 · C-10) | `src/lib/version.ts` + [`../README.md`](../README.md) §6 | Versi **tidak** dinaikkan karena gelombang belum tuntas (G3-01 sisa L4) → keputusan pemilik kapan merilis |
-| 15 | **Spesifikasi langkah G3-02…G3-10 masih tinggal di [`../arsip/GELOMBANG-3.md`](../arsip/GELOMBANG-3.md)** | §3 berkas ini | Pekerjaan terbuka tidak seharusnya tinggal di arsip (aturan [`../README.md`](../README.md) §7.1.3); angkanya sudah beku → pindahkan ke dokumen hidup saat gelombang itu mulai |
-| 16 | **Mockup `docs/mockups/` (home/uang/hari, 2026-09-24) — masih dipakai atau sudah usang?** | [`../mockups/`](../mockups/) · router [`../README.md`](../README.md) §2 | Tampilan yang digambarnya sudah diimplementasikan di Gelombang 2 (Beranda non-uang, satu pintu uang, zoom Jadwal Hari, v1.88.0) → kandidat **arsip**; tapi ia bisa masih berguna sebagai acuan gaya untuk G3. Keputusan pemilik, bukan agen |
+| 14 | **Rilis gelombang 3 + satu entri `CHANGELOG`** untuk 6 perubahan perilaku 2026-10-05 (L7 · C-02 · C-03 · C-04 · C-08 · C-10) | `src/lib/version.ts` + [`../README.md`](../README.md) §6 | **Keputusan Q-D = d2:** tunggu sampai G3-01 tuntas (`L4 ManageSessionSheet`), lalu **satu** entri untuk seluruh gelombang — bukan satu per langkah |
+| 15 | **Spesifikasi langkah G3-02…G3-10 masih tinggal di [`../arsip/GELOMBANG-3.md`](../arsip/GELOMBANG-3.md)** | §3 berkas ini | **Keputusan Q-F = bertahap:** pindahkan **satu tugas per pemindahan**, dikerjakan saat gelombang itu mulai (angkanya di arsip sudah beku) |
 
 ---
 
@@ -130,6 +129,12 @@ IB DP / Cambridge IGCSE / AP / Nasional). Checklist rinci per titik (lokasi, tan
 - [ ] **12.** Pengaturan → Ekspor CSV → kolom baru "Bab Topik" & "Sumber Skor"; kolom Level berisi label (mis. `IGCSE · Grade 10`), **bukan** `UNIV`
 - [ ] **13. (baru 2026-10-05, G3-01 L10)** Langkah Materi → ketuk × pada satu chip topik **berbab** → muncul pita pesan + tombol "↩ Urungkan" → ketuk → topik kembali **di posisi semula** dengan label babnya
 - [ ] **14. (baru 2026-10-05, G3-01 L10)** Laporan sesi (langkah 6) → hapus satu tindak lanjut (konfirmasi) → "↩ Urungkan" → item kembali **di urutan semula**
+- [ ] **15. (baru 2026-10-05, Q2/L7)** Langkah 5 (Catatan) → isi catatan → tombol **Simpan Sesi** tersedia di sebelah "Lanjut →" → ketuk → laporan sesi terbuka dan sesi tersimpan **tanpa foto & tanda tangan** (periksa di detail sesi)
+- [ ] **16. (baru 2026-10-05, C-04)** Di langkah 1 sebelum murid dipilih → stepper langkah 1 menunjukkan badge `!`; begitu murid dipilih → badge hilang. Langkah 5 juga berbadge `!` selama catatannya masih kosong
+- [ ] **17. (baru 2026-10-05, C-02)** Dari langkah 1 gulir jauh ke bawah → ketuk "Lanjut →" → halaman **kembali ke atas** dan judul langkah berikutnya ("Materi") langsung terlihat
+- [ ] **18. (baru 2026-10-05, C-03)** Langkah 4 → ketuk "Lancar" di "Isi cepat" → tombol itu **menyala** dan chip yang sama di daftar bawah ikut menyala. Lalu pakai keyboard: **Tab** masuk **sekali** ke grup, **panah ←/→/↑/↓** memindahkan pilihan (membungkus di ujung), **Home/End** ke ujung, dan **Kosongkan** tetap terjangkau Tab
+- [ ] **19. (baru 2026-10-05, QA)** Baca tombol utama bilah aksi di tiap keadaan: langkah 1–5 (biru), langkah 6 (hijau), saat menyimpan (gelap) — teks putihnya harus enak dibaca; dan kepala **laporan sesi** (hijau) — kini lebih gelap dari versi sebelumnya, pastikan masih terlihat bagus
+- [ ] **20. (baru 2026-10-05, QB)** Isi satu catatan → tunggu "Draf tersimpan ✓" → keluar ke Beranda lewat nav bawah → buka lagi Catat Sesi → **isian dan langkah kembali**, dan baris "Isian sesi ini tersimpan sebagai draf…" muncul
 
 > Sudah ditutup 2026-09-13: verifikasi E2E close-out gagal (Fase B) dan runtime/PWA restore (Fase D)
 > dijalankan (`e2e/capture-closeout-failure.spec.ts`, `e2e-pwa/pwa-runtime.spec.ts`). Dari 32 kriteria
@@ -161,3 +166,4 @@ DoD/kontrak. Di luar ketiganya: **putuskan sendiri dan cantumkan alasannya** di 
 |---|---|
 | 2026-10-05 | Dibuat dari penggabungan `ROADMAP.md` + §4 `docs/README.md` (keputusan pemilik Q-13 opsi A). `ROADMAP.md` dipindahkan ke `../arsip/`. |
 | 2026-10-05 | **Butir §4 #10 ditutup** — URL 404 di dalam teks iklan (`arsip/PROMPT-AI-IKLAN.md:78`) sudah dibetulkan menjadi host yang benar; barisnya dihapus dari daftar karena pekerjaan tuntas tidak boleh tinggal di daftar pekerjaan. |
+| 2026-10-05 | **§4 dirapikan setelah keputusan pemilik (Q-A…Q-F, #1…#7):** 7 butir ditutup (#1 · #5 · #6 · #11 · #12 · #13 · #16) dengan nomor lamanya dipertahankan di `ATURAN-AI` §1 · #3 berubah jadi pekerjaan agen (cari topik untuk 78 mapel) · #7 dinaikkan jadi target "semua spec E2E hijau" · #14 dijadwalkan setelah `L4` (Q-D = d2) · #15 dikerjakan bertahap (Q-F). **§5 bertambah 6 butir pemeriksaan manual (13–20)** untuk L10 lama + L7 · C-02 · C-03 · C-04 · QA · QB. **§3:** catatan bahwa spec `G3-02`…`G3-10` ada di arsip + batas penomoran ID. |

@@ -51,6 +51,38 @@ Keputusan lain yang juga terkunci: **wizard Catat Sesi dipertahankan apa adanya 
 - **Refactor terbatas sebelum wave fitur**: `CaptureSession.tsx` sebelum G3-01 dan `MonthlyReport.tsx`
   sebelum G3-05; berkas lain tidak disentuh. Fitur tetap ditulis lengkap di dokumen tugas. *(Q9)*
 
+**Amandemen 2026-10-05 (Q-A…Q-F, #1…#7) — ikut terkunci.** Dijawab pemilik pada putaran pemeriksaan
+dokumentasi; rincian angkanya ada di riwayat berkas terkait.
+
+- **Q-A = B — 10 warna heks mentah diganti token** (bilah aksi `CaptureSession.tsx` · kepala sheet &
+  tombol `CloseOutSheet.tsx`). **Selesai** (commit `ccffa3c`). Diterima sadar: kepala sheet laporan kini
+  hijau lebih gelap. Efek samping yang **memperbaiki**: teks putih di atas dua nilai lama gagal ambang —
+  langkah 6 `3,30:1` → `4,95:1`, keadaan menyimpan `1,80:1` → `14,67:1`. Kalau keadaan "menyimpan" terlihat
+  terlalu gelap, itu pilihan sadar (token terdekat menurut jarak RGB tetap gagal: `1,49:1`).
+- **Q-B = b3 — nav bawah TIDAK diblokir.** Keluar lewat nav tidak menghilangkan isian (draf tersimpan +
+  langkah dipulihkan). Yang ditambahkan hanya **satu baris kepastian** saat draf berstatus tersimpan.
+  Opsi b2 (konfirmasi di nav) **ditolak** — jangan ditawarkan lagi; kalau nanti diinginkan, itu keputusan baru.
+- **Q-C = c2 — grup radio pakai pola keyboard penuh.** Tab masuk **sekali** ke pilihan aktif, panah
+  ←/→/↑/↓ memindahkan pilihan (membungkus), `Home`/`End` ke ujung. **Selesai** (commit `82bb758`; aturan
+  murni `nextRadioIndex()` + 5 tes). Perpindahan fokus sesungguhnya **belum diuji** — calon spec E2E.
+- **Q-D = d2 — rilis ditunda.** Versi **tidak** dinaikkan sampai G3-01 tuntas (`L4 ManageSessionSheet`);
+  lalu **satu** entri `CHANGELOG` untuk seluruh gelombang 3, bukan satu per langkah. Selama itu aplikasi
+  di Vercel tetap memperbarui diri (SW), hanya modal "Catatan perubahan" yang belum muncul.
+- **Q-E = e1 — `docs/mockups/` DIPERTAHANKAN**, tidak diarsipkan, minimal sampai G3-05 (laporan) selesai.
+- **Q-F = bertahap — spesifikasi `G3-02`…`G3-10` dipindah dari arsip ke dokumen hidup satu tugas per
+  pemindahan**, dikerjakan saat gelombang itu mulai. Sampai itu, penunjuknya ada di `PEKERJAAN.md` §3.
+- **#5 — batas waktu satu tes Playwright 30 → 60 dtk** (commit `67f2c35`). "Tetap fokus kecepatan": **60,
+  bukan 120**; jangan dinaikkan lagi tanpa alasan terukur, dan `webServer.timeout` tidak diubah.
+- **#6 — CI GitHub TIDAK diaktifkan.** Gate lokal (`tsc` · `eslint` · `test:sandbox` · `build`) adalah
+  satu-satunya penjaga. **Jangan menyarankan mengaktifkan CI lagi**; `ci.yml` dibiarkan apa adanya dan
+  **tidak perlu diperbaiki** (isinya sudah benar).
+- **#1 — verifikasi PWA dua build ditangani pemilik lewat Vercel.** Bukan tugas agen; jangan diangkat lagi.
+- **#2 — daftar periksa manual ditambah** butir untuk perubahan 2026-10-05 (lihat `PEKERJAAN.md` §5).
+- **#3 — katalog topik 78 mapel dikerjakan agen**, bukan lagi "pengetahuan pemilik": cari topik
+  **sebanyak mungkin**, topik yang sama boleh dipakai lintas mapel/serupa. Jaga `topicCoverage` tetap hijau.
+- **#7 — semua spec E2E harus hijau.** Mulai dari menjalankan `npm run e2e` (butuh eskalasi sandbox);
+  spec yang merah **jalankan sendirian dulu** sebelum disebut regresi; baru perbaiki yang benar-benar gagal.
+
 ---
 
 ## 2. ❌ JANGAN — daftar tunggal (kalau ragu, berhenti dan tanya)
@@ -417,3 +449,4 @@ Jangan menyalin isi berkas, jangan menjelaskan dokumen, jangan merangkum tugas.
 | 2026-10-04 | **A19 (Q23)** — letak **resmi** spec guard metrik UI: `e2e-uiux/` + `playwright.uiux.config.ts` (`testDir: "./e2e-uiux"`), dijalankan lewat `npm run e2e:uiux`. DoD G1-11 yang menyebut `e2e/uiux-metrics.spec.ts` **ditandai usang**; `playwright.config.ts` tidak disentuh. Konsisten dengan Q10 = A (guard UI bukan bagian CI utama) | — |
 | 2026-10-05 | **A20 — penataan dokumentasi (keputusan pemilik Q-9…Q-17 opsi A).** (a) **Angka mutakhir tidak ditulis di dokumen**: §5 diganti tabel perintah pengukur; alat baru `npm run measure` + `npm run check:docs` (menolak klaim versi/angka yang salah; `check-md-links` kini keluar non-nol saat ada tautan rusak — sebelumnya selalu 0). (b) **Lingkungan sandbox jadi resmi** (§6.1): `npm run test:sandbox` + shim `dsh-no-exec.cjs` adalah perintah default di mesin ini, bukan "workaround". (c) **Seri `arsitektur/01`–`11` diarsipkan**; penggantinya `docs/06-ARSITEKTUR-KODE.md` (tanpa angka) — penengah konflik §2.3 tidak lagi dokumen yang paling basi. (d) **[`PEKERJAAN.md`](PEKERJAAN.md) = satu-satunya daftar pekerjaan**; `ROADMAP.md` + §4 `docs/README.md` diarsipkan. (e) **Aturan arsip berlaku surut**: dokumen tuntas/usang pindah ke `../arsip/` (GELOMBANG-1, PROMPT-LANJUTAN-G3, CHECKLIST-VISUAL-2026-10-04, dan isi lama §4). (f) §0 diperbaiki: panjang berkas sebenarnya (**bukan** ±150 baris) dan urutan baca **satu** (CHEATSHEET sebelum TASK-XX) | v1.90.0 |
 | 2026-10-05 | **A21 — jebakan alat/git naik ke §6.4 + aturan baru: keputusan terkunci wajib punya bukti.** (a) **§6.4 baru**: commit yang cetak sukses tapi `exit 1`, `git status` ` M` palsu (stat-cache) & cara membersihkannya, shim `$env:TEMP`, skrip scratch di `.design-audit/`, `ReplaceFileW EIO`, wajib `read` sebelum `edit`, **jangkar tabel harus satu baris utuh** (nyata: satu baris riwayat tertimpa di `TASK-06`), efek samping `npm run e2e` pada screenshot, dan penomoran ID ganda `GELOMBANG-3` vs audit. Dulu semuanya hanya hidup di `../arsip/PROMPT-LANJUTAN-G3.md` yang beku. (b) **Temuan yang mengubah aturan:** keputusan terkunci **Q2** ("simpan dari langkah 5") selama ini **hanya ada di §1 berkas ini** — tidak di kode dan tanpa tes, jadi tutor yang tidak butuh Bukti tetap dipaksa melewati langkah 6. Konsekuensi yang mengikat sekarang: setiap keputusan di §1 wajib menyebut **bukti yang bisa dijalankan** (nama tes atau baris di `PEKERJAAN.md`), bukan hanya kalimat | — |
+| 2026-10-05 | **A22 — Amandemen Q-A…Q-F + #1…#7 dikunci di §1.** Ringkas: **Q-A=B** 10 heks mentah → token (kontras teks putih naik: langkah 6 `3,30→4,95:1`, menyimpan `1,80→14,67:1`) · **Q-B=b3** nav bawah tidak diblokir, cukup satu baris kepastian draf (b2 ditolak) · **Q-C=c2** keyboard pola radiogroup (Tab sekali + panah/Home/End, aturan `nextRadioIndex()` + 5 tes) · **Q-D=d2** rilis ditunda sampai G3-01 tuntas, satu entri `CHANGELOG` per gelombang · **Q-E=e1** mockup dipertahankan · **Q-F** spesifikasi G3-02…G3-10 dipindah dari arsip **bertahap** · **#5** batas tes Playwright 60 dtk (jangan naikkan lagi tanpa alasan) · **#6 CI tidak diaktifkan** (jangan tawarkan lagi; `ci.yml` tidak perlu diperbaiki) · **#1** PWA diverifikasi pemilik lewat Vercel · **#2** daftar periksa manual jadi 20 butir · **#3** katalog topik 78 mapel jadi pekerjaan agen · **#7** semua spec E2E harus hijau | — |
