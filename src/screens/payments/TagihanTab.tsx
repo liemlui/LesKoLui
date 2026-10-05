@@ -22,12 +22,13 @@ import { ITEMS_PER_PDF_PAGE } from "../../lib/invoicePresentation";
 import { useSessionCountBilling } from "./useSessionCountBilling";
 import type { ConfirmState } from "./useSessionCountBilling";
 import { useInvoiceFilters } from "./useInvoiceFilters";
-import { useInvoiceRecovery, invoiceKindLabel, RECOVERY_LIMITS_HINT, snapshotMomentLabel } from "./useInvoiceRecovery";
+import { useInvoiceRecovery, invoiceKindLabel, RECOVERY_LIMITS_HINT } from "./useInvoiceRecovery";
 
 import { useInvoiceExports } from "./useInvoiceExports";
 import InvoiceRow from "./InvoiceRow";
 import ManualInvoiceForm from "./ManualInvoiceForm";
 import InvoicePdfPages from "./InvoicePdfPages";
+import RecoveryPointPickerModal from "./RecoveryPointPickerModal";
 
 interface TagihanTabProps {
   payments: Payment[];
@@ -911,101 +912,13 @@ export default function TagihanTab({
 
       {/* ── Pemilih titik pemulihan (R1 timeline): pilih tanggal mana yang dipulihkan ── */}
       {recovery.snapshotPaymentId !== null && (
-        <Modal
+        <RecoveryPointPickerModal
+          points={recovery.snapshotPoints}
+          busyKeys={recovery.busyKeys}
+          studentName={historyStudentName}
           onClose={recovery.closeSnapshotHistory}
-          ariaLabel={`Riwayat pemulihan tagihan ${historyStudentName}`}
-          showCloseButton={false}
-          panelClassName="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-[var(--surface-strong)] shadow-xl sm:rounded-2xl outline-none"
-        >
-          <div className="flex items-start justify-between border-b border-[var(--border)] px-5 py-4">
-            <div>
-              <h2 className="text-lg font-bold text-[var(--ink-strong)]">Riwayat pemulihan</h2>
-              <p className="mt-0.5 text-xs text-[var(--ink-muted)]">
-                Tagihan {historyStudentName} — pilih satu titik waktu untuk dipulihkan persis seperti keadaannya saat itu.
-              </p>
-            </div>
-            <button onClick={recovery.closeSnapshotHistory} aria-label="Tutup"
-              className="text-xl leading-none text-[var(--ink-muted)] hover:text-[var(--ink-strong)]">✕</button>
-          </div>
-
-          <div className="space-y-3 overflow-y-auto px-5 py-4">
-            <p className="text-xs leading-relaxed text-[var(--ink-warn)]">{RECOVERY_LIMITS_HINT}</p>
-            {recovery.snapshotPoints === undefined ? (
-              <p className="text-sm text-[var(--ink-muted)]">Memuat riwayat pemulihan…</p>
-            ) : recovery.snapshotPoints.length === 0 ? (
-              <p className="text-sm text-[var(--ink-muted)]">Belum ada titik pemulihan untuk tagihan ini di perangkat ini.</p>
-            ) : (
-              <ol className="space-y-2">
-                {[...recovery.snapshotPoints]
-                  .sort((a, b) => b.cancelAt.localeCompare(a.cancelAt))
-                  .map((point, index) => {
-                    const pointBusy = Boolean(recovery.busyKeys[`restore-${point.snapshotId}`]);
-                    const hasDetails = point.month !== "";
-                    // Hanya titik yang salinannya SUDAH DIHAPUS yang tidak bisa
-                    // dipakai lagi. Titik yang pernah dipulihkan tetap bisa
-                    // dipilih → inilah jalan kembali kalau pemulihan sebelumnya
-                    // salah. `spent` hanya jadi penanda riwayat.
-                    const unavailable = Boolean(point.discardedAt);
-                    const reason = point.discardedAt
-                      ? `salinan sudah dihapus ${snapshotMomentLabel(point.discardedAt)}`
-                      : undefined;
-                    return (
-                      <li key={point.snapshotId} className="rounded-xl border border-[var(--border)] bg-[var(--surface-strong)] p-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-[var(--ink-strong)]">
-                              Dibatalkan {snapshotMomentLabel(point.cancelAt)}
-                              {index === 0 && (
-                                <span className="ml-2 rounded-full bg-[var(--bg-warn)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--ink-warn)]">
-                                  terbaru
-                                </span>
-                              )}
-                            </p>
-                            <p className="mt-0.5 text-xs text-[var(--ink-muted)]">
-                              {invoiceKindLabel(point.kind)} · {hasDetails
-                                ? `${monthLabel(point.month)} · ${point.sessionCount} sesi`
-                                : "rincian nominal sudah tidak tersimpan"}
-                            </p>
-                            {!unavailable && !point.restoredAt && (
-                              <p className="mt-1 text-[11px] font-semibold text-[var(--ink-success)]">Masih bisa dipulihkan</p>
-                            )}
-                            {point.restoredAt && (
-                              <p className="mt-1 text-[11px] font-semibold text-[var(--ink-accent)]">
-                                Pernah dipulihkan {snapshotMomentLabel(point.restoredAt)} — bisa dipilih lagi untuk kembali ke titik ini
-                              </p>
-                            )}
-                          </div>
-                          {hasDetails && (
-                            <span className="shrink-0 text-sm font-bold text-[var(--ink-strong)]">{formatRupiah(point.totalCost)}</span>
-                          )}
-                        </div>
-                        <div className="mt-2">
-                          <button
-                            type="button"
-                            disabled={unavailable || pointBusy}
-                            onClick={() => recovery.askRestoreSnapshot(point, historyStudentName)}
-                            className="w-full rounded-lg border border-[var(--border-warn)] py-2 text-xs font-semibold text-[var(--ink-warn)] transition-colors hover:bg-[var(--bg-warn)] disabled:cursor-not-allowed disabled:border-[var(--border)] disabled:text-[var(--ink-muted)]"
-                          >
-                            {pointBusy ? "Memulihkan..." : point.restoredAt ? "Kembalikan ke titik ini" : "Pulihkan titik ini"}
-                          </button>
-                          {reason && (
-                            <p className="mt-1.5 text-[11px] text-[var(--ink-muted)]">Tidak bisa dipulihkan: {reason}.</p>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
-              </ol>
-            )}
-          </div>
-
-          <div className="border-t border-[var(--border)] px-5 py-3">
-            <button onClick={recovery.closeSnapshotHistory}
-              className="w-full rounded-xl bg-[var(--accent-solid)] py-2.5 text-sm font-bold text-[var(--on-strong)] transition-colors hover:bg-[var(--accent-solid)]">
-              Tutup
-            </button>
-          </div>
-        </Modal>
+          onPick={(point) => recovery.askRestoreSnapshot(point, historyStudentName)}
+        />
       )}
 
       <ConfirmSheet
