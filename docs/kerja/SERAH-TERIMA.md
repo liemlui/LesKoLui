@@ -22,10 +22,10 @@
 
 | Fakta | Nilai | Cara mengukurnya ulang |
 |---|---|---|
-| Versi aplikasi | **v1.91.0** | `node -p "require('./package.json').version"` |
-| HEAD | **`240314d`** · `main` **sinkron** dengan `origin/main` (0 commit belum push) | `git log --oneline -1` · `git status -sb` |
-| Suite tes | **771 lulus / 64 berkas** (terakhir dijalankan 2026-10-05) | `npm run test:sandbox` (**wajib** dengan shim §6.1) |
-| Berkas besar | `MonthlyReport.tsx` 2351 · `CaptureSession.tsx` 2041 · `Settings.tsx` 1308 · `StudentDetail.tsx` 1083 · `payments/TagihanTab.tsx` **845** | `node scripts/measure.mjs loc` |
+| Versi aplikasi | **v1.91.0** — **tidak** dinaikkan di putaran ini (Q-D = d2: satu entri `CHANGELOG` per gelombang) | `node -p "require('./package.json').version"` |
+| HEAD | **`5aaf9eb`** + **6 berkas G3-02 belum di-commit** (2 diubah, 4 baru) | `git log --oneline -1` · `git status --porcelain` |
+| Suite tes | **803 lulus / 66 berkas** (terakhir dijalankan 2026-10-05 sesudah K-05/K-03/K-07) | `npm run test:sandbox` (**wajib** dengan shim §6.1) |
+| Berkas besar | `MonthlyReport.tsx` 2351 · `CaptureSession.tsx` 2041 · `Settings.tsx` 1308 · `StudentDetail.tsx` 1083 · `payments/TagihanTab.tsx` **915** (naik dari 845 oleh fitur; target refactor ≤800 belum tercapai) | `node scripts/measure.mjs loc` |
 | Gate | **lokal saja.** CI GitHub **tidak** diaktifkan — **jangan tawarkan lagi** (keputusan #6) | — |
 | Batas satu tes Playwright | **60 dtk** — jangan dinaikkan tanpa alasan terukur (keputusan #5) | `playwright.config.ts` |
 
@@ -86,6 +86,10 @@ Semua di bawah ini **nyata terjadi** di sesi ini. `ATURAN-AI` §6.4 memuat versi
 4. **Alias lintas kurikulum yang belum dibereskan** (temuan lama, bukan regresi): `National :: Informatika` dan `National :: Penjaskes` bermuara ke `computer science` (level AP/DP/IGCSE/A Level). Terlihat lewat `.design-audit/topic-coverage-audit.mjs` (§6).
 5. **`test-results/` pernah hilang** — penyebabnya sudah diperbaiki (§4.2), tapi kalau `check-docs` melaporkan "R2 dilewati", periksa `.design-audit-suite.json` apakah isinya masih cocok dengan suite terakhir.
 6. **52 kontrol <44 px** adalah pengecualian tertulis (A18/Q45: chip & kontrol sekunder 24–36 px diterima). Jangan "diperbaiki" tanpa keputusan baru.
+7. **(2026-10-05, G3-02 K-05/K-03/K-07) Tiga serah-terima yang harus dicentang mata, bukan oleh agen:** kotak `Cari murid` benar-benar menemukan murid; badge "Terlambat N hari" benar untuk tagihan yang memang lewat; dan tanggal jatuh tempo terbaca sebagai nama hari Indonesia di ringkasan **dan** rincian baris. Semuanya punya tes murni (32 tes baru) tetapi **belum satu pun** pernah dilihat di perangkat.
+8. **(2026-10-05) `e2e`/`e2e:uiux` sengaja ditunda** (perjanjian pemilik f1): dijalankan **sekali** sesudah K-06. Jadi putaran G3-02 ini **tidak** punya bukti perilaku browser — jangan mengklaim "e2e hijau" untuk putaran ini.
+9. **(2026-10-05) `showIssuedList` kini kode mati** (`useInvoiceFilters.ts:148,209`): dihapus sebagai pengontrol tampil oleh K-07, tetapi masih dihitung & dikembalikan. Belum dibersihkan (satu langkah = satu perubahan).
+10. **(2026-10-05) Perubahan perilaku yang perlu diketahui sesi berikutnya:** daftar tagihan kini memakai `visibleBillRows`, sehingga chip umur piutang **mulai berlaku juga pada rekap PDF** (dulu hanya CSV yang menyaring); dan chip umur piutang **dilepas otomatis** saat kata kunci pencarian berubah.
 
 ---
 
@@ -95,7 +99,7 @@ Prioritas ditentukan pemilik: **fokus mengajar = IB MYP & IB DP**, jadi pekerjaa
 
 | Urutan | Pekerjaan | Mulai dari mana | Catatan |
 |---|---|---|---|
-| **1** | **G3-02 Keuangan — fitur** (refactor bagian 0 sudah 1036 → **845**; target ≤800) | `docs/kerja/TASK-05-rombak-keuangan.md` §3 + `../arsip/GELOMBANG-3.md` §G3-02 (beku, spesifikasi 11 fitur) | **Spek §4.5 menuntut urutan ini:** K-05/K-03 (tampilan) **sebelum** K-01 (perilaku). Kandidat sisa pemotongan baris: baris filter/chip, blok "Siap ditagih" |
+| **1** | **G3-02 Keuangan — lanjutkan fitur** (bagian 0 refactor: 1036 → **845**; fitur K-05 · K-03 · K-07 **tuntas** 2026-10-05; `TagihanTab.tsx` kini **915**) | `docs/kerja/TASK-05-rombak-keuangan.md` §3 + **§9 "Progres G3-02"** (daftar sisa) + `../arsip/GELOMBANG-3.md` §G3-02 (beku, 11 fitur) | **Berikutnya: #6 K-06 filter lanjutan**, lalu **#8 K-01** (peringatan nominal — urutan spek §4.5: tampilan sebelum perilaku), #9 K-12, #10 K-13. **Sesudah K-06: jalankan `npm run e2e` + `e2e:uiux` sekali** (perjanjian f1) — jangan lupa menulis keluaran tiap run ke berkas berbeda |
 | **2** | **#8 K-01** — peringatan saat mengubah nominal tagihan | idem | Bukan kosmetik: mengubah nominal tagihan `source:"auto"` memindahkannya ke `manual` → **tombol "Batalkan tagihan" hilang**, **daftar sesi hilang dari ekspor & WA**. Perubahan **UI saja**; `paymentRepo.ts` **tidak** diubah. `paymentRepo` belum punya berkas tes → K-01 butuh tes baru |
 | **3** | **#3 katalog topik** — sisa 62 pasangan | `PEKERJAAN.md` §4 #3 | IGCSE 16 · A Level 13 · O Level 11 · AP 10 · National 8 · (IB **tuntas**) |
 | **4** | **#2 verifikasi manual** (22 butir) | `PEKERJAAN.md` §5 | **Butuh pemilik di perangkat** — bukan pekerjaan agen |
@@ -113,6 +117,10 @@ Prioritas ditentukan pemilik: **fokus mengajar = IB MYP & IB DP**, jadi pekerjaa
 | `cut-jsx-block.mjs` · `cut-cancelled-section.mjs` · `extract-recovery-picker.mjs` | Pemotong blok JSX yang **memverifikasi bentuk sebelum memotong** (pola aman untuk refactor `TASK-01`) |
 | `split-a23-a24.mjs` · `fix-a23-a24.mjs` · `replace-row-a24.mjs` · `fix-task05-rows.mjs` | Perbaikan baris tabel yang rusak (contoh pola "satu baris utuh + verifikasi pipa") |
 | `release-check.mjs` | Konsistensi versi: `package.json` vs `CHANGELOG[0]` vs duplikat entri |
+| `sisip-baris-tabel.cjs` | **Alat pilihan untuk menyunting baris tabel markdown.** Mode `insert` · `replace` · `delete`; menolak menulis bila jangkar tidak unik, bukan baris tabel, atau jumlah pipanya beda dari jangkar; mencetak jumlah pipa baris sekitar sebagai bukti. Pakai: `node .design-audit/sisip-baris-tabel.cjs <insert\|replace\|delete> <berkas> <berkas-jangkar> [berkas-baris-baru]` |
+| `anchor-*.txt` · `row-*.txt` | Berkas jangkar & baris pengganti untuk alat di atas. **Jangan** menulis jangkar lewat `Get-Content` (PS 5.1 membaca UTF-8 sebagai ANSI → em-dash rusak → jangkar tidak cocok, 1085 vs 1037 karakter); tulis dengan alat `write` atau `.NET` + `UTF8Encoding($false)` |
+
+> **Pelajaran 2026-10-05 (memakan dua langkah):** skrip `.cjs` tidak boleh berkomentar dengan `#` (itu sintaks shell); dan sebelum memakai alat baris tabel, **pastikan jangkar masih ada di berkas** — setelah satu `replace` berhasil, jangkar lama hilang dan percobaan `delete` dengan jangkar yang sama akan lapor "muncul 0x".
 
 > `$env:TEMP` berganti tiap sesi → **taruh skrip di `.design-audit/`**, jangan di TEMP (§6.4).
 
@@ -122,7 +130,7 @@ Prioritas ditentukan pemilik: **fokus mengajar = IB MYP & IB DP**, jadi pekerjaa
 
 Checklist yang dipakai sesi ini, urutannya penting:
 
-1. `npm run test:sandbox` (dengan shim) — catat **771/64** atau angka barunya.
+1. `npm run test:sandbox` (dengan shim) — catat **803/66** atau angka barunya.
 2. Perbarui `.design-audit-suite.json` dengan angka yang **baru saja** keluar (jangan menaikkannya tanpa menjalankan suite).
 3. `git status --porcelain` → pastikan **tidak ada** PNG screenshot yang ikut.
 4. `git show --stat HEAD` **sebelum** push → pastikan hanya berkas yang diniatkan.
@@ -136,3 +144,4 @@ Checklist yang dipakai sesi ini, urutannya penting:
 | Tanggal | Perubahan |
 |---|---|
 | 2026-10-05 | Dibuat sebagai pengganti `PROMPT-LANJUTAN-G3.md` yang beku. Memuat keadaan pasca rilis v1.91.0, temuan sesi (artefak suite di direktori Playwright, BOM, anchor tabel, tes penjaga yang menuntut celah), dan checklist penutup putaran. |
+| 2026-10-05 | **Diperbarui sesudah G3-02 kluster daftar tagihan (K-05 · K-03 · K-07).** §2: HEAD `5aaf9eb` + 6 berkas belum di-commit · suite **771/64 → 803/66** · `TagihanTab.tsx` **845 → 915** · versi **tidak** dinaikkan. §4.5 bertambah butir **7–10** (tiga serah-terima mata · `e2e` sengaja ditunda f1 · `showIssuedList` kode mati · dua perubahan perilaku). §5 baris 1: berikutnya **K-06**, lalu K-01/#8. §6: alat baru `sisip-baris-tabel.cjs` + peringatan jangkar UTF-8/PS 5.1. §7: angka suite jadi 803/66. |

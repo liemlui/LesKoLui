@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { MonthlyReport, Payment, Session, Settings, Student } from "../../db/types";
 import { reportDisplayStatus } from "../../db/types";
 import { formatRupiah, monthLabel, periodLabel } from "../../lib/format";
+import { labelDueAt, hasNoDueDateLabel, formatInvoiceDueLabel } from "../../lib/invoiceDueLabel";
 import { AGE_BUCKET_LABEL, ageBucket, invoiceAgeDays, invoiceDueAt } from "../../lib/finance";
 import {
   INVOICE_ORIGIN_LABEL, buildManualBillingText,
@@ -51,9 +52,10 @@ export default function InvoiceRow({
   recovery,
 }: InvoiceRowProps) {
   const paid = invoice.status === "PAID";
-  const dueAt = invoiceDueAt(invoice) ?? "";
-  const [dueAtDraft, setDueAtDraft] = useState(dueAt);
-  useEffect(() => { setDueAtDraft(dueAt); }, [dueAt]);
+  const dueAt = invoiceDueAt(invoice);
+  const dueLabel = formatInvoiceDueLabel(dueAt, paid);
+  const [dueAtDraft, setDueAtDraft] = useState(dueAt ?? "");
+  useEffect(() => { setDueAtDraft(dueAt ?? ""); }, [dueAt]);
   const periodLbl = invoice.periodStart && invoice.periodEnd ? periodLabel(invoice.periodStart, invoice.periodEnd) : "";
   const totalHours = sessions.reduce((sum, session) => sum + session.durationHours, 0);
   const origin = invoiceOriginOf(invoice, report);
@@ -88,7 +90,20 @@ export default function InvoiceRow({
             <span className="truncate text-xs text-[var(--ink-muted)]">{metaLine}</span>
           </span>
           <span className="mt-0.5 block text-xs font-semibold">
-            {paid ? <span className="text-[var(--ink-success)]">Lunas{invoice.paidAt ? ` · ${invoice.paidAt}` : ""}</span> : <span className="text-[var(--ink-warn)]">Belum dibayar{ageLabel ? ` · ${ageLabel}` : ""}</span>}
+            {paid
+              ? <span className="text-[var(--ink-success)]">Lunas{invoice.paidAt ? ` · ${invoice.paidAt}` : ""}</span>
+              : (
+                <span className="text-[var(--ink-warn)]">
+                  Belum dibayar
+                  {/* K-03: umur piutang dalam bahasa manusia. Saat jatuh tempo masih di depan
+                      dan belum lewat, label lama (bucket ≤ 30 hari) tetap dipakai — itu penanda
+                      umur piutang, bukan penanda keterlambatan. */}
+                  {dueLabel
+                    ? <span className="font-bold"> · {dueLabel}</span>
+                    : ageLabel ? ` · ${ageLabel}` : ""}
+                  {dueAt ? ` · Jatuh tempo ${labelDueAt(dueAt)}` : ` · ${hasNoDueDateLabel()}`}
+                </span>
+              )}
           </span>
         </span>
       </button>
@@ -100,7 +115,7 @@ export default function InvoiceRow({
           {origin === "package" && <span className="inline-flex rounded-full bg-[var(--accent-tint)] px-1.5 py-0.5 font-bold text-[var(--ink-accent)]">{report?.finalBillingBatch ? "Paket penutup" : `Paket ${report?.billingSessionCount ?? sessions.length} pertemuan`}</span>}
         </div>
         <div className="rounded-lg bg-[var(--surface-strong)] px-2.5 py-1.5 text-xs leading-relaxed text-[var(--ink-muted)]">
-          <p>Periode pertemuan: <strong>{periodLbl || "Tanpa sesi"}</strong></p><p>Bulan tagihan: <strong>{monthLabel(invoice.month)}</strong></p><p>Jatuh tempo: <strong>{invoiceDueAt(invoice) ?? "—"}</strong></p>
+          <p>Periode pertemuan: <strong>{periodLbl || "Tanpa sesi"}</strong></p><p>Bulan tagihan: <strong>{monthLabel(invoice.month)}</strong></p><p>Jatuh tempo: <strong>{dueAt ? labelDueAt(dueAt) : hasNoDueDateLabel()}</strong></p>
         </div>
         <div className="flex items-center gap-2"><label htmlFor={`amount-${invoice.id}`} className="text-xs text-[var(--ink-muted)]">Rp</label><input id={`amount-${invoice.id}`} aria-label={`Nominal tagihan ${student?.name ?? "murid"}`} className="input flex-1 py-1.5 text-sm" inputMode="numeric" value={amount} disabled={paid} onChange={(event) => onAmountChange(event.target.value)} onBlur={onAmountSave} /></div>
         {!paid && recovery && (

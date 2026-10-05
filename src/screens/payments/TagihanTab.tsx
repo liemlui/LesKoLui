@@ -30,6 +30,10 @@ import InvoicePdfPages from "./InvoicePdfPages";
 import CancelledInvoicesSection from "./CancelledInvoicesSection";
 import BillingHelpModal from "./BillingHelpModal";
 import RecoveryPointPickerModal from "./RecoveryPointPickerModal";
+import {
+  emptyIssuedMessage, emptyReadyReportsMessage, emptySessionCountMessage,
+  filterSessionCountProgress, matchesStudentName,
+} from "./invoiceListFilters";
 
 interface TagihanTabProps {
   payments: Payment[];
@@ -131,7 +135,7 @@ export default function TagihanTab({
   const { totalBilled, totalPaid, totalUnpaid, paidCount, unpaidCount, collectionRate } = totals;
   const {
     invoiceStatusFilter, setInvoiceStatusFilter, invoiceOriginFilter, setInvoiceOriginFilter,
-    filteredBillRows, readyReportRows, showReadySections, showIssuedList,
+    filteredBillRows, readyReportRows, showReadySections, searchText, setSearchText,
   } = invoice;
   const {
     sessionCountBillingProgress, needsActionCount,
@@ -140,7 +144,37 @@ export default function TagihanTab({
     sessionCountInvoiceBusy, sessionCountCancelBusy,
     handleCreateSessionCountInvoice, handleCancelSessionCountInvoice,
   } = sessionCount;
-  const readyActionCount = readyReportRows.length + needsActionCount;
+  // ── K-05 · K-07: pencarian & pesan kosong (keputusan pemilik e2 + K-07) ──
+  // Kotak "Cari murid" menyaring SELURUH daftar di layar ini, bukan hanya daftar
+  // tagihan: kalau ia hanya menyaring daftar bawah, tutor melihat hasil yang
+  // bertentangan (baris di atas tidak bergerak) dan itu terbaca seperti aplikasi rusak.
+  const query = searchText.trim().toLowerCase();
+  const readyReportCount = readyReportRows.length;
+  const readyReportRowsShown = useMemo(
+    () => readyReportRows.filter((row) => matchesStudentName(row.student?.name, query)),
+    [readyReportRows, query],
+  );
+  const sessionCountRowsShown = useMemo(
+    () => filterSessionCountProgress(sessionCountBillingProgress ?? [], query),
+    [sessionCountBillingProgress, query],
+  );
+  const sessionCountHasData = (sessionCountBillingProgress ?? []).length > 0;
+  // Chip umur piutang menyaring di lapisan terakhir; pesan kosongnya perlu tahu itu
+  // supaya tidak menuduh pencarian/tahap yang sebenarnya tidak bersalah.
+  const emptyIssuedText = emptyIssuedMessage({
+    invoiceStatusFilter, searchText,
+    hasRows: allPayments.length > 0,
+    hasMatchingRows: filteredBillRows.length > 0,
+    hasReadyData: readyReportCount > 0 || needsActionCount > 0,
+    hasAgingFilter: agingFilter !== "all",
+  });
+
+  // Tile "01 · Siap ditagih" ikut menyaring agar angkanya sama dengan yang terlihat.
+  const readyActionCount = readyReportRowsShown.length
+    + sessionCountRowsShown.filter((row) => (
+      row.readyBatchCount > 0
+      || Boolean(row.pendingBillingPolicy && row.unbilledCount > 0 && row.unbilledCount < row.targetCount)
+    )).length;
   const agingRows = useMemo(() => {
     const buckets: Record<AgeBucket, { amount: number; count: number }> = {
       "0-30": { amount: 0, count: 0 },
@@ -172,6 +206,11 @@ export default function TagihanTab({
     }
     return rows;
   }, [agingFilter, filteredBillRows, invoiceStatusFilter]);
+
+  // Saringan umur piutang dilepas saat kata kunci pencarian berubah: kalau tidak,
+  // mencari nama murid yang tagihannya kebetulan tidak ada di bucket yang sedang
+  // aktif menghasilkan daftar kosong yang terbaca seperti "murid itu tidak ada".
+  useEffect(() => { setAgingFilter("all"); }, [searchText]);
 
   // ── Riwayat titik pemulihan (R1 timeline: "pulihkan ke tanggal berapa") ──
   /** Nama murid yang riwayatnya sedang dibuka — hanya untuk label modal. */
@@ -326,6 +365,32 @@ export default function TagihanTab({
           </div>
         </div>
 
+        {/* K-05 · a2: kotak cari SELALU tampil (juga saat tahap "Siap ditagih"),
+            dan menyaring seluruh daftar di layar ini — bukan hanya kartu di bawah. */}
+        <div className="relative mt-3">
+          <span aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--ink-muted)]">🔍</span>
+          <input
+            id="cari-murid-tagihan"
+            type="search"
+            inputMode="search"
+            aria-label="Cari murid"
+            placeholder="Cari nama murid..."
+            value={searchText}
+            onChange={(event) => setSearchText(event.target.value)}
+            className="input w-full pl-9"
+          />
+          {searchText !== "" && (
+            <button
+              type="button"
+              aria-label="Hapus pencarian"
+              onClick={() => setSearchText("")}
+              className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-[var(--ink-muted)] transition-colors hover:bg-[var(--bg-subtle)] hover:text-[var(--ink-strong)]"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          )}
+        </div>
+
         <div className="mt-3 grid grid-cols-2 gap-1.5" role="group" aria-label="Filter tahap tagihan">
           {([
             {
@@ -468,14 +533,18 @@ export default function TagihanTab({
         </div>
       </section>
 
-      {showReadySections && readyReportRows.length > 0 && (
+      {(showReadySections || query !== "") && (
         <section aria-labelledby="ready-report-invoices-title" className="space-y-3 rounded-xl border border-[var(--brand-tint-strong)] bg-[var(--brand-tint)]/40 p-4 shadow-sm">
           <div>
             <h2 id="ready-report-invoices-title" className="text-sm font-bold text-[var(--ink-brand)]">Laporan final siap ditagih</h2>
             <p className="mt-0.5 text-xs text-[var(--ink-brand)]">Laporan Perkembangan sudah final, tetapi belum mempunyai invoice. Terbitkan satu per satu setelah nominal diperiksa.</p>
           </div>
           <div className="space-y-2">
-            {readyReportRows.map(({ report, student }) => {
+            {readyReportRowsShown.length === 0 ? (
+              <p className="rounded-lg bg-[var(--surface-strong)] px-3 py-4 text-center text-xs text-[var(--ink-muted)]">
+                {emptyReadyReportsMessage(searchText, readyReportCount > 0)}
+              </p>
+            ) : readyReportRowsShown.map(({ report, student }) => {
               const studentName = student?.name ?? "Murid dihapus";
               const busy = Boolean(reportInvoiceBusy[report.id]);
               return (
@@ -508,7 +577,7 @@ export default function TagihanTab({
         </section>
       )}
 
-      {showReadySections && (
+      {(showReadySections || query !== "") && (
       <section aria-labelledby="session-count-billing-title" className="bg-[var(--surface-strong)] rounded-xl p-4 shadow-sm border border-[var(--border-accent)] space-y-3">
         <div>
           <div className="flex items-start justify-between gap-2">
@@ -533,13 +602,13 @@ export default function TagihanTab({
           </div>
         </div>
 
-        {(sessionCountBillingProgress ?? []).length === 0 ? (
+        {sessionCountRowsShown.length === 0 ? (
           <p className="rounded-lg bg-[var(--surface)] px-3 py-4 text-center text-xs text-[var(--ink-muted)]">
-            Belum ada murid dengan aturan tagihan per pertemuan.
+            {emptySessionCountMessage(searchText, sessionCountHasData)}
           </p>
         ) : (
           <div className="space-y-2">
-            {(sessionCountBillingProgress ?? []).map((progress) => {
+            {sessionCountRowsShown.map((progress) => {
               const ready = progress.readyBatchCount > 0;
               const busy = Boolean(sessionCountInvoiceBusy[progress.studentId]);
               const expanded = expandedSessionCountStudent === progress.studentId;
@@ -661,8 +730,10 @@ export default function TagihanTab({
       )}
 
 
-      {/* Aksi tagihan selalu tersedia, termasuk ketika bulan masih terbuka. */}
-      {showIssuedList && (
+      {/* K-07: kartu daftar tagihan SELALU dirender. Pengontrol tampil `showIssuedList`
+          dihapus; yang mengosongkan daftar kini pesan per keadaan filter, bukan
+          kartu yang menghilang (dulu: pindah ke tahap "Siap ditagih" menyembunyikan
+          seluruh daftar — termasuk kotak cari yang tinggal di dalamnya). */}
       <div className="bg-[var(--surface-strong)] rounded-xl p-4 shadow-sm border border-[var(--border)] space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div>
@@ -707,13 +778,13 @@ export default function TagihanTab({
             </div>
           </div>
         </div>
-        {filteredBillRows.length === 0 ? (
+        {visibleBillRows.length === 0 ? (
           <p className="rounded-lg bg-[var(--surface)] px-3 py-4 text-center text-sm text-[var(--ink-muted)]">
-            Tidak ada tagihan yang cocok dengan langkah dan asal ini.
+            {emptyIssuedText}
           </p>
         ) : (
           <ul className="divide-y divide-[var(--border)]">
-            {filteredBillRows.map(({ payment, report, student, sessions }) => (
+            {visibleBillRows.map(({ payment, report, student, sessions }) => (
               <InvoiceRow
                 key={payment.id}
                 invoice={payment}
@@ -750,7 +821,6 @@ export default function TagihanTab({
           </ul>
         )}
       </div>
-      )}
 
 
 
