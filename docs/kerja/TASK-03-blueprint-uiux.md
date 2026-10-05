@@ -56,7 +56,7 @@ Diukur dari kode v1.75.1. **Tidak ada baris yang boleh dibiarkan kosong.**
 | `screens/home/MonthView.tsx` | — | **Pertahankan** struktur; hanya token & warna | TASK-04 |
 | `screens/home/WeekView.tsx` | — | **Pertahankan**; token saja | TASK-04 |
 | `screens/home/DayView.tsx` | 132 | **Perkuat** — zoom + mode tangkapan layar | TASK-09 |
-| `screens/home/ResolveMissedSessionModal.tsx` | 140 | **Rombak aksi** — `Catat` / `Batal les` / `Tidak hadir`; `Jadwalkan ulang` ke `⋯` | TASK-04, TASK-06 |
+| `screens/home/ResolveMissedSessionModal.tsx` | 140 | **Rombak aksi** — `Catat` / `Batalkan sesi` / `Tidak hadir`; `Jadwalkan ulang` ke `⋯` | TASK-04, TASK-06 |
 | `screens/home/EditSessionModal.tsx` | — | **Satukan** dengan di atas menjadi satu sheet "Kelola sesi" | TASK-06 |
 | `screens/CaptureSession.tsx` | 2.099 → **1.901** (terukur 2026-10-04, setelah refactor G3-01) | **Pertahankan** wizard; satu langkah per layar; perkuat rasa | TASK-06 |
 | `screens/MonthlyReport.tsx` | 2.097 | **Pecah** — pilih periode (ringkas) + editor laporan | TASK-04 |
