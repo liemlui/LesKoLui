@@ -19,7 +19,7 @@
    Angka baris **bukan** DoD — ia hanya penanda apakah berkas sudah dipecah.
 5. **Satu langkah per putaran.** Verifikasi → lapor → berhenti. Jangan lanjut sendiri.
 6. **Jangan menambah berkas baru** selain yang disebut kontrak, tanpa persetujuan.
-7. **Kalau DSH baru:** baca urutan ini saja: §0 · §1 (B1–B4) · §2.1 (larangan berkas) · §6 (perintah) + §6.1 (sandbox) + §6.2 (gate 4-tier) + **§6.3 (LF)** + **§6.4 (jebakan alat & git — hemat waktu, jangan dilewati)** · [`PEKERJAAN.md`](PEKERJAAN.md) (daftar pekerjaan aktif, **termasuk** di mana langkah rinci tiap G3 berada) · [`CHEATSHEET.md`](CHEATSHEET.md). Sisanya referensi.
+7. **Kalau DSH baru:** baca urutan ini saja: §0 · §1 (B1–B4) · §2.1 (larangan berkas) · §6 (perintah) + §6.1 (sandbox) + §6.2 (gate 4-tier) + **§6.3 (LF)** + **§6.4 (jebakan alat & git — hemat waktu, jangan dilewati)** · [`SERAH-TERIMA.md`](SERAH-TERIMA.md) (keadaan repo, temuan sesi terakhir, pekerjaan berikutnya) · [`PEKERJAAN.md`](PEKERJAAN.md) (daftar pekerjaan aktif, **termasuk** di mana langkah rinci tiap G3 berada) · [`CHEATSHEET.md`](CHEATSHEET.md). Sisanya referensi.
 8. **[`PEKERJAAN.md`](PEKERJAAN.md) adalah satu-satunya daftar pekerjaan** — ia menggantikan `ROADMAP.md` (kini di `../arsip/`) **dan** §4 `docs/README.md` (kini di `../arsip/RIWAYAT-PEKERJAAN-2026-10.md`).
 9. **Angka mutakhir tidak ditulis di dokumen.** Versi = `package.json`; jumlah tes = `npm run test:sandbox`; baris berkas = `npm run measure`. `npm run check:docs` menolak klaim versi/angka yang salah.
 
@@ -179,6 +179,7 @@ Alasan: selector E2E hanya boleh patah sekali.
 | Butuh | Baca |
 |---|---|
 | **daftar pekerjaan terbuka & urutan eksekusi** | [`PEKERJAAN.md`](PEKERJAAN.md) |
+| **keadaan repo & temuan sesi terakhir (mulai dari sini kalau baru)** | [`SERAH-TERIMA.md`](SERAH-TERIMA.md) |
 | apa yang dilarang disentuh + peta kode | `docs/06-ARSITEKTUR-KODE.md` |
 | melihat usulan tampilan | `docs/mockups/home-2026-09-24.html` · `uang-…` · `hari-…` (buka di browser) |
 | cara menulis dokumen tugas | `docs/kerja/TASK-02-format-dokumen-tugas-ai.md` |
