@@ -177,8 +177,8 @@ const KATA_GAGAL = /^(Gagal|Pilih)\b|Gagal:|^Penyimpanan perangkat penuh|^Perang
  *
  * Sebelumnya seluruh hasil dikirim lewat `toast.info` sehingga
  * "Jadwal ditambahkan ✓" dan "Gagal: …" tampak sama. Aturannya berdasarkan pesan
- * karena di Beranda pesan itu datang dari empat modal berbeda dan tidak seragam:
- * `AddScheduleModal`/`ResolveMissedSessionModal`/`EditSessionModal` memakai
+ * karena di Beranda pesan itu datang dari beberapa panel berbeda dan tidak seragam:
+ * `AddScheduleModal`/`ManageSessionSheet` memakai
  * awalan "Gagal: …" atau "Pilih …", sedangkan "tidak hadir ditandai" adalah hasil
  * yang BERHASIL.
  *

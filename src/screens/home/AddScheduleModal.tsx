@@ -120,7 +120,7 @@ export default function AddScheduleModal({ date, students, onClose, onResult }: 
           <p className="text-sm font-semibold text-[var(--ink-attention)] mb-1">⚠️ Berpotensi tabrakan</p>
           {/* B-02: peringatan bentrok tidak boleh murni informatif — ia harus
               menyebut jumlahnya dan menyebut cakupannya dengan istilah yang sama
-              seperti EditSessionModal ("Sesi ini saja" / "Hari ini dan semua sesi
+              seperti ManageSessionSheet ("Sesi ini saja" / "Hari ini dan semua sesi
               berikutnya"), supaya tutor tahu apa yang benar-benar ia simpan. */}
           <p className="text-xs text-[var(--ink-attention)] mb-1">
             Bentrok dengan {conflicts.length} sesi lain pada jam ini
