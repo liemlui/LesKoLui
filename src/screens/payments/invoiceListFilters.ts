@@ -7,8 +7,13 @@
  * pesan kosong harus menyebut **keadaan filter yang sedang aktif** — "semua sudah
  * diterbitkan" adalah klaim tentang data, dan klaim itu salah kalau daftarnya
  * kosong hanya karena pencarian.
+ *
+ * Sejak fitur #6 (K-06) modul ini juga memuat ringkasan filter aktif: berapa
+ * saringan yang sedang menyaring daftar **dan apa namanya** (nama dipakai chip
+ * "N filter aktif · Hapus" sebagai label aksesibilitas).
  */
 import type { SessionCountBillingProgress } from "../../db/repos/paymentRepo";
+import { AGE_BUCKET_LABEL, type AgeBucket } from "../../lib/finance";
 
 /** Pencocokan nama murid yang dipakai kotak "Cari murid". */
 export function matchesStudentName(name: string | undefined, searchText: string): boolean {
@@ -87,4 +92,83 @@ export function emptySessionCountMessage(searchText: string, hasSessionCountData
     return `Tidak ada murid bertagihan per pertemuan yang namanya memuat "${query}".`;
   }
   return "Tidak ada murid dengan aturan tagihan per pertemuan.";
+}
+
+/* ── K-06: ringkasan filter aktif ("N filter aktif · Hapus") ─────────────────── */
+
+/**
+ * Pasangan nilai→label filter "Asal invoice" — **satu sumber** untuk chip di layar
+ * dan untuk nama yang disebut ringkasan filter. Entri pertama wajib nilai netral
+ * ("semua"): `activeInvoiceFilters()` memakainya sebagai penanda "tidak menyaring",
+ * jadi menaruh nilai lain di depan akan membuat chip menghitung filter palsu.
+ */
+export const ORIGIN_FILTERS = [
+  ["semua", "Semua"],
+  ["monthly", "Bulanan"],
+  ["package", "Paket"],
+  ["report", "Laporan"],
+  ["manual", "Manual"],
+] as const;
+
+/** Label terlihat untuk satu nilai filter asal. Nilai tak dikenal dikembalikan apa adanya. */
+export function originFilterLabel(origin: string): string {
+  return ORIGIN_FILTERS.find(([key]) => key === origin)?.[1] ?? origin;
+}
+
+export interface ActiveInvoiceFiltersArgs {
+  searchText: string;
+  /** `AgeBucket | "all"` — "all" berarti tidak menyaring. */
+  agingFilter: AgeBucket | "all";
+  /** Nilai filter asal (`InvoiceOriginFilter`) — "semua" berarti tidak menyaring. */
+  originFilter: string;
+}
+
+export interface ActiveInvoiceFilter {
+  key: "search" | "aging" | "origin";
+  /** Sebutan pendek untuk dibaca mesin baca layar, mis. `umur piutang 31–60 hari`. */
+  label: string;
+}
+
+/**
+ * Saringan yang menyaring daftar **dan tersembunyi** saat panel "Filter lanjutan"
+ * tertutup (K-06): pencarian, umur piutang, asal invoice.
+ *
+ * Pemilih tahap (4 kartu) sengaja **tidak** dihitung: kartunya selalu terlihat di
+ * depan, jadi tutor sudah tahu saringan itu aktif. Yang chip ini jawab adalah
+ * pertanyaan K-06 — "filter mana yang menentukan daftar ini" — untuk saringan yang
+ * tidak terlihat. Karena itu jumlahnya paling banyak **3**.
+ */
+export function activeInvoiceFilters({
+  searchText, agingFilter, originFilter,
+}: ActiveInvoiceFiltersArgs): ActiveInvoiceFilter[] {
+  const filters: ActiveInvoiceFilter[] = [];
+  const query = searchText.trim();
+  if (query !== "") filters.push({ key: "search", label: `pencarian "${query}"` });
+  if (agingFilter !== "all") {
+    filters.push({ key: "aging", label: `umur piutang ${AGE_BUCKET_LABEL[agingFilter]}` });
+  }
+  if (originFilter !== "semua") {
+    filters.push({ key: "origin", label: `asal ${originFilterLabel(originFilter).toLowerCase()}` });
+  }
+  return filters;
+}
+
+/**
+ * Teks chip — `null` saat tidak ada filter aktif, dan pemanggil **wajib** memakai
+ * `null` itu sebagai "jangan render chip": chip "0 filter aktif" akan menuntut
+ * tutor menekan tombol Hapus yang tidak menghapus apa pun.
+ */
+export function activeFilterChipLabel(count: number): string | null {
+  if (count <= 0) return null;
+  return `${count} filter aktif`;
+}
+
+/**
+ * Label aksesibilitas chip. Menyebut **nama** tiap filter, bukan hanya jumlahnya:
+ * teks yang terlihat ("3 filter aktif") sengaja pendek, sehingga tanpa nama di sini
+ * tutor yang memakai pembaca layar tidak bisa tahu saringan mana yang harus dilepas.
+ */
+export function activeFilterChipAriaLabel(filters: readonly ActiveInvoiceFilter[]): string {
+  const names = filters.map((filter) => filter.label).join(", ");
+  return `${filters.length} filter aktif: ${names}. Hapus semua filter.`;
 }

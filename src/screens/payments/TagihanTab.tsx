@@ -31,6 +31,7 @@ import CancelledInvoicesSection from "./CancelledInvoicesSection";
 import BillingHelpModal from "./BillingHelpModal";
 import RecoveryPointPickerModal from "./RecoveryPointPickerModal";
 import {
+  activeFilterChipAriaLabel, activeFilterChipLabel, activeInvoiceFilters, ORIGIN_FILTERS,
   emptyIssuedMessage, emptyReadyReportsMessage, emptySessionCountMessage,
   filterSessionCountProgress, matchesStudentName,
 } from "./invoiceListFilters";
@@ -82,6 +83,12 @@ export default function TagihanTab({
   /** Pesan mengambang untuk aksi krusial + tombol "Urungkan" (K-02). */
   const toast = useToastCtx();
   const [agingFilter, setAgingFilter] = useState<AgeBucket | "all">("all");
+  /**
+   * Panel "Filter lanjutan" (K-06). Tertutup secara default supaya di depan hanya
+   * tinggal tiga kontrol: pencarian, pemilih tahap, dan tombol pelipat ini (dengan
+   * chip "N filter aktif"). Isi panelnya murni dipindahkan, bukan kemampuan baru.
+   */
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   /**
    * Baris tagihan terbuka. Daftar ditampilkan sebagai baris ringkas agar 60+
    * tagihan tidak menjadi puluhan layar; aksi & rincian hidup di panel baris.
@@ -206,6 +213,21 @@ export default function TagihanTab({
     }
     return rows;
   }, [agingFilter, filteredBillRows, invoiceStatusFilter]);
+
+  // ── K-06: ringkasan filter aktif ──
+  // Dihitung dari aturan murni di `invoiceListFilters.ts`, bukan dari JSX: yang
+  // menentukan chip adalah **saringan yang menyaring daftar**, dan itu harus bisa
+  // dites tanpa merender layar.
+  const activeFilters = activeInvoiceFilters({
+    searchText, agingFilter, originFilter: invoiceOriginFilter,
+  });
+  const activeChipLabel = activeFilterChipLabel(activeFilters.length);
+  /** "Hapus" pada chip: melepas ketiga saringan sekaligus, satu klik (DoD G3-02). */
+  const clearActiveFilters = () => {
+    setSearchText("");
+    setAgingFilter("all");
+    setInvoiceOriginFilter("semua");
+  };
 
   // Saringan umur piutang dilepas saat kata kunci pencarian berubah: kalau tidak,
   // mencari nama murid yang tagihannya kebetulan tidak ada di bucket yang sedang
@@ -471,26 +493,36 @@ export default function TagihanTab({
               Ke tagihan belum dibayar →
             </button>
           )}
+          {/* K-06 · fitur #6: satu tombol pelipat, bukan 12 kontrol sekaligus. */}
+          <button
+            type="button"
+            aria-expanded={showAdvancedFilters}
+            onClick={() => setShowAdvancedFilters((value) => !value)}
+            className="inline-flex min-h-[36px] items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface-strong)] px-3 py-1 text-xs font-semibold text-[var(--ink-muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--ink-strong)]"
+          >
+            Filter lanjutan
+            <span aria-hidden="true">{showAdvancedFilters ? "▾" : "▸"}</span>
+          </button>
+          {activeChipLabel !== null && (
+            <button
+              type="button"
+              onClick={clearActiveFilters}
+              aria-label={activeFilterChipAriaLabel(activeFilters)}
+              className="inline-flex min-h-[36px] items-center rounded-full border border-[var(--border-accent)] bg-[var(--accent-tint)] px-3 py-1 text-xs font-semibold text-[var(--ink-accent)] transition-colors hover:bg-[var(--accent-solid)] hover:text-[var(--on-strong)]"
+            >
+              {activeChipLabel} · Hapus
+            </button>
+          )}
         </div>
 
-        {/* Cincin dan catatannya ditumpuk, bukan berdampingan: pada lebar kolom
-            keuangan (±382px) teks penjelas hanya kebagian ~100px bila dipaksa
-            satu baris dengan cincin. */}
-        <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--surface-strong)] px-3 py-2.5">
-          <ActivityRing
-            value={paidCount}
-            total={allPayments.length}
-            label="Kolektibilitas invoice"
-            detail={allPayments.length > 0 ? `${unpaidCount} invoice masih menjadi piutang` : "Terbitkan invoice dari antrean yang siap"}
-            size="sm"
-            tone={collectionRate >= 80 ? "green" : collectionRate > 0 ? "amber" : "slate"}
-          />
-          <p className="mt-2 border-t border-[var(--border)] pt-2 text-xs leading-relaxed text-[var(--ink-muted)]">
-            <span className="font-semibold text-[var(--ink-strong)]">Status invoice ≠ uang masuk.</span>{" "}
-            Pelunasan menutup piutang; uang masuk dicatat menurut tanggal pembayaran di Ringkasan.
-          </p>
-        </div>
-
+        {/* K-06 · fitur #6 (§G3-02): kontrol yang jarang dipakai dilipat ke satu panel.
+            Isinya murni DIPINDAH dari tempat lamanya — blok umur piutang, blok asal
+            invoice, dan baris ekspor. Tidak ada kemampuan yang hilang (§2.2): yang
+            berubah hanya berapa banyak kontrol yang tampil sekaligus di depan.
+            Ketiga blok disalin byte-identik (indentasi lamanya dipertahankan) supaya
+            diff terbaca sebagai pemindahan, bukan penulisan ulang. */}
+        {showAdvancedFilters && (
+          <div id="filter-lanjutan-tagihan" role="group" aria-label="Filter lanjutan" className="mt-2 space-y-2">
         <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3" aria-label="Umur piutang">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
@@ -531,6 +563,54 @@ export default function TagihanTab({
             })}
           </div>
         </div>
+        <div className="space-y-2 rounded-xl bg-[var(--surface)] p-2.5">
+          <div>
+            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">Asal invoice</p>
+            <div className="flex flex-wrap gap-1" role="group" aria-label="Filter asal invoice">
+              {ORIGIN_FILTERS.map(([filter, label]) => (
+                <button key={filter} type="button" onClick={() => setInvoiceOriginFilter(filter)}
+                  className={`inline-flex min-h-[36px] items-center rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                    invoiceOriginFilter === filter ? "bg-[var(--surface-strong)] text-[var(--ink-strong)] shadow-sm ring-1 ring-[var(--border-strong)]" : "text-[var(--ink-muted)] hover:text-[var(--ink-strong)]"
+                  }`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[var(--surface)] px-2.5 py-1.5">
+          <p className="text-xs text-[var(--ink-muted)]">Ekspor CSV/PDF mengikuti langkah dan asal tagihan yang tersaring.</p>
+          <div className="flex items-center gap-2">
+            <button onClick={handleExportCsv}
+              className="rounded-lg border border-[var(--border-success)] bg-[var(--surface-strong)] px-2.5 py-1.5 text-xs font-semibold text-[var(--ink-success)] transition-colors hover:bg-[var(--bg-success)]">
+              Ekspor CSV
+            </button>
+            <button onClick={handleExportPdf} disabled={pdfExporting}
+              className="rounded-lg border border-[var(--border-accent)] bg-[var(--surface-strong)] px-2.5 py-1.5 text-xs font-semibold text-[var(--ink-accent)] transition-colors hover:bg-[var(--accent-tint)] disabled:opacity-50">
+              {pdfExporting ? "Mengekspor..." : "Ekspor PDF"}
+            </button>
+          </div>
+        </div>
+          </div>
+        )}
+        {/* Cincin dan catatannya ditumpuk, bukan berdampingan: pada lebar kolom
+            keuangan (±382px) teks penjelas hanya kebagian ~100px bila dipaksa
+            satu baris dengan cincin. */}
+        <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--surface-strong)] px-3 py-2.5">
+          <ActivityRing
+            value={paidCount}
+            total={allPayments.length}
+            label="Kolektibilitas invoice"
+            detail={allPayments.length > 0 ? `${unpaidCount} invoice masih menjadi piutang` : "Terbitkan invoice dari antrean yang siap"}
+            size="sm"
+            tone={collectionRate >= 80 ? "green" : collectionRate > 0 ? "amber" : "slate"}
+          />
+          <p className="mt-2 border-t border-[var(--border)] pt-2 text-xs leading-relaxed text-[var(--ink-muted)]">
+            <span className="font-semibold text-[var(--ink-strong)]">Status invoice ≠ uang masuk.</span>{" "}
+            Pelunasan menutup piutang; uang masuk dicatat menurut tanggal pembayaran di Ringkasan.
+          </p>
+        </div>
+
       </section>
 
       {(showReadySections || query !== "") && (
@@ -742,40 +822,6 @@ export default function TagihanTab({
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-xs font-semibold text-[var(--ink-muted)] bg-[var(--bg-subtle)] rounded-full px-2 py-1">{filteredBillRows.length}/{allPayments.length}</span>
-          </div>
-        </div>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[var(--surface)] px-2.5 py-1.5">
-          <p className="text-xs text-[var(--ink-muted)]">Ekspor CSV/PDF mengikuti langkah dan asal tagihan yang tersaring.</p>
-          <div className="flex items-center gap-2">
-            <button onClick={handleExportCsv}
-              className="rounded-lg border border-[var(--border-success)] bg-[var(--surface-strong)] px-2.5 py-1.5 text-xs font-semibold text-[var(--ink-success)] transition-colors hover:bg-[var(--bg-success)]">
-              Ekspor CSV
-            </button>
-            <button onClick={handleExportPdf} disabled={pdfExporting}
-              className="rounded-lg border border-[var(--border-accent)] bg-[var(--surface-strong)] px-2.5 py-1.5 text-xs font-semibold text-[var(--ink-accent)] transition-colors hover:bg-[var(--accent-tint)] disabled:opacity-50">
-              {pdfExporting ? "Mengekspor..." : "Ekspor PDF"}
-            </button>
-          </div>
-        </div>
-        <div className="space-y-2 rounded-xl bg-[var(--surface)] p-2.5">
-          <div>
-            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">Asal invoice</p>
-            <div className="flex flex-wrap gap-1" role="group" aria-label="Filter asal invoice">
-              {([
-                ["semua", "Semua"],
-                ["monthly", "Bulanan"],
-                ["package", "Paket"],
-                ["report", "Laporan"],
-                ["manual", "Manual"],
-              ] as const).map(([filter, label]) => (
-                <button key={filter} type="button" onClick={() => setInvoiceOriginFilter(filter)}
-                  className={`inline-flex min-h-[36px] items-center rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                    invoiceOriginFilter === filter ? "bg-[var(--surface-strong)] text-[var(--ink-strong)] shadow-sm ring-1 ring-[var(--border-strong)]" : "text-[var(--ink-muted)] hover:text-[var(--ink-strong)]"
-                  }`}>
-                  {label}
-                </button>
-              ))}
-            </div>
           </div>
         </div>
         {visibleBillRows.length === 0 ? (
