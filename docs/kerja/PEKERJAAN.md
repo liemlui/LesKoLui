@@ -12,8 +12,10 @@
 
 ## 0. Cara pakai (agar tidak mengulang pembacaan)
 
-1. **Kontrak dulu, selalu:** [`ATURAN-AI.md`](ATURAN-AI.md). Ia memuat keputusan terkunci (B1–B4, A1–A19),
-   berkas yang dilarang disentuh (§2.1), dan bentuk laporan (§8).
+1. **Kontrak dulu, selalu:** [`ATURAN-AI.md`](ATURAN-AI.md). Ia memuat keputusan terkunci (§1: B1–B4 +
+   seluruh amandemen `A1–…`, daftar terbaru di §9 berkas itu), berkas yang dilarang disentuh (§2.1), dan
+   bentuk laporan (§8). *(Jangan hafalkan nomor terakhirnya — rentang yang ditulis di dokumen cepat basi;
+   §9 `ATURAN-AI` adalah daftarnya.)*
 2. **Tentukan tier SEBELUM mulai** (`ATURAN-AI` §6.2): T0 dokumen · T1 <3 berkas · T2 menyentuh
    `src/components|lib|db|hooks` atau UI · T3 tugas terakhir gelombang / config. Ragu → ambil tier lebih tinggi.
 3. **Satu putaran = satu langkah** → verifikasi → lapor (§8) → berhenti. Batch 📦 hanya yang terdaftar di §2.

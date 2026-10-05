@@ -10,7 +10,8 @@
 
 ## 0. Cara pakai (hemat token — patuhi)
 
-1. Baca berkas ini **seluruhnya** (≈380 baris — ukur sendiri: `(Get-Content docs/kerja/ATURAN-AI.md).Count`). Ini satu-satunya bacaan wajib; sisanya referensi.
+1. Baca berkas ini **seluruhnya** — panjangnya **ukur sendiri**, jangan percaya angka yang tertulis di
+   dokumen: `(Get-Content docs/kerja/ATURAN-AI.md).Count`. Ini satu-satunya bacaan wajib; sisanya referensi.
 2. **Buka [`CHEATSHEET.md`](CHEATSHEET.md) dulu, bukan `TASK-XX`.** Ia memuat 1 halaman per tugas dan cukup untuk ~95% kasus. Buka `TASK-XX` utuh hanya kalau butuh detail lebih, dan **hanya langkah yang sedang dikerjakan**.
 3. **Jangan** membaca seluruh `TASK-01`, seluruh `../arsip/`, atau berkas >500 baris secara utuh. Pakai **jangkar** yang disebut tugas: cari teksnya, baca ±40 baris di sekitarnya.
 4. **Jangan** membaca berkas >500 baris secara utuh. Daftar + perintah pengukurnya:
