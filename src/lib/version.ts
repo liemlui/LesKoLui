@@ -11,6 +11,23 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.92.0",
+    date: "2026-10-05",
+    title: "Jadwal hari ini bisa langsung disunting & dipindah murid, tagihan lebih mudah disaring",
+    items: [
+      "**Mengganti murid pada jadwal sekarang benar-benar bisa, dan kolom isiannya langsung terbuka.** Buka **Beranda → Hari Ini** → ketuk nama murid pada baris sesinya → panel **Kelola sesi** kini sudah menampilkan **Murid · Tanggal · Jam mulai · Durasi** sejak dibuka. Sebelumnya panel terbuka hanya dengan tombol **Simpan perubahan** tanpa satu pun kolom yang bisa diubah, sehingga wajar kalau terasa “tidak ada isian untuk diubah”. Jadi kalau Caithlyn terjadwal hari ini padahal yang les sebenarnya Draco: ketuk baris Caithlyn → ubah **Murid** ke Draco → **Simpan perubahan**.",
+      "**Pemilih Murid kini memuat semua murid — yang nonaktif ditandai “(nonaktif)”, bukan disembunyikan.** Sebelumnya daftarnya hanya berisi murid berstatus aktif, dan pada keadaan tertentu bisa kosong sama sekali, sehingga sesi tidak bisa dipindahkan ke siapa pun. Murid yang sudah berhenti les tetap bisa dipilih untuk memikul sesi lama yang salah tempel.",
+      "**“Batalkan sesi” dan “Hapus” sekarang menjelaskan bedanya di tempat Anda memilih.** **Batalkan sesi** → sesi ditandai “Dibatalkan”, tetap terlihat di riwayat murid, dan **tidak masuk tagihan**. **Hapus** → barisnya dibuang dari jadwal dan riwayat (tidak bisa dikembalikan) dan **ditolak** bila sesi sudah masuk tagihan paket. Label untuk operasi yang sama juga diseragamkan: sesi terlewat dulu berbunyi “Batal les” padahal operasinya sama persis dengan “Batalkan sesi”.",
+      "**Mengganti murid selalu meminta konfirmasi lebih dulu.** Konfirmasinya menyebut akibatnya dengan jujur: nominal sesi **tidak** dihitung ulang (masih memakai tarif murid sebelumnya) dan tagihannya berpindah ke murid baru. Memindahkan sesi memang memindahkan tagihannya, jadi itu tidak boleh terjadi karena satu ketukan nyasar.",
+      "**Mengubah jam atau murid tidak lagi menghapus nominal manual sesi.** Dulu menyimpan perubahan selalu mengirim ulang durasi sesi, dan itu membuat aplikasi menghitung ulang biaya sekaligus melepas nominal yang pernah Anda isi sendiri. Sekarang durasi hanya dikirim bila memang berubah.",
+      "**Kotak “Cari murid” selalu ada di layar Tagihan** dan menyaring seluruh daftar di sana — daftar tagihan, antrean **Laporan final siap ditagih**, antrean **Tagihan per Pertemuan**, dan angka pada kartu “01 · Siap ditagih”. Ekspor CSV dan PDF mengikuti saringan yang sama.",
+      "**Tagihan yang lewat jatuh tempo kini ditandai dengan kata, dan tanggalnya dibaca sebagai nama hari.** Baris yang benar-benar sudah lewat memakai badge **“Terlambat N hari”**, dan jatuh tempo ditulis sebagai **nama hari berbahasa Indonesia** (bukan `2026-10-05`) di ringkasan maupun rincian baris. Penanda umur piutang tetap dipakai untuk tagihan yang belum jatuh tempo.",
+      "**Daftar tagihan tidak pernah menghilang lagi.** Dulu memilih tahap **Siap ditagih** menyembunyikan seluruh daftar — termasuk kotak pencariannya. Sekarang daftarnya selalu ada, dan tiap keadaan filter punya pesan kosongnya sendiri, jadi Anda tahu apakah yang kosong itu datanya atau saringannya.",
+      "**“Filter lanjutan”: tiga kontrol di depan, sisanya dilipat.** Di depan tinggal kotak pencarian, pemilih tahap, dan tombol **Filter lanjutan**. Di dalamnya: **umur piutang**, **asal invoice**, dan tombol **ekspor** — tidak ada yang dihapus, hanya tidak lagi tampil bersamaan. Begitu ada saringan aktif, muncul chip **“N filter aktif · Hapus”** yang melepas semuanya sekali klik. Satu perubahan yang perlu diketahui: saringan umur piutang kini ikut berlaku pada **rekap PDF**, bukan hanya CSV.",
+      "**Beberapa teks yang tampil rusak sudah diperbaiki** — tombol **⋯ Aksi lain**, subjudul panel **Kelola sesi**, dan empat pesan singkat setelah menyimpan/membatalkan sesi sempat tampil sebagai rangkaian karakter aneh. Sekarang terbaca normal.",
+    ],
+  },
+  {
     version: "v1.91.0",
     date: "2026-10-05",
     title: "Kelola sesi jadi satu panel, gerakan lebih aman, topik MYP lengkap",
