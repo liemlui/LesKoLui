@@ -83,6 +83,8 @@ dokumentasi; rincian angkanya ada di riwayat berkas terkait.
 - **#7 — semua spec E2E harus hijau.** Mulai dari menjalankan `npm run e2e` (butuh eskalasi sandbox);
   spec yang merah **jalankan sendirian dulu** sebelum disebut regresi; baru perbaiki yang benar-benar gagal.
 
+**Keputusan pemilik 2026-10-05 (lanjutan — dari penyelidikan alur kelola-jadwal Beranda).** **Pemindahan murid pada satu sesi hanya berlaku untuk sesi `SCHEDULED` yang belum lewat** (sheet "Kelola sesi" → `Simpan perubahan` → kolom "Murid"); **sesi terlewat tetap tidak boleh pindah murid** — alasan terkunci: tagihan yang sudah tertaut ke sesi itu ikut berpindah. Bukti yang bisa dijalankan: `manageSessionSheet.test.tsx` (`tampilkanPemilihMurid` · `pilihanMurid`).
+
 ---
 
 ## 2. ❌ JANGAN — daftar tunggal (kalau ragu, berhenti dan tanya)

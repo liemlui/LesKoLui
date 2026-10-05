@@ -87,6 +87,45 @@ export function modeEfektif(berseri: boolean, mode: EditMode): EditMode {
   return berseri ? mode : "this";
 }
 
+/** Bentuk patch yang dikirim ke `updateSeriesSessions` untuk jalur ubah jadwal. */
+export type PatchUbahJadwal = Partial<Pick<Session, "time" | "durationHours" | "studentId" | "date">>;
+
+/** Kolom isian yang ikut menentukan patch ubah jadwal. */
+export interface FormUbahJadwal {
+  muridId: string;
+  tanggal: string;
+  jam: string;
+  durasi: number;
+  cakupan: EditMode;
+}
+
+/**
+ * Patch untuk aksi `simpan-perubahan`.
+ *
+ * **Aturan yang dipegang (perbaikan 2026-10-05).** `durationHours` hanya dikirim
+ * bila durasinya **benar-benar berubah**. Sebabnya ada di repo: `updateSession()`
+ * menghitung ulang `cost` **dan melepas `costOverride`** setiap kali
+ * `durationHours` ADA di dalam patch — syaratnya `patch.durationHours !== undefined`,
+ * bukan "nilainya berbeda". Modal lama (`EditSessionModal`) selalu mengirim durasi,
+ * jadi menekan "Simpan perubahan" sekadar untuk mengubah jam atau **murid**
+ * menghapus nominal manual tutor tanpa sebab. Dijaga dua lapis: aturan ini (murni,
+ * cepat) dan tes repo yang membuktikan `costOverride` bertahan saat durasi tidak
+ * ikut dikirim.
+ */
+export function patchUbahJadwal(
+  session: Session,
+  form: FormUbahJadwal,
+  tanggalAsal: string,
+): PatchUbahJadwal {
+  const patch: PatchUbahJadwal = {
+    studentId: form.muridId || session.studentId,
+    time: form.jam,
+  };
+  if (form.durasi !== session.durationHours) patch.durationHours = form.durasi;
+  if (form.cakupan === "this" && form.tanggal !== tanggalAsal) patch.date = form.tanggal;
+  return patch;
+}
+
 /** Jawaban tombol utama pada percobaan simpan. */
 export interface HasilSimpan {
   ok: boolean;
@@ -125,8 +164,14 @@ export function pilihanMurid(students: readonly Student[], session: Session): St
  * tanpa satu langkah konfirmasi.** Dua modal lama sudah begitu untuk penghapusan
  * lewat jalur lain di aplikasi ini (`ConfirmSheet`), dan L4 tidak boleh
  * melonggarkannya hanya karena panelnya berubah bentuk. Yang **tidak** dikonfirmasi:
- * `simpan-perubahan` dan `tidak-hadir` (bisa dikoreksi dari riwayat sesi) serta
- * `catat` (membuka wizard, belum menyimpan apa pun).
+ * `tidak-hadir` (bisa dikoreksi dari riwayat sesi) dan `catat` (membuka wizard,
+ * belum menyimpan apa pun).
+ *
+ * **Pengecualian yang ditambahkan 2026-10-05:** `simpan-perubahan` dikonfirmasi
+ * **hanya bila muridnya berganti** — memindahkan sesi ke murid lain memindahkan
+ * tagihannya, dan karena nominal tidak dihitung ulang, tarif murid lama ikut
+ * terbawa. Mengubah jam/tanggal/durasi tanpa ganti murid tetap tidak dikonfirmasi,
+ * persis seperti sebelumnya.
  */
 export interface KonfirmasiAksi {
   title: string;
@@ -134,9 +179,19 @@ export interface KonfirmasiAksi {
   confirmLabel: string;
 }
 
+/** Konteks pesan konfirmasi. Nama murid baru/lama hanya dipakai jalur ubah jadwal. */
+export interface KonteksKonfirmasi {
+  studentName: string;
+  berseri: boolean;
+  /** Nama murid yang sekarang memiliki sesi — pembanding untuk mendeteksi pergantian. */
+  muridLama?: string;
+  /** Nama murid yang dipilih di kolom "Murid". */
+  muridBaru?: string;
+}
+
 export function konfirmasiUntuk(
   aksi: SesiAksi,
-  ctx: { studentName: string; berseri: boolean },
+  ctx: KonteksKonfirmasi,
 ): KonfirmasiAksi | null {
   switch (aksi) {
     case "batal-les":
@@ -154,7 +209,44 @@ export function konfirmasiUntuk(
         message: "Sesi dihapus dari jadwal dan riwayat.",
         confirmLabel: "Ya, hapus",
       };
+    case "simpan-perubahan": {
+      // Tidak ada pergantian murid → tidak ada yang perlu dikonfirmasi (perilaku lama).
+      if (!ctx.muridLama || !ctx.muridBaru || ctx.muridLama === ctx.muridBaru) return null;
+      return {
+        title: "Ganti murid sesi ini?",
+        message: `${ctx.muridBaru} akan menjadi pemilik sesi ini. Nominal sesi TIDAK dihitung ulang — ia masih memakai tarif ${ctx.muridLama} — dan tagihannya berpindah ke ${ctx.muridBaru}.`,
+        confirmLabel: "Ya, ganti murid",
+      };
+    }
     default:
       return null;
   }
+}
+
+/** Konteks peringatan pergantian murid di dalam sheet. */
+export interface KonteksGantiMurid {
+  muridLama: string;
+  muridBaru: string;
+  berseri: boolean;
+  cakupan: EditMode;
+}
+
+/**
+ * Peringatan yang tampil **di dalam sheet** begitu kolom "Murid" diubah — lapisan
+ * pertama sebelum konfirmasi di `konfirmasiUntuk()`.
+ *
+ * Sengaja **tanpa angka rupiah**: Beranda dilarang menampilkan uang sama sekali
+ * (K3/B1 `ATURAN-AI`), jadi peringatan ini menyebut akibatnya, bukan nominalnya.
+ * `null` saat muridnya tidak berubah — peringatan yang selalu tampil akan berhenti
+ * dibaca.
+ */
+export function peringatanGantiMurid({
+  muridLama, muridBaru, berseri, cakupan,
+}: KonteksGantiMurid): string | null {
+  if (muridLama === muridBaru) return null;
+  const akibat = `Nominal sesi ini tidak dihitung ulang (masih memakai tarif ${muridLama}), dan sesi ini akan ikut tagihan ${muridBaru}.`;
+  if (berseri && cakupan !== "this") {
+    return `Murid diganti dari ${muridLama} ke ${muridBaru} — berlaku juga untuk sesi berikutnya dalam seri ini. ${akibat}`;
+  }
+  return `Murid diganti dari ${muridLama} ke ${muridBaru}. ${akibat}`;
 }

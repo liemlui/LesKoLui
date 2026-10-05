@@ -26,12 +26,15 @@ import {
   defaultDate,
   konfirmasiUntuk,
   modeEfektif,
+  patchUbahJadwal,
+  peringatanGantiMurid,
   pilihanMurid,
   sesiFormAwal,
   tampilkanPemilihMurid,
   validasiReschedule,
 } from "../screens/home/manageSessionForm";
 import type { Session, Student } from "../db/types";
+import type { FormUbahJadwal } from "../screens/home/manageSessionForm";
 
 function session(overrides: Partial<Session> = {}): Session {
   return {
@@ -181,7 +184,7 @@ describe("Aksi merusak wajib dikonfirmasi", () => {
     expect(info?.confirmLabel).toBe("Ya, hapus");
   });
 
-  it("simpan perubahan, tidak hadir, dan catat tidak dikonfirmasi", () => {
+  it("simpan tanpa ganti murid, tidak hadir, dan catat tidak dikonfirmasi", () => {
     expect(konfirmasiUntuk("simpan-perubahan", ctx)).toBeNull();
     expect(konfirmasiUntuk("tidak-hadir", ctx)).toBeNull();
     expect(konfirmasiUntuk("catat", ctx)).toBeNull();
@@ -212,3 +215,91 @@ describe("validasiReschedule — pesan yang bisa dibaca tutor, sebelum menyentuh
     expect(validasiReschedule({ date: "2026-10-01", time: "15:30", durationHours: 1.5 }, "2026-10-01").ok).toBe(true);
   });
 });
+
+/**
+ * Perbaikan 2026-10-05 (temuan penyelidikan alur Beranda).
+ *
+ * Dua hal yang dijaga di sini, keduanya akibat dari satu fakta repo:
+ * `updateSession()` menghitung ulang `cost` **dan melepas `costOverride`** setiap kali
+ * `durationHours` ADA di patch (syaratnya `!== undefined`, bukan "berubah").
+ */
+describe("Ubah jadwal: durasi hanya dikirim bila berubah (a)", () => {
+  const formUbah = (over: Partial<FormUbahJadwal> = {}): FormUbahJadwal => ({
+    muridId: "s-1", tanggal: "2026-10-01", jam: "15:30", durasi: 1.5, cakupan: "this", ...over,
+  });
+
+  it("durasi tidak ikut dikirim bila tidak berubah — nominal manual tidak boleh terhapus", () => {
+    const patch = patchUbahJadwal(session(), formUbah(), "2026-10-01");
+    expect("durationHours" in patch).toBe(false);
+  });
+
+  it("durasi ikut dikirim saat memang diubah", () => {
+    const patch = patchUbahJadwal(session(), formUbah({ durasi: 2 }), "2026-10-01");
+    expect(patch.durationHours).toBe(2);
+  });
+
+  it("murid & jam selalu ikut; tanggal hanya untuk cakupan 'Sesi ini'", () => {
+    const satu = patchUbahJadwal(session(), formUbah({ muridId: "s-2", jam: "16:00", tanggal: "2026-10-05" }), "2026-10-01");
+    expect(satu.studentId).toBe("s-2");
+    expect(satu.time).toBe("16:00");
+    expect(satu.date).toBe("2026-10-05");
+
+    const seri = patchUbahJadwal(session(), formUbah({ cakupan: "future", tanggal: "2026-10-05" }), "2026-10-01");
+    expect(seri.date).toBeUndefined();
+  });
+
+  it("murid kosong jatuh ke murid sesi, bukan string kosong", () => {
+    expect(patchUbahJadwal(session(), formUbah({ muridId: "" }), "2026-10-01").studentId).toBe("s-1");
+  });
+
+  it("tanggal yang sama tidak dikirim walau cakupannya 'Sesi ini'", () => {
+    expect(patchUbahJadwal(session(), formUbah(), "2026-10-01").date).toBeUndefined();
+  });
+});
+
+describe("Ganti murid: peringatan di sheet + konfirmasi sebelum simpan (b)", () => {
+  it("tanpa pergantian murid tidak ada peringatan", () => {
+    expect(peringatanGantiMurid({ muridLama: "Sari", muridBaru: "Sari", berseri: false, cakupan: "this" })).toBeNull();
+  });
+
+  it("peringatan menyebut kedua nama dan akibatnya pada tagihan", () => {
+    const teks = peringatanGantiMurid({ muridLama: "Sari", muridBaru: "Budi", berseri: false, cakupan: "this" });
+    expect(teks).toContain("Sari");
+    expect(teks).toContain("Budi");
+    expect(teks).toContain("tidak dihitung ulang");
+    expect(teks).toContain("tagihan");
+  });
+
+  it("peringatan tidak memuat angka rupiah — Beranda dilarang menampilkan uang (K3/B1)", () => {
+    const teks = peringatanGantiMurid({ muridLama: "Sari", muridBaru: "Budi", berseri: true, cakupan: "all" })!;
+    expect(teks).not.toContain("Rp");
+    expect(teks).not.toMatch(/\d/);
+  });
+
+  it("cakupan seri disebut hanya saat berlaku untuk sesi berikutnya", () => {
+    const satu = peringatanGantiMurid({ muridLama: "Sari", muridBaru: "Budi", berseri: true, cakupan: "this" })!;
+    const seri = peringatanGantiMurid({ muridLama: "Sari", muridBaru: "Budi", berseri: true, cakupan: "all" })!;
+    expect(satu).not.toContain("seri ini");
+    expect(seri).toContain("seri ini");
+  });
+
+  it("konfirmasi hanya muncul saat muridnya benar-benar berganti", () => {
+    const ctx = { studentName: "Sari", berseri: false };
+    expect(konfirmasiUntuk("simpan-perubahan", ctx)).toBeNull();
+    expect(konfirmasiUntuk("simpan-perubahan", { ...ctx, muridLama: "Sari", muridBaru: "Sari" })).toBeNull();
+
+    const info = konfirmasiUntuk("simpan-perubahan", { ...ctx, muridLama: "Sari", muridBaru: "Budi" })!;
+    expect(info.title).toBe("Ganti murid sesi ini?");
+    expect(info.confirmLabel).toBe("Ya, ganti murid");
+    expect(info.message).toContain("Budi");
+    expect(info.message).toContain("Sari");
+    expect(info.message).not.toMatch(/\d/);
+  });
+
+  it("mengubah jam/durasi saja tetap tanpa konfirmasi (perilaku lama dipertahankan)", () => {
+    expect(konfirmasiUntuk("simpan-perubahan", {
+      studentName: "Sari", berseri: true, muridLama: "Sari", muridBaru: "Sari",
+    })).toBeNull();
+  });
+});
+

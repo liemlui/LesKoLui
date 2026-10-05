@@ -280,3 +280,35 @@ describe("repricing eksplisit (D1(c))", () => {
   });
 });
 
+/**
+ * Perbaikan 2026-10-05 (temuan penyelidikan alur Beranda).
+ *
+ * Kontrak yang dijaga: **memindahkan sesi ke murid lain atau menggeser jamnya tidak
+ * boleh menghapus nominal manual tutor.** Patch itu persis yang dikirim sheet
+ * "Kelola sesi" lewat `patchUbahJadwal()` — tanpa `durationHours` selama durasinya
+ * tidak berubah.
+ *
+ * Sengaja **tidak** ada tes yang mengunci kebalikannya ("mengirim durasi yang sama
+ * tetap menghapus override"), karena tes seperti itu akan gagal begitu repo ini
+ * membaik — pelajaran yang sudah tercatat di `topicCoverage.test.ts`.
+ */
+describe("ubah jadwal tanpa menyentuh nominal", () => {
+  it("ganti murid + geser jam tanpa mengirim durasi mempertahankan nominal manual", async () => {
+    const muridA = await createStudent(makeStudent("monthly"));
+    const muridB = await createStudent({ ...makeStudent("monthly"), name: "Siswa Pindahan" });
+    const sid = await createSession({
+      studentId: muridA, date: "2026-05-20", durationHours: 2,
+      subjects: ["Math"], shortNote: "", status: "SCHEDULED",
+    });
+    await updateSession(sid, { costOverride: 175_000 });
+
+    await updateSession(sid, { studentId: muridB, time: "15:00" });
+
+    const s = (await db.sessions.get(sid))!;
+    expect(s.studentId).toBe(muridB);
+    expect(s.time).toBe("15:00");
+    expect(s.costOverride).toBe(175_000);
+    expect(s.cost).toBe(175_000);
+  });
+});
+

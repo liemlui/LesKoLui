@@ -26,6 +26,8 @@ import {
   defaultDate,
   konfirmasiUntuk,
   modeEfektif,
+  patchUbahJadwal,
+  peringatanGantiMurid,
   pilihanMurid,
   sesiFormAwal,
   tampilkanPemilihMurid,
@@ -36,7 +38,7 @@ interface ManageSessionSheetProps {
   session: Session;
   studentName: string;
   kontek: SesiKontek;
-  /** Daftar murid untuk pemilih di jalur "ubah jadwal" â€” `Home.tsx` sudah memuatnya. */
+  /** Daftar murid untuk pemilih di jalur "ubah jadwal" — `Home.tsx` sudah memuatnya. */
   students: Student[];
   onClose: () => void;
   onResult: (message: string) => void;
@@ -54,13 +56,13 @@ const TOMBOL_NETRAL =
  *
  * Menggantikan **dua modal lama**: satu untuk mengubah jadwal, satu untuk
  * mengelola sesi terlewat. Yang membuatnya satu adalah aturan di
- * `manageSession.ts` (aksi mana yang muncul di konteks mana) â€” komponen ini
+ * `manageSession.ts` (aksi mana yang muncul di konteks mana) — komponen ini
  * hanya menyusun tampilannya, tidak memutuskan apa yang boleh dilakukan.
  *
  * Prinsip yang dipegang:
  * - **Repo tidak ditambah.** Semua aksi memakai fungsi yang sudah ada
- *   (`cancelSeriesSessions` Â· `updateSeriesSessions` Â· `markSessionNoShow` Â·
- *   `rescheduleSession` Â· `deleteSession`). Angka tagihan tidak dihitung di sini.
+ *   (`cancelSeriesSessions` · `updateSeriesSessions` · `markSessionNoShow` ·
+ *   `rescheduleSession` · `deleteSession`). Angka tagihan tidak dihitung di sini.
  * - **Panel HP = sheet dari bawah** (`components/ui/Sheet`, pola D kontrak K4),
  *   bukan modal tengah.
  * - **Aksi merusak selalu lewat `ConfirmSheet`** (`konfirmasiUntuk()`), jadi tidak
@@ -95,13 +97,25 @@ export default function ManageSessionSheet({
   });
   // Tanggal sesi asal dipakai untuk memutuskan apakah perubahan tanggal perlu
   // dikirim. `mode` "future"/"all" tidak boleh mengubah tanggal (`updateSession`
-  // hanya bisa menggeser satu sesi), jadi pilihan itu memulihkan tanggal asal â€”
+  // hanya bisa menggeser satu sesi), jadi pilihan itu memulihkan tanggal asal —
   // perilaku yang sama dengan modal lama.
   const tanggalAsal = useRef(session.date);
 
   const aksiUtamaList = aksiUtama({ kontek });
   const aksiLainList = aksiLainnya({ kontek, berseri });
   const aksiTerpilih = aksiTerbuka({ kontek, berseri }, aksiId);
+
+  // ── Ganti murid (2026-10-05): peringatan di sheet + konfirmasi sebelum simpan ──
+  // `studentName` dari Beranda = pemilik sesi **sekarang**; `muridBaru` = pilihan di
+  // kolom "Murid". Nama (bukan id) yang dipakai karena pesannya dibaca tutor.
+  const muridBaru = students.find((s) => s.id === form.muridId)?.name ?? studentName;
+  const peringatanMurid = peringatanGantiMurid({
+    muridLama: studentName, muridBaru, berseri, cakupan: form.cakupan,
+  });
+  /** Satu konteks untuk gerbang konfirmasi **dan** pesan yang tampil, supaya keduanya tidak bisa berbeda. */
+  const konteksKonfirmasi = {
+    studentName, berseri, muridLama: studentName, muridBaru,
+  };
 
   const buka = (aksi: SesiAksi) => {
     const awal = sesiFormAwal(session);
@@ -136,16 +150,8 @@ export default function ManageSessionSheet({
     buka(aksi);
   };
 
-  const simpan = async () => {
-    const aksi = aksiId;
-    if (!aksi) return;
-
-    // Aksi merusak: minta konfirmasi dulu, jangan sentuh DB.
-    if (konfirmasiUntuk(aksi, { studentName, berseri })) {
-      setKonfirmasi(aksi);
-      return;
-    }
-
+  /** Isi penyimpanan sesungguhnya — dipakai `simpan()` dan sesudah `ConfirmSheet`. */
+  const jalankanSimpan = async (aksi: SesiAksi) => {
     // Dijaga sebelum DB: `rescheduleSession` menolak tanggal lampau dengan galat
     // teknis, sedangkan tutor perlu tahu apa yang harus diubah.
     const validasi = aksi === "jadwalkan-ulang"
@@ -159,20 +165,16 @@ export default function ManageSessionSheet({
     setBusy(true);
     try {
       if (aksi === "simpan-perubahan") {
-        const patch: Parameters<typeof updateSeriesSessions>[1] = {
-          studentId: form.muridId || session.studentId,
-          time: form.jam,
-          durationHours: form.durasi,
-        };
-        if (form.cakupan === "this" && form.tanggal !== tanggalAsal.current) {
-          patch.date = form.tanggal;
-        }
+        // Aturan patch ada di `manageSessionForm.ts` (`patchUbahJadwal`): durasi
+        // hanya ikut dikirim bila benar-benar berubah, supaya nominal manual tutor
+        // tidak terhapus saat yang diubah hanya jam atau muridnya.
+        const patch = patchUbahJadwal(session, form, tanggalAsal.current);
         await updateSeriesSessions(
           { id: session.id, seriesId: session.seriesId, date: tanggalAsal.current },
           patch,
           modeEfektif(berseri, form.cakupan),
         );
-        onResult("Jadwal diperbarui âœ“");
+        onResult("Jadwal diperbarui ✓");
       } else if (aksi === "jadwalkan-ulang") {
         await rescheduleSession(session.id, {
           date: form.tanggal,
@@ -180,10 +182,10 @@ export default function ManageSessionSheet({
           durationHours: form.durasi,
           reason: form.alasan,
         });
-        onResult("Sesi dijadwalkan ulang âœ“");
+        onResult("Sesi dijadwalkan ulang ✓");
       } else if (aksi === "tidak-hadir") {
         await markSessionNoShow(session.id, { reason: form.alasan, billable: form.billable });
-        onResult(form.billable ? "Tidak hadir ditandai â€” tetap ditagihkan." : "Tidak hadir ditandai â€” tidak ditagihkan.");
+        onResult(form.billable ? "Tidak hadir ditandai — tetap ditagihkan." : "Tidak hadir ditandai — tidak ditagihkan.");
       }
       onClose();
     } catch (e) {
@@ -193,10 +195,32 @@ export default function ManageSessionSheet({
     }
   };
 
+  /**
+   * Tombol utama. Konfirmasi lebih dulu bila aksinya merusak **atau** bila muridnya
+   * diganti (2026-10-05) — pergantian murid memindahkan tagihan, jadi ia tidak boleh
+   * berjalan hanya karena satu ketukan.
+   */
+  const simpan = async () => {
+    const aksi = aksiId;
+    if (!aksi) return;
+    if (konfirmasiUntuk(aksi, konteksKonfirmasi)) {
+      setKonfirmasi(aksi);
+      return;
+    }
+    await jalankanSimpan(aksi);
+  };
+
   /** Aksi merusak: dipanggil `ConfirmSheet` sesudah tutor benar-benar setuju. */
   const jalankanKonfirmasi = async () => {
     const aksi = konfirmasi;
     if (!aksi) return;
+    // Ganti murid bukan aksi merusak: sesudah tutor setuju, jalurnya sama dengan
+    // `simpan()` — logika penyimpanan tidak digandakan.
+    if (aksi === "simpan-perubahan") {
+      setKonfirmasi(null);
+      await jalankanSimpan(aksi);
+      return;
+    }
     setBusy(true);
     try {
       if (aksi === "hapus") {
@@ -208,7 +232,7 @@ export default function ManageSessionSheet({
           modeEfektif(berseri, form.cakupan),
           form.alasan,
         );
-        onResult(aksi === "batal-les" ? "Sesi dibatalkan â€” tidak ditagihkan." : "Jadwal dibatalkan.");
+        onResult(aksi === "batal-les" ? "Sesi dibatalkan — tidak ditagihkan." : "Jadwal dibatalkan.");
       }
       setKonfirmasi(null);
       onClose();
@@ -221,7 +245,7 @@ export default function ManageSessionSheet({
 
   const judul = kontek === "terlewat" ? "Kelola sesi terlewat" : "Kelola sesi";
 
-  const infoKonfirmasi = konfirmasi ? konfirmasiUntuk(konfirmasi, { studentName, berseri }) : null;
+  const infoKonfirmasi = konfirmasi ? konfirmasiUntuk(konfirmasi, konteksKonfirmasi) : null;
 
   /** Satu baris pilihan aksi (aksi utama yang belum dipilih). */
   const barisAksi = (aksi: SesiAksi, aktif: boolean) => {
@@ -247,7 +271,7 @@ export default function ManageSessionSheet({
         open
         onClose={onClose}
         title={judul}
-        description={`${studentName} Â· ${dayLabel(session.date)}${session.seriesId ? " Â· Sesi berulang" : ""}`}
+        description={`${studentName} · ${dayLabel(session.date)}${session.seriesId ? " · Sesi berulang" : ""}`}
         ariaLabel={judul}
         footer={
           aksiTerpilih && aksiTerpilih.butuhIsian ? (
@@ -264,12 +288,12 @@ export default function ManageSessionSheet({
             </p>
           )}
 
-          {/* Daftar aksi utama â€” selalu terlihat supaya kemampuan tidak tersembunyi. */}
+          {/* Daftar aksi utama — selalu terlihat supaya kemampuan tidak tersembunyi. */}
           <div className="space-y-[var(--space-2)]">
             {aksiUtamaList.map((a) => barisAksi(a.id, aksiId === a.id))}
           </div>
 
-          {/* `â‹¯` â€” tempat kemampuan yang tidak lagi berebut perhatian. */}
+          {/* `⋯` — tempat kemampuan yang tidak lagi berebut perhatian. */}
           <div className="border-t border-[var(--border)] pt-[var(--space-3)]">
             <button
               type="button"
@@ -277,7 +301,7 @@ export default function ManageSessionSheet({
               aria-expanded={menuTerbuka}
               className="w-full min-h-[44px] rounded-[var(--radius-card)] px-3 text-left text-sm font-semibold text-[var(--text-muted)] hover:bg-[var(--surface-soft)]"
             >
-              â‹¯ Aksi lain ({aksiLainList.length})
+              ⋯ Aksi lain ({aksiLainList.length})
             </button>
             {menuTerbuka && (
               <div className="mt-[var(--space-2)] space-y-[var(--space-2)]">
@@ -302,6 +326,13 @@ export default function ManageSessionSheet({
                       <option key={s.id} value={s.id}>{s.name}</option>
                     ))}
                   </select>
+                  {/* Peringatan (bukan konfirmasi): akibatnya disebut tanpa angka rupiah
+                      karena Beranda dilarang menampilkan uang (K3/B1). */}
+                  {peringatanMurid && (
+                    <p className="mt-[var(--space-2)] rounded-[var(--radius-card)] border border-[var(--border-attention)] bg-[var(--bg-attention)] p-[var(--space-2)] text-xs text-[var(--ink-attention)] m-0">
+                      {peringatanMurid}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -439,7 +470,7 @@ export default function ManageSessionSheet({
             </div>
           )}
 
-          {/* `hapus` tidak punya kolom isian â€” jelaskan akibatnya sebelum konfirmasi. */}
+          {/* `hapus` tidak punya kolom isian — jelaskan akibatnya sebelum konfirmasi. */}
           {aksiTerpilih?.id === "hapus" && (
             <p className="text-xs text-[var(--text-muted)] m-0">
               Sesi ini akan dihapus dari jadwal dan riwayat. Kamu akan diminta memastikan dulu.
