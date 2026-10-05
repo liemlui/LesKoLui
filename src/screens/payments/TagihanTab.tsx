@@ -7,7 +7,7 @@ import {
 } from "../../db/repos";
 import type { InvoiceCancellation } from "../../db/repos";
 import type { Payment, Student, Settings, Session, MonthlyReport } from "../../db/types";
-import { formatRupiah, todayWIB, periodLabel, monthLabel } from "../../lib/format";
+import { formatRupiah, todayWIB, periodLabel } from "../../lib/format";
 import { MAX_PAYMENT_AMOUNT, isValidCurrencyAmount, parseCurrencyDigits } from "../../lib/money";
 import { invoiceAgeDays, ageBucket, AGE_BUCKET_LABEL, type AgeBucket } from "../../lib/finance";
 import { db } from "../../db/db";
@@ -21,12 +21,13 @@ import { ITEMS_PER_PDF_PAGE } from "../../lib/invoicePresentation";
 import { useSessionCountBilling } from "./useSessionCountBilling";
 import type { ConfirmState } from "./useSessionCountBilling";
 import { useInvoiceFilters } from "./useInvoiceFilters";
-import { useInvoiceRecovery, invoiceKindLabel, RECOVERY_LIMITS_HINT } from "./useInvoiceRecovery";
+import { useInvoiceRecovery } from "./useInvoiceRecovery";
 
 import { useInvoiceExports } from "./useInvoiceExports";
 import InvoiceRow from "./InvoiceRow";
 import ManualInvoiceForm from "./ManualInvoiceForm";
 import InvoicePdfPages from "./InvoicePdfPages";
+import CancelledInvoicesSection from "./CancelledInvoicesSection";
 import BillingHelpModal from "./BillingHelpModal";
 import RecoveryPointPickerModal from "./RecoveryPointPickerModal";
 
@@ -754,66 +755,15 @@ export default function TagihanTab({
 
 
       {/* ── Tagihan dibatalkan (R1) — pemulihan lokal per perangkat ── */}
-      {(recovery.cancellations ?? []).length > 0 && (
-        <section aria-labelledby="cancelled-invoices-title" className="space-y-3 rounded-xl border border-[var(--border-warn)] bg-[var(--bg-warn)]/40 p-4 shadow-sm">
-          <div>
-            <h2 id="cancelled-invoices-title" className="text-sm font-bold text-[var(--ink-warn)]">Tagihan dibatalkan — bisa dipulihkan</h2>
-            <p className="mt-0.5 text-xs leading-relaxed text-[var(--ink-warn)]">
-              {RECOVERY_LIMITS_HINT} Pemulihan ditolak bila sesi, laporan, atau siklus murid sudah berubah.
-            </p>
-          </div>
-          <div className="space-y-2">
-            {(recovery.cancellations ?? []).map((cancellation) => {
-              const studentName = studentMap.get(cancellation.studentId)?.name ?? "Murid dihapus";
-              const busy = Boolean(recovery.busyKeys[`restore-${cancellation.snapshotId}`]);
-              const discarding = Boolean(recovery.busyKeys[`discard-${cancellation.snapshotId}`]);
-              return (
-                <article key={cancellation.snapshotId} className="rounded-xl border border-[var(--border-warn)] bg-[var(--surface-strong)] p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-[var(--ink-strong)]">{studentName}</p>
-                      <p className="mt-0.5 text-xs text-[var(--ink-muted)]">
-                        {invoiceKindLabel(cancellation.kind)} · {monthLabel(cancellation.month)} · {cancellation.sessionCount} sesi
-                      </p>
-                    </div>
-                    <span className="shrink-0 text-sm font-bold text-[var(--ink-strong)]">{formatRupiah(cancellation.totalCost)}</span>
-                  </div>
-                  <div className="mt-3 flex items-stretch gap-2">
-                    <button
-                      type="button"
-                      disabled={busy || discarding}
-                      onClick={() => recovery.askRestoreCancellation(cancellation, studentName)}
-                      className="flex-1 rounded-lg border border-[var(--border-warn)] py-2 text-xs font-semibold text-[var(--ink-warn)] transition-colors hover:bg-[var(--bg-warn)] disabled:cursor-wait disabled:opacity-50"
-                    >
-                      {busy ? "Memulihkan..." : "Pulihkan tagihan"}
-                    </button>
-                    {/* Sekunder: hanya membuang salinan pemulihannya, tagihan tetap dibatalkan. */}
-                    <button
-                      type="button"
-                      disabled={busy || discarding}
-                      aria-label={`Hapus entri pemulihan tagihan ${studentName}`}
-                      onClick={() => recovery.askDiscardCancellation(cancellation, studentName)}
-                      className="shrink-0 rounded-lg border border-[var(--border-danger)] px-3 py-2 text-xs font-semibold text-[var(--ink-danger)] transition-colors hover:bg-[var(--bg-danger)] disabled:cursor-wait disabled:opacity-50"
-                    >
-                      {discarding ? "Menghapus..." : "Hapus"}
-                    </button>
-                  </div>
-                  {/* Sekunder: pemilih titik waktu — semua titik pemulihan tagihan ini. */}
-                  <button
-                    type="button"
-                    disabled={busy || discarding}
-                    aria-label={`Riwayat pemulihan tagihan ${studentName}`}
-                    onClick={() => openSnapshotHistory(cancellation)}
-                    className="mt-2 w-full rounded-lg border border-[var(--border-warn)] py-2 text-xs font-semibold text-[var(--ink-warn)] transition-colors hover:bg-[var(--bg-warn)] disabled:cursor-wait disabled:opacity-50"
-                  >
-                    Riwayat pemulihan ({snapshotPointCounts?.get(cancellation.paymentId) ?? 1})
-                  </button>
-                </article>
-              );
-            })}
-          </div>
-        </section>
-      )}
+      <CancelledInvoicesSection
+        cancellations={recovery.cancellations}
+        busyKeys={recovery.busyKeys}
+        studentMap={studentMap}
+        snapshotPointCounts={snapshotPointCounts}
+        onRestore={recovery.askRestoreCancellation}
+        onDiscard={recovery.askDiscardCancellation}
+        onOpenHistory={openSnapshotHistory}
+      />
 
 
       <ManualInvoiceForm
