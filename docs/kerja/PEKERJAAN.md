@@ -95,16 +95,25 @@ Baca berkas itu sebagai **spesifikasi langkah**, bukan sumber angka: ia beku, da
 > **#5** timeout Playwright → dinaikkan ke 60 dtk · **#6** CI GitHub → **tidak** diaktifkan ·
 > **#11** 10 hex mentah → sudah jadi token · **#12** konfirmasi nav bawah → opsi b3 (baris kepastian draf) ·
 > **#13** panah radiogroup → selesai (opsi c2) · **#16** mockup → dipertahankan (opsi e1).
+>
+> **#7 ditutup 2026-10-05 (putaran yang sama).** `npm run e2e` dijalankan **seluruhnya** dengan eskalasi
+> sandbox: **78 lulus · 6 skip · 0 gagal** (4,8 menit, 2 project `chromium` + `mobile`, batas 60 dtk).
+> **Tidak ada spec merah**, jadi langkah "jalankan sendirian" tidak perlu dipakai dan **tidak ada** yang
+> diperbaiki — suite-nya sudah hijau. Efek samping §6.4 terjadi seperti yang ditulis dan sudah dibereskan:
+> **58 PNG ter-track** di `e2e/screenshots/audit/**` ditulis ulang + **13 PNG baru** di `e2e/screenshots/`
+> dibuat spec katalog → semuanya dipulihkan/dihapus, **tidak satu pun di-commit** (`git status` bersih
+> sesudahnya). Karena `e2e` kini hijau **termasuk Beranda**, hasil ini sekaligus bukti tidak langsung untuk
+> L4: `Home.tsx` masih merender dan spec Beranda lulus — tetapi **klik** pada sheet baru tetap butuh
+> butir manual §5 21–22 (tidak ada spec yang menekan baris sesi).
 
 | # | Pekerjaan | Di mana | Kenapa belum selesai |
 |---|---|---|---|
 | 2 | **Verifikasi manual alur Catat Sesi** (§5 di bawah — 22 butir; 13–20 baru 2026-10-05, 21–22 dari L4 `ManageSessionSheet`) | §5 berkas ini | Butuh mata manusia di perangkat |
 | 3 | **Katalog topik untuk 78 mapel yang belum punya** (mis. `IB MYP :: Language & Literature`, `IB DP :: Global Politics`) | [`../arsip/AUDIT-KONDISI-LES-DAN-TOPIK-2026-09-13.md`](../arsip/AUDIT-KONDISI-LES-DAN-TOPIK-2026-09-13.md) §7 P3 #19 · daftar sadarnya di `KNOWN_TOPIcless` (`src/__tests__/topicCoverage.test.ts`) | **Keputusan #3 (2026-10-05): dikerjakan agen**, bukan menunggu pengetahuan pemilik — cari topik **sebanyak mungkin**, topik yang sama boleh dipakai lintas mapel yang mirip. Jaga `npm run test:sandbox -- topicCoverage` tetap hijau |
 | 4 | **2 hal yang sengaja TIDAK dikerjakan** (keputusan, bukan lupa) | [`../arsip/AUDIT-UIUX-CATAT-SESI-2026-09-12.md`](../arsip/AUDIT-UIUX-CATAT-SESI-2026-09-12.md) §9.3 | bottom-nav dibiarkan tampil selama wizard; chip teks 38–42 px dibiarkan (≥24 px, lolos WCAG 2.5.8) |
-| 7 | **Semua spec `npm run e2e` harus hijau** (keputusan #7, 2026-10-05) | `e2e/**` · catatan flake `.design-audit/g2-gate-2026-10-04.md` | Perlu **eskalasi sandbox** (browser + dev server). Urutannya: jalankan seluruh suite → spec merah **jalankan sendirian** dulu (flake beban sudah terbukti bukan regresi) → baru perbaiki yang benar-benar gagal. Batas waktu tes kini 60 dtk (#5) |
 | 8 | **K-01 — peringatan saat mengubah nominal tagihan** (mengubah nominal memindahkan asal tagihan ke `manual` secara senyap → daftar sesi hilang dari ekspor & WA) | keputusan pemilik #1 (2026-10-01) · [`../arsip/07-VALIDASI-RENCANA-2026-10-01.md`](../arsip/07-VALIDASI-RENCANA-2026-10-01.md) §3 | Dijadwalkan sebagai bagian **G3-02** |
 | 9 | **Temuan audit UI/UX yang masih tersisa** dari audit 2026-10-01 | [`../arsip/06-AUDIT-UIUX-2026-10-01.md`](../arsip/06-AUDIT-UIUX-2026-10-01.md) | 73 temuan tetap, 18 sebagian, 1 klaim dibatalkan. **Wajib baca berkas 07 lebih dulu** sebelum mengerjakan |
-| 14 | **Rilis gelombang 3 + satu entri `CHANGELOG`** untuk 6 perubahan perilaku 2026-10-05 (L7 · C-02 · C-03 · C-04 · C-08 · C-10) | `src/lib/version.ts` + [`../README.md`](../README.md) §6 | **Keputusan Q-D = d2:** tunggu sampai G3-01 tuntas (`L4 ManageSessionSheet`), lalu **satu** entri untuk seluruh gelombang — bukan satu per langkah |
+| 14 | **Rilis gelombang 3 + satu entri `CHANGELOG`** untuk 7 perubahan perilaku gelombang ini (L7 · C-02 · C-03 · C-04 · C-08 · C-10 · **L4 `ManageSessionSheet`**) | `src/lib/version.ts` + [`../README.md`](../README.md) §6 | **Keputusan Q-D = d2:** tunggu sampai G3-01 tuntas. L4 ✅ (2026-10-05), tetapi G3-01 belum tuntas — **C-12 masih ⏸ menunggu G3-04** (kontrak AI berbiaya), jadi rilis tetap ditunda dan `package.json` masih v1.90.0 |
 | 15 | **Spesifikasi langkah G3-02…G3-10 masih tinggal di [`../arsip/GELOMBANG-3.md`](../arsip/GELOMBANG-3.md)** | §3 berkas ini | **Keputusan Q-F = bertahap:** pindahkan **satu tugas per pemindahan**, dikerjakan saat gelombang itu mulai (angkanya di arsip sudah beku) |
 
 ---
@@ -168,5 +177,6 @@ DoD/kontrak. Di luar ketiganya: **putuskan sendiri dan cantumkan alasannya** di 
 |---|---|
 | 2026-10-05 | Dibuat dari penggabungan `ROADMAP.md` + §4 `docs/README.md` (keputusan pemilik Q-13 opsi A). `ROADMAP.md` dipindahkan ke `../arsip/`. |
 | 2026-10-05 | **Butir §4 #10 ditutup** — URL 404 di dalam teks iklan (`arsip/PROMPT-AI-IKLAN.md:78`) sudah dibetulkan menjadi host yang benar; barisnya dihapus dari daftar karena pekerjaan tuntas tidak boleh tinggal di daftar pekerjaan. |
+| 2026-10-05 | **#7 ditutup: seluruh suite `npm run e2e` hijau.** Dijalankan dengan eskalasi sandbox — **78 lulus · 6 skip · 0 gagal** (4,8 menit, project `chromium` + `mobile`, batas 60 dtk). Tidak ada spec merah, jadi tidak ada yang diperbaiki. Efek samping PNG (§6.4) dibereskan: 58 ter-track dipulihkan, 13 baru dihapus, nol di-commit. Butir #7 dihapus dari tabel §4, ringkasannya diangkat ke catatan atas §4. |
 | 2026-10-05 | **L4 `ManageSessionSheet` tuntas** (G3-01): dua modal lama dihapus, satu sheet dengan aksi menurut konteks; §3 diperbarui (sisa G3-01 = **C-12** saja), §5 bertambah butir **21–22** untuk sheet baru. Rincian + gate: `TASK-06` §9.2/§10. |
 | 2026-10-05 | **§4 dirapikan setelah keputusan pemilik (Q-A…Q-F, #1…#7):** 7 butir ditutup (#1 · #5 · #6 · #11 · #12 · #13 · #16) dengan nomor lamanya dipertahankan di `ATURAN-AI` §1 · #3 berubah jadi pekerjaan agen (cari topik untuk 78 mapel) · #7 dinaikkan jadi target "semua spec E2E hijau" · #14 dijadwalkan setelah `L4` (Q-D = d2) · #15 dikerjakan bertahap (Q-F). **§5 bertambah 6 butir pemeriksaan manual (13–20)** untuk L10 lama + L7 · C-02 · C-03 · C-04 · QA · QB. **§3:** catatan bahwa spec `G3-02`…`G3-10` ada di arsip + batas penomoran ID. |
