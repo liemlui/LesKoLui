@@ -2,6 +2,26 @@ import { RESPONSE_TAGS } from "../../lib/responseTaxonomy";
 import { scoreBasisLabel } from "../../lib/engagement";
 import type { EngagementScoreBasis } from "../../db/types";
 import { RefreshIcon } from "../../components/icons";
+import ProgressBar from "../../components/charts/ProgressBar";
+
+/**
+ * Ambang warna bar skor (C-10).
+ *
+ * Disamakan dengan kata band di `scoreLabel()` supaya bar dan katanya tidak
+ * pernah berbeda: 9+ hijau · 7–8 biru · 5–6 kuning · <5 merah. `tone` dasar
+ * merah penting — skor < 3 tidak cocok dengan ambang mana pun, dan tanpa itu
+ * bar-nya jatuh ke warna bawaan ProgressBar (biru) yang salah arti.
+ *
+ * Warnanya **token** (`--bg-*-strong`), bukan palet hex: diukur 2026-10-05,
+ * teks bertoken di atas keempat rona kartu skor bernilai 5,38–6,41:1 — di atas
+ * ambang 4,5:1, sedangkan pasangan palet lama yang paling ketat 4,51:1.
+ */
+const SCORE_TONE_THRESHOLDS = [
+  { pct: 90, tone: "green" as const },
+  { pct: 70, tone: "blue" as const },
+  { pct: 50, tone: "amber" as const },
+  { pct: 30, tone: "red" as const },
+];
 
 interface ResponseStepProps {
   /** Tag respons akademik terpilih (kunci `RESPONSE_TAGS`). */
@@ -188,22 +208,34 @@ export default function ResponseStep({
       <div className="rounded-2xl border border-[var(--border)] p-4">
         <p className="text-xs font-bold text-[var(--ink-muted)] uppercase tracking-wide mb-2">Skor sesi</p>
         {engScoreInfo ? (
-          <div className="flex items-center gap-3 rounded-xl p-3" style={{ background: engScoreInfo.bg }}>
-            <div className="relative w-14 h-14 flex-shrink-0">
-              <svg viewBox="0 0 36 36" className="w-14 h-14 -rotate-90">
-                <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(0,0,0,.08)" strokeWidth="4" />
-                <circle cx="18" cy="18" r="14" fill="none" stroke={engScoreInfo.color} strokeWidth="4"
-                  strokeDasharray={`${(engScore / 10) * 100 * 0.879} 100`} strokeLinecap="round" />
-              </svg>
-              <span className="absolute inset-0 flex items-center justify-center text-sm font-bold" style={{ color: engScoreInfo.color }}>{engScore}</span>
-            </div>
-            <div className="min-w-0">
+          /* C-10 (2026-10-05): donat SVG buatan sendiri diganti `ProgressBar`
+             bersama. Alasannya bukan selera: angka donat lama dihitung dengan
+             `(skor/10) * 100 * 0,879` — campuran persen dan keliling lingkaran
+             yang tidak bisa dibaca siapa pun tanpa menghitung 2πr, dan gambarnya
+             tidak punya nama untuk pembaca layar. Rona kartu + warna kata band
+             tetap dari `scoreLabel()` (satu sumber, dijaga
+             `engagementContrast.test.ts`), sedangkan bar-nya memakai token. */
+          <div className="rounded-xl p-3" style={{ background: engScoreInfo.bg }}>
+            <div className="flex items-baseline justify-between gap-3">
               <p className="font-bold text-base" style={{ color: engScoreInfo.color }}>{engScoreInfo.text}</p>
-              <p className="text-xs mt-0.5" style={{ color: engScoreInfo.color }}>Skor keterlibatan: {engScore}/10</p>
-              <p className="text-xs mt-1" style={{ color: engScoreInfo.color }}>
-                Dasar 5/10 · kelengkapan data: {scoreBasisLabel(engBasis)}.
+              <p className="text-sm font-black" style={{ color: engScoreInfo.color }}>
+                {engScore}<span className="text-xs font-bold">/10</span>
               </p>
             </div>
+            <div className="mt-2">
+              <ProgressBar
+                value={engScore}
+                max={10}
+                size="sm"
+                label="Keterlibatan"
+                showPercent={false}
+                tone="red"
+                thresholds={SCORE_TONE_THRESHOLDS}
+              />
+            </div>
+            <p className="text-xs mt-1.5" style={{ color: engScoreInfo.color }}>
+              Dasar 5/10 · kelengkapan data: {scoreBasisLabel(engBasis)}.
+            </p>
           </div>
         ) : (
           <p className="text-xs text-[var(--ink-muted)]">
