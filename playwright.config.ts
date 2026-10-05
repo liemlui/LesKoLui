@@ -7,6 +7,18 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "line" : "list",
+  /**
+   * Batas waktu satu tes: 30 dtk (bawaan Playwright) → **60 dtk**.
+   *
+   * Keputusan pemilik 2026-10-05 (#5): dinaikkan **hanya** karena flake beban —
+   * saat `mobile` + `chromium` berjalan bersamaan, spec yang lulus sendirian
+   * (`finance`, `report-export`) timeout di 30 dtk. Menaikkan batas ini **tidak**
+   * memperlambat suite yang hijau (ia hanya menentukan kapan sebuah tes menyerah),
+   * dan sengaja dipilih 60 (bukan 120) supaya tes yang benar-benar lambat tetap
+   * ketahuan. `webServer.timeout` di bawah **tidak** diubah — itu waktu tunggu
+   * menyalanya dev server, bukan waktu tes.
+   */
+  timeout: 60_000,
   use: {
     baseURL: "http://localhost:5174",
     trace: "on-first-retry",
