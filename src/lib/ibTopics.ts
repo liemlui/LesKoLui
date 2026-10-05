@@ -2450,6 +2450,510 @@ export const IB_TOPICS: TopicEntry[] = [
     "Databases & SQL",
     "Object-oriented programming",
   ]),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // IB MYP — enam kelompok mapel yang BELUM punya katalog (PEKERJAAN §4 #3)
+  //
+  // Kenapa ditambahkan: sebelum ini MYP hanya punya EMPAT nama indeks
+  // (Mathematics · Sciences · Matematika · Bahasa Indonesia), sehingga delapan
+  // kelompok mapel MYP di `lib/ibSubjects.ts` tidak menemukan satu pun topiknya.
+  // Isi di bawah mengikuti kerangka resmi MYP (key concept + unit question per
+  // tahun), dengan judul topik dalam bahasa yang dipakai tutor di layar.
+  //
+  // Catatan level: `mk()` memakai label "MYP 1"…"MYP 5" — persis yang dikenali
+  // `curriculumLevelFilter()` untuk kurikulum "IB MYP". Topik MYP sengaja TIDAK
+  // dipinjam dari DP/IGCSE: isi MYP berbeda (konsep, bukan silabus ujian), dan
+  // meminjam membuat tutor merekam topik level lain ke sesi MYP.
+  // ═══════════════════════════════════════════════════════════════════════════
+  ...mk("Language & Literature", "MYP 1", "MYP 1 / Grade 6", "Identitas & cerita diri", [
+    "Teks naratif — struktur & sudut pandang",
+    "Menulis cerita pengalaman pribadi",
+    "Puisi sederhana — citraan & rima",
+    "Membaca & menanggapi cerita pendek",
+    "Jurnal membaca — kebiasaan membaca",
+  ]),
+  ...mk("Language & Literature", "MYP 1", "MYP 1 / Grade 6", "Komunikasi & media", [
+    "Jenis teks — fiksi & nonfiksi",
+    "Iklan & poster — pesan visual",
+    "Wawancara sederhana — bertanya & mencatat",
+    "Presentasi lisan singkat",
+    "Teks prosedur — instruksi yang jelas",
+  ]),
+  ...mk("Language & Literature", "MYP 1", "MYP 1 / Grade 6", "Keterampilan bahasa", [
+    "Ejaan & tanda baca dasar",
+    "Kalimat efektif — subjek & predikat",
+    "Kosakata — sinonim & antonim",
+    "Paragraf — gagasan utama & pendukung",
+    "Ringkasan & menceritakan ulang",
+  ]),
+  ...mk("Language & Literature", "MYP 2", "MYP 2 / Grade 7", "Suara & perspektif", [
+    "Narator orang pertama vs orang ketiga",
+    "Tokoh & penokohan dalam novel remaja",
+    "Latar & suasana",
+    "Dialog — menulis percakapan yang hidup",
+    "Menulis ulang adegan dari sudut pandang lain",
+  ]),
+  ...mk("Language & Literature", "MYP 2", "MYP 2 / Grade 7", "Teks informatif", [
+    "Artikel berita — 5W+1H",
+    "Laporan pengamatan sederhana",
+    "Brosur & pamflet informatif",
+    "Membandingkan dua teks tentang satu isu",
+    "Kutipan & menyebut sumber",
+  ]),
+  ...mk("Language & Literature", "MYP 2", "MYP 2 / Grade 7", "Panggung & suara", [
+    "Drama pendek — membaca naskah",
+    "Membaca nyaring dengan ekspresi",
+    "Monolog singkat",
+    "Pantomim & gerak tubuh",
+    "Menulis naskah adegan",
+  ]),
+  ...mk("Language & Literature", "MYP 3-4", "MYP 3-4 / Grade 8-9", "Sastra & masyarakat", [
+    "Novel — tema & konflik",
+    "Cerpen — alur & kejutan",
+    "Puisi — majas & makna",
+    "Nilai sosial dalam karya sastra",
+    "Resensi buku — menilai dengan alasan",
+  ]),
+  ...mk("Language & Literature", "MYP 3-4", "MYP 3-4 / Grade 8-9", "Argumen & bukti", [
+    "Menulis paragraf argumentatif",
+    "Membedakan fakta & opini",
+    "Menanggapi teks — setuju & menolak dengan alasan",
+    "Debat kelas — menyusun argumen",
+    "Teks editorial — masalah & solusi",
+  ]),
+  ...mk("Language & Literature", "MYP 3-4", "MYP 3-4 / Grade 8-9", "Media & retorika", [
+    "Analisis iklan — teknik persuasi",
+    "Berita vs opini di media sosial",
+    "Pidato persuasif — membuka & menutup",
+    "Infografis — menyampaikan data dengan teks",
+    "Hoaks & memeriksa sumber",
+  ]),
+  ...mk("Language & Literature", "MYP 5", "MYP 5 / Grade 10", "Sastra & identitas", [
+    "Novel — penokohan & perkembangan tokoh",
+    "Puisi — tafsir & pembacaan kritis",
+    "Naskah drama — karakter & konflik",
+    "Karya sastra & konteks budaya",
+    "Kritik sastra sederhana dengan bukti kutipan",
+  ]),
+  ...mk("Language & Literature", "MYP 5", "MYP 5 / Grade 10", "Esai & penelitian teks", [
+    "Tesis & kerangka esai",
+    "Menulis esai argumen dengan bukti teks",
+    "Menyusun daftar pustaka sederhana",
+    "Menyunting — kejelasan & gaya",
+    "Presentasi karya pribadi",
+  ]),
+  ...mk("Language & Literature", "MYP 5", "MYP 5 / Grade 10", "Genre & adaptasi", [
+    "Adaptasi cerita ke naskah/skrip",
+    "Sastra bandingan — dua karya satu tema",
+    "Fiksi ilmiah & fantasi — membangun dunia",
+    "Cerita digital — teks & gambar",
+    "Menulis kreatif dengan batasan gaya",
+  ]),
+
+  ...mk("Language Acquisition", "MYP 1", "MYP 1 / Grade 6", "Perkenalan & kelas", [
+    "Memperkenalkan diri & menyapa",
+    "Angka, hari, tanggal",
+    "Kosakata sekolah & kelas",
+    "Instruksi kelas sederhana",
+    "Kalimat tanya dasar",
+  ]),
+  ...mk("Language Acquisition", "MYP 1", "MYP 1 / Grade 6", "Keluarga", [
+    "Anggota keluarga & menyebut orang",
+    "Kata ganti & pemilik",
+    "Menceritakan keluarga — kalimat sederhana",
+    "Kegiatan sehari-hari di rumah",
+    "Hobi & kesukaan",
+  ]),
+  ...mk("Language Acquisition", "MYP 1", "MYP 1 / Grade 6", "Tempat & arah", [
+    "Kota & tempat umum",
+    "Arah & lokasi — depan, belakang, samping",
+    "Transportasi & kendaraan",
+    "Belanja — harga & jumlah",
+    "Makanan & minuman",
+  ]),
+  ...mk("Language Acquisition", "MYP 2", "MYP 2 / Grade 7", "Waktu & rutinitas", [
+    "Jam & jadwal harian",
+    "Kegiatan akhir pekan",
+    "Kata kerja waktu lalu",
+    "Kata sambung waktu",
+    "Menulis jurnal harian singkat",
+  ]),
+  ...mk("Language Acquisition", "MYP 2", "MYP 2 / Grade 7", "Kesehatan & perasaan", [
+    "Bagian tubuh & keluhan",
+    "Di dokter — dialog",
+    "Perasaan & keadaan",
+    "Saran & nasihat sederhana",
+    "Gaya hidup sehat",
+  ]),
+  ...mk("Language Acquisition", "MYP 2", "MYP 2 / Grade 7", "Sekolah & belajar", [
+    "Jadwal pelajaran & ekstrakurikuler",
+    "Alat & kegiatan belajar",
+    "Meminta izin & bertanya",
+    "Perbandingan sederhana",
+    "Presentasi pendek tentang sekolahku",
+  ]),
+  ...mk("Language Acquisition", "MYP 3-4", "MYP 3-4 / Grade 8-9", "Pengalaman & cerita", [
+    "Menceritakan pengalaman lalu",
+    "Kata kerja tidak beraturan",
+    "Kalimat majemuk sederhana",
+    "Surat/email tidak resmi",
+    "Menceritakan film atau buku",
+  ]),
+  ...mk("Language Acquisition", "MYP 3-4", "MYP 3-4 / Grade 8-9", "Budaya & tradisi", [
+    "Perayaan & tradisi",
+    "Makanan khas & resep",
+    "Lagu & puisi pendek",
+    "Membandingkan budaya",
+    "Teks deskriptif tentang budaya sendiri",
+  ]),
+  ...mk("Language Acquisition", "MYP 4-5", "MYP 4-5 / Grade 9-10", "Isu & opini", [
+    "Membaca artikel & mengambil inti",
+    "Menyampaikan pendapat dengan sopan",
+    "Diskusi & debat singkat",
+    "Menulis paragraf opini",
+    "Laporan singkat tentang isu nyata",
+  ]),
+  ...mk("Language Acquisition", "MYP 5", "MYP 5 / Grade 10", "Kolaborasi & masa depan", [
+    "Cita-cita & rencana studi",
+    "Wawancara kerja/beasiswa sederhana",
+    "Presentasi kelompok dengan media",
+    "Email resmi sederhana",
+    "Refleksi belajar bahasa",
+  ]),
+
+  ...mk("Individuals & Societies", "MYP 1", "MYP 1 / Grade 6", "Aku & komunitas", [
+    "Identitas diri & kelompok",
+    "Keluarga & peran sosial",
+    "Teman, aturan, dan kebiasaan",
+    "Kebutuhan & keinginan",
+    "Hak & kewajiban anak",
+  ]),
+  ...mk("Individuals & Societies", "MYP 1", "MYP 1 / Grade 6", "Tempat & peta", [
+    "Membaca peta & lambang",
+    "Arah mata angin & skala",
+    "Lingkungan sekitar & perubahan",
+    "Sumber daya alam sederhana",
+    "Cuaca & iklim harian",
+  ]),
+  ...mk("Individuals & Societies", "MYP 1", "MYP 1 / Grade 6", "Waktu & perubahan", [
+    "Kronologi & garis waktu",
+    "Sumber sejarah — foto, cerita, benda",
+    "Perubahan di lingkungan dari waktu ke waktu",
+    "Tokoh lokal & perannya",
+    "Mengapa sejarah penting",
+  ]),
+  ...mk("Individuals & Societies", "MYP 2", "MYP 2 / Grade 7", "Sistem & lembaga", [
+    "Aturan & hukum dasar",
+    "Struktur pemerintahan sederhana",
+    "Peran sekolah & keluarga",
+    "Musyawarah & pengambilan keputusan",
+    "Simulasi pemilihan kelas",
+  ]),
+  ...mk("Individuals & Societies", "MYP 2", "MYP 2 / Grade 7", "Ekonomi sehari-hari", [
+    "Uang & menabung",
+    "Belanja cerdas & anggaran",
+    "Pekerjaan & penghasilan",
+    "Barang & jasa",
+    "Pasar tradisional & modern",
+  ]),
+  ...mk("Individuals & Societies", "MYP 2", "MYP 2 / Grade 7", "Keragaman & migrasi", [
+    "Keragaman budaya di Indonesia",
+    "Migrasi & urbanisasi",
+    "Toleransi & prasangka",
+    "Bahasa & identitas",
+    "Studi kasus: perpindahan penduduk",
+  ]),
+  ...mk("Individuals & Societies", "MYP 3-4", "MYP 3-4 / Grade 8-9", "Revolusi & perubahan", [
+    "Revolusi industri & teknologi",
+    "Revolusi politik & kemerdekaan",
+    "Perubahan sosial & dampaknya",
+    "Sumber primer & sekunder",
+    "Menulis laporan sejarah singkat",
+  ]),
+  ...mk("Individuals & Societies", "MYP 3-4", "MYP 3-4 / Grade 8-9", "Pembangunan & lingkungan", [
+    "Pertumbuhan penduduk",
+    "Sumber daya & keberlanjutan",
+    "Pencemaran & perubahan iklim",
+    "Pembangunan ekonomi vs lingkungan",
+    "Aksi nyata di sekolah",
+  ]),
+  ...mk("Individuals & Societies", "MYP 3-4", "MYP 3-4 / Grade 8-9", "Globalisasi", [
+    "Perdagangan & ketergantungan",
+    "Budaya global vs lokal",
+    "Teknologi & komunikasi",
+    "Ketimpangan & keadilan",
+    "Debat: globalisasi menguntungkan siapa",
+  ]),
+  ...mk("Individuals & Societies", "MYP 5", "MYP 5 / Grade 10", "Kekuasaan & keadilan", [
+    "Bentuk pemerintahan",
+    "Hak asasi manusia",
+    "Konflik & penyelesaiannya",
+    "Media & opini publik",
+    "Studi kasus kebijakan publik",
+  ]),
+  ...mk("Individuals & Societies", "MYP 5", "MYP 5 / Grade 10", "Ekonomi & kesejahteraan", [
+    "Permintaan & penawaran sederhana",
+    "Inflasi & daya beli",
+    "Pajak & layanan publik",
+    "Kewirausahaan sosial",
+    "Proyek mini: anggaran keluarga",
+  ]),
+  ...mk("Individuals & Societies", "MYP 5", "MYP 5 / Grade 10", "Penelitian masyarakat", [
+    "Merumuskan pertanyaan penelitian",
+    "Survei & wawancara",
+    "Membaca data & grafik sosial",
+    "Laporan penelitian mini (MYP Personal Project)",
+    "Etika penelitian",
+  ]),
+
+  ...mk("Sciences", "MYP 2", "MYP 2 / Grade 7", "Sel & tubuh", [
+    "Sel sebagai unit kehidupan",
+    "Jaringan & organ",
+    "Sistem pencernaan",
+    "Sistem pernapasan",
+    "Kesehatan & nutrisi",
+  ]),
+  ...mk("Sciences", "MYP 2", "MYP 2 / Grade 7", "Gerak & gaya", [
+    "Gerak lurus & kecepatan",
+    "Gaya & pengaruhnya",
+    "Massa vs berat",
+    "Pesawat sederhana",
+    "Tekanan pada zat",
+  ]),
+  ...mk("Sciences", "MYP 2", "MYP 2 / Grade 7", "Bumi & cuaca", [
+    "Lapisan bumi",
+    "Batuan & siklus batuan",
+    "Cuaca & iklim",
+    "Siklus air",
+    "Bencana alam & mitigasi",
+  ]),
+  ...mk("Sciences", "MYP 3-4", "MYP 3-4 / Grade 8-9", "Materi & reaksi", [
+    "Atom & unsur",
+    "Tabel periodik dasar",
+    "Senyawa & campuran",
+    "Perubahan fisika & kimia",
+    "Reaksi kimia sederhana",
+  ]),
+  ...mk("Sciences", "MYP 3-4", "MYP 3-4 / Grade 8-9", "Energi & listrik", [
+    "Bentuk energi & perubahan",
+    "Hukum kekekalan energi",
+    "Rangkaian listrik sederhana",
+    "Magnet & elektromagnet",
+    "Energi terbarukan",
+  ]),
+  ...mk("Sciences", "MYP 3-4", "MYP 3-4 / Grade 8-9", "Genetika & evolusi", [
+    "DNA & kromosom",
+    "Pewarisan sifat",
+    "Adaptasi & seleksi alam",
+    "Klasifikasi makhluk hidup",
+    "Bioteknologi sederhana",
+  ]),
+  ...mk("Sciences", "MYP 5", "MYP 5 / Grade 10", "Fisika untuk kehidupan", [
+    "Kinematika & grafik gerak",
+    "Hukum Newton",
+    "Usaha, energi & daya",
+    "Gelombang & bunyi",
+    "Cahaya & optik dasar",
+  ]),
+  ...mk("Sciences", "MYP 5", "MYP 5 / Grade 10", "Kimia untuk kehidupan", [
+    "Struktur atom & ikatan",
+    "Asam, basa & pH",
+    "Laju reaksi",
+    "Kimia dalam kehidupan sehari-hari",
+    "Praktikum & laporan laboratorium",
+  ]),
+  ...mk("Sciences", "MYP 5", "MYP 5 / Grade 10", "Biologi untuk kehidupan", [
+    "Sistem organ & homeostasis",
+    "Fotosintesis & respirasi",
+    "Ekosistem & rantai makanan",
+    "Dampak manusia pada lingkungan",
+    "Investigasi ilmiah mandiri",
+  ]),
+
+  ...mk("Arts", "MYP 1", "MYP 1 / Grade 6", "Melihat & menggambar", [
+    "Unsur seni — garis, bentuk, warna",
+    "Menggambar objek dari pengamatan",
+    "Warna primer, sekunder, tersier",
+    "Kolase & teknik campuran",
+    "Jurnal sketsa",
+  ]),
+  ...mk("Arts", "MYP 1", "MYP 1 / Grade 6", "Bermain musik", [
+    "Irama & birama",
+    "Menyanyi bersama — nada & tempo",
+    "Alat musik sederhana (recorder/perkusi)",
+    "Mendengar & mengenali instrumen",
+    "Pertunjukan kelas",
+  ]),
+  ...mk("Arts", "MYP 1", "MYP 1 / Grade 6", "Bermain peran", [
+    "Permainan drama & kepercayaan diri",
+    "Ekspresi wajah & tubuh",
+    "Improvisasi sederhana",
+    "Membaca naskah pendek",
+    "Pertunjukan kelompok kecil",
+  ]),
+  ...mk("Arts", "MYP 2", "MYP 2 / Grade 7", "Bentuk & komposisi", [
+    "Prinsip desain — keseimbangan & irama visual",
+    "Perspektif satu titik",
+    "Poster & tipografi dasar",
+    "Seni digital sederhana",
+    "Kurasi karya pribadi",
+  ]),
+  ...mk("Arts", "MYP 2", "MYP 2 / Grade 7", "Musik & teknologi", [
+    "Notasi dasar & membaca partitur",
+    "Akor & harmoni sederhana",
+    "Rekaman & editing audio dasar",
+    "Musik daerah Indonesia",
+    "Komposisi 8 birama",
+  ]),
+  ...mk("Arts", "MYP 2", "MYP 2 / Grade 7", "Teater & cerita", [
+    "Struktur cerita untuk panggung",
+    "Karakter & motivasi",
+    "Blocking & panggung",
+    "Kostum & properti sederhana",
+    "Pertunjukan pendek",
+  ]),
+  ...mk("Arts", "MYP 3-4", "MYP 3-4 / Grade 8-9", "Seni & identitas", [
+    "Seni sebagai ungkapan identitas",
+    "Seni rupa Indonesia & Asia",
+    "Eksperimen media (cat, cetak, digital)",
+    "Portofolio proses kreatif",
+    "Pameran mini kelas",
+  ]),
+  ...mk("Arts", "MYP 3-4", "MYP 3-4 / Grade 8-9", "Pertunjukan & produksi", [
+    "Peran dalam produksi (pemain, sutradara, teknisi)",
+    "Latihan & disiplin panggung",
+    "Tata suara & tata cahaya",
+    "Apresiasi karya seni — kritik yang sopan",
+    "Dokumentasi pertunjukan",
+  ]),
+  ...mk("Arts", "MYP 5", "MYP 5 / Grade 10", "Karya & makna", [
+    "Konsep karya & pernyataan seniman",
+    "Riset visual & moodboard",
+    "Karya akhir dengan teknik pilihan",
+    "Kritik seni terstruktur (deskripsi–analisis–tafsir)",
+    "Pameran & presentasi karya",
+  ]),
+  ...mk("Arts", "MYP 5", "MYP 5 / Grade 10", "Kolaborasi seni", [
+    "Proyek lintas bidang seni",
+    "Peran & tanggung jawab tim produksi",
+    "Menyesuaikan karya untuk penonton",
+    "Jadwal & manajemen proyek seni",
+    "Refleksi proses berkarya",
+  ]),
+
+  ...mk("PHE", "MYP 1", "MYP 1 / Grade 6", "Kebugaran & gerak", [
+    "Pemanasan & pendinginan",
+    "Komponen kebugaran (kekuatan, kelenturan, daya tahan)",
+    "Tes kebugaran sederhana",
+    "Permainan bola besar dasar",
+    "Atletik dasar — lari & lompat",
+  ]),
+  ...mk("PHE", "MYP 1", "MYP 1 / Grade 6", "Kesehatan diri", [
+    "Kebersihan diri & pubertas",
+    "Pola makan seimbang",
+    "Tidur & waktu layar",
+    "Keselamatan di rumah & sekolah",
+    "Pertolongan pertama dasar",
+  ]),
+  ...mk("PHE", "MYP 2", "MYP 2 / Grade 7", "Permainan & strategi", [
+    "Bola basket/voli — aturan & teknik",
+    "Kerja sama tim & peran pemain",
+    "Taktik menyerang & bertahan",
+    "Fair play & sportivitas",
+    "Memimpin pemanasan",
+  ]),
+  ...mk("PHE", "MYP 2", "MYP 2 / Grade 7", "Kesehatan mental", [
+    "Mengenali emosi",
+    "Stres sekolah & cara mengelola",
+    "Persahabatan & tekanan kelompok",
+    "Meminta bantuan — siapa & bagaimana",
+    "Jurnal kebugaran & suasana hati",
+  ]),
+  ...mk("PHE", "MYP 3-4", "MYP 3-4 / Grade 8-9", "Latihan & program", [
+    "Prinsip latihan (FITT)",
+    "Menyusun program latihan pribadi",
+    "Cedera olahraga & pencegahan",
+    "Nutrisi untuk aktivitas",
+    "Mengukur kemajuan",
+  ]),
+  ...mk("PHE", "MYP 3-4", "MYP 3-4 / Grade 8-9", "Gaya hidup & pilihan", [
+    "Zat berbahaya — rokok, vape, alkohol",
+    "Literasi kesehatan & sumber informasi",
+    "Kesehatan reproduksi (sesuai usia)",
+    "Keselamatan berkendara & jalan",
+    "Kampanye kesehatan di sekolah",
+  ]),
+  ...mk("PHE", "MYP 5", "MYP 5 / Grade 10", "Kinerja & analisis gerak", [
+    "Analisis teknik gerak dasar",
+    "Perencanaan latihan jangka panjang",
+    "Penilaian kebugaran mandiri",
+    "Olahraga & nilai kerja sama",
+    "Laporan program latihan pribadi",
+  ]),
+  ...mk("PHE", "MYP 5", "MYP 5 / Grade 10", "Kesehatan masyarakat", [
+    "Kesehatan publik & pencegahan penyakit",
+    "Akses layanan kesehatan",
+    "Lingkungan & kesehatan",
+    "Proyek aksi sehat (CAS/PHE)",
+    "Refleksi gaya hidup sehat",
+  ]),
+
+  ...mk("Design", "MYP 1", "MYP 1 / Grade 6", "Siklus desain", [
+    "Langkah desain — menyelidiki sampai mengevaluasi",
+    "Mengenali masalah di sekitar",
+    "Sketsa ide & anotasi",
+    "Membuat purwarupa sederhana",
+    "Uji coba & perbaikan",
+  ]),
+  ...mk("Design", "MYP 1", "MYP 1 / Grade 6", "Bahan & alat", [
+    "Bahan sehari-hari — kertas, kayu, kain",
+    "Alat tangan & keselamatan kerja",
+    "Menyambung & merekat",
+    "Mengukur & memotong tepat",
+    "Merawat & menyimpan alat",
+  ]),
+  ...mk("Design", "MYP 2", "MYP 2 / Grade 7", "Desain untuk pengguna", [
+    "Kebutuhan pengguna & wawancara singkat",
+    "Kriteria keberhasilan produk",
+    "Gambar kerja sederhana",
+    "Purwarupa berfungsi",
+    "Umpan balik & revisi",
+  ]),
+  ...mk("Design", "MYP 2", "MYP 2 / Grade 7", "Digital & data", [
+    "Pengantar desain digital (grafis dasar)",
+    "Algoritma & langkah berurutan",
+    "Spreadsheet sederhana untuk data",
+    "Keselamatan digital & privasi",
+    "Dokumentasi proses digital",
+  ]),
+  ...mk("Design", "MYP 3-4", "MYP 3-4 / Grade 8-9", "Desain produk", [
+    "Riset kebutuhan pengguna",
+    "Memilih bahan & mempertimbangkan keberlanjutan",
+    "Prototipe & pengujian fungsional",
+    "Biaya & efisiensi produksi",
+    "Evaluasi produk jadi",
+  ]),
+  ...mk("Design", "MYP 3-4", "MYP 3-4 / Grade 8-9", "Sistem & dampak", [
+    "Berpikir sistem — masukan, proses, keluaran",
+    "Dampak desain pada lingkungan & masyarakat",
+    "Desain berkelanjutan",
+    "Kolaborasi tim desain",
+    "Presentasi solusi kepada pengguna",
+  ]),
+  ...mk("Design", "MYP 5", "MYP 5 / Grade 10", "Proyek desain mandiri", [
+    "Merumuskan masalah desain sendiri",
+    "Rencana kerja & jadwal",
+    "Purwarupa akhir & dokumentasi",
+    "Uji pengguna & data hasil",
+    "Evaluasi menyeluruh (MYP Personal Project)",
+  ]),
+  ...mk("Design", "MYP 5", "MYP 5 / Grade 10", "Inovasi & etika", [
+    "Desain untuk aksesibilitas",
+    "Kekayaan intelektual & menghargai karya",
+    "Keamanan & tanggung jawab produk",
+    "Inovasi lokal untuk masalah nyata",
+    "Refleksi perjalanan desain",
+  ]),
 ];
 
 // ─── Kelompok mapel setara + alias ke nama indeks topik ─────────────────────
@@ -2509,6 +3013,29 @@ const TOPIC_SUBJECT_ALIASES: ReadonlyArray<{ key: string; aka: readonly string[]
   { key: "Mandarin B", aka: ["Mandarin", "Chinese B", "Mandarin ab initio"] },
   { key: "French B", aka: ["French", "Francais", "French ab initio"] },
   { key: "Spanish B", aka: ["Spanish", "Espanol", "Spanish ab initio"] },
+  // ── Kelompok mapel MYP yang katalognya baru diisi (PEKERJAAN §4 #3).
+  //
+  // `key` = nama yang dipakai pemilih mapel MYP di `lib/ibSubjects.ts`, jadi
+  // pencocokan tidak bergantung pada jalan "kata pertama" (`resolveSubjectAliases`
+  // langkah 3) yang bisa jatuh ke mapel lain. Nama resmi MYP didaftarkan sebagai
+  // `aka` supaya pencarian dengan nama resmi pun menemukan katalognya.
+  //
+  // Atribusi alias yang menjaga batas kurikulum: "Penjaskes" dan "PJOK" SENGAJA
+  // TIDAK didaftarkan di sini. Keduanya nama mapel NASIONAL (`NATIONAL_GROUPS`),
+  // dan kurikulumnya berbeda; mendaftarkannya di sini membuat murid Nasional
+  // menerima topik MYP — persis kesalahan yang pernah terjadi pada "Matematika"
+  // (lihat catatan di blok alias di atas). Katalog Penjaskes Nasional masuk ke
+  // kelompoknya sendiri.
+  //
+  // Catatan "Sciences": `key` itu SUDAH ada di atas (alias IPA/Combined Science).
+  // Kelompok mapel MYP-nya sendiri tidak perlu entri baru — katalog "Sciences"
+  // kini memuat level MYP 1–MYP 5.
+  { key: "Language & Literature", aka: ["Language and Literature", "Language A", "Bahasa & Sastra"] },
+  { key: "Language Acquisition", aka: ["Language B", "Language Acquisition MYP", "Bahasa Asing"] },
+  { key: "Individuals & Societies", aka: ["Individuals and Societies", "Humanities", "IPS"] },
+  { key: "Arts", aka: ["Art", "Art and Design"] },
+  { key: "PHE", aka: ["Physical and Health Education", "Physical Education"] },
+  { key: "Design", aka: ["Design MYP", "Desain"] },
   // ── AP: nama mapel AP harus didaftarkan apa adanya.
   //
   // `key` di sini adalah NAMA MAPEL AP yang benar-benar ada di indeks (mis.

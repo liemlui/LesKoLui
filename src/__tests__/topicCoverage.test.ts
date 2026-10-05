@@ -51,14 +51,9 @@ const CURRICULA: ReadonlyArray<{
  */
 const KNOWN_TOPIcless: ReadonlyArray<readonly [string, string]> = [
   // ── IB MYP ──
-  ["IB MYP", "Language & Literature"],
-  ["IB MYP", "Language Acquisition"],
-  // Individu & Masyarakat = gabungan IPS; topik terdekatnya (Economics/History)
-  // hanya ada di DP, bukan MYP.
-  ["IB MYP", "Individuals & Societies"],
-  ["IB MYP", "Arts"],
-  ["IB MYP", "PHE"],
-  ["IB MYP", "Design"],
+  // (6 mapel MYP — Language & Literature · Language Acquisition · Individuals &
+  //  Societies · Arts · PHE · Design — DIHAPUS dari daftar ini 2026-10-05 karena
+  //  katalognya sudah ada di `IB_TOPICS`; lihat riwayat §PEKERJAAN #3.)
   // ── IB DP ──
   ["IB DP", "Philosophy"],
   ["IB DP", "Global Politics"],
