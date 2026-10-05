@@ -4,13 +4,13 @@
 jenis: indeks
 status: aktif
 diperbarui: 2026-10-05
-versi_app: v1.90.0
+versi_app: v1.91.0
 test: tidak ditulis di sini — jalankan `npm run test:sandbox` (angka yang disalin ke dokumen selalu basi; dijaga `npm run check:docs`)
 baca_ini_kalau: kamu (manusia atau AI) perlu tahu dokumen mana yang harus dibuka
 baca_berurutan: tidak — pakai tabel §2
 ```
 
-> **Sekilas** · Jenis: **indeks dokumentasi (pintu masuk)** · Status: **aktif** · Diperbarui: 2026-10-04 (v1.90.0).
+> **Sekilas** · Jenis: **indeks dokumentasi (pintu masuk)** · Status: **aktif** · Diperbarui: 2026-10-05 (v1.91.0).
 > **Untuk siapa:** pemilik aplikasi (Ko Lui) dan agen AI yang merawat repo ini.
 > **Isi:** peta "mau X → buka Y" (§2) · persyaratan dokumentasi (§3) · aturan penamaan (§4) · **status pekerjaan (§5)** · riwayat rilis (§6) · aturan pemeliharaan (§7).
 > **Berkas lain tidak perlu dibaca berurutan.** Tabel §2 adalah router-nya.
@@ -104,6 +104,7 @@ dengan banner + satu baris inventaris.
 
 | Tanggal | Peristiwa | Versi |
 |---|---|---|
+| 2026-10-05 | **Rilis v1.91.0 — “Kelola sesi” jadi satu panel + gelombang perbaikan Catat Sesi + katalog topik IB MYP.** Satu panel menggantikan **dua** modal lama (`EditSessionModal` + `ResolveMissedSessionModal`; keduanya **dihapus**): aksi menyesuaikan konteks (terlewat: Catat · Batal les · Tidak hadir — terjadwal: Simpan perubahan), aksi jarang ke `⋯`, dan setiap pembatalan/penghapusan lewat konfirmasi. Ikut rilis: simpan sesi dari langkah 5 (Q2) · pindah langkah diumumkan + gulir ke atas (C-02) · keyboard grup radio pola penuh (C-03 c2) · badge `!` langkah belum lengkap (C-04) · “Lewati” di langkah 2 (C-08) · donat skor → `ProgressBar` (C-10) · undo hapus topik & tindak lanjut (C-13/C-05) · baris kepastian draf (Q-B b3) · 10 warna mentah bilah aksi → token (Q-A). **Katalog topik: 6 kelompok mapel IB MYP** (Language & Literature · Language Acquisition · Individuals & Societies · Arts · PHE · Design, MYP 1–5) — 78 → 72 pasangan tanpa katalog. Gate rilis: `tsc` ✓ · `eslint --max-warnings 0` ✓ · **770 lulus / 64 berkas** ✓ · `build` ✓ (`dist/sw.js`) · `check:docs` ✓ · **`e2e` 78 lulus / 6 skip / 0 gagal** ✓. **Belum diverifikasi manusia di perangkat** — daftar periksa `PEKERJAAN.md` §5 (22 butir, dua di antaranya untuk panel baru) masih menunggu centang | v1.91.0 |
 | 2026-10-05 | **Keputusan pemilik (Q-A…Q-F, #1…#7) masuk kontrak + dikerjakan sebagian.** Selesai: **QA/B** 10 heks mentah di 2 berkas jadi token — dan itu **memperbaiki** dua kegagalan kontras yang ada (teks putih di tombol langkah 6 `3,30→4,95:1`, keadaan menyimpan `1,80→14,67:1`) · **QB/b3** satu baris kepastian draf (nav bawah tetap tidak diblokir) · **QC/c2** keyboard pola radiogroup (Tab masuk sekali, panah/Home/End) · **#5** batas tes Playwright 60 dtk · **#2** daftar periksa manual jadi 20 butir. Dilanjutkan (bukan sekarang): **#7** semua spec E2E hijau · **#3** katalog topik 78 mapel · **Q-D/d2** rilis + `CHANGELOG` setelah `L4`. Ketetapan: **#6 CI tidak diaktifkan** · **#1** PWA diverifikasi pemilik lewat Vercel · **Q-E** mockup dipertahankan · **Q-F** spesifikasi G3 dipindah bertahap | — |
 | 2026-10-05 | **G3-01 hampir tuntas (10 commit, belum dirilis).** Yang berubah: **Q2 "simpan dari langkah 5" ternyata belum ada di kode** (hanya tertulis sebagai keputusan) → sekarang terpasang + 4 tes · C-02 (pindah langkah diumumkan & pandangan kembali ke atas) · C-03 (satu penulis `responseTag`, kedua grup jadi `role="radiogroup"`) · C-04 (badge `!` untuk langkah wajib yang belum lengkap) · C-08 ("Lewati" di langkah 2 bila murid tanpa mapel) · C-10 (donat skor → `ProgressBar` bertoken) · teks konfirmasi hapus tindak lanjut dibetulkan · overlay pudar putih ditokenkan · `ATURAN-AI` §6.4 baru (jebakan alat & git, dinaikkan dari dokumen arsip). Gate: `tsc` ✓ · `eslint` ✓ · suite penuh ✓ · `build` ✓ · **`e2e`/`e2e:uiux` belum dijalankan** (butuh eskalasi) · verifikasi manusia di perangkat **menunggu** | — |
 | 2026-10-04 | **Rilis v1.90.0 — Catat Sesi lebih cepat: pilih mapel & topik tanpa panel bersarang.** Menggabungkan dua pekerjaan G3-01: pemilih mapel jadi baris chip datar di langkah 2 (satu mapel **1 ketukan**, dulu 3; mapel kedua +1, dulu +4) dan daftar topik/pencarian diperkuat (panel bab terbuka sejak awal, hasil pencarian tepat di bawah kolom isian, batas 8 bab diberitahukan). **Jumlah langkah tetap 6** — yang berubah cara memilihnya, bukan langkahnya. Gate: `tsc` ✓ · `eslint` ✓ · **706/706 tes** ✓ · `build` ✓ · `e2e` **78 lulus/6 skip/0 gagal** · `e2e:uiux` 56 lulus/0 gagal · `md-links` 0 rusak. Verifikasi manusia di perangkat: **menunggu** (12 kotak §4.3) | v1.90.0 |

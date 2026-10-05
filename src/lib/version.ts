@@ -11,6 +11,25 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.91.0",
+    date: "2026-10-05",
+    title: "Kelola sesi jadi satu panel, gerakan lebih aman, topik MYP lengkap",
+    items: [
+      "**Satu panel untuk semua pengelolaan sesi.** Dulu ada dua jendela berbeda — satu untuk mengubah jadwal, satu untuk sesi terlewat — sehingga aksi yang sama bisa berada di tempat berbeda tergantung dari mana Anda membukanya. Sekarang keduanya jadi satu panel dari bawah dengan judul **“Kelola sesi”** (atau **“Kelola sesi terlewat”**), dan pilihan yang muncul menyesuaikan keadaan sesinya.",
+      "Pada sesi **terlewat**, pilihan utamanya adalah **Catat · Batal les · Tidak hadir**; pada sesi **terjadwal**, **Simpan perubahan**. Aksi yang jarang dipakai tidak dihapus — **Jadwalkan ulang** dan **Hapus** (terlewat) serta **Batalkan sesi** dan **Hapus** (terjadwal) kini berada di **⋯ Aksi lain**, jadi tidak lagi berebut perhatian tetapi tetap satu ketukan dari tempatnya.",
+      "**Membatalkan dan menghapus selalu meminta kepastian lebih dulu.** Ketukan nyasar tidak bisa lagi membatalkan sesi atau menghapusnya dari jadwal tanpa satu langkah konfirmasi yang menjelaskan akibatnya. **Tidak hadir** tetap menyertakan pilihan kebijakan tagihan (gratis atau tetap ditagihkan) seperti sebelumnya — tidak ada angka tagihan yang berubah.",
+      "**Pindah langkah di Catat Sesi sekarang mengumumkan dirinya.** Layar kembali ke atas dan judul langkah berikutnya langsung terbaca (bagi pembaca layar pun diumumkan) — dulu langkah berikutnya terbuka pada posisi gulir yang lama, padahal tombol `Lanjut →` selalu ditekan dari bawah.",
+      "**Langkah yang belum lengkap ditandai `!`** pada penunjuk langkah, dan **langkah Materi bisa dilewati** bila murid itu belum punya mapel di profilnya — sebelumnya jalan keluarnya tidak terlihat karena tombolnya hanya muncul di langkah yang memang opsional.",
+      "**Sesi bisa disimpan dari langkah 5 (Catatan).** Kalau Anda tidak perlu foto atau tanda tangan, tombol **Simpan Sesi** sudah tersedia di sebelah `Lanjut →`. **Jumlah langkah tetap enam** dan langkah 6 tetap menawarkan Bukti — yang berubah hanya kebebasan menyelesaikannya lebih awal.",
+      "**Yang terhapus bisa dikembalikan.** Menghapus topik berbab atau tindak lanjut kini memunculkan tombol **“↩ Urungkan”** selama beberapa detik, dan itemnya kembali **pada posisi semula** — bukan di ujung daftar. Urutan topik ikut tersimpan ke sesi dan muncul di pesan WhatsApp ke orang tua, jadi posisinya memang penting.",
+      "**Cakupan keyboard untuk pilihan kondisi/indikator diperbaiki** mengikuti pola grup radio yang benar: `Tab` masuk **sekali** ke grup, lalu panah ←/→/↑/↓ memindahkan pilihan (membungkus di ujung) dan `Home`/`End` melompat ke ujung. Sebelumnya setiap pilihan harus dilewati satu per satu.",
+      "**Skor sesi tidak lagi memakai lingkaran buatan sendiri.** Lingkaran itu mengubah angka menjadi panjang busur tanpa nama untuk pembaca layar; sekarang dipakai bilah kemajuan bertoken dengan warna yang **selaras dengan kata band-nya** (hijau untuk 9+, biru 7–8, kuning 5–6, merah di bawah 5).",
+      "**Tulisan di atas tombol jadi lebih mudah dibaca.** Sepuluh warna mentah di bilah aksi dan kepala laporan sesi diganti warna bertema; rasio kontras teks putih naik dari `3,30:1` ke `4,95:1` di tombol langkah 6 dan dari `1,80:1` ke `14,67:1` saat menyimpan. Kepala laporan sesi kini hijau lebih gelap — itu pilihan sadar, bukan kelalaian.",
+      "**Isian yang tersimpan sebagai draf sekarang dikatakan terang-terangan** (“Isian sesi ini tersimpan sebagai draf…”) ketika Anda keluar lewat navigasi bawah. Keluar **tidak** diblokir dan **tidak** menghapus isian: kembali lagi dan langkah terakhir Anda pulih.",
+      "**Katalog topik bertambah: enam kelompok mapel IB MYP kini punya topiknya sendiri** — Language & Literature · Language Acquisition · Individuals & Societies · Arts · PHE · Design, lengkap untuk **MYP 1 sampai MYP 5**. Sebelumnya level MYP hanya punya empat nama mapel di katalog (matematika, sains, Matematika nasional, Bahasa Indonesia), sehingga kelompok-kelompok mapel MYP itu tidak menemukan satu pun topiknya. Pencarian topik untuk mapel MYP juga tidak lagi bisa meminjam topik milik kurikulum lain.",
+    ],
+  },
+  {
     version: "v1.90.0",
     date: "2026-10-04",
     title: "Catat Sesi lebih cepat: pilih mapel & topik tanpa panel bersarang",
