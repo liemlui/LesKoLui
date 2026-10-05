@@ -844,6 +844,17 @@ export default function CaptureSession() {
         </span>
       </div>
 
+      {/* QB opsi b3 (keputusan pemilik 2026-10-05): keluar lewat nav bawah **tidak**
+          menghilangkan isian — drafnya tersimpan dan langkahnya dipulihkan
+          (`setCurrentStep(isValidStep(form.step) …)` di `restoreDraft`). Karena itu
+          nav sengaja TIDAK diblokir (itu opsi b2, menyentuh `BottomNav`/`App`); yang
+          kurang hanya kepastian bagi tutor, dan itu yang dijawab satu baris ini. */}
+      {draft.status === "saved" && (
+        <p className="mx-4 mb-2 text-xs text-[var(--ink-muted)]">
+          Isian sesi ini tersimpan sebagai draf — boleh keluar kapan saja, kembali ke langkah yang sama.
+        </p>
+      )}
+
       {/* Draf tertunda padahal form sudah terisi: jangan blokir, tetapi label
           aksinya menyebut akibatnya supaya tidak ada penimpaan senyap (C-06). */}
       {draft.pending && hasFormContent && (
@@ -1929,7 +1940,13 @@ export default function CaptureSession() {
             )}
             <button onClick={goNext} disabled={saving}
               className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm text-[var(--on-strong)] transition-all disabled:opacity-50 shadow-md"
-              style={{ background: saving ? "#93c5fd" : currentStep === 6 ? "linear-gradient(135deg,#16a34a,#15803d)" : "linear-gradient(135deg,#2563eb,#1d4ed8)" }}>
+              /* QA opsi B (2026-10-05): 5 nilai heks mentah diganti token. Kontras
+                 teks putih diukur sebelum→sesudah: biasa 5,17→5,25:1 · langkah 6
+                 **3,30→4,95:1** (sebelumnya GAGAL ambang 4,5) · menyimpan
+                 **1,80→14,67:1** (sebelumnya nyaris tak terbaca). Token "terdekat"
+                 menurut jarak RGB untuk keadaan menyimpan adalah `--border-accent`
+                 yang tetap gagal (1,49:1) — jadi dipilih yang netral-gelap. */
+              style={{ background: saving ? "var(--surface-inverse)" : currentStep === 6 ? "linear-gradient(135deg, var(--bg-success-strong), var(--ink-success))" : "linear-gradient(135deg, var(--brand-solid), var(--brand-solid-hover))" }}>
               {saving ? "Menyimpan..." : currentStep === 6 ? "Simpan Sesi" : "Lanjut →"}
             </button>
           </div>

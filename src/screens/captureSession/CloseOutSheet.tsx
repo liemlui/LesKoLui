@@ -53,7 +53,12 @@ export default function CloseOutSheet({
     <Modal ariaLabel="Laporan sesi" onClose={onClose} showCloseButton={false}
       panelClassName="relative bg-[var(--surface-strong)] w-full max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[92vh] overflow-y-auto overscroll-contain outline-none">
       <div style={{ fontFamily: "'Nunito', sans-serif" }}>
-        <div className="relative overflow-hidden" style={{ background: "linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%)" }}>
+        {/* QA opsi B (2026-10-05): gradien emerald 3 nilai heks → token. Kontras
+            teks putih di atasnya sebelum→sesudah: #059669 3,77:1 · #10b981 2,54:1
+            (**GAGAL**) · #34d399 1,92:1 (**GAGAL**) → `--bg-success-strong` 4,95:1
+            dan `--ink-success` 7,13:1. Efek samping yang disadari: kepala sheet
+            jadi hijau lebih gelap dari sebelumnya. */}
+        <div className="relative overflow-hidden" style={{ background: "linear-gradient(135deg, var(--bg-success-strong), var(--ink-success))" }}>
           <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-[var(--surface-strong)] opacity-10" />
           <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full bg-[var(--surface-strong)] opacity-10" />
           <div className="absolute top-4 right-16 w-8 h-8 rounded-full bg-[var(--surface-strong)] opacity-10" />
@@ -105,7 +110,7 @@ export default function CloseOutSheet({
               </button>
             </div>
           )}
-          <button onClick={onDone} disabled={saving} className="w-full py-4 rounded-2xl font-black text-base text-[var(--on-strong)] transition-all disabled:opacity-50 shadow-lg" style={{ background: "linear-gradient(135deg, #1f2937, #374151)" }}>{saving ? "Menyimpan..." : "Selesai & Lihat Profil"}</button>
+          <button onClick={onDone} disabled={saving} className="w-full py-4 rounded-2xl font-black text-base text-[var(--on-strong)] transition-all disabled:opacity-50 shadow-lg" style={{ background: "linear-gradient(135deg, var(--surface-inverse), var(--color-text-muted))" }}>{saving ? "Menyimpan..." : "Selesai & Lihat Profil"}</button>
         </div>
       </div>
     </Modal>
