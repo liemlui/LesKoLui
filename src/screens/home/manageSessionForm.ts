@@ -183,9 +183,10 @@ export function pilihanMurid(students: readonly Student[]): Student[] {
  *
  * **Pengecualian yang ditambahkan 2026-10-05:** `simpan-perubahan` dikonfirmasi
  * **hanya bila muridnya berganti** — memindahkan sesi ke murid lain memindahkan
- * tagihannya, dan karena nominal tidak dihitung ulang, tarif murid lama ikut
- * terbawa. Mengubah jam/tanggal/durasi tanpa ganti murid tetap tidak dikonfirmasi,
- * persis seperti sebelumnya.
+ * tagihannya. Sejak keputusan pemilik di hari yang sama, nominalnya **dihitung ulang
+ * memakai tarif murid baru** (kecuali tutor pernah mengisi nominal manual), jadi
+ * kalimat konfirmasinya menyebut aturan itu apa adanya. Mengubah jam/tanggal/durasi
+ * tanpa ganti murid tetap tidak dikonfirmasi, persis seperti sebelumnya.
  */
 export interface KonfirmasiAksi {
   title: string;
@@ -201,6 +202,11 @@ export interface KonteksKonfirmasi {
   muridLama?: string;
   /** Nama murid yang dipilih di kolom "Murid". */
   muridBaru?: string;
+  /**
+   * Sesi ini punya nominal manual (`costOverride`). Kalau ya, jumlahnya **tidak**
+   * dihitung ulang — hanya tarif dasarnya yang mengikuti pemilik baru.
+   */
+  adaNominalManual?: boolean;
 }
 
 export function konfirmasiUntuk(
@@ -228,7 +234,9 @@ export function konfirmasiUntuk(
       if (!ctx.muridLama || !ctx.muridBaru || ctx.muridLama === ctx.muridBaru) return null;
       return {
         title: "Ganti murid sesi ini?",
-        message: `${ctx.muridBaru} akan menjadi pemilik sesi ini. Nominal sesi TIDAK dihitung ulang — ia masih memakai tarif ${ctx.muridLama} — dan tagihannya berpindah ke ${ctx.muridBaru}.`,
+        message: ctx.adaNominalManual
+          ? `${ctx.muridBaru} akan menjadi pemilik sesi ini. Nominal manual sesi ini tidak diubah, dan tagihannya berpindah ke ${ctx.muridBaru}.`
+          : `${ctx.muridBaru} akan menjadi pemilik sesi ini. Nominal sesi dihitung ulang memakai tarif ${ctx.muridBaru} — tarif ${ctx.muridLama} tidak lagi dipakai — dan tagihannya berpindah ke ${ctx.muridBaru}.`,
         confirmLabel: "Ya, ganti murid",
       };
     }
@@ -243,6 +251,8 @@ export interface KonteksGantiMurid {
   muridBaru: string;
   berseri: boolean;
   cakupan: EditMode;
+  /** Sesi punya nominal manual → jumlahnya tidak dihitung ulang (lihat `KonteksKonfirmasi`). */
+  adaNominalManual: boolean;
 }
 
 /**
@@ -255,10 +265,12 @@ export interface KonteksGantiMurid {
  * dibaca.
  */
 export function peringatanGantiMurid({
-  muridLama, muridBaru, berseri, cakupan,
+  muridLama, muridBaru, berseri, cakupan, adaNominalManual,
 }: KonteksGantiMurid): string | null {
   if (muridLama === muridBaru) return null;
-  const akibat = `Nominal sesi ini tidak dihitung ulang (masih memakai tarif ${muridLama}), dan sesi ini akan ikut tagihan ${muridBaru}.`;
+  const akibat = adaNominalManual
+    ? `Nominal manual sesi ini tidak diubah, dan sesi ini akan ikut tagihan ${muridBaru}.`
+    : `Nominal sesi ini dihitung ulang memakai tarif ${muridBaru}, dan sesi ini akan ikut tagihan ${muridBaru}.`;
   if (berseri && cakupan !== "this") {
     return `Murid diganti dari ${muridLama} ke ${muridBaru} — berlaku juga untuk sesi berikutnya dalam seri ini. ${akibat}`;
   }

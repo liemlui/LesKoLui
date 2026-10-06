@@ -249,31 +249,55 @@ export async function updateSession(id: string, patch: Partial<Session>): Promis
   }
 
   const finalPatch: Partial<Session> = { ...patch, updatedAt: timestamp() };
+  const session = await db.sessions.get(id);
+
+  // ── Pemilik sesi berganti → tarif ikut pindah (keputusan pemilik 2026-10-05) ──
+  // Memindahkan sesi memindahkan tagihannya, jadi nominalnya harus memakai tarif
+  // murid yang benar-benar les — aturan yang sama dengan `createSession`.
+  // `rateSnapshot` yang menentukan angka akhir: `markSessionDone` menghitung ulang
+  // `cost` dari snapshot itu saat sesi ditutup. **Nominal manual tutor tidak
+  // dihitung ulang** — itu pernyataan eksplisit, bukan sisa data.
+  const muridBaru = session && typeof patch.studentId === "string" && patch.studentId !== session.studentId
+    ? await db.students.get(patch.studentId)
+    : undefined;
+  /** Tarif & kebijakan yang berlaku sesudah patch: milik pemilik baru bila berganti. */
+  const tarifEfektif = muridBaru?.hourlyRate ?? session?.rateSnapshot;
+  const perSessionEfektif = muridBaru
+    ? billingPolicyOf(muridBaru) === "session_count"
+    : session ? await isPerSessionStudent(session.studentId) : false;
+  const durasiEfektif = patch.durationHours ?? session?.durationHours;
 
   // Manual cost override takes precedence over auto-calculation.
   if (patch.costOverride !== undefined) {
     if (patch.costOverride === null || patch.costOverride <= 0) {
       // Tutor cleared the override → recalculate auto cost
-      const session = await db.sessions.get(id);
-      if (session) {
-        const effDur = patch.durationHours ?? session.durationHours;
-        const perSession = await isPerSessionStudent(session.studentId);
-        finalPatch.cost = sessionCost(session.rateSnapshot, effDur, perSession);
+      if (session && tarifEfektif !== undefined && durasiEfektif !== undefined) {
+        finalPatch.cost = sessionCost(tarifEfektif, durasiEfektif, perSessionEfektif);
         finalPatch.costOverride = undefined;
+        if (muridBaru) finalPatch.rateSnapshot = muridBaru.hourlyRate;
       }
     } else {
       // Store manual override as-is
       finalPatch.cost = patch.costOverride;
       finalPatch.costOverride = patch.costOverride;
+      if (muridBaru) finalPatch.rateSnapshot = muridBaru.hourlyRate;
     }
   } else if (patch.durationHours !== undefined) {
     // Duration changed without manual override → auto recalculate, clear prior override
-    const session = await db.sessions.get(id);
-    if (session) {
-      const perSession = await isPerSessionStudent(session.studentId);
-      finalPatch.cost = sessionCost(session.rateSnapshot, patch.durationHours, perSession);
+    if (session && tarifEfektif !== undefined) {
+      finalPatch.cost = sessionCost(tarifEfektif, patch.durationHours, perSessionEfektif);
       finalPatch.costOverride = undefined;
+      if (muridBaru) finalPatch.rateSnapshot = muridBaru.hourlyRate;
     }
+  } else if (muridBaru && session && session.costOverride === undefined) {
+    // Hanya pemiliknya yang berganti → nominal dihitung ulang dari tarif murid baru.
+    finalPatch.rateSnapshot = muridBaru.hourlyRate;
+    finalPatch.cost = sessionCost(muridBaru.hourlyRate, session.durationHours, perSessionEfektif);
+  } else if (muridBaru) {
+    // Ada nominal manual: jumlahnya dibiarkan apa adanya, tetapi `rateSnapshot`
+    // tetap mengikuti pemilik baru supaya perhitungan berikutnya memakai tarif
+    // murid yang benar-benar les.
+    finalPatch.rateSnapshot = muridBaru.hourlyRate;
   }
 
   await db.sessions.update(id, finalPatch);
@@ -727,16 +751,31 @@ export async function updateSeriesSessions(
     .toArray();
   const toUpdate = mode === "all" ? all : all.filter((s) => s.date >= session.date);
   const perSession = all.length > 0 ? await isPerSessionStudent(all[0].studentId) : false;
+  // Pemilik sesi berganti (keputusan pemilik 2026-10-05) → tarif ikut pindah, sama
+  // seperti pada `updateSession`. Ini jalur tulis SERI: ia tidak lewat `updateSession`,
+  // jadi aturannya harus ada di sini juga.
+  const muridBaru = typeof patch.studentId === "string" && all.some((s) => s.studentId !== patch.studentId)
+    ? await db.students.get(patch.studentId)
+    : undefined;
+  const perSessionBaru = muridBaru ? billingPolicyOf(muridBaru) === "session_count" : false;
   const now = timestamp();
   await db.transaction("rw", db.sessions, async () => {
     for (const s of toUpdate) {
       const finalPatch: Partial<Session> = { ...patch, updatedAt: now };
       if (patch.durationHours !== undefined) {
-        finalPatch.cost = sessionCost(s.rateSnapshot, patch.durationHours, perSession);
+        const rate = muridBaru?.hourlyRate ?? s.rateSnapshot;
+        finalPatch.cost = sessionCost(rate, patch.durationHours, muridBaru ? perSessionBaru : perSession);
         // Konsisten dengan `updateSession` (TASK-10 L1, W3): durasi berubah tanpa
         // nominal manual yang eksplisit → override lama dilepas, sehingga `cost`
         // dan `costOverride` tidak saling bertentangan.
         finalPatch.costOverride = undefined;
+        if (muridBaru) finalPatch.rateSnapshot = muridBaru.hourlyRate;
+      } else if (muridBaru && s.costOverride === undefined) {
+        finalPatch.rateSnapshot = muridBaru.hourlyRate;
+        finalPatch.cost = sessionCost(muridBaru.hourlyRate, s.durationHours, perSessionBaru);
+      } else if (muridBaru) {
+        // Nominal manual dibiarkan; snapshot tetap mengikuti pemilik baru.
+        finalPatch.rateSnapshot = muridBaru.hourlyRate;
       }
       await db.sessions.update(s.id, finalPatch);
     }

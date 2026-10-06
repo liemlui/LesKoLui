@@ -282,26 +282,43 @@ describe("Ubah jadwal: durasi hanya dikirim bila berubah (a)", () => {
 
 describe("Ganti murid: peringatan di sheet + konfirmasi sebelum simpan (b)", () => {
   it("tanpa pergantian murid tidak ada peringatan", () => {
-    expect(peringatanGantiMurid({ muridLama: "Sari", muridBaru: "Sari", berseri: false, cakupan: "this" })).toBeNull();
+    expect(peringatanGantiMurid({
+      muridLama: "Sari", muridBaru: "Sari", berseri: false, cakupan: "this", adaNominalManual: false,
+    })).toBeNull();
   });
 
-  it("peringatan menyebut kedua nama dan akibatnya pada tagihan", () => {
-    const teks = peringatanGantiMurid({ muridLama: "Sari", muridBaru: "Budi", berseri: false, cakupan: "this" });
+  it("tanpa nominal manual: peringatan menyebut nominal DIHITUNG ULANG dari tarif murid baru", () => {
+    const teks = peringatanGantiMurid({
+      muridLama: "Sari", muridBaru: "Budi", berseri: false, cakupan: "this", adaNominalManual: false,
+    })!;
     expect(teks).toContain("Sari");
     expect(teks).toContain("Budi");
-    expect(teks).toContain("tidak dihitung ulang");
+    expect(teks).toContain("dihitung ulang memakai tarif Budi");
     expect(teks).toContain("tagihan");
   });
 
+  it("dengan nominal manual: peringatan menyebut jumlahnya TIDAK diubah", () => {
+    const teks = peringatanGantiMurid({
+      muridLama: "Sari", muridBaru: "Budi", berseri: false, cakupan: "this", adaNominalManual: true,
+    })!;
+    expect(teks).toContain("Nominal manual sesi ini tidak diubah");
+    expect(teks).not.toContain("dihitung ulang");
+  });
+
   it("peringatan tidak memuat angka rupiah — Beranda dilarang menampilkan uang (K3/B1)", () => {
-    const teks = peringatanGantiMurid({ muridLama: "Sari", muridBaru: "Budi", berseri: true, cakupan: "all" })!;
-    expect(teks).not.toContain("Rp");
-    expect(teks).not.toMatch(/\d/);
+    for (const adaNominalManual of [false, true]) {
+      const teks = peringatanGantiMurid({
+        muridLama: "Sari", muridBaru: "Budi", berseri: true, cakupan: "all", adaNominalManual,
+      })!;
+      expect(teks).not.toContain("Rp");
+      expect(teks).not.toMatch(/\d/);
+    }
   });
 
   it("cakupan seri disebut hanya saat berlaku untuk sesi berikutnya", () => {
-    const satu = peringatanGantiMurid({ muridLama: "Sari", muridBaru: "Budi", berseri: true, cakupan: "this" })!;
-    const seri = peringatanGantiMurid({ muridLama: "Sari", muridBaru: "Budi", berseri: true, cakupan: "all" })!;
+    const dasar = { muridLama: "Sari", muridBaru: "Budi", berseri: true, adaNominalManual: false } as const;
+    const satu = peringatanGantiMurid({ ...dasar, cakupan: "this" })!;
+    const seri = peringatanGantiMurid({ ...dasar, cakupan: "all" })!;
     expect(satu).not.toContain("seri ini");
     expect(seri).toContain("seri ini");
   });
@@ -316,6 +333,16 @@ describe("Ganti murid: peringatan di sheet + konfirmasi sebelum simpan (b)", () 
     expect(info.confirmLabel).toBe("Ya, ganti murid");
     expect(info.message).toContain("Budi");
     expect(info.message).toContain("Sari");
+    expect(info.message).toContain("dihitung ulang memakai tarif Budi");
+    expect(info.message).not.toMatch(/\d/);
+  });
+
+  it("konfirmasi menyebut nominal manual TIDAK diubah bila sesinya punya nominal manual", () => {
+    const info = konfirmasiUntuk("simpan-perubahan", {
+      studentName: "Sari", berseri: false, muridLama: "Sari", muridBaru: "Budi", adaNominalManual: true,
+    })!;
+    expect(info.message).toContain("Nominal manual sesi ini tidak diubah");
+    expect(info.message).not.toContain("dihitung ulang");
     expect(info.message).not.toMatch(/\d/);
   });
 

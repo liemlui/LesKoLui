@@ -117,12 +117,14 @@ export default function ManageSessionSheet({
   // `studentName` dari Beranda = pemilik sesi **sekarang**; `muridBaru` = pilihan di
   // kolom "Murid". Nama (bukan id) yang dipakai karena pesannya dibaca tutor.
   const muridBaru = students.find((s) => s.id === form.muridId)?.name ?? studentName;
+  /** Nominal manual yang pernah diisi tutor → jumlahnya tidak boleh dihitung ulang. */
+  const adaNominalManual = session.costOverride !== undefined;
   const peringatanMurid = peringatanGantiMurid({
-    muridLama: studentName, muridBaru, berseri, cakupan: form.cakupan,
+    muridLama: studentName, muridBaru, berseri, cakupan: form.cakupan, adaNominalManual,
   });
   /** Satu konteks untuk gerbang konfirmasi **dan** pesan yang tampil, supaya keduanya tidak bisa berbeda. */
   const konteksKonfirmasi = {
-    studentName, berseri, muridLama: studentName, muridBaru,
+    studentName, berseri, muridLama: studentName, muridBaru, adaNominalManual,
   };
 
   const buka = (aksi: SesiAksi) => {
