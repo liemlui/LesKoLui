@@ -11,6 +11,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.93.0",
+    date: "2026-10-05",
+    title: "Pindah jadwal ke murid lain: nominalnya ikut tarif murid yang benar-benar les",
+    items: [
+      "**Memindahkan sesi ke murid lain sekarang menghitung ulang nominalnya memakai tarif murid baru.** Sebelumnya sesi berpindah nama tetapi tetap membawa tarif murid lamanya, sehingga murid pengganti bisa tertagih angka tarif murid sebelumnya. Sekarang tarif dasarnya ikut pindah — sama seperti aturan saat jadwal itu pertama kali dibuat. *(Ini menggantikan satu kalimat di catatan v1.92.0 yang menyebut nominal tidak dihitung ulang.)*",
+      "**Kalau Anda pernah mengisi nominal sesi itu sendiri, jumlahnya TIDAK diubah.** Nominal manual itu pernyataan Anda, bukan sisa data — jadi ia dipertahankan apa adanya; hanya tarif dasarnya yang mengikuti pemilik baru.",
+      "**Konfirmasi dan peringatan di panel menyebut aturan itu apa adanya**, tanpa angka rupiah (Beranda memang tidak menampilkan uang): “Nominal sesi dihitung ulang memakai tarif [murid baru]” atau “Nominal manual sesi ini tidak diubah”.",
+      "**Kalau sesi itu bagian dari jadwal berulang dan Anda memilih “Ini & berikutnya” atau “Semua seri”**, tarif baru dikenakan ke seluruh sesi terjadwal yang tercakup dalam sekali simpan.",
+    ],
+  },
+  {
     version: "v1.92.0",
     date: "2026-10-05",
     title: "Jadwal hari ini bisa langsung disunting & dipindah murid, tagihan lebih mudah disaring",
