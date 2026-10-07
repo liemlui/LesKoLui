@@ -235,13 +235,31 @@ test("05-report", async ({ page }) => {
   await shot(page, "05-report-main.png");
 });
 
-// ── Payments · 4 tab (PIN gate) ──────────────────────────────────────────
+// ── Uang · satu layar tiga blok + 4 sub-layar (PIN gate) ─────────────────
+// Layar Uang sudah menjadi satu layar tiga blok (2026-10-07), dan keempat tab
+// lama hidup sebagai sub-layar `?tab=`.
+//
+// Dua jebakan yang sudah terbukti: (a) tombol "Ringkasan" pada bilah sub-layar
+// MENGHAPUS `?tab=` sehingga kembali ke tampilan utama, jadi tombol itu juga
+// yang dipakai untuk menangkap layar tiga blok; (b) nama tombol sub-layar
+// persis "Ringkasan / Tagihan / Pengeluaran / Rekap" — label lama ("Bulan Ini",
+// "Penagihan", "Rekap Tahunan") tidak ada lagi di antarmuka dan `clickTab`
+// menelan kegagalannya tanpa suara, jadi salah label = tangkapan layar kosong.
 test("06-payments", async ({ page }) => {
   await page.goto("/payments?tab=ringkasan"); await page.waitForTimeout(2500);
   await closeChangelog(page); await openPin(page);
-  for (const t of ["Bulan Ini", "Penagihan", "Pengeluaran", "Rekap Tahunan"]) {
+
+  // Tampilan utama dulu. Tombol "Ringkasan" pada bilah sub-layar MENGHAPUS
+  // `?tab=`, jadi menekannya dari keadaan awal adalah cara kembali ke tiga blok.
+  await clickTab(page, "Ringkasan");
+  await shot(page, "06-payments-utama.png");
+
+  // Lalu keempat sub-layar. `clickTab` inilah yang diuji, bukan `page.goto`:
+  // helper itu menelan kegagalan tanpa suara, jadi kalau labelnya salah yang
+  // muncul adalah tangkapan layar tidak berubah — bukan galat.
+  for (const t of ["Tagihan", "Pengeluaran", "Rekap"]) {
     await clickTab(page, t);
-    await shot(page, `06-payments-${t.toLowerCase().replaceAll(" ", "-")}.png`);
+    await shot(page, `06-payments-${t.toLowerCase()}.png`);
   }
 });
 
@@ -412,7 +430,7 @@ Rollback: `git checkout -- <file>` · `git stash pop` bila perlu.
 
 - `git log --oneline -5`: `3f27a30 fix(drive): pesan actionable…` · `b9a9426 feat: harden data resilience…` · `dbc5641 chore: release v1.70.5` · `c6e4cd1 release: v1.70.4` · `6dc9e0e chore: release v1.70.3`.
 - Routes (`src/App.tsx:256-270`): `/` `/students` `/students/:id` `/capture` `/report` `/payments` `/settings` `* → /`.
-- Payments tab keys (`Payments.tsx:23`): `ringkasan|tagihan|pengeluaran|audit` → Bulan Ini / Penagihan / Pengeluaran / Rekap Tahunan.
+- Payments tab keys (`Payments.tsx:23`): `ringkasan|tagihan|pengeluaran|audit` → Bulan Ini / Penagihan / Pengeluaran / Rekap Tahunan. **(BASI — potret 2026-09-11, jangan dipakai sebagai keadaan hari ini.)** Keadaan 2026-10-07: kuncinya `ringkasan|tagihan|pengeluaran|rekap` (`audit` masih diterima sebagai alias lama), labelnya Ringkasan / Tagihan / Pengeluaran / Rekap, dan keempatnya bukan lagi tab melainkan sub-layar `?tab=` dari layar Uang bertiga blok.
 - StudentDetail tab keys: `ringkasan|sesi|nilai|iaee` → Ringkasan / Sesi & Jadwal / Progres / IA/EE/PP.
 - Capture STEPS (`CaptureSession.tsx:58-65`): 1 Jadwal 2 Materi 3 Kondisi 4 Detail 5 Catatan 6 Bukti.
 - Settings Section titles: Profil Tutor · PIN Keuangan · Rekening Bank · AI — DeepSeek · Backup & Restore · Hapus Semua Data · Riwayat Aktivitas · Aplikasi (PWA).

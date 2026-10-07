@@ -81,12 +81,12 @@ Berkas yang disentuh: `src/screens/payments/TagihanTab.tsx`, `src/screens/paymen
 
 | Nomor | Fitur | Keadaan |
 |---|---|---|
-| 1 | Pembangun murni `financeRows` dan `financeOverview` beserta tesnya | belum, dipulihkan ke daftar pada 2026-10-05 |
-| 2 | Layar Uang menjadi satu layar dengan tiga blok tetap: Ringkasan AI, Perlu ditagih, dan Bulan ini, dengan pintasan ke Rincian, Pengeluaran, dan Rekap | belum, dipulihkan ke daftar pada 2026-10-05. Sekarang layar Uang masih punya empat tab |
-| 3 | Tabel Rekap dari delapan kolom menjadi tiga kolom ditambah tautan lihat lengkap, sedangkan berkas CSV tetap sama persis | belum, dipulihkan ke daftar pada 2026-10-05. Sekarang tabelnya masih delapan kolom |
+| 1 | Pembangun murni `financeRows` dan `financeOverview` beserta tesnya | selesai 2026-10-07 (`src/lib/financeRows.ts` 19 tes · `src/lib/financeOverview.ts` 18 tes) |
+| 2 | Layar Uang menjadi satu layar dengan tiga blok tetap: Ringkasan AI, Perlu ditagih, dan Bulan ini, dengan pintasan ke Rincian, Pengeluaran, dan Rekap | selesai 2026-10-07. Tampilan utama `/payments` kini tiga blok + tiga pintasan; rincian lama tetap hidup sebagai sub-layar `?tab=`. Bukti mesin: `e2e:uiux` **64 lulus / 0 gagal** (layar ini kini dijaga) dan `e2e` 75 lulus / 6 skip. **Belum dilihat mata di perangkat** |
+| 3 | Tabel Rekap dari delapan kolom menjadi tiga kolom ditambah tautan lihat lengkap, sedangkan berkas CSV tetap sama persis | selesai 2026-10-07. Tabel penuh tetap ada di balik tombol "Lihat lengkap ▸"; blok CSV tidak tersentuh (diverifikasi dengan `git diff`). **Belum dilihat mata di perangkat** |
 | 4 | Pencarian murid yang menyaring daftar dan ikut menyaring ekspor | selesai, menunggu mata |
 | 5 | Badge keterlambatan dalam jumlah hari dan tanggal jatuh tempo memakai nama hari Indonesia | selesai, menunggu mata |
-| 6 | Panel filter lanjutan yang melipat umur piutang, asal tagihan, dan baris ekspor, beserta chip jumlah filter aktif | selesai, menunggu mata |
+| 6 | Panel filter lanjutan yang melipat umur piutang, asal tagihan, dan baris ekspor, beserta chip jumlah filter aktif | selesai, menunggu mata. Sejak 2026-10-07 sub-layar tagihan **sudah masuk cakupan `e2e:uiux`**, jadi panel ini tidak lagi tumbuh tanpa jaring pengaman |
 | 7 | Daftar tagihan selalu dirender, dengan pesan kosong tersendiri untuk setiap keadaan filter | selesai |
 | 8 | Peringatan saat mengubah nominal tagihan: tampilkan asal tagihan, jelaskan akibatnya, dan minta tombol persetujuan yang jelas | belum |
 | 9 | Kolom nominal dengan pemisah ribuan saat mengetik, tanda tersimpan, dan pesan bila isinya tidak sah | belum |
@@ -270,6 +270,7 @@ Bagian ini untuk pekerjaan yang tidak masuk urutan gelombang. Boleh dikerjakan k
 | Backlog | Temuan audit tampilan yang masih tersisa dari audit 2026-10-01 | Sebagian. Tujuh puluh tiga temuan tetap dan delapan belas sebagian. Bacaan wajib sebelum mengerjakan ada di berkas validasi rencana di arsip |
 | Keputusan D2 | Perhitungan biaya saat sesi ditutup harus memeriksa nominal manual sebelum menulis | Belum. Sudah sepuluh butir di atas; masuk ke perbaikan jalur tarif |
 | Sisa lama | Tampilan yang sengaja tidak dikerjakan: navigasi bawah tetap tampil selama alur pencatatan sesi, dan chip teks berukuran tiga puluh delapan sampai empat puluh dua piksel dibiarkan karena sudah lolos ambang | Selesai diputuskan, bukan lupa. Jangan diangkat lagi |
+| G3-02 butir 2 | Pemilih sub-layar keuangan: `/payments` sekarang satu layar tiga blok, dan rincian lamanya (analitik, tagihan, pengeluaran, rekap) hanya bisa dicapai lewat pintasan atau `?tab=`. Bilah tabnya cuma muncul saat sebuah sub-layar sudah terbuka, jadi tidak ada lagi cara melompat dari Tagihan langsung ke Rekap | Belum. Sengaja ditunda supaya butir 2 tidak sekaligus mengubah navigasi, yang akan mematahkan pemilih pada test tampilan. Kandidat: pindahkan bilah sub-layar ke kepala layar sebagai pintasan, atau serahkan ke butir 11 (tiga pintu). Diukur dulu dengan test tampilan sebelum diubah |
 
 ---
 
@@ -313,3 +314,4 @@ Bagian ini hanya bisa ditutup pemilik dengan mata di perangkat. Agen tidak boleh
 | 2026-10-05 | Spesifikasi lengkap kesepuluh tugas Gelombang 3 dipindahkan dari arsip ke bagian 3 berkas ini. Pemindahan dilakukan sekaligus, bukan bertahap, supaya tidak ada lagi pekerjaan yang hanya hidup di arsip. |
 | 2026-10-05 | Delapan keputusan pemilik hari itu dimasukkan, dan lima pekerjaan baru dicatat di bagian 4. |
 | 2026-10-05 | Jumlah sisa katalog topik diperbarui dari enam puluh dua menjadi lima puluh delapan, sesuai hasil pengukuran. |
+| 2026-10-07 | Butir G3-02 nomor 1 sampai 3 dikerjakan: pembangun murni `financeRows` dan `financeOverview` beserta 37 tesnya, layar Uang menjadi satu layar tiga blok dengan rincian lama dipertahankan sebagai sub-layar, dan tabel Rekap menjadi tiga kolom dengan tabel penuh di balik tombol Lihat lengkap. Sisa G3-02 menjadi lima butir (nomor 4 sampai 11 dikurangi butir 7 yang sudah selesai). Satu pekerjaan baru dicatat di bagian 4: pemilih sub-layar keuangan. |

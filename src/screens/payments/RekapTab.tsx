@@ -20,6 +20,12 @@ interface AuditTabProps {
 
 export default function AuditTab({ payments, students }: AuditTabProps) {
   const [auditYear, setAuditYear] = useState(() => Number(todayWIB().slice(0, 4)));
+  /**
+   * Tabel penuh 8 kolom disembunyikan di belakang satu tombol. Tabel 8 kolom di
+   * layar 390px hanya bisa dibaca dengan menggeser ke samping, jadi tampilan
+   * utama memakai 3 kolom dan kemampuan lama tetap utuh satu ketukan di baliknya.
+   */
+  const [showFullTable, setShowFullTable] = useState(false);
   const auditMonths = useMemo(
     () => Array.from({ length: 12 }, (_, i) => `${auditYear}-${String(i + 1).padStart(2, "0")}`),
     [auditYear]
@@ -145,45 +151,15 @@ ${invoiceRows.join("\n")}
           {marginRate > 0 && <span className="rounded-full bg-[var(--accent-tint)] text-[var(--ink-accent)] px-2 py-0.5 font-semibold">Margin {marginRate}%</span>}
         </div>
 
-        {/* Di bawah lg: tabel 8 kolom tidak muat tanpa scroll horizontal, jadi
-            tiap bulan diringkas menjadi dua baris. */}
-        <div className="space-y-1.5 lg:hidden" aria-label={`Rincian bulanan ${auditYear}`}>
-          {(auditData ?? []).map((r) => {
-            const has = r.sesi || r.pendapatan || r.realisasi || r.piutang || r.pengeluaran;
-            return (
-              <div key={r.month} className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/60 px-3 py-2">
-                <div className="flex items-baseline justify-between gap-2">
-                  <p className="text-sm font-bold text-[var(--ink-strong)]">{monthLabel(r.month)}</p>
-                  <p className={`text-sm font-bold ${r.laba >= 0 ? "text-[var(--ink-success)]" : "text-[var(--ink-danger)]"}`}>
-                    {has ? formatRupiah(r.laba) : "–"}
-                  </p>
-                </div>
-                <p className="text-xs text-[var(--ink-muted)]">
-                  {r.sesi ? `${r.sesi} pertemuan · ${r.jam} jam` : "Tidak ada pertemuan"}
-                  {r.piutang > 0 && <span className="text-[var(--ink-warn)]"> · piutang {formatRupiah(r.piutang)}</span>}
-                </p>
-                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs">
-                  <span className="text-[var(--ink-muted)]">Pendapatan <b className="text-[var(--ink-accent)]">{r.pendapatan ? formatRupiah(r.pendapatan) : "–"}</b></span>
-                  <span className="text-[var(--ink-muted)]">Uang masuk <b className="text-[var(--ink-success)]">{r.realisasi ? formatRupiah(r.realisasi) : "–"}</b></span>
-                  <span className="text-[var(--ink-muted)]">Keluar <b className="text-[var(--ink-danger)]">{r.pengeluaran ? formatRupiah(r.pengeluaran) : "–"}</b></span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="hidden overflow-x-auto lg:block">
-          <table className="w-full min-w-[800px] text-xs">
+        {/* Tabel utama: 3 kolom. Bulan · Sisa kas · Piutang — cukup untuk
+            menjawab "bulan mana yang bocor" tanpa menggeser layar. */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
             <thead>
               <tr className="text-[var(--ink-muted)] text-left">
                 <th className="font-medium pb-1">Bulan</th>
-                <th className="font-medium pb-1 text-right">Pertemuan</th>
-                <th className="font-medium pb-1 text-right">Pendapatan</th>
-                <th className="font-medium pb-1 text-right">Uang masuk</th>
-                <th className="font-medium pb-1 text-right">Pengeluaran</th>
                 <th className="font-medium pb-1 text-right">Sisa kas</th>
                 <th className="font-medium pb-1 text-right">Piutang</th>
-                <th className="font-medium pb-1 text-center">CSV</th>
               </tr>
             </thead>
             <tbody>
@@ -191,17 +167,17 @@ ${invoiceRows.join("\n")}
                 const has = r.sesi || r.pendapatan || r.realisasi || r.piutang || r.pengeluaran;
                 return (
                   <tr key={r.month} className="border-t border-[var(--border)]">
-                    <td className="py-1 text-[var(--ink-muted)]">{monthLabel(r.month)}</td>
-                    <td className="py-1 text-right text-[var(--ink-muted)] whitespace-nowrap">{r.sesi ? `${r.sesi} sesi · ${r.jam}j` : "–"}</td>
-                    <td className="py-1 text-right text-[var(--ink-accent)]">{r.pendapatan ? formatRupiah(r.pendapatan) : "–"}</td>
-                    <td className="py-1 text-right text-[var(--ink-success)]">{r.realisasi ? formatRupiah(r.realisasi) : "–"}</td>
-                    <td className="py-1 text-right text-[var(--ink-danger)]">{r.pengeluaran ? formatRupiah(r.pengeluaran) : "–"}</td>
-                    <td className={`py-1 text-right font-semibold ${r.laba >= 0 ? "text-[var(--ink-success)]" : "text-[var(--ink-danger)]"}`}>{has ? formatRupiah(r.laba) : "–"}</td>
-                    <td className="py-1 text-right text-[var(--ink-warn)]">{r.piutang ? formatRupiah(r.piutang) : "–"}</td>
-                    <td className="py-1 text-center">
-                      <button onClick={() => exportMonthlyCsv(r.month)}
-                        className="text-xs font-semibold text-[var(--ink-brand)] hover:text-[var(--ink-brand)] transition-colors"
-                      >CSV</button>
+                    <td className="py-1.5 text-[var(--ink-strong)]">
+                      {monthLabel(r.month)}
+                      <span className="block text-[13px] leading-snug text-[var(--ink-muted)]">
+                        {r.sesi ? `${r.sesi} pertemuan · ${r.jam} jam` : "Tidak ada pertemuan"}
+                      </span>
+                    </td>
+                    <td className={`py-1.5 text-right font-semibold ${r.laba >= 0 ? "text-[var(--ink-success)]" : "text-[var(--ink-danger)]"}`}>
+                      {has ? formatRupiah(r.laba) : "–"}
+                    </td>
+                    <td className="py-1.5 text-right text-[var(--ink-warn)]">
+                      {r.piutang > 0 ? formatRupiah(r.piutang) : "–"}
                     </td>
                   </tr>
                 );
@@ -210,17 +186,76 @@ ${invoiceRows.join("\n")}
             <tfoot>
               <tr className="border-t-2 border-[var(--border)] font-bold">
                 <td className="py-1 text-[var(--ink-strong)]">Total</td>
-                <td className="py-1 text-right text-[var(--ink-muted)] whitespace-nowrap">{auditTotals.sesi} sesi · {auditTotals.jam}j</td>
-                <td className="py-1 text-right text-[var(--ink-accent)]">{formatRupiah(auditTotals.pendapatan)}</td>
-                <td className="py-1 text-right text-[var(--ink-success)]">{formatRupiah(auditTotals.realisasi)}</td>
-                <td className="py-1 text-right text-[var(--ink-danger)]">{formatRupiah(auditTotals.pengeluaran)}</td>
-                <td className={`py-1 text-right ${auditTotals.laba >= 0 ? "text-[var(--ink-success)]" : "text-[var(--ink-danger)]"}`}>{formatRupiah(auditTotals.laba)}</td>
+                <td className={`py-1 text-right ${auditTotals.laba >= 0 ? "text-[var(--ink-success)]" : "text-[var(--ink-danger)]"}`}>
+                  {formatRupiah(auditTotals.laba)}
+                </td>
                 <td className="py-1 text-right text-[var(--ink-warn)]">{formatRupiah(auditTotals.piutang)}</td>
-                <td></td>
               </tr>
             </tfoot>
           </table>
         </div>
+
+        <button
+          type="button"
+          aria-expanded={showFullTable}
+          aria-controls="rekap-tabel-lengkap"
+          onClick={() => setShowFullTable((current) => !current)}
+          className="w-full rounded-lg border border-[var(--border)] py-2 text-sm font-medium text-[var(--ink-muted)] transition-colors hover:bg-[var(--surface)]"
+        >
+          {showFullTable ? "Sembunyikan lengkap" : "Lihat lengkap ▸"}
+        </button>
+
+        {showFullTable && (
+          <div id="rekap-tabel-lengkap" className="overflow-x-auto">
+            <table className="w-full min-w-[800px] text-xs">
+              <thead>
+                <tr className="text-[var(--ink-muted)] text-left">
+                  <th className="font-medium pb-1">Bulan</th>
+                  <th className="font-medium pb-1 text-right">Pertemuan</th>
+                  <th className="font-medium pb-1 text-right">Pendapatan</th>
+                  <th className="font-medium pb-1 text-right">Uang masuk</th>
+                  <th className="font-medium pb-1 text-right">Pengeluaran</th>
+                  <th className="font-medium pb-1 text-right">Sisa kas</th>
+                  <th className="font-medium pb-1 text-right">Piutang</th>
+                  <th className="font-medium pb-1 text-center">CSV</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(auditData ?? []).map((r) => {
+                  const has = r.sesi || r.pendapatan || r.realisasi || r.piutang || r.pengeluaran;
+                  return (
+                    <tr key={r.month} className="border-t border-[var(--border)]">
+                      <td className="py-1 text-[var(--ink-muted)]">{monthLabel(r.month)}</td>
+                      <td className="py-1 text-right text-[var(--ink-muted)] whitespace-nowrap">{r.sesi ? `${r.sesi} sesi · ${r.jam}j` : "–"}</td>
+                      <td className="py-1 text-right text-[var(--ink-accent)]">{r.pendapatan ? formatRupiah(r.pendapatan) : "–"}</td>
+                      <td className="py-1 text-right text-[var(--ink-success)]">{r.realisasi ? formatRupiah(r.realisasi) : "–"}</td>
+                      <td className="py-1 text-right text-[var(--ink-danger)]">{r.pengeluaran ? formatRupiah(r.pengeluaran) : "–"}</td>
+                      <td className={`py-1 text-right font-semibold ${r.laba >= 0 ? "text-[var(--ink-success)]" : "text-[var(--ink-danger)]"}`}>{has ? formatRupiah(r.laba) : "–"}</td>
+                      <td className="py-1 text-right text-[var(--ink-warn)]">{r.piutang ? formatRupiah(r.piutang) : "–"}</td>
+                      <td className="py-1 text-center">
+                        <button onClick={() => exportMonthlyCsv(r.month)}
+                          className="text-xs font-semibold text-[var(--ink-brand)] hover:text-[var(--ink-brand)] transition-colors"
+                        >CSV</button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-[var(--border)] font-bold">
+                  <td className="py-1 text-[var(--ink-strong)]">Total</td>
+                  <td className="py-1 text-right text-[var(--ink-muted)] whitespace-nowrap">{auditTotals.sesi} sesi · {auditTotals.jam}j</td>
+                  <td className="py-1 text-right text-[var(--ink-accent)]">{formatRupiah(auditTotals.pendapatan)}</td>
+                  <td className="py-1 text-right text-[var(--ink-success)]">{formatRupiah(auditTotals.realisasi)}</td>
+                  <td className="py-1 text-right text-[var(--ink-danger)]">{formatRupiah(auditTotals.pengeluaran)}</td>
+                  <td className={`py-1 text-right ${auditTotals.laba >= 0 ? "text-[var(--ink-success)]" : "text-[var(--ink-danger)]"}`}>{formatRupiah(auditTotals.laba)}</td>
+                  <td className="py-1 text-right text-[var(--ink-warn)]">{formatRupiah(auditTotals.piutang)}</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
         <button onClick={exportAuditCsv}
           className="w-full py-2 rounded-lg border border-[var(--border)] text-[var(--ink-muted)] text-sm font-medium hover:bg-[var(--surface)] transition-colors">
           <DownloadIcon size={13} className="mr-1 inline align-[-2px]" /> Ekspor CSV {auditYear}

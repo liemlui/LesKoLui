@@ -206,7 +206,7 @@ interface Metrics {
 }
 
 /* ---------- daftar layar yang dijaga ---------- */
-type ScreenId = "beranda" | "murid" | "detail-murid" | "catat-sesi" | "laporan" | "keuangan" | "pengaturan";
+type ScreenId = "beranda" | "murid" | "detail-murid" | "catat-sesi" | "laporan" | "keuangan" | "keuangan-tagihan" | "pengaturan";
 
 const SCREENS: Array<{ id: ScreenId; title: string }> = [
   { id: "beranda", title: "Beranda (/)" },
@@ -214,7 +214,14 @@ const SCREENS: Array<{ id: ScreenId; title: string }> = [
   { id: "detail-murid", title: "Detail murid (/students/:id)" },
   { id: "catat-sesi", title: "Catat Sesi (/capture) langkah 1" },
   { id: "laporan", title: "Laporan (/report)" },
-  { id: "keuangan", title: "Keuangan (/payments?tab=ringkasan)" },
+  // Layar Uang kini satu layar tiga blok, jadi yang dijaga adalah tampilan
+  // utamanya — bukan lagi sub-layar. (Sebelum 2026-10-07 entri ini menunjuk
+  // `?tab=ringkasan`, yaitu sub-layar analitik; tampilan utama tidak pernah
+  // diukur sama sekali.)
+  { id: "keuangan", title: "Keuangan (/payments) — tiga blok" },
+  // Sub-layar tagihan masuk cakupan atas keputusan D4, dan panel filter
+  // lanjutan (K-06) hidup di sini — sebelumnya tidak punya penjaga otomatis.
+  { id: "keuangan-tagihan", title: "Keuangan — sub-layar Tagihan (/payments?tab=tagihan)" },
   { id: "pengaturan", title: "Pengaturan (/settings)" },
 ];
 
@@ -279,7 +286,15 @@ async function openScreen(page: Page, id: ScreenId) {
       await page.goto("/report");
       break;
     case "keuangan":
-      await page.goto("/payments?tab=ringkasan");
+      // Tampilan utama: tiga blok tetap. Sengaja TANPA `?tab=` — kalau ada
+      // parameter tab, yang terukur sub-layarnya, bukan layar Uang-nya.
+      await page.goto("/payments");
+      await page.waitForTimeout(3000);
+      await dismissOverlays(page);
+      await openPin(page);
+      break;
+    case "keuangan-tagihan":
+      await page.goto("/payments?tab=tagihan");
       await page.waitForTimeout(3000);
       await dismissOverlays(page);
       await openPin(page);

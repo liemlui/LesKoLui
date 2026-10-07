@@ -6,7 +6,7 @@ test.use({
     : undefined,
 });
 
-test("finance data stays connected across summary, expenses, and audit", async ({ page, isMobile }) => {
+test("finance data stays connected across summary, expenses, and audit", async ({ page }) => {
   const seedDone = page.waitForEvent("console", {
     predicate: (message) => /berhasil dimasukkan|seed dilewati/.test(message.text()),
     timeout: 60_000,
@@ -33,9 +33,22 @@ test("finance data stays connected across summary, expenses, and audit", async (
   await expect(page).toHaveURL(/month=2026-06/);
   await expect(page.getByText("Juni 2026", { exact: true }).first()).toBeVisible();
 
-  // Ringkasan — kas basis pembayaran. Rp 450.000 = satu-satunya pembayaran Juni
-  // di data seed (Eko, 2026-06-06); kartunya kini bernama "Uang masuk · …"
-  // (istilah lama "Kas diterima" sudah diseragamkan).
+  // ── Layar Uang: tiga blok tetap (sejak 2026-10-07) ──
+  // `/payments` polos TIDAK lagi memuat analitik maupun tab; keempat rincian
+  // hidup sebagai sub-layar `?tab=`. Blok "Bulan ini" tetap memuat angka kas
+  // yang sama, jadi pemeriksaannya dipindah ke sana — bukan dihapus.
+  await expect(page.getByRole("heading", { name: "Uang yang benar-benar bergerak · Juni 2026", exact: true })).toBeVisible();
+  // Rp 450.000 = satu-satunya pembayaran Juni di data seed (Eko, 2026-06-06).
+  const uangMasuk = page.getByText("Masuk", { exact: true }).locator("..");
+  await expect(uangMasuk).toContainText("Rp 450.000");
+  const pengeluaranBlok = page.getByText("Keluar", { exact: true }).locator("..");
+  await expect(pengeluaranBlok).toContainText("Rp 640.000");
+
+  // ── Sub-layar analitik: kartu kas, tren, dan panel lanjutan ──
+  // Tombol pintasan "Analitik lengkap" satu-satunya jalan resmi masuk ke sini.
+  await page.getByRole("button", { name: /Analitik lengkap/ }).click();
+  await expect(page).toHaveURL(/tab=ringkasan/);
+  // Kartu kas basis pembayaran; istilah lama "Kas diterima" sudah diseragamkan.
   const cashCard = page.getByText("Uang masuk · Juni 2026", { exact: true }).locator("..");
   await expect(cashCard).toContainText("Rp 450.000");
   await expect(page.getByText("Yang benar-benar bergerak di rekening", { exact: true })).toBeVisible();
@@ -46,7 +59,12 @@ test("finance data stays connected across summary, expenses, and audit", async (
   await threeMonthTrend.click();
   await expect(threeMonthTrend).toHaveAttribute("aria-pressed", "true");
 
+  // ── Sub-layar Pengeluaran ──
+  // Lewat bilah tab sub-layar, bukan pintasan beranda: label pintasan memuat
+  // nominal, dan teksnya sendiri disembunyikan `compactLabel` di layar sempit
+  // ("Keluar"). Peran tab memakai `aria-label` sehingga sama di semua lebar.
   await page.getByRole("tab", { name: "Pengeluaran", exact: true }).click();
+  await expect(page).toHaveURL(/tab=pengeluaran/);
   const expenseTotalCard = page.getByText("Total pengeluaran", { exact: true }).locator("..");
   await expect(expenseTotalCard).toContainText("Rp 640.000");
   await expect(page.getByText("Isi bensin", { exact: true })).toBeVisible();
@@ -61,20 +79,26 @@ test("finance data stays connected across summary, expenses, and audit", async (
   await expect(expenseTotalCard).toContainText("Rp 715.000");
   await page.screenshot({ path: "e2e/screenshots/finance-strengthened.png", fullPage: true });
 
-  // Audit tahun buku — tab-nya kini bernama "Rekap" (dulu "Rekap Tahunan"), dan
-  // kartu tahunannya berlaku di semua lebar layar.
+  // ── Sub-layar Rekap tahun buku ──
+  // Tab-nya kini bernama "Rekap" (dulu "Rekap Tahunan"), dan tabel penuh 8
+  // kolom hidup di balik tombol "Lihat lengkap" karena tampilan utamanya
+  // sengaja diringkas menjadi 3 kolom (2026-10-07).
   await page.getByRole("tab", { name: "Rekap", exact: true }).click();
   await expect(page.getByText("Rekap & Ekspor", { exact: true })).toBeVisible();
   await expect(page.getByText("Pendapatan (akrual)", { exact: true })).toBeVisible();
   await expect(page.getByText("Uang masuk (kas)", { exact: true })).toBeVisible();
   await expect(page.getByText("Sisa kas", { exact: true }).first()).toBeVisible();
-  if (!isMobile) {
-    // Tabel 8 kolom hanya dirender pada layar lebar; layar sempit memakai kartu
-    // ringkas per bulan supaya tidak ada scroll horizontal (lihat RekapTab).
-    await expect(page.getByRole("columnheader", { name: "Pertemuan", exact: true })).toBeVisible();
-    await expect(page.getByRole("columnheader", { name: "Pendapatan", exact: true })).toBeVisible();
-    await expect(page.getByRole("columnheader", { name: "Uang masuk", exact: true })).toBeVisible();
-    await expect(page.getByRole("columnheader", { name: "Sisa kas", exact: true })).toBeVisible();
-    await expect(page.getByRole("columnheader", { name: "Piutang", exact: true })).toBeVisible();
-  }
+
+  // Tabel utama 3 kolom berlaku di semua lebar layar — inilah yang menggantikan
+  // kartu dua baris untuk layar sempit. `Sisa kas` dan `Piutang` sengaja diuji
+  // dengan `.first()`: keduanya muncul di tabel utama DAN di tabel penuh, jadi
+  // pencocokan tanpa `.first()` akan melanggar mode ketat Playwright.
+  await expect(page.getByRole("columnheader", { name: "Piutang", exact: true }).first()).toBeVisible();
+
+  await page.getByRole("button", { name: /Lihat lengkap/ }).click();
+  await expect(page.getByRole("columnheader", { name: "Pertemuan", exact: true })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Pendapatan", exact: true })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Uang masuk", exact: true })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Sisa kas", exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Pengeluaran", exact: true })).toBeVisible();
 });

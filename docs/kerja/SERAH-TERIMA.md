@@ -3,7 +3,7 @@
 > **Sekilas.** Jenis: lembar serah-terima untuk sesi berikutnya. Status: berlaku.
 > Untuk siapa: agen AI yang melanjutkan pekerjaan ini, dan pemilik yang ingin tahu keadaan terakhir tanpa membaca seluruh dokumen.
 > Berkas ini diperbarui di akhir sesi, bukan di awal.
-> **Terakhir diselaraskan: 2026-10-07** (cara menjalankan suite di sandbox, penunjuk commit, dan rujukan bagian). Isi historisnya tidak diubah.
+> **Terakhir diselaraskan: 2026-10-07** (G3-02 butir 1–3 dikerjakan: pembangun murni, layar Uang tiga blok, dan tabel Rekap tiga kolom). Isi historisnya tidak diubah.
 > **Yang mengikat tetap `ATURAN-AI.md` dan `PEKERJAAN.md`.** Berkas ini hanya menjelaskan keadaan dan temuan, bukan aturan.
 
 ---
@@ -81,11 +81,58 @@ Aturan pencegahannya sudah masuk `ATURAN-AI.md` bagian 2: dokumen tidak dihapus,
 
 ---
 
+### 4.4 Yang berubah pada putaran 2026-10-07 (G3-02 butir 1–3)
+
+Tiga butir Keuangan yang dipulihkan lewat keputusan D1 sudah dikerjakan. Yang perlu diketahui sesi berikutnya:
+
+1. **Pembangun murni sudah ada.** `src/lib/financeRows.ts` dan `src/lib/financeOverview.ts`, keduanya tanpa impor Dexie.
+   Angka uang di layar Uang sekarang berasal dari satu sumber aturan, bukan dari perhitungan ulang di tiap blok.
+   Tanggal acuan bisa ditimpa lewat opsi `hariIni` — dipakai tes supaya hasilnya tidak bergantung jam mesin.
+2. **Layar Uang sekarang satu layar dengan tiga blok tetap.** Empat tab lamanya **tidak dihapus**, tetapi menjadi
+   sub-layar di `?tab=ringkasan|tagihan|pengeluaran|rekap`. Konsekuensi yang perlu diingat: **pemilih sub-layar
+   hanya muncul setelah sebuah sub-layar terbuka**, jadi tidak ada lagi cara melompat dari Tagihan langsung ke
+   Rekap. Ini dicatat sebagai pekerjaan tersendiri di `PEKERJAAN.md` bagian 4, bukan dibiarkan tanpa jejak.
+3. **Tabel Rekap tahunan sudah tiga kolom.** Tabel penuh delapan kolom tetap ada di balik tombol `Lihat lengkap ▸`.
+   Blok penulisan CSV tidak disentuh, jadi berkas CSV tetap sama persis.
+
+**Batas kejujuran baru yang harus dibaca sebelum mengklaim butir ini beres:**
+
+- Layar tiga blok dan tabel Rekap tiga kolom **belum pernah dilihat mata manusia di perangkat**. Yang sudah ada:
+  penjaga otomatis. `e2e:uiux` **64 lulus / 0 gagal** dan `e2e` **75 lulus / 6 skip** sesudah perbaikan, jadi
+  kontras, ukuran kontrol, struktur heading, dan alur keuangan sudah terbukti mesin — bukan terbukti mata.
+  Bedanya penting: penjaga mengukur apa yang bisa diukur, bukan apakah tampilannya enak dipakai.
+- Cakupan penjaga sudah diperluas sesuai keputusan D4: `e2e:uiux` kini mengukur `/payments` polos (tiga blok)
+  **dan** sub-layar `?tab=tagihan`. Sebelum 2026-10-07 entri keuangan menunjuk `?tab=ringkasan` saja, sehingga
+  tampilan utama tidak pernah diukur dan panel filter lanjutan di sub-layar tagihan tumbuh tanpa jaring pengaman.
+- **Tiga temuan penjaga yang langsung muncul dari perluasan itu, semuanya sudah diperbaiki lalu diverifikasi
+  ulang:** kontras nomor halaman pada lembar PDF tersembunyi (2,54:1) dan badge "Belum dibayar" (2,86:1) di
+  `InvoicePdfPages.tsx`, serta tombol "+ Tagihan Manual" yang terukur 348×20 px di `ManualInvoiceForm.tsx`.
+  Ketiganya pra-eksisting, bukan akibat pekerjaan ini — hanya saja belum pernah terukur karena belum ada yang
+  menjaga layar itu.
+- Satu tautan "Rekap tahunan" **sebaris** di blok 3 terukur 84×16 px dan gagal ambang kontrol. Tautannya dihapus
+  dari kalimat karena blok itu sudah punya baris pintasan "Rekap tahunan" sendiri; kalimatnya tetap, tanpa tautan.
+- **Satu regresi yang sempat saya buat dan sudah diperbaiki:** `e2e/finance.spec.ts` membuka `/payments` polos
+  dan memeriksa kartu `Uang masuk · …` serta membuka "Analitik lanjutan" — keduanya kini hidup di sub-layar,
+  jadi test itu merah sampai alurnya disesuaikan. Pelajarannya: test alur yang menyentuh sebuah layar **wajib
+  dijalankan pada putaran yang sama** dengan perubahan layar itu, bukan ditunda.
+- Flake beban-tinggi yang sudah terdokumentasi masih ada dan **bukan** milik pekerjaan ini:
+  `report-export.spec.ts:85` dan `screenshot-katalog.spec.ts:139` gagal saat suite penuh berjalan paralel,
+  tetapi **lulus di HEAD tanpa perubahan apa pun** dan lulus saat dijalankan sendirian. Itu hasil pengukuran
+  (diuji 2026-10-07 memakai `git stash`), bukan dugaan.
+- Blok 1 "Ringkasan AI" **belum memanggil AI**. Ia memakai padanan lokal (`ringkasLokal` + `sorotan`) dan
+  menyatakannya di layar. Jalur `AiCostModal` masih hidup di sub-layar analitik. Memindahkannya ke dalam blok 1
+  menunggu G3-04, karena aturannya satu jalur `useAiAction`.
+
+---
+
 ## 5. Langkah berikutnya
 
 Kerjakan berurutan, satu tugas sampai tuntas, lalu lapor sekali.
 
-1. **Lanjutkan G3-02 Keuangan.** Sekarang ada tujuh butir sisa. Urutan yang masuk akal: tiga butir yang baru dipulihkan lebih dulu karena keduanya mengubah bentuk layar, lalu peringatan nominal, kolom nominal, gerbang PIN, dan terakhir navigasi tiga pintu.
+1. **Sisa G3-02 Keuangan tinggal lima butir.** Urutan yang masuk akal: peringatan nominal (nomor 8), kolom nominal
+   (nomor 9), gerbang PIN (nomor 10), dan terakhir navigasi tiga pintu (nomor 11), karena butir 11 mengubah
+   pemilih pada test tampilan dan sebaiknya dikerjakan sekali saja. Butir 4 sampai 7 sudah selesai dan hanya
+   menunggu mata pemilik; butir 7 sudah ditutup sepenuhnya.
 2. **G3-03 papan pipeline**, karena bergantung pada Keuangan.
 3. **G3-04 kontrak AI berbiaya**, lalu **G3-05 laporan**, karena panel AI di laporan membutuhkan kontrak biaya.
 4. **G3-06 murid**, **G3-07 foto murid**, **G3-08 kanvas dan istilah**, **G3-09 pengaturan**, **G3-10 reset total dan PIN**.
@@ -101,3 +148,6 @@ Kerjakan berurutan, satu tugas sampai tuntas, lalu lapor sekali.
 | 2026-10-05 | Dibuat sebagai pengganti berkas arahan lanjutan yang sudah beku. |
 | 2026-10-05 | Diperbarui berkali-kali mengikuti pekerjaan Keuangan dan panel Kelola sesi. |
 | 2026-10-05 | Ditulis ulang mengikuti perubahan besar: aturan kerja baru, delapan keputusan pemilik, pemulihan tiga butir pekerjaan yang hilang, dan pemindahan spesifikasi Gelombang 3 ke daftar pekerjaan. |
+| 2026-10-07 | Diselaraskan dengan cara menjalankan suite di sandbox dan rujukan bagian setelah penomoran `ATURAN-AI.md` berubah. |
+| 2026-10-07 | Bagian 3 dan 4 ditambah: G3-02 butir 1–3 selesai (pembangun murni `financeRows`/`financeOverview`, layar Uang tiga blok, tabel Rekap tiga kolom), beserta batas kejujuran barunya. Bagian 5 diperbarui: sisa G3-02 menjadi lima butir. |
+| 2026-10-07 | Bagian 4.4 diperbarui sesudah penjaga dijalankan: `e2e:uiux` diperluas mengukur `/payments` dan `?tab=tagihan` (keputusan pemilik), tiga temuan pra-eksisting diperbaiki, dan satu regresi `e2e/finance.spec.ts` yang sempat terjadi sudah ditutup. Batas kejujuran berubah dari "penjaga belum dijalankan" menjadi "terbukti mesin, belum terbukti mata". |

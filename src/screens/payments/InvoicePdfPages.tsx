@@ -19,7 +19,11 @@ export default function InvoicePdfPages({ payments, studentsById }: InvoicePdfPa
               <p style={{ fontWeight: 700, fontSize: 18, margin: 0, color: "#1e40af" }}>Rekap Tagihan</p>
               <p style={{ fontSize: 12, color: "#6b7280", margin: 0 }}>Semua Tagihan</p>
             </div>
-            <p style={{ fontSize: 11, color: "#9ca3af", margin: 0 }}>Hal {pageIdx + 1}/{pageGroups.length}</p>
+            {/* Kontras diperbaiki 2026-10-07 (temuan penjaga tampilan begitu
+                sub-layar Tagihan masuk cakupan D4). Dua warna lama gagal ambang
+                AA pada ukuran teks 11 piksel: #9ca3af 2,54:1 dan #d97706 2,86:1.
+                Hanya warnanya yang berubah — ukuran, tata letak, dan isi PDF sama. */}
+            <p style={{ fontSize: 11, color: "#4b5563", margin: 0 }}>Hal {pageIdx + 1}/{pageGroups.length}</p>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {group.map((payment) => {
@@ -33,7 +37,7 @@ export default function InvoicePdfPages({ payments, studentsById }: InvoicePdfPa
                     </div>
                     <div style={{ textAlign: "right" }}>
                       <p style={{ fontWeight: 700, fontSize: 14, margin: 0, color: "#1e40af" }}>{formatRupiah(payment.totalCost)}</p>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: payment.status === "PAID" ? "#16a34a" : "#d97706", background: payment.status === "PAID" ? "#dcfce7" : "#fef3c7", padding: "2px 8px", borderRadius: 999, display: "inline-block", marginTop: 3 }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: payment.status === "PAID" ? "#16a34a" : "#78350f", background: payment.status === "PAID" ? "#dcfce7" : "#fef3c7", padding: "2px 8px", borderRadius: 999, display: "inline-block", marginTop: 3 }}>
                         {payment.status === "PAID" ? "Lunas" : "Belum dibayar"}
                       </span>
                     </div>

@@ -27,7 +27,10 @@ export default function ManualInvoiceForm({
 
   return (
     <div className="rounded-xl bg-[var(--surface)] p-4">
-      <button type="button" onClick={toggle} className="flex w-full items-center justify-between text-sm font-semibold text-[var(--ink-muted)]">
+      {/* min-h-11 (44px) ditambahkan 2026-10-07: tombol ini terukur 348x20 px dan
+          gagal penjaga "kontrol interaktif < 24 px" begitu sub-layar Tagihan masuk
+          cakupan D4. Ia satu-satunya kontrol di layar itu yang jatuh di bawah ambang. */}
+      <button type="button" onClick={toggle} className="flex min-h-11 w-full items-center justify-between py-2 text-sm font-semibold text-[var(--ink-muted)]">
         <span>+ Tagihan Manual (di luar tutup bulan)</span>
         <span>{open ? "▾" : "▸"}</span>
       </button>

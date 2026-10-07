@@ -100,11 +100,12 @@ di sini hanya penunjuknya.
 
 | Tanggal | Peristiwa | Versi |
 |---|---|---|
-| 2026-10-01 → 2026-10-05 | Gelombang 1 & 2 tuntas, fondasi visual, lalu Gelombang 3 alur kerja berjalan | v1.79.0 → v1.93.0 |
+| 2026-10-01 → 2026-10-07 | Gelombang 1 & 2 tuntas, fondasi visual, lalu Gelombang 3 alur kerja berjalan | v1.79.0 → v1.94.0 |
 | 2026-10-03 | Gelombang 2 ditutup: satu pintu uang, Beranda non-uang, kerapatan DayView, jalur galat tunggal | v1.88.0 → v1.89.0 |
 | 2026-10-05 | Jadwal hari bisa disunting & dipindah murid; tarif ikut pemilik baru | v1.92.0 → v1.93.0 |
+| 2026-10-07 | Layar Uang jadi satu layar tiga blok; rekap tahunan terbaca di HP; penjaga tampilan kini mencakup halaman keuangan | v1.94.0 |
 
-> Daftar di atas adalah **tiga tonggak**, bukan riwayat. Jangan menambah entri rilis di sini — tambahkan di
+> Daftar di atas adalah **empat tonggak**, bukan riwayat. Jangan menambah entri rilis di sini — tambahkan di
 > [`RIWAYAT-RILIS.md`](RIWAYAT-RILIS.md).
 
 ---

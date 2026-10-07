@@ -1,14 +1,16 @@
 import Skeleton from "../components/Skeleton";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   listPayments, listStudents,
   listExpenses, listBillableSessionsForMonth,
-  listAllReports, listSessionCountBillingProgress,
+  listAllReports, listSessionCountBillingProgress, getCashSummary,
 } from "../db/repos";
 import { todayWIB, monthLabel } from "../lib/format";
-import { reportStatus } from "../db/types";
+import { buildTagihanRows, hitungBarisButuhAksi } from "../lib/financeRows";
+import { buildFinanceOverview } from "../lib/financeOverview";
+import UangBeranda from "./uang/UangBeranda";
 import { useMoneyVisible } from "../hooks/useMoneyVisible";
 import { useSettingsQuery } from "../hooks/useSettingsQuery";
 import SettingsLoadError from "../components/SettingsLoadError";
@@ -29,22 +31,42 @@ const MONTH_QUERY_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 /** Legacy deep links used `tab=audit` for the yearly recap. */
 const LEGACY_TAB_ALIAS: Record<string, Tab> = { audit: "rekap" };
 
+/** Judul sub-layar saat sebuah tab dibuka lewat tautan langsung. */
+const SUB_SCREEN_TITLE: Record<Tab, string> = {
+  ringkasan: "Analitik keuangan",
+  tagihan: "Rincian tagihan",
+  pengeluaran: "Pengeluaran",
+  rekap: "Rekap tahunan",
+};
+
 /**
- * One scope sentence per tab. The finance module mixes a single selected month
- * (Ringkasan, Pengeluaran) with genuinely cross-period lists (Tagihan), so every
- * tab states its own coverage instead of leaving the user to infer it.
+ * One scope sentence per sub-screen. The finance module mixes a single selected
+ * month (Ringkasan, Pengeluaran) with genuinely cross-period lists (Tagihan), so
+ * every sub-screen states its own coverage instead of leaving the user to infer it.
  */
 const TAB_SCOPE: Record<Tab, string> = {
   ringkasan: "Angka untuk bulan terpilih.",
   tagihan: "Semua periode — tidak mengikuti bulan terpilih.",
   pengeluaran: "Hanya transaksi keluar pada bulan terpilih.",
-  rekap: "Januari–Desember pada tahun terpilih (di dalam tab).",
+  rekap: "Januari–Desember pada tahun terpilih (di dalam).",
 };
 
+/** Rentang bulan yang dibaca untuk sorotan & blok "Bulan ini": bulan terpilih + 3 pembanding. */
+function fourMonthsBack(month: string): string[] {
+  const [y, m] = month.split("-").map(Number);
+  return [3, 2, 1, 0].map((i) => {
+    const d = new Date(y, m - 1 - i, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
+}
+
 /**
- * PaymentsPage — halaman keuangan dengan 4 area kerja:
- * Ringkasan (bulan terpilih), Tagihan (lintas periode),
- * Pengeluaran (bulan terpilih), dan Rekap & Ekspor (per tahun).
+ * PaymentsPage — layar Uang.
+ *
+ * Tampilan utama adalah SATU layar dengan tiga blok tetap (Ringkasan AI · Perlu
+ * ditagih · Bulan ini) dan tiga baris pintasan. Rincian lamanya tidak dihapus:
+ * ia hidup sebagai sub-layar yang dibuka lewat `?tab=`, sehingga tautan lama,
+ * bookmark, dan pemilih pada test tampilan tetap bekerja apa adanya.
  *
  * @component
  * @route /payments
@@ -64,10 +86,10 @@ export default function PaymentsPage() {
   const [pinInput, setPinInput] = useState("");
   const requestedStudentId = searchParams.get("studentId") ?? "";
 
-  // Tab disinkronkan dengan URL agar bisa di-bookmark / di-share.
+  // Sub-layar disinkronkan dengan URL agar bisa di-bookmark / di-share.
   const urlTab = searchParams.get("tab") ?? "";
   const resolvedTab = LEGACY_TAB_ALIAS[urlTab] ?? (urlTab as Tab);
-  const activeTab: Tab = TAB_KEYS.includes(resolvedTab) ? resolvedTab : "ringkasan";
+  const activeTab: Tab | null = TAB_KEYS.includes(resolvedTab) ? resolvedTab : null;
   const [message, setMessage] = useState("");
 
   // Satu bulan terpilih, dipakai bersama oleh Ringkasan dan Pengeluaran.
@@ -80,27 +102,37 @@ export default function PaymentsPage() {
   const monthSessions = useLiveQuery(() => listBillableSessionsForMonth(month), [month]);
   const monthExpenses = useLiveQuery(() => listExpenses(month), [month]);
   const reports = useLiveQuery(() => listAllReports(), []);
+  const cashMonths = useMemo(() => fourMonthsBack(month), [month]);
+  // Ringkasan kas empat bulan: bulan terpilih + tiga pembanding. Dipakai blok
+  // "Bulan ini" dan sorotan "pengeluaran naik". Sengaja terpisah dari query tab
+  // Ringkasan supaya sub-layar itu tetap memuat sendiri rentang 12 bulannya.
+  const cashSummary = useLiveQuery(() => getCashSummary(cashMonths), [cashMonths]);
   // A package may span calendar months, so this queue intentionally does not
   // depend on the month picker used by the rest of the finance dashboard.
-  // Kept here only to badge the Penagihan tab; the tab queries its own copy.
   const sessionCountBillingProgress = useLiveQuery(() => listSessionCountBillingProgress(), []);
 
-  const packageActionCount = (sessionCountBillingProgress ?? []).filter((row) => (
-    row.readyBatchCount > 0
-    || Boolean(row.pendingBillingPolicy && row.unbilledCount > 0 && row.unbilledCount < row.targetCount)
-  )).length;
-  const invoiceReportIds = new Set((payments ?? []).flatMap((payment) => payment.reportId ? [payment.reportId] : []));
-  const readyReportInvoiceCount = (reports ?? []).filter((report) => (
-    reportStatus(report) === "confirmed"
-    && report.totalCost > 0
-    && report.billingMode !== "session_count"
-    && !invoiceReportIds.has(report.id)
-  )).length;
-  const tagihanBadge = packageActionCount + readyReportInvoiceCount;
+  // ── Satu daftar baris untuk seluruh layar (aturan murni, bukan AI) ──
+  const tagihanRows = useMemo(() => buildTagihanRows({
+    payments: payments ?? [],
+    students: students ?? [],
+    reports: reports ?? [],
+    packages: sessionCountBillingProgress ?? [],
+  }), [payments, students, reports, sessionCountBillingProgress]);
+  // Badge pada pemilih sub-layar memakai hitungan yang sama dengan versi lama:
+  // hanya baris yang benar-benar menunggu DITERBITKAN (siap-ditagih). Tagihan
+  // yang sudah terbit — termasuk yang lewat jatuh tempo — sudah punya badan
+  // sendiri di daftar, jadi tidak ikut menambah angka di pemilih.
+  const tagihanBadge = hitungBarisButuhAksi(tagihanRows);
+  const overview = useMemo(() => buildFinanceOverview({
+    month,
+    rows: tagihanRows,
+    cash: cashSummary ?? [],
+    reports: reports ?? [],
+  }), [month, tagihanRows, cashSummary, reports]);
 
   // Uang yang benar-benar masuk bulan ini (mengikuti tanggal pembayaran) —
   // dipakai Pengeluaran untuk menghitung sisa kas, bukan untuk mengulang
-  // kartu ringkasan yang sudah ada di tab Ringkasan.
+  // kartu ringkasan yang sudah ada di sub-layar analitik.
   const cashInMonth = (payments ?? [])
     .filter((p) => p.status === "PAID" && (p.paidAt?.slice(0, 7) ?? p.month) === month)
     .reduce((sum, p) => sum + p.totalCost, 0);
@@ -114,6 +146,7 @@ export default function PaymentsPage() {
   if (!payments || !students || !settings
     || monthSessions === undefined || monthExpenses === undefined
     || reports === undefined || sessionCountBillingProgress === undefined
+    || cashSummary === undefined
   ) return <Skeleton variant="card" lines={4} className="p-4" />;
 
   if (!settings.financialPin) {
@@ -161,6 +194,13 @@ export default function PaymentsPage() {
     setSearchParams(next, { replace: true });
   };
 
+  /** Buka sub-layar dari blok: bulan terpilih ikut dibawa supaya tidak hilang. */
+  const bukaSub = (key: Tab) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", key);
+    setSearchParams(next, { replace: true });
+  };
+
   const handleMonthChange = (nextMonth: string) => {
     if (!MONTH_QUERY_PATTERN.test(nextMonth)) return;
     const next = new URLSearchParams(searchParams);
@@ -171,7 +211,7 @@ export default function PaymentsPage() {
   return (
     <div className="pb-24">
       {/* Header lengket: periode dan area kerja selalu terlihat bersama, sehingga
-          pindah tab tidak pernah menyembunyikan konteks waktu. */}
+          pindah sub-layar tidak pernah menyembunyikan konteks waktu. */}
       <div className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--surface-strong)]/95 backdrop-blur">
         <Breadcrumb />
         <div className="space-y-2 px-4 pb-2 pt-1">
@@ -193,23 +233,32 @@ export default function PaymentsPage() {
             </div>
           </div>
           <FinancePeriodPicker month={month} onChange={handleMonthChange} />
-          <p className="text-xs leading-relaxed text-[var(--ink-muted)]">
-            <span className="font-semibold text-[var(--ink-muted)]">Cakupan tab ini:</span> {TAB_SCOPE[activeTab]}
-          </p>
+          {activeTab ? (
+            <p className="text-xs leading-relaxed text-[var(--ink-muted)]">
+              <span className="font-semibold text-[var(--ink-muted)]">Cakupan:</span> {TAB_SCOPE[activeTab]}
+            </p>
+          ) : (
+            <p className="text-xs leading-relaxed text-[var(--ink-muted)]">
+              Tiga blok tetap. Rincian lengkap ada di dalam tiap pintasan.
+            </p>
+          )}
         </div>
-        <Tabs
-          tabs={[
-            // Label sengaja pendek: empat tab harus muat dalam satu baris tanpa terpotong.
-            { key: "ringkasan", label: "Ringkasan", compactLabel: "Ringkas" },
-            { key: "tagihan", label: "Tagihan", compactLabel: "Tagihan", count: tagihanBadge },
-            { key: "pengeluaran", label: "Pengeluaran", compactLabel: "Keluar" },
-            { key: "rekap", label: "Rekap", compactLabel: "Rekap" },
-          ]}
-          active={activeTab}
-          onChange={handleTabChange}
-          idPrefix="payments"
-          fullWidth
-        />
+        {/* Sub-layar: bilah tab hanya muncul saat sebuah rincian dibuka, supaya
+            layar Uang sendiri tidak lagi menuntut tutor memilih tab lebih dulu. */}
+        {activeTab && (
+          <Tabs
+            tabs={[
+              { key: "ringkasan", label: "Ringkasan", compactLabel: "Ringkas" },
+              { key: "tagihan", label: "Tagihan", compactLabel: "Tagihan", count: tagihanBadge },
+              { key: "pengeluaran", label: "Pengeluaran", compactLabel: "Keluar" },
+              { key: "rekap", label: "Rekap", compactLabel: "Rekap" },
+            ]}
+            active={activeTab}
+            onChange={handleTabChange}
+            idPrefix="payments"
+            fullWidth
+          />
+        )}
       </div>
 
       <div className="space-y-4 p-4">
@@ -230,60 +279,86 @@ export default function PaymentsPage() {
           </div>
         )}
 
-        {/* Audit L-06: panel per tab SELALU ada di DOM supaya `aria-controls`
+        {!activeTab && (
+          <UangBeranda
+            month={month}
+            rows={tagihanRows}
+            overview={overview}
+            onBukaSub={bukaSub}
+          />
+        )}
+
+        {activeTab && (
+          <button
+            type="button"
+            onClick={() => handleTabChange("ringkasan")}
+            className="inline-flex min-h-[44px] items-center gap-1 rounded-[var(--radius-card)] border border-[var(--border)] px-3 text-caption font-semibold text-[var(--ink-muted)] transition-colors hover:bg-[var(--surface)]"
+          >
+            ← Kembali ke Uang
+          </button>
+        )}
+
+        {activeTab && (
+          <h2 className="text-base font-bold text-[var(--ink-strong)]">{SUB_SCREEN_TITLE[activeTab]}</h2>
+        )}
+
+        {/* Audit L-06: panel per sub-layar SELALU ada di DOM supaya `aria-controls`
             setiap tab menunjuk elemen nyata; komponen tab hanya di-mount saat
             aktif agar useLiveQuery-nya tetap lazy. */}
-        <div role="tabpanel" id="payments-panel-ringkasan" aria-labelledby="payments-tab-ringkasan" hidden={activeTab !== "ringkasan"}>
-        {/* Tab components mount on demand so each tab's useLiveQuery runs lazily. */}
-        {activeTab === "ringkasan" && (
-          <RingkasanTab
-            month={month}
-            payments={payments}
-            students={students}
-            settings={settings}
-            reports={reports}
-            monthSessions={monthSessions}
-            monthExpenses={monthExpenses}
-            sessionCountBillingProgress={sessionCountBillingProgress}
-            setMessage={setMessage}
-          />
-        )}
-        </div>
+        {activeTab && (
+          <>
+            <div role="tabpanel" id="payments-panel-ringkasan" aria-labelledby="payments-tab-ringkasan" hidden={activeTab !== "ringkasan"}>
+            {activeTab === "ringkasan" && (
+              <RingkasanTab
+                month={month}
+                payments={payments}
+                students={students}
+                settings={settings}
+                reports={reports}
+                monthSessions={monthSessions}
+                monthExpenses={monthExpenses}
+                sessionCountBillingProgress={sessionCountBillingProgress}
+                setMessage={setMessage}
+              />
+            )}
+            </div>
 
-        <div role="tabpanel" id="payments-panel-tagihan" aria-labelledby="payments-tab-tagihan" hidden={activeTab !== "tagihan"}>
-        {activeTab === "tagihan" && (
-          <TagihanTab
-            payments={payments}
-            students={students}
-            settings={settings}
-            reports={reports}
-            setMessage={setMessage}
-            navigate={navigate}
-            requestedStudentId={requestedStudentId}
-          />
-        )}
-        </div>
+            <div role="tabpanel" id="payments-panel-tagihan" aria-labelledby="payments-tab-tagihan" hidden={activeTab !== "tagihan"}>
+            {activeTab === "tagihan" && (
+              <TagihanTab
+                payments={payments}
+                students={students}
+                settings={settings}
+                reports={reports}
+                setMessage={setMessage}
+                navigate={navigate}
+                requestedStudentId={requestedStudentId}
+              />
+            )}
+            </div>
 
-        <div role="tabpanel" id="payments-panel-pengeluaran" aria-labelledby="payments-tab-pengeluaran" hidden={activeTab !== "pengeluaran"}>
-        {activeTab === "pengeluaran" && (
-          <PengeluaranTab
-            month={month}
-            monthExpenses={monthExpenses}
-            cashInMonth={cashInMonth}
-            setMessage={setMessage}
-            students={students ?? []}
-          />
-        )}
-        </div>
+            <div role="tabpanel" id="payments-panel-pengeluaran" aria-labelledby="payments-tab-pengeluaran" hidden={activeTab !== "pengeluaran"}>
+            {activeTab === "pengeluaran" && (
+              <PengeluaranTab
+                month={month}
+                monthExpenses={monthExpenses}
+                cashInMonth={cashInMonth}
+                setMessage={setMessage}
+                students={students ?? []}
+              />
+            )}
+            </div>
 
-        <div role="tabpanel" id="payments-panel-rekap" aria-labelledby="payments-tab-rekap" hidden={activeTab !== "rekap"}>
-        {activeTab === "rekap" && (
-          <RekapTab
-            payments={payments}
-            students={students}
-          />
+            <div role="tabpanel" id="payments-panel-rekap" aria-labelledby="payments-tab-rekap" hidden={activeTab !== "rekap"}>
+            {activeTab === "rekap" && (
+              <RekapTab
+                payments={payments}
+                students={students}
+              />
+            )}
+            </div>
+          </>
         )}
-        </div>
       </div>
     </div>
   );
