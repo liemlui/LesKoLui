@@ -3,6 +3,7 @@
 > **Sekilas.** Jenis: lembar serah-terima untuk sesi berikutnya. Status: berlaku.
 > Untuk siapa: agen AI yang melanjutkan pekerjaan ini, dan pemilik yang ingin tahu keadaan terakhir tanpa membaca seluruh dokumen.
 > Berkas ini diperbarui di akhir sesi, bukan di awal.
+> **Terakhir diselaraskan: 2026-10-07** (cara menjalankan suite di sandbox, penunjuk commit, dan rujukan bagian). Isi historisnya tidak diubah.
 > **Yang mengikat tetap `ATURAN-AI.md` dan `PEKERJAAN.md`.** Berkas ini hanya menjelaskan keadaan dan temuan, bukan aturan.
 
 ---
@@ -28,7 +29,7 @@ Periksa sendiri, jangan percaya tulisan di sini, karena keadaan berubah setiap c
 | Baris berkas besar | `npm run measure loc` |
 | Kebenaran dokumen | `npm run check:docs` |
 
-Catatan keadaan pada 2026-10-05, sebagai konteks: pohon kerja bersih, cabang `main` sama dengan `origin/main`, dan suite tes lulus penuh dengan enam puluh enam berkas. Angka-angka itu akan basi, jadi yang dipakai adalah perintahnya.
+Catatan keadaan sebagai konteks, **potret 2026-10-05** (jangan dikutip sebagai keadaan hari ini): pohon kerja bersih, cabang `main` sama dengan `origin/main`, dan suite tes lulus penuh dengan enam puluh enam berkas. Keadaan 2026-10-07 sesudah pembenahan dokumen: commit `a390852` sudah di `origin/main`, pohon bersih, suite **849 lulus / 66 berkas**. Angka-angka itu akan basi — yang dipakai adalah perintahnya.
 
 **Gate di mesin ini hanya lokal.** Integrasi berkelanjutan di GitHub tidak diaktifkan dan tidak akan diaktifkan. Jangan menawarkannya lagi.
 
@@ -55,7 +56,7 @@ Semua di bawah ini nyata terjadi, bukan dugaan.
 
 ### 4.1 Cara memakai mesin ini
 
-- Perintah `npm test` dan `npm run build` gagal dengan galat `spawn EPERM` karena sandbox melarang pipa keluaran antarproses. Jalan keluarnya adalah berkas shim kecil di folder sementara yang dipanggil lewat `NODE_OPTIONS`, semuanya di dalam satu pemanggilan PowerShell yang sama.
+- Perintah `npm test`, `npm run test:sandbox`, dan `npm run build` gagal dengan galat `spawn EPERM` karena sandbox melarang pipa keluaran antarproses. **Cara yang terbukti jalan (diuji 2026-10-07):** pakai shim yang sudah ada di repo, `.dsh-vitest-shim.cjs` di akar folder induk, dengan `NODE_OPTIONS` berjalur **relatif**, di dalam satu pemanggilan PowerShell: `$env:NODE_OPTIONS = "--require=../.dsh-vitest-shim.cjs"` lalu `npm run test:sandbox`. Jangan memakai jalur absolut Windows — `NODE_OPTIONS` memakan garis miring terbalik dan gagal dengan `Cannot find module 'C:Userslieml…'`. Membuat shim baru di folder sementara sudah tidak perlu.
 - Perintah `npm run e2e`, `npm run e2e:uiux`, dan `git push` butuh izin sandbox penuh dan tidak bisa disiasati.
 - Keluaran PowerShell bisa menampilkan teks beraksen sebagai karakter rusak. Untuk menilai kerusakan berkas, ukur byte-nya.
 - `git commit` kadang mencetak sukses lalu keluar dengan kode satu. Commit-nya berhasil. Buktikan dari riwayat, jangan mengulang commit.
@@ -70,7 +71,7 @@ Semua di bawah ini nyata terjadi, bukan dugaan.
 5. **Satu test tampilan pernah merah di bawah beban kerja tinggi** dengan pesan data pembayaran tidak ditemukan, padahal lulus saat dijalankan sendirian dan lulus empat dari empat saat diulang. Gejalanya sudah teridentifikasi, penyebabnya belum diperbaiki. Keputusan D8 meminta ini diperkuat.
 6. **Dua alias mapel Nasional menunjuk katalog kurikulum lain.** Mapel Informatika dan Penjaskes memakai katalog ilmu komputer tingkat internasional. Sudah masuk daftar pekerjaan lewat keputusan D3.
 7. **Lima puluh dua kontrol lebih kecil dari empat puluh empat piksel** adalah pengecualian tertulis yang sudah diputuskan. Jangan diperbaiki tanpa keputusan baru.
-8. **Perhitungan biaya saat sesi ditutup mengabaikan nominal manual.** Nominal manual yang pernah diisi tutor pada sesi terjadwal bisa tertimpa. Keputusan D2 meminta ini dibetulkan.
+8. **Perhitungan biaya saat sesi ditutup mengabaikan nominal manual.** Nominal manual yang pernah diisi tutor pada sesi terjadwal bisa tertimpa. Keputusan D2 meminta ini dibetulkan. Rinciannya ada di [`PEKERJAAN.md`](PEKERJAAN.md) bagian 4 dan di `TASK-06` riwayat 2026-10-05.
 
 ### 4.3 Pelajaran dari kesalahan pembersihan dokumen
 
