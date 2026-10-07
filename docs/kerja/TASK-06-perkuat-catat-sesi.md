@@ -333,6 +333,12 @@ dilarang (§2.2 `ATURAN-AI`, keputusan pemilik). Jadi penghematan yang sah hanya
 
 > **Batas agen (2026-10-05).** **L1 · L2 · L5 · L6 tidak boleh dicentang agen**: keempatnya menuntut mata manusia di perangkat (keenam langkah di 390/430 px, kontrol <44 px, `[Catat]` benar-benar terisi, 12 kotak pemeriksaan). Agen hanya mencentang butir yang punya bukti dari perintah/ukurannya sendiri — L3 ditutup lewat keluaran vitest, L7 lewat tes baru, bukan lewat klaim.
 
+> **Catatan jangkar 2026-10-07.** Rujukan ke daftar periksa manual di `docs/README.md` **§4.3**
+> pada baris L6 dan L8 di bawah adalah **jangkar lama**. Halaman itu sudah tidak memuat daftar
+> periksa sejak 2026-10-05; daftar periksa manual yang berlaku ada di [`PEKERJAAN.md`](PEKERJAAN.md)
+> **§5**, dan hanya bisa ditutup pemilik di perangkat. Yang dimaksud kedua baris itu adalah daftar
+> periksa gaya lama (12 butir) dan jumlahnya sudah tidak sepadan dengan §5.
+
 ## 10. Riwayat tugas
 
 | Tanggal | Perubahan | Versi | Hasil |

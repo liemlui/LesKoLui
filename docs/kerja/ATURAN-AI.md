@@ -146,10 +146,22 @@ npm run check:docs            memeriksa fakta dan tautan dokumen
 npm run measure loc           mengukur jumlah baris berkas besar
 npm run e2e                   test tampilan, butuh izin sandbox penuh
 npm run e2e:uiux              penjaga tampilan, butuh izin sandbox penuh
-npm run release-check         memeriksa konsistensi versi dan catatan perubahan
 ```
 
-**Lingkungan sandbox.** Di mesin ini, `npm test` dan `npm run build` gagal dengan galat `spawn EPERM` karena Vite memanggil perintah sistem lewat pipa yang dilarang sandbox. Jalan keluarnya adalah membuat berkas shim kecil di folder sementara lalu menjalankannya dengan `NODE_OPTIONS`, semuanya di dalam satu pemanggilan PowerShell yang sama, karena folder sementara berganti setiap sesi. Perintahnya ada di bagian 6.1 berkas panduan lama, dan cara tercepat adalah menyalinnya apa adanya. Yang tetap butuh izin sandbox penuh dan tidak bisa disiasati: `npm run e2e`, `npm run e2e:uiux`, dan `git push`.
+> **`npm run release-check` tidak ada di `package.json` dan tidak pernah ada di riwayat git.** Perintah itu dicantumkan di berkas ini dan di laporan TASK-06 sebagai gate yang lulus. Artinya gate itu **tidak bisa dibuktikan pernah berjalan**. Rilis di repo ini memang dikerjakan manual atas tiga berkas sekaligus: `package.json` (versi), `src/lib/version.ts` (entri `CHANGELOG`), dan `docs/RIWAYAT-RILIS.md` (baris riwayat rilis). Kalau konsistensi ketiganya mau dijaga mesin, itu **penjaga baru** — dan §1 butir 4 melarang menambah penjaga tanpa keputusan pemilik. Sampai ada keputusan, jangan mengutip `release-check` sebagai bukti gate.
+
+**Lingkungan sandbox.** Di mesin ini Vite memanggil perintah sistem lewat pipa yang dilarang sandbox, sehingga `npm test`, `npm run test:sandbox`, dan `npm run build` gagal dengan galat `spawn EPERM` sebelum satu tes pun berjalan.
+
+Jalan keluarnya sudah tersedia di repo: berkas shim **`.dsh-vitest-shim.cjs`** di **akar folder induk** (`Private Tutor/`), dipanggil dari dalam `les-ko-lui/` lewat jalur relatif. Cukup satu pemanggilan PowerShell:
+
+```powershell
+$env:NODE_OPTIONS = "--require=../.dsh-vitest-shim.cjs"
+npm run test:sandbox
+```
+
+Dua jebakan yang sudah memakan waktu: (a) jalur absolut Windows **gagal** karena `NODE_OPTIONS` memakan garis miring terbalik (`Cannot find module 'C:Userslieml…'`) — pakai jalur relatif; (b) shim harus dipasang di dalam proses PowerShell yang sama dengan perintah npm-nya, karena `NODE_OPTIONS` hanya berlaku selama proses itu.
+
+Yang tetap butuh izin sandbox penuh dan tidak bisa disiasati: `npm run e2e`, `npm run e2e:uiux`, dan `git push`.
 
 **Akhir baris berkas wajib LF.** Jangan membiarkan satu berkas bercampur CRLF dan LF.
 
@@ -163,6 +175,7 @@ npm run release-check         memeriksa konsistensi versi dan catatan perubahan
 - Blok JSX kondisional ditutup pada baris terpisah. Memotong blok besar dengan penggantian teks sederhana menghasilkan penutup ganda. Pakai skrip pemotong yang memeriksa bentuk sebelum memotong.
 - Baris tabel markdown jangan disunting dengan jangkar pendek. Jangkar harus satu baris utuh, dan teks pengganti tidak boleh memuat teks jangkar.
 - Berkas `.mjs` dan `.cjs` untuk alat bantu ditaruh di `.design-audit/`, yang tidak dilacak git. Jangan ditaruh di folder sementara.
+- **Menomori ulang bagian sebuah kontrak bisa memutus rujukan nomor bagian di dokumen lain.** Revisi berkas ini 2026-10-07 meniadakan §0, §2.1, §2.2, §2.3, §6.1–§6.4, dan §9 yang dulu ada; enam rujukan di dokumen lain langsung menunjuk bagian yang tidak ada lagi. **Kalau menomori ulang, perbaiki seluruh rujukan nomor bagiannya pada putaran yang sama.** `npm run check:docs` **tidak** memeriksa hal ini: gate itu hanya menguji tautan `.md`, bukan nomor bagian atau nama jangkar.
 
 ---
 

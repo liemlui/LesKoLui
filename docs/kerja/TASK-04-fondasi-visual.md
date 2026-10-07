@@ -32,7 +32,7 @@ npm run build     # harapan: built + dist/sw.js
 > pasangan warna dari `src/lib/engagement.ts`. Kalau gagal setelah token diubah, **perbarui pasangan
 > warnanya di sumber yang memakainya**, jangan matikan tesnya. Ini memang fungsinya.
 >
-> ⚠️ **`src/lib/engagement.ts` TERLARANG disentuh** (`ATURAN-AI.md` §2.1). Yang boleh diperbaiki: token di
+> ⚠️ **`src/lib/engagement.ts` TERLARANG disentuh** (`ATURAN-AI.md` §3 — dulu §2.1; nomor bagiannya berubah 2026-10-07). Yang boleh diperbaiki: token di
 > `src/index.css`, kelas/warna di komponen **pemanggil**, serta peta warna laporan di
 > `src/template/layouts/helpers.tsx:425-429` — dan itu pun **hanya bila** pemilik memberi pengecualian
 > tertulis untuk `src/template/**` (sekarang masih terlarang). Kalau sebuah perbaikan kontras hanya bisa

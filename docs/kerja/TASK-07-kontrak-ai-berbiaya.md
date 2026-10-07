@@ -260,7 +260,7 @@ bagian di atas; `Select-String` untuk `AiCostConfirmModal` di `src/**/*.tsx` →
 3. `dataSent` dan `includesStudentNames` **wajib** diisi dengan jujur. Rujuk tabel pengiriman data di
    [`docs/arsitektur/06-ai-generation.md`](../arsip/arsitektur/06-ai-generation.md) — tabel itu sudah
    mendaftar apa yang dikirim per menu. **Selaraskan**, dan kalau ada yang berbeda, perbaiki dokumen 06
-   di putaran yang sama (aturan pemeliharaan `docs/README.md` §6.2 poin 4).
+   di putaran yang sama (aturan pemeliharaan `docs/README.md` §7.2 — dulu §6.2; nomor bagiannya berubah 2026-10-07).
 4. Setelah semua selesai: perbarui `docs/arsitektur/06-ai-generation.md` untuk menyebut satu jalur
    `useAiAction` + tabel biaya/pencatatan.
 

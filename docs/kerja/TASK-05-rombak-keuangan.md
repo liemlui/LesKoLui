@@ -322,7 +322,7 @@ kerumitan konsep yang tidak cocok dengan pekerjaan satu tutor.
 
 **Berkas:** `src/screens/payments/FinancePipelineBoard.tsx` (di-redesign) + `RingkasanTab.tsx` (tempat render).
 
-**Yang dilakukan (tap-driven — TIDAK ada pustaka DnD baru, `ATURAN-AI` §2.2):**
+**Yang dilakukan (tap-driven — TIDAK ada pustaka DnD baru, `ATURAN-AI` §3 — dulu §2.2; nomor bagiannya berubah 2026-10-07):**
 
 1. **Bentuk board+list:** rail kartu `snap-x snap-mandatory` (kartu `w-[78%]`) + daftar baris di bawahnya
    untuk tahap yang sedang difokuskan. Ruang efektif 412px ≈ 382px → **jangan** 5 kolom sejajar.

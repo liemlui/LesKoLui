@@ -35,7 +35,7 @@
 - **Jebakan `--text-soft`:** token ini **TIDAK ADA** di `src/index.css` meski TASK-04 §4 memetakan `text-gray-400` ke sana. G2-02: **JANGAN** buat `text-soft` baru (nilai gray-400 = 2,49:1, gagal ambang non-teks 3:1). Sapu `text-gray-400` → `--text-muted`.
 - **Anchor G2-03 (diperbarui):** `src/index.css:173-176` (komentar dark mode — sudah light-only permanen) — **bukan** `:48-51`, anchor usang yang hanya hidup di `docs/arsip/GELOMBANG-2.md` (beku).
 - **G2-03 substansi terpenuhi:** `prefers-color-scheme` di `src/` = 1 (di komentar). Sisa pekerjaan hanya kalimat komentar.
-- **Verifikasi:** perintah standar §0 + penghitung rigor `.design-audit/g2-02-sweep.mjs --dry <berkas>`
+- **Verifikasi:** perintah gate di bagian bawah berkas ini + penghitung rigor `.design-audit/g2-02-sweep.mjs --dry <berkas>`
   (harus **0 diganti · 0 sisa**, artinya sapu idempoten). **JANGAN** memakai
   `Select-String -Pattern "bg-white|bg-gray-|text-gray-|border-gray-"`: pola itu hanya melihat 4 dari
   23 keluarga palet dan menghitung **baris**, bukan kelas — angka 889 yang dihasilkannya menyesatkan
@@ -83,20 +83,32 @@
 - **Jebakan:** W8 (`studentRepo.ts:76-91`, pemicu `toPolicy === "session_count"`) menulis `rateSnapshot`/`cost`/`updatedAt` serentak dan **tidak berjejak audit** → rekonstruksi tarif lama hanya dari backup; laporan final `confirmed` ikut ditulis ulang (J1–J4) — kini dibekukan `frozenReportTotals()`; memulihkan sebagian record saat satu guard gagal (dilarang); G9 tidak membandingkan seluruh data pasangan → menimpa data hasil restore backup.
 - **Verifikasi:** `npx tsc -b --force` · `npx eslint .` · `npm test` · `npm test -- sessionPricing` · `-- sessionCountBilling` · `-- invoiceRecovery` · `-- reportUnlock` · `npx playwright test e2e/report-unlock.spec.ts` · E2E kini **dua** project (project `mobile-dark` hilang, Q4) sehingga angka lama 39/39 di tiga project tidak sebanding.
 
-## Verifikasi per tier (Smart Gating 4 tier)
+## Verifikasi per gate (dua tingkat — menggantikan "Smart Gating 4 tier")
 
-| Tier | Kondisi | Perintah gate | Durasi |
-|---|---|---|---|
-| T0 | Dokumen saja (docs/**, *.md) | `node scripts/check-md-links.mjs` | ~2 dtk |
-| T1 | <3 berkas, tidak sentuh infra | `tsc -b` · `eslint src` · `vitest <berkas terkait>` | ~15 dtk |
-| T2 | Sentuh src/components/lib/db/hooks ATAU layar dipakai >3 layar | T1 + smoke suite (6 tes) + `e2e:uiux` bila menyentuh UI | ~45 dtk |
-| T3 | Tugas terakhir gelombang ATAU sentuh package.json/config | T2 + full suite (691) + playwright semua spec | ~5 mnt |
+> **Diganti 2026-10-07.** Bagian ini dulu memuat tabel **empat tier** (T0–T3). Sistem itu sudah dicabut;
+> yang berlaku sekarang **dua tingkat**, dan gate dijalankan **sekali di akhir tugas**, bukan per langkah.
+> Kontraknya di [`ATURAN-AI.md`](ATURAN-AI.md) **§1**. Tabel lama sengaja tidak disalin ke sini — dua
+> tabel gate yang berbeda adalah cara tercepat membuat sesi berikutnya menjalankan gate yang salah.
+
+| Jenis perubahan | Yang dijalankan |
+|---|---|
+| Dokumen saja | `npm run check:docs` |
+| Kode biasa (satu sampai tiga berkas, tidak menyentuh uang) | `npx tsc -b` |
+| Kode yang menyentuh uang, data tersimpan, atau lebih dari tiga layar | `npx tsc -b` · suite tes · `npm run build` |
+| Tampilan | Test Playwright, sekali per tugas besar |
+
+`eslint` tidak lagi wajib per putaran — jalankan sekali sebelum menutup tugas besar.
 
 ## Smoke suite (6 tes)
 
 engagementContrast · captureSessionHelpers · repos · backup · finance · settingsRepo
 
-## Larangan global (ATURAN-AI §2.1)
+> Smoke suite bukan lagi tingkat gate tersendiri. Ia dipakai sebagai pemeriksaan cepat saat ragu, bukan sebagai pengganti suite penuh di tugas yang menyentuh uang atau data tersimpan.
+
+## Larangan global (ATURAN-AI §3)
+
+> Nomor bagian diperbaiki 2026-10-07. Larangan ini dulu ditulis sebagai **§2.1**; pada penomoran
+> `ATURAN-AI.md` yang berlaku sekarang, daftar berkas terlarang ada di **§3**.
 
 | Berkas | Alasan |
 |---|---|
