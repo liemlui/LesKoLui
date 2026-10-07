@@ -28,7 +28,9 @@ async function closeBackupNag(page: Page) {
 
 async function unlockFinance(page: Page) {
   if (!page.url().includes("/payments")) {
-    await page.getByRole("link", { name: "Keuangan", exact: true }).click();
+    // G3-02 #11: pintu nav bernama "Uang" sejak nav jadi tiga pintu. Judul
+    // halamannya tetap "Keuangan" — yang berubah hanya label pintunya.
+    await page.getByRole("link", { name: "Uang", exact: true }).click();
   }
   await closeChangelog(page);
   const pin = page.getByPlaceholder("PIN (6 digit)");

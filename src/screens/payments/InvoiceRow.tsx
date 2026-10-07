@@ -176,11 +176,17 @@ export default function InvoiceRow({
           </div>
           {/* G3-02 #9: kolom nominal menyebut keadaannya sendiri — pesan bila
               isinya tidak sah, catatan bila nilainya dipotong ke batas, dan tanda
-              tersimpan supaya tutor tahu koreksinya sudah tercatat. */}
+              tersimpan supaya tutor tahu koreksinya sudah tercatat.
+
+              Peran `alert` dipasang hanya saat isinya memang tidak sah. Untuk
+              keadaan "tersimpan" elemen ini **tidak** diberi `role="status"`:
+              kolom isian sudah menunjuk ke sini lewat `aria-describedby`, dan
+              dua live region di satu layar membuat setiap pencarian
+              `getByRole("status")` jadi ambigu — itu sudah mematahkan test alur
+              tagihan sekali. */}
           <p
             id={`pesan-nominal-${invoice.id}`}
-            role={pesan.jenis === "tidak-sah" || pesan.jenis === "dipotong" ? "alert" : "status"}
-            aria-live="polite"
+            role={pesan.jenis === "tidak-sah" || pesan.jenis === "dipotong" ? "alert" : undefined}
             className={`mt-1 min-h-[1rem] text-xs ${
               pesan.jenis === "tidak-sah" || pesan.jenis === "dipotong"
                 ? "font-semibold text-[var(--ink-danger)]"

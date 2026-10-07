@@ -17,11 +17,24 @@ test.describe("smoke", () => {
   test("app shell memuat dengan navigasi bawah", async ({ page }) => {
     await page.goto("/");
     await closeChangelog(page);
-    // Bottom nav selalu ada di semua layar (5 item: Home/Murid/Catat/Laporan/Keuangan)
+    // G3-02 #11: nav bawah kini TIGA PINTU + SATU AKSI (kontrak K1.1),
+    // sebelumnya lima pintu dengan "Catat" bergaya tombol mengambang.
+    // "Laporan" keluar dari nav, tetapi rute `/report` tetap hidup dan masih
+    // dicapai dari panel pipeline ("Buat laporan") serta modal invoice.
+    await expect(page.getByRole("link", { name: "Hari Ini" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Murid" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Catat" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Laporan" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Keuangan" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Uang" })).toBeVisible();
+    // Aksi utama adalah tombol, bukan tautan — itu inti perubahannya.
+    await expect(page.getByRole("button", { name: /Catat sesi/ })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Catat", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Laporan", exact: true })).toHaveCount(0);
+  });
+
+  test("aksi utama di nav membuka Catat Sesi", async ({ page }) => {
+    await page.goto("/");
+    await closeChangelog(page);
+    await page.getByRole("button", { name: /Catat sesi/ }).click();
+    await expect(page).toHaveURL(/\/capture/);
   });
 
   test("navigasi ke Murid", async ({ page }) => {
