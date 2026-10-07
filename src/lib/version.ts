@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.94.0",
+    date: "2026-10-07",
+    title: "Layar Uang jadi satu layar tiga blok, rekap tahunan terbaca di HP",
+    items: [
+      "**Layar Uang tidak lagi meminta Anda memilih tab lebih dulu.** Sekarang ia satu layar dengan tiga bagian tetap: **Ringkasan** (apa yang terjadi bulan ini dalam satu kalimat, plus hal-hal yang layak diperhatikan), **Perlu ditagih** (tiga tagihan paling mendesak, masing-masing dengan satu tombol aksi), dan **Bulan ini** (Masuk · Keluar · Sisa, plus tiga pintasan ke Rincian tagihan · Pengeluaran · Rekap tahunan). Dulu ada empat tab, sehingga Anda harus tahu lebih dulu ke mana harus pergi sebelum bisa melihat apa pun.",
+      "**Isi yang dulu ada di tab tidak dihapus, hanya dipindah ke tempat yang lebih tepat.** Analitik lengkap, Pengeluaran, dan Rekap tahunan tetap ada persis seperti sebelumnya — sekarang dibuka lewat pintasan di blok **Bulan ini**, dan setiap sub-layar punya tombol **← Kembali ke Uang**. Tautan lama yang menyebut `?tab=` tetap bekerja, jadi bookmark Anda tidak mati.",
+      "**Tiga tagihan yang muncul di blok Perlu ditagih diurutkan menurut kedaruratan, bukan menurut tanggal.** Yang sudah lewat jatuh tempo selalu di atas — yang paling lama menunggak lebih dulu — lalu yang siap diterbitkan (nominal terbesar lebih dulu, karena itu yang paling menahan kas), lalu yang sudah terkirim menurut jatuh tempo terdekat. Sisa tagihannya diringkas menjadi satu baris **“N tagihan lain”**, jadi blok ini tidak pernah memanjang tanpa batas.",
+      "**Rekap tahunan akhirnya nyaman dibaca di HP.** Tabelnya sekarang **tiga kolom** — Bulan · Sisa kas · Piutang — dan tiap bulan menyebut jumlah pertemuan serta jamnya di bawah namanya. Tombol **“Lihat lengkap ▸”** membuka tabel penuh delapan kolom yang bisa digeser ke samping, dan barisnya tetap diakhiri Total. **Berkas CSV tidak berubah sama sekali**: isi dan formatnya persis seperti sebelumnya.",
+      "**Tiga teks yang tadinya sulit dibaca sekarang lolos ambang keterbacaan.** Nomor halaman pada lembar rekap tagihan (rasio kontras 2,54:1 → 7,56:1), badge **“Belum dibayar”** di rekap itu (2,86:1 → 8,15:1), dan tombol **“+ Tagihan Manual”** yang tadinya hanya setinggi 20 piksel sehingga sulit ditekan di HP — sekarang setinggi 44 piksel seperti kontrol utama lainnya. Ketiganya ditemukan oleh penjaga tampilan yang baru mencakup halaman ini.",
+    ],
+  },
+  {
     version: "v1.93.0",
     date: "2026-10-05",
     title: "Pindah jadwal ke murid lain: nominalnya ikut tarif murid yang benar-benar les",
