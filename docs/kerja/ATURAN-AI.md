@@ -1,459 +1,178 @@
-# ATURAN-AI — Kontrak kerja rombak UI/UX (WAJIB dibaca sebelum menyentuh kode)
+# ATURAN-AI — kontrak kerja, aturan, dan daftar keputusan pemilik
 
-> **STATUS:** `final` — keputusan pemilik dikunci 2026-09-25
-> **BASELINE (potret saat berkas ini dibuat):** v1.75.1 · 561 tes / 50 berkas · Dexie v15 —
-> jumlah hari ini: `npm run test:sandbox` (lihat §5).
-> **PANJANG:** pendek sengaja. Rincian ada di berkas yang ditunjuk. **Jangan baca berkas lain
-> sebelum membaca ini.**
+> **Sekilas.** Jenis: kontrak kerja. Status: berlaku. Untuk siapa: agen AI yang mengerjakan aplikasi ini, dan pemilik yang mengawasi.
+> Baca kalau: sebelum mengerjakan apa pun, atau sebelum bertanya apa pun ke pemilik.
+> **Aturan tertinggi:** kalau ada dokumen lain yang bertentangan dengan berkas ini, berkas ini yang menang.
 
 ---
 
-## 0. Cara pakai (hemat token — patuhi)
+## 1. Cara bekerja (menggantikan aturan lama yang membuat pekerjaan tercicil)
 
-1. Baca berkas ini **seluruhnya** — panjangnya **ukur sendiri**, jangan percaya angka yang tertulis di
-   dokumen: `(Get-Content docs/kerja/ATURAN-AI.md).Count`. Ini satu-satunya bacaan wajib; sisanya referensi.
-2. **Buka [`CHEATSHEET.md`](CHEATSHEET.md) dulu, bukan `TASK-XX`.** Ia memuat 1 halaman per tugas dan cukup untuk ~95% kasus. Buka `TASK-XX` utuh hanya kalau butuh detail lebih, dan **hanya langkah yang sedang dikerjakan**.
-3. **Jangan** membaca seluruh `TASK-01`, seluruh `../arsip/`, atau berkas >500 baris secara utuh. Pakai **jangkar** yang disebut tugas: cari teksnya, baca ±40 baris di sekitarnya.
-4. **Jangan** membaca berkas >500 baris secara utuh. Daftar + perintah pengukurnya:
-   `npm run measure` (baris `MonthlyReport.tsx`, `CaptureSession.tsx`, `Settings.tsx`, `StudentDetail.tsx`, `TagihanTab.tsx`).
-   Angka baris **bukan** DoD — ia hanya penanda apakah berkas sudah dipecah.
-5. **Satu langkah per putaran.** Verifikasi → lapor → berhenti. Jangan lanjut sendiri.
-6. **Jangan menambah berkas baru** selain yang disebut kontrak, tanpa persetujuan.
-7. **Kalau DSH baru:** baca urutan ini saja: §0 · §1 (B1–B4) · §2.1 (larangan berkas) · §6 (perintah) + §6.1 (sandbox) + §6.2 (gate 4-tier) + **§6.3 (LF)** + **§6.4 (jebakan alat & git — hemat waktu, jangan dilewati)** · [`SERAH-TERIMA.md`](SERAH-TERIMA.md) (keadaan repo, temuan sesi terakhir, pekerjaan berikutnya) · [`PEKERJAAN.md`](PEKERJAAN.md) (daftar pekerjaan aktif, **termasuk** di mana langkah rinci tiap G3 berada) · [`CHEATSHEET.md`](CHEATSHEET.md). Sisanya referensi.
-8. **[`PEKERJAAN.md`](PEKERJAAN.md) adalah satu-satunya daftar pekerjaan** — ia menggantikan `ROADMAP.md` (kini di `../arsip/`) **dan** §4 `docs/README.md` (kini di `../arsip/RIWAYAT-PEKERJAAN-2026-10.md`).
-9. **Angka mutakhir tidak ditulis di dokumen.** Versi = `package.json`; jumlah tes = `npm run test:sandbox`; baris berkas = `npm run measure`. `npm run check:docs` menolak klaim versi/angka yang salah.
+**Prinsip yang mengikat: waktu pemilik adalah komponen termahal di proyek ini.** Semua aturan di bawah ini adalah turunan dari prinsip itu, bukan kerapian belaka.
+
+1. **Satu tugas dikerjakan sampai tuntas, lalu lapor satu kali.** Aturan lama "satu putaran satu langkah, lapor, berhenti" dicabut. Laporan per langkah membuat pemilik membayar berkali-kali untuk satu pekerjaan.
+2. **Gate dijalankan sekali di akhir tugas**, bukan setiap langkah. Menjalankan ulang gate untuk perubahan yang sama adalah pemborosan, bukan kehati-hatian.
+3. **Jangan mengulang test untuk membuktikan hal yang sama.** Kalau satu berkas uji merah padahal sendirian hijau, itu gagal karena beban kerja mesin. Catat satu baris, lanjutkan. Jangan menjalankan seluruh suite berkali-kali.
+4. **Jangan menambah penjaga baru tanpa alasan yang menyentuh uang, data, atau regresi yang benar-benar pernah terjadi.** Penjaga yang sudah ada boleh dan sebaiknya disederhanakan. Penjaga yang menghambat perubahan yang jelas baik harus dibuang.
+5. **Jangan bertanya ke pemilik untuk hal yang tidak mengubah uang, tidak mengubah perilaku pengguna, dan tidak menghapus data.** Putuskan sendiri, catat alasannya satu baris di riwayat tugas. Yang wajib ditanyakan hanya tiga hal itu.
+6. **Angka mutakhir tidak ditulis di dokumen.** Tulis perintah cara mengukurnya. Angka yang disalin akan basi dan menyesatkan sesi berikutnya.
+7. **Kalau menemukan pekerjaan yang belum selesai tapi tidak ada di daftar**, langsung tambahkan ke daftar dengan tanggal dan sumbernya. Jangan menunggu izin, dan jangan membiarkannya hilang.
+
+**Gate dua tingkat (menggantikan sistem empat tier lama):**
+
+| Jenis perubahan | Yang dijalankan |
+|---|---|
+| Dokumen saja | `npm run check:docs` sekali |
+| Kode biasa (satu sampai tiga berkas, tidak menyentuh uang) | `npx tsc -b` sekali di akhir tugas |
+| Kode yang menyentuh uang, data tersimpan, atau lebih dari tiga layar | `npx tsc -b`, suite tes, dan `npm run build` masing-masing sekali di akhir tugas |
+| Tampilan | Test Playwright dijalankan sekali per tugas besar, tidak per langkah |
+
+Tidak ada kewajiban menjalankan `eslint` di setiap putaran. Jalankan sekali sebelum menutup tugas besar.
 
 ---
 
-## 1. Keputusan pemilik — TERKUNCI, jangan ditawar
+## 2. Integritas dokumen (aturan baru — memperbaiki kesalahan pembersihan dokumen)
 
-| Kode | Keputusan | Konsekuensi yang mengikat |
+**Kejadian nyata yang tidak boleh terulang.** Saat dokumen dirapikan beberapa waktu lalu, isi diringkas sampai butir pekerjaan yang belum selesai ikut hilang dari daftar. Contoh yang terbukti: tiga butir pekerjaan Keuangan (G3-02) — pembangun `financeRows` dan `financeOverview`, layar Keuangan menjadi satu layar dengan tiga blok tetap, dan tabel Rekap dari delapan kolom menjadi tiga kolom — hanya hidup di spesifikasi arsip dan tidak pernah muncul di daftar pekerjaan setelah penggabungan dokumen. Akibatnya pekerjaan itu hampir dinyatakan selesai padahal belum tersentuh.
+
+**Aturan yang berlaku sekarang:**
+
+1. **Jangan menghapus berkas dokumen.** Pindahkan ke `docs/arsip/`, dan tambahkan satu baris di peta pemindahan di `docs/arsip/README.md` yang menyebut berkas asal, berkas tujuan, tanggal, dan alasan.
+2. **Jangan meringkas isi yang masih dikerjakan.** Kalau dua dokumen digabung, setiap butir pekerjaan yang belum selesai wajib muncul di berkas tujuan. Isi yang sudah selesai boleh diringkas, tetapi wajib tetap punya jejak di bagian riwayat.
+3. **Menutup butir tidak sama dengan menghapus barisnya.** Setiap butir yang ditutup meninggalkan satu baris riwayat berisi tanggal dan alasan.
+4. **Kalau ragu apakah sesuatu masih dikerjakan, anggap masih dikerjakan.** Salah karena terlalu banyak pekerjaan di daftar jauh lebih murah daripada salah karena pekerjaan hilang dari daftar.
+
+---
+
+## 3. Berkas yang dilarang disentuh
+
+Berkas berikut memuat rumus, teks keluar, atau data yang sudah dibekukan. Tugas apa pun dilarang mengubah isinya. Kalau sebuah tugas menuntut mengubahnya, tugas itu salah lingkup: berhenti dan laporkan.
+
+- `src/db/db.ts`
+- `src/lib/crypto.ts`
+- isi fungsi `formatRupiah()`
+- `src/lib/waBilling.ts`
+- `src/lib/invoicePresentation.ts`
+- `src/lib/engagement.ts`
+- `src/lib/finance.ts`
+- `src/lib/financePipeline.ts`
+- `src/lib/csv.ts`
+- seluruh isi `src/template/`
+- `STEP_META` di `src/screens/captureSession/constants.ts`
+- prompt di `src/lib/aiClient.ts`
+
+**Perbuatan yang dilarang tanpa keputusan pemilik:** menambah pustaka baru, mengubah `playwright.config.ts` atau `vite.config.ts`, mengubah jumlah langkah wizard dari enam, menghidupkan mode gelap, dan mengaktifkan integrasi berkelanjutan di GitHub.
+
+---
+
+## 4. Keputusan pemilik yang sudah final
+
+Daftar ini adalah satu-satunya tempat keputusan pemilik dicatat. **Semua keputusan di sini sudah final dan tidak boleh ditanyakan lagi.** Kalau sebuah keputusan membuat pekerjaan menjadi sulit, yang berubah adalah cara mengerjakannya, bukan keputusannya.
+
+### 4.1 Konstitusi produk
+
+| Kode | Keputusan |
+|---|---|
+| B1 | Tarif dan rincian sesi di seluruh layar Murid ikut ditutup. Setiap layar murid wajib lewat `useMoneyVisible()`. |
+| B2 | Uang tidak terkunci otomatis setelah lima menit. Sekali dibuka, berlaku selama aplikasi terbuka. Hanya tombol Kunci yang menutupnya. |
+| B3 | Tombol Catat di Beranda mengisi murid, tanggal, dan jam. Jumlah langkah wizard tetap enam. Yang dihemat pengisiannya, bukan langkahnya. |
+| B4 | Batas belanja AI tidak dipasang secara default. Kolomnya ada, kosong berarti tanpa batas. Kalau diisi dan terlampaui, tombol AI nonaktif dengan alasan yang terlihat. |
+| Tetap | Wizard Catat Sesi dipertahankan bentuknya, hanya diperkuat. Navigasi tiga pintu ditambah satu aksi di dalam navigasi, tanpa tombol mengambang. Semua panggilan AI lewat modal biaya. Beranda tidak menampilkan uang sama sekali. |
+| Tetap | Sesi boleh disimpan dari langkah lima maupun langkah enam, dan langkah enam tetap menawarkan Bukti. |
+| Tetap | Papan pipeline dipertahankan, bukan dibubarkan, dan hidup di dalam blok "Perlu ditagih" di layar Uang. Tidak menambah blok keempat. |
+| Tetap | Aplikasi terang saja secara permanen. Mode gelap tidak dihidupkan lagi. |
+| Tetap | Peta tab layar Murid: Ringkas, Sesi, Progres, Proyek. Uang menjadi blok di dalam tab Ringkas. |
+| Tetap | Fokus Android. Aturan ukuran huruf enam belas piksel untuk iOS tidak dipakai, ukuran dasar tetap lima belas piksel. |
+| Tetap | Refactor terbatas dikerjakan tepat sebelum gelombang fiturnya, satu berkas besar per gelombang. |
+| Tetap | Semua dialog konfirmasi memakai komponen internal, bukan `confirm()` atau `prompt()` bawaan peramban. |
+
+### 4.2 Keputusan yang sudah diambil dan tetap mengikat pekerjaan hari ini
+
+Keputusan lama bernomor Q1 sampai Q45 (2026-09-25 sampai 2026-10-04) sudah final seluruhnya. Yang masih menentukan pekerjaan hari ini sudah disalin ke bawah ini; daftar lengkapnya ada di tiga berkas arsip, yaitu `docs/arsip/GELOMBANG-1.md`, `docs/arsip/GELOMBANG-2.md`, dan `docs/arsip/RIWAYAT-PEKERJAAN-2026-10.md`.
+
+| Hal | Keputusan |
+|---|---|
+| Urutan tugas Gelombang 3 | G3-01, G3-02, G3-03, G3-04, G3-05, G3-06, G3-07, G3-08, G3-09, G3-10. Tugas G3-04 dikerjakan sebelum G3-05 karena panel AI di Laporan membutuhkannya. |
+| Letak berkas penguji tampilan | Folder `e2e-uiux/` dengan konfigurasi `playwright.uiux.config.ts`. |
+| Cakupan perintah pemeriksaan kebocoran uang | Folder `src/screens/payments/` dikecualikan, karena isinya hanya bisa dirender setelah gerbang PIN lolos. |
+| Ukuran sasaran sentuh | Empat puluh empat piksel untuk kontrol utama. Chip dan kontrol sekunder boleh dua puluh empat sampai tiga puluh enam piksel. |
+| Batas waktu satu test Playwright | Enam puluh detik. Jangan dinaikkan lagi tanpa alasan terukur. |
+| Integrasi berkelanjutan | Tidak diaktifkan. Gate lokal adalah satu-satunya penjaga. Jangan menawarkannya lagi. |
+| Nama berkas laporan | Nama murid dipertahankan di dalam nama berkas. |
+| Folder usulan tampilan | `docs/mockups/` dipertahankan, tidak diarsipkan, paling tidak sampai tugas Laporan selesai. |
+| Katalog topik mapel | Dikerjakan agen, bukan pengetahuan pemilik. Cari topik sebanyak mungkin, topik yang sama boleh dipakai lintas mapel yang serupa. |
+| Verifikasi dua build aplikasi web progresif | Dikerjakan pemilik lewat Vercel. Bukan tugas agen. Jangan diangkat lagi. |
+| Tampilan emoji | Dilonggarkan pada 2026-10-05. Emoji boleh dipakai kalau tampilannya bagus di HP pemilik. Ketidakkonsistenan antarperanti bukan masalah. Penjaga yang menuntut nol emoji tidak lagi wajib. |
+
+### 4.3 Keputusan pemilik 2026-10-05 (putaran terakhir)
+
+| Nomor | Keputusan | Akibat yang mengikat |
 |---|---|---|
-| **B1** | Tarif & rincian sesi di layar `Murid` **ikut ditutup** | Semua layar murid wajib lewat `useMoneyVisible()` |
-| **B2** | Uang **tidak** terkunci otomatis setelah 5 menit | Sekali buka = berlaku selama aplikasi terbuka; hanya tombol `Kunci` yang menutup |
-| **B3** | `[Catat]` dari beranda **mengisi** murid+tanggal+jam | **Jumlah langkah wizard tetap 6.** Yang dihemat pengisian, bukan langkah |
-| **B4** | Batas belanja AI **tidak dipasang secara default** (kolom tetap ada; kosong = tanpa batas) — **diubah 2026-10-01 (Q1)** | Bila pengguna **mengisi** batas: melewatinya = tombol AI nonaktif dengan alasan terlihat. Bila kosong: tidak ada penolakan. Fitur inti tetap jalan dari aturan lokal |
+| D1 | Tiga butir pekerjaan Keuangan yang hilang dari daftar tetap berlaku dan masuk daftar sisa: pembangun murni `financeRows` dan `financeOverview`, layar Keuangan menjadi satu layar dengan tiga blok tetap, dan tabel Rekap dari delapan kolom menjadi tiga kolom. | Sisa tugas Keuangan menjadi tujuh butir, bukan empat. Spesifikasi lengkapnya sekarang ada di `PEKERJAAN.md` bagian 3, tidak lagi hanya di arsip. |
+| D2 | Tarif selalu mengikuti tarif dasar di profil murid. Murid per pertemuan ditagih ketika paket pertemuannya lengkap, misalnya delapan atau dua belas pertemuan. Murid per jam dihitung per jam dan ditagih bulanan. Nominal manual yang pernah diisi tutor adalah koreksi yang disadari dan tidak boleh tertimpa oleh perhitungan otomatis. | Perhitungan biaya saat sesi ditutup wajib memeriksa nominal manual sebelum menulis. Salah satu bagian kode saat ini mengabaikannya, dan itu harus dibetulkan. Pertemuan yang tanggalnya jatuh di antara dua bulan boleh ditagihkan pada salah satu bulan, dan tutor yang menentukan bulannya. |
+| D3 | Alias mapel lintas kurikulum dibenahi dengan penyaringan yang tepat. | Mapel Nasional Informatika dan Penjaskes tidak boleh lagi memakai katalog ilmu komputer tingkat internasional. Dua puluh tiga peta alias yang ditandai skrip audit ditinjau seluruhnya, bukan sebagian. |
+| D4 | Cakupan penjaga tampilan diperluas, dan perubahan warna atau token wajib meninggalkan catatan bahwa tampilan sudah dipatenkan. | Tab tagihan di layar Uang masuk daftar halaman yang dijaga. Setiap perubahan warna, token, atau ukuran yang disengaja dicatat di bagian riwayat tugas dengan alasan dan tanggal. |
+| D5 | Katalog topik IB harus benar-benar diperiksa. Memakai kerangka silabus boleh. Lebih banyak unit data lebih baik daripada tidak punya data. | Katalog IB MYP dan IB DP tidak lagi berstatus belum diverifikasi. Kekurangan unit ditambah, bukan dikurangi. |
+| D6 | Hierarki judul layar Keuangan memakai pilihan yang lebih mudah dibaca sesuai kaidah tampilan. | Satu judul induk ditambahkan, keenam kartu diturunkan satu tingkat, dan tampilan visualnya tidak berubah. |
+| D7 | Emoji boleh dipertahankan kalau tampilannya bagus. | Kebijakan emoji dilonggarkan seperti tercatat di bagian 4.2. |
+| D8 | Kegagalan test yang muncul hanya saat beban tinggi diperkuat penyebabnya, bukan dibiarkan. | Pemuatan data contoh dibuat berurutan supaya tidak berlomba dengan test. |
 
-Keputusan lain yang juga terkunci: **wizard Catat Sesi dipertahankan apa adanya (hanya diperkuat)**;
-**Nav = 3 pintu + 1 aksi di dalam nav** (tanpa FAB mengambang); **semua AI lewat modal biaya**;
-**Home tidak menampilkan uang sama sekali**.
+### 4.4 Cara menutup pertanyaan baru
 
-**Amandemen 2026-10-01 (Q1–Q9) — ikut terkunci:**
-
-- **Sesi boleh disimpan dari langkah 5** (tombol `Simpan Sesi` aktif di langkah 5 **dan** 6). **Jumlah langkah tetap 6**,
-  `STEP_META` tidak berubah, dan langkah 6 tetap menawarkan Bukti (foto/TTD). *(Q2)*
-- **Papan pipeline dipertahankan**, bukan dibubarkan; hidup **di dalam blok "Perlu ditagih"** pada layar Uang
-  (tidak menambah blok ke-4). *(Q3)*
-- **Light-only permanen** — dark mode tidak dihidupkan lagi. *(Q4)*
-- **Peta tab layar Murid = Ringkas / Sesi / Progres / Proyek**; uang menjadi **blok di dalam tab Ringkas**
-  (bukan tab terpisah, bukan di Progres). *(Q5)*
-- **Fokus Android** — tidak ada aturan input 16px demi iOS; token `body` tetap 15px. *(Q7)*
-- **Refactor terbatas sebelum wave fitur**: `CaptureSession.tsx` sebelum G3-01 dan `MonthlyReport.tsx`
-  sebelum G3-05; berkas lain tidak disentuh. Fitur tetap ditulis lengkap di dokumen tugas. *(Q9)*
-
-**Amandemen 2026-10-05 (Q-A…Q-F, #1…#7) — ikut terkunci.** Dijawab pemilik pada putaran pemeriksaan
-dokumentasi; rincian angkanya ada di riwayat berkas terkait.
-
-- **Q-A = B — 10 warna heks mentah diganti token** (bilah aksi `CaptureSession.tsx` · kepala sheet &
-  tombol `CloseOutSheet.tsx`). **Selesai** (commit `ccffa3c`). Diterima sadar: kepala sheet laporan kini
-  hijau lebih gelap. Efek samping yang **memperbaiki**: teks putih di atas dua nilai lama gagal ambang —
-  langkah 6 `3,30:1` → `4,95:1`, keadaan menyimpan `1,80:1` → `14,67:1`. Kalau keadaan "menyimpan" terlihat
-  terlalu gelap, itu pilihan sadar (token terdekat menurut jarak RGB tetap gagal: `1,49:1`).
-- **Q-B = b3 — nav bawah TIDAK diblokir.** Keluar lewat nav tidak menghilangkan isian (draf tersimpan +
-  langkah dipulihkan). Yang ditambahkan hanya **satu baris kepastian** saat draf berstatus tersimpan.
-  Opsi b2 (konfirmasi di nav) **ditolak** — jangan ditawarkan lagi; kalau nanti diinginkan, itu keputusan baru.
-- **Q-C = c2 — grup radio pakai pola keyboard penuh.** Tab masuk **sekali** ke pilihan aktif, panah
-  ←/→/↑/↓ memindahkan pilihan (membungkus), `Home`/`End` ke ujung. **Selesai** (commit `82bb758`; aturan
-  murni `nextRadioIndex()` + 5 tes). Perpindahan fokus sesungguhnya **belum diuji** — calon spec E2E.
-- **Q-D = d2 — rilis ditunda.** Versi **tidak** dinaikkan sampai G3-01 tuntas (`L4 ManageSessionSheet`);
-  lalu **satu** entri `CHANGELOG` untuk seluruh gelombang 3, bukan satu per langkah. Selama itu aplikasi
-  di Vercel tetap memperbarui diri (SW), hanya modal "Catatan perubahan" yang belum muncul.
-- **Q-E = e1 — `docs/mockups/` DIPERTAHANKAN**, tidak diarsipkan, minimal sampai G3-05 (laporan) selesai.
-- **Q-F = bertahap — spesifikasi `G3-02`…`G3-10` dipindah dari arsip ke dokumen hidup satu tugas per
-  pemindahan**, dikerjakan saat gelombang itu mulai. Sampai itu, penunjuknya ada di `PEKERJAAN.md` §3.
-- **#5 — batas waktu satu tes Playwright 30 → 60 dtk** (commit `67f2c35`). "Tetap fokus kecepatan": **60,
-  bukan 120**; jangan dinaikkan lagi tanpa alasan terukur, dan `webServer.timeout` tidak diubah.
-- **#6 — CI GitHub TIDAK diaktifkan.** Gate lokal (`tsc` · `eslint` · `test:sandbox` · `build`) adalah
-  satu-satunya penjaga. **Jangan menyarankan mengaktifkan CI lagi**; `ci.yml` dibiarkan apa adanya dan
-  **tidak perlu diperbaiki** (isinya sudah benar).
-- **#1 — verifikasi PWA dua build ditangani pemilik lewat Vercel.** Bukan tugas agen; jangan diangkat lagi.
-- **#2 — daftar periksa manual ditambah** butir untuk perubahan 2026-10-05 (lihat `PEKERJAAN.md` §5).
-- **#3 — katalog topik 78 mapel dikerjakan agen**, bukan lagi "pengetahuan pemilik": cari topik
-  **sebanyak mungkin**, topik yang sama boleh dipakai lintas mapel/serupa. Jaga `topicCoverage` tetap hijau.
-- **#7 — semua spec E2E harus hijau.** Mulai dari menjalankan `npm run e2e` (butuh eskalasi sandbox);
-  spec yang merah **jalankan sendirian dulu** sebelum disebut regresi; baru perbaiki yang benar-benar gagal.
-
-**Keputusan pemilik 2026-10-05 (lanjutan — dari penyelidikan alur kelola-jadwal Beranda).** **Pemindahan murid pada satu sesi hanya berlaku untuk sesi `SCHEDULED` yang belum lewat** (sheet "Kelola sesi" → `Simpan perubahan` → kolom "Murid"); **sesi terlewat tetap tidak boleh pindah murid** — alasan terkunci: tagihan yang sudah tertaut ke sesi itu ikut berpindah. Bukti yang bisa dijalankan: `manageSessionSheet.test.tsx` (`tampilkanPemilihMurid` · `pilihanMurid`).
-
----
-
-## 2. ❌ JANGAN — daftar tunggal (kalau ragu, berhenti dan tanya)
-
-### 2.1 Berkas yang DILARANG disentuh oleh tugas apa pun di seri ini
-
-| Berkas | Alasan |
-|---|---|
-| `src/db/db.ts` | versi skema Dexie; migrasi salah = kehilangan data pengguna nyata |
-| `src/lib/crypto.ts` | cara PIN disimpan; salah = pengguna terkunci dari datanya |
-| `src/lib/format.ts` → isi `formatRupiah()` | juga menyusun **pesan WhatsApp ke orang tua**; masking di sini merusak tagihan |
-| `src/lib/waBilling.ts`, `src/lib/invoicePresentation.ts` | pesan keluar harus memuat nominal **asli** |
-| `src/lib/engagement.ts` | rumus skor; mengubahnya mengubah arti data historis |
-| `src/lib/finance.ts`, `src/lib/financePipeline.ts` | rumus uang yang sudah benar |
-| `src/lib/csv.ts` | format ekspor lama harus identik |
-| `src/template/**` | mesin laporan (tema/rotation); tugas terpisah |
-| `src/screens/captureSession/constants.ts` → `STEP_META` | jumlah langkah dikunci 6 (ada tesnya) |
-| Prompt di `src/lib/aiClient.ts` | mutu hasil AI; tugas ini soal jalur, bukan isi |
-
-### 2.2 Perbuatan yang dilarang
-
-| ❌ | Kenapa |
-|---|---|
-| Menggabung/mengurangi langkah wizard Catat Sesi | keputusan pemilik; merusak mutu data engagement. **Menyimpan dari langkah 5 BUKAN pelanggaran** (Q2 2026-10-01): `STEP_META` tetap 6 |
-| Menghapus kemampuan dengan alasan "menyederhanakan" | paling jauh dipindah ke `⋯` atau sub-layar `▸` |
-| Menambah dependensi/pustaka UI atau animasi | fondasi dibangun dari token + CSS |
-| `npx tsc -b` / `eslint` / `test` dijalankan lalu **diakali** (menonaktifkan tes, menaikkan batas) | tes adalah buktinya; kalau gagal, perbaiki sebabnya |
-| Menulis angka uang langsung di layar | wajib lewat `MaskedMoney` |
-| Memanggil `aiClient` langsung dari komponen | wajib lewat `useAiAction` |
-| Menulis `bg-white` / `bg-gray-*` / `text-gray-*` / `border-gray-*` di komponen | wajib token |
-| Menaikkan versi skema Dexie | tugas ini tidak butuh data baru |
-| Mengubah URL `?scheduleId=` dan `?tab=` | deep link & E2E memakainya |
-| Melanjutkan ke langkah berikutnya tanpa verifikasi | satu langkah per putaran |
-
-### 2.3 Kalau menemukan konflik antar dokumen
-
-Urutan menang: **1)** berkas ini → **2)** `docs/06-ARSITEKTUR-KODE.md`
-(aturan yang mengikat seluruh kode) → **3)** `TASK-XX` → **4)** dokumen lain.
-Tulis konfliknya di §8 tugas terkait pada putaran yang sama.
-
-> **Catatan (2026-10-05).** Penengah lama di sini adalah `arsitektur/11-uiux-ai-cost-dan-privasi.md`.
-> Dokumen itu **dipatok v1.75.1** dan sejak 2026-10-05 **diarsipkan** — dokumen pemenang konflik tidak
-> boleh jadi dokumen yang paling basi. Isi kontraknya yang masih berlaku sudah dinaikkan ke berkas ini
-> (§1 keputusan terkunci · §3 kontrak inti); sisanya potret sejarah.
-
-**Konflik yang sudah diselesaikan** (jangan diangkat lagi):
-`TASK-04` Langkah 4 **tidak** mengubah jumlah pintu nav; perubahan nav **hanya** di `TASK-05` Langkah 7.
-Alasan: selector E2E hanya boleh patah sekali.
-
----
-
-## 3. Kontrak inti (ringkas — rincian yang masih berlaku ada di berkas ini; potret lama di `../arsip/arsitektur/11-…`)
-
-- **K1 Arah** — satu blok keputusan per layar · urutan blok menyesuaikan keadaan, susunannya tetap ·
-  kerumitan di balik `▸` · setiap angka bisa diklik ke sumbernya · bahasa manusia, bukan status DB mentah.
-- **K2 AI berbiaya** — satu jalur `useAiAction()` · tombol memuat `· ~RpNN` · **modal wajib** sebelum
-  panggilan · batas bulanan (B4) · catat tiap panggilan sukses sebagai `ai.call` ·
-  **fitur inti tidak boleh bergantung pada AI**.
-- **K3 Uang tertutup** — satu hook `useMoneyVisible()` · bentuk terkunci `Rp ••••••` + 🔒 ·
-  gerbang di semua layar (6 titik di §5) · sekali buka berlaku selama app terbuka (B2) ·
-  **Home tanpa uang sama sekali** · **cakupan perintah §6 = `src/screens` DI LUAR `src/screens/payments/**`** —
-  modul keuangan hanya bisa dirender setelah gerbang penuh `Payments.tsx` lolos (Q44/A17).
-- **K4 Token & rasa** — tipografi **4 langkah** (24/18/15/13) · konten terbaca **≥13px** ·
-  elevasi **2 tingkat** · target sentuh **≥44px untuk kontrol utama** (aksi primer, nav, ikon aksi) —
-  chip & kontrol sekunder **24–36 px diterima** (ambang keras WCAG 2.5.8 = 24 px) (Q45/A18) ·
-  **2 pola gerak** (200ms/250ms) · panel HP = **sheet dari bawah**.
-
----
-
-## 4. Peta pekerjaan (satu berkas = satu pekerjaan)
-
-| # | Pekerjaan | Berkas | Prasyarat |
-|---|---|---|---|
-| 03 | Blueprint (induk: peta layar → nasib) | `docs/kerja/TASK-03-blueprint-uiux.md` | — |
-| 04 | Fondasi visual (token, 7 primitif, dark mode) | `docs/kerja/TASK-04-fondasi-visual.md` | 03 |
-| 05 | Rombak keuangan + nav 3 pintu | `docs/kerja/TASK-05-rombak-keuangan.md` | 04, 08 |
-| 06 | Perkuat Catat Sesi + sheet Kelola sesi | `docs/kerja/TASK-06-perkuat-catat-sesi.md` | 04 |
-| 07 | Kontrak AI berbiaya | `docs/kerja/TASK-07-kontrak-ai-berbiaya.md` | 04 |
-| 08 | Satu pintu uang (tutup 6 kebocoran) | `docs/kerja/TASK-08-satu-pintu-uang.md` | 04 |
-| 09 | Jadwal hari: zoom + mode tangkapan | `docs/kerja/TASK-09-jadwal-hari-zoom.md` | 04 |
-
-**Urutan pengerjaan (risiko terendah dulu):** 04 → 08 → 09 → 06 → 05 → 07 → **tetapi `TASK-07` naik sebelum Langkah laporan `TASK-05`** — lihat **A14**.
-
-> **A14 — urutan `TASK-06`/`TASK-05`/`TASK-07` (keputusan pemilik 2026-10-01, Q12 = A).**
-> Urutan kerja bergelombang yang berlaku: `G3-01 (TASK-06) → G3-02 (TASK-05 non-papan) → G3-03 (papan pipeline) →
-> **G3-04 (TASK-07) → G3-05 (laporan `TASK-05`)** → G3-06 → …`
-> **Alasan:** panel hasil AI di layar Laporan **butuh** `useAiAction` dari `TASK-07`, sehingga `TASK-07`
-> tidak bisa benar-benar "paling akhir". Konsekuensi yang diterima: `TASK-07` menyentuh 7 titik pemanggilan AI
-> **sebelum** laporan dirombak — titik-titik itu harus sudah stabil saat laporan dikerjakan.
-> Urutan lama (`06 → 05 → 07`) tetap berlaku untuk pekerjaan **non-laporan** di `TASK-05`.
-
-**Kapan membaca berkas lain:**
-
-| Butuh | Baca |
-|---|---|
-| **daftar pekerjaan terbuka & urutan eksekusi** | [`PEKERJAAN.md`](PEKERJAAN.md) |
-| **keadaan repo & temuan sesi terakhir (mulai dari sini kalau baru)** | [`SERAH-TERIMA.md`](SERAH-TERIMA.md) |
-| apa yang dilarang disentuh + peta kode | `docs/06-ARSITEKTUR-KODE.md` |
-| melihat usulan tampilan | `docs/mockups/home-2026-09-24.html` · `uang-…` · `hari-…` (buka di browser) |
-| cara menulis dokumen tugas | `docs/kerja/TASK-02-format-dokumen-tugas-ai.md` |
-| potret lama (jangan dikutip sebagai keadaan sekarang) | `docs/arsip/arsitektur/11-uiux-ai-cost-dan-privasi.md` · `…/06-ai-generation.md` |
+Pertanyaan baru ke pemilik hanya sah untuk tiga hal: mengubah uang, mengubah perilaku pengguna, dan menghapus data. Di luar tiga hal itu, putuskan sendiri dan tulis alasannya satu baris. Pertanyaan yang sudah pernah dijawab tidak boleh diajukan lagi, termasuk dalam bentuk yang sedikit berbeda.
 
 ---
 
 ## 5. Fakta kode yang mengikat
 
-> **⚠️ Sejak 2026-10-05, angka MUTAKHIR tidak lagi ditulis di sini.** Dokumen ini memuat **perintah
-> pengukurnya**; hasilnya selalu basi begitu ada commit. Riwayat nyata: `CaptureSession.tsx` pernah
-> tertulis **2.099** di satu dokumen dan **2.073** di dokumen lain, padahal saat itu **2.155**.
->
-> | Yang mau diketahui | Perintahnya |
-> |---|---|
-> | versi aplikasi | `node -p "require('./package.json').version"` |
-> | jumlah tes & berkas uji | `npm run test:sandbox` (angka resmi = keluaran vitest) |
-> | baris berkas besar | `npm run measure` |
-> | versi skema Dexie | `Select-String -Path src/db/db.ts -Pattern "this\.version\(" \| Select-Object -Last 1` |
->
-> Kalau sebuah angka **harus** muncul di dokumen (mis. potret sebuah rilis), tulis beserta **tanggal +
-> versinya** — jangan sebagai "keadaan hari ini".
-
-| Fakta | Nilai | Lokasi |
-|---|---:|---|
-| Kelas warna di luar berkas §2.1 | **0** (G2-02, v1.87.0) — target ≤190 dicabut, target resmi = **0**; baseline terukur 2026-10-03 = **2976**. Angka kontrak lama **471** berasal dari perintah **tidak rekursif** yang hanya menjangkau 38 berkas. Sisa kelas warna hidup **hanya** di tiga berkas §2.1: `engagement.ts:135-148` · `invoicePresentation.ts:37-40,82` · `finance.ts:108-110` — keputusan Q42/Q43 di `docs/README.md` §4.2 #26. **Q42/Q43 = opsi B (2026-10-04):** pemakaian kelas itu oleh UI sudah dipindah ke peta **token-only** `src/lib/toneStyles.ts`, jadi string di tiga berkas itu kini **tidak terpakai** (dibiarkan karena berkasnya dilindungi). **Batas lingkup penghitung:** `g2-02-scan.mjs` tidak mencakup stop gradien — dan pada 2026-10-04 dua gradien terakhir (kartu changelog: biru-600 → indigo-600; kartu langkah Catat Sesi: abu-terang → putih) **sudah ditokenkan** (`--brand-solid` → `--accent-solid`; `--surface` → `--surface-strong`), sehingga **0 stop palet mentah** di seluruh `src`. Catatan penting untuk agen berikutnya: Tailwind v4 memindai **teks mentah** berkas proyek (termasuk `docs/*.md`), jadi **menulis nama kelas palet di dokumen pun** ikut mencetak utility-nya ke bundel — sebut warnanya, jangan nama kelasnya | `Get-ChildItem -Recurse src -Include *.tsx -File` + `Select-String` |
-| Residual K3 di `payments/**` | **109 baris** memakai `formatRupiah`/`totalCost`/`rateSnapshot` tanpa penanda di `src/screens/payments/**` — **dikecualikan dari §6** (Q44/A17). Rincian: `RingkasanTab` 29 · `TagihanTab` 29 · `RekapTab` 24 · `PengeluaranTab` 6 · `ManualInvoiceForm` 6 · `InvoiceModal` 4 · `FinancePipelineBoard` 4 · `InvoiceRow` 3 · `InvoicePdfPages` 2 · `Payments` 2. Terukur 2026-10-04; masking modul = opsi lanjutan, belum dijadwalkan | perintah §6 (versi 2026-10-04) |
-| Dark mode | **mati — permanen, light-only (Q4 2026-10-01)** | `src/index.css` (cari `Dark mode DEAKTIVASI`) |
-| Langkah wizard | **6** | `captureSession/constants.ts` → `STEP_META` |
-| Kerapatan timeline | `PX_PER_HR = 64` tetap | `home/DayView.tsx:18` |
-| 6 kebocoran uang | Home · OperationalSnapshot · Students · StudentDetail · SessionDetailModal · MonthlyReport | rincian + jangkar: `TASK-08` §2 |
-| Titik pemanggil AI | **7** · 2 modal berbeda | `TASK-07` §2 |
-| Estimator biaya (jangan buat baru) | 7 fungsi `estimate*Cost()` | `src/lib/aiClient.ts` |
-| **Warna heks mentah di luar konteks kanvas/SVG** — temuan 2026-10-04, **sebagian 2026-10-05** | ~40 berkas memakai `#RRGGBB`; **sebagian besar SAH** karena token CSS memang tidak menjangkaunya: `<canvas>` (`SignaturePad`, `lib/foto`, `dev/seedDummy`), atribut SVG (`charts/*`, `ActivityRing`, `ClockTimePicker`), palet data yang tersimpan sebagai nilai (`engagement.ts` `scoreInfo`, `studentColor`, `RatingIndicator`/`ActivityRing`), gaya cetak/PDF (`payments/InvoiceModal`, `InvoicePdfPages`). Sapu G2-02 melewatinya karena menghitung **kelas**, bukan `style` — "0 stop palet mentah" tetap benar untuk kelas, **bukan** untuk `style`. **Hasil sapuan 2026-10-05 (terukur, `CaptureSession.tsx` kini `:1932`):** pudar putih sudah bertoken (`ChangelogModal.tsx:73` + `ScheduleStep.tsx:81` → `--surface-strong`, **nol perubahan warna**). Sisa **10 nilai di 2 berkas**: `CaptureSession.tsx:1932` (`#93c5fd` · `#16a34a` · `#15803d` · `#2563eb` · `#1d4ed8`) · `CloseOutSheet.tsx:56` (`#059669` · `#10b981` · `#34d399`) · **`CloseOutSheet.tsx:108`** (`#1f2937` · `#374151` — tombol "Selesai & Lihat Profil", baru terdaftar 2026-10-05). Sebabnya token repo = palet Tailwind **v4**, hex itu palet **v3**: hanya `#1f2937` punya kembaran nyaris identik (`--surface-inverse` `#1e2939`, ΔRGB **3**), sisanya berjarak **ΔRGB 30–173** (mis. `#15803d` vs `#008236` = 30 · `#2563eb` vs `#155dfc` = 39 · `#10b981` vs apa pun ≥ 146). Menggantinya **mengubah warna yang terlihat** → keputusan pemilik, bukan pembersihan | pengukur: `.design-audit/a3-hex-token-match.cjs` (oklch→hex, divalidasi putih/hitam/gray-100) · pemindai: `Get-ChildItem src -Recurse -Include *.tsx,*.ts \| Select-String -Pattern '#[0-9a-fA-F]{6}\|rgba?\('` |
-| Fungsi repo keuangan (jangan buat baru) | `listPayments`, `listSessionCountBillingProgress`, `getCashSummary`, `markPaymentTransferredById`, `markPaymentUnpaidById`, `updatePaymentAmountById`, `createSessionCountInvoice`, `cancelSessionCountInvoice`, `syncReportPayment` | `src/db/repos/paymentRepo.ts` |
-| Cara PIN disimpan | PBKDF2 150k + salt, `pbkdf2v2:` | `src/lib/crypto.ts` (jangan diubah) |
+- Skor sesi dihitung dari indikator yang terisi, dan penyebutnya disebutkan di antarmuka. Sesi tanpa indikator tidak dihitung.
+- Uang tidak pernah ditampilkan di Beranda. Bukan disamarkan, tetapi tidak ada barisnya.
+- Perhitungan tagihan, ekspor CSV, dan total laporan yang sudah difinalkan dibekukan. Perubahan tampilan tidak boleh mengubah angkanya.
+- `costOverride` adalah pernyataan eksplisit tutor dan tidak boleh dihitung ulang oleh mesin.
+- `rateSnapshot` adalah tarif yang menempel pada sesi dan menentukan angka akhir saat sesi ditutup.
+- Versi aplikasi dibaca dari `package.json`. Catatan perubahan dibaca dari `src/lib/version.ts`.
 
 ---
 
-## 6. Verifikasi — perintah tetap, jalankan dari `les-ko-lui/`
+## 6. Perintah yang dipakai di mesin ini
 
-> **Di mesin ini (sandbox DSH) perintah yang WAJIB dipakai adalah yang ber-`sandbox`.** `npm test` polos
-> tidak bisa start di sini (Vite memanggil `child_process.exec("net use")` → `spawn EPERM`). Aturan
-> lengkap + shim: §6.1. Perintah tanpa `sandbox` hanya berlaku di mesin/CI biasa.
+Jalankan dari folder `les-ko-lui`.
 
-```powershell
-.\node_modules\.bin\tsc.cmd -b                              # harapan: tanpa keluaran (jangan `npx`: EPERM _cacache)
-.\node_modules\.bin\eslint.cmd src --max-warnings 0          # harapan: tanpa keluaran
-npm run test:sandbox                                        # harapan: lulus, 0 gagal   ← ini yang resmi di sini
-node scripts/measure.mjs                                    # cetak jumlah tes, baris berkas besar, versi
-npm run build                                               # harapan: built + dist/sw.js (butuh shim, §6.1)
-npm run check:docs                                          # tautan md + klaim versi/angka di dokumen
-npm run e2e                                                 # harapan: lulus (butuh spawn browser → minta eskalasi)
-npm run e2e:uiux                                            # guard metrik UI — 7 layar × 2 project;
-                                                            # BUKAN CI utama (Q10 = A); letak RESMI e2e-uiux/ (Q23/A19)
+```
+npx tsc -b                    pemeriksaan tipe
+npm run test:sandbox          seluruh suite tes, cara resmi di mesin ini
+npm run build                 membangun aplikasi, keluaran dist/sw.js
+npm run check:docs            memeriksa fakta dan tautan dokumen
+npm run measure loc           mengukur jumlah baris berkas besar
+npm run e2e                   test tampilan, butuh izin sandbox penuh
+npm run e2e:uiux              penjaga tampilan, butuh izin sandbox penuh
+npm run release-check         memeriksa konsistensi versi dan catatan perubahan
 ```
 
-**Jangan menyalin hasil `npm run test:sandbox` ke dokumen.** Tulis perintahnya. Angka yang disalin
-selalu basi — terukur 2026-10-05: jumlah tes pernah tertulis di **18 tempat / 13 berkas**, dan hanya
-**3** yang benar. `npm run check:docs` kini menolak klaim versi yang salah di kepala dokumen aktif.
+**Lingkungan sandbox.** Di mesin ini, `npm test` dan `npm run build` gagal dengan galat `spawn EPERM` karena Vite memanggil perintah sistem lewat pipa yang dilarang sandbox. Jalan keluarnya adalah membuat berkas shim kecil di folder sementara lalu menjalankannya dengan `NODE_OPTIONS`, semuanya di dalam satu pemanggilan PowerShell yang sama, karena folder sementara berganti setiap sesi. Perintahnya ada di bagian 6.1 berkas panduan lama, dan cara tercepat adalah menyalinnya apa adanya. Yang tetap butuh izin sandbox penuh dan tidak bisa disiasati: `npm run e2e`, `npm run e2e:uiux`, dan `git push`.
 
-Penghitung khusus (angka wajib dilaporkan sebelum → sesudah langkah):
-
-```powershell
-# TASK-04 — utang kelas warna (REKURSIF — perintah lama "src\**\*.tsx" hanya menjangkau 38 berkas → 470)
-(Get-ChildItem -Recurse src -Include *.tsx -File | Select-String -Pattern "bg-white|bg-gray-|text-gray-|border-gray-").Count
-# baseline 2976 → 0 (G2-02, v1.87.0). Target ≤190 dicabut.
-
-# TASK-05 — pipeline harus TETAP ADA & tetap diimpor (Q3 2026-10-01: redesign, bukan bubarkan)
-(Get-ChildItem -Recurse src -Include *.tsx -File | Select-String -Pattern "FinancePipelineBoard").Count
-# harapan: TIDAK kosong
-
-# TASK-07 — jalur AI harus satu (REKURSIF — pola lama "src\**\*.tsx" tidak menjangkau subfolder)
-Get-ChildItem -Recurse src -Include *.tsx -File | Select-String -Pattern "AiCostConfirmModal|AiCostModal"
-
-# TASK-08 — kebocoran uang harus 0 (REKURSIF di src\screens, DI LUAR src\screens\payments)
-# `src\screens\payments\**` DIKECUALIKAN — keputusan pemilik 2026-10-04 (Q44/A17): modul itu hanya
-# bisa dirender setelah gerbang penuh `Payments.tsx` lolos (K3.4 lapisan kedua). Residual yang
-# diterima: 109 baris (daftar berkas + angka ada di §5). Masking modul keuangan = opsi lanjutan,
-# belum dijadwalkan.
-Get-ChildItem -Recurse src\screens -Include *.tsx -File |
-  Where-Object { $_.FullName -notmatch "\\payments\\" } |
-  Select-String -Pattern "formatRupiah|totalCost|rateSnapshot" |
-  Where-Object { $_.Line -notmatch "useMoneyVisible|money-safe|formatRupiahDisplay" }
-# harapan: 17 baris — semuanya BUKAN tampilan uang (terukur 2026-10-04):
-#   MonthlyReport 12 → `totalCost` sebagai variabel/prop
-#   StudentDetail 3  → import `formatRupiah` (1) · `rateSnapshot` di logika setter (1) ·
-#                      1 baris yang SUDAH memakai <MaskedMoney/> (false positive perintah)
-#   Payments 2       → `report.totalCost` di predikat & agregasi, bukan tampilan
-# Catatan: `src/screens/Payments.tsx` TIDAK ikut dikecualikan — yang dikecualikan hanya folder
-# `src/screens/payments/**`.
-```
-
-**Kegagalan yang BUKAN regresi** (jangan "diperbaiki"):
-`npm test`/`npm run e2e` lebih lambat pada putaran pertama (cache vitest/Playwright);
-tes kontras `engagementContrast.test.ts` gagal **karena warna memang diubah** → perbaiki pasangan
-warnanya di sumber, **jangan** matikan tesnya.
-
-### 6.1 Lingkungan terbatas (sandbox DSH) — INILAH DEFAULT DI MESIN INI
-
-> **Status aturan ini: resmi, bukan lagi "workaround".** Diputuskan pemilik 2026-10-05 (Q-15 opsi A).
-> Alasan: sebelum ini setiap sesi baru harus menemukan ulang jalan keluarnya, dan §6 menyuruh
-> perintah yang pasti gagal.
-
-**Gejalanya.** Di sandbox yang melarang proses anak dengan pipa stdio, `npm test` **tidak bisa start**:
-Vite (Windows) memanggil `child_process.exec("net use")` di `optimizeSafeRealPathSync()` → `spawn EPERM`,
-lalu pool `forks` milik vitest menggantung. Gejala yang sama muncul untuk `npm run build`.
-
-**Cara yang berlaku (urutan ini):**
-
-```powershell
-# 1) Shim kecil di TEMP (BUKAN di repo): menjawab exec/execFile dengan galat EPERM tanpa spawn —
-#    persis perilaku Vite saat "net use" gagal (peta drive jaringan dibiarkan kosong).
-#    $env:TEMP berubah tiap sesi, jadi shim HILANG antar-sesi → buat ulang kalau gagal EPERM.
-$shim = Join-Path $env:TEMP "dsh-no-exec.cjs"
-@'
-const cp = require("child_process");
-function epErr() { const e = new Error("spawn EPERM"); e.code = "EPERM"; return e; }
-const oE = cp.exec;
-cp.exec = function (cmd, opts, cb) {
-  if (typeof opts === "function") { cb = opts; opts = {}; }
-  if (typeof cb === "function") { process.nextTick(() => cb(epErr(), "", "")); return { on() {}, kill() {} }; }
-  return oE.apply(this, arguments);
-};
-const oF = cp.execFile;
-cp.execFile = function (file, args, opts, cb) {
-  if (typeof args === "function") { cb = args; args = []; opts = {}; }
-  else if (typeof opts === "function") { cb = opts; opts = {}; }
-  if (typeof cb === "function") { process.nextTick(() => cb(epErr(), "", "")); return { on() {}, kill() {} }; }
-  return oF.apply(this, arguments);
-};
-'@ | Set-Content -Encoding utf8 $shim
-
-# 2) Pakai untuk tes DAN build
-$env:NODE_OPTIONS="--require $shim"
-npm run test:sandbox      # = vitest run --pool=threads --maxWorkers=2
-npm run build
-```
-
-**Yang tetap butuh eskalasi sandbox** (bukan bisa disiasati): `npm run e2e`, `npm run e2e:uiux`,
-`npx playwright test …` (browser + dev server harus di-spawn), dan `git push` (kredensial Windows /
-schannel). Bukti push yang sah: baris keluaran `abc..def  main -> main` **dan** `git status -sb` tanpa
-penanda ahead/behind — `git fetch` tetap gagal meski di-eskalasi, jadi jangan menunggu fetch.
-
-**Jangan** mengubah `vite.config.ts`, `playwright.config.ts`, atau skrip di `package.json` demi sandbox
-(config = keputusan pemilik / Tier 3).
-
-### 6.2 Smart Gating — 4 tier (revisi 2026-10-03)
-
-**Kenapa 4 tier:** 3 tier lama terlalu gemuk — T2 & T3 sama-sama menjalankan seluruh suite, padahal blast radius berbeda. 4 tier menurunkan ~40% waktu gate tanpa mengurangi cakupan.
-
-| Tier | Kondisi | Gate | Durasi |
-|---|---|---|---|
-| T0 | Dokumen saja (`docs/**`, `*.md`) | `npm run check:docs` | ~2 dtk |
-| T1 | <3 berkas, tidak sentuh infra | `tsc -b` · `eslint src` · `vitest <berkas terkait>` | ~15 dtk |
-| T2 | Sentuh `src/components`/`lib`/`db`/`hooks` ATAU layar dipakai >3 layar | T1 + smoke suite (§ di bawah) + `e2e:uiux` bila menyentuh UI | ~45 dtk |
-| T3 | Tugas terakhir gelombang ATAU sentuh `package.json`/config ATAU blast radius seluruh aplikasi (token/`ui/**`) | T2 + **seluruh** suite + playwright semua spec | ~5 mnt |
-
-**Aturan wajib (7 butir):**
-1. Tentukan tier SEBELUM mulai, tulis `Tier: X — alasan: …` di laporan. Tier tanpa alasan = gate tidak sah.
-2. Ragu tier → ambil tier lebih tinggi.
-3. Naik tier di tengah jalan = wajar; turun = tidak. Tandai langkah baru "BARU".
-4. T3 = tugas terakhir gelombang ATAU mengubah package.json/scripts/config ATAU blast radius seluruh aplikasi (mis. token/primitif ui/** yang dipakai hampir semua layar). Selain itu T2 maksimum.
-5. `npm run e2e:uiux` tidak berubah — tetap dijalankan pada tugas yang menyentuh metrik UI.
-6. Batch 📦 — tugas kecil boleh digabung 1 putaran. Terdaftar di PEKERJAAN.md §2.
-7. Tidak berlaku surut. Gelombang 1 tuntas di gate penuh; tidak diuji ulang.
-
-**Smoke suite = berkas inti berikut.** Perintahnya (jalankan dari `les-ko-lui/`, dengan shim §6.1):
-
-```powershell
-npm run test:sandbox -- engagementContrast captureSessionHelpers repos backup finance settingsRepo
-```
-
-(Urutan argumen tidak penting; vitest mencocokkan potongan nama berkas. Perintah ini **menjaring lebih
-dari 6 berkas** — terukur 2026-10-05: **8 berkas / 177 tes lulus** — karena nama seperti `repos`
-juga cocok dengan `captureDraftRepo`. Itu wajar: yang penting cepat dan mencakup inti.)
-
-**Kaidah pemutus:** kalau tugas menyentuh berkas §2.1 → tugasnya salah lingkup, bukan soal tier. Berhenti dan lapor.
-
-### 6.3 Line Endings (CRLF/LF) — WAJIB LF
-
-**Aturannya.** Setiap berkas teks yang DSH **tulis atau edit** disimpan dengan **LF (`\n`)** — bukan CRLF.
-Berlaku sama dari Windows, Linux, maupun macOS; tidak ada pengecualian per-OS.
-
-**Yang mengunci.** `.gitattributes` di akar repo memuat `* text=auto eol=lf`: isi index dinormalkan ke LF
-**dan** checkout tetap LF di OS apa pun. Pengecualian yang disengaja: `*.bat text eol=crlf` (batch Windows),
-dan berkas biner ditandai `binary` (`*.png` · `*.jpg` · `*.jpeg` · `*.gif` · `*.ico` · `*.woff` · `*.woff2`
-· `*.ttf` · `*.pdf` · `*.zip`) supaya line ending-nya tidak pernah disentuh.
-
-**1. Menemukan CRLF atau campur (mixed) → JANGAN commit.** Perbaiki dulu ke LF, lalu **LAPORKAN** di
-checklist sebagai temuan (berkas + jumlah). Periksa dengan:
-
-```powershell
-git ls-files --eol   # i/ = isi index · w/ = checkout kerja · attr/ = atribut yang berlaku
-```
-
-**2. Jangan mengubah line ending berkas yang tidak disentuh tugas.** Refactor terbatas (Q9 = C): yang
-diubah hanya berkas di lingkup tugas. Menormalkan seluruh repo sekaligus memicu diff ratusan baris dan
-merusak `git blame` — itu keputusan pemilik, bukan agen.
-
-**3. Gate gagal karena CRLF → perbaiki akarnya, jangan dilewati.** Gejalanya: pesan aneh yang memuat `\r`,
-`bad interpreter: /bin/sh^M`, atau parser gagal pada baris yang terlihat benar. Itu **bukan** alasan
-menjalankan `--no-verify`, melewati pre-commit, atau mematikan gate.
-
-> **Jebakan yang mudah salah baca.** `core.autocrlf=true` (default Git for Windows) tetap men-checkout CRLF
-> di mesin Windows meskipun atributnya `eol=lf` — **sampai berkas itu di-checkout ulang**. Jadi
-> `git ls-files --eol` bisa menampilkan `w/crlf` untuk berkas yang isi index-nya sudah LF. Periksa kolom
-> **`i/`** lebih dulu: `i/lf` berarti isi repo bersih dan yang terlihat hanyalah artefak working tree lokal.
-
-### 6.4 Jebakan alat & git di mesin ini (semuanya pernah memakan waktu)
-
-Dulu daftar ini hanya hidup di prompt serah-terima yang kini **diarsipkan** — jadi sesi baru harus
-menemukannya ulang. Sejak 2026-10-05 ia tinggal di sini.
-
-| Gejala | Sebab sebenarnya | Tindakan |
-|---|---|---|
-| `git commit` mencetak baris sukses tetapi **exit 1** | git menulis peringatan CRLF ke stderr (atribut `eol=lf` vs checkout Windows); commit-nya **berhasil** | **Jangan ulangi commit.** Buktikan: `git log --oneline -1` + `git status --porcelain` |
-| `git status` menampilkan ` M <berkas>` padahal isinya tidak berubah | stat-cache/racy-timestamp sesudah berkas ditulis ulang di luar git | Bandingkan hash: `git hash-object -- <berkas>` vs `git ls-files -s -- <berkas>`; bersihkan: `git add --renormalize -- <berkas>` |
-| `node`/`npm` gagal `spawn EPERM` | shim §6.1 hilang karena `$env:TEMP` berganti tiap sesi | Buat ulang shim **di dalam satu pemanggilan pwsh** yang memakainya |
-| Skrip pengukur di `$env:TEMP` tidak ketemu / hilang | alat tulis DSH dan pwsh memakai `$env:TEMP` berbeda | Taruh skrip di `.design-audit/` (gitignored, tetap ada antar-sesi) |
-| `edit` gagal `ReplaceFileW EIO` (Win32 1175) | transien Windows | Ulangi perintah yang sama |
-| `edit` menolak "file has not been read" | berkas belum dibaca dengan alat **`read`** (membaca lewat `Get-Content` tidak dihitung) | `read` berkasnya dulu, baru edit |
-| **Baris tabel dokumen tertimpa/rusak** sesudah `edit` | jangkar (`old_string`) terlalu pendek sehingga cocok di tempat lain | Pakai **seluruh baris** sebagai jangkar; sesudah edit, periksa `git diff` dan baca ulang 3 baris di sekitarnya |
-| `npm run e2e` meninggalkan perubahan yang tidak diminta | spec menulis ulang PNG ter-track di `e2e/screenshots/` + membuat berkas baru | `git checkout -- e2e/screenshots`, hapus yang baru, **jangan** di-commit · **Dijalankan ulang 2026-10-05 (angka nyata, bukan warisan):** `audit/**` **58 PNG ter-track** ditulis ulang + **13 PNG baru** di `e2e/screenshots/` root dibuat spec katalog — semuanya dibereskan, nol di-commit |
-| `npm run e2e` **menghapus** artefak fakta suite | `test-results/` adalah direktori keluaran **Playwright** (`.gitignore` bagian "# Playwright") dan dibersihkan setiap jalan | **AKAR MASALAH DIPERBAIKI 2026-10-05:** artefak dipindah ke **`.design-audit-suite.json` di akar repo** (gitignored, tidak disentuh alat mana pun). Pembacanya diperbarui: `scripts/check-docs.mjs` (R2) + `scripts/measure.mjs`. Sebelumnya berkas itu tinggal DI DALAM `test-results/` → terhapus **dua kali**, dan gate-nya melaporkan "belum ada (R2 tes dilewati)" sambil **lulus** — pemeriksaan jumlah tes mati tanpa galat. Kalau berkas lama masih ada di lokasi lama, `check-docs` sekarang **berteriak** alih-alih diam |
-| Artefak JSON ditulis `Set-Content -Encoding utf8` lalu **gagal di-parse** | PowerShell 5.1 menulis **BOM**; `JSON.parse` melempar `Unexpected token ''` dan pembacanya menyimpulkan "berkas tidak ada" (tidak ada galat) | Pakai `[System.IO.File]::WriteAllText($path, $teks, (New-Object System.Text.UTF8Encoding($false)))` — tanpa BOM. Gejalanya senyap, jadi **periksa byte pertama** (`123` = `{`), jangan hanya percaya "berkasnya ada" |
-| Dua penomoran untuk satu ID (`C-02`/`C-04`/`C-08` berarti hal berbeda) | `GELOMBANG-3` menomori ulang temuan `AUDIT-UIUX-CATAT-SESI-2026-09-12` | Yang mengikat untuk tugas G3 adalah **`GELOMBANG-3`**; lihat [`PEKERJAAN.md`](PEKERJAAN.md) §3 |
+**Akhir baris berkas wajib LF.** Jangan membiarkan satu berkas bercampur CRLF dan LF.
 
 ---
 
-## 7. Kalau macet
+## 7. Jebakan yang sudah pernah memakan waktu
 
-| Gejala | Tindakan |
-|---|---|
-| Verifikasi gagal dan sebabnya tidak jelas | **Berhenti.** Tulis di §8 tugas terkait, lapor. Jangan mengakali. |
-| Butuh mengubah berkas di §2.1 | **Berhenti.** Itu tanda tugasnya salah lingkup. Lapor. |
-| Dua dokumen saling bertentangan | Pakai urutan menang §2.3, catat di §8 |
-| Tidak yakin harus lanjut langkah berapa | Baca §9 tugas itu saja (progres). Jangan baca ulang seluruh berkas |
-| Solusi terasa butuh "sekalian merapikan" hal lain | **Jangan.** Satu langkah = satu perubahan |
-| Tidak tahu apakah sebuah teks termasuk "konten terbaca" | Kalau tutor membacanya untuk bekerja → ≥13px. Kalau label sumbu/badge → boleh 11–12px |
+- Perintah `git commit` kadang mencetak sukses tetapi keluar dengan kode satu karena git menulis peringatan ke saluran galat. Commit-nya berhasil. Buktikan dengan melihat riwayat, jangan mengulang commit.
+- Perintah `npm run e2e` menulis ulang berkas gambar tangkapan layar yang ikut dilacak git, dan membuat berkas gambar baru. Pulihkan setelah selesai dan pastikan tidak ada yang ikut terkirim.
+- Keluaran PowerShell bisa menampilkan teks beraksen sebagai karakter rusak karena membaca UTF-8 sebagai ANSI. Untuk menilai apakah sebuah berkas benar-benar rusak, ukur byte-nya, jangan menilai dari tampilan.
+- Blok JSX kondisional ditutup pada baris terpisah. Memotong blok besar dengan penggantian teks sederhana menghasilkan penutup ganda. Pakai skrip pemotong yang memeriksa bentuk sebelum memotong.
+- Baris tabel markdown jangan disunting dengan jangkar pendek. Jangkar harus satu baris utuh, dan teks pengganti tidak boleh memuat teks jangkar.
+- Berkas `.mjs` dan `.cjs` untuk alat bantu ditaruh di `.design-audit/`, yang tidak dilacak git. Jangan ditaruh di folder sementara.
 
 ---
 
-## 8. Bentuk laporan yang diminta (agar hemat token)
+## 8. Bentuk laporan yang diminta
 
-Setiap putaran, laporkan **hanya** ini:
+Satu laporan di akhir tugas, bukan per langkah. Isinya cukup empat hal:
 
-```
-LANGKAH: <TASK-XX L<n>>
-UBAH: <berkas + 1 baris apa yang berubah>
-ANGKA: <sebelum> → <sesudah>
-VERIFIKASI: tsc ✓ | eslint ✓ | test 561 ✓ | build ✓
-BLOKIR: tidak ada | <sebab>
-```
+1. Apa yang berubah, dalam bahasa manusia.
+2. Perintah apa yang dijalankan dan hasilnya, sekali saja.
+3. Apa yang belum selesai atau apa yang ditemukan tapi belum dikerjakan.
+4. Kalau ada keputusan yang diambil sendiri, satu baris alasannya.
 
-Jangan menyalin isi berkas, jangan menjelaskan dokumen, jangan merangkum tugas.
-
----
-
-## 9. Riwayat
-
-| Tanggal | Perubahan | Versi |
-|---|---|---|
-| 2026-09-25 | Dibuat; B1–B4 dikunci `final` | v1.75.1 |
-| 2026-10-01 | **Amandemen Q1–Q9**: B4 default kosong · pipeline dipertahankan (di dalam blok "Perlu ditagih") · light-only permanen · simpan dari langkah 5 (6 langkah tetap) · peta tab Murid Ringkas/Sesi/Progres/Proyek · fokus Android (tanpa aturan 16px) · refactor terbatas sebelum wave fitur · penghitung kelas warna dibuat rekursif (baseline 904) | v1.79.3 |
-| 2026-10-03 | **A15** — Smart Gating: gate tes **3 tier** menurut *blast radius* tugas (diputuskan `G2-00`/Q27) · rujuk §6.2 | — |
-| 2026-10-03 | **A16** — Line Endings: semua berkas teks **WAJIB LF**, dikunci `.gitattributes` · rujuk §6.3 | — |
-| 2026-10-04 | **A17 (Q44)** — cakupan K3 §6 dipersempit: `src/screens/payments/**` **dikecualikan** karena hanya bisa dirender setelah gerbang penuh `Payments.tsx` lolos; residual 109 baris diterima & didaftarkan di §5 | — |
-| 2026-10-04 | **A18 (Q45)** — definisi tap target K4 ditegaskan: **≥44 px hanya untuk kontrol utama** (aksi primer, nav, ikon aksi); chip & kontrol sekunder **24–36 px diterima** (WCAG 2.5.8 ambang keras 24 px). Residual 52 kontrol (proksi statis `g2-06-scan.cjs`) ditutup sebagai pengecualian tertulis | — |
-| 2026-10-04 | **A19 (Q23)** — letak **resmi** spec guard metrik UI: `e2e-uiux/` + `playwright.uiux.config.ts` (`testDir: "./e2e-uiux"`), dijalankan lewat `npm run e2e:uiux`. DoD G1-11 yang menyebut `e2e/uiux-metrics.spec.ts` **ditandai usang**; `playwright.config.ts` tidak disentuh. Konsisten dengan Q10 = A (guard UI bukan bagian CI utama) | — |
-| 2026-10-05 | **A20 — penataan dokumentasi (keputusan pemilik Q-9…Q-17 opsi A).** (a) **Angka mutakhir tidak ditulis di dokumen**: §5 diganti tabel perintah pengukur; alat baru `npm run measure` + `npm run check:docs` (menolak klaim versi/angka yang salah; `check-md-links` kini keluar non-nol saat ada tautan rusak — sebelumnya selalu 0). (b) **Lingkungan sandbox jadi resmi** (§6.1): `npm run test:sandbox` + shim `dsh-no-exec.cjs` adalah perintah default di mesin ini, bukan "workaround". (c) **Seri `arsitektur/01`–`11` diarsipkan**; penggantinya `docs/06-ARSITEKTUR-KODE.md` (tanpa angka) — penengah konflik §2.3 tidak lagi dokumen yang paling basi. (d) **[`PEKERJAAN.md`](PEKERJAAN.md) = satu-satunya daftar pekerjaan**; `ROADMAP.md` + §4 `docs/README.md` diarsipkan. (e) **Aturan arsip berlaku surut**: dokumen tuntas/usang pindah ke `../arsip/` (GELOMBANG-1, PROMPT-LANJUTAN-G3, CHECKLIST-VISUAL-2026-10-04, dan isi lama §4). (f) §0 diperbaiki: panjang berkas sebenarnya (**bukan** ±150 baris) dan urutan baca **satu** (CHEATSHEET sebelum TASK-XX) | v1.90.0 |
-| 2026-10-05 | **A21 — jebakan alat/git naik ke §6.4 + aturan baru: keputusan terkunci wajib punya bukti.** (a) **§6.4 baru**: commit yang cetak sukses tapi `exit 1`, `git status` ` M` palsu (stat-cache) & cara membersihkannya, shim `$env:TEMP`, skrip scratch di `.design-audit/`, `ReplaceFileW EIO`, wajib `read` sebelum `edit`, **jangkar tabel harus satu baris utuh** (nyata: satu baris riwayat tertimpa di `TASK-06`), efek samping `npm run e2e` pada screenshot, dan penomoran ID ganda `GELOMBANG-3` vs audit. Dulu semuanya hanya hidup di `../arsip/PROMPT-LANJUTAN-G3.md` yang beku. (b) **Temuan yang mengubah aturan:** keputusan terkunci **Q2** ("simpan dari langkah 5") selama ini **hanya ada di §1 berkas ini** — tidak di kode dan tanpa tes, jadi tutor yang tidak butuh Bukti tetap dipaksa melewati langkah 6. Konsekuensi yang mengikat sekarang: setiap keputusan di §1 wajib menyebut **bukti yang bisa dijalankan** (nama tes atau baris di `PEKERJAAN.md`), bukan hanya kalimat | — |
-| 2026-10-05 | **A22 — Amandemen Q-A…Q-F + #1…#7 dikunci di §1.** Ringkas: **Q-A=B** 10 heks mentah → token (kontras teks putih naik: langkah 6 `3,30→4,95:1`, menyimpan `1,80→14,67:1`) · **Q-B=b3** nav bawah tidak diblokir, cukup satu baris kepastian draf (b2 ditolak) · **Q-C=c2** keyboard pola radiogroup (Tab sekali + panah/Home/End, aturan `nextRadioIndex()` + 5 tes) · **Q-D=d2** rilis ditunda sampai G3-01 tuntas, satu entri `CHANGELOG` per gelombang · **Q-E=e1** mockup dipertahankan · **Q-F** spesifikasi G3-02…G3-10 dipindah dari arsip **bertahap** · **#5** batas tes Playwright 60 dtk (jangan naikkan lagi tanpa alasan) · **#6 CI tidak diaktifkan** (jangan tawarkan lagi; `ci.yml` tidak perlu diperbaiki) · **#1** PWA diverifikasi pemilik lewat Vercel · **#2** daftar periksa manual jadi 20 butir · **#3** katalog topik 78 mapel jadi pekerjaan agen · **#7** semua spec E2E harus hijau | — |
-| 2026-10-05 | **A23 — `#7` dibuktikan, dan dua jebakan baru masuk §6.4.** (a) **`#7` bukan lagi janji:** `npm run e2e` dijalankan seluruhnya dengan eskalasi sandbox → **78 lulus · 6 skip · 0 gagal** (project `chromium` + `mobile`, batas 60 dtk). Karena tidak ada spec merah, langkah "jalankan sendirian" tidak dipakai dan tidak ada yang diperbaiki — jadi perilaku suite-nya memang sudah benar; yang kurang selama ini hanya eksekusinya. (b) **Jebakan yang terukur, bukan dugaan:** `npm run e2e` **menghapus** `test-results/suite-summary.json` (folder itu dipakai Playwright untuk `.last-run.json`), dan berkas itu gitignored sehingga hilangnya **senyap** — `check-docs` melaporkan "test-results/ belum ada (R2 tes dilewati)" lalu **lulus**. Baris efek samping screenshot juga diverifikasi ulang dengan angka nyata (**58** PNG ter-track + **13** baru), menggantikan angka warisan **59** yang belum pernah dicek. (c) **Jebakan BOM:** `Set-Content -Encoding utf8` di PowerShell 5.1 menulis BOM → artefak JSON gagal di-parse dan pembacanya menyimpulkan "berkas tidak ada" **tanpa galat**; cara aman ditulis di §6.4 | — |
-| 2026-10-05 | **A24 — akar masalah artefak suite diperbaiki + katalog topik berlanjut.** (a) **Koreksi A23:** `test-results/` ternyata direktori keluaran **Playwright** (`.gitignore` bagian "# Playwright"), dan saya sendiri yang menaruh artefak fakta suite DI DALAMNYA pada putaran `#7` — karena itu ia terhapus **dua kali** dan `check-docs` melaporkan "R2 dilewati" sambil **lulus**. Artefak kini di **`.design-audit-suite.json`** (akar repo, gitignored); pembaca diperbarui (`check-docs.mjs` + `measure.mjs`); `check-docs` berteriak bila berkas lama masih ada di lokasi lama. (b) **Dua tes penjaga yang menuntut celah harus diperbaiki, bukan diakui:** `topicCoverage.test.ts` dulu memakai "Global Politics" sebagai contoh mapel **tanpa** katalog DP — begitu katalog DP diisi (putaran 2 #3), dua tes itu gagal padahal aplikasinya sedang **membaik**. Pelajarannya: **jangan pakai "celah yang belum diperbaiki" sebagai contoh dalam tes penjaga**; pakai properti kontraknya (sekarang: mapel yang masih di `KNOWN_TOPIcless`, mis. "Marine Science" dan "French (0520)"), lalu tambahkan tes sisi lain yang menuntut celah itu **tertutup** | — |
+Tidak perlu mengulang isi dokumen. Tidak perlu menyalin angka yang sudah ada di keluaran perintah.

@@ -1,19 +1,10 @@
 # Dokumentasi Les Ko Lui — Indeks Utama
 
-```yaml
-jenis: indeks
-status: aktif
-diperbarui: 2026-10-05
-versi_app: v1.93.0
-test: tidak ditulis di sini — jalankan `npm run test:sandbox` (angka yang disalin ke dokumen selalu basi; dijaga `npm run check:docs`)
-baca_ini_kalau: kamu (manusia atau AI) perlu tahu dokumen mana yang harus dibuka
-baca_berurutan: tidak — pakai tabel §2
-```
-
-> **Sekilas** · Jenis: **indeks dokumentasi (pintu masuk)** · Status: **aktif** · Diperbarui: 2026-10-05 (v1.93.0).
-> **Untuk siapa:** pemilik aplikasi (Ko Lui) dan agen AI yang merawat repo ini.
-> **Isi:** peta "mau X → buka Y" (§2) · persyaratan dokumentasi (§3) · aturan penamaan (§4) · **status pekerjaan (§5)** · riwayat rilis (§6) · aturan pemeliharaan (§7).
-> **Berkas lain tidak perlu dibaca berurutan.** Tabel §2 adalah router-nya.
+> **Sekilas.** Jenis: pintu masuk dokumentasi. Status: berlaku.
+> Untuk siapa: pemilik aplikasi dan agen AI yang merawat repository ini.
+> Isi: peta ke mana harus membuka sesuatu (bagian 2), persyaratan dokumentasi (bagian 3), aturan penamaan berkas (bagian 4), catatan pekerjaan (bagian 5), riwayat rilis (bagian 6), dan aturan pemeliharaan (bagian 7).
+> **Cara pakai: tidak perlu dibaca berurutan.** Pakai tabel di bagian 2.
+> **Angka keadaan aplikasi tidak ditulis di halaman ini.** Versi dibaca dari `package.json`, jumlah tes dari `npm run test:sandbox`, jumlah baris berkas dari `npm run measure`.
 
 ---
 
@@ -32,19 +23,18 @@ baca_berurutan: tidak — pakai tabel §2
 
 ### Kalau kamu agen AI yang mau MENGERJAKAN sesuatu
 
-| Mau… | Buka | Catatan |
+| Mau | Buka | Catatan |
 |---|---|---|
-| **memulai pekerjaan apa pun** di rombak UI/UX | [`kerja/ATURAN-AI.md`](kerja/ATURAN-AI.md) | **pintu masuk wajib** — kontrak, keputusan terkunci, daftar larangan, bentuk laporan |
-| **lihat daftar pekerjaan & urutan eksekusi** | [`kerja/PEKERJAAN.md`](kerja/PEKERJAAN.md) | **satu-satunya** daftar pekerjaan (menggantikan `ROADMAP.md` + §4 halaman ini) |
-| tahu **aturan struktur dokumentasi** (angka, arsip, satu daftar pekerjaan) | [`07-PERSYARATAN-DOKUMENTASI.md`](07-PERSYARATAN-DOKUMENTASI.md) | kontrak dokumen; dijaga `npm run check:docs` |
-| **lihat ringkasan TASK-01…TASK-10** | [`kerja/CHEATSHEET.md`](kerja/CHEATSHEET.md) | 1 halaman per tugas |
-| tahu **cara menulis dokumen tugas** yang bisa dieksekusi model kecil | [`kerja/TASK-02-format-dokumen-tugas-ai.md`](kerja/TASK-02-format-dokumen-tugas-ai.md) | spesifikasi format + anti-pola |
-| mengerjakan **refactor layar besar** (6 langkah, belum selesai) | [`kerja/TASK-01-refactor-layar-besar.md`](kerja/TASK-01-refactor-layar-besar.md) | ikuti urutan §3, jangan improvisasi |
-| mengerjakan **rombak UI/UX** (fondasi visual, keuangan, catat sesi, AI berbiaya, privasi uang) | [`kerja/TASK-03-blueprint-uiux.md`](kerja/TASK-03-blueprint-uiux.md) → lalu §5 di berkas itu | **baca `ATURAN-AI.md` dulu**; pekerjaan `TASK-04`–`TASK-09` tidak boleh dijalankan tanpa §2 larangannya |
-| tahu **cara aplikasi dibangun** & apa yang dilarang disentuh | [`06-ARSITEKTUR-KODE.md`](06-ARSITEKTUR-KODE.md) | peta kode + daftar perusak data/uang; seri lama ada di [`arsip/arsitektur/`](arsip/arsitektur/README.md) |
-| tahu **aturan yang mengikat semua tugas UI/UX** | [`kerja/ATURAN-AI.md`](kerja/ATURAN-AI.md) §1–§3 | kontrak; kalau tugas bertentangan, kontrak yang menang. Versi potret lama: [`arsip/arsitektur/11-uiux-ai-cost-dan-privasi.md`](arsip/arsitektur/11-uiux-ai-cost-dan-privasi.md) |
-| melihat **gambar usulan tampilan** sebelum menulis kode | [`mockups/`](mockups/) | HTML mandiri, buka langsung tanpa server |
-| tahu **daftar seluruh pekerjaan terbuka** | [`kerja/PEKERJAAN.md`](kerja/PEKERJAAN.md) | |
+| Memulai pekerjaan apa pun | [`kerja/ATURAN-AI.md`](kerja/ATURAN-AI.md) | Pintu masuk wajib. Aturan kerja, keputusan final pemilik, berkas yang dilarang disentuh, perintah, dan jebakan. |
+| Melihat daftar pekerjaan beserta spesifikasi lengkapnya | [`kerja/PEKERJAAN.md`](kerja/PEKERJAAN.md) | Satu-satunya daftar pekerjaan. Spesifikasi kesepuluh tugas Gelombang 3 ada di dalamnya, bukan di arsip. |
+| Tahu keadaan terakhir dan apa yang belum selesai | [`kerja/SERAH-TERIMA.md`](kerja/SERAH-TERIMA.md) | Keadaan repository, temuan sesi terakhir, dan langkah berikutnya. |
+| Melihat jangkar kode, jebakan, dan perintah verifikasi sebuah tugas | [`kerja/CHEATSHEET.md`](kerja/CHEATSHEET.md) | Catatan teknis per tugas. Daftar pekerjaan dan spesifikasinya tetap di `PEKERJAAN.md`. |
+| Tahu aturan struktur dokumentasi | [`07-PERSYARATAN-DOKUMENTASI.md`](07-PERSYARATAN-DOKUMENTASI.md) | Dijaga `npm run check:docs`. |
+| Tahu cara aplikasi dibangun dan apa yang dilarang disentuh | [`06-ARSITEKTUR-KODE.md`](06-ARSITEKTUR-KODE.md) | Peta kode. Seri lama ada di [`arsip/arsitektur/`](arsip/arsitektur/README.md). |
+| Menulis dokumen tugas baru | [`kerja/TASK-02-format-dokumen-tugas-ai.md`](kerja/TASK-02-format-dokumen-tugas-ai.md) | Spesifikasi format dan anti-pola. |
+| Melihat cara kerja refactor layar besar | [`kerja/TASK-01-refactor-layar-besar.md`](kerja/TASK-01-refactor-layar-besar.md) | Enam langkahnya masih dipakai untuk tugas Laporan, Murid, dan Pengaturan. |
+| Melihat gambar usulan tampilan sebelum menulis kode | [`mockups/`](mockups/) | Berkas HTML mandiri, bisa dibuka langsung tanpa server. |
+| Mencari keputusan atau audit lama | [`arsip/README.md`](arsip/README.md) | Ada peta pemindahan isi di berkas itu. |
 
 ### Kalau kamu manusia yang memakai/merawat aplikasi
 
@@ -171,22 +161,17 @@ dengan banner + satu baris inventaris.
 
 ### 7.2 Untuk agen AI (dan manusia yang menulis untuk AI)
 
-1. **Sebelum mengerjakan apa pun: [`kerja/ATURAN-AI.md`](kerja/ATURAN-AI.md).** Ia memuat keputusan
-   terkunci, berkas yang **dilarang** disentuh (§2.1), perintah verifikasi (§6, termasuk §6.1 lingkungan
-   sandbox), gate 4 tier (§6.2), dan bentuk laporan (§8). Urutan menang kalau ada konflik:
-   `ATURAN-AI.md` → `06-ARSITEKTUR-KODE.md` → `TASK-XX` → lainnya.
-2. **Daftar pekerjaan hanya satu:** [`kerja/PEKERJAAN.md`](kerja/PEKERJAAN.md). Jangan menaruh daftar
-   pekerjaan di `README.md` (akar repo maupun halaman ini) — dulu ada `TODO.md` di akar dan tidak pernah terbaca.
-3. **Dokumen tugas masuk `docs/kerja/`** dengan format di
-   [`kerja/TASK-02-format-dokumen-tugas-ai.md`](kerja/TASK-02-format-dokumen-tugas-ai.md).
-4. **Angka mutakhir tidak ditulis di dokumen.** Versi = `package.json`; jumlah tes = `npm run test:sandbox`;
-   baris berkas = `npm run measure`. Kalau sebuah angka memang harus muncul, tulis beserta tanggal+versinya.
-   Dijaga `npm run check:docs`.
-5. **Jangan membaca berkas >500 baris secara utuh.** Pakai jangkar teks, baca ±40 baris di sekitarnya;
-   daftar berkasnya lewat `npm run measure`.
-6. **Satu langkah per putaran, lalu berhenti.** Jangan melanjutkan ke langkah berikutnya tanpa verifikasi.
-7. **Setelah mengubah perilaku:** tambahkan entri di `src/lib/version.ts` (`CHANGELOG`) dan satu baris di §6 halaman ini.
-8. **Kalau menemukan fakta yang bertentangan dengan dokumen:** perbaiki dokumennya di putaran yang sama,
-   atau catat di `docs/kerja/TASK-*.md` §8. Jangan biarkan dua dokumen saling bertentangan.
-9. **Seri `arsitektur/` sudah diarsipkan** (`arsip/arsitektur/`) — ia potret v1.70–v1.75. Untuk keadaan
-   hari ini: kode + `package.json` + `src/lib/version.ts` + §6 halaman ini.
+1. **Sebelum mengerjakan apa pun, buka [`kerja/ATURAN-AI.md`](kerja/ATURAN-AI.md).** Isinya aturan kerja, keputusan final pemilik, berkas yang dilarang disentuh, perintah yang dipakai di mesin ini, dan jebakan yang sudah pernah memakan waktu. Urutan yang menang kalau ada konflik: `ATURAN-AI.md`, lalu `06-ARSITEKTUR-KODE.md`, lalu `PEKERJAAN.md`, lalu dokumen tugas.
+2. **Daftar pekerjaan hanya satu:** [`kerja/PEKERJAAN.md`](kerja/PEKERJAAN.md). Jangan menaruh daftar pekerjaan di halaman ini atau di README akar. Spesifikasi tugas Gelombang 3 juga ada di berkas itu, bukan di arsip.
+3. **Kerjakan satu tugas sampai tuntas, lalu lapor sekali.** Aturan lama yang berbunyi satu langkah per putaran lalu berhenti sudah dicabut pada 2026-10-05 karena membuat pekerjaan tercicil dan membuang waktu pemilik.
+4. **Gate dijalankan sekali di akhir tugas, bukan setiap langkah.** Jangan mengulang test untuk membuktikan hal yang sama. Rinciannya di `ATURAN-AI.md` bagian 1.
+5. **Jangan menambah penjaga baru tanpa alasan yang menyentuh uang, data, atau regresi yang benar-benar pernah terjadi.**
+6. **Jangan bertanya ke pemilik untuk hal yang tidak mengubah uang, tidak mengubah perilaku pengguna, dan tidak menghapus data.** Putuskan sendiri dan catat alasannya satu baris. Pertanyaan yang sudah pernah dijawab tidak boleh diajukan lagi.
+7. **Jangan menghapus dokumen dan jangan meringkas isi yang masih dikerjakan.** Pindahkan ke `docs/arsip/`, lalu catat di peta pemindahan di [`arsip/README.md`](arsip/README.md): berkas asal, berkas tujuan, tanggal, dan alasan. Penggabungan dokumen wajib memindahkan seluruh butir pekerjaan yang belum selesai ke `PEKERJAAN.md`. Contoh kejadian yang harus tidak terulang ada di `ATURAN-AI.md` bagian 2.
+8. **Dokumen tugas baru masuk `docs/kerja/`** dengan format di [`kerja/TASK-02-format-dokumen-tugas-ai.md`](kerja/TASK-02-format-dokumen-tugas-ai.md).
+9. **Angka mutakhir tidak ditulis di dokumen.** Versi dibaca dari `package.json`, jumlah tes dari `npm run test:sandbox`, jumlah baris berkas dari `npm run measure`. Kalau sebuah angka memang harus muncul, tulis beserta tanggalnya. Dijaga `npm run check:docs`.
+10. **Jangan membaca berkas yang sangat panjang secara utuh.** Pakai pencarian jangkar dan baca sekitarnya. Daftar berkas beserta jumlah barisnya lewat `npm run measure`.
+11. **Setelah mengubah perilaku yang terlihat pengguna:** tambahkan satu entri di `src/lib/version.ts` dan satu baris di bagian 6 halaman ini.
+12. **Kalau menemukan fakta yang bertentangan dengan dokumen:** perbaiki dokumennya di sesi yang sama. Jangan biarkan dua dokumen saling bertentangan.
+13. **Kalau menemukan pekerjaan yang belum selesai tetapi tidak ada di daftar:** langsung tambahkan ke `PEKERJAAN.md` bagian 4 beserta tanggal dan sumbernya. Jangan menunggu izin.
+14. **Seri `arsitektur/` sudah diarsipkan** dan isinya adalah potret lama. Untuk keadaan hari ini, yang berlaku adalah kode, `package.json`, `src/lib/version.ts`, dan riwayat rilis di bagian 6 halaman ini.

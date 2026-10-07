@@ -1,198 +1,315 @@
-# PEKERJAAN — satu-satunya daftar pekerjaan (dan cara mengerjakannya)
+# PEKERJAAN — satu-satunya daftar pekerjaan
 
-> **Sekilas** · Jenis: **daftar pekerjaan aktif + urutan eksekusi** · Diperbarui: 2026-10-05 · Status: **aktif**
-> **Untuk siapa:** pemilik aplikasi (memutuskan) dan agen AI (mengerjakan).
-> **Baca kalau:** akan mulai bekerja, atau akan bertanya "apa yang belum selesai".
-> **Aturan:** berkas ini **menggantikan** `ROADMAP.md` dan §4 `docs/README.md`. Kalau ada dua daftar
-> pekerjaan, keduanya akan berbeda — jadi hanya ada satu.
-> **Yang TIDAK ada di sini:** kontrak & larangan → [`ATURAN-AI.md`](ATURAN-AI.md) · ringkasan per tugas →
-> [`CHEATSHEET.md`](CHEATSHEET.md) · riwayat yang sudah selesai → [`../README.md`](../README.md) §5 + [`../arsip/`](../arsip/README.md).
-
----
-
-## 0. Cara pakai (agar tidak mengulang pembacaan)
-
-1. **Kontrak dulu, selalu:** [`ATURAN-AI.md`](ATURAN-AI.md). Ia memuat keputusan terkunci (§1: B1–B4 +
-   seluruh amandemen `A1–…`, daftar terbaru di §9 berkas itu), berkas yang dilarang disentuh (§2.1), dan
-   bentuk laporan (§8). *(Jangan hafalkan nomor terakhirnya — rentang yang ditulis di dokumen cepat basi;
-   §9 `ATURAN-AI` adalah daftarnya.)*
-2. **Tentukan tier SEBELUM mulai** (`ATURAN-AI` §6.2): T0 dokumen · T1 <3 berkas · T2 menyentuh
-   `src/components|lib|db|hooks` atau UI · T3 tugas terakhir gelombang / config. Ragu → ambil tier lebih tinggi.
-3. **Satu putaran = satu langkah** → verifikasi → lapor (§8) → berhenti. Batch 📦 hanya yang terdaftar di §2.
-4. **Detail tugas:** baca **satu** `TASK-NN` yang relevan. Jangan membaca seluruh `docs/`.
-5. **Angka tidak dipercaya dari dokumen.** Ukur sendiri; cara mengukurnya ada di [`../06-ARSITEKTUR-KODE.md`](../06-ARSITEKTUR-KODE.md) §4.
-
-**Paralelisasi** hanya sah kalau tidak ada chat lain yang menyentuh berkas yang sama; karena satu tugas
-bisa memegang puluhan berkas `src/**`, aturan default = **SERJAL**. Paralel butuh `git worktree` terpisah.
+> **Sekilas.** Jenis: daftar pekerjaan aktif dan urutan pengerjaannya. Status: berlaku.
+> Untuk siapa: pemilik aplikasi yang memutuskan, dan agen AI yang mengerjakan.
+> Baca kalau: akan mulai bekerja, atau akan bertanya "apa yang belum selesai".
+> **Aturan:** hanya ada satu daftar pekerjaan, yaitu berkas ini. Kalau ada daftar lain, daftar itu basi.
+> **Yang tidak ada di sini:** keputusan final dan larangan ada di `ATURAN-AI.md`. Keadaan terakhir sesi ada di `SERAH-TERIMA.md`.
+> **Spesifikasi lengkap setiap tugas Gelombang 3 ada di bagian 3 berkas ini**, bukan lagi di arsip. Ini diperbaiki pada 2026-10-05 karena spesifikasi yang tertinggal di arsip membuat tiga butir pekerjaan hilang dari daftar.
 
 ---
 
-## 1. Peta gelombang
+## 1. Cara memakai berkas ini
 
-| Gelombang | Isi | Status |
+1. Baca `ATURAN-AI.md` lebih dulu. Isinya keputusan final dan aturan kerja.
+2. Ambil satu tugas dari bagian 3 sesuai urutan. Kerjakan sampai tuntas dalam satu sesi, lalu lapor satu kali.
+3. Gate dijalankan sekali di akhir tugas. Lihat tabel gate di `ATURAN-AI.md` bagian 1.
+4. Kalau menemukan pekerjaan yang belum selesai tapi tidak ada di daftar, tambahkan ke bagian 4 beserta tanggal dan sumbernya.
+5. Kalau ragu apakah sebuah butir masih berlaku, anggap masih berlaku.
+
+**Urutan yang mengikat:** G3-01, G3-02, G3-03, G3-04, G3-05, G3-06, G3-07, G3-08, G3-09, G3-10. Tugas G3-04 dikerjakan sebelum G3-05. Tugas boleh dipaketkan kalau yang kedua bergantung pada yang pertama, misalnya Keuangan dengan papan pipeline, atau kontrak AI dengan Laporan.
+
+**Pekerjaan yang tidak mengikuti urutan gelombang:** semua butir di bagian 4 dan bagian 5 boleh dikerjakan kapan saja tanpa mengubah urutan di atas.
+
+---
+
+## 2. Kedudukan pekerjaan
+
+Hitungan tugas, diperbarui 2026-10-05. Perintah mengukurnya ada di `ATURAN-AI.md` bagian 6.
+
+| Kelompok | Jumlah tugas | Keadaan |
 |---|---|---|
-| **G1** — bersih-bersih & aksesibilitas (G1-01…G1-11) | kontras, nav, label, heading, emoji | ✅ **tuntas** (v1.85.0) — rincian: [`../arsip/GELOMBANG-1.md`](../arsip/GELOMBANG-1.md) |
-| **G2** — fondasi token/uang/jadwal (G2-00…G2-10) | token & 7 primitif, satu pintu uang, tap target, Jadwal Hari, jalur galat | ✅ **tuntas** (v1.88.0) |
-| **G3** — alur kerja (G3-01…G3-10) | Catat Sesi, Keuangan, papan pipeline, kontrak AI, Laporan, Murid, foto, Kanvas, Pengaturan, reset+PIN | 🟨 **berjalan** — G3-01 sebagian |
+| Gelombang 1, kebersihan dan aksesibilitas | 11 | selesai |
+| Gelombang 2, fondasi tampilan dan uang | 11 | selesai |
+| Gelombang 3, alur kerja | 10 | berjalan, dua tugas sudah sebagian |
+| Seluruhnya | 32 | 22 selesai, 10 belum |
 
-**Hitungan:** 22 tugas total · **12 selesai** (G2-00…G2-10) · **10 belum** (G3-01…G3-10) · 1 manual selesai
-(G2-05, diperiksa pemilik di Chrome Android 2026-10-04).
+Catatan koreksi: ringkasan versi sebelumnya menulis "22 tugas dengan 12 selesai" dan menghitung satu tugas dua kali. Angka yang benar adalah 32 tugas dengan 22 selesai. Sepuluh tugas Gelombang 3 belum ada yang tuntas seluruhnya.
+
+Perkiraan kemajuan Gelombang 3, dihitung dari butir spesifikasinya pada 2026-10-05: sekitar 13 dari 88 butir tertutup, yaitu sekitar 15 persen. Hitungan ini konservatif karena butir yang sudah dikerjakan tetapi menunggu pemeriksaan mata belum dihitung selesai. Perintah penghitungnya ada di `.design-audit/hitung-fitur-g3.cjs`.
 
 ---
 
-## 2. Urutan eksekusi & batch
+## 3. Gelombang 3 — spesifikasi lengkap dan keadaan
 
-> Urutan mengikat dari `ATURAN-AI` §4 (**A14**): `G3-01 → G3-02 → G3-03 → **G3-04** → G3-05 → … → G3-10`.
-> `G3-04` (kontrak AI) **didahulukan** atas laporan `G3-05` karena panel AI di Laporan membutuhkannya.
+Keterangan keadaan yang dipakai di seluruh bagian ini: **selesai** berarti sudah dikerjakan dan ada bukti dari perintah, **menunggu mata** berarti kode sudah ada tetapi belum pernah dilihat manusia di perangkat, **belum** berarti belum disentuh, dan **tertahan** berarti sedang menunggu tugas lain.
 
-| Batch | Isi | Catatan |
+### G3-01 Catat Sesi: refactor terbatas ditambah temuan C
+
+Berkas yang disentuh: `src/screens/CaptureSession.tsx`, folder `src/screens/captureSession/`, `src/components/ClockTimePicker.tsx`, dan dua modal lama di `src/screens/home/` yang digantikan satu panel.
+
+**Refactor terbatas.** Target `CaptureSession.tsx` paling banyak 1.900 baris. Keadaan: selesai pada 2026-10-04, turun dari 2.155 menjadi 1.891 baris. Setelah fitur ditulis, jumlah barisnya naik lagi dan itu wajar. Angka baris bukan syarat selesai; yang penting fiturnya lengkap dan layarnya tetap ringan. Ukur dengan `npm run measure loc`.
+
+**Dua belas fitur dan keadaannya.**
+
+| Nomor | Fitur | Keadaan |
 |---|---|---|
-| H | 📦 G3-02 + G3-03 (Keuangan) | G3-03 bergantung pada G3-02 |
-| I | 📦 G3-04 + G3-05 (AI + Laporan) | G3-05 bergantung pada G3-04 |
-| J | 📦 G3-06 + G3-07 (Murid + foto murid) | G3-07 bergantung pada G3-06 |
-| K | 📦 G3-08 + G3-09 + G3-10 (kanvas + Pengaturan) | G3-09 sebelum G3-10 |
-| Tutup | **checkpoint G3 (gate T3 penuh)** | jaring akhir: full suite + seluruh spec Playwright |
+| 1 | Tombol Simpan Sesi aktif di langkah lima dan enam, langkah enam tetap menawarkan Bukti | selesai |
+| 2 | Dua test tambahan: simpan dari langkah lima tanpa Bukti, dan Bukti tersimpan bila ada | selesai |
+| 3 | Pengumuman langkah untuk pembaca layar, gulir ke atas, dan fokus pindah ke judul langkah | selesai |
+| 4 | Badge tanda seru pada penunjuk langkah untuk langkah wajib yang belum lengkap | selesai |
+| 5 | Satu penulis tag respons, kedua kelompok pilihan memakai peran radiogroup, papan ketik panah berfungsi | selesai |
+| 6 | Tombol Lewati muncul di langkah dua bila murid belum punya mapel | selesai |
+| 7 | Urungkan untuk hapus topik dan hapus tindak lanjut, item kembali ke posisi asalnya | selesai |
+| 8 | Donat skor digantikan bilah kemajuan | selesai |
+| 9 | Label biaya pada tombol AI, pengumuman status, dan tombol coba lagi saat gagal | tertahan sampai G3-04 dikerjakan |
+| 10 | Satu panel Kelola sesi menggantikan dua modal lama | selesai |
+| 11 | Rasa layar: satu langkah satu layar, bilah aksi selalu di tempat yang sama, sasaran sentuh cukup besar | menunggu mata |
+| 12 | Tombol Catat di Beranda mengisi murid, tanggal, dan jam | menunggu mata |
+
+**Syarat selesai untuk tugas ini.** Enam langkah tetap enam dan jumlah langkah tidak berubah. Berpindah langkah menggulir ke atas dan diumumkan. Menyimpan dari langkah lima menghasilkan sesi tersimpan. Berkas test untuk jalur ini hijau.
+
+**Catatan penting.** Panel Kelola sesi belum pernah diklik oleh mesin maupun manusia. Berkas test yang hijau hanya membuktikan Beranda masih dirender, bukan bahwa keenam aksinya bekerja. Pemeriksaannya ada di bagian 5 butir 21 sampai 23.
+
+### G3-02 Keuangan: refactor terbatas ditambah temuan K
+
+Berkas yang disentuh: `src/screens/payments/TagihanTab.tsx`, `src/screens/payments/useInvoiceFilters.ts`, `src/screens/payments/InvoiceRow.tsx`, `src/screens/Payments.tsx`, dan blok di `src/screens/payments/RingkasanTab.tsx`.
+
+**Refactor terbatas.** Target `TagihanTab.tsx` paling banyak 800 baris. Keadaan: sebagian. Berkasnya turun dari 1.036 menjadi 845 baris lewat tiga ekstraksi, lalu naik lagi menjadi 961 baris karena fitur ditulis. Target 800 baris belum tercapai. Angka baris bukan syarat selesai.
+
+**Sebelas fitur dan keadaannya.**
+
+| Nomor | Fitur | Keadaan |
+|---|---|---|
+| 1 | Pembangun murni `financeRows` dan `financeOverview` beserta tesnya | belum, dipulihkan ke daftar pada 2026-10-05 |
+| 2 | Layar Uang menjadi satu layar dengan tiga blok tetap: Ringkasan AI, Perlu ditagih, dan Bulan ini, dengan pintasan ke Rincian, Pengeluaran, dan Rekap | belum, dipulihkan ke daftar pada 2026-10-05. Sekarang layar Uang masih punya empat tab |
+| 3 | Tabel Rekap dari delapan kolom menjadi tiga kolom ditambah tautan lihat lengkap, sedangkan berkas CSV tetap sama persis | belum, dipulihkan ke daftar pada 2026-10-05. Sekarang tabelnya masih delapan kolom |
+| 4 | Pencarian murid yang menyaring daftar dan ikut menyaring ekspor | selesai, menunggu mata |
+| 5 | Badge keterlambatan dalam jumlah hari dan tanggal jatuh tempo memakai nama hari Indonesia | selesai, menunggu mata |
+| 6 | Panel filter lanjutan yang melipat umur piutang, asal tagihan, dan baris ekspor, beserta chip jumlah filter aktif | selesai, menunggu mata |
+| 7 | Daftar tagihan selalu dirender, dengan pesan kosong tersendiri untuk setiap keadaan filter | selesai |
+| 8 | Peringatan saat mengubah nominal tagihan: tampilkan asal tagihan, jelaskan akibatnya, dan minta tombol persetujuan yang jelas | belum |
+| 9 | Kolom nominal dengan pemisah ribuan saat mengetik, tanda tersimpan, dan pesan bila isinya tidak sah | belum |
+| 10 | Gerbang PIN menjadi formulir sehingga tombol Enter mengirim, ditambah hitungan mundur saat terkunci | belum |
+| 11 | Navigasi dari lima pintu menjadi tiga pintu ditambah satu aksi | belum, dikerjakan paling akhir karena mengubah pemilih pada test tampilan |
+
+**Syarat selesai untuk tugas ini.** Angka uang sama seperti sebelum perombakan. Berkas CSV sama persis. Pencarian murid benar-benar menemukan hasil. Filter gabungan bisa dilepas dengan satu klik. Mengubah nominal selalu melewati konfirmasi asal tagihan. Batasan yang mengikat: `src/lib/finance.ts`, `src/lib/financePipeline.ts`, `src/lib/csv.ts`, dan logika di `src/db/repos/paymentRepo.ts` tidak boleh diubah.
+
+**Berkas baru yang sudah diizinkan sebelumnya:** `src/lib/invoiceDueLabel.ts` dan `src/screens/payments/invoiceListFilters.ts`, keduanya fungsi murni beserta tesnya.
+
+### G3-03 Redesign papan pipeline
+
+Berkas yang disentuh: `src/screens/payments/FinancePipelineBoard.tsx` dan `src/screens/payments/RingkasanTab.tsx`. Bergantung pada G3-02.
+
+Papan tetap ada dan tetap diimpor. Papan hidup di dalam blok "Perlu ditagih" di layar Uang, dan layar Uang tetap tiga blok. Tidak menambah blok keempat. Tidak memakai pustaka seret dan lepas karena tidak ada di repo dan seret bawaan peramban tidak andal di layar sentuh.
+
+Langkahnya berurutan:
+
+1. Bentuk papan ditambah daftar: jalur kartu yang bisa digeser dengan penguncian posisi, lebar kartu sekitar tujuh puluh delapan persen, ditambah daftar baris untuk tahap yang sedang difokuskan.
+2. Kartu yang hidup: menampilkan tahap, nominal yang bisa disamarkan, umur piutang, satu aksi utama, dan menu tambahan untuk aksi lain.
+3. Mode ringkas: satu tombol yang meringkas papan menjadi tiga baris prioritas.
+4. Filter cerdas: chip tahap dan tombol "tampilkan yang perlu tindakan".
+5. Aksi utama memakai nilai yang sudah dihitung di `src/lib/financePipeline.ts`, bukan logika baru di dalam komponen.
+6. Aksesibilitas: kalau memakai grafik di dalam kartu, keterangannya harus bisa difokus dengan papan ketik. Kalau tidak, pakai bilah kemajuan yang sudah aksesibel.
+
+Syarat selesai: papan tetap ada dan tetap diimpor, papan berada di dalam blok "Perlu ditagih", pada lebar 412 piksel hanya terlihat satu sampai satu setengah kartu dan halaman tidak bisa digeser ke samping, test jalur keuangan hijau, dan tidak ada dependensi baru.
+
+### G3-04 Kontrak AI berbiaya
+
+Berkas yang disentuh: `src/lib/` untuk hook dan pembukuan, `src/components/AiCostModal.tsx`, `src/screens/CaptureSession.tsx`, `src/screens/MonthlyReport.tsx`, `src/screens/payments/RingkasanTab.tsx`, dan bagian AI di `src/screens/Settings.tsx`. Bergantung pada G1-01 dan G2-01.
+
+Langkahnya berurutan:
+
+1. Pembukuan: tambahkan aksi audit untuk panggilan AI, kolom biaya dan fitur AI pada catatan audit, dan batas belanja bulanan di pengaturan. Tanpa menaikkan versi basis data.
+2. Buat hook `useAiAction()`: menghitung perkiraan biaya, menampilkan modal biaya yang wajib dilewati, menjalankan panggilan, mencatat biaya dengan perkiraan yang sama, dan menjaga agar tidak bisa dijalankan dua kali bersamaan.
+3. Satukan modal biaya menjadi satu komponen. Yang ada sekarang dua: `src/components/AiCostModal.tsx` dan `src/screens/captureSession/AiCostConfirmModal.tsx`. Hapus yang kedua.
+4. Pindahkan seluruh tujuh titik pemanggilan AI ke jalur ini.
+5. Pengaturan AI: kolom batas dengan nilai awal kosong, tampilan pemakaian bulan ini, tombol tes koneksi, tombol hapus kunci, dan tombol hidup-mati AI yang berlaku langsung.
+6. Buktikan fitur inti tetap jalan tanpa AI.
+
+Syarat selesai: hanya ada satu komponen modal biaya, tidak ada lagi pemanggilan langsung ke klien AI dari layar, tanpa batas berarti AI tidak pernah diblokir, riwayat panggilan AI menampilkan waktu, fitur, dan biaya, dan test jalur AI hijau.
+
+### G3-05 Laporan bulanan: refactor terbatas dan alur modern
+
+Berkas yang disentuh: `src/screens/MonthlyReport.tsx`, folder `src/screens/monthlyReport/`, dan bagian tampilan di `src/lib/exportReport.ts`. Bergantung pada G3-01, G3-04, dan G2-04.
+
+**Refactor terbatas.** Target `MonthlyReport.tsx` paling banyak 1.500 baris. Ekstraksi mengikuti pola blok pratinjau, blok tema dan susunan, dan blok narasi ke folder `src/screens/monthlyReport/`.
+
+**Dua belas fitur.**
+
+1. Bilah aksi yang menempel di atas ditambah penunjuk langkah: pilih murid, pilih periode, buat laporan, isi narasi, ekspor. Tombol yang mati wajib menyebut alasannya di tempatnya.
+2. Panel hasil AI: daftar sesi yang berhasil dan yang gagal, tombol mengulang yang gagal, bilah kemajuan, dan pengumuman status. Tertahan sampai G3-04 selesai. Ringkasan hasil tidak boleh direset di blok pembersihan.
+3. Ekspor dengan status bertahap, misalnya sedang menyiapkan halaman, sedang mengunduh berkas, dan lembar berbagi dibuka. Pisahkan istilah dibuat dan dibagikan.
+4. Setiap jalan keluar lebih awal dari proses pembuatan laporan memberi pesan beserta langkah berikutnya. Contoh: belum ada sesi berarti arahkan untuk mencatat sesi dulu, sedang tanpa jaringan berarti arahkan ke pembuatan gratis.
+5. Pratinjau yang bisa disesuaikan: kontrol pembesaran, keterangan jumlah halaman, dan tanda peringatan bila isinya melampaui halaman.
+6. Kolom teks memberi tanda bahwa isinya bisa disunting, dengan peran tombol, urutan fokus, dan tombol Enter atau Spasi yang bekerja.
+7. Kesiapan dihitung dari seluruh sesi laporan, bukan dari sesi yang sedang tersaring, ditambah chip yang menyebut berapa sesi yang sedang ditampilkan.
+8. Penanda bahwa sebuah isian dibuat AI, per isian, dan hilang setelah disunting manual, ditambah tombol urungkan AI di bilah tetap.
+9. Penyimpanan narasi otomatis setelah berhenti mengetik, dengan status sedang menyimpan dan waktu tersimpan, ditambah konfirmasi bila cakupan berpindah padahal ada perubahan belum tersimpan.
+10. Jumlah baris per halaman ikut tersimpan ke laporan, bukan hanya menjadi keadaan sementara di layar.
+11. Panel pratinjau susunan memakai komponen modal yang sudah ada, sehingga tombol Escape, penguncian fokus, dan pemulihan fokus bekerja.
+12. Spanduk berhasil dan gagal diberi peran yang benar untuk pembaca layar. Sudah selesai di G1-10.
+
+Syarat selesai: total laporan yang sudah difinalkan tidak berubah walau narasi disimpan otomatis, berkas CSV sama persis, pratinjau dan hasil ekspor memakai sumber yang sama, dan tidak ada berkas di `src/template/` yang berubah.
+
+### G3-06 Murid: refactor terbatas, peta tab baru, proyek, dan seluruh temuan M
+
+Berkas yang disentuh: `src/screens/StudentDetail.tsx`, `src/screens/studentDetail/IaEeTracker.tsx`, `src/screens/studentDetail/NilaiRapor.tsx` yang menjadi `ProgresBelajar.tsx`, `src/screens/studentDetail/EvidenceCard.tsx`, `src/screens/studentDetail/EngagementSummary.tsx`, `src/screens/studentDetail/RiwayatSesi.tsx`, `src/screens/Students.tsx`, `src/components/StudentForm.tsx`, `src/db/types.ts`, `src/db/repos/iaeeRepo.ts`, dan `src/lib/backupValidation.ts`. Bergantung pada G1-01 dan G2-04.
+
+Tugas ini yang terbesar di gelombang ini dan boleh dipecah dua sesi: bagian tab dan proyek lebih dulu, bagian daftar dan riwayat kemudian.
+
+**Refactor terbatas.** Target `StudentDetail.tsx` paling banyak 800 baris, dengan ekstraksi per tab.
+
+**Peta tab yang wajib dipakai persis.** Tab Ringkas berisi ringkasan, kartu Perlu Tindakan, dan blok uang. Tab Sesi berisi sesi dan jadwal murid. Tab Progres berisi nilai akademik yang membandingkan prediksi dengan nilai akhir, ditambah ringkasan keterlibatan. Tab Proyek berisi pelacak tugas panjang dan jenis proyek bebas, termasuk tugas internal, esai extended, proyek pribadi, eksperimen, dan lainnya.
+
+**Empat belas fitur.**
+
+1. Peta tab di atas, dengan tab Nilai berganti nama menjadi Progres dan tab Proyek ditambahkan.
+2. Tab Ringkas: kartu Perlu Tindakan di paling atas, memuat jadwal berikutnya, pekerjaan rumah terakhir yang perlu perhatian, tagihan belum lunas, dan tindak lanjut.
+3. Tab Ringkas: blok uang memuat tarif dan rincian biaya, memakai penyamaran uang yang sudah ada.
+4. Tab Progres: tabel perbandingan prediksi dan nilai akhir per sesi, ditambah ringkasan keterlibatan di bawahnya.
+5. Tab Progres: antarmuka isian nilai rapor. Tabel dan fungsi simpan sudah ada, antarmukanya belum. Kalau terlalu besar, pecah menjadi tugas lanjutan.
+6. Tab Proyek: pelacak tampil untuk semua kurikulum, bukan hanya IB. Untuk murid non-IB tampilkan penjelasan, bukan tab kosong.
+7. Tab Proyek: jenis proyek bebas. Perluas daftar jenisnya, ganti rantai syarat di antarmuka menjadi satu peta label, longgarkan pembatas IB, dan samakan daftar jenis di `src/lib/backupValidation.ts`.
+8. Kartu bukti memakai label skor bersama dan penyebut yang benar, yaitu dari jumlah sesi yang benar-benar berisi data.
+9. Ringkasan keterlibatan disisakan satu blok angka, pengulangan dihapus, dan setiap baris menyebut penyebutnya, misalnya siap empat puluh persen dari dua dari lima sesi.
+10. Riwayat sesi memakai tombol muat dua puluh lagi, dan tidak lagi menyarangkan kontrol yang bisa diklik di dalam kontrol lain.
+11. Kepala halaman detail: tombol kirim ke orang tua lewat WhatsApp, tombol sunting yang membuka formulir murid, menu tambahan berisi nonaktifkan dan hapus, ditambah jejak navigasi.
+12. Daftar murid: kontrol pengurutan dan penyaringan, termasuk tombol menampilkan yang butuh perhatian, dan label yang menyebut urutan yang sedang dipakai.
+13. Kartu murid dipotong menjadi tiga baris, memakai keterangan aktif sejak bulan dan tahun, dan memakai label pendek kurikulum.
+14. Formulir murid diurutkan menjadi Identitas, Kontak, Tarif, dan Siklus Tagihan. Bagian siklus tagihan boleh dilipat bila menambah murid baru.
+
+Syarat selesai: empat tab berlabel tepat, uang hanya di tab Ringkas, murid non-IB melihat penjelasan di tab Proyek, nilai rapor akhirnya tampil, berkas backup lama tetap bisa dipulihkan dengan peringatan saja, dan test jalur murid, repositori, serta validasi backup hijau.
+
+**Siklus tagihan yang mengikat.** Ini hasil keputusan 2026-10-05. Murid per pertemuan ditagih ketika paket pertemuannya lengkap, misalnya delapan atau dua belas pertemuan. Murid per jam dihitung per jam dan ditagih bulanan. Pertemuan yang tanggalnya jatuh di antara dua bulan boleh ditagihkan pada salah satu bulan, dan tutor yang menentukan bulannya. Tarif selalu mengikuti tarif dasar di profil murid.
+
+### G3-07 Foto murid
+
+Berkas yang disentuh: `src/components/StudentForm.tsx`, `src/screens/Students.tsx`, `src/screens/StudentDetail.tsx`, dan `src/lib/foto.ts` yang sudah ada. Bergantung pada G3-06.
+
+Latar: kolom foto pada murid sudah ada dan sudah ikut masuk berkas backup, tetapi belum pernah ditampilkan sama sekali.
+
+Langkahnya berurutan:
+
+1. Unggah: kolom pemilih berkas gambar di formulir murid, dikecilkan memakai fungsi yang sudah ada menjadi paling besar enam ratus empat puluh piksel dengan ukuran paling besar seratus lima puluh kilobita, lalu disimpan sebagai blob.
+2. Tampilkan: gambar bulat di daftar murid menggantikan inisial bila fotonya ada, dan di kepala halaman detail. Alamat gambar sementara wajib dilepas kembali saat komponen dibongkar supaya tidak bocor memorinya.
+3. Hapus foto: tombol hapus dengan konfirmasi, yang menghapus kolomnya dan melepas alamat gambar sementara.
+4. Jaminan perawatan: pengecilan wajib sebelum simpan, semua alamat gambar sementara dilepas, foto murid belum masuk laporan PDF karena belum ada tempatnya, dan antarmuka menyebut bahwa foto ikut masuk berkas backup.
+5. Ukur dampak penyimpanan sebelum dan sesudah menambah satu foto, lalu catat hasilnya.
+
+Syarat selesai: foto tampil di daftar dan detail, hilang setelah dihapus, tidak ada peringatan kebocoran memori di konsol, ukuran tersimpan paling besar seratus lima puluh kilobita walau sumbernya gambar empat megabita, dan test jalur backup hijau.
+
+### G3-08 Kanvas dan istilah: tema, susunan, glosarium, grafik
+
+Berkas yang disentuh: `src/screens/monthlyReport/CustomThemeBuilder.tsx`, bagian panel desain di `src/screens/MonthlyReport.tsx`, `src/components/charts/BarChart.tsx`, `LineChart.tsx`, `DonutChart.tsx`, dan label di `src/components/Tabs.tsx`. Bergantung pada G3-05.
+
+Jangan menghapus susunan atau tema yang ada. Jumlahnya dua puluh enam susunan dan tiga puluh empat tema, dan angka itu tidak boleh berkurang.
+
+Langkahnya berurutan:
+
+1. Terjemahkan istilah di perancang tema ke bahasa Indonesia: judul teks, gaya judul dan label dan foto, hiasan, serta font judul dan font isi. Opsi bentuk gambar diberi label Indonesia beserta contoh warnanya.
+2. Pisahkan Tema dan Susunan pada judul kartunya, dengan dua chip berbeda dan ikon berbeda.
+3. Kurangi beban pilihan: kelompokkan susunan berdasarkan panjang narasi yang didukung, ganti dua puluh enam tombol pratinjau kecil menjadi satu tombol pratinjau untuk susunan terpilih, dan buat kisi tema empat kolom dengan sasaran sentuh yang cukup.
+4. Perbaiki grafik: ukuran teks sumbu paling kecil sebelas piksel, jarak kiri mengikuti label terpanjang, angka ringkas seperti ratusan ribu dan jutaan dengan nilai penuh di keterangan, peran gambar dan label untuk pembaca layar, keterangan yang bisa difokus dengan papan ketik, dan legenda grafik donat diaktifkan.
+5. Glosarium: satu istilah untuk satu konsep. Tagihan untuk objeknya, invoice hanya untuk dokumennya, belum dibayar menggantikan istilah piutang di antarmuka, kata sandi enkripsi menggantikan istilah passphrase dan kunci, dan fokus rata-rata untuk satu istilah yang sebelumnya panjang.
+6. Label yang terpotong: tab Sesi dan Jadwal dipendekkan menjadi Sesi, dan nama sekolah atau mapel diberi keterangan lengkap saat disorot.
+
+Syarat selesai: tidak ada istilah Inggris tersisa di panel desain, keterangan grafik bisa difokus dengan papan ketik, label sumbu terbaca pada lebar 390 piksel, jumlah susunan dan tema tidak berkurang, dan test susunan laporan hijau.
+
+### G3-09 Pengaturan: refactor terbatas, tata kelola, dan aplikasi web progresif
+
+Berkas yang disentuh: `src/screens/Settings.tsx`, `src/components/PwaPrompts.tsx`, `src/components/PinConfirmModal.tsx`, dan `src/lib/pwaInstall.ts`. Bergantung pada G1-09 dan bagian AI dari G3-04.
+
+**Refactor terbatas.** Target `Settings.tsx` paling banyak 700 baris, dengan ekstraksi satu berkas per bagian besar.
+
+**Sebelas fitur.**
+
+1. Bilah simpan yang menempel di bawah, beserta status belum disimpan atau tersimpan dengan waktunya.
+2. Penjaga saat meninggalkan halaman bila ada perubahan belum disimpan, dan pendengar peristiwa pembaruan aplikasi yang menyimpan lebih dulu.
+3. Ringkasan status tiga baris di bawah judul: kapan backup terakhir, keadaan AI, dan pemakaian penyimpanan, masing-masing dengan pintasan.
+4. Urutan bagian baru: Backup dan Restore, AI, Profil, PIN, Rekening Bank, Aplikasi, Riwayat Aktivitas, dan Hapus Semua Data di paling bawah dengan pemisah zona berbahaya.
+5. Progres pemulihan dipakai di semua jalur, baik dari Drive maupun dari berkas, dengan satu keadaan sibuk untuk empat tombol, dan nama serta ukuran berkas terpilih ditampilkan.
+6. Tombol salin kata sandi enkripsi, opsi mengunduh berkas kunci, chip yang menyebut sedang memakai kata sandi tersimpan, dan peringatan risiko sebelum tombol otomatis dihidupkan.
+7. Semua dialog bawaan peramban digantikan dialog internal, dengan kata konfirmasi yang diketik, ringkasan sasaran pemulihan berisi jumlah murid dan sesi serta tanggalnya, dan keterangan teknis validasi diringkas.
+8. Pemakaian penyimpanan yang gagal memunculkan pesan, dan hanya dirender di satu tempat.
+9. Aksesibilitas: status tersimpan menjadi baris berperan status, label model memakai penunjuk yang benar, penunjuk kendali tidak menggantung, sasaran sentuh diperbaiki, dan penguncian menampilkan hitungan mundur sebagai peringatan.
+10. Aplikasi web progresif: pintu pemasangan manual dengan petunjuk untuk iPhone, status siap offline dan penyimpanan permanen, serta tombol catatan perubahan beserta nomor versinya.
+11. Badge keadaan per bagian, misalnya backup terakhir dua belas hari lalu, offline siap, dan profil lengkap atau belum diisi.
+
+Syarat selesai: berpindah tab tidak menghilangkan perubahan tanpa peringatan, pemulihan dari Drive menampilkan tahapan dan menonaktifkan tombol selama proses, tidak ada lagi dialog bawaan peramban di berkas pengaturan, dan test jalur pengaturan hijau.
+
+### G3-10 Reset total dan jalur memasang PIN kembali
+
+Berkas yang disentuh: bagian zona berbahaya dan fungsi reset di `src/screens/Settings.tsx`. Bergantung pada G3-09.
+
+Langkahnya berurutan:
+
+1. Pastikan daftar tabel yang dibersihkan eksplisit dan disebutkan di antarmuka: murid, sesi, laporan, tagihan, tindak lanjut, nilai rapor, pengeluaran, proyek tugas panjang, catatan belajar, draf pencatatan sesi, pengaturan termasuk PIN dan kunci AI dan logo dan rekening dan profil, serta catatan audit.
+2. Konfirmasi tiga lapis tanpa dialog bawaan peramban: pertama ringkasan apa yang akan hilang dengan tombol lanjutkan, kedua mengetik kalimat HAPUS DATA untuk mengaktifkan tombol, ketiga memasukkan PIN keuangan.
+3. Setelah reset, muat ulang aplikasi lalu tampilkan ajakan memasang PIN baru, bukan layar kosong tanpa penjelasan, beserta tautan ke panduan backup.
+4. Catatan audit untuk peristiwa reset tetap ditulis, dan pastikan tidak ikut terhapus sebelum tercatat.
+5. Uji memakai data contoh, jangan memakai data nyata.
+
+Syarat selesai: setelah reset dan muat ulang aplikasi terbuka dengan data kosong dan pengaturan kembali ke nilai awal serta muncul ajakan PIN baru, teks di antarmuka menyebut semua yang hilang tanpa ada janji yang salah, tidak ada dialog bawaan peramban di jalur ini, dan test jalur pengaturan dan repositori hijau.
 
 ---
 
-## 3. Gelombang 3 — daftar tugas
+## 4. Pekerjaan yang belum ada tugasnya
 
-| ID | Judul | Tier | Dep | Berkas inti | Est | Status |
-|---|---|---|---|---|---|---|
-| G3-01 | Catat Sesi (refactor terbatas + C-01…C-13) | T3 | G2-01, G2-06 | `CaptureSession.tsx`, `captureSession/*` | L | 🟨 **sebagian** — refactor ✅ · L8 ✅ · L9 ✅ · L10 (undo, C-13/C-05) ✅ · L7 (simpan dari langkah 5, Q2) ✅ · C-08 ("Lewati" di langkah 2) ✅ · C-03 (satu penulis `responseTag` + `role="radiogroup"`) ✅ · C-04 (badge `!` di stepper) ✅ · C-02 (`aria-live` + gulir & fokus saat pindah langkah) ✅ · C-10 (donat skor → `ProgressBar`) ✅ · C-03 lanjutan **opsi c2** (keyboard grup radio: Tab sekali + panah/Home/End) ✅ · **L4 `ManageSessionSheet` ✅ (2026-10-05: satu sheet menggantikan dua modal lama — `home/manageSession.ts` + `home/manageSessionForm.ts` + `home/ManageSessionSheet.tsx`, 37 tes; `Select-String "EditSessionModal\|ResolveMissedSessionModal"` = **0**)** · **sisa: C-12 ⏸ menunggu G3-04** |
-| G3-02 | Keuangan: refactor terbatas `TagihanTab.tsx` + satu layar, cari murid, badge terlambat, filter lanjutan, **K-01** | T3 | G2-04 | `payments/TagihanTab.tsx`, `useInvoiceFilters.ts` | L | 🟨 **sebagian** — bagian 0 (refactor **1036 → 845**, target ≤800) ✅ · fitur **#4 K-05** ✅ *(2026-10-05)* · **#5 K-03** ✅ *(2026-10-05)* · **#7 K-07** ✅ *(2026-10-05)* · **#6 K-06** (Filter lanjutan: 3 kontrol di depan · umur piutang/asal/ekspor dilipat · chip "N filter aktif · Hapus") ✅ *(2026-10-05)* · **sisa: #8 K-01 peringatan nominal · #9 K-12 input nominal · #10 K-13 gerbang PIN `<form>` · #11 nav 3 pintu (paling akhir)** |
-| G3-03 | Redesign papan pipeline (tetap hidup di dalam blok "Perlu ditagih") | T2 | G3-02 | `FinancePipelineBoard.tsx`, `RingkasanTab.tsx` | L | ⬜ |
-| G3-04 | Kontrak AI berbiaya — satu jalur `useAiAction()` + satu modal biaya | T3 | G1-01, G2-01 | `useAiAction`, `AiCostModal`, `Settings` | L | ⬜ |
-| G3-05 | Laporan modern (`MonthlyReport.tsx` → ≤1.500) | T3 | G3-01, G3-04 | `MonthlyReport.tsx`, `monthlyReport/*` | L | ⬜ |
-| G3-06 | Murid: refactor `StudentDetail.tsx` + temuan M | T3 | G1-01, G2-04 | `StudentDetail.tsx`, `IaEeTracker.tsx` | L | ⬜ |
-| G3-07 | Foto murid | T2 | G3-06 | `StudentForm.tsx`, `Students.tsx` | M | ⬜ |
-| G3-08 | Kanvas & istilah | T2 | G3-05 | `CustomThemeBuilder.tsx`, `charts/*` | M | ⬜ |
-| G3-09 | Pengaturan lanjutan (target `Settings.tsx` ≤700) | T3 | G1-09 | `Settings.tsx`, `PwaPrompts.tsx` | M | ⬜ |
-| G3-10 | Reset total + PIN ulang | T3 | G3-09 | `Settings.tsx` (zona bahaya) | M | ⬜ |
+Bagian ini untuk pekerjaan yang tidak masuk urutan gelombang. Boleh dikerjakan kapan saja.
 
-**Refactor terbatas (Q9/A12–A13)** — dikunci pemilik: dikerjakan **tepat sebelum** gelombangnya, satu berkas
-per putaran: `CaptureSession.tsx` ✅ (2.155 → 1.891 saat refactor, sebelum G3-01) · `TagihanTab.tsx` sebelum
-G3-02 · `MonthlyReport.tsx` sebelum G3-05 · `StudentDetail.tsx` sebelum G3-06 · `Settings.tsx` sebelum G3-09.
-**Angka baris bukan DoD**: fitur boleh menaikkannya (lihat riwayat G3-01 di §6 dokumen tugasnya).
-
-**Di mana langkah rinci tiap tugas G3 (hemat pembacaan).** Rincian langkah `G3-02`…`G3-10` — termasuk item
-`K-01`…`K-13` dan sisa `C-xx` — ada di [`../arsip/GELOMBANG-3.md`](../arsip/GELOMBANG-3.md) §G3-02…§G3-10.
-Baca berkas itu sebagai **spesifikasi langkah**, bukan sumber angka: ia beku, dan angkanya potret 2026-10-01
-(lihat §4 #15 — spesifikasi itu seharusnya sudah pindah ke dokumen hidup).
-
-> **Batas ID yang mengikat (pernah bikin salah baca 2026-10-05).** Item `C-xx` yang dipakai di §3 dan
-> `TASK-06` mengikuti penomoran **`GELOMBANG-3`**, **bukan** penomoran audit
-> [`../arsip/AUDIT-UIUX-CATAT-SESI-2026-09-12.md`](../arsip/AUDIT-UIUX-CATAT-SESI-2026-09-12.md) — di berkas
-> audit itu `C-02`/`C-04`/`C-08` berarti hal yang sama sekali lain (mis. `C-08` di audit = kontras warna,
-> di `GELOMBANG-3` = tombol "Lewati" di langkah 2).
+| Sumber | Pekerjaan | Keadaan dan catatan |
+|---|---|---|
+| Keputusan D3 | Benahi alias mapel lintas kurikulum, termasuk dua kasus yang paling jelas salah: mapel Nasional Informatika dan Penjaskes sekarang memakai katalog ilmu komputer tingkat internasional. Tinjau seluruh dua puluh tiga peta alias yang ditandai skrip audit | Belum. Alat pengukurnya `.design-audit/topic-coverage-audit.mjs`. Perbaikan ini mengubah jumlah sisa katalog topik, jadi ukur ulang setelah selesai |
+| Keputusan D4 | Tambahkan tab tagihan ke daftar halaman yang dijaga penjaga tampilan, dan buat catatan palet terkunci sehingga setiap perubahan warna atau token meninggalkan jejak | Belum. Sekarang penjaga hanya mengukur tab ringkasan |
+| Keputusan D6 | Layar Keuangan: tambahkan satu judul induk lalu turunkan keenam kartunya satu tingkat, tanpa mengubah tampilan visualnya | Belum. Tiga layar lain sudah memakai cara ini, yaitu Murid, Laporan, dan Pengaturan |
+| Keputusan D8 | Perkuat penyebab kegagalan test yang hanya muncul saat beban tinggi, dengan membuat pemuatan data contoh berurutan | Belum. Gejalanya sudah teridentifikasi: satu berkas test pernah menerima pesan data pembayaran tidak ditemukan, padahal berkas itu lulus saat dijalankan sendirian dan lulus empat dari empat saat diulang |
+| Katalog topik | Tambah katalog untuk mapel yang belum punya | Sebagian. Hasil pengukuran 2026-10-05: dua puluh dari tujuh puluh delapan pasangan sudah punya katalog, lima puluh delapan belum. Rinciannya: IB MYP dan IB DP seluruhnya sudah tertutup, IGCSE kurang enam belas dari delapan belas, O Level kurang sebelas dari sebelas, A Level kurang tiga belas dari empat belas, AP kurang sepuluh dari sebelas, Nasional kurang delapan dari delapan |
+| Keputusan D5 | Periksa katalog IB yang disusun agen ke panduan resmi, dan tambah unit yang kurang | Belum. Memakai kerangka silabus boleh, dan lebih banyak unit lebih baik daripada tidak punya data |
+| Backlog | Jejak audit untuk perubahan sesi. Fungsi ubah sesi tidak menulis catatan audit, padahal pembatalan, ketidakhadiran, penjadwalan ulang, penghapusan, dan pembatalan seri semuanya menulis | Belum. Digabung dengan perbaikan serupa di repositori murid supaya satu tindakan mencakup semuanya |
+| Backlog | Temuan audit tampilan yang masih tersisa dari audit 2026-10-01 | Sebagian. Tujuh puluh tiga temuan tetap dan delapan belas sebagian. Bacaan wajib sebelum mengerjakan ada di berkas validasi rencana di arsip |
+| Keputusan D2 | Perhitungan biaya saat sesi ditutup harus memeriksa nominal manual sebelum menulis | Belum. Sudah sepuluh butir di atas; masuk ke perbaikan jalur tarif |
+| Sisa lama | Tampilan yang sengaja tidak dikerjakan: navigasi bawah tetap tampil selama alur pencatatan sesi, dan chip teks berukuran tiga puluh delapan sampai empat puluh dua piksel dibiarkan karena sudah lolos ambang | Selesai diputuskan, bukan lupa. Jangan diangkat lagi |
 
 ---
 
-## 4. Pekerjaan tanpa dokumen tugas (butuh keputusan pemilik, izin, atau belum dijadwalkan)
+## 5. Daftar periksa manual
 
-> **Ditutup 2026-10-05** — nomor lamanya dipertahankan di [`ATURAN-AI.md`](ATURAN-AI.md) §1 "Amandemen
-> 2026-10-05" supaya rujukan tidak putus: **#1** verifikasi PWA → ditangani pemilik lewat Vercel ·
-> **#5** timeout Playwright → dinaikkan ke 60 dtk · **#6** CI GitHub → **tidak** diaktifkan ·
-> **#11** 10 hex mentah → sudah jadi token · **#12** konfirmasi nav bawah → opsi b3 (baris kepastian draf) ·
-> **#13** panah radiogroup → selesai (opsi c2) · **#16** mockup → dipertahankan (opsi e1) · **#19** penjaga teks
-> ter-encode ganda → **selesai 2026-10-05** lewat `import.meta.glob(…, ?raw)` di berkas tes · **#17** tarif saat
-> murid sesi diganti → **selesai v1.93.0** (keputusan pemilik: hitung ulang dari tarif murid baru, nominal manual
-> dipertahankan) — lihat `TASK-06` §10
-> (`types` `tsconfig.app.json` **tidak** perlu diubah, cakupan gate dokumen juga tidak) — jadi tidak ada
-> pilihan (a)/(b)/(c) yang perlu diputuskan.
->
-> **#7 ditutup 2026-10-05 (putaran yang sama).** `npm run e2e` dijalankan **seluruhnya** dengan eskalasi
-> sandbox: **78 lulus · 6 skip · 0 gagal** (4,8 menit, 2 project `chromium` + `mobile`, batas 60 dtk).
-> **Tidak ada spec merah**, jadi langkah "jalankan sendirian" tidak perlu dipakai dan **tidak ada** yang
-> diperbaiki — suite-nya sudah hijau. Efek samping §6.4 terjadi seperti yang ditulis dan sudah dibereskan:
-> **58 PNG ter-track** di `e2e/screenshots/audit/**` ditulis ulang + **13 PNG baru** di `e2e/screenshots/`
-> dibuat spec katalog → semuanya dipulihkan/dihapus, **tidak satu pun di-commit** (`git status` bersih
-> sesudahnya). Karena `e2e` kini hijau **termasuk Beranda**, hasil ini sekaligus bukti tidak langsung untuk
-> L4: `Home.tsx` masih merender dan spec Beranda lulus — tetapi **klik** pada sheet baru tetap butuh
-> butir manual §5 21–22 (tidak ada spec yang menekan baris sesi).
+Bagian ini hanya bisa ditutup pemilik dengan mata di perangkat. Agen tidak boleh mencentangnya. Semuanya memakai data contoh dari aplikasi. Perkiraan waktu seluruhnya sekitar lima belas menit.
 
-| # | Pekerjaan | Di mana | Kenapa belum selesai |
-|---|---|---|---|
-| 2 | **Verifikasi manual alur Catat Sesi** (§5 di bawah — 22 butir; 13–20 baru 2026-10-05, 21–22 dari L4 `ManageSessionSheet`) | §5 berkas ini | Butuh mata manusia di perangkat |
-| 3 | **Katalog topik untuk 78 mapel yang belum punya** — **selesai 16/78 (IB MYP 6 + IB DP 10), sisa 62** | [`../arsip/AUDIT-KONDISI-LES-DAN-TOPIK-2026-09-13.md`](../arsip/AUDIT-KONDISI-LES-DAN-TOPIK-2026-09-13.md) §7 P3 #19 · daftar sadarnya di `KNOWN_TOPIcless` (`src/__tests__/topicCoverage.test.ts`) | **Keputusan #3 (2026-10-05): dikerjakan agen.** **Putaran 1:** keenam kelompok IB MYP. **Putaran 2:** sepuluh mapel IB DP (Philosophy · Global Politics · Digital Society · Design Technology · SEHS · Visual Arts · Music · Theatre · Film · Dance) — jadi **seluruh kurikulum IB kini tertutup** (MYP + DP). **Ukur ulang dengan skrip, jangan menebak:** `.design-audit/topic-coverage-audit.mjs` mencetak mapel indeks per level, status 78 pasangan, **dan** peta alias lintas kurikulum. Sisa: **Cambridge IGCSE 16 · A Level 13 · O Level 11 · AP 10 · National 8** (prioritas turun — tutor mengajar IB MYP/DP). Jaga `npm run test:sandbox -- topicCoverage` hijau (27 tes) |
-| 4 | **2 hal yang sengaja TIDAK dikerjakan** (keputusan, bukan lupa) | [`../arsip/AUDIT-UIUX-CATAT-SESI-2026-09-12.md`](../arsip/AUDIT-UIUX-CATAT-SESI-2026-09-12.md) §9.3 | bottom-nav dibiarkan tampil selama wizard; chip teks 38–42 px dibiarkan (≥24 px, lolos WCAG 2.5.8) |
-| 8 | **K-01 — peringatan saat mengubah nominal tagihan** (mengubah nominal memindahkan asal tagihan ke `manual` secara senyap → daftar sesi hilang dari ekspor & WA) | keputusan pemilik #1 (2026-10-01) · [`../arsip/07-VALIDASI-RENCANA-2026-10-01.md`](../arsip/07-VALIDASI-RENCANA-2026-10-01.md) §3 | Dijadwalkan sebagai bagian **G3-02** |
-| 9 | **Temuan audit UI/UX yang masih tersisa** dari audit 2026-10-01 | [`../arsip/06-AUDIT-UIUX-2026-10-01.md`](../arsip/06-AUDIT-UIUX-2026-10-01.md) | 73 temuan tetap, 18 sebagian, 1 klaim dibatalkan. **Wajib baca berkas 07 lebih dulu** sebelum mengerjakan |
-| 14 | ~~**Rilis gelombang 3 + satu entri `CHANGELOG`**~~ — **SELESAI 2026-10-05: rilis v1.91.0** (satu entri `CHANGELOG` untuk seluruh gelombang: L7 · C-02 · C-03 · C-04 · C-08 · C-10 · C-13/C-05 · Q-A/Q-B · **L4** · katalog topik MYP) — **dan rilis kedua 2026-10-05: v1.92.0** (satu entri untuk G3-02 K-05/K-03/K-07/K-06 + perbaikan kelola-jadwal + teks ter-encode ganda + panel yang langsung bisa disunting) | `package.json` + `src/lib/version.ts` + [`../README.md`](../README.md) §6 | Dikerjakan atas permintaan pemilik. **Catatan:** `Q-D = d2` menunda rilis sampai G3-01 tuntas; permintaan pemilik mengalahkan penundaan itu, dan **C-12 tetap terbuka** (menunggu G3-04) — jadi v1.91.0 adalah rilis gelombang **tanpa** C-12, bukan G3-01 yang tuntas. Entri gelombang berikutnya menyusul saat C-12 selesai |
-| 15 | **Spesifikasi langkah G3-02…G3-10 masih tinggal di [`../arsip/GELOMBANG-3.md`](../arsip/GELOMBANG-3.md)** | §3 berkas ini | **Keputusan Q-F = bertahap:** pindahkan **satu tugas per pemindahan**, dikerjakan saat gelombang itu mulai (angkanya di arsip sudah beku) |
-| 18 | **(d) jejak audit untuk perubahan sesi** — `updateSession`/`updateSeriesSessions` tidak memanggil `logAudit`, padahal cancel · no-show · reschedule · delete · cancel-series semuanya memanggilnya | keputusan pemilik 2026-10-05 · `src/db/repos/sessionRepo.ts` | **T2, backlog** — di-batch dengan perbaikan audit lain (mis. temuan W8 `studentRepo.ts:76-91` yang juga tidak berjejak) supaya satu tindakan audit mencakup semuanya |
+1. Murid IGCSE dengan mapel berkode, masuk ke langkah materi, ketik algebra, muncul keterangan bahwa yang ditampilkan adalah topik jenjang IGCSE dan hanya topik IGCSE yang muncul.
+2. Buka pilihan dari daftar bab. Daftar bab muncul, membuka satu bab menampilkan topik dengan tanda centang, dan memilih satu topik menambah chip beserta nama babnya.
+3. Pilih topik yang sama dari pencarian. Tidak muncul chip kedua.
+4. Mapel yang katalognya belum ada, misalnya Global Perspectives, ketik essay. Muncul kotak peringatan beserta tombol untuk menampilkan topik jenjang lain atau memakai kata itu sebagai topik.
+5. Murid Nasional dengan mapel Matematika, ketik bilangan. Tidak ada hasil berlabel MYP.
+6. Murid IB DP dengan mapel Global Politics, ketik power. Tidak ada hasil dari Matematika.
+7. Langkah kondisi hanya menampilkan tiga tombol kondisi dan enam indikator. Tombol untuk membuka enam indikator lain bekerja, dan tombol Biasa sudah tidak ada.
+8. Ketuk hanya tombol seperti biasa, lanjut ke langkah detail. Kartu skor menyebut bahwa skor tidak dihitung.
+9. Isi dua indikator, masuk langkah detail. Skor muncul beserta keterangan kelengkapan data sebagian. Setelah memilih tag respons, angkanya ikut berubah di langkah yang sama.
+10. Simpan sesi, buka detailnya dari tab riwayat. Semua indikator dan tag tampil. Tombol koreksi menyimpan perubahan dan skornya ikut berubah.
+11. Buka tab nilai. Kartu keseriusan belajar menampilkan penyebut berupa rata-rata dari sekian sesi, panel cakupan data, dan grafik kualitas respons akademik.
+12. Di pengaturan, ekspor berkas CSV. Ada kolom baru untuk bab topik dan sumber skor, dan kolom jenjang berisi label seperti IGCSE kelas sepuluh, bukan kode tingkat universitas.
+13. Di langkah materi, hapus satu chip topik yang punya bab. Muncul pita pesan dengan tombol urungkan. Setelah ditekan, topik kembali ke posisi semula beserta label babnya.
+14. Di laporan sesi pada langkah enam, hapus satu tindak lanjut. Muncul konfirmasi, lalu setelah diurungkan itemnya kembali ke urutan semula.
+15. Di langkah lima, isi catatan. Tombol simpan sesi tersedia di sebelah tombol lanjut. Setelah ditekan, laporan sesi terbuka dan sesinya tersimpan tanpa foto dan tanda tangan.
+16. Di langkah satu sebelum murid dipilih, penunjuk langkah menunjukkan tanda seru. Begitu murid dipilih, tandanya hilang. Langkah lima juga bertanda seru selama catatannya masih kosong.
+17. Dari langkah satu, gulir jauh ke bawah lalu ketuk lanjut. Halaman kembali ke atas dan judul langkah berikutnya langsung terlihat.
+18. Di langkah empat, ketuk lancar pada isian cepat. Tombol itu menyala dan chip yang sama di daftar bawah ikut menyala. Dengan papan ketik, tombol Tab masuk sekali ke dalam kelompok, panah memindahkan pilihan dan membungkus di ujung, tombol Home dan End menuju ujung, dan tombol kosongkan tetap terjangkau.
+19. Baca tombol utama di bilah aksi pada setiap keadaan. Langkah satu sampai lima berwarna biru, langkah enam berwarna hijau, keadaan sedang menyimpan lebih gelap. Teks putihnya harus nyaman dibaca. Periksa juga kepala laporan sesi supaya warnanya masih terlihat bagus.
+20. Isi satu catatan, tunggu sampai muncul keterangan draf tersimpan, keluar ke Beranda lewat navigasi bawah, lalu buka lagi halaman pencatatan sesi. Isian dan langkahnya kembali, dan muncul baris keterangan bahwa isian tersimpan sebagai draf.
+21. Di Beranda, ketuk baris sesi hari ini atau sesi yang akan datang. Panel Kelola sesi naik dari bawah dengan kolom murid, tanggal, jam mulai, dan durasi sudah terbuka, dan aksi utamanya simpan perubahan. Buka menu aksi lain. Batalkan sesi dan hapus terlihat beserta satu baris keterangan perbedaannya di bawah tiap tombol. Keduanya menampilkan konfirmasi lebih dulu, dan setelah dikonfirmasi sesinya benar-benar hilang dari jadwal. Tidak ada tombol tidak hadir di konteks ini.
+22. Di Beranda, buka sesi yang terlewat, yaitu baris kuning bertanda terlewat. Panel Kelola sesi terlewat menampilkan tiga aksi di badannya: catat, batalkan sesi, dan tidak hadir. Pada tidak hadir, pastikan pilihan gratis atau tetap tagihkan muncul dan kalimat biayanya ikut berubah. Di menu tambahan ada jadwalkan ulang dengan tanggal pengganti mulai dari hari ini, dan hapus.
+23. Di Beranda, buka sesi hari ini atau sesi yang akan datang, lalu ubah kolom murid ke murid lain. Muncul peringatan di panel yang menyebut nominal dihitung ulang memakai tarif murid baru, atau menyebut nominal manual sesi ini tidak diubah bila sesi itu punya nominal manual, dan tanpa angka rupiah. Setelah menyimpan, muncul konfirmasi ganti murid. Setelah dikonfirmasi, sesinya pindah ke murid itu. Periksa di layar Keuangan bahwa nominalnya memakai tarif murid baru dan masuk ke tagihan murid baru. Periksa juga bahwa murid nonaktif muncul di daftar dengan tanda nonaktif. Ulangi dengan hanya mengubah jam. Tidak boleh ada konfirmasi, dan nominal manual yang pernah diisi tidak boleh hilang. Sesi terlewat tetap tanpa pemilih murid.
 
 ---
 
-## 5. Daftar periksa manual — alur Catat Sesi (±10 menit)
-
-Satu-satunya cara menutup §4 #2. Jalankan dengan data dev (`seedDummy()` sudah menyiapkan murid IB MYP /
-IB DP / Cambridge IGCSE / AP / Nasional). Checklist rinci per titik (lokasi, tanda salah, cara lapor):
-[`../arsip/CHECKLIST-VISUAL-2026-10-04.md`](../arsip/CHECKLIST-VISUAL-2026-10-04.md).
-
-- [ ] **1.** Murid **Cambridge IGCSE** → mapel ber-kode → langkah Materi → ketik `algebra` → muncul baris "Menampilkan topik jenjang IGCSE" dan **hanya** topik IGCSE
-- [ ] **2.** Buka **"📚 Pilih dari daftar bab"** → daftar bab muncul; membuka satu bab menampilkan topik bercentang; memilih satu topik menambah chip **beserta nama babnya**
-- [ ] **3.** Pilih topik yang sama dari **pencarian** → tidak muncul chip kedua (string identik)
-- [ ] **4.** Mapel yang katalognya belum ada (mis. `Global Perspectives (0457)`) → ketik `essay` → kotak kuning "Tidak ada topik jenjang IGCSE…" + tombol "Tampilkan topik jenjang lain" / "Pakai … sebagai topik"
-- [ ] **5.** Murid **Nasional** + `Matematika` → ketik `bilangan` → tidak ada hasil berlabel `MYP`
-- [ ] **6.** Murid **IB DP** + `Global Politics` → ketik `power` → **tidak ada** hasil Matematika (dulu ada)
-- [ ] **7.** Langkah Kondisi → hanya **3 tombol kondisi + 6 indikator** terlihat; "6 indikator lain" membuka sisanya; tombol "😐 Biasa" **sudah tidak ada**
-- [ ] **8.** Ketuk "Seperti biasa" saja → lanjut ke langkah Detail → kartu "Skor sesi" berkata **skor tidak dihitung**
-- [ ] **9.** Isi 2 indikator → langkah Detail → skor muncul + "kelengkapan data: Sebagian"; **isi pilihan respons akademik** → angka berubah di langkah itu juga
-- [ ] **10.** Simpan sesi → buka detail dari tab Riwayat → semua indikator & tag tampil; tombol "✏️ Koreksi" menyimpan perubahan dan skor ikut berubah
-- [ ] **11.** Tab Nilai → kartu Keseriusan Belajar → ada penyebut ("rata-rata dari N sesi"), panel **cakupan data**, dan grafik **Kualitas Respons Akademik**
-- [ ] **12.** Pengaturan → Ekspor CSV → kolom baru "Bab Topik" & "Sumber Skor"; kolom Level berisi label (mis. `IGCSE · Grade 10`), **bukan** `UNIV`
-- [ ] **13. (baru 2026-10-05, G3-01 L10)** Langkah Materi → ketuk × pada satu chip topik **berbab** → muncul pita pesan + tombol "↩ Urungkan" → ketuk → topik kembali **di posisi semula** dengan label babnya
-- [ ] **14. (baru 2026-10-05, G3-01 L10)** Laporan sesi (langkah 6) → hapus satu tindak lanjut (konfirmasi) → "↩ Urungkan" → item kembali **di urutan semula**
-- [ ] **15. (baru 2026-10-05, Q2/L7)** Langkah 5 (Catatan) → isi catatan → tombol **Simpan Sesi** tersedia di sebelah "Lanjut →" → ketuk → laporan sesi terbuka dan sesi tersimpan **tanpa foto & tanda tangan** (periksa di detail sesi)
-- [ ] **16. (baru 2026-10-05, C-04)** Di langkah 1 sebelum murid dipilih → stepper langkah 1 menunjukkan badge `!`; begitu murid dipilih → badge hilang. Langkah 5 juga berbadge `!` selama catatannya masih kosong
-- [ ] **17. (baru 2026-10-05, C-02)** Dari langkah 1 gulir jauh ke bawah → ketuk "Lanjut →" → halaman **kembali ke atas** dan judul langkah berikutnya ("Materi") langsung terlihat
-- [ ] **18. (baru 2026-10-05, C-03)** Langkah 4 → ketuk "Lancar" di "Isi cepat" → tombol itu **menyala** dan chip yang sama di daftar bawah ikut menyala. Lalu pakai keyboard: **Tab** masuk **sekali** ke grup, **panah ←/→/↑/↓** memindahkan pilihan (membungkus di ujung), **Home/End** ke ujung, dan **Kosongkan** tetap terjangkau Tab
-- [ ] **19. (baru 2026-10-05, QA)** Baca tombol utama bilah aksi di tiap keadaan: langkah 1–5 (biru), langkah 6 (hijau), saat menyimpan (gelap) — teks putihnya harus enak dibaca; dan kepala **laporan sesi** (hijau) — kini lebih gelap dari versi sebelumnya, pastikan masih terlihat bagus
-- [ ] **20. (baru 2026-10-05, QB)** Isi satu catatan → tunggu "Draf tersimpan ✓" → keluar ke Beranda lewat nav bawah → buka lagi Catat Sesi → **isian dan langkah kembali**, dan baris "Isian sesi ini tersimpan sebagai draf…" muncul
-- [ ] **21. (baru 2026-10-05, L4 + kelola jadwal)** Beranda → ketuk baris sesi **hari ini/akan datang** → sheet "Kelola sesi" naik dari bawah dengan **kolom `Murid` · `Tanggal` · `Jam mulai` · `Durasi` sudah terbuka** (sejak 2026-10-05; dulu harus menekan `Simpan perubahan` dulu) dan aksi utama **`Simpan perubahan`**; buka **`⋯ Aksi lain (2)`** → **`Batalkan sesi`** dan **`Hapus`** terlihat **beserta satu baris keterangan bedanya di bawah tiap tombol**; `Batalkan sesi` menampilkan konfirmasi lebih dulu, `Hapus` juga (dan sesudah "Ya, hapus" sesi benar-benar hilang dari jadwal). **Tidak ada** tombol `Tidak hadir` di konteks ini (`Batalkan sesi` memang ada, tetapi di `⋯`)
-- [ ] **22. (baru 2026-10-05, L4)** Beranda → sesi yang **terlewat** (baris kuning "Terlewat") → sheet "Kelola sesi terlewat" dengan tiga aksi di badan sheet: **`Catat`** (membuka wizard Catat Sesi lewat `/capture?scheduleId=…`) · **`Batalkan sesi`** · **`Tidak hadir`**. Di `Tidak hadir` pastikan pilihan **"Gratis / tidak tagih"** vs **"Tetap tagihkan"** muncul dan kalimat biayanya ikut berubah; di `⋯` ada **`Jadwalkan ulang`** (tanggal pengganti mulai dari **hari ini**) dan **`Hapus`**
-- [ ] **23. (baru 2026-10-05, kelola jadwal)** Beranda → sesi **hari ini/akan datang** → panel terbuka dengan kolom **Murid** sudah terlihat → ubah kolom **Murid** ke murid lain → muncul **peringatan** di sheet yang menyebut **nominal dihitung ulang memakai tarif murid baru** (atau "nominal manual sesi ini tidak diubah" bila sesi itu punya nominal manual; **tanpa angka rupiah**, karena Beranda dilarang menampilkan uang) → tekan `Simpan perubahan` → muncul konfirmasi **"Ganti murid sesi ini?"** → `Ya, ganti murid` → sesi pindah ke murid itu. **Periksa di Keuangan:** nominal sesi itu memakai tarif murid baru (bukan tarif murid lama) dan masuk ke tagihan murid baru. Periksa juga: murid yang **nonaktif** muncul di daftar dengan tanda **"(nonaktif)"**. Ulangi dengan **hanya** mengubah jam → **tidak** ada konfirmasi, dan nominal manual yang pernah diisi **tidak** hilang. Sesi **terlewat** tetap **tanpa** pemilih murid (keputusan pemilik, `ATURAN-AI` §1)
-
-> Sudah ditutup 2026-09-13: verifikasi E2E close-out gagal (Fase B) dan runtime/PWA restore (Fase D)
-> dijalankan (`e2e/capture-closeout-failure.spec.ts`, `e2e-pwa/pwa-runtime.spec.ts`). Dari 32 kriteria
-> §5–§9 di dokumen ketahanan data, 29 sudah dicentang dengan rujukan tes.
-> **Hasil tinjauan visual pemilik 2026-10-04** (16 dari 20 butir ✅, 1 bug ditemukan → diperbaiki v1.89.2):
-> [`../README.md`](../README.md) §4.4.1 di riwayat rilis.
-
----
-
-## 6. Keputusan yang mengikat urutan (jangan diangkat lagi)
-
-| Kode | Isi ringkas |
-|---|---|
-| **A12/Q9** | Refactor terbatas tepat sebelum gelombangnya (lihat §3) |
-| **A13/Q11** | Aturan refactor terbatas juga berlaku untuk `TagihanTab.tsx`, `StudentDetail.tsx`, `Settings.tsx` |
-| **A14/Q12** | `G3-04` sebelum `G3-05` (panel AI butuh `useAiAction`) |
-| **A18/Q45** | 44 px = kontrol **utama**; chip/kontrol sekunder 24–36 px diterima |
-| **A19/Q23** | Letak resmi guard metrik UI: `e2e-uiux/` + `playwright.uiux.config.ts` |
-| **Q2** | Sesi boleh disimpan dari langkah 5; **jumlah langkah tetap 6** |
-| **Q3** | Papan pipeline **dipertahankan** (di dalam blok "Perlu ditagih") |
-| **Q4** | Light-only permanen |
-
-Q baru hanya sah untuk: **(a)** mengubah perilaku pengguna, **(b)** menyentuh berkas §2.1, **(c)** mengubah
-DoD/kontrak. Di luar ketiganya: **putuskan sendiri dan cantumkan alasannya** di laporan.
-
-## 7. Riwayat berkas ini
+## 6. Riwayat berkas ini
 
 | Tanggal | Perubahan |
 |---|---|
-| 2026-10-05 | Dibuat dari penggabungan `ROADMAP.md` + §4 `docs/README.md` (keputusan pemilik Q-13 opsi A). `ROADMAP.md` dipindahkan ke `../arsip/`. |
-| 2026-10-05 | **Butir §4 #10 ditutup** — URL 404 di dalam teks iklan (`arsip/PROMPT-AI-IKLAN.md:78`) sudah dibetulkan menjadi host yang benar; barisnya dihapus dari daftar karena pekerjaan tuntas tidak boleh tinggal di daftar pekerjaan. |
-| 2026-10-05 | **#3 putaran 2: katalog IB DP diisi (10 mapel, 78 → 62 belum) — kurikulum IB tuntas.** Mapel: `Philosophy` · `Global Politics` · `Digital Society` · `Design Technology` · `SEHS` · `Visual Arts` · `Music` · `Theatre` · `Film` · `Dance` — ditambahkan ke `IB_TOPICS` pada level `DP` (nilai level harus **persis "DP"** supaya lolos `curriculumLevelFilter`) + 10 kelompok alias baru; kesepuluhnya dihapus dari `KNOWN_TOPIcless`. **Kelompok 6 (Arts) sengaja TIDAK meminjam katalog MYP "Arts"** — isi dan levelnya beda. **Dua tes penjaga gagal karena sedang membaik, bukan karena regresi:** `topicCoverage.test.ts` memakai "Global Politics" sebagai contoh mapel *tanpa* katalog DP; contohnya diganti properti kontrak (mapel yang masih di `KNOWN_TOPIcless`: "Marine Science", "French (0520)") **dan** ditambah satu tes yang menuntut kebalikannya (mapel DP ber-katalog tidak lagi memakai topik level lain). **Temuan akar masalah artefak suite:** `test-results/` adalah direktori keluaran Playwright → artefak fakta suite dipindah ke `.design-audit-suite.json` (akar repo), pembaca `check-docs.mjs`/`measure.mjs` diperbarui, dan `check-docs` kini **berteriak** bila berkas lama masih ada. |
-| 2026-10-05 | **#3 putaran 1: katalog IB MYP diisi (6 mapel, 78 → 6 dari 78 belum).** Mapel: `Language & Literature` · `Language Acquisition` · `Individuals & Societies` · `Arts` · `PHE` · `Design` — ditambahkan ke `IB_TOPICS` pada level MYP 1…MYP 5 (lengkap, bukan sebagian) + enam kelompok alias baru di `TOPIC_SUBJECT_ALIASES`; keenamnya **dihapus dari `KNOWN_TOPIcless`**. Level MYP sebelumnya hanya punya **4** nama indeks (mathematics · sciences · matematika · bahasa indonesia), jadi enam kelompok resmi MYP memang tidak bisa menemukan topiknya. **Temuan lintas kurikulum yang membuat dua alias dibatalkan sebelum sempat bocor:** alias `"Penjaskes"`/`"PJOK"` untuk PHE **tidak** didaftarkan (keduanya mapel **Nasional** — mendaftarkannya membuat murid Nasional menerima topik MYP, persis kasus "Matematika" yang sudah terdokumentasi), dan alias `"Seni"` untuk Arts juga dibatalkan (membuat `National :: Seni Budaya` memakai topik MYP Arts). **Temuan lama yang BELUM diperbaiki (bukan regresi putaran ini):** `National :: Informatika` dan `National :: Penjaskes` bermuara ke `computer science` (level AP/DP/IGCSE/A Level) — alias lama; hanya terlihat karena skrip audit baru melaporkan peta alias lintas kurikulum. Peta itu dicetak oleh `.design-audit/topic-coverage-audit.mjs` (gitignored) agar keputusan atribusi bisa ditinjau, bukan tersembunyi. |
-| 2026-10-05 | **#7 ditutup: seluruh suite `npm run e2e` hijau.** Dijalankan dengan eskalasi sandbox — **78 lulus · 6 skip · 0 gagal** (4,8 menit, project `chromium` + `mobile`, batas 60 dtk). Tidak ada spec merah, jadi tidak ada yang diperbaiki. Efek samping PNG (§6.4) dibereskan: 58 ter-track dipulihkan, 13 baru dihapus, nol di-commit. Butir #7 dihapus dari tabel §4, ringkasannya diangkat ke catatan atas §4. |
-| 2026-10-05 | **L4 `ManageSessionSheet` tuntas** (G3-01): dua modal lama dihapus, satu sheet dengan aksi menurut konteks; §3 diperbarui (sisa G3-01 = **C-12** saja), §5 bertambah butir **21–22** untuk sheet baru. Rincian + gate: `TASK-06` §9.2/§10. |
-| 2026-10-05 | **§4 dirapikan setelah keputusan pemilik (Q-A…Q-F, #1…#7):** 7 butir ditutup (#1 · #5 · #6 · #11 · #12 · #13 · #16) dengan nomor lamanya dipertahankan di `ATURAN-AI` §1 · #3 berubah jadi pekerjaan agen (cari topik untuk 78 mapel) · #7 dinaikkan jadi target "semua spec E2E hijau" · #14 dijadwalkan setelah `L4` (Q-D = d2) · #15 dikerjakan bertahap (Q-F). **§5 bertambah 6 butir pemeriksaan manual (13–20)** untuk L10 lama + L7 · C-02 · C-03 · C-04 · QA · QB. **§3:** catatan bahwa spec `G3-02`…`G3-10` ada di arsip + batas penomoran ID. |
-| 2026-10-05 | **G3-02 kluster daftar tagihan: K-05 · K-03 · K-07 tuntas** (keputusan pemilik d2+e2, brief Q1=a2 · Q2=b1 · Q3=c2 · Q6=f1). Dua berkas baru atas izin: `src/lib/invoiceDueLabel.ts` (11 tes) + `src/screens/payments/invoiceListFilters.ts` (21 tes) — semuanya fungsi murni, pola `invoicePresentation.ts`. `TagihanTab.tsx` **845 → 915** (kotak `Cari murid` selalu tampil + menyaring daftar dan dua antrean + tile; daftar selalu dirender; pesan kosong per keadaan filter), `InvoiceRow.tsx` **+25** (badge "Terlambat N hari" + jatuh tempo `dayLabel`). Suite **771/64 → 803/66**; `e2e`/`e2e:uiux` **belum** dijalankan (perjanjian f1: sekali setelah K-06). **§3 diperbarui:** G3-02 kini 🟨 sebagian; sisa K-06 · K-01/#8 · K-12 · K-13 · #11. |
-| 2026-10-05 | **G3-02 fitur #6 K-06 "Filter lanjutan" tuntas.** Di depan tinggal tiga kontrol: kotak `Cari murid`, pemilih tahap, dan tombol `Filter lanjutan` + chip `N filter aktif · Hapus`; kartu umur piutang, blok asal invoice, dan baris ekspor **dipindah byte-identik** ke dalam panel (tidak ada kemampuan yang dihapus). Aturan hitung & label masuk modul murni yang sudah ada, `invoiceListFilters.ts` (+17 tes → 38). Gate: `tsc` ✓ · `eslint` ✓ · suite **820 lulus / 66 berkas** ✓ · area keuangan 107 ✓ · smoke 183 ✓ · `build` ✓ · LF 3/3 ✓ · `TagihanTab.tsx` 915 → 961. **§3 diperbarui:** sisa G3-02 = K-01/#8 · K-12 · K-13 · #11. **Belum:** `e2e`/`e2e:uiux` (f1, langkah berikutnya) + verifikasi mata di perangkat. |
-| 2026-10-05 | **Putaran kelola-jadwal Beranda: (a) durasi tidak lagi menghapus nominal manual + (b) ganti murid dikonfirmasi.** `patchUbahJadwal()` (murni, `home/manageSessionForm.ts`) hanya mengirim `durationHours` bila berubah; ganti murid dapat peringatan di sheet + konfirmasi sebelum simpan. +12 tes (`manageSessionSheet.test.tsx` 19 → 30 · `sessionPricing.test.ts` +1 tes repo). Gate: `tsc` ✓ · `eslint` ✓ · suite **832/66** ✓ · smoke 183 ✓ · `build` ✓ · **`e2e` 78 lulus / 6 skip / 0 gagal** ✓ · **`e2e:uiux` 56 lulus / 0 gagal** ✓ · LF 5/5 ✓. Keputusan (e) dicatat di `ATURAN-AI` §1; (c)/(d) masuk §4 **#17–#18**. **Temuan belum diperbaiki:** 13 baris teks ter-encode ganda di `ManageSessionSheet.tsx` (terlihat pengguna). |
-| 2026-10-05 | **Teks ter-encode ganda di `ManageSessionSheet.tsx` diperbaiki** (temuan putaran sebelumnya: 13 baris / 17 penggantian, 6 terlihat pengguna termasuk tombol `⋯ Aksi lain (N)`). Alat: `perbaiki-mojibake.cjs` · `cek-mojibake.cjs` · `mojibake-pasangan.cjs` — pasangannya dihitung dari tabel CP1252, sebab `TextDecoder("windows-1252")` di Node ini memetakan 0x80–0x9F seperti latin1 dan itu sempat membuat hanya `·` yang cocok. Pindai ulang repo: **348 berkas / 0 temuan**. Gate: `tsc` ✓ · `eslint` ✓ · suite **832/66** ✓ · smoke 183 ✓ · `build` ✓ · `check:docs` ✓. Penjaga otomatis → §4 **#19**. |
-| 2026-10-05 | **Penutupan sisa sebelum tugas berikutnya: kode mati dibersihkan + penjaga teks + guard diulang.** `showIssuedList` & `agingBuckets` (nir-konsumen) dibuang dari `useInvoiceFilters.ts` + impor mati (diff 3/14) · penjaga repo-wide **5 tes** lewat `import.meta.glob(…, ?raw)` (tanpa `node:fs`, kontrol negatif diuji) · `useInvoiceFilters.ts` dinetralkan CRLF→LF (0 berkas campur). Gate: tsc ✓ · eslint ✓ · suite **837/66** ✓ · area keuangan+sheet 156 ✓ · smoke 183 ✓ · build ✓ · check:docs ✓ · `e2e` run B **77 lulus / 6 skip / 1 flake** (spec lulus sendirian & 4/4 diulang → bukan regresi) · `e2e:uiux` 56/0 ✓. **§4 #19 ditutup.** |
-| 2026-10-05 | **Rilis v1.92.0 + panel "Kelola sesi" bisa langsung disunting (laporan pemilik di perangkat).** Keluhan yang dijawab: (a) panel terjadwal membuka kolom isiannya sejak awal (dulu tombol `Simpan perubahan` tanpa kolom) · (b) pemilih Murid memuat **semua** murid, nonaktif ditandai "(nonaktif)" (dulu aktif-saja, bahkan bisa kosong) · (c) `Batalkan sesi` vs `Hapus` dijelaskan di tempat memilih + label operasi yang sama diseragamkan · (d) ganti murid lewat konfirmasi · (e) ubah jam/murid tidak menghapus nominal manual. Ikut dirilis: G3-02 **K-05 · K-03 · K-07 · K-06** + perbaikan teks ter-encode ganda. Gate: `tsc` ✓ · `eslint` ✓ · suite **843/66** ✓ · smoke 183 ✓ · `build` ✓ · `check:docs` ✓ · `release-check` (1.92.0 = CHANGELOG[0]) ✓ · `e2e` & `e2e:uiux` atas revisi ini. **Belum:** verifikasi mata di perangkat (§5 butir 21–23). |
-| 2026-10-05 | **Rilis v1.93.0 — pindah jadwal ke murid lain: nominal ikut tarif murid yang benar-benar les.** Menutup rongga yang disadari di v1.92.0 (keputusan pemilik hari itu): `updateSession` **dan** jalur tulis SERI di `updateSeriesSessions` kini menulis ulang `rateSnapshot` + `cost` dari tarif **pemilik baru** saat `studentId` berubah — `rateSnapshot` yang menentukan angka akhir karena `markSessionDone` menghitung ulang `cost` dari snapshot itu. **Nominal manual (`costOverride`) tidak dihitung ulang.** Teks peringatan/konfirmasi di panel ikut menyebut aturan baru. Bukti: `sessionPricing.test.ts` **14 → 18 tes** · `manageSessionSheet.test.tsx` **37 → 39** · suite **843 → 849**. Gate: `tsc` ✓ · `eslint` ✓ · smoke 183 ✓ · `build` ✓ · `check:docs` ✓ · `release-check` (1.93.0 = `CHANGELOG[0]`) ✓ · `e2e` & `e2e:uiux` atas revisi ini. **§4 #17 ditutup.** |
+| 2026-10-05 | Dibuat dari penggabungan `ROADMAP.md` dan bagian pekerjaan di `docs/README.md`. |
+| 2026-10-05 | Butir pekerjaan yang hilang dipulihkan: tiga fitur G3-02 yang hanya hidup di spesifikasi arsip kembali masuk daftar. Alasan dan aturan pencegahannya ada di `ATURAN-AI.md` bagian 2. |
+| 2026-10-05 | Hitungan tugas dibetulkan menjadi tiga puluh dua tugas dengan dua puluh dua selesai. Ringkasan lama menghitung satu tugas dua kali. |
+| 2026-10-05 | Spesifikasi lengkap kesepuluh tugas Gelombang 3 dipindahkan dari arsip ke bagian 3 berkas ini. Pemindahan dilakukan sekaligus, bukan bertahap, supaya tidak ada lagi pekerjaan yang hanya hidup di arsip. |
+| 2026-10-05 | Delapan keputusan pemilik hari itu dimasukkan, dan lima pekerjaan baru dicatat di bagian 4. |
+| 2026-10-05 | Jumlah sisa katalog topik diperbarui dari enam puluh dua menjadi lima puluh delapan, sesuai hasil pengukuran. |

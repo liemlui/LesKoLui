@@ -1,161 +1,102 @@
-# SERAH-TERIMA — titik masuk untuk sesi/agen berikutnya
+# SERAH-TERIMA — keadaan terakhir dan langkah berikutnya
 
-> **Sekilas** · Jenis: **lembar serah-terima** · Diperbarui: 2026-10-05 · Status: **aktif**
-> **Untuk siapa:** sesi DSH berikutnya (agen baru) yang melanjutkan pekerjaan ini.
-> **Menggantikan:** `../arsip/PROMPT-LANJUTAN-G3.md` (beku, potret 2026-10-04).
-> **Aturan:** berkas ini **tidak menggantikan** kontrak. Yang mengikat tetap
-> [`ATURAN-AI.md`](ATURAN-AI.md) → [`PEKERJAAN.md`](PEKERJAAN.md) → [`CHEATSHEET.md`](CHEATSHEET.md).
-> Perbarui berkas ini **di akhir putaran**, bukan di awal.
+> **Sekilas.** Jenis: lembar serah-terima untuk sesi berikutnya. Status: berlaku.
+> Untuk siapa: agen AI yang melanjutkan pekerjaan ini, dan pemilik yang ingin tahu keadaan terakhir tanpa membaca seluruh dokumen.
+> Berkas ini diperbarui di akhir sesi, bukan di awal.
+> **Yang mengikat tetap `ATURAN-AI.md` dan `PEKERJAAN.md`.** Berkas ini hanya menjelaskan keadaan dan temuan, bukan aturan.
 
 ---
 
-## 1. Urutan baca (jangan diubah)
+## 1. Urutan baca untuk sesi baru
 
-1. [`ATURAN-AI.md`](ATURAN-AI.md) **seluruhnya** — §0 (urutan baca) · §1 (keputusan terkunci: B1–B4 + amandemen) · §2.1 (berkas terlarang) · **§6.1 (sandbox)** · **§6.2 (gate 4 tier)** · §6.3 (LF) · **§6.4 (jebakan alat & git — hemat waktu, pernah memakan berkali-kali)**.
-2. [`PEKERJAAN.md`](PEKERJAAN.md) — satu-satunya daftar pekerjaan (§3 gelombang, §4 pekerjaan tanpa dokumen tugas, §5 daftar periksa manual).
-3. [`CHEATSHEET.md`](CHEATSHEET.md) — 1 halaman per tugas; buka `TASK-NN` utuh **hanya** kalau perlu detail langkah.
-4. Berkas ini (§4–§7) untuk keadaan & temuan yang **tidak** ada di dokumen kontrak.
-
----
-
-## 2. Keadaan repo saat serah-terima
-
-| Fakta | Nilai | Cara mengukurnya ulang |
-|---|---|---|
-| Versi aplikasi | **v1.93.0** — dinaikkan 2026-10-05 atas permintaan pemilik (satu entri `CHANGELOG` per perubahan yang terlihat tutor; v1.92.0 lalu v1.93.0 di hari yang sama). `APP_VERSION` mengikuti `package.json`; gerbangnya `release-check` + `check:docs` | `node -p "require('./package.json').version"` |
-| HEAD | **`main` == `origin/main`, pohon kerja bersih** — bukti: `git status -sb` (tanpa penanda ahead/behind) + `git rev-parse main origin/main`. Baris ini **tidak menulis hash-nya sendiri**: hash berubah setiap commit dokumen, dan itu pernah membuat baris ini basi. Commit sesi ini: `e6d9b20` (K-06) · `aab3374` (kelola jadwal + teks ter-encode ganda) · `ac83e6f` (dokumen status) · `cfeb872` (§2 push) · `b24a6cb` (kode mati + penjaga teks) · `3514f3d` (dokumen penutup) + commit yang memuat baris ini | `git log --oneline -1` · `git status -sb` · `git rev-parse main origin/main` |
-| Suite tes | **849 lulus / 66 berkas** (terakhir dijalankan 2026-10-05, sesudah pemindahan tarif saat ganti murid) | `npm run test:sandbox` (**wajib** dengan shim §6.1) |
-| Berkas besar | `MonthlyReport.tsx` 2351 · `CaptureSession.tsx` 2041 · `Settings.tsx` 1308 · `StudentDetail.tsx` 1083 · `payments/TagihanTab.tsx` **961** (915 → 961 oleh K-06; target refactor ≤800 belum tercapai) | `node scripts/measure.mjs loc` |
-| Gate | **lokal saja.** CI GitHub **tidak** diaktifkan — **jangan tawarkan lagi** (keputusan #6) | — |
-| Batas satu tes Playwright | **60 dtk** — jangan dinaikkan tanpa alasan terukur (keputusan #5) | `playwright.config.ts` |
-
-**Yang sudah tuntas sejak `PROMPT-LANJUTAN-G3` ditulis:** G3-01 L4 (`ManageSessionSheet` — **dua** modal lama dihapus) · `#7` semua spec e2e hijau (dibuktikan, bukan lagi janji) · rilis **v1.91.0** (satu entri `CHANGELOG` untuk seluruh gelombang) · `#3` katalog topik putaran 1 (IB MYP) & 2 (IB DP) · G3-02 bagian 0 langkah 1–3 (refactor `TagihanTab` 1036 → 845) · G3-02 fitur K-05 · K-03 · K-07 · **K-06 (filter lanjutan)** · perbaikan nominal manual + konfirmasi ganti murid · perbaikan teks ter-encode ganda · panel "Kelola sesi" bisa langsung disunting & pemilih murid penuh · **rilis v1.92.0**.
+1. `docs/kerja/ATURAN-AI.md`. Isinya aturan kerja, keputusan final pemilik, daftar berkas yang dilarang disentuh, perintah yang dipakai, dan jebakan yang sudah pernah memakan waktu.
+2. `docs/kerja/PEKERJAAN.md`. Satu-satunya daftar pekerjaan, lengkap dengan spesifikasi kesepuluh tugas Gelombang 3.
+3. Berkas ini, bagian 3 dan 4, untuk keadaan dan temuan yang tidak ada di dua berkas di atas.
+4. Dokumen tugas `TASK-01` sampai `TASK-11` hanya dibuka kalau perlu detail cara kerja sebuah tugas lama. Sebagian besar sudah selesai dan disimpan sebagai rujukan.
 
 ---
 
-## 3. Aturan kerja yang mengikat (ringkas — rinciannya di `ATURAN-AI`)
+## 2. Keadaan repository
 
-- **Satu langkah per putaran** → tentukan tier → gate → lapor bentuk §8 → berhenti. Jangan lanjut sendiri.
-- **Tier ditentukan SEBELUM mulai** dan alasannya ditulis di laporan (§6.2). Ragu → ambil tier lebih tinggi.
-- **Berkas §2.1 dilarang disentuh** oleh tugas apa pun di seri ini (`db.ts` · `crypto.ts` · isi `formatRupiah()` · `waBilling.ts` · `invoicePresentation.ts` · `engagement.ts` · `finance.ts` · `financePipeline.ts` · `csv.ts` · `src/template/**` · `STEP_META` · prompt di `aiClient.ts`). Kalau tugas menuntut menyentuhnya → **tugasnya salah lingkup**, berhenti dan lapor.
-- **Batas agen:** butir yang menuntut mata manusia di perangkat **tidak boleh** dicentang agen (`PEKERJAAN.md` §5). Agen hanya mencentang yang punya bukti dari perintahnya sendiri.
-- **Keputusan pemilik terkunci** ada di `ATURAN-AI` §1; jangan ditawar. Yang sudah **ditolak** jangan ditawarkan lagi (mis. konfirmasi di nav bawah, mengaktifkan CI, dark mode).
+Periksa sendiri, jangan percaya tulisan di sini, karena keadaan berubah setiap commit.
 
----
-
-## 4. Temuan & jebakan yang WAJIB dibaca sebelum bekerja
-
-Semua di bawah ini **nyata terjadi** di sesi ini. `ATURAN-AI` §6.4 memuat versi ringkasnya; di sini konteksnya.
-
-### 4.1 Lingkungan (Windows + sandbox DSH)
-
-| Gejala | Sebab | Tindakan |
-|---|---|---|
-| `npm test` / `npm run build` gagal `spawn EPERM` | Vite memanggil `child_process.exec("net use")`; sandbox melarang pipa stdio | Buat **shim** §6.1 di `$env:TEMP` **di dalam satu pemanggilan pwsh** yang memakainya (`$env:TEMP` berganti tiap sesi → shim hilang). Perintah resmi: `npm run test:sandbox` |
-| `npm run e2e`, `npx playwright test`, `git push` gagal | butuh spawn browser / kredensial Windows | **Eskalasi sandbox** — tidak bisa disiasati |
-| `node -e "…"` dari pwsh gagal parse | PowerShell memakan kutip/`[` | Tulis skrip ke `.design-audit/*.mjs` lalu `node` berkas itu |
-
-### 4.2 Git & berkas
-
-| Gejala | Sebab | Tindakan |
-|---|---|---|
-| `git commit` cetak sukses tetapi **exit 1** | git menulis peringatan CRLF ke stderr; commit **berhasil** | Jangan ulangi commit; buktikan dengan `git log --oneline -1` + `git status --porcelain` |
-| `npm run e2e` menulis ulang PNG ter-track + membuat PNG baru | spec screenshot memang begitu | `git checkout HEAD -- e2e/screenshots/` + hapus PNG baru. **JANGAN** pakai `git add --renormalize` untuk berkas biner — ia justru **men-stage** PNG hasil e2e |
-| `git status` menampilkan ` M <berkas>` | bisa **nyata** bisa stat-cache | **Bandingkan hash dulu** (`git hash-object -- <berkas>` vs `git rev-parse HEAD:<berkas>`). Jangan simpulkan "false M" dari satu kecocokan |
-| `npm run e2e` menghapus artefak fakta suite | `test-results/` adalah direktori keluaran **Playwright** | **Sudah diperbaiki:** artefaknya di **`.design-audit-suite.json`** (akar repo, gitignored). Pembaca: `scripts/check-docs.mjs` (R2) + `scripts/measure.mjs` |
-| Artefak JSON "tidak ada" padahal berkasnya ada | `Set-Content -Encoding utf8` (PS 5.1) menulis **BOM** → `JSON.parse` gagal, pembacanya menyimpulkan "tidak ada" **tanpa galat** | Pakai `[System.IO.File]::WriteAllText($p, $t, (New-Object System.Text.UTF8Encoding($false)))`; periksa byte pertama = `123` |
-
-### 4.3 Menyunting dokumen (ini yang paling sering menggigit sesi ini)
-
-- **`edit` dengan anchor pendek merusak baris tabel.** Terjadi **tiga kali** di sesi ini (baris riwayat `ATURAN-AI` §9, `TASK-05` §10). Penyebab nomor satu: **teks pengganti memuat teks anchor**, atau anchor cocok di tempat lain.
-  **Cara aman:** tulis baris pengganti ke berkas di `.design-audit/`, lalu skrip kecil yang mengganti **satu baris utuh** dan **memverifikasi jumlah pipa** (`|`) hasilnya sama dengan baris lain di tabel itu. Kalau memilih `edit`: anchor = **seluruh baris**, dan **jangan** memakai teks anchor di dalam pengganti.
-- **Jumlah kolom tabel berbeda antar dokumen** — `ATURAN-AI` §9 = 4 pipa, `TASK-05` §10 = **5** pipa. Memeriksa dengan angka yang salah membuat skrip penjaga menolak baris yang benar.
-- **Blok JSX besar jangan dipotong dengan `edit`.** Blok kondisional JSX ditutup `)}` pada **baris terpisah**; pengganti yang juga berakhir `)}` menghasilkan `)}` ganda (terjadi **dua kali**, ditangkap `tsc`). Pakai skrip yang memverifikasi `penanda → penutup → baris sesudahnya` **sebelum** memotong, dan potong **termasuk** baris lanjutan itu.
-
-### 4.4 Menulis tes
-
-- **Jangan memakai "celah yang belum diperbaiki" sebagai contoh di tes penjaga.** `topicCoverage.test.ts` dulu memakai `"Global Politics"` sebagai contoh mapel *tanpa* katalog DP; begitu katalog DP diisi, **dua tes gagal padahal aplikasinya sedang membaik**. Pakai properti kontraknya (mapel yang masih terdaftar di `KNOWN_TOPIcless`), lalu tambahkan tes sisi lain yang menuntut celah itu **tertutup**.
-- **Menambah cakupan data ≠ menambah jumlah tes.** `topicCoverage` memakai satu loop per kurikulum; menambahkan 6/10 mapel **tidak** mengubah jumlah tesnya. Jangan mengira suite naik.
-- Gate tes yang benar-benar menjaga area keuangan: `npm run test:sandbox -- invoiceSessions sessionCountBilling financePipeline` (**54 lulus**) + e2e `finance.spec.ts` & `billing-session-count.runtime.spec.ts` (**4 lulus** di dua project).
-
-### 4.5 Utang & batas kejujuran (jangan diklaim sudah beres)
-
-1. **Katalog topik IB MYP & DP saya susun sendiri** mengikuti kerangka silabus resmi, tetapi **belum diverifikasi** ke IB Subject Guide (tidak ada akses). Katalog lama repo sebagian menyebut sumber buku teks; tambahan saya tidak.
-2. **`ManageSessionSheet` (L4) belum pernah diklik mesin maupun manusia.** Suite e2e hijau membuktikan Beranda masih merender, **bukan** bahwa keenam aksinya bekerja. Buktinya ada di `PEKERJAAN.md` §5 butir **21–22** (manual) dan calon spec e2e baru.
-3. **`e2e` pernah 1 merah dari 84 tes dan tidak teridentifikasi** — **diperbarui 2026-10-05: galatnya kini teridentifikasi.** Pada run penutup sesi, `e2e/capture-closeout-failure.spec.ts:314` (`expect(pageErrors).toEqual([])`) menerima `["Payment not found"]`; spec itu dijalankan **sendirian → lulus** (14,1 dtk) dan `--repeat-each=2` → **4/4 lulus**, jadi ini flake di bawah beban, **bukan regresi**. Galat itu hanya dilempar `paymentRepo.ts:150,174,1139,1159`, dan spec tersebut **tidak menyentuh tab keuangan sama sekali** (0 kecocokan `payments`/`Tagihan`) — yang tertangkap adalah galat halaman **transien**; dugaan paling masuk akal: balapan dengan seed data dev, yang memang sudah tercatat bisa melempar "Payment not found" (`dev/seedDummy.ts:112`). Belum diperbaiki (spec-nya sendiri hijau). **Kalau menjalankan ulang suite: tulis keluaran tiap run ke berkas BERBEDA** (run kedua menimpa berkas run pertama — sudah pernah menghilangkan bukti).
-4. **Alias lintas kurikulum yang belum dibereskan** (temuan lama, bukan regresi): `National :: Informatika` dan `National :: Penjaskes` bermuara ke `computer science` (level AP/DP/IGCSE/A Level). Terlihat lewat `.design-audit/topic-coverage-audit.mjs` (§6).
-5. **`test-results/` pernah hilang** — penyebabnya sudah diperbaiki (§4.2), tapi kalau `check-docs` melaporkan "R2 dilewati", periksa `.design-audit-suite.json` apakah isinya masih cocok dengan suite terakhir.
-6. **52 kontrol <44 px** adalah pengecualian tertulis (A18/Q45: chip & kontrol sekunder 24–36 px diterima). Jangan "diperbaiki" tanpa keputusan baru.
-7. **(2026-10-05, G3-02 K-05/K-03/K-07) Tiga serah-terima yang harus dicentang mata, bukan oleh agen:** kotak `Cari murid` benar-benar menemukan murid; badge "Terlambat N hari" benar untuk tagihan yang memang lewat; dan tanggal jatuh tempo terbaca sebagai nama hari Indonesia di ringkasan **dan** rincian baris. Semuanya punya tes murni (32 tes baru) tetapi **belum satu pun** pernah dilihat di perangkat.
-8. **(2026-10-05) `e2e`/`e2e:uiux` sudah dijalankan — dan diulang atas revisi final.** Run A (sesudah (a)/(b)): `e2e` **78 lulus / 6 skip / 0 gagal** (4,9 mnt) · `e2e:uiux` **56 lulus / 0 gagal** (2,7 mnt). Run B (sesudah perbaikan teks + pembersihan kode mati + penjaga): `e2e` **77 lulus / 6 skip / 1 flake** — `capture-closeout-failure.spec.ts`, lulus sendirian & 4/4 saat diulang (butir 3) · `e2e:uiux` **56 lulus / 0 gagal** (3,2 mnt). Keluaran tiap run ditulis ke berkas berbeda di `.design-audit/`; efek samping screenshot dibereskan tiap kali (**59** PNG ter-track dipulihkan + **13** baru dihapus, nol di-commit). Yang **tetap belum**: verifikasi mata di perangkat (butir 7 · 11 dan butir **23** `PEKERJAAN` §5) — suite hijau tidak membuktikan tombol/chip baru bekerja.
-9. **(2026-10-05) `showIssuedList` — kode mati, SUDAH DIBERSIHKAN.** Ia dihapus sebagai pengontrol tampil oleh K-07, tetapi perhitungan & pengembaliannya di `useInvoiceFilters.ts` masih tertinggal; dibuang 2026-10-05 bersama `agingBuckets` (butir 13). Bukti: `Select-String "showIssuedList|agingBuckets"` di `src` → tinggal **satu komentar riwayat** di `TagihanTab.tsx` (menjelaskan mengapa daftar selalu dirender).
-10. **(2026-10-05) Perubahan perilaku yang perlu diketahui sesi berikutnya:** daftar tagihan kini memakai `visibleBillRows`, sehingga chip umur piutang **mulai berlaku juga pada rekap PDF** (dulu hanya CSV yang menyaring); dan chip umur piutang **dilepas otomatis** saat kata kunci pencarian berubah.
-11. **(2026-10-05, G3-02 K-06) Yang harus dicentang mata di perangkat:** Uang → tab **Tagihan** → tombol `Filter lanjutan` membuka & menutup panel (umur piutang + asal invoice + ekspor), dan chip `N filter aktif · Hapus` muncul **hanya** saat ada saringan tersembunyi lalu melepas ketiganya dalam satu klik. Belum pernah diklik mesin maupun manusia: tidak ada satu pun spec e2e yang menyentuh tombol/chip itu.
-12. **(2026-10-05) Celah cakupan guard UI — jangan diklaim sebaliknya.** `e2e-uiux/uiux-metrics.spec.ts:217` mengukur `/payments?tab=ringkasan`, sedangkan K-06 mengubah `?tab=tagihan`. Jadi run f1 sesudah K-06 **tidak** memeriksa kontras/tap-target panel baru itu. Menambahkan `?tab=tagihan` ke daftar jaga = perubahan cakupan guard (A19) → keputusan pemilik, bukan agen.
-13. **(2026-10-05) `agingBuckets` — kode mati, SUDAH DIBERSIHKAN.** Dihitung di `useInvoiceFilters.ts` (dan dikembalikan) tanpa satu pun konsumen — `TagihanTab` menghitung `agingRows` sendiri dari `billRows` — sehingga ringkasan umur piutang dihitung dua kali untuk satu layar. Dibuang bersama `showIssuedList` (butir 9); impor `ageBucket`/`invoiceAgeDays`/`AgeBucket` ikut dibersihkan. Diff **3 tambah / 14 hapus**; `tsc` + `eslint` + suite memastikan nol perubahan perilaku.
-14. **(2026-10-05) `home/ManageSessionSheet.tsx` pernah memuat teks ter-encode ganda — SUDAH DIPERBAIKI, dan sekarang DIJAGA TES.** 13 baris / 17 penggantian (em dash ×9 · titik tengah ×4 · tanda centang ×2 · `⋯` ×2); 6 di antaranya **terlihat pengguna**: tombol `⋯ Aksi lain (N)` (yang justru disuruh dicari di §5 butir 21), subjudul sheet, dan 4 pesan toast. Alatnya `.design-audit/perbaiki-mojibake.cjs`; pasangannya **dihitung** dari tabel CP1252, tidak diketik — jebakannya: `new TextDecoder("windows-1252")` di Node ini memetakan 0x80–0x9F seperti latin1 (terukur `e2 80 94` → `00E2 0080 0094`), sehingga hanya `·` yang cocok dan sisanya lolos. Pindai ulang `src · e2e · e2e-uiux · docs · scripts` = **348 berkas, 0 temuan**. **Penjaganya SUDAH ada:** 5 tes di `manageSessionSheet.test.tsx` memindai **seluruh** `src/**/*.{ts,tsx}` lewat `import.meta.glob(…, { query: "?raw" })` — tanpa `node:fs`, tanpa berkas baru, tanpa ubah config (tipe `?raw` sudah ada di `vite/client`; `@types/node` sengaja tidak dipasang untuk `src/**`). **Kontrol negatif diuji:** menyisipkan satu em dash rusak membuat tesnya merah dan menyebut berkasnya. `PEKERJAAN` §4 #19 ditutup.
-15. **(2026-10-05) Tarif saat murid sesi diganti — SUDAH DIPERBAIKI (v1.93.0).** Sebelumnya sesi berpindah nama tetapi tetap membawa `rateSnapshot`/`cost` murid lama, sehingga `markSessionDone` (yang menghitung ulang `cost` dari `rateSnapshot`) menutup sesi itu dengan tarif pemilik sebelumnya. Sekarang `updateSession` **dan** jalur tulis SERI di `updateSeriesSessions` menulis ulang `rateSnapshot` + `cost` dari tarif pemilik baru; **nominal manual (`costOverride`) tidak dihitung ulang** — itu pernyataan eksplisit tutor. Teks peringatan/konfirmasi di panel ikut berubah. Bukti: `sessionPricing.test.ts` **14 → 18 tes**. **Temuan baru yang BELUM diputuskan:** `markSessionDone` tetap menghitung `cost` dari `rateSnapshot` tanpa memeriksa `costOverride`, jadi nominal manual yang pernah diisi pada sesi **terjadwal** akan tertimpa saat sesi itu ditutup. Jalur UI-nya belum jelas ada hari ini (kolom nominal manual disunting dari riwayat sesi yang sudah selesai), jadi saya catat sebagai ketidakkonsistenan, bukan regresi.
-16. **(2026-10-05) Temuan line ending, terukur.** `src/screens/payments/useInvoiceFilters.ts` utuh **CRLF** di working tree (index-nya `i/lf` → artefak checkout lokal `core.autocrlf`, §6.3), dan **tidak ada** berkas campur: 13 berkas yang disentuh sesi ini diukur dengan `.design-audit/cek-eol.cjs` → 12 LF semua, 1 CRLF semua, **0 campur**. Karena berkas itu disentuh tugas ini, ia dinetralkan ke LF (`cek-eol.cjs --perbaiki`) dan diff-nya tetap kecil (**3 tambah / 14 hapus**) — bukti normalisasi tidak menulis ulang seluruh berkas. Catatan alat: `edit` ternyata **mempertahankan** line ending berkas yang ada, jadi campuran tidak muncul dengan sendirinya.
-
----
-
-## 5. Pekerjaan berikutnya (pilih satu, kerjakan satu)
-
-Prioritas ditentukan pemilik: **fokus mengajar = IB MYP & IB DP**, jadi pekerjaan Cambridge/AP/National lebih rendah.
-
-| Urutan | Pekerjaan | Mulai dari mana | Catatan |
-|---|---|---|---|
-| **1** | **G3-02 Keuangan — lanjutkan fitur** (bagian 0 refactor: 1036 → **845**; fitur K-05 · K-03 · K-07 · **K-06 tuntas** 2026-10-05; `TagihanTab.tsx` kini **961**) | `docs/kerja/TASK-05-rombak-keuangan.md` §3 + **§9 "Progres G3-02"** (daftar sisa) + `../arsip/GELOMBANG-3.md` §G3-02 (beku, 11 fitur) | **Berikutnya: #8 K-01** (peringatan nominal tagihan — urutan spek §4.5: tampilan sebelum perilaku), lalu #9 K-12, #10 K-13, terakhir **#11 nav 3 pintu**. Guard f1 **sudah dijalankan** 2026-10-05 (`e2e` 78/6/0 · `e2e:uiux` 56/0) |
-| **2** | **#8 K-01** — peringatan saat mengubah nominal tagihan | idem | Bukan kosmetik: mengubah nominal tagihan `source:"auto"` memindahkannya ke `manual` → **tombol "Batalkan tagihan" hilang**, **daftar sesi hilang dari ekspor & WA**. Perubahan **UI saja**; `paymentRepo.ts` **tidak** diubah. `paymentRepo` belum punya berkas tes → K-01 butuh tes baru |
-| **3** | **#3 katalog topik** — sisa 62 pasangan | `PEKERJAAN.md` §4 #3 | IGCSE 16 · A Level 13 · O Level 11 · AP 10 · National 8 · (IB **tuntas**) |
-| **4** | **#2 verifikasi manual** (22 butir) | `PEKERJAAN.md` §5 | **Butuh pemilik di perangkat** — bukan pekerjaan agen |
-| **5** | **G3-03 papan pipeline** → G3-04 kontrak AI → G3-05 laporan … | `../arsip/GELOMBANG-3.md` §G3-03…§G3-10 | Urutan mengikat dari A14: `G3-04` **sebelum** `G3-05` |
-
-**Batasan yang mengikat untuk G3-02/G3-03:** `finance.ts`, `financePipeline.ts`, `csv.ts`, dan logika `paymentRepo.ts` **dilarang diubah**; angka uang dan CSV harus **tetap sama**; nav 5→3 pintu dikerjakan **paling akhir** (selector e2e patah di situ).
-
----
-
-## 6. Perkakas bantu yang sudah ada (semua gitignored, di `.design-audit/`)
-
-| Skrip | Gunanya |
+| Hal | Cara memeriksa |
 |---|---|
-| `topic-coverage-audit.mjs` | Mengukur celah katalog topik: mapel indeks per level · status 78 pasangan · **peta alias lintas kurikulum**. Jalankan: `node .design-audit/topic-coverage-audit.mjs` |
-| `cut-jsx-block.mjs` · `cut-cancelled-section.mjs` · `extract-recovery-picker.mjs` | Pemotong blok JSX yang **memverifikasi bentuk sebelum memotong** (pola aman untuk refactor `TASK-01`) |
-| `split-a23-a24.mjs` · `fix-a23-a24.mjs` · `replace-row-a24.mjs` · `fix-task05-rows.mjs` | Perbaikan baris tabel yang rusak (contoh pola "satu baris utuh + verifikasi pipa") |
-| `release-check.mjs` | Konsistensi versi: `package.json` vs `CHANGELOG[0]` vs duplikat entri |
-| `sisip-baris-tabel.cjs` | **Alat pilihan untuk menyunting baris tabel markdown.** Mode `insert` · `replace` · `delete`; menolak menulis bila jangkar tidak unik, bukan baris tabel, atau jumlah pipanya beda dari jangkar; mencetak jumlah pipa baris sekitar sebagai bukti. Pakai: `node .design-audit/sisip-baris-tabel.cjs <insert\|replace\|delete> <berkas> <berkas-jangkar> [berkas-baris-baru]` |
-| `anchor-*.txt` · `row-*.txt` | Berkas jangkar & baris pengganti untuk alat di atas. **Jangan** menulis jangkar lewat `Get-Content` (PS 5.1 membaca UTF-8 sebagai ANSI → em-dash rusak → jangkar tidak cocok, 1085 vs 1037 karakter); tulis dengan alat `write` atau `.NET` + `UTF8Encoding($false)` |
-| `pindah-filter-lanjutan.cjs` · `ambil-baris.cjs` | Pemindah blok JSX yang menyeimbangkan `<div>` lalu memverifikasi baris **sesudah** blok sebelum menulis (mundur tanpa menulis bila bentuknya tidak cocok; blok disalin byte-identik) · penyalin **satu baris** berkas ke berkas jangkar lewat Node — dipakai agar jangkar tabel tidak pernah lewat shell (PS 5.1 merusak UTF-8) |
+| Versi aplikasi | `node -p "require('./package.json').version"` |
+| Selisih dengan repo jauh | `git status -sb` dan `git rev-parse main origin/main` |
+| Jumlah test | `npm run test:sandbox` |
+| Baris berkas besar | `npm run measure loc` |
+| Kebenaran dokumen | `npm run check:docs` |
 
-> **Pelajaran 2026-10-05 (memakan dua langkah):** skrip `.cjs` tidak boleh berkomentar dengan `#` (itu sintaks shell); dan sebelum memakai alat baris tabel, **pastikan jangkar masih ada di berkas** — setelah satu `replace` berhasil, jangkar lama hilang dan percobaan `delete` dengan jangkar yang sama akan lapor "muncul 0x".
+Catatan keadaan pada 2026-10-05, sebagai konteks: pohon kerja bersih, cabang `main` sama dengan `origin/main`, dan suite tes lulus penuh dengan enam puluh enam berkas. Angka-angka itu akan basi, jadi yang dipakai adalah perintahnya.
 
-> `$env:TEMP` berganti tiap sesi → **taruh skrip di `.design-audit/`**, jangan di TEMP (§6.4).
+**Gate di mesin ini hanya lokal.** Integrasi berkelanjutan di GitHub tidak diaktifkan dan tidak akan diaktifkan. Jangan menawarkannya lagi.
 
 ---
 
-## 7. Gempa yang harus dihindari saat menutup putaran
+## 3. Yang berubah pada putaran 2026-10-05
 
-Checklist yang dipakai sesi ini, urutannya penting:
+Putaran ini bukan putaran fitur, melainkan putaran pembenahan dokumen dan keputusan.
 
-1. `npm run test:sandbox` (dengan shim) — catat **837/66** atau angka barunya.
-2. Perbarui `.design-audit-suite.json` dengan angka yang **baru saja** keluar (jangan menaikkannya tanpa menjalankan suite).
-3. `git status --porcelain` → pastikan **tidak ada** PNG screenshot yang ikut.
-4. `git show --stat HEAD` **sebelum** push → pastikan hanya berkas yang diniatkan.
-5. `git push origin main` → bukti sah: baris `abc..def  main -> main` **dan** `git status -sb` tanpa penanda ahead/behind **dan** `git rev-parse main` == `git rev-parse origin/main`.
-6. Perbarui riwayat tugas (`TASK-NN` §10 / `PEKERJAAN.md` §7) + berkas ini.
+1. **Delapan keputusan pemilik dicatat** dan langsung dimasukkan ke `ATURAN-AI.md` bagian 4.3 sebagai keputusan D1 sampai D8.
+2. **Tiga butir pekerjaan Keuangan yang hilang dipulihkan** ke daftar pekerjaan. Butir itu adalah pembangun murni `financeRows` dan `financeOverview`, layar Uang menjadi satu layar dengan tiga blok, dan tabel Rekap dari delapan kolom menjadi tiga kolom. Ketiganya hanya hidup di spesifikasi arsip dan hampir dinyatakan selesai padahal belum tersentuh.
+3. **Aturan kerja diubah** supaya pekerjaan tidak lagi tercicil. Aturan lama yang berbunyi satu putaran satu langkah, lapor, lalu berhenti dicabut. Sekarang satu tugas dikerjakan sampai tuntas dan dilaporkan sekali.
+4. **Gate disederhanakan** dari empat tingkat menjadi dua tingkat, dan dijalankan sekali di akhir tugas, bukan setiap langkah.
+5. **Aturan integritas dokumen ditambahkan.** Dokumen tidak boleh dihapus, dan penggabungan dokumen tidak boleh menghilangkan butir pekerjaan yang belum selesai.
+6. **Spesifikasi kesepuluh tugas Gelombang 3 dipindahkan dari arsip ke `PEKERJAAN.md`** sekaligus, tidak lagi bertahap.
+7. **Kebijakan emoji dilonggarkan.** Emoji boleh dipakai kalau tampilannya bagus di HP pemilik. Penjaga yang menuntut nol emoji tidak lagi wajib.
+8. **Hitungan tugas dibetulkan** menjadi tiga puluh dua tugas dengan dua puluh dua selesai.
 
 ---
 
-## 8. Riwayat berkas ini
+## 4. Temuan yang harus dibaca sebelum bekerja
+
+Semua di bawah ini nyata terjadi, bukan dugaan.
+
+### 4.1 Cara memakai mesin ini
+
+- Perintah `npm test` dan `npm run build` gagal dengan galat `spawn EPERM` karena sandbox melarang pipa keluaran antarproses. Jalan keluarnya adalah berkas shim kecil di folder sementara yang dipanggil lewat `NODE_OPTIONS`, semuanya di dalam satu pemanggilan PowerShell yang sama.
+- Perintah `npm run e2e`, `npm run e2e:uiux`, dan `git push` butuh izin sandbox penuh dan tidak bisa disiasati.
+- Keluaran PowerShell bisa menampilkan teks beraksen sebagai karakter rusak. Untuk menilai kerusakan berkas, ukur byte-nya.
+- `git commit` kadang mencetak sukses lalu keluar dengan kode satu. Commit-nya berhasil. Buktikan dari riwayat, jangan mengulang commit.
+- `npm run e2e` menulis ulang berkas gambar tangkapan layar yang ikut dilacak git. Setelah selesai, pulihkan berkas itu supaya tidak ikut terkirim.
+
+### 4.2 Batas kejujuran yang tidak boleh diklaim beres
+
+1. **Panel Kelola sesi belum pernah diklik oleh mesin maupun manusia.** Berkas test yang hijau hanya membuktikan Beranda masih dirender, bukan bahwa keenam aksinya bekerja.
+2. **Tiga hal baru di layar tagihan belum pernah dilihat mata**: kotak pencarian murid, badge keterlambatan, dan penulisan tanggal jatuh tempo sebagai nama hari Indonesia. Semuanya punya test murni, tetapi test murni tidak membuktikan tampilannya.
+3. **Panel filter lanjutan belum pernah diklik mesin maupun manusia.** Tidak ada satu pun test tampilan yang menyentuh tombol dan chip itu. Setelah keputusan D4, tab tagihan masuk cakupan penjaga, tetapi selama penjaganya belum diperluas, panel itu tumbuh tanpa jaring pengaman otomatis.
+4. **Katalog topik IB disusun agen mengikuti kerangka silabus, belum dibandingkan dengan panduan resmi.** Keputusan D5 meminta ini diperiksa sungguh-sungguh. Selama belum diperiksa, jangan menyebutnya terverifikasi.
+5. **Satu test tampilan pernah merah di bawah beban kerja tinggi** dengan pesan data pembayaran tidak ditemukan, padahal lulus saat dijalankan sendirian dan lulus empat dari empat saat diulang. Gejalanya sudah teridentifikasi, penyebabnya belum diperbaiki. Keputusan D8 meminta ini diperkuat.
+6. **Dua alias mapel Nasional menunjuk katalog kurikulum lain.** Mapel Informatika dan Penjaskes memakai katalog ilmu komputer tingkat internasional. Sudah masuk daftar pekerjaan lewat keputusan D3.
+7. **Lima puluh dua kontrol lebih kecil dari empat puluh empat piksel** adalah pengecualian tertulis yang sudah diputuskan. Jangan diperbaiki tanpa keputusan baru.
+8. **Perhitungan biaya saat sesi ditutup mengabaikan nominal manual.** Nominal manual yang pernah diisi tutor pada sesi terjadwal bisa tertimpa. Keputusan D2 meminta ini dibetulkan.
+
+### 4.3 Pelajaran dari kesalahan pembersihan dokumen
+
+Saat dokumen dirapikan, isi diringkas sampai butir pekerjaan yang belum selesai ikut hilang. Contoh yang terbukti adalah tiga butir pekerjaan Keuangan yang hanya hidup di spesifikasi arsip. Riwayat git menunjukkan hanya dua berkas dokumen yang benar-benar dihapus sepanjang umur repository, yaitu `TODO.md` dan `.design-sync/NOTES.md`, jadi masalahnya bukan penghapusan berkas, melainkan penggabungan yang tidak melacak isinya.
+
+Aturan pencegahannya sudah masuk `ATURAN-AI.md` bagian 2: dokumen tidak dihapus, pemindahan dicatat di peta pemindahan di `docs/arsip/README.md`, dan penggabungan tidak boleh menghilangkan butir yang belum selesai.
+
+---
+
+## 5. Langkah berikutnya
+
+Kerjakan berurutan, satu tugas sampai tuntas, lalu lapor sekali.
+
+1. **Lanjutkan G3-02 Keuangan.** Sekarang ada tujuh butir sisa. Urutan yang masuk akal: tiga butir yang baru dipulihkan lebih dulu karena keduanya mengubah bentuk layar, lalu peringatan nominal, kolom nominal, gerbang PIN, dan terakhir navigasi tiga pintu.
+2. **G3-03 papan pipeline**, karena bergantung pada Keuangan.
+3. **G3-04 kontrak AI berbiaya**, lalu **G3-05 laporan**, karena panel AI di laporan membutuhkan kontrak biaya.
+4. **G3-06 murid**, **G3-07 foto murid**, **G3-08 kanvas dan istilah**, **G3-09 pengaturan**, **G3-10 reset total dan PIN**.
+5. Pekerjaan di `PEKERJAAN.md` bagian 4 boleh dikerjakan kapan saja tanpa mengubah urutan di atas.
+6. Daftar periksa manual di `PEKERJAAN.md` bagian 5 hanya bisa ditutup pemilik di perangkat.
+
+---
+
+## 6. Riwayat berkas ini
 
 | Tanggal | Perubahan |
 |---|---|
-| 2026-10-05 | Dibuat sebagai pengganti `PROMPT-LANJUTAN-G3.md` yang beku. Memuat keadaan pasca rilis v1.91.0, temuan sesi (artefak suite di direktori Playwright, BOM, anchor tabel, tes penjaga yang menuntut celah), dan checklist penutup putaran. |
-| 2026-10-05 | **Diperbarui sesudah G3-02 kluster daftar tagihan (K-05 · K-03 · K-07).** §2: HEAD `5aaf9eb` + 6 berkas belum di-commit · suite **771/64 → 803/66** · `TagihanTab.tsx` **845 → 915** · versi **tidak** dinaikkan. §4.5 bertambah butir **7–10** (tiga serah-terima mata · `e2e` sengaja ditunda f1 · `showIssuedList` kode mati · dua perubahan perilaku). §5 baris 1: berikutnya **K-06**, lalu K-01/#8. §6: alat baru `sisip-baris-tabel.cjs` + peringatan jangkar UTF-8/PS 5.1. §7: angka suite jadi 803/66. |
-| 2026-10-05 | **Diperbarui sesudah G3-02 fitur #6 K-06 (Filter lanjutan).** §2: HEAD `cf9e8fe` (+3 berkas K-06 belum di-commit) · suite **803 → 820** lulus / 66 berkas · `TagihanTab.tsx` **915 → 961**. §4.5 bertambah butir **11** (verifikasi mata panel K-06 + celah cakupan `e2e:uiux`); butir 8 tetap: `e2e`/`e2e:uiux` **belum** dijalankan dan kini menjadi langkah berikutnya. §5 baris 1: berikutnya **e2e sekali (f1)**, lalu **K-01/#8**. §6: alat baru `pindah-filter-lanjutan.cjs` + `ambil-baris.cjs`. |
-| 2026-10-05 | **Diperbarui sesudah putaran kelola-jadwal Beranda (a)+(b) — dan guard f1 akhirnya dijalankan.** §2: HEAD tetap `cf9e8fe`, kini **11 berkas** belum di-commit · suite **820 → 832** lulus / 66 berkas. §4.5 butir 8 **ditutup** (`e2e` 78 lulus / 6 skip / 0 gagal · `e2e:uiux` 56 lulus / 0 gagal) dan bertambah butir **14–15** (teks ter-encode ganda di `ManageSessionSheet.tsx`; `rateSnapshot` tidak ikut berganti saat murid diganti). §5 baris 1: berikutnya **K-01/#8**. §6: alat bantu `pindah-filter-lanjutan.cjs` · `ambil-baris.cjs` · `cek-mojibake.cjs`. |
-| 2026-10-05 | **Diperbarui sesudah perbaikan teks ter-encode ganda.** §4.5 butir **14** diubah dari "belum diperbaiki" menjadi **SUDAH diperbaiki** (13 baris / 17 penggantian; pindai ulang repo = 348 berkas / 0 temuan) dan butir 15 dirapikan kalimatnya; §4 bertambah **#19** (penjaga otomatisnya butuh keputusan pemilik). §2 **tidak berubah**: HEAD `cf9e8fe` · 12 berkas · suite 832/66. §6: alat baru `perbaiki-mojibake.cjs` · `mojibake-pasangan.cjs` · `buang-teks-rusak.cjs`, dan `cek-mojibake.cjs` ditulis ulang agar bisa memindai direktori. |
-| 2026-10-05 | **Penutupan sesi: 3 commit berjenjang + push `main`.** `e6d9b20` (G3-02 #6 K-06) · `aab3374` (kelola jadwal (a)+(b) + teks ter-encode ganda) · `ac83e6f` (dokumen status). Push `5aaf9eb..ac83e6f` — sekaligus membawa `cf9e8fe` yang tertunda sejak putaran K-05/K-03/K-07. Bukti: `git status -sb` tanpa penanda ahead/behind dan `main` == `origin/main` == `ac83e6f`. Baris §2 HEAD diperbarui di commit sesudahnya (dokumen tidak bisa memuat hash commit-nya sendiri). |
-| 2026-10-05 | **Penutupan sisa sebelum tugas berikutnya.** Pembersihan kode mati (`showIssuedList` + `agingBuckets`, diff 3/14) · penjaga otomatis teks ter-encode ganda (5 tes atas seluruh `src/**`, tanpa `node:fs`, kontrol negatif diuji) · line ending `useInvoiceFilters.ts` dinetralkan (temuan butir **16**) · guard `e2e`+`e2e:uiux` diulang atas revisi final (**flake diidentifikasi**: butir 3). §2: suite **832 → 837** · §4 #19 ditutup · §4.5 butir 3/8/9/13/14 diperbarui + butir 16 baru. **Dua sisa yang butuh keputusan Anda:** butir 12 (cakupan guard UI) dan `PEKERJAAN` §4 #17 (tarif saat murid diganti). |
-| 2026-10-05 | **Rilis v1.92.0 — panel "Kelola sesi" bisa langsung disunting + daftar tagihan lebih mudah disaring.** Menjawab laporan pemilik di perangkat: kolom isian sesi terjadwal terbuka sejak awal (dulu tombol `Simpan perubahan` tanpa kolom), pemilih Murid memuat semua murid dengan tanda "(nonaktif)" (dulu aktif-saja dan bisa kosong), `Batalkan sesi` vs `Hapus` dijelaskan di tempat memilih, ganti murid lewat konfirmasi, dan ubah jam/murid tidak lagi menghapus nominal manual. Ikut dirilis: K-05 · K-03 · K-07 · K-06 + perbaikan teks ter-encode ganda. §2: versi **v1.92.0**, suite **837 → 843**. Rincian gate: `PEKERJAAN` §7 dan `TASK-06` §10. |
-| 2026-10-05 | **Rilis v1.93.0 — tarif ikut pindah saat sesi dipindah ke murid lain.** `updateSession` + jalur tulis seri `updateSeriesSessions` menulis ulang `rateSnapshot`+`cost` dari tarif pemilik baru; `costOverride` dibiarkan. Peringatan & konfirmasi panel ikut berubah. Bukti: `sessionPricing` 14 → 18 tes · `manageSessionSheet` 37 → 39 · suite **849**. §2: versi **v1.93.0**, suite **849**. **Temuan baru yang belum diputuskan:** `markSessionDone` menghitung `cost` dari `rateSnapshot` tanpa memeriksa `costOverride` (butir 15). |
+| 2026-10-05 | Dibuat sebagai pengganti berkas arahan lanjutan yang sudah beku. |
+| 2026-10-05 | Diperbarui berkali-kali mengikuti pekerjaan Keuangan dan panel Kelola sesi. |
+| 2026-10-05 | Ditulis ulang mengikuti perubahan besar: aturan kerja baru, delapan keputusan pemilik, pemulihan tiga butir pekerjaan yang hilang, dan pemindahan spesifikasi Gelombang 3 ke daftar pekerjaan. |

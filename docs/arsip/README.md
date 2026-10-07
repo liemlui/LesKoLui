@@ -105,3 +105,23 @@ yang akan merusak data/uang. Sengaja **tanpa angka**, supaya tidak ikut basi.
 > **Catatan line ending.** Beberapa dokumen lama di-checkout sebagai CRLF di Windows (`core.autocrlf`)
 > sementara isi index-nya LF — periksa `git ls-files --eol`, kolom **`i/`**. Isi repo sudah benar
 > (**0 `i/crlf`**); yang terlihat di working copy hanyalah artefak checkout lokal.
+
+---
+
+## 6. Peta pemindahan isi (agar tidak ada yang hilang saat dokumen dirapikan)
+
+Bagian ini ditambahkan 2026-10-05 setelah ditemukan bahwa penggabungan dokumen pernah menghilangkan butir pekerjaan yang belum selesai. Aturannya ada di [`../kerja/ATURAN-AI.md`](../kerja/ATURAN-AI.md) bagian 2. Tabel ini menyebutkan ke mana isi setiap dokumen pergi, supaya bisa diperiksa dan tidak perlu ditebak.
+
+| Dokumen asal | Isi apa | Ke mana sekarang | Catatan |
+|---|---|---|---|
+| [`ROADMAP.md`](ROADMAP.md) | Daftar tugas Gelombang 2 dan Gelombang 3, urutan eksekusi, catatan gate | [`../kerja/PEKERJAAN.md`](../kerja/PEKERJAAN.md) | **Ada yang tidak ikut terbawa:** tiga butir pekerjaan G3-02 (pembangun `financeRows` dan `financeOverview`, layar Uang menjadi satu layar tiga blok, tabel Rekap dari delapan kolom menjadi tiga kolom) hilang dari daftar sisa. Ketiganya **dipulihkan 2026-10-05** ke `PEKERJAAN.md` bagian 3 |
+| [`RIWAYAT-PEKERJAAN-2026-10.md`](RIWAYAT-PEKERJAAN-2026-10.md) | Isi lama bagian pekerjaan di `docs/README.md`, termasuk tabel Q9 sampai Q28 dan daftar periksa manual 2026-10-04 | Keputusan finalnya ke [`../kerja/ATURAN-AI.md`](../kerja/ATURAN-AI.md) bagian 4. Daftar periksa manualnya ke [`../kerja/PEKERJAAN.md`](../kerja/PEKERJAAN.md) bagian 5 | Berkas ini tetap disimpan sebagai potret dan tidak diperbarui |
+| [`GELOMBANG-3.md`](GELOMBANG-3.md) | Spesifikasi langkah sepuluh tugas Gelombang 3 | [`../kerja/PEKERJAAN.md`](../kerja/PEKERJAAN.md) bagian 3, seluruhnya | **Dipindahkan sekaligus pada 2026-10-05.** Sebelumnya keputusan lama meminta pemindahan bertahap satu tugas setiap kali tugas itu dimulai; cara itu dibatalkan karena membuat pekerjaan hidup hanya di arsip |
+| [`GELOMBANG-2.md`](GELOMBANG-2.md) | Peta sebelas tugas Gelombang 2 beserta keputusannya | Tidak dipindahkan. Seluruh tugasnya sudah selesai dan keputusan yang masih mengikat sudah disalin ke [`../kerja/ATURAN-AI.md`](../kerja/ATURAN-AI.md) bagian 4 | Disimpan sebagai bukti cara kerja |
+| [`GELOMBANG-1.md`](GELOMBANG-1.md) | Sebelas tugas Gelombang 1, preseden prosedur, dan pertanyaan Q19 sampai Q25 | Tidak dipindahkan. Jawabannya sudah masuk [`../kerja/ATURAN-AI.md`](../kerja/ATURAN-AI.md) bagian 4 | Satu pertanyaan lama yang tidak pernah dijawab, yaitu hierarki judul layar Keuangan, sudah dijawab pemilik pada 2026-10-05 dan dicatat sebagai keputusan D6 |
+| [`arsitektur/01` sampai `arsitektur/11`](arsitektur/README.md) | Potret arsitektur versi lama | [`../06-ARSITEKTUR-KODE.md`](../06-ARSITEKTUR-KODE.md) sebagai pengganti, sengaja tanpa angka | Aturan yang masih mengikat sudah dinaikkan ke `ATURAN-AI.md` bagian 1 sampai 4 |
+| `TODO.md` di akar repo | Daftar pekerjaan lama | [`TODO-2026-09-13.md`](TODO-2026-09-13.md), lalu daftar aktifnya ke [`../kerja/PEKERJAAN.md`](../kerja/PEKERJAAN.md) | **Satu-satunya berkas dokumen yang benar-benar dihapus dari repository**, pada 2026-09-15, karena letaknya di akar repo dan tidak pernah terbaca. Isinya sudah dipindahkan ke daftar `TODO-2026-09-13.md` yang ada di folder ini |
+| `.design-sync/NOTES.md` | Catatan perkakas desain | Tidak dipindahkan | Dihapus 2026-07-02, bukan dokumentasi produk ini |
+| [`../kerja/CHEATSHEET.md`](../kerja/CHEATSHEET.md) | Ringkasan satu halaman per dokumen tugas | Tidak dihapus. Berkasnya tetap ada dan isinya diberi judul baru sebagai catatan teknis per tugas, yaitu jangkar kode, jebakan, dan perintah verifikasi | Daftar pekerjaan dan spesifikasi tugas tidak lagi ada di berkas itu, melainkan di `PEKERJAAN.md` |
+
+**Cara memakai tabel ini.** Kalau sebuah pekerjaan atau keputusan tidak ditemukan di dokumen aktif, cari dulu di tabel ini. Kalau ternyata tidak ada di mana pun, itu berarti ada isi yang hilang saat pemindahan, dan hal itu wajib dicatat sebagai temuan baru di [`../kerja/PEKERJAAN.md`](../kerja/PEKERJAAN.md) bagian 4.

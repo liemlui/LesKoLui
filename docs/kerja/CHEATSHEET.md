@@ -1,6 +1,10 @@
-# CHEATSHEET — TASK-01…TASK-10
+# CHEATSHEET — catatan teknis per tugas
 
-> Pengganti baca TASK-XX utuh. 1 seksi per tugas. Jangkar = teks.
+> **Sekilas.** Jenis: catatan teknis. Status: berlaku sebagai rujukan, bukan sebagai daftar pekerjaan.
+> Untuk siapa: agen AI yang sedang mengerjakan sebuah tugas dan butuh jangkar kode, jebakan, atau perintah verifikasinya tanpa membaca dokumen tugas utuh.
+> **Yang ada di sini:** jangkar teks di kode, jebakan yang sudah pernah terjadi, dan perintah verifikasi, satu bagian per tugas.
+> **Yang tidak ada di sini:** daftar pekerjaan dan spesifikasi tugas Gelombang 3 — keduanya di [`PEKERJAAN.md`](PEKERJAAN.md). Kalau isi di sini bertentangan dengan `PEKERJAAN.md`, yang menang adalah `PEKERJAAN.md`.
+> **Angka di dalam catatan ini adalah potret saat ditulis.** Ukur ulang dengan perintah yang disebutkan, jangan menyalin angkanya.
 
 ## TASK-01 — Refactor layar besar (refactor, bukan perbaikan)
 
