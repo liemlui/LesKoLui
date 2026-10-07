@@ -13,7 +13,7 @@
 import type { Payment, Session, Student } from "../db/types";
 import { reportStatus } from "../db/types";
 import type { SessionCountBillingProgress } from "../db/repos/paymentRepo";
-import { formatRupiah, monthLabel, todayWIB } from "./format";
+import { monthLabel, todayWIB } from "./format";
 import { invoiceDueAt } from "./finance";
 
 /** Asal-usul baris — inilah yang menyatukan lima mekanisme tagih. */
@@ -29,6 +29,18 @@ export type BarisTagihanKeadaan =
   | "terkirim"      // invoice terbit, belum jatuh tempo
   | "lewat"         // invoice terbit, sudah lewat dueAt
   | "lunas";
+
+/**
+ * Jenis pekerjaan yang diminta baris ini. Dipakai layar Uang untuk memisahkan
+ * "yang butuh tindakan" dari "yang sudah selesai" — keputusan pemilik 2026-10-07:
+ * **invoice yang sudah lunas bukan tagihan**, melainkan riwayat transaksi, jadi
+ * ia tidak boleh dihitung sebagai pekerjaan yang menunggu.
+ */
+export type BarisTagihanTindakan =
+  | "terbitkan"   // laporan final / paket siap → buat invoice-nya
+  | "finalkan"    // laporan masih draf → sahkan dulu sebelum bisa ditagih
+  | "tagih"       // invoice sudah terbit, uangnya belum masuk
+  | "riwayat";    // sudah lunas → bukan pekerjaan, hanya catatan
 
 export type BarisTagihanAksi =
   | "terbitkan"
@@ -47,6 +59,8 @@ export interface BarisTagihan {
   amount: number;
   asal: BarisTagihanAsal;
   keadaan: BarisTagihanKeadaan;
+  /** Pekerjaan yang diminta baris ini. `riwayat` = sudah selesai, bukan tagihan. */
+  tindakan: BarisTagihanTindakan;
   /** Label manusia untuk mekanisme, mis. "Laporan Agustus 2026" / "Paket 8 · siklus 3 Agu 2026". */
   mode: string;
   /** Rentang yang dicakup, mis. "1–31 Agustus 2026". */
@@ -188,6 +202,7 @@ export function buildTagihanRows({
       amount: payment.totalCost,
       asal: payment.source === "manual" ? "manual" : "terbit",
       keadaan,
+      tindakan: keadaan === "lunas" ? "riwayat" : "tagih",
       mode: payment.source === "manual" ? "Tagihan manual" : "Tagihan terbit",
       cakupan: labelCakupan(payment.periodStart, payment.periodEnd, payment.month),
       umurHari: keadaan === "lewat" ? selisih : undefined,
@@ -197,27 +212,35 @@ export function buildTagihanRows({
     });
   }
 
-  // ── 2. Laporan final yang belum punya invoice (mekanisme "laporan") ──
+  // ── 2. Laporan yang belum bisa ditagih ──
+  // 2a. Sudah final tetapi belum punya invoice → siap diterbitkan.
+  // 2b. Masih draf → pekerjaan tersendiri: disahkan dulu, baru bisa ditagih.
+  //     Keputusan pemilik 2026-10-07 memasukkan "sudah terbit tapi laporannya
+  //     belum" sebagai pekerjaan yang harus terlihat di layar Uang, bukan
+  //     tersembunyi di sub-layar.
   const invoiceReportIds = new Set(
     payments.flatMap((payment) => (payment.reportId ? [payment.reportId] : [])),
   );
   for (const report of reports) {
-    if (reportStatus(report) !== "confirmed") continue;
     if (report.totalCost <= 0) continue;
     if (report.billingMode === "session_count") continue;
     if (invoiceReportIds.has(report.id)) continue;
 
+    const final = reportStatus(report) === "confirmed";
     rows.push({
       key: `report:${report.id}`,
       studentId: report.studentId,
       studentName: namaMurid(studentsById, report.studentId),
       amount: report.totalCost,
       asal: "laporan",
-      keadaan: "siap-ditagih",
-      mode: `Laporan ${monthLabel(report.month)}`,
+      // Draf belum boleh diterbitkan, tetapi ia tetap "menunggu tindakan" dan
+      // bukan "terkirim" — status terkirim hanya untuk invoice yang benar ada.
+      keadaan: final ? "siap-ditagih" : "terkirim",
+      tindakan: final ? "terbitkan" : "finalkan",
+      mode: final ? `Laporan ${monthLabel(report.month)}` : `Draf laporan ${monthLabel(report.month)}`,
       cakupan: labelCakupan(report.periodStart, report.periodEnd, report.month),
       refs: { reportId: report.id },
-      aksi: [...AKSI_LAPORAN],
+      aksi: final ? [...AKSI_LAPORAN] : ["rincian"],
     });
   }
 
@@ -240,6 +263,7 @@ export function buildTagihanRows({
       amount: paket.nextBatchTotal,
       asal: "paket",
       keadaan: "siap-ditagih",
+      tindakan: "terbitkan",
       mode: `Paket ${paket.targetCount} pertemuan`,
       cakupan: tanggalBatch
         ? `Siklus mulai ${labelTanggalSingkat(tanggalBatch)}`
@@ -261,6 +285,10 @@ export function buildTagihanRows({
  * 2. `siap-ditagih` (nominal terbesar lebih dulu — itu yang paling menahan kas)
  * 3. `terkirim` menaik berdasarkan `dueAt` (yang paling dekat jatuh tempo dulu)
  * 4. `lunas` selalu di bawah
+ *
+ * Draf laporan berkeadaan `terkirim` tidak punya `dueAt`, jadi ia jatuh di ujung
+ * kelompok itu. Sengaja dibiarkan: yang paling mendesak pada kelompok `terkirim`
+ * adalah invoice yang hampir jatuh tempo, bukan draf yang tidak punya tenggat.
  */
 export function sortTagihanRows(rows: readonly BarisTagihan[]): BarisTagihan[] {
   return [...rows].sort((a, b) => {
@@ -276,6 +304,8 @@ export function sortTagihanRows(rows: readonly BarisTagihan[]): BarisTagihan[] {
       if (nominal !== 0) return nominal;
     }
     if (a.keadaan === "terkirim") {
+      // Draf laporan (tanpa dueAt) selalu setelah invoice yang benar-benar terbit.
+      if (a.tindakan !== b.tindakan) return a.tindakan === "finalkan" ? 1 : -1;
       const tempo = (a.dueAt ?? "").localeCompare(b.dueAt ?? "");
       if (tempo !== 0) return tempo;
     }
@@ -283,14 +313,20 @@ export function sortTagihanRows(rows: readonly BarisTagihan[]): BarisTagihan[] {
   });
 }
 
-/** Baris yang belum lunas — bahan blok "Perlu ditagih". */
-export function barisBelumLunas(rows: readonly BarisTagihan[]): BarisTagihan[] {
-  return rows.filter((row) => row.keadaan !== "lunas");
+/**
+ * Baris yang masih menunggu pekerjaan — bahan blok "Perlu ditagih".
+ *
+ * **Invoice yang sudah lunas TIDAK termasuk.** Keputusan pemilik 2026-10-07:
+ * yang sudah dibayar bukan tagihan melainkan riwayat transaksi, jadi ia tidak
+ * boleh ikut dihitung sebagai pekerjaan yang menunggu.
+ */
+export function barisMenungguTindakan(rows: readonly BarisTagihan[]): BarisTagihan[] {
+  return rows.filter((row) => row.tindakan !== "riwayat");
 }
 
-/** Ringkas nominal beberapa baris untuk satu kalimat ("Rp 1,4 jt"). */
-export function ringkasNominal(total: number): string {
-  return formatRupiah(total);
+/** Riwayat transaksi: baris yang sudah selesai dibayar. Bukan tagihan. */
+export function barisRiwayat(rows: readonly BarisTagihan[]): BarisTagihan[] {
+  return rows.filter((row) => row.tindakan === "riwayat");
 }
 
 /**
@@ -298,9 +334,31 @@ export function ringkasNominal(total: number): string {
  * dengan badge pemilih tagihan versi tab lama (`readyReportInvoiceCount` +
  * antrean paket siap), sehingga angka di layar Uang tidak berubah.
  *
- * Tagihan yang sudah terbit — termasuk yang lewat jatuh tempo — sengaja tidak
- * ikut: baris itu sudah ada di daftar dan aksinya "tagih", bukan "terbitkan".
+ * Draf laporan tidak ikut: pekerjaannya "sahkan", bukan "terbitkan". Perhatikan
+ * bahwa sebelum 2026-10-07 draf tidak pernah muncul sebagai baris sama sekali,
+ * jadi angka ini tetap sama dengan versi lama walau ada jenis baris baru.
  */
 export function hitungBarisButuhAksi(rows: readonly BarisTagihan[]): number {
-  return rows.filter((row) => row.keadaan === "siap-ditagih").length;
+  return rows.filter((row) => row.tindakan === "terbitkan").length;
+}
+
+/**
+ * Ringkasan blok "Perlu ditindaklanjuti": berapa banyak pekerjaan per jenis.
+ * Dipakai layar Uang supaya kalimatnya menyebut jenis pekerjaan yang nyata
+ * ("2 laporan perlu disahkan"), bukan sekadar "N tagihan menunggu".
+ */
+export function ringkasTindakan(rows: readonly BarisTagihan[]): {
+  terbitkan: number;
+  finalkan: number;
+  tagih: number;
+  total: number;
+} {
+  const menunggu = barisMenungguTindakan(rows);
+  const hitung = (jenis: BarisTagihanTindakan) => menunggu.filter((row) => row.tindakan === jenis).length;
+  return {
+    terbitkan: hitung("terbitkan"),
+    finalkan: hitung("finalkan"),
+    tagih: hitung("tagih"),
+    total: menunggu.length,
+  };
 }

@@ -11,13 +11,15 @@ import type { MonthCashSummary } from "../db/repos/paymentRepo";
 const BULAN = "2026-09";
 
 function makeRow(overrides: Partial<BarisTagihan> = {}): BarisTagihan {
+  const keadaan = overrides.keadaan ?? "terkirim";
   return {
     key: overrides.key ?? `row-${Math.random()}`,
     studentId: "s1",
     studentName: "Murid s1",
     amount: 100_000,
     asal: "terbit",
-    keadaan: "terkirim",
+    keadaan,
+    tindakan: keadaan === "lunas" ? "riwayat" : "tagih",
     mode: "",
     cakupan: "",
     refs: {},

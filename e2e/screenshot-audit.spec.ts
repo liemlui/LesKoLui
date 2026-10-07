@@ -143,9 +143,18 @@ test("06-payments", async ({ page }) => {
   await page.waitForTimeout(2500);
   await closeChangelog(page);
   await openPin(page);
-  for (const t of ["Bulan Ini", "Penagihan", "Pengeluaran", "Rekap Tahunan"]) {
+  // Label diperbaiki 2026-10-07. Sebelumnya daftar ini menyebut "Bulan Ini",
+  // "Penagihan", dan "Rekap Tahunan" — label yang sudah lama tidak ada di
+  // antarmuka, dan `clickTab` menelan kegagalannya lewat `catch`, sehingga test
+  // ini "lulus" sambil memotret layar yang tidak pernah berpindah.
+  //
+  // Tombol "Ringkasan" pada bilah sub-layar MENGHAPUS `?tab=`, jadi menekannya
+  // dari keadaan awal adalah cara menangkap tampilan utama tiga blok.
+  await clickTab(page, "Ringkasan");
+  await shot(page, "06-payments-utama.png");
+  for (const t of ["Tagihan", "Pengeluaran", "Rekap"]) {
     await clickTab(page, t);
-    await shot(page, `06-payments-${t.toLowerCase().replaceAll(" ", "-")}.png`);
+    await shot(page, `06-payments-${t.toLowerCase()}.png`);
   }
 });
 

@@ -40,7 +40,7 @@ export default function BillingHelpModal({ onClose }: { onClose: () => void }) {
           <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-muted)]">Bulanan</h3>
           <ul className="mt-2 space-y-2 text-xs leading-relaxed">
             <li>Murid <strong>Bulanan</strong> — finalkan Laporan Perkembangan, lalu terbitkan invoice dari langkah <strong>Siap ditagih</strong>.</li>
-            <li>Daftar tagihan lintas bulan — semua invoice tampil tanpa perlu memilih bulan.</li>
+            <li>Daftar tagihan mencakup semua periode, tanpa perlu memilih bulan. Bawaannya hanya yang <strong>belum dibayar</strong> — yang sudah lunas bukan tagihan melainkan <strong>riwayat transaksi</strong>, dan riwayat per murid ada di halaman murid.</li>
           </ul>
         </section>
 

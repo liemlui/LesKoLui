@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   buildTagihanRows,
   sortTagihanRows,
-  barisBelumLunas,
+  barisMenungguTindakan,
+  barisRiwayat,
+  ringkasTindakan,
   hitungBarisButuhAksi,
   type BarisTagihan,
 } from "../lib/financeRows";
@@ -102,7 +104,10 @@ describe("buildTagihanRows", () => {
     expect(rows[0].umurHari).toBeUndefined();
   });
 
-  // T2
+  // T2 — disesuaikan 2026-10-07: draf laporan kini MUNCUL sebagai pekerjaan
+  // tersendiri ("sahkan dulu"), karena keputusan pemilik hari itu meminta
+  // "sudah terbit tapi laporannya belum" terlihat di layar Uang. Yang tidak
+  // boleh berubah: draf tidak boleh dihitung sebagai siap ditagih.
   it("tidak menampilkan laporan draft sebagai siap-ditagih", () => {
     const rows = buildTagihanRows({
       payments: [],
@@ -112,7 +117,10 @@ describe("buildTagihanRows", () => {
       hariIni: HARI_INI,
     });
 
-    expect(rows).toHaveLength(0);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].tindakan).toBe("finalkan");
+    expect(rows[0].tindakan).not.toBe("terbitkan");
+    expect(hitungBarisButuhAksi(rows)).toBe(0);
   });
 
   it("mengabaikan laporan final bernominal nol atau ber-mode session_count", () => {
@@ -174,8 +182,8 @@ describe("buildTagihanRows", () => {
       hariIni: HARI_INI,
     });
 
-    // Dua baris belum lunas, tetapi hanya satu yang menunggu diterbitkan.
-    expect(barisBelumLunas(rows)).toHaveLength(2);
+    // Dua baris menunggu tindakan, tetapi hanya satu yang menunggu DITERBITKAN.
+    expect(barisMenungguTindakan(rows)).toHaveLength(2);
     expect(hitungBarisButuhAksi(rows)).toBe(1);
   });
 
@@ -380,11 +388,11 @@ describe("buildTagihanRows", () => {
     const rows: BarisTagihan[] = [
       {
         key: "a", studentId: "s1", studentName: "A", amount: 1, asal: "terbit", keadaan: "terkirim",
-        mode: "", cakupan: "", refs: {}, aksi: [],
+        tindakan: "tagih", mode: "", cakupan: "", refs: {}, aksi: [],
       },
       {
         key: "b", studentId: "s1", studentName: "B", amount: 1, asal: "terbit", keadaan: "lewat",
-        mode: "", cakupan: "", umurHari: 1, refs: {}, aksi: [],
+        tindakan: "tagih", mode: "", cakupan: "", umurHari: 1, refs: {}, aksi: [],
       },
     ];
 
@@ -394,8 +402,8 @@ describe("buildTagihanRows", () => {
   });
 });
 
-describe("barisBelumLunas", () => {
-  it("membuang baris lunas dan menyisakan yang masih menunggu", () => {
+describe("barisMenungguTindakan / barisRiwayat", () => {
+  it("memisahkan pekerjaan yang menunggu dari riwayat yang sudah lunas", () => {
     const rows = buildTagihanRows({
       payments: [
         makePayment("p-lunas", { status: "PAID", paidAt: "2026-09-10" }),
@@ -407,8 +415,49 @@ describe("barisBelumLunas", () => {
       hariIni: HARI_INI,
     });
 
-    const terbuka = barisBelumLunas(rows);
-    expect(terbuka).toHaveLength(2);
-    expect(terbuka.every((row) => row.keadaan !== "lunas")).toBe(true);
+    const menunggu = barisMenungguTindakan(rows);
+    // Invoice lunas BUKAN tagihan: ia tidak ikut dihitung sebagai pekerjaan.
+    expect(menunggu).toHaveLength(2);
+    expect(menunggu.every((row) => row.tindakan !== "riwayat")).toBe(true);
+
+    const riwayat = barisRiwayat(rows);
+    expect(riwayat).toHaveLength(1);
+    expect(riwayat[0].refs.paymentId).toBe("p-lunas");
+    expect(riwayat[0].keadaan).toBe("lunas");
+  });
+
+  it("memberi draf laporan tindakan 'finalkan', bukan 'terbitkan'", () => {
+    const rows = buildTagihanRows({
+      payments: [],
+      students: [makeStudent("s1")],
+      reports: [{ ...LAPORAN_FINAL, id: "r-draf", status: "draft" }],
+      packages: [],
+      hariIni: HARI_INI,
+    });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].tindakan).toBe("finalkan");
+    expect(rows[0].mode).toContain("Draf");
+    // Draf belum boleh diterbitkan, jadi ia TIDAK menambah angka "siap ditagih".
+    expect(hitungBarisButuhAksi(rows)).toBe(0);
+    expect(barisMenungguTindakan(rows)).toHaveLength(1);
+  });
+
+  it("ringkasTindakan menghitung setiap jenis pekerjaan", () => {
+    const rows = buildTagihanRows({
+      payments: [
+        makePayment("p-lunas", { status: "PAID", paidAt: "2026-09-10" }),
+        makePayment("p-terkirim", { dueAt: "2026-11-01", month: "2026-11" }),
+      ],
+      students: [makeStudent("s1")],
+      reports: [
+        { ...LAPORAN_FINAL, id: "r-final" },
+        { ...LAPORAN_FINAL, id: "r-draf", status: "draft" },
+      ],
+      packages: [makeProgress()],
+      hariIni: HARI_INI,
+    });
+
+    expect(ringkasTindakan(rows)).toEqual({ terbitkan: 2, finalkan: 1, tagih: 1, total: 4 });
   });
 });

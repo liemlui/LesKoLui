@@ -447,7 +447,10 @@ export default function TagihanTab({
               step: "04",
               label: "Lunas",
               value: formatRupiah(totalPaid),
-              hint: `${paidCount} tagihan sudah selesai`,
+              // Keputusan pemilik 2026-10-07: yang sudah dibayar bukan tagihan,
+              // melainkan riwayat transaksi. Riwayatnya hidup di halaman murid;
+              // tahap ini hanya tinggal sebagai jalan pintas untuk memeriksa.
+              hint: `${paidCount} transaksi selesai`,
               activeClass: "border-[var(--border-success)] bg-[var(--bg-success-strong)] text-[var(--on-strong)] shadow-sm",
               idleClass: "border-[var(--border-success)] bg-[var(--surface-strong)] text-[var(--ink-success)] hover:bg-[var(--bg-success)]",
             },
@@ -817,8 +820,18 @@ export default function TagihanTab({
       <div className="bg-[var(--surface-strong)] rounded-xl p-4 shadow-sm border border-[var(--border)] space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <p className="text-xs text-[var(--ink-muted)] font-medium uppercase tracking-wide">Daftar tagihan</p>
-            <p className="text-xs text-[var(--ink-muted)] mt-0.5">Ketuk satu tagihan untuk mengubah nominal, mencatat pembayaran, mengirim WA, atau mengunduh invoice.</p>
+            {/* Keputusan pemilik 2026-10-07: invoice yang sudah lunas bukan
+                tagihan, melainkan riwayat transaksi. Judul kartu ini mengikuti
+                apa yang sedang ditampilkan, jadi ia tidak pernah menyebut
+                transaksi lunas sebagai tagihan. */}
+            <p className="text-xs text-[var(--ink-muted)] font-medium uppercase tracking-wide">
+              {invoiceStatusFilter === "paid" ? "Riwayat transaksi" : "Daftar tagihan"}
+            </p>
+            <p className="text-xs text-[var(--ink-muted)] mt-0.5">
+              {invoiceStatusFilter === "paid"
+                ? "Transaksi yang sudah lunas, urut terbaru. Riwayat lengkap per murid ada di halaman murid."
+                : "Ketuk satu tagihan untuk mengubah nominal, mencatat pembayaran, mengirim WA, atau mengunduh invoice."}
+            </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-xs font-semibold text-[var(--ink-muted)] bg-[var(--bg-subtle)] rounded-full px-2 py-1">{filteredBillRows.length}/{allPayments.length}</span>

@@ -27,6 +27,15 @@ export function useInvoiceExports({
   const [invoiceExporting, setInvoiceExporting] = useState(false);
   const invoiceRef = useRef<HTMLDivElement>(null);
 
+  /**
+   * Awalan nama berkas ekspor. Keputusan pemilik 2026-10-07: yang sudah lunas
+   * bukan tagihan melainkan riwayat transaksi, jadi berkas yang isinya transaksi
+   * lunas tidak boleh dinamai "tagihan".
+   */
+  const namaBerkas = (ext: string) => invoiceStatusFilter === "paid"
+    ? `riwayat-transaksi-${invoiceOriginFilter}.${ext}`
+    : `tagihan-semua-periode-${invoiceStatusFilter}-${invoiceOriginFilter}.${ext}`;
+
   const handleExportInvoicePdf = async () => {
     if (!invoiceRef.current || !invoiceTarget) return;
     setInvoiceExporting(true);
@@ -65,7 +74,7 @@ export function useInvoiceExports({
     ];
     const csv = rows.map((r) => r.map(escapeCsvCell).join(",")).join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
-    downloadBlob(blob, `tagihan-semua-periode-${invoiceStatusFilter}-${invoiceOriginFilter}.csv`);
+    downloadBlob(blob, namaBerkas("csv"));
   };
 
   const handleExportPdf = async () => {
@@ -88,7 +97,7 @@ export function useInvoiceExports({
       }
       if (!pdf) return;
       const blob = pdf.output("blob");
-      downloadBlob(blob, `tagihan-semua-periode-${invoiceStatusFilter}-${invoiceOriginFilter}.pdf`);
+      downloadBlob(blob, namaBerkas("pdf"));
     } catch (e) { setMessage("Gagal ekspor PDF: " + (e as Error).message); }
     finally { setPdfExporting(false); }
   };

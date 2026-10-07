@@ -17,7 +17,7 @@
  * Angka di layar ini datang dari `financeRows`/`financeOverview` (aturan murni),
  * bukan dari AI. AiCostModal dan jalur AI-nya hidup di sub-layar analitik.
  */
-import { barisBelumLunas, type BarisTagihan } from "../../lib/financeRows";
+import { barisMenungguTindakan, ringkasTindakan, type BarisTagihan } from "../../lib/financeRows";
 import type { FinanceOverview } from "../../lib/financeOverview";
 import { monthLabel } from "../../lib/format";
 import MaskedMoney from "../../components/ui/MaskedMoney";
@@ -96,12 +96,23 @@ function BarisTagihanRingkas({
 }
 
 export default function UangBeranda({ month, rows, overview, onBukaSub }: UangBerandaProps) {
-  // Baris lunas bukan pekerjaan: blok ini hanya memuat yang masih menunggu.
-  // `barisBelumLunas` sudah disortir paling mendesak lebih dulu.
-  const menunggu = barisBelumLunas(rows);
+  // Layar ini HANYA memuat pekerjaan yang menunggu tindakan. Keputusan pemilik
+  // 2026-10-07: invoice yang sudah lunas bukan tagihan melainkan riwayat
+  // transaksi, jadi ia tidak boleh ikut dihitung maupun ikut tampil di sini —
+  // riwayatnya hidup di halaman murid. `barisMenungguTindakan` sudah disortir
+  // paling mendesak lebih dulu dan membuang baris `riwayat`.
+  const menunggu = barisMenungguTindakan(rows);
   const prioritas = menunggu.slice(0, 3);
   const sisanya = menunggu.slice(3);
   const totalSisa = sisanya.reduce((sum, row) => sum + row.amount, 0);
+  const jumlah = ringkasTindakan(rows);
+  // Kalimatnya menyebut jenis pekerjaannya, bukan sekadar "N tagihan" — angka
+  // yang tidak menjelaskan pekerjaan apa yang harus dilakukan tidak berguna.
+  const rincianJumlah = [
+    jumlah.terbitkan > 0 && `${jumlah.terbitkan} siap diterbitkan`,
+    jumlah.finalkan > 0 && `${jumlah.finalkan} laporan perlu disahkan`,
+    jumlah.tagih > 0 && `${jumlah.tagih} belum dibayar`,
+  ].filter(Boolean).join(" · ");
 
   return (
     <div className="space-y-4">
@@ -146,26 +157,29 @@ export default function UangBeranda({ month, rows, overview, onBukaSub }: UangBe
         </p>
       </section>
 
-      {/* ── Blok 2 — Perlu ditagih (maks 3 baris teratas) ── */}
+      {/* ── Blok 2 — Perlu ditindaklanjuti (maks 3 baris teratas) ── */}
       <section
         aria-labelledby="uang-tagih-title"
         className="rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] p-4 shadow-sm"
       >
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--ink-muted)]">Perlu ditagih</p>
+            <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--ink-muted)]">Perlu ditindaklanjuti</p>
             <h2 id="uang-tagih-title" className="text-base font-bold text-[var(--ink-strong)]">
               {prioritas.length === 0
-                ? "Tidak ada tagihan yang menunggu"
-                : `${rows.length} tagihan menunggu, ${prioritas.length} paling mendesak`}
+                ? "Tidak ada yang menunggu"
+                : `${menunggu.length} pekerjaan menunggu`}
             </h2>
+            {rincianJumlah && (
+              <p className="mt-0.5 text-xs text-[var(--ink-muted)]">{rincianJumlah}</p>
+            )}
           </div>
           <button
             type="button"
             onClick={() => onBukaSub("tagihan")}
             className="inline-flex min-h-[44px] shrink-0 items-center rounded-[var(--radius-card)] bg-[var(--brand-solid)] px-3 text-caption font-semibold text-[var(--on-strong)] transition-colors hover:bg-[var(--brand-solid)]"
           >
-            Semua tagihan ▸
+            Buka daftar tagihan ▸
           </button>
         </div>
 
@@ -187,7 +201,7 @@ export default function UangBeranda({ month, rows, overview, onBukaSub }: UangBe
             onClick={() => onBukaSub("tagihan")}
             className="mt-2 flex w-full items-center justify-between rounded-lg bg-[var(--surface)] px-3 py-2.5 text-left text-xs font-semibold text-[var(--ink-muted)] transition-colors hover:bg-[var(--bg-subtle)]"
           >
-            <span>{sisanya.length} tagihan lain</span>
+            <span>{sisanya.length} pekerjaan lain</span>
             <span className="flex items-center gap-2">
               <MaskedMoney amount={totalSisa} className="text-[var(--ink-strong)]" hideUnlock />
               <span aria-hidden="true">▸</span>

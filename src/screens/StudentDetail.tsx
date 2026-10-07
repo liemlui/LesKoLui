@@ -10,6 +10,7 @@ import {
   deleteSession, updateSession,
   getStudyNote, saveStudyNote,
   countUnbilledBillableSessions,
+  listPaymentsByStudent,
 } from "../db/repos";
 import { verifyPin } from "../lib/crypto";
 import { getPinLockoutDelay, recordPinFailure, resetPinLockout } from "../lib/pinLockout";
@@ -38,6 +39,7 @@ import StudyNoteCard from "./studentDetail/StudyNoteCard";
 import UpcomingSchedule from "./studentDetail/UpcomingSchedule";
 import SessionDetailModal from "./studentDetail/SessionDetailModal";
 import RiwayatSesi from "./studentDetail/RiwayatSesi";
+import RiwayatPembayaran from "./studentDetail/RiwayatPembayaran";
 import IaEeTracker from "./studentDetail/IaEeTracker";
 import NilaiRapor from "./studentDetail/NilaiRapor";
 import { engagementAverage, sessionEngagementScore } from "../lib/engagement";
@@ -70,6 +72,9 @@ export default function StudentDetail() {
   // Sesi lama yang belum ditagih — menentukan apakah pilihan retroaktif perlu
   // ditawarkan pada edit tarif inline. Tarif historis beku secara default (D1(c)).
   const unbilledCount = useLiveQuery(() => (id ? countUnbilledBillableSessions(id) : 0), [id]);
+  // Riwayat pembayaran murid ini (keputusan pemilik 2026-10-07: transaksi lunas
+  // tempatnya di halaman murid, bukan di layar Keuangan).
+  const studentPayments = useLiveQuery(() => (id ? listPaymentsByStudent(id) : []), [id]);
 
   // Edit scheduled session modal
   const [editTarget,     setEditTarget]     = useState<Session | null>(null);
@@ -654,6 +659,15 @@ export default function StudentDetail() {
           studentId={student.id}
           studyNote={studyNote}
           onSave={async (content) => { await saveStudyNote(student.id, content); }}
+        />
+      )}
+      {/* Riwayat pembayaran hidup di tab Ringkasan, bersebelahan dengan kartu
+          "Siklus tagihan" — di situ pertanyaan "sudah dibayar berapa?" muncul. */}
+      {student && (
+        <RiwayatPembayaran
+          payments={studentPayments ?? []}
+          studentName={student.name}
+          onKelolaPenagihan={() => navigate(`/payments?tab=tagihan&studentId=${student.id}`)}
         />
       )}
       </>)}
