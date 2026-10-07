@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import type { MonthlyReport, Payment, Session, Settings, Student } from "../../db/types";
 import { reportDisplayStatus } from "../../db/types";
 import { formatRupiah, monthLabel, periodLabel } from "../../lib/format";
 import { labelDueAt, hasNoDueDateLabel, formatInvoiceDueLabel } from "../../lib/invoiceDueLabel";
 import { AGE_BUCKET_LABEL, ageBucket, invoiceAgeDays, invoiceDueAt } from "../../lib/finance";
+import { formatNominalSaatKetik, pesanNominal, tampilkanNominal } from "../../lib/amountInput";
 import {
   INVOICE_ORIGIN_LABEL, buildManualBillingText,
   invoiceOriginOf, toneForPayment,
@@ -56,6 +57,45 @@ export default function InvoiceRow({
   const dueLabel = formatInvoiceDueLabel(dueAt, paid);
   const [dueAtDraft, setDueAtDraft] = useState(dueAt ?? "");
   useEffect(() => { setDueAtDraft(dueAt ?? ""); }, [dueAt]);
+
+  /**
+   * G3-02 #9: kolom nominal memakai pemisah ribuan saat mengetik.
+   *
+   * `amount` dari induk tetap berupa digit mentah (kontrak lama tidak berubah);
+   * yang diformat hanya yang ditampilkan. Posisi kursor dihitung ulang sesudah
+   * React menulis nilainya, karena kalau tidak kursor melompat ke ujung setiap
+   * kali tutor mengetik di tengah angka.
+   */
+  const amountRef = useRef<HTMLInputElement>(null);
+  const kursorRef = useRef<number | null>(null);
+  const nilaiNominal = Number(amount.replace(/\D/g, "")) || 0;
+  const nilaiNominalTeks = tampilkanNominal(nilaiNominal);
+  const [nominalTersimpan, setNominalTersimpan] = useState(false);
+  const pesan = pesanNominal(nilaiNominal, { tersimpan: nominalTersimpan });
+
+  useEffect(() => {
+    if (kursorRef.current === null || !amountRef.current) return;
+    amountRef.current.setSelectionRange(kursorRef.current, kursorRef.current);
+    kursorRef.current = null;
+  }, [amount]);
+
+  const handleAmountChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const hasil = formatNominalSaatKetik(event.target.value, event.target.selectionStart ?? event.target.value.length);
+    kursorRef.current = hasil.posisiKursor;
+    setNominalTersimpan(false);
+    onAmountChange(hasil.teks);
+  };
+
+  const handleAmountBlur = () => {
+    onAmountSave();
+    // Penanda "tersimpan" hanya muncul kalau nilainya memang sah dan berbeda
+    // dari nilai yang tersimpan — induk yang memutuskan penulisannya, di sini
+    // kita hanya menandai bahwa tutor sudah selesai mengetik.
+    if (pesan.jenis === "sah" && nilaiNominal > 0 && nilaiNominal !== invoice.totalCost) {
+      setNominalTersimpan(true);
+    }
+  };
+
   const periodLbl = invoice.periodStart && invoice.periodEnd ? periodLabel(invoice.periodStart, invoice.periodEnd) : "";
   const totalHours = sessions.reduce((sum, session) => sum + session.durationHours, 0);
   const origin = invoiceOriginOf(invoice, report);
@@ -117,7 +157,41 @@ export default function InvoiceRow({
         <div className="rounded-lg bg-[var(--surface-strong)] px-2.5 py-1.5 text-xs leading-relaxed text-[var(--ink-muted)]">
           <p>Periode pertemuan: <strong>{periodLbl || "Tanpa sesi"}</strong></p><p>Bulan tagihan: <strong>{monthLabel(invoice.month)}</strong></p><p>Jatuh tempo: <strong>{dueAt ? labelDueAt(dueAt) : hasNoDueDateLabel()}</strong></p>
         </div>
-        <div className="flex items-center gap-2"><label htmlFor={`amount-${invoice.id}`} className="text-xs text-[var(--ink-muted)]">Rp</label><input id={`amount-${invoice.id}`} aria-label={`Nominal tagihan ${student?.name ?? "murid"}`} className="input flex-1 py-1.5 text-sm" inputMode="numeric" value={amount} disabled={paid} onChange={(event) => onAmountChange(event.target.value)} onBlur={onAmountSave} /></div>
+        <div>
+          <div className="flex items-center gap-2">
+            <label htmlFor={`amount-${invoice.id}`} className="text-xs text-[var(--ink-muted)]">Rp</label>
+            <input
+              ref={amountRef}
+              id={`amount-${invoice.id}`}
+              aria-label={`Nominal tagihan ${student?.name ?? "murid"}`}
+              aria-describedby={`pesan-nominal-${invoice.id}`}
+              className="input flex-1 py-1.5 text-sm"
+              inputMode="numeric"
+              value={nilaiNominalTeks}
+              disabled={paid}
+              onChange={handleAmountChange}
+              onBlur={handleAmountBlur}
+              onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }}
+            />
+          </div>
+          {/* G3-02 #9: kolom nominal menyebut keadaannya sendiri — pesan bila
+              isinya tidak sah, catatan bila nilainya dipotong ke batas, dan tanda
+              tersimpan supaya tutor tahu koreksinya sudah tercatat. */}
+          <p
+            id={`pesan-nominal-${invoice.id}`}
+            role={pesan.jenis === "tidak-sah" || pesan.jenis === "dipotong" ? "alert" : "status"}
+            aria-live="polite"
+            className={`mt-1 min-h-[1rem] text-xs ${
+              pesan.jenis === "tidak-sah" || pesan.jenis === "dipotong"
+                ? "font-semibold text-[var(--ink-danger)]"
+                : pesan.jenis === "sah"
+                  ? "font-semibold text-[var(--ink-success)]"
+                  : "text-[var(--ink-muted)]"
+            }`}
+          >
+            {pesan.pesan}
+          </p>
+        </div>
         {!paid && recovery && (
           <div className="space-y-1.5 rounded-lg bg-[var(--surface-strong)] px-2.5 py-2">
             <label htmlFor={`due-${invoice.id}`} className="block text-xs font-semibold text-[var(--ink-muted)]">Jatuh tempo</label>

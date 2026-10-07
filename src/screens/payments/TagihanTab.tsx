@@ -17,7 +17,7 @@ import ConfirmSheet from "../../components/ConfirmSheet";
 import { useToastCtx } from "../../components/ToastProvider";
 import PinConfirmModal from "../../components/PinConfirmModal";
 import InvoiceModal from "./InvoiceModal";
-import { ITEMS_PER_PDF_PAGE } from "../../lib/invoicePresentation";
+import { ITEMS_PER_PDF_PAGE, INVOICE_ORIGIN_LABEL, invoiceOriginOf } from "../../lib/invoicePresentation";
 import { useSessionCountBilling } from "./useSessionCountBilling";
 import type { ConfirmState } from "./useSessionCountBilling";
 import { useInvoiceFilters } from "./useInvoiceFilters";
@@ -311,13 +311,60 @@ export default function TagihanTab({
     }
   };
 
-  const saveBillAmount = async (paymentId: string, fallback: number) => {
-    const raw = billEdits[paymentId];
-    setBillEdits((prev) => { const c = { ...prev }; delete c[paymentId]; return c; });
+  /**
+   * Simpan nominal yang benar-benar ditulis. Dipisah dari `askSaveBillAmount`
+   * supaya jalur tulisnya tidak pernah bisa terpanggil tanpa lewat konfirmasi.
+   */
+  const simpanNominal = async (paymentId: string, nominalBaru: number) => {
+    try {
+      await updatePaymentAmountById(paymentId, nominalBaru);
+      setMessage(`Nominal tagihan diubah menjadi ${formatRupiah(nominalBaru)} ✓`);
+    } catch (error) {
+      setMessage(`Gagal mengubah nominal: ${(error as Error).message}`);
+    }
+  };
+
+  /**
+   * K-01 (G3-02 #8): mengubah nominal invoice yang sudah terbit adalah koreksi
+   * yang mengubah angka yang akan ditagih ke orang tua, jadi ia tidak boleh
+   * terjadi hanya karena satu kolom kehilangan fokus.
+   *
+   * `asal` sengaja ditampilkan karena itulah yang menjelaskan akibatnya, dan
+   * satu hal yang **tidak** berubah perlu dikatakan terus terang: mengubah
+   * nominal tidak mengubah asal invoice. Asal dihitung dari laporan dan
+   * sesinya (`invoiceOriginOf`), bukan dari nominalnya — jadi tutor tidak perlu
+   * khawatir koreksi nominal akan memindahkan tagihan ke mekanisme lain.
+   */
+  const askSaveBillAmount = (payment: Payment, studentName: string) => {
+    const raw = billEdits[payment.id];
+    setBillEdits((prev) => { const c = { ...prev }; delete c[payment.id]; return c; });
     if (raw == null || raw === "") return;
-    const n = Number(raw);
-    if (!isValidCurrencyAmount(n)) { setMessage(`Nominal harus 1 sampai ${formatRupiah(MAX_PAYMENT_AMOUNT)}.`); return; }
-    if (n !== fallback) await updatePaymentAmountById(paymentId, n);
+
+    const nominalBaru = Number(raw);
+    if (!isValidCurrencyAmount(nominalBaru)) {
+      setMessage(`Nominal harus 1 sampai ${formatRupiah(MAX_PAYMENT_AMOUNT)}.`);
+      return;
+    }
+    if (nominalBaru === payment.totalCost) return;
+
+    const laporan = payment.reportId ? reports.find((row) => row.id === payment.reportId) : undefined;
+    const asal = INVOICE_ORIGIN_LABEL[invoiceOriginOf(payment, laporan)];
+    const nominalLama = formatRupiah(payment.totalCost);
+    const nominalBaruTeks = formatRupiah(nominalBaru);
+    const selisih = nominalBaru - payment.totalCost;
+    const arah = selisih > 0 ? "bertambah" : "berkurang";
+
+    setConfirmState({
+      title: "Ubah nominal tagihan?",
+      message: [
+        `Nominal tagihan ${studentName} diubah dari ${nominalLama} menjadi ${nominalBaruTeks} (${arah} ${formatRupiah(Math.abs(selisih))}).`,
+        `Asal tagihan: ${asal}. Nominal adalah angka yang akan ditagih ke orang tua, jadi koreksi ini mengubah jumlah yang harus dibayar — bukan sekadar catatan.`,
+        `Yang TIDAK berubah: asal tagihannya tetap ${asal}, dan sesi yang tercakup di dalamnya tidak berubah. Mengubah nominal tidak mengubah mekanisme tagihnya.`,
+      ].join("\n\n"),
+      confirmLabel: "Ya, ubah nominal",
+      danger: true,
+      onConfirm: () => { setConfirmState(null); void simpanNominal(payment.id, nominalBaru); },
+    });
   };
 
   /**
@@ -859,7 +906,7 @@ export default function TagihanTab({
                   const { raw } = parseCurrencyDigits(value, MAX_PAYMENT_AMOUNT);
                   setBillEdits((previous) => ({ ...previous, [payment.id]: raw }));
                 }}
-                onAmountSave={() => void saveBillAmount(payment.id, payment.totalCost)}
+                onAmountSave={() => askSaveBillAmount(payment, studentMap.get(payment.studentId)?.name ?? "(dihapus)")}
                 onTogglePaid={() => askTogglePaid(payment, student?.name ?? "murid")}
                 onOpenReport={() => navigate(report ? `/report?reportId=${encodeURIComponent(report.id)}` : `/report?studentId=${encodeURIComponent(payment.studentId)}`)}
                 onOpenInvoice={() => student && setInvoiceTarget({ payment, student })}

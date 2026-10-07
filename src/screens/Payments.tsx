@@ -11,6 +11,7 @@ import { todayWIB, monthLabel } from "../lib/format";
 import { buildTagihanRows, hitungBarisButuhAksi } from "../lib/financeRows";
 import { buildFinanceOverview } from "../lib/financeOverview";
 import UangBeranda from "./uang/UangBeranda";
+import PinGateForm from "./uang/PinGateForm";
 import { useMoneyVisible } from "../hooks/useMoneyVisible";
 import { useSettingsQuery } from "../hooks/useSettingsQuery";
 import SettingsLoadError from "../components/SettingsLoadError";
@@ -83,7 +84,6 @@ export default function PaymentsPage() {
   // G2-04 (K3.4): gerbang layar ini tetap penuh — lapisan kedua — tetapi status
   // buka-kuncinya sekarang BERBAGI dengan layar lain lewat `useMoneyVisible`.
   const money = useMoneyVisible();
-  const [pinInput, setPinInput] = useState("");
   const requestedStudentId = searchParams.get("studentId") ?? "";
 
   // Sub-layar disinkronkan dengan URL agar bisa di-bookmark / di-share.
@@ -166,24 +166,16 @@ export default function PaymentsPage() {
   }
 
   if (!money.visible) {
+    // G3-02 #10: gerbang PIN jadi formulir sungguhan (Enter mengirim) dengan
+    // hitungan mundur yang terlihat selama masih terkunci. Komponennya di
+    // `screens/uang/` supaya berkas ini tidak tumbuh lagi.
     return (
-      <div className="p-4 flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <p className="text-4xl">🔐</p>
-        <p className="font-bold text-lg text-[var(--ink-strong)]">Data Keuangan</p>
-        <p className="text-sm text-[var(--ink-muted)] text-center">Masukkan PIN Keuangan. Sekali dibuka, angka uang juga terbuka di layar lain sampai dikunci lagi.</p>
-        <input type="password" inputMode="numeric" maxLength={6} placeholder="PIN (6 digit)" aria-label="PIN Keuangan (6 digit)"
-          value={pinInput} onChange={(e) => { setPinInput(e.target.value.replace(/\D/g, "").slice(0, 6)); money.clearError(); }}
-          onKeyDown={(e) => { if (e.key === "Enter" && pinInput.length === 6) void money.unlock(pinInput); }}
-          className="input text-center tracking-widest text-xl w-40" autoFocus />
-        {money.error && <p role="alert" className="text-sm text-[var(--ink-danger)]">{money.error}</p>}
-        <button
-          onClick={async () => { if (await money.unlock(pinInput)) setPinInput(""); }}
-          disabled={pinInput.length !== 6}
-          className="px-8 py-3 rounded-xl bg-[var(--brand-solid)] text-[var(--on-strong)] font-bold text-sm hover:bg-[var(--brand-solid)] transition-colors disabled:opacity-40">
-          Buka
-        </button>
-        <button onClick={() => navigate(-1)} className="text-sm text-[var(--ink-muted)] hover:text-[var(--ink-muted)]">← Kembali</button>
-      </div>
+      <PinGateForm
+        onUnlock={money.unlock}
+        error={money.error}
+        onClearError={money.clearError}
+        onKembali={() => navigate(-1)}
+      />
     );
   }
 
