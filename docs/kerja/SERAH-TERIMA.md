@@ -97,10 +97,13 @@ Tiga butir Keuangan yang dipulihkan lewat keputusan D1 sudah dikerjakan. Yang pe
 
 **Batas kejujuran baru yang harus dibaca sebelum mengklaim butir ini beres:**
 
-- Layar tiga blok dan tabel Rekap tiga kolom **belum pernah dilihat mata manusia di perangkat**. Yang sudah ada:
-  penjaga otomatis. `e2e:uiux` **64 lulus / 0 gagal** dan `e2e` **75 lulus / 6 skip** sesudah perbaikan, jadi
-  kontras, ukuran kontrol, struktur heading, dan alur keuangan sudah terbukti mesin — bukan terbukti mata.
-  Bedanya penting: penjaga mengukur apa yang bisa diukur, bukan apakah tampilannya enak dipakai.
+- Layar tiga blok dan tabel Rekap tiga kolom **sudah dilihat pemilik di perangkat pada 2026-10-07** dan dinilai
+  cukup ("cukup oke"). Perlu dicatat apa adanya: daftar periksa manual **belum punya butir untuk layar Uang** saat
+  pemeriksaan itu dilakukan — butir 1–23 semuanya menulis "tab", padahal layar Uang sudah menjadi satu layar tiga
+  blok — sehingga persetujuan itu keluar dari percakapan, **bukan** dari butir daftar periksa. Dua butir baru
+  (24 dan 25) ditambahkan 2026-10-07 supaya tampilan ini punya butirnya sendiri; centangnya tetap milik pemilik.
+  Yang sudah terbukti mesin: `e2e:uiux` **64 lulus / 0 gagal** dan `e2e` 75 lulus / 6 skip, jadi kontras, ukuran
+  kontrol, struktur heading, dan alur keuangan juga terbukti otomatis.
 - Cakupan penjaga sudah diperluas sesuai keputusan D4: `e2e:uiux` kini mengukur `/payments` polos (tiga blok)
   **dan** sub-layar `?tab=tagihan`. Sebelum 2026-10-07 entri keuangan menunjuk `?tab=ringkasan` saja, sehingga
   tampilan utama tidak pernah diukur dan panel filter lanjutan di sub-layar tagihan tumbuh tanpa jaring pengaman.
