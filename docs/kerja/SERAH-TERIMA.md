@@ -65,8 +65,8 @@ Semua di bawah ini nyata terjadi, bukan dugaan.
 ### 4.2 Batas kejujuran yang tidak boleh diklaim beres
 
 1. **Panel Kelola sesi belum pernah diklik oleh mesin maupun manusia.** Berkas test yang hijau hanya membuktikan Beranda masih dirender, bukan bahwa keenam aksinya bekerja.
-2. **Tiga hal baru di layar tagihan belum pernah dilihat mata**: kotak pencarian murid, badge keterlambatan, dan penulisan tanggal jatuh tempo sebagai nama hari Indonesia. Semuanya punya test murni, tetapi test murni tidak membuktikan tampilannya.
-3. **Panel filter lanjutan belum pernah diklik mesin maupun manusia.** Tidak ada satu pun test tampilan yang menyentuh tombol dan chip itu. Setelah keputusan D4, tab tagihan masuk cakupan penjaga, tetapi selama penjaganya belum diperluas, panel itu tumbuh tanpa jaring pengaman otomatis.
+2. **Tiga hal baru di layar tagihan belum pernah dilihat mata.** ~~Semuanya punya test murni, tetapi test murni tidak membuktikan tampilannya.~~ **DITUTUP 2026-10-07:** ketiganya dilihat pemilik di perangkat — kotak `Cari murid` beserta hasil pencariannya, badge **"Terlambat N hari"** beserta tanggal jatuh tempo berbahasa Indonesia, dan tombol `Filter lanjutan`.
+3. **Panel filter lanjutan belum pernah diklik mesin maupun manusia.** ~~Tidak ada satu pun test tampilan yang menyentuh tombol dan chip itu.~~ **DITUTUP 2026-10-07:** pemilik sudah mengkliknya, **dan** sub-layar tagihan sudah masuk cakupan `e2e:uiux` lewat entri `keuangan-tagihan` — jadi panel itu kini punya bukti mata sekaligus jaring pengaman otomatis. Nomor bagian di daftar ini sengaja tidak digeser supaya rujukan nomor yang sudah ada di dokumen lain tetap sah.
 4. **Katalog topik IB disusun agen mengikuti kerangka silabus, belum dibandingkan dengan panduan resmi.** Keputusan D5 meminta ini diperiksa sungguh-sungguh. Selama belum diperiksa, jangan menyebutnya terverifikasi.
 5. **Satu test tampilan pernah merah di bawah beban kerja tinggi** dengan pesan data pembayaran tidak ditemukan, padahal lulus saat dijalankan sendirian dan lulus empat dari empat saat diulang. Gejalanya sudah teridentifikasi, penyebabnya belum diperbaiki. Keputusan D8 meminta ini diperkuat.
 6. **Dua alias mapel Nasional menunjuk katalog kurikulum lain.** Mapel Informatika dan Penjaskes memakai katalog ilmu komputer tingkat internasional. Sudah masuk daftar pekerjaan lewat keputusan D3.
@@ -102,8 +102,10 @@ Tiga butir Keuangan yang dipulihkan lewat keputusan D1 sudah dikerjakan. Yang pe
   pemeriksaan itu dilakukan — butir 1–23 semuanya menulis "tab", padahal layar Uang sudah menjadi satu layar tiga
   blok — sehingga persetujuan itu keluar dari percakapan, **bukan** dari butir daftar periksa. Dua butir baru
   (24 dan 25) ditambahkan 2026-10-07 supaya tampilan ini punya butirnya sendiri; centangnya tetap milik pemilik.
-  Yang sudah terbukti mesin: `e2e:uiux` **64 lulus / 0 gagal** dan `e2e` 75 lulus / 6 skip, jadi kontras, ukuran
-  kontrol, struktur heading, dan alur keuangan juga terbukti otomatis.
+  Tiga hal di sub-layar Tagihan (pencarian murid, badge keterlambatan + nama hari Indonesia, dan panel filter
+  lanjutan beserta chipnya) juga sudah dilihat pemilik pada hari yang sama — itulah yang menutup butir 4.2 nomor 2
+  dan 3. Yang sudah terbukti mesin: `e2e:uiux` **64 lulus / 0 gagal** dan `e2e` 75 lulus / 6 skip, jadi kontras,
+  ukuran kontrol, struktur heading, dan alur keuangan juga terbukti otomatis.
 - Cakupan penjaga sudah diperluas sesuai keputusan D4: `e2e:uiux` kini mengukur `/payments` polos (tiga blok)
   **dan** sub-layar `?tab=tagihan`. Sebelum 2026-10-07 entri keuangan menunjuk `?tab=ringkasan` saja, sehingga
   tampilan utama tidak pernah diukur dan panel filter lanjutan di sub-layar tagihan tumbuh tanpa jaring pengaman.
@@ -154,3 +156,4 @@ Kerjakan berurutan, satu tugas sampai tuntas, lalu lapor sekali.
 | 2026-10-07 | Diselaraskan dengan cara menjalankan suite di sandbox dan rujukan bagian setelah penomoran `ATURAN-AI.md` berubah. |
 | 2026-10-07 | Bagian 3 dan 4 ditambah: G3-02 butir 1–3 selesai (pembangun murni `financeRows`/`financeOverview`, layar Uang tiga blok, tabel Rekap tiga kolom), beserta batas kejujuran barunya. Bagian 5 diperbarui: sisa G3-02 menjadi lima butir. |
 | 2026-10-07 | Bagian 4.4 diperbarui sesudah penjaga dijalankan: `e2e:uiux` diperluas mengukur `/payments` dan `?tab=tagihan` (keputusan pemilik), tiga temuan pra-eksisting diperbaiki, dan satu regresi `e2e/finance.spec.ts` yang sempat terjadi sudah ditutup. Batas kejujuran berubah dari "penjaga belum dijalankan" menjadi "terbukti mesin, belum terbukti mata". |
+| 2026-10-07 | Pemilik memverifikasi tampilan di perangkat: layar Uang tiga blok, tabel Rekap tiga kolom, dan tiga hal di sub-layar Tagihan (pencarian murid, badge keterlambatan + nama hari Indonesia, panel filter lanjutan beserta chipnya). Butir 4.2 nomor 2 dan 3 **ditutup** (dicoret beserta tanggalnya, nomornya tidak digeser supaya rujukan lama tetap sah), dan bagian 4.4 berubah dari "terbukti mesin, belum terbukti mata" menjadi terbukti keduanya. |
