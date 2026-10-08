@@ -37,18 +37,19 @@ Lanjutkan proyek Les Ko Lui (jurnal les privat, PWA lokal-first) — Gelombang 3
 5. Baru buka SATU `docs/kerja/TASK-XX` yang relevan kalau perlu detail. `docs/RIWAYAT-RILIS.md`
    hanya kalau butuh alasan historis. `docs/arsip/**` beku — jangan kutip angkanya.
 
-### Keadaan yang diukur pada 2026-10-07 (ukur sendiri, jangan percaya tulisan ini)
+### Keadaan yang diukur pada 2026-10-08 (ukur sendiri, jangan percaya tulisan ini)
 
 | Hal | Nilai saat berkas ini ditulis |
 |---|---|
-| Versi | v1.95.0 |
-| Branch / HEAD | `main` = `origin/main` = `ab4bdb6`, pohon kerja bersih |
-| Suite | 945 lulus / 72 berkas |
+| Versi | v1.96.0 |
+| Branch / HEAD | `main`, pohon kerja bersih sesudah rilis v1.96.0 |
+| Suite | 982 lulus / 74 berkas |
 | `check:docs` | 0 rusak · 0 pelanggaran |
+| `e2e:uiux` | 64 lulus / 0 gagal |
+| `e2e` | 69 lulus / 11 gagal / 6 skip — **sebelas kegagalannya sudah ada sebelum G3-05**, lihat bagian jebakan |
 
 Baris berkas besar yang menjadi target refactor (diukur dengan `npm run measure loc`):
-`MonthlyReport.tsx` **2.361** (target ≤1.500) · `Settings.tsx` **1.380** (target ≤700) ·
-`StudentDetail.tsx` **1.097** (target ≤800) · `TagihanTab.tsx` **1.021** (target ≤800).
+`CaptureSession.tsx` **2.077** · `Settings.tsx` **1.380** (target ≤700) · `StudentDetail.tsx` **1.097** (target ≤800) · `payments/TagihanTab.tsx` **1.021** (target ≤800). `MonthlyReport.tsx` **1.470** — sudah di bawah targetnya (≤1.500) sejak G3-05.
 
 ### Gate — jalankan SEKALI di akhir tugas, bukan per langkah
 
@@ -75,35 +76,27 @@ Butuh izin sandbox penuh: `npm run e2e`, `npm run e2e:uiux`, `git push`.
 
 ### Urutan pekerjaan yang mengikat
 
-**Sisa Gelombang 3 — enam tugas, semuanya belum tersentuh:**
+**Sisa Gelombang 3 — lima tugas, semuanya belum tersentuh:**
 
-1. **G3-05 Laporan bulanan.** Refactor `MonthlyReport.tsx` + 12 fitur. Bergantung G3-01, G3-04
-   (sudah), G2-04. **Kerjakan ini lebih dulu** — paling besar sesudah G3-06, dan G3-08
-   bergantung padanya.
-2. **G3-06 Murid.** Refactor + peta tab baru (Ringkas/Sesi/Progres/Proyek) + 14 fitur. Disebut
-   di daftar sebagai "yang terbesar di gelombang ini dan boleh dipecah dua sesi".
-3. **G3-07 Foto murid.** Bergantung G3-06.
-4. **G3-08 Kanvas dan istilah.** Bergantung G3-05. Jangan kurangi 26 susunan / 34 tema.
-5. **G3-09 Pengaturan.** Refactor `Settings.tsx` 1.380 → ≤700 + 11 fitur.
-6. **G3-10 Reset total dan PIN.** Bergantung G3-09.
+1. **G3-06 Murid.** Refactor `StudentDetail.tsx` 1.097 → ≤800 + peta tab baru (Ringkas/Sesi/Progres/Proyek) + 14 fitur. Disebut di daftar sebagai "yang terbesar di gelombang ini dan boleh dipecah dua sesi". **Kerjakan ini lebih dulu.**
+2. **G3-07 Foto murid.** Bergantung G3-06.
+3. **G3-08 Kanvas dan istilah.** Bergantung G3-05 (sudah selesai) — panel desain laporan yang baru dirombak ada di `src/screens/monthlyReport/DesignToolbar.tsx`. Jangan kurangi 26 susunan / 34 tema.
+4. **G3-09 Pengaturan.** Refactor `Settings.tsx` 1.380 → ≤700 + 11 fitur.
+5. **G3-10 Reset total dan PIN.** Bergantung G3-09.
 
 **Kemudian §4 PEKERJAAN.md (boleh kapan saja):**
 
-- **D2 — perhitungan biaya saat sesi ditutup mengabaikan nominal manual.** Satu-satunya sisa
-  yang menyentuh uang, dan sudah tercatat sebagai masalah nyata di `SERAH-TERIMA.md` §4.2.
-- **D3** — 23 peta alias mapel lintas kurikulum (Nasional Informatika & Penjaskes masih memakai
-  katalog ilmu komputer internasional).
+- **Dua temuan baru 2026-10-08** (keduanya dari G3-05, dan keduanya menunggu keputusan atau penyelidikan, bukan sekadar kerja): (a) **`e2e` tidak pernah hijau di mesin ini** — sebelas kegagalan yang sudah ada sebelum G3-05, didominasi galat halaman `SchemaError: DexieError`; (b) **katalog tangkapan layar yang dilacak git tidak cocok lagi** dengan yang dihasilkan spec (19 PNG baru tak terlacak, nama lama dan folder `mobile-dark` masih terlacak).
+- **Pengukuran ulang G3-01 butir 9** — penahannya (G3-04) sudah selesai, jadi "label biaya pada tombol AI, pengumuman status, tombol coba lagi saat gagal" harus diukur ulang, bukan diasumsikan selesai.
+- **D2 — perhitungan biaya saat sesi ditutup mengabaikan nominal manual.** Satu-satunya sisa yang menyentuh uang, dan sudah tercatat sebagai masalah nyata di `SERAH-TERIMA.md` §4.2.
+- **D3** — 23 peta alias mapel lintas kurikulum (Nasional Informatika & Penjaskes masih memakai katalog ilmu komputer internasional).
 - **Katalog topik** — 58 dari 78 pasangan mapel belum punya katalog; **D5** — periksa katalog IB.
-- **D4 sisa separuh** — catatan palet terkunci. Setengah lainnya ("tab tagihan masuk penjaga
-  tampilan") **sudah tercapai** 2026-10-07 lewat entri `keuangan-tagihan`.
-- **D8** — flake beban-tinggi pada `report-export.spec.ts:85` dan
-  `screenshot-katalog.spec.ts:139` (sudah berulang kali dibuktikan lulus sendirian).
+- **D4 sisa separuh** — catatan palet terkunci. Setengah lainnya sudah tercapai 2026-10-07 lewat entri `keuangan-tagihan`.
+- **D8** — flake beban-tinggi pada `report-export.spec.ts:85` dan `screenshot-katalog.spec.ts:139` (sudah berulang kali dibuktikan lulus sendirian).
 - **Backlog** — jejak audit untuk perubahan sesi; temuan audit tampilan 2026-10-01 yang tersisa.
-- Satu pekerjaan yang dicatat 2026-10-07: pemilih sub-layar keuangan (lihat bagian "Kenyataan
-  yang menyimpang" di bawah).
+- Pemilih sub-layar keuangan (lihat bagian "Kenyataan yang menyimpang" di bawah).
 
-**Tugas kecil yang tertinggal dari G3-04:** daftar riwayat panggilan AI di Pengaturan, dan
-memindahkan pembacaan `pemakaian` di `Settings.tsx` ke hook supaya tidak ada dua pembacaan paralel.
+**Tugas kecil yang tertinggal dari G3-04:** daftar riwayat panggilan AI di Pengaturan, dan memindahkan pembacaan `pemakaian` di `Settings.tsx` ke hook supaya tidak ada dua pembacaan paralel.
 
 ### Jebakan yang sudah terverifikasi — jangan terperangkap lagi
 
@@ -146,6 +139,15 @@ Ditambahkan dari pengalaman 2026-10-07:
 - **Mode ketat Playwright:** dua elemen dengan nama sama (mis. "Sisa kas" di tabel utama dan tabel
   penuh) menuntut `.first()` atau penyaring yang lebih spesifik.
 
+Ditambahkan dari pengalaman 2026-10-08 (G3-05):
+
+- **`e2e` di mesin ini TIDAK hijau, dan itu sudah begitu sebelum G3-05.** Terukur: 69 lulus / 11 gagal / 6 skip. Cara memisahkan regresi dari warisan: `git stash push -u`, jalankan spec yang sama di HEAD, lalu `git stash pop`. Hasil pengukuran 2026-10-08: `report-export-ratio` (3 layout × 2 project) dan `report-unlock` (× 2) gagal juga di HEAD dengan `SchemaError: DexieError`; `capture-closeout-failure` (× 2) gagal sendirian di HEAD dengan `DexieError`; `screenshot-katalog` "11-narasi-per-sesi" lulus sendirian (flake beban). **Jangan mengklaim "e2e hijau"** tanpa perincian ini.
+- **Tombol yang selalu ada tidak bisa lagi dipakai sebagai penanda keadaan.** Enam spec Playwright menemukan "murid yang punya sesi bulan ini" dengan menunggu tombol `Buat Laporan` **muncul**; sejak G3-05 tombol itu selalu ada di bilah tetap dan hanya **nonaktif**. Polanya sudah diperbarui menjadi `await expect(...).toBeEnabled({ timeout })`. Kalau menulis spec laporan baru, pakai pola itu.
+- **Jangan menyentuh berkas ber-UTF-8 lewat `Get-Content` + `Set-Content`.** PowerShell di mesin ini membaca UTF-8 sebagai ANSI, sehingga em dash, tanda kutip tipografis, dan centang berubah menjadi teks rusak — dan kerusakan di dalam string **tidak tertangkap penjaga mojibake**. Terjadi dua kali: `Payments.tsx` (2026-10-07, tertangkap penjaga) dan `MonthlyReport.tsx` (2026-10-08, tidak tertangkap; ketahuan dari peringatan git soal CRLF). Kalau sudah terjadi, pemulihannya: `[Text.Encoding]::UTF8.GetString([Text.Encoding]::GetEncoding(1252).GetBytes($teks))`, lalu tulis ulang dengan `UTF8Encoding($false)` dan akhir baris LF, dan **verifikasi dari byte**, bukan dari tampilan konsol.
+- **Peringatan git "CRLF will be replaced by LF" saat `git stash` adalah sinyal kerusakan encoding.** Jangan diabaikan.
+- **Setelah `npm run e2e`: `git checkout -- e2e/screenshots/` untuk berkas terlacak, lalu hapus PNG tak terlacak yang baru muncul.** Untuk menghapus, verifikasi dulu jalur absolutnya benar-benar di dalam `e2e/screenshots/`.
+- **`npx vitest run <berkas>` GAGAL di sandbox ini** (`spawn EPERM`); yang bekerja adalah `npm run test:sandbox` atau `npx vitest run --pool=threads --maxWorkers=2 <berkas>`, keduanya dengan `NODE_OPTIONS` shim berjalur relatif di proses PowerShell yang sama.
+
 ### Kenyataan yang menyimpang dari spesifikasi — sudah diputuskan, jangan diulang
 
 - **Papan pipeline tetap di sub-layar analitik (`?tab=ringkasan`), bukan dipindah ke blok 2 layar
@@ -158,6 +160,7 @@ Ditambahkan dari pengalaman 2026-10-07:
 - **Keputusan D6 sudah terpenuhi** (layar Uang memakai H1 → 3×H2 tanpa lompatan level, terbukti
   dari `.design-audit/uiux-guard/*-keuangan.json`). Jangan dikerjakan ulang.
 - **Keputusan D4 separuh sudah tercapai** lewat entri `e2e:uiux` `keuangan-tagihan`.
+- **Layar Laporan sudah dirombak G3-05** (2026-10-08) dan **tidak perlu dikerjakan ulang**: `MonthlyReport.tsx` 1.470 baris, bilah aksi tetap + penunjuk lima langkah, panel hasil AI per sesi, penyimpanan narasi otomatis, penanda AI per isian, pratinjau ber-pembesaran, dan pratinjau susunan lewat `Modal`. **Ekspor tidak lagi menandai laporan "sudah dibagikan"** — itu keputusan yang disengaja (butir 3 G3-05) dan menunggu konfirmasi mata pemilik lewat butir 28 daftar periksa. **G3-08 bekerja di atas panel desain baru** (`src/screens/monthlyReport/DesignToolbar.tsx`), bukan lagi di `MonthlyReport.tsx`.
 
 ### Yang pemilik sudah putuskan soal istilah (2026-10-07) — berlaku untuk semua layar baru
 
@@ -190,7 +193,7 @@ manusia, (2) perintah apa yang dijalankan dan hasilnya sekali saja, (3) apa yang
 
 ### Dua hal yang pemilik berikan izinnya pada 2026-10-07
 
-1. **Agen boleh mencentang daftar periksa manual** (§5 `PEKERJAAN.md`, 25 butir) — izin eksplisit
+1. **Agen boleh mencentang daftar periksa manual** (§5 `PEKERJAAN.md`, kini 29 butir) — izin eksplisit
    pemilik, menyimpang dari kalimat "hanya pemilik yang boleh mencentang" di berkas itu. Centang
    berdasarkan bukti terukur, dan sebutkan di laporan bukti apa yang dipakai.
 2. **Revisi boleh di-push ke `main`** setelah gate hijau dan rilis versi dinaikkan.
@@ -204,3 +207,4 @@ manusia, (2) perintah apa yang dijalankan dan hasilnya sekali saja, (3) apa yang
 | Tanggal | Perubahan |
 |---|---|
 | 2026-10-07 | Dibuat untuk menyerahkan sisa Gelombang 3 ke sesi DSH baru setelah v1.95.0 dirilis. |
+| 2026-10-08 | Diperbarui sesudah G3-05 tuntas dan v1.96.0 dirilis: keadaan terukur (v1.96.0 · suite 982/74 · `e2e` 69/11/6 dengan penjelasan bahwa sebelas kegagalan itu sudah ada sebelum G3-05), urutan pekerjaan (G3-06 lebih dulu, G3-05 dikeluarkan), dan lima jebakan baru dari putaran ini — terutama pola spec Playwright yang menemukan murid lewat tombol `toBeEnabled`, dan peringatan agar tidak menyentuh berkas ber-UTF-8 dengan `Get-Content`/`Set-Content`. |
