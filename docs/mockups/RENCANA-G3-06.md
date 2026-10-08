@@ -124,7 +124,7 @@ pada putaran eksekusi — kecuali yang memang sudah tercakup fitur G3-06.
 
 ---
 
-## 6. Rancangan pelacak proyek (draf — menunggu K1)
+## 6. Rancangan pelacak proyek (DISETUJUI pemilik 2026-10-09 — dalam pengerjaan)
 
 > **Status: usulan, belum disetujui, belum dikerjakan.** Semua `file:line` di sini hasil baca
 > 2026-10-09. Bagian yang saya tandai **"keputusan saya"** boleh diputuskan agen menurut
@@ -254,9 +254,10 @@ Setelah ditelusuri, dari tujuh pertanyaan hanya **empat** yang wajib ke pemilik 
 
 ---
 
-## 7. Yang menunggu keputusan pemilik — menahan Fase A
+## 7. Keputusan pemilik (SUDAH DIJAWAB 2026-10-09)
 
-Ringkas keputusannya; dasar pertimbangannya ada di §6 untuk K1–K4, di §8 untuk K6, dan di §9 untuk K5.
+Ringkas keputusan beserta akibatnya. Dasar pertimbangannya ada di §6 untuk K1–K4, di §8 untuk K6,
+dan di §9 untuk K5.
 
 ### 7.1 Keputusan pokok (K1–K4)
 
@@ -267,16 +268,27 @@ Ringkas keputusannya; dasar pertimbangannya ada di §6 untuk K1–K4, di §8 unt
 | K3 | Tambah `updateIaEeProject`? | menentukan apakah proyek bisa disunting atau harus dihapus-dibuat ulang |
 | K4 | Label + daftar jenis proyek: tunjukkan draf dulu, atau langsung terapkan | menyentuh data proyek yang sudah ada milik pemilik |
 
-### 7.2 Keputusan tambahan yang muncul dari pemeriksaan 2026-10-09
+### 7.2 Keputusan tambahan — SUDAH DIJAWAB pemilik 2026-10-09
 
-Ketiganya **mengubah perilaku pengguna**, jadi menurut `ATURAN-AI.md` §1 butir 5 wajib ditanyakan —
-bukan saya putuskan sendiri.
+Ketiganya dijawab pada 2026-10-09. Kolom terakhir mencatat apa yang benar-benar dikerjakan.
 
-| Kode | Keputusan | Akibat kalau tidak diputuskan |
+| Kode | Pertanyaan | Jawaban pemilik | Keadaan pelaksanaan |
+|---|---|---|---|
+| K5 | Butir #10: pertahankan halaman (Sebelumnya/Berikutnya), atau ganti jadi tombol "Muat 20 lagi"? | **Pertahankan** pola halaman | belum dikerjakan — `RiwayatSesi.tsx` belum disentuh; yang wajib tetap diperbaiki adalah tombol bersarang di dalam `role="button"` (`:144`/`:197`) |
+| K6 | Dua kartu rata-rata fokus (`EvidenceCard` di Sesi, `EngagementSummary` di Progres): gabung, atau biarkan dua? | **Gabung jadi satu**, dan yang diutamakan **kesimpulan**: "murid ini seperti apa" | mesin kesimpulannya **sudah jadi** (`src/lib/studentConclusion.ts` + 18 tes); menyambungkannya ke `EngagementSummary` masih tersisa |
+| K7 | Empat `confirm()` bawaan peramban: perbaiki sekarang atau jadi butir tersendiri? | **Perbaiki segera** | **selesai** — lihat §7.3 |
+
+### 7.3 Pelaksanaan K7 (selesai 2026-10-09)
+
+Audit ulang menemukan cakupannya lebih luas dari empat tempat yang saya sebut semula:
+
+| Berkas | Pelanggaran | Penyelesaian |
 |---|---|---|
-| K5 | Butir #10: pertahankan pola halaman (Sebelumnya/Berikutnya), atau ganti jadi tombol "Muat 20 lagi"? Lihat §9. | butir #10 tidak bisa dinyatakan selesai; huruf spesifikasinya menyebut "muat dua puluh lagi" |
-| K6 | Dua kartu yang menampilkan rata-rata fokus (`EvidenceCard` di tab Sesi, `EngagementSummary` di tab Progres): gabung jadi satu, atau biarkan dua tapi penyebutnya dibetulkan? Lihat §8. | butir #9 ("disisakan satu blok angka") tidak bisa ditafsirkan dengan pasti |
-| K7 | `confirm()` bawaan peramban di `StudentDetail.tsx:128`/`:143` dan `IaEeTracker.tsx:208`/`:251`: ganti ke `ConfirmSheet` internal **sekarang** (ikut putaran ini) atau jadi butir tersendiri di §4 daftar pekerjaan? | kalau ditunda, putaran ini menutup tugas sambil meninggalkan pelanggaran keputusan §4.1 yang sudah diketahui |
+| `IaEeTracker.tsx:208` dan `:251` | dua `confirm()` (hapus milestone, hapus proyek) | diganti `ConfirmSheet`; pesan hapus proyek kini menyebut jumlah milestone yang ikut terhapus |
+| `StudentDetail.tsx:125` | satu `alert()` (PIN belum diatur saat hapus sesi) | diganti keadaan tanpa-PIN yang **sudah ada** di `SessionDetailModal` beserta tombol "Atur PIN Keuangan" — jadi tutor langsung dapat jalan keluarnya |
+| `Settings.tsx` (5 tempat: `:590`, `:630`, `:1161`, `:1220`, `:1294`) | `confirm()` pada jalur restore dan hapus semua data | **sengaja TIDAK dikerjakan di sini** — berkas itu lingkup G3-09, dan syarat selesai G3-09 sendiri sudah berbunyi "tidak ada lagi dialog bawaan peramban di berkas pengaturan". Ditinggalkan sebagai utang yang tercatat, bukan dilupakan. |
+
+Penjaga regresinya: `src/__tests__/nativeDialogs.test.ts` (14 tes). Ia membaca **berkas sumber** (pola yang sama dengan `moneyGate.test.ts`), membuang komentar lebih dulu supaya dokumentasi yang menyebut `confirm()` tidak dihitung, dan sudah **dibuktikan bisa gagal** dengan menyisipkan pelanggaran sementara ke `StudentDetail.tsx` — tes merah dan menyebut berkasnya, lalu pelanggaran dikembalikan.
 
 **Catatan kejujuran soal K1/K4.** Teks penjelasan IA/EE/PP yang ada sekarang
 (`IaEeTracker.tsx:105-107`) adalah ringkasan agen mengikuti kerangka silabus dan **belum dibandingkan
