@@ -13,7 +13,11 @@
 1. `docs/kerja/ATURAN-AI.md`. Isinya aturan kerja, keputusan final pemilik, daftar berkas yang dilarang disentuh, perintah yang dipakai, dan jebakan yang sudah pernah memakan waktu.
 2. `docs/kerja/PEKERJAAN.md`. Satu-satunya daftar pekerjaan, lengkap dengan spesifikasi kesepuluh tugas Gelombang 3.
 3. Berkas ini, bagian 3 dan 4, untuk keadaan dan temuan yang tidak ada di dua berkas di atas.
-4. Dokumen tugas `TASK-01` sampai `TASK-11` hanya dibuka kalau perlu detail cara kerja sebuah tugas lama. Sebagian besar sudah selesai dan disimpan sebagai rujukan.
+4. `docs/kerja/PROMPT-SESI-BERIKUTNYA.md` — **titik masuk untuk sesi DSH baru.** Isinya salinan yang
+   bisa langsung disalin sebagai pesan pertama: keadaan terukur, perintah gate beserta cara
+   menjalankannya di sandbox, urutan enam tugas sisa Gelombang 3, jebakan terverifikasi, larangan,
+   dan dua izin yang diberikan pemilik 2026-10-07 (mencentang daftar periksa manual, dan push ke `main`).
+5. Dokumen tugas `TASK-01` sampai `TASK-11` hanya dibuka kalau perlu detail cara kerja sebuah tugas lama. Sebagian besar sudah selesai dan disimpan sebagai rujukan.
 
 ---
 
