@@ -468,15 +468,35 @@ export type AuditAction =
   | "data.restore"
   | "photos.prune"
   /** Foto sesi lama diperkecil (tidak dihapus) untuk menghemat penyimpanan. */
-  | "photos.shrink";
+  | "photos.shrink"
+  /**
+   * Satu panggilan AI yang benar-benar berjalan (G3-04). Entri ini yang membuat
+   * biaya bisa dipertanggungjawabkan: ia mencatat fitur apa yang memanggil,
+   * berapa perkiraannya, dan berapa hasil sesudah panggilan selesai.
+   */
+  | "ai.call";
 
 export interface AuditEntry {
   id: string;
   action: AuditAction;
-  entityType: string;     // "session" | "student" | "payment" | "data" | ...
+  entityType: string;     // "session" | "student" | "payment" | "data" | "ai" | ...
   entityId?: string;
   timestamp: string;      // ISO
   details?: string;       // ringkasan untuk dibaca manusia
+  /**
+   * Biaya panggilan AI dalam rupiah (G3-04). Hanya diisi untuk `action: "ai.call"`.
+   *
+   * **Kenapa disimpan di sini dan bukan di tabel baru.** `auditLog` sudah ada dan
+   * sudah punya semua yang dibutuhkan; menambah tabel akan menuntut kenaikan
+   * versi skema Dexie, dan itu perubahan yang menyentuh data pengguna nyata demi
+   * dua kolom opsional. Karena IndexedDB tidak menuntut bentuk tetap, kolom
+   * opsional di entri yang sudah ada aman tanpa migrasi.
+   */
+  costIdr?: number;
+  /** Fitur AI yang memanggil (mis. "Draft catatan", "Ringkasan keuangan"). */
+  aiFeature?: string;
+  /** Perkiraan biaya saat modal dibuka, untuk membandingkan dengan hasil akhir. */
+  estimatedIdr?: number;
 }
 
 // ── Snapshot pembatalan tagihan (R1 — pemulihan lokal per perangkat) ────────
@@ -520,7 +540,19 @@ export interface Settings {
   financialPin?: string;
   securityQuestion?: string;
   securityAnswer?: string;
-  ai: { enabled: boolean; apiKey?: string; model: string };
+  ai: {
+    enabled: boolean;
+    apiKey?: string;
+    model: string;
+    /**
+     * Batas belanja AI per bulan dalam rupiah (keputusan pemilik B4, G3-04).
+     *
+     * **Kosong berarti tanpa batas** — itu bawaannya, dan AI tidak pernah
+     * diblokir karena kolom ini kosong. Batas hanya berlaku kalau diisi, dan
+     * saat terlampaui tombol AI nonaktif dengan alasan yang terlihat.
+     */
+    monthlyBudgetIdr?: number;
+  };
   templatePref: { excludedThemeIds?: string[]; customThemes?: import("../template/types").CustomTheme[] };
   bankAccounts?: { bca?: string; cimb?: string; bri?: string; mandiri?: string; bsi?: string; ewallet?: string; accountName?: string };
   driveBackup?: { fileId: string; backupAt: string };

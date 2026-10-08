@@ -203,6 +203,7 @@ const AUDIT_LABEL: Record<AuditAction, string> = {
   "data.restore": "Restore data",
   "photos.prune": "Hapus foto lama",
   "photos.shrink": "Perkecil foto lama",
+  "ai.call": "Panggilan AI berbiaya",
 };
 
 /** Kunci tanggal lokal "YYYY-MM-DD" — bukan UTC, supaya grup hari tidak bergeser. */
