@@ -1741,7 +1741,7 @@ export default function CaptureSession() {
             <div className="flex items-center justify-between mt-1">
               <span className="text-xs text-[var(--ink-muted)]">{shortNote.length}/300</span>
               {settings?.ai?.enabled && settings.ai.apiKey && (subjects.length > 0 || studentSubjects.length > 0) && (
-                <button type="button" disabled={aiNoteLoading}
+                <button type="button" disabled={aiNoteLoading || Boolean(ai.alasanNonaktif)}
                   onClick={() => {
                     // Perkiraan dihitung DI SINI, sekali, lalu dipakai untuk modal
                     // sekaligus untuk catatan biaya.
@@ -1777,6 +1777,12 @@ export default function CaptureSession() {
                 </button>
               )}
             </div>
+
+            {/* B4: kalau batas belanja AI bulan ini terlampaui, alasannya ditulis
+                di layar — bukan hanya tombolnya yang diam-diam mati. */}
+            {ai.alasanNonaktif && (
+              <p className="mt-1 text-xs font-semibold text-[var(--ink-danger)]">{ai.alasanNonaktif}</p>
+            )}
 
             {/* Usulan AI — tampil dulu, jangan langsung menimpa */}
             {aiNoteDraft && (

@@ -282,6 +282,11 @@ export default function RingkasanTab({
       setMessage("Aktifkan AI dan masukkan DeepSeek API Key di Pengaturan.");
       return;
     }
+    // B4: batas belanja yang sudah terlampaui menolak dengan alasan, bukan gagal diam.
+    if (ai.alasanNonaktif) {
+      setMessage(ai.alasanNonaktif);
+      return;
+    }
     if (!financialInsightDataReady) {
       setMessage("Data keuangan masih dimuat. Coba lagi sebentar.");
       return;
