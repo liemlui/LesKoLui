@@ -2,6 +2,12 @@
  * Logika generasi AI untuk laporan bulanan — narasi per sesi, ringkasan, dan
  * fallback gratis (tanpa AI). Dipecah dari MonthlyReport.tsx agar seluruh
  * logika AI berada di satu modul yang mudah dibaca (dan murah token).
+ *
+ * G3-05 butir 2: hook ini juga menyimpan **ringkasan hasil** putaran AI terakhir
+ * (sesi yang berhasil, sesi yang gagal, keadaan panggilan ringkasan) supaya layar
+ * bisa menampilkan daftarnya dan menawarkan "ulangi yang gagal". Ringkasan itu
+ * sengaja TIDAK ikut dibersihkan saat cakupan laporan berpindah — ia melaporkan
+ * apa yang sudah terjadi, bukan keadaan sementara layar.
  */
 
 import { useCallback, useRef, useState } from "react";
@@ -9,9 +15,10 @@ import { chunkSessionsForAi, generateReportSummary, generateNarratives } from ".
 import { buildReportAiInput } from "../../lib/reportSessionScope";
 import { pickDirtyNarrativeSessions, reportSummaryFingerprint, sessionAiFingerprint } from "../../lib/aiIncremental";
 import { normaliseAiPlan, cleanText, buildSessionNarrative, sessionSubjectLabel } from "./helpers";
+import { markAiFields, planContent } from "./aiFieldMarks";
 import { applyAiNarrativeBatch, upsertReport, updateSession } from "../../db/repos";
 import { periodLabel, monthLabel } from "../../lib/format";
-import type { MonthlyReport, Session, Student, NextMonthPlan } from "../../db/types";
+import type { AiReportField, MonthlyReport, Session, Student, NextMonthPlan } from "../../db/types";
 
 export interface ReportGenerationDeps {
   student?: Student;
@@ -30,10 +37,39 @@ export interface ReportGenerationDeps {
   setOpenPlan: (open: boolean) => void;
 }
 
+/** Satu sesi di dalam ringkasan hasil AI. */
+export interface AiSessionOutcome {
+  id: string;
+  /** Label siap tampil, mis. "12 Sep — Matematika". */
+  label: string;
+}
+
+/** Ringkasan satu putaran AI — dipakai panel hasil AI (G3-05 butir 2). */
+export interface AiRunResult {
+  ok: AiSessionOutcome[];
+  failed: Array<AiSessionOutcome & { error: string }>;
+  summary: { ok: boolean; error?: string };
+  finishedAt: string;
+}
+
+/** Pesan jalan keluar lebih awal (G3-05 butir 4) — selalu menyebut langkah berikutnya. */
+export const AI_OFFLINE_HINT =
+  "Gagal: sedang tanpa jaringan, jadi AI belum bisa dipanggil. Pakai “Generate Narasi Gratis” dan "
+  + "“Generate Teks Gratis” untuk mengisi laporan dari data sesi tanpa AI, lalu jalankan AI setelah tersambung.";
+
+export const AI_NO_SESSION_HINT =
+  "Gagal: belum ada sesi di periode ini. Catat sesi dulu atau pilih periode/murid lain, lalu jalankan AI lagi.";
+
+function sessionLabel(session: Session): string {
+  return `${session.date} — ${sessionSubjectLabel(session.subjects)}`;
+}
+
 export function useReportGeneration(deps: ReportGenerationDeps) {
   const [aiLoading, setAiLoading] = useState(false);
   /** Progres tombol "Isi Semua dengan AI" — batch narasi yang sedang diproses. */
   const [aiProgress, setAiProgress] = useState<{ done: number; total: number; step: string } | null>(null);
+  /** Hasil putaran AI terakhir: siapa berhasil, siapa gagal, ringkasan jadi atau tidak. */
+  const [aiResult, setAiResult] = useState<AiRunResult | null>(null);
   const aiRequestRef = useRef(0);
   const [prevTexts, setPrevTexts] = useState<{
     summaryText: string;
@@ -44,17 +80,21 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
     narratives?: Array<{ id: string; narrative?: string }>;
   } | null>(null);
 
-  /** Batalkan request AI yang sedang berjalan — dipanggil saat scope berganti. */
+  /** Batalkan request AI yang sedang berjalan — dipanggil saat scope berganti.
+   *  Ringkasan hasil AI sengaja TIDAK dihapus di sini (G3-05 butir 2). */
   const invalidateAiRequests = useCallback(() => {
     aiRequestRef.current += 1;
     setAiLoading(false);
     setAiProgress(null);
   }, []);
 
+  const clearAiResult = useCallback(() => setAiResult(null), []);
+
   const handlePolish = async (force = false) => {
     const { student, reportSessions, prevAvgEngagement, periodStart, periodEnd, month, ensureReport, setMessage, setOpenTeks, setOpenPlan } = deps;
-    if (!student || reportSessions.length === 0) return;
-    if (!navigator.onLine) { setMessage("Offline."); return; }
+    if (!student) return;
+    if (reportSessions.length === 0) { setMessage(AI_NO_SESSION_HINT); return; }
+    if (!navigator.onLine) { setMessage(AI_OFFLINE_HINT); return; }
     const requestId = ++aiRequestRef.current;
     const selectedSessions = reportSessions;
     setAiLoading(true);
@@ -81,12 +121,18 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
       if (requestId !== aiRequestRef.current) return;
       const prev = { summaryText: draft.summaryText, quote: draft.quote, nextMonthPlan: draft.nextMonthPlan };
       const aiPlan = normaliseAiPlan(out.nextMonthPlan);
+      // Penanda "dibuat AI" per isian: hanya untuk isian yang benar-benar diisi AI.
+      const written: Partial<Record<AiReportField, string>> = {};
+      if (out.summary?.trim()) written.summaryText = out.summary.trim();
+      if (out.quote?.trim()) written.quote = out.quote.trim();
+      if (aiPlan) written.nextMonthPlan = planContent(aiPlan);
       await upsertReport({
         ...draft,
         summaryText: out.summary ?? "",
         quote: out.quote,
         nextMonthPlan: aiPlan ?? draft.nextMonthPlan,
         summaryHash: reportSummaryFingerprint(draft, selectedSessions),
+        aiFieldHashes: markAiFields(draft.aiFieldHashes, written),
       });
       if (requestId !== aiRequestRef.current) return;
       setPrevTexts(prev);
@@ -104,8 +150,9 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
    *  Hanya sesi yang berubah (dirty) yang dikirim — hemat token AI. */
   const handleGenerateNarratives = async (force = false) => {
     const { student, reportSessions, prevAvgEngagement, periodStart, periodEnd, month, ensureReport, setMessage, setOpenNarasi, setOpenPlan } = deps;
-    if (!student || reportSessions.length === 0) return;
-    if (!navigator.onLine) { setMessage("Offline."); return; }
+    if (!student) return;
+    if (reportSessions.length === 0) { setMessage(AI_NO_SESSION_HINT); return; }
+    if (!navigator.onLine) { setMessage(AI_OFFLINE_HINT); return; }
     const requestId = ++aiRequestRef.current;
     const selectedSessions = reportSessions;
     const { dirty } = pickDirtyNarrativeSessions(selectedSessions);
@@ -147,16 +194,30 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
       // Ringkasan/kutipan hanya ditimpa bila SEMUA sesi ikut dikirim — bila
       // parsial, ringkasan lama dipertahankan (jangan meringkas data sebagian).
       const aiPlan = normaliseAiPlan(out.nextMonthPlan);
+      const written: Partial<Record<AiReportField, string>> = {};
+      if (out.summary?.trim()) written.summaryText = out.summary.trim();
+      if (out.teacherNote?.trim()) written.teacherNote = out.teacherNote.trim();
+      if (out.quote?.trim()) written.quote = out.quote.trim();
+      if (aiPlan) written.nextMonthPlan = planContent(aiPlan);
       await applyAiNarrativeBatch(draft, updates, sentAll ? {
         summaryText: out.summary.trim() || draft.summaryText,
         teacherNote: out.teacherNote?.trim() || draft.teacherNote,
         quote: out.quote?.trim() || draft.quote,
         nextMonthPlan: aiPlan ?? draft.nextMonthPlan,
+        aiFieldHashes: markAiFields(draft.aiFieldHashes, written),
       } : {});
       if (requestId !== aiRequestRef.current) return;
       setPrevTexts({
         summaryText: draft.summaryText, teacherNote: draft.teacherNote,
         quote: draft.quote, nextMonthPlan: draft.nextMonthPlan, narratives: prevNarratives,
+      });
+      setAiResult({
+        ok: updates.map((update) => ({ id: update.id, label: sessionLabel(sourceById.get(update.id)!) })),
+        failed: targetSessions
+          .filter((session) => !updates.some((update) => update.id === session.id))
+          .map((session) => ({ id: session.id, label: sessionLabel(session), error: "AI tidak mengembalikan narasi untuk sesi ini" })),
+        summary: { ok: true },
+        finishedAt: new Date().toISOString(),
       });
       setMessage(sentAll
         ? `Narasi AI selesai ✓ ${updates.length} narasi sesi + ringkasan & kutipan terisi`
@@ -169,22 +230,28 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
       if (requestId === aiRequestRef.current) setAiLoading(false);
     }
   };
-  /** SATU tombol AI: isi semua isian laporan.
+  /**
+   * Inti "Isi Semua dengan AI" untuk sekumpulan sesi tertentu.
    *  - Narasi sesi dikirim per batch kecil (maks 8 sesi / ~12rb karakter) dan
    *    diproses BERURUTAN, supaya konteks tiap panggilan tetap kecil dan tidak
    *    lagi gagal dengan "Respons AI terpotong karena batas token".
    *  - Batch yang sukses langsung disimpan; batch yang gagal dilewati tanpa
-   *    membatalkan batch lain.
+   *    membatalkan batch lain, dan sesinya dicatat untuk "ulangi yang gagal".
    *  - Terakhir SATU panggilan ringkasan memakai seluruh sesi (konteks kecil,
    *    tanpa narasi per sesi) untuk summary, kutipan, dan rencana depan. */
-  const handleGenerateAll = async (force = false) => {
+  const runAiForSessions = async (
+    requested: readonly Session[],
+    opts: { withSummary: boolean },
+  ) => {
     const { student, reportSessions, prevAvgEngagement, periodStart, periodEnd, month, ensureReport, setMessage, setOpenNarasi, setOpenTeks, setOpenPlan } = deps;
-    if (!student || reportSessions.length === 0) return;
-    if (!navigator.onLine) { setMessage("Offline."); return; }
+    if (!student) return;
+    if (reportSessions.length === 0) { setMessage(AI_NO_SESSION_HINT); return; }
+    if (!navigator.onLine) { setMessage(AI_OFFLINE_HINT); return; }
     const requestId = ++aiRequestRef.current;
     const selectedSessions = reportSessions;
-    const { dirty } = pickDirtyNarrativeSessions(selectedSessions);
-    const targetSessions = force ? selectedSessions : dirty;
+    // Hanya sesi yang masih ada di cakupan sekarang yang boleh dikirim.
+    const inScope = new Set(selectedSessions.map((session) => session.id));
+    const targetSessions = requested.filter((session) => inScope.has(session.id));
     const batches = chunkSessionsForAi(targetSessions);
     setAiLoading(true);
     setAiProgress({
@@ -192,6 +259,8 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
       total: targetSessions.length,
       step: targetSessions.length === 0 ? "Menyusun ringkasan…" : `Narasi 0/${targetSessions.length} sesi…`,
     });
+    const okSessions: AiSessionOutcome[] = [];
+    const failedSessions: Array<AiSessionOutcome & { error: string }> = [];
     let narrativeSuccess = 0;
     let failedBatches = 0;
     let firstError: string | undefined;
@@ -248,37 +317,52 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
             batchQuote = out.quote?.trim() || batchQuote;
             batchPlan = normaliseAiPlan(out.nextMonthPlan) ?? batchPlan;
           }
+          const updatedIds = new Set(updates.map((update) => update.id));
           for (const update of updates) {
             if (overwritten.has(update.id)) continue;
             overwritten.add(update.id);
             prevNarratives.push({ id: update.id, narrative: sourceById.get(update.id)?.narrative });
+          }
+          for (const session of batch) {
+            const label = sessionLabel(session);
+            if (updatedIds.has(session.id)) {
+              okSessions.push({ id: session.id, label });
+            } else {
+              failedSessions.push({ id: session.id, label, error: "AI tidak mengembalikan narasi untuk sesi ini" });
+            }
           }
           narrativeSuccess += updates.length;
         } catch (e) {
           // Batch gagal tidak membatalkan sisanya — catat error pertama lalu lanjut.
           failedBatches += 1;
           if (!firstError) firstError = (e as Error).message;
+          const error = (e as Error).message;
+          for (const session of batch) {
+            failedSessions.push({ id: session.id, label: sessionLabel(session), error });
+          }
         }
         processed += batch.length;
       }
 
       // Satu panggilan ringkasan atas SELURUH sesi (bukan per batch) untuk
       // ringkasan, CATATAN GURU, kutipan, dan rencana depan.
-      setAiProgress({ done: targetSessions.length, total: targetSessions.length, step: "Menyusun ringkasan…" });
       let summaryText: string | undefined;
       let teacherNote: string | undefined;
       let quote: string | undefined;
       let plan: ReturnType<typeof normaliseAiPlan>;
-      try {
-        const out = await generateReportSummary(buildReportAiInput(student, period, selectedSessions, prevAvgEngagement));
-        if (requestId !== aiRequestRef.current) return;
-        summaryText = out.summary ?? "";
-        teacherNote = out.teacherNote?.trim() || undefined;
-        quote = out.quote?.trim() || undefined;
-        plan = normaliseAiPlan(out.nextMonthPlan);
-        summaryOk = true;
-      } catch (e) {
-        summaryError = (e as Error).message;
+      if (opts.withSummary) {
+        setAiProgress({ done: targetSessions.length, total: targetSessions.length, step: "Menyusun ringkasan…" });
+        try {
+          const out = await generateReportSummary(buildReportAiInput(student, period, selectedSessions, prevAvgEngagement));
+          if (requestId !== aiRequestRef.current) return;
+          summaryText = out.summary ?? "";
+          teacherNote = out.teacherNote?.trim() || undefined;
+          quote = out.quote?.trim() || undefined;
+          plan = normaliseAiPlan(out.nextMonthPlan);
+          summaryOk = true;
+        } catch (e) {
+          summaryError = (e as Error).message;
+        }
       }
 
       // Tulis field laporan SEKALI saja — dengan cadangan dari batch penuh bila
@@ -287,17 +371,32 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
       const finalTeacherNote = teacherNote ?? batchTeacherNote;
       const finalQuote = quote ?? batchQuote;
       const finalPlan = plan ?? batchPlan;
+      // Penanda per isian hanya untuk isian yang benar-benar diisi AI.
+      const written: Partial<Record<AiReportField, string>> = {};
+      if (summaryText?.trim()) written.summaryText = summaryText.trim();
+      if (finalTeacherNote) written.teacherNote = finalTeacherNote;
+      if (finalQuote) written.quote = finalQuote;
+      if (finalPlan) written.nextMonthPlan = planContent(finalPlan);
       if (requestId !== aiRequestRef.current) return;
-      await upsertReport({
-        ...draft,
-        summaryText: summaryText?.trim() || draft.summaryText,
-        teacherNote: finalTeacherNote ?? draft.teacherNote,
-        quote: finalQuote ?? draft.quote,
-        nextMonthPlan: finalPlan ?? draft.nextMonthPlan,
-        ...(summaryOk ? { summaryHash: reportSummaryFingerprint(draft, selectedSessions) } : {}),
-      });
+      if (Object.keys(written).length > 0 || summaryOk) {
+        await upsertReport({
+          ...draft,
+          summaryText: summaryText?.trim() || draft.summaryText,
+          teacherNote: finalTeacherNote ?? draft.teacherNote,
+          quote: finalQuote ?? draft.quote,
+          nextMonthPlan: finalPlan ?? draft.nextMonthPlan,
+          ...(summaryOk ? { summaryHash: reportSummaryFingerprint(draft, selectedSessions) } : {}),
+          aiFieldHashes: markAiFields(draft.aiFieldHashes, written),
+        });
+      }
       if (requestId !== aiRequestRef.current) return;
       if (finalTeacherNote || finalQuote || finalPlan) setOpenPlan(true);
+      setAiResult({
+        ok: okSessions,
+        failed: failedSessions,
+        summary: summaryOk ? { ok: true } : { ok: false, error: summaryError ?? "ringkasan tidak dijalankan" },
+        finishedAt: new Date().toISOString(),
+      });
 
       if (narrativeSuccess === 0 && !summaryOk) {
         setMessage("Gagal: " + (firstError ?? summaryError ?? "tidak ada hasil AI yang bisa disimpan."));
@@ -329,10 +428,38 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
     }
   };
 
+  /** SATU tombol AI: isi semua isian laporan (narasi + teks + rencana). */
+  const handleGenerateAll = async (force = false) => {
+    const selectedSessions = deps.reportSessions;
+    const { dirty } = pickDirtyNarrativeSessions(selectedSessions);
+    await runAiForSessions(force ? selectedSessions : dirty, { withSummary: true });
+  };
+
+  /** Sesi yang gagal pada putaran AI terakhir dan masih ada di cakupan sekarang. */
+  const pickFailedSessions = useCallback(
+    () => {
+      const failedIds = new Set((aiResult?.failed ?? []).map((item) => item.id));
+      return deps.reportSessions.filter((session) => failedIds.has(session.id));
+    },
+    [aiResult, deps.reportSessions],
+  );
+
+  /** Ulangi hanya sesi yang gagal; ringkasan diulang bila panggilan ringkasan ikut gagal. */
+  const retryFailedAi = async () => {
+    const targets = pickFailedSessions();
+    if (targets.length === 0) {
+      setAiResult(null);
+      deps.setMessage("Tidak ada sesi gagal yang masih ada di periode ini — jalankan “Isi Semua dengan AI” untuk mencoba dari awal.");
+      return;
+    }
+    await runAiForSessions(targets, { withSummary: aiResult?.summary.ok === false });
+  };
+
   /** Generate narasi sesi GRATIS dari data yang sudah ada (tanpa AI). */
   const handleGenerateLocalNarratives = async () => {
     const { report, reportSessions, setMessage, setOpenNarasi } = deps;
-    if (!report || reportSessions.length === 0) return;
+    if (!report) { setMessage("Gagal: buat laporan dulu untuk periode ini, lalu jalankan lagi."); return; }
+    if (reportSessions.length === 0) { setMessage(AI_NO_SESSION_HINT); return; }
     let applied = 0;
     for (const s of reportSessions) {
       if (s.narrative?.trim()) continue;
@@ -349,7 +476,9 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
   /** Generate ringkasan/catatan guru/kutipan GRATIS dari data sesi (tanpa AI). */
   const handleGenerateLocalTexts = async () => {
     const { student, report, reportSessions, totalHours, avgEngagement, periodStart, periodEnd, month, ensureReport, setMessage, setOpenTeks } = deps;
-    if (!student || !report || reportSessions.length === 0) return;
+    if (!student) return;
+    if (!report) { setMessage("Gagal: buat laporan dulu untuk periode ini, lalu jalankan lagi."); return; }
+    if (reportSessions.length === 0) { setMessage(AI_NO_SESSION_HINT); return; }
     const draft = await ensureReport();
     if (!draft) return;
 
@@ -372,6 +501,7 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
 
     const quote = `Terus semangat, ${student.name}! Setiap sesi membawa kamu selangkah lebih dekat ke targetmu.`;
 
+    // Teks gratis BUKAN tulisan AI: tidak ada penanda "dibuat AI" di sini.
     await upsertReport({
       ...draft,
       summaryText: draft.summaryText?.trim() || summary,
@@ -385,12 +515,16 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
   return {
     aiLoading,
     aiProgress,
+    aiResult,
+    clearAiResult,
     prevTexts,
     setPrevTexts,
     invalidateAiRequests,
     handlePolish,
     handleGenerateNarratives,
     handleGenerateAll,
+    pickFailedSessions,
+    retryFailedAi,
     handleGenerateLocalNarratives,
     handleGenerateLocalTexts,
   };

@@ -1,4 +1,5 @@
 import { db } from "../db";
+import { contentFingerprint } from "../../lib/aiIncremental";
 import type { MonthlyReport } from "../types";
 
 export interface AiNarrativeUpdate {
@@ -11,7 +12,7 @@ export interface AiNarrativeUpdate {
 export async function applyAiNarrativeBatch(
   report: MonthlyReport,
   narratives: AiNarrativeUpdate[],
-  reportPatch: Partial<Pick<MonthlyReport, "summaryText" | "teacherNote" | "quote" | "nextMonthPlan">>,
+  reportPatch: Partial<Pick<MonthlyReport, "summaryText" | "teacherNote" | "quote" | "nextMonthPlan" | "aiFieldHashes">>,
 ): Promise<void> {
   await db.transaction("rw", db.students, db.sessions, db.reports, db.payments, async () => {
     const sessions = await db.sessions.bulkGet(narratives.map((item) => item.id));
@@ -22,6 +23,9 @@ export async function applyAiNarrativeBatch(
       await db.sessions.update(item.id, {
         narrative: item.narrative,
         aiNarrativeHash: item.aiNarrativeHash,
+        // Penanda "narasi ini tulisan AI" untuk tampilan (G3-05 butir 8):
+        // fingerprint TEKS-nya, bukan fingerprint masukan AI.
+        aiNarrativeTextHash: contentFingerprint("narrative", item.narrative),
       });
     }
     await db.reports.update(report.id, reportPatch);

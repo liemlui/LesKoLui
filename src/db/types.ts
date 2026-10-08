@@ -31,8 +31,16 @@ export type BillingPolicy = "monthly" | "session_count" | "manual";
 export type ReportBillingMode = "monthly" | "session_count" | "range";
 
 /** Status laporan untuk ditampilkan ke pengguna. `confirmed` adalah status
- *  internal final; `pdfGeneratedAt` menandai laporan sudah diekspor/dibagikan. */
+ *  internal final; `sharedAt` (cadangan lama: `pdfGeneratedAt`) menandai laporan
+ *  sudah benar-benar dibagikan ke orang tua.
+ *
+ *  G3-05 butir 3 memisahkan istilah **dibuat** dan **dibagikan**: mengekspor berkas
+ *  hanya berarti berkasnya dibuat (`lastExportedAt`), sedangkan "sudah dibagikan"
+ *  tetap pernyataan eksplisit tutor (`sharedAt`). */
 export type ReportDisplayStatus = "draft" | "final" | "shared";
+
+/** Isian laporan yang bisa ditulis AI (G3-05 butir 8) — penanda per isian. */
+export type AiReportField = "summaryText" | "teacherNote" | "quote" | "nextMonthPlan";
 
 /** Existing students predate billing policies and remain monthly by default. */
 export function billingPolicyOf(
@@ -51,10 +59,12 @@ export function reportStatus(report: { status?: ReportStatus }): ReportStatus {
 
 /** Status yang dipakai UI: Draft → Final → Sudah dibagikan. */
 export function reportDisplayStatus(
-  report: { status?: ReportStatus; pdfGeneratedAt?: string },
+  report: { status?: ReportStatus; pdfGeneratedAt?: string; sharedAt?: string },
 ): ReportDisplayStatus {
   if (reportStatus(report) === "draft") return "draft";
-  return report.pdfGeneratedAt ? "shared" : "final";
+  // `sharedAt` didahulukan; `pdfGeneratedAt` tetap dibaca sebagai cadangan
+  // supaya laporan lama (dan backup lama) tidak berubah arti.
+  return report.sharedAt || report.pdfGeneratedAt ? "shared" : "final";
 }
 
 /** Kurikulum → jenjang murid. Setiap kurikulum punya jenjangnya sendiri (T-07):
@@ -262,6 +272,17 @@ export interface Session {
    *  Tersimpan saat narasi dibuat AI; dipakai agar AI tidak membaca ulang
    *  sesi yang tidak berubah. Bukan field keamanan. */
   aiNarrativeHash?: number;
+  /**
+   * Fingerprint TEKS narasi saat AI menulisnya (G3-05 butir 8).
+   *
+   * Terpisah dari `aiNarrativeHash`: hash itu sengaja tidak memuat narasi supaya
+   * menyunting narasi tidak membuat AI menulis ulang tulisan tutor. Akibatnya ia
+   * juga tidak bisa dipakai untuk tahu apakah narasinya masih tulisan AI. Field
+   * ini yang menjawabnya: selama teks narasinya identik, penanda "dibuat AI"
+   * masih tampil; begitu tutor menyuntingnya, fingerprint tidak lagi cocok dan
+   * penandanya hilang sendiri tanpa perlu dibersihkan manual.
+   */
+  aiNarrativeTextHash?: number;
   engagement?: EngagementLog;
   behaviorTags?: string[];  // IDs from BEHAVIOR_TAGS in responseTaxonomy
   responseTag?: string;     // single ID from RESPONSE_TAGS in responseTaxonomy
@@ -362,7 +383,21 @@ export interface MonthlyReport {
   totalHours: number;
   totalCost: number;
   createdAt: string;
+  /** Kapan berkas laporan terakhir dibuat (ekspor JPG/PNG/PDF). Terpisah dari
+   *  "sudah dibagikan": mengekspor tidak lagi berarti sudah dikirim (G3-05 butir 3). */
+  lastExportedAt?: string;
+  /** Pernyataan eksplisit tutor bahwa laporan sudah dikirim ke orang tua. */
+  sharedAt?: string;
+  /** Kapan berkas laporan terakhir dibuat — nama lama yang masih ditulis oleh
+   *  tombol "Tandai Sudah Dibagikan"; dibaca sebagai penanda dibagikan. */
   pdfGeneratedAt?: string;
+  /** Jumlah sesi per halaman pilihan tutor — ikut tersimpan ke laporan, bukan
+   *  hanya keadaan sementara di layar (G3-05 butir 10). */
+  entriesPerPage?: number;
+  /** Penanda per isian bahwa isinya ditulis AI: nilai fingerprint saat AI
+   *  menulisnya. Penyuntingan manual mengubah isinya sehingga fingerprint tidak
+   *  lagi cocok dan penandanya hilang sendiri (G3-05 butir 8). */
+  aiFieldHashes?: Partial<Record<AiReportField, number>>;
   /** Fingerprint sesi saat ringkasan terakhir dibuat AI (dedup) — lihat
    *  lib/aiIncremental.ts. Dipakai agar "Poles Ringkasan" bisa dilewati
    *  bila tidak ada perubahan sesi. Bukan field keamanan. */

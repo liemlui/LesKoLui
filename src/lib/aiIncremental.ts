@@ -79,6 +79,19 @@ export function pickDirtyNarrativeSessions(sessions: readonly Session[]): {
 }
 
 /**
+ * Fingerprint isi sebuah isian laporan (G3-05 butir 8).
+ *
+ * Dipakai untuk penanda "isian ini dibuat AI": saat AI menulis sebuah isian,
+ * fingerprint isinya disimpan di `report.aiFieldHashes`. Selama isinya tidak
+ * berubah, penandanya masih cocok dan tetap tampil; begitu tutor menyuntingnya
+ * sendiri, fingerprint tidak lagi cocok dan penandanya hilang sendiri — tanpa
+ * perlu menandai siapa pun secara manual.
+ */
+export function contentFingerprint(...parts: string[]): number {
+  return fnv1a(parts.join("\u001f"));
+}
+
+/**
  * Fingerprint ringkasan laporan: gabungan identitas + fingerprint seluruh sesi
  * yang masuk periode. Dipakai untuk skip "Poles Ringkasan" bila tidak ada
  * perubahan sesi sama sekali sejak ringkasan terakhir dibuat.

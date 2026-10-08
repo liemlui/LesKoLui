@@ -88,3 +88,80 @@ export function buildSessionNarrative(session: Session, subject: string): string
   // Fallback netral — teks ini ikut tercetak di laporan orang tua, jangan berisi instruksi untuk tutor
   return `Sesi ${subject} berlangsung selama ${formatHours(session.durationHours)}.`;
 }
+
+/* ── Penunjuk langkah alur laporan (G3-05 butir 1) ──────────────────── */
+
+/** Cara memilih periode laporan: bulan kalender, N sesi, atau rentang tanggal. */
+export type RecapMode = "bulan" | "jumlah" | "range";
+
+export type ReportStepId = "murid" | "periode" | "laporan" | "narasi" | "ekspor";
+
+export interface ReportStep {
+  id: ReportStepId;
+  label: string;
+}
+
+/** Lima langkah yang selalu terlihat di bilah aksi tetap, berurutan. */
+export const REPORT_STEPS: readonly ReportStep[] = [
+  { id: "murid", label: "Pilih murid" },
+  { id: "periode", label: "Pilih periode" },
+  { id: "laporan", label: "Buat laporan" },
+  { id: "narasi", label: "Isi narasi" },
+  { id: "ekspor", label: "Ekspor" },
+];
+
+export interface ReportStepState {
+  hasStudent: boolean;
+  hasPeriod: boolean;
+  hasReport: boolean;
+  /** Semua sesi laporan sudah punya narasi. */
+  allNarrativesReady: boolean;
+}
+
+/** Langkah yang sedang berjalan — indeks ke dalam `REPORT_STEPS`. */
+export function reportStepIndex(state: ReportStepState): number {
+  if (!state.hasStudent) return 0;
+  if (!state.hasPeriod) return 1;
+  if (!state.hasReport) return 2;
+  if (!state.allNarrativesReady) return 3;
+  return 4;
+}
+
+/* ── Kesiapan laporan (G3-05 butir 7) ───────────────────────────────── */
+
+export interface ReportReadinessItem {
+  label: string;
+  complete: boolean;
+}
+
+/**
+ * Kesiapan SELALU dihitung dari seluruh sesi laporan — bukan dari sesi yang
+ * sedang tersaring penyaring mapel. Cakupan penyaring ditampilkan terpisah
+ * sebagai chip, supaya angka kesiapan tidak pernah ikut berubah hanya karena
+ * tutor menyaring tampilan.
+ */
+export function buildReportReadiness(input: {
+  totalSessions: number;
+  sessionsWithNarrative: number;
+  hasSummary: boolean;
+  hasTeacherNote: boolean;
+  hasPlan: boolean;
+}): ReportReadinessItem[] {
+  return [
+    {
+      label: "Narasi sesi",
+      complete: input.totalSessions > 0
+        && input.sessionsWithNarrative === input.totalSessions,
+    },
+    { label: "Ringkasan", complete: input.hasSummary },
+    { label: "Catatan guru", complete: input.hasTeacherNote },
+    { label: "Rencana depan", complete: input.hasPlan },
+  ];
+}
+
+/** Chip cakupan penyaring — hanya muncul saat penyaring benar-benar menyaring. */
+export function scopeChipLabel(shown: number, total: number, filtered: boolean): string | undefined {
+  if (!filtered || shown === total) return undefined;
+  return `Menampilkan ${shown} dari ${total} sesi`;
+}
+

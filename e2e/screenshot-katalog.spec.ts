@@ -5,7 +5,7 @@
  * Jalankan khusus katalog: npx playwright test --config=playwright.config.ts e2e/screenshot-katalog.spec.ts
  */
 
-import { test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -125,7 +125,10 @@ async function openReportWithData(page: Page) {
   for (const value of values) {
     await select.selectOption(value);
     try {
-      await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).waitFor({ timeout: 2000 });
+      // Sejak G3-05 tombol laporan selalu tampil di bilah aksi tetap; yang
+      // menandai "murid ini punya sesi Juni" adalah tombolnya AKTIF.
+      await expect(page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }))
+        .toBeEnabled({ timeout: 2000 });
       break;
     } catch { /* murid tanpa sesi Juni — coba berikutnya */ }
   }

@@ -61,7 +61,10 @@ test("catatan sesi panjang tidak terpotong (halaman bertinggi otomatis)", async 
   expect(narrativeApplied, "tidak ada sesi Andi Juni 2026 di seed").toBeGreaterThan(0);
 
   await page.locator("select").first().selectOption(andiId);
-  await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).waitFor({ timeout: 5000 });
+  // Sejak G3-05 tombol laporan selalu tampil di bilah aksi tetap, jadi
+  // "siap dibuatkan laporan" ditandai tombolnya AKTIF.
+  await expect(page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }))
+    .toBeEnabled({ timeout: 5000 });
   await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).click();
   await expect(page.locator("[data-report-page]").first()).toBeVisible({ timeout: 10_000 });
 

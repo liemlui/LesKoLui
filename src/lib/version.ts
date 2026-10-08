@@ -11,6 +11,24 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.96.0",
+    date: "2026-10-08",
+    title: "Laporan bulanan: langkahnya terlihat, hasil AI bisa diulang, narasi tersimpan sendiri",
+    items: [
+      "**Halaman Laporan sekarang punya bilah aksi yang selalu menempel di atas.** Di dalamnya ada penunjuk lima langkah — **Pilih murid · Pilih periode · Buat laporan · Isi narasi · Ekspor** — sehingga Anda selalu tahu sedang di langkah mana tanpa menggulir halaman yang panjang. Tombol **Buat/Update Laporan**, **Finalkan**, **JPG/PNG/PDF**, dan **↩ Undo Hasil AI** ikut pindah ke bilah itu, jadi tidak perlu lagi bolak-balik mencari tombolnya.",
+      "**Tombol yang tidak bisa dipakai menyebut alasannya di tempatnya.** Dulu bila periode belum bisa direkap, tombolnya sekadar diam saja saat ditekan. Sekarang tombolnya tampak nonaktif **beserta satu kalimat alasan** — misalnya sesi di periode itu sudah pernah direkap, atau paket pertemuannya belum genap.",
+      "**Hasil AI kini dilaporkan per sesi, dan yang gagal bisa diulang.** Setelah menekan **Isi Semua dengan AI**, muncul panel **Hasil AI** berisi daftar sesi yang berhasil, daftar sesi yang gagal beserta pesan galatnya, bilah kemajuan saat proses berjalan, dan tombol **Ulangi yang gagal (n)** — jadi satu batch yang gagal tidak lagi berarti harus mengulang semuanya dari awal. Daftar ini tidak ikut terhapus saat Anda berpindah murid atau periode.",
+      "**Isian yang ditulis AI diberi penanda per isian.** Ringkasan, catatan guru, kutipan, rencana bulan depan, dan tiap narasi sesi masing-masing punya penanda **✨ AI** sendiri; penanda itu **hilang sendiri** begitu Anda menyuntingnya. Sebelumnya badge AI menempel di judul panel, sehingga satu ringkasan buatan AI membuat seluruh panel tampak buatan AI.",
+      "**Narasi sesi tersimpan sendiri saat Anda berhenti mengetik.** Tidak ada lagi tombol Simpan yang harus ditekan: ada status **Menunggu tersimpan… · Sedang menyimpan… · Tersimpan 14:03**, dan bila Anda berpindah murid/periode padahal ketikan terakhir belum tersimpan, muncul konfirmasi yang menawarkan menyimpannya lebih dulu. Sebelumnya menutup panel bisa membuang tulisan terakhir.",
+      "**Jumlah sesi per halaman ikut tersimpan bersama laporan.** Pilihannya (2 · 3 · 4 · 6) bukan lagi keadaan sementara di layar, jadi laporan yang dibuka lagi tetap memakai jumlah halaman yang sama.",
+      "**Pratinjau bisa dibesarkan-dikecilkan, dan jumlah halamannya disebutkan.** Ada tiga tingkat pembesaran, keterangan **“N halaman · n sesi per halaman”**, dan peringatan bila isi sebuah halaman melampaui tingginya — dengan anjuran menurunkan sesi per halaman atau mengganti susunan sebelum mengekspor.",
+      "**Ekspor melaporkan tahapannya, dan istilah “dibuat” dipisah dari “dibagikan”.** Saat mengekspor, layar menyebut **sedang menyiapkan halaman**, **sedang mengunduh berkas**, atau **lembar berbagi sedang dibuka**. Mengekspor kini hanya mencatat bahwa berkasnya sudah dibuat (`lastExportedAt`); pernyataan **“sudah dibagikan”** tetap tindakan eksplisit Anda lewat tombol **Tandai Sudah Dibagikan**.",
+      "**Kolom teks laporan akhirnya bisa dibuka dari papan ketik.** Ringkasan, catatan guru, dan kutipan sekarang tombol sungguhan, sehingga bisa difokus dengan Tab dan dibuka dengan Enter atau Spasi — dulu hanya bisa diklik dengan tetikus.",
+      "**Pratinjau susunan memakai jendela standar aplikasi**, sehingga tombol **Escape**, penguncian fokus, dan pemulihan fokus bekerja seperti jendela lain.",
+      "**Halaman Laporan dipecah jadi blok-blok kecil.** `MonthlyReport.tsx` turun dari 2.361 menjadi **1.470 baris** (target ≤1.500) dengan memindahkan cakupan, status, pratinjau, desain, narasi, teks, rencana, riwayat, dan bilah aksi ke `src/screens/monthlyReport/`. Tidak ada perilaku uang yang berubah: total laporan final tetap dibekukan, berkas CSV tetap sama persis, dan tidak ada berkas di `src/template/` yang disentuh.",
+    ],
+  },
+  {
     version: "v1.95.0",
     date: "2026-10-07",
     title: "Lunas bukan tagihan, navigasi tiga pintu, dan biaya AI bisa dilihat",

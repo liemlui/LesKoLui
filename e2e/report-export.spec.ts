@@ -46,7 +46,11 @@ test("buat laporan lalu export JPG dan PDF berhasil tanpa error", async ({ page 
   for (const value of optionValues) {
     await select.selectOption(value);
     try {
-      await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).waitFor({ timeout: 2500 });
+      // Sejak G3-05 tombol laporan selalu tampil di bilah aksi tetap dan mati
+      // bila periodenya belum bisa direkap — penanda "murid ini punya sesi
+      // bulan ini" adalah tombolnya AKTIF, bukan keberadaannya.
+      await expect(page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }))
+        .toBeEnabled({ timeout: 2500 });
       found = true;
       break;
     } catch { /* murid ini tak punya sesi bulan ini — lanjut */ }
@@ -100,7 +104,8 @@ test("rencana bulan depan tersimpan dan ikut tampil di pratinjau", async ({ page
   for (const value of optionValues) {
     await select.selectOption(value);
     try {
-      await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).waitFor({ timeout: 2500 });
+      await expect(page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }))
+        .toBeEnabled({ timeout: 2500 });
       break;
     } catch { /* murid ini tak punya sesi bulan ini — lanjut */ }
   }

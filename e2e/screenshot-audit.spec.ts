@@ -2,7 +2,7 @@
  * Screenshot audit — layar/tab/modal × mode (light/dark, mobile/desktop).
  * Output: e2e/screenshots/audit/<project>/*.png
  */
-import { test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -125,7 +125,10 @@ test("05-report", async ({ page }) => {
     for (const v of values) {
       await select.selectOption(v);
       try {
-        await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).waitFor({ timeout: 2000 });
+        // Sejak G3-05 tombol laporan selalu tampil; yang menandai "murid ini
+        // punya sesi Juni" adalah tombolnya AKTIF.
+        await expect(page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }))
+          .toBeEnabled({ timeout: 2000 });
         break;
       } catch { /* try next */ }
     }

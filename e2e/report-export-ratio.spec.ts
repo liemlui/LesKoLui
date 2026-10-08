@@ -85,7 +85,10 @@ for (const layoutName of REPRESENTATIVE_LAYOUTS) {
     await closeChangelog(page);
     await page.locator('input[type="month"]').fill("2026-06"); // seed: sesi Maret–Juni 2026
     await page.locator("select").first().selectOption(andiId);
-    await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).waitFor({ timeout: 5000 });
+    // Sejak G3-05 tombol laporan selalu tampil di bilah aksi tetap, jadi
+    // "siap dibuatkan laporan" ditandai tombolnya AKTIF.
+    await expect(page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }))
+      .toBeEnabled({ timeout: 5000 });
     await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).click();
     await expect(page.locator("[data-report-page]").first()).toBeVisible({ timeout: 10_000 });
 

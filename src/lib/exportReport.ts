@@ -19,6 +19,13 @@ export interface OverflowIssue {
   overflowPx: number;
 }
 
+/** Jumlah halaman laporan yang sedang dirender di sebuah akar render.
+ *  Dipakai keterangan pratinjau ("N halaman") supaya jumlah halaman yang
+ *  dilihat tutor sama dengan yang akan diekspor. */
+export function countReportPages(root: ParentNode = document): number {
+  return root.querySelectorAll("[data-report-page]").length;
+}
+
 /**
  * Deteksi halaman laporan yang isinya terpotong.
  *
@@ -186,8 +193,22 @@ export function downloadFile(file: File) {
  *    sekarang dan **sisanya dikembalikan** agar pemanggil menampilkannya sebagai
  *    tombol unduh per halaman (tiap ketukan = gestur yang sah).
  */
-export async function deliverFiles(files: File[], title: string): Promise<File[]> {
-  if (files.length === 0) return [];
+/** Hasil penyerahan berkas: sisa yang belum terkirim + cara berkas pertama pergi. */
+export interface DeliveryResult {
+  /** Berkas yang belum terkirim — pemanggil menampilkannya sebagai tombol per halaman. */
+  remaining: File[];
+  /** `share` = lembar berbagi sistem terbuka; `download` = berkas pertama diunduh. */
+  via: "share" | "download";
+}
+
+export async function deliverFiles(
+  files: File[],
+  title: string,
+  /** Diberi tahu cara berkas pergi SEBELUM penyerahan dimulai, supaya layar bisa
+   *  menampilkan tahap yang benar ("mengunduh berkas" vs "lembar berbagi dibuka"). */
+  onVia?: (via: "share" | "download") => void,
+): Promise<DeliveryResult> {
+  if (files.length === 0) return { remaining: [], via: "download" };
 
   const shareData = { files, title };
   const shareSupported = typeof navigator !== "undefined"
@@ -195,11 +216,13 @@ export async function deliverFiles(files: File[], title: string): Promise<File[]
     && (files.length === 1 || navigator.canShare?.(shareData) === true);
   if (shareSupported) {
     try {
+      onVia?.("share");
       await navigator.share(shareData);
-      return [];
+      return { remaining: [], via: "share" };
     } catch { /* dibatalkan / gagal — jatuh ke unduhan */ }
   }
 
+  onVia?.("download");
   downloadFile(files[0]);
-  return files.slice(1);
+  return { remaining: files.slice(1), via: "download" };
 }

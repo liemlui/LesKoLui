@@ -216,7 +216,7 @@ export async function unlockReport(
         "Tidak bisa dibuka: sudah ada laporan susulan dari laporan ini. Perbaiki lewat laporan susulan itu supaya sesinya tidak terhitung dua kali",
       );
     }
-    const wasShared = Boolean(report.pdfGeneratedAt);
+    const wasShared = Boolean(report.pdfGeneratedAt || report.sharedAt);
     if (wasShared && options.confirmShared !== true) {
       throw new Error(
         "Laporan ini sudah ditandai dibagikan ke orang tua. Buka kunci tetap bisa, tetapi angka yang sudah dikirim tidak bisa ditarik — konfirmasi dulu",
@@ -226,7 +226,11 @@ export async function unlockReport(
       status: "draft" as ReportStatus,
       // Tanda "sudah dibagikan" dilepas: versi yang beredar tidak lagi sama
       // dengan draft yang sedang diperbaiki. Jejaknya tetap ada di audit.
+      // G3-05: dua penanda dibersihkan — `sharedAt` (pernyataan tutor) dan
+      // `pdfGeneratedAt` (nama lama) — supaya statusnya benar-benar kembali draft.
       pdfGeneratedAt: undefined,
+      sharedAt: undefined,
+      lastExportedAt: undefined,
     });
     await db.auditLog.add({
       id: crypto.randomUUID(),
@@ -242,7 +246,7 @@ export async function unlockReport(
         periodStart: report.periodStart,
         periodEnd: report.periodEnd,
         wasShared,
-        sharedAt: report.pdfGeneratedAt ?? null,
+        sharedAt: report.sharedAt ?? report.pdfGeneratedAt ?? null,
       }),
     });
     return { wasShared };

@@ -98,7 +98,11 @@ test("render semua layout laporan", async ({ page }) => {
   for (const value of students) {
     await studentSelect.selectOption(value);
     try {
-      await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).waitFor({ timeout: 2000 });
+      // Sejak G3-05 tombol laporan SELALU tampil di bilah aksi tetap dan mati
+      // bila periodenya belum bisa direkap — jadi penanda "murid ini punya sesi
+      // Juni" adalah tombolnya AKTIF, bukan keberadaannya.
+      await expect(page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }))
+        .toBeEnabled({ timeout: 2000 });
       break;
     } catch { /* lanjut */ }
   }
