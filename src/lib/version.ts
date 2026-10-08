@@ -11,6 +11,24 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.95.0",
+    date: "2026-10-07",
+    title: "Lunas bukan tagihan, navigasi tiga pintu, dan biaya AI bisa dilihat",
+    items: [
+      "**Yang sudah dibayar bukan lagi disebut tagihan.** Sekarang istilahnya **riwayat transaksi**, karena tagihan yang sudah lunas tidak lagi menuntut apa pun. Di daftar tagihan, tahap **Lunas** berubah jadi **transaksi selesai**, dan kalau Anda membuka tahap itu judulnya menjadi **Riwayat transaksi** — bukan daftar tagihan. Berkas yang diekspor dari tahap itu juga dinamai `riwayat-transaksi-…`, bukan `tagihan-…`.",
+      "**Layar Uang sekarang hanya memuat yang butuh tindakan.** Bagian keduanya bernama **Perlu ditindaklanjuti** dan menyebut jenis pekerjaannya: berapa yang siap diterbitkan, berapa laporan yang perlu disahkan, dan berapa yang belum dibayar. Sebelumnya angka di situ **ikut menghitung tagihan yang sudah lunas**, sehingga terasa ada lebih banyak pekerjaan daripada kenyataannya. Laporan yang masih **draf** kini juga muncul sebagai pekerjaan tersendiri — dulu ia tidak terlihat sama sekali di layar Uang.",
+      "**Riwayat pembayaran tiap murid pindah ke halaman murid.** Buka **Murid → (pilih murid) → Ringkasan**, di situ ada blok **Pembayaran**: tunggakan ditaruh paling atas, lalu transaksi yang sudah dibayar **dikelompokkan per bulan** dan bisa dibuka-tutup. Pengelompokannya memakai **bulan uang masuk**, bukan bulan tagihannya — jadi kalau suatu saat Anda mencocokkan dengan mutasi bank, angkanya ada di bulan yang sama. Tagihan berumur yang belum mencatat tanggal bayar tetap ikut, di kelompok bulan tagihannya.",
+      "**Navigasi bawah jadi tiga pintu, bukan lima.** Kini **Hari Ini · Murid · Uang**, ditambah satu tombol **Catat sesi** di dalam bilah yang sama. Tombol Catat tidak lagi berbentuk bulat mengambang yang menonjol keluar bilah — bentuk itu sempat menutupi isi layar. Halaman **Laporan** tidak hilang: ia masih dibuka dari tombol **Buat laporan** di panel status per murid dan dari tombol **Buka Laporan Perkembangan** di rincian tagihan.",
+      "**Mengubah nominal tagihan sekarang selalu lewat konfirmasi.** Modalnya menyebut nominal lama dan barunya beserta selisihnya, **asal tagihannya**, dan satu hal yang tidak berubah: mengubah nominal tidak memindahkan tagihan ke mekanisme lain. Tombolnya berbunyi **“Ya, ubah nominal”**, bukan sekadar OK.",
+      "**Kolom nominal akhirnya memakai pemisah ribuan saat diketik.** Ketik `75000` dan yang tampil `75.000`. Kursor tidak melompat ke ujung saat Anda menyunting di tengah angka, ada tanda **Tersimpan ✓** setelah nominalnya dicatat, dan pesan yang jelas bila isinya tidak sah atau dipotong karena menembus batas.",
+      "**Gerbang PIN Keuangan jadi formulir sungguhan.** Tombol Enter mengirim dari mana pun di dalam formulir, dan selama masa tunggu setelah PIN salah, **hitungan mundurnya terlihat** — dulu kolomnya tampak siap dipakai padahal masih terkunci, dan setiap percobaan hanya menambah masa tunggu.",
+      "**Papan status per murid dirombak jadi jalur kartu per tahap.** Kartunya bisa digeser, lebarnya sekitar tiga perempat layar supaya kartu berikutnya tetap terlihat, dan setiap kartu memuat tahap, nominal (tetap bisa disamarkan), umur piutang, satu tombol aksi, dan menu tambahan. Ada **Mode ringkas** yang meringkasnya jadi tiga prioritas, dan chip per tahap beserta jumlahnya.",
+      "**Setiap panggilan AI berbiaya sekarang tercatat, dan batas belanjanya bisa dipasang.** Di **Pengaturan → AI** ada kolom **Batas belanja AI per bulan** beserta pemakaian bulan berjalan dan jumlah panggilannya. **Kosong berarti tanpa batas** — itu bawaannya, dan AI tidak pernah diblokir karena kolomnya kosong. Kalau diisi dan terlampaui, tombol AI nonaktif **dengan alasannya tertulis di layar**. Sebelum ini biaya panggilan AI tidak pernah tercatat, sehingga tidak ada cara mengetahui berapa yang sudah terpakai.",
+      "**Jendela konfirmasi biaya AI sekarang satu saja untuk seluruh aplikasi.** Dulu ada dua versi dengan rincian berbeda — yang satu menampilkan jumlah token dan biaya dolarnya. Sekarang keduanya menjadi satu, lengkap dengan rincian token bila estimatornya menyediakannya, dan **tombolnya mati selama panggilan berjalan** supaya tidak bisa ditekan dua kali.",
+      "**Tiga teks yang sulit dibaca diperbaiki** (ditemukan penjaga tampilan yang cakupannya diperluas ke halaman keuangan): nomor halaman rekap tagihan (kontras 2,54:1 → 7,56:1), badge **“Belum dibayar”** di rekap itu (2,86:1 → 8,15:1), dan tombol **“+ Tagihan Manual”** yang tadinya hanya setinggi 20 piksel sehingga sulit ditekan.",
+    ],
+  },
+  {
     version: "v1.94.0",
     date: "2026-10-07",
     title: "Layar Uang jadi satu layar tiga blok, rekap tahunan terbaca di HP",
