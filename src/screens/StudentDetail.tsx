@@ -683,10 +683,7 @@ export default function StudentDetail() {
 
       {/* ── BUKTI KEAKTIFAN ── */}
       {avgEngScore !== null && (
-        <EvidenceCard
-          avgEngScore={avgEngScore}
-          engSessions={engSessions}
-        />
+        <EvidenceCard engSessions={engSessions} />
       )}
 
       {/* ── RIWAYAT SESI (diektrak ke studentDetail/RiwayatSesi.tsx) ── */}

@@ -1,41 +1,31 @@
 import type { Session } from "../../db/types";
 
 interface EvidenceCardProps {
-  avgEngScore: number | null;
   engSessions: Session[];
 }
 
-/** Kartu "Bukti Keaktifan" — fokus pada keaktifan sesi (tanpa nilai rapor manual). */
-export default function EvidenceCard({ avgEngScore, engSessions }: EvidenceCardProps) {
-  const interpretation = (() => {
-    if (avgEngScore === null) return null;
-    if (avgEngScore >= 7)
-      return { text: "Sangat fokus saat les — potensi nilai bisa terus meningkat.", color: "text-[var(--ink-brand)]" };
-    if (avgEngScore >= 5)
-      return { text: "Cukup fokus, masih bisa ditingkatkan dengan latihan tambahan.", color: "text-[var(--ink-attention)]" };
-    return { text: "Perlu perhatian ekstra untuk meningkatkan fokus saat les.", color: "text-[var(--ink-danger)]" };
-  })();
+/**
+ * Penunjuk bukti keaktifan.
+ *
+ * Dulu kartu ini menampilkan rata-rata fokus dan tafsirannya SENDIRI, sehingga
+ * rata-rata yang sama muncul di dua kartu di dua tab sekaligus. Keputusan pemilik
+ * 2026-10-09 (K6): dua kartu itu DIGABUNG, dan yang diutamakan adalah kesimpulan
+ * tentang murid — yang sekarang hidup di tab Progres (`Kesimpulan`).
+ *
+ * Karena itu kartu ini tinggal menyatakan berbasis apa kesimpulan itu dibuat dan
+ * mengarahkan ke tempat membacanya. Ia sengaja TIDAK menghitung apa pun, supaya
+ * tidak ada dua sumber angka untuk hal yang sama.
+ */
+export default function EvidenceCard({ engSessions }: EvidenceCardProps) {
+  if (engSessions.length === 0) return null;
 
   return (
-    <div className="bg-[var(--surface-strong)] rounded-2xl p-4 border border-[var(--border)] space-y-3">
+    <div className="bg-[var(--surface-strong)] rounded-2xl p-4 border border-[var(--border)]">
       <h2 className="text-base font-semibold text-[var(--ink-strong)]">Bukti Keaktifan</h2>
-      <p className="text-xs text-[var(--ink-muted)]">Keaktifan sesi sebagai bukti progres belajar.</p>
-
-      <div className={`rounded-xl p-3 text-center ${avgEngScore === null ? "bg-[var(--surface)]" : avgEngScore >= 7 ? "bg-[var(--brand-tint)]" : avgEngScore >= 5 ? "bg-[var(--bg-warn)]" : "bg-[var(--bg-danger)]"}`}>
-        <p className={`text-xl font-bold ${avgEngScore === null ? "text-[var(--ink-muted)]" : avgEngScore >= 7 ? "text-[var(--ink-brand)]" : avgEngScore >= 5 ? "text-[var(--ink-warn)]" : "text-[var(--ink-danger)]"}`}>
-          {avgEngScore !== null ? `${avgEngScore}` : "—"}
-        </p>
-        <p className="text-xs font-medium text-[var(--ink-muted)] mt-0.5">Avg Fokus</p>
-        {engSessions.length > 0 && (
-          <p className="text-xs text-[var(--ink-muted)] mt-0.5">{engSessions.length} sesi</p>
-        )}
-      </div>
-
-      {interpretation && (
-        <div className="rounded-xl p-3 bg-[var(--surface)] border border-[var(--border)]">
-          <p className={`text-xs font-semibold ${interpretation.color}`}>{interpretation.text}</p>
-        </div>
-      )}
+      <p className="text-xs text-[var(--ink-muted)] mt-1 leading-relaxed">
+        Kesimpulan tentang murid ini dihitung dari <span className="font-semibold">{engSessions.length} sesi</span> yang
+        mencatat pengamatan kondisi. Rincian angkanya ada di tab <span className="font-semibold">Progres</span>.
+      </p>
     </div>
   );
 }

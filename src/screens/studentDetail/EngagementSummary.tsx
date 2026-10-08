@@ -1,5 +1,7 @@
+import { useMemo } from "react";
 import type { Session, Student } from "../../db/types";
 import { scoreLabel, sessionEngagementScore } from "../../lib/engagement";
+import { studentConclusion, buildConclusionLog } from "../../lib/studentConclusion";
 import { clampPage, paginateItems } from "../../lib/pagination";
 import PaginationControls from "../../components/PaginationControls";
 import { LineChart, RatingIndicator } from "../../components/charts";
@@ -21,99 +23,142 @@ interface EngagementSummaryProps {
 }
 
 /**
- * Keseriusan Belajar — ringkasan kondisi belajar per murid.
+ * Keseriusan Belajar — kesimpulan tentang murid, bukan tabel angka.
  *
- * Perubahan audit P3 #17 (#17):
- *  - rata-rata SELALU disertai penyebut ("dari N sesi berdata"), supaya angka
- *    tidak dibaca sebagai penilaian atas seluruh sesi;
- *  - ditampilkan **cakupan data**: berapa sesi yang mencatat kondisi sama sekali
- *    (pada data nyata tutor hanya 8 dari 1.238 sesi) — tanpa ini, "0% Main HP"
- *    terlihat seperti fakta padahal artinya "tidak pernah diisi";
- *  - ditambahkan **sumbu kedua**: sebaran kualitas respons akademik, karena satu
- *    angka gabungan menutupi sisi yang lain (murid dengan "Miskonsepsi" tetap
- *    bisa punya fokus tinggi).
+ * Perubahan 2026-10-09 (keputusan pemilik K6): dua kartu yang menampilkan
+ * rata-rata fokus DIGABUNG, dan yang diutamakan adalah **kesimpulan**: murid ini
+ * seperti apa. Sebelumnya rata-rata yang sama muncul di empat tempat dengan tiga
+ * penyebut berbeda, dan salah satunya (`:146` versi lama) menempelkan rata-rata
+ * seluruh riwayat pada penyebut "15 sesi terakhir". Sekarang:
+ *
+ * - satu blok kesimpulan di atas, dihasilkan `lib/studentConclusion.ts`;
+ * - angka pendukung tinggal satu baris, dan hanya memuat yang BELUM disebut
+ *   kesimpulan (main HP + penyebut, jumlah sesi berdata);
+ * - tidak ada lagi baris "rata-rata fokus" yang mengulang rata-rata.
+ *
+ * Cakupan data tetap ditampilkan apa adanya — itu bagian dari kejujuran angka,
+ * bukan pengulangan (audit P3 #17).
  */
 export default function EngagementSummary({
   engSessions, avgEngScore, engTrend, recentEng,
   subjectEngStats, subjectPage, setSubjectPage, student, responseStats,
 }: EngagementSummaryProps) {
+  const conclusion = useMemo(() => {
+    const scored = engSessions.filter((s) => sessionEngagementScore(s) != null);
+    const counted = scored.length;
+    const topRow = responseStats?.rows[0];
+    return studentConclusion({
+      firstName: student.name.split(" ")[0] ?? student.name,
+      avgScore: avgEngScore,
+      counted,
+      total: engSessions.length,
+      trend: engTrend,
+      recentCount: recentEng.length,
+      log: buildConclusionLog(scored),
+      topResponse: topRow ? { label: topRow.label, count: topRow.count } : null,
+      responseAnswered: responseStats?.answered ?? 0,
+      // Dianggap ada catatan topik bila minimal satu sesi selesai punya topik.
+      // Ambang "minimal satu" dipilih supaya kesimpulan tidak menuduh data tidak
+      // ada hanya karena sebagian sesi memang belum diisi topiknya.
+      hasTopicNotes: engSessions.some((s) => Boolean(s.topic?.trim())),
+    });
+  }, [engSessions, avgEngScore, engTrend, recentEng, responseStats, student.name]);
+
   if (engSessions.length === 0) return null;
+
   const safeSubjectPage = clampPage(subjectPage, subjectEngStats.length);
   const paginatedSubjectEngStats = paginateItems(subjectEngStats, safeSubjectPage);
 
-  const scoredSessions = engSessions.filter((s) => sessionEngagementScore(s) != null);
-  const counted = scoredSessions.length;
-  const noObservation = engSessions.filter((s) => s.engagement?.scoreBasis === "none").length;
-  const noObservationPct = Math.round((noObservation / engSessions.length) * 100);
-  const phoneCount = scoredSessions.filter((s) => s.engagement?.playingPhone).length;
+  const counted = engSessions.filter((s) => sessionEngagementScore(s) != null).length;
+  const phoneCount = engSessions.filter(
+    (s) => sessionEngagementScore(s) != null && s.engagement?.playingPhone
+  ).length;
   const phonePct = counted > 0 ? Math.round((phoneCount / counted) * 100) : 0;
+  const countedPct = engSessions.length > 0 ? Math.round((counted / engSessions.length) * 100) : 0;
+
+  const behaviourTone =
+    conclusion.behaviour === "baik" ? "text-[var(--ink-success)]" :
+    conclusion.behaviour === "cukup" ? "text-[var(--ink-attention)]" :
+    "text-[var(--ink-danger)]";
 
   return (
     <div className="bg-[var(--surface-strong)] rounded-2xl shadow-sm border border-[var(--border)] overflow-hidden">
-      <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between">
-        <h2 className="font-semibold text-[var(--ink-strong)]">Keseriusan Belajar</h2>
-        <span className="text-xs text-[var(--ink-muted)]">
+      <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between gap-2">
+        <h2 className="font-semibold text-[var(--ink-strong)]">Kesimpulan</h2>
+        <span className="text-xs text-[var(--ink-muted)] flex-shrink-0">
           {counted} dari {engSessions.length} sesi berdata
         </span>
       </div>
 
-      {/* Cakupan data — jujur soal apa yang TIDAK dicatat (audit P3 #17) */}
-      {noObservationPct > 0 && (
-        <div className="mx-4 mt-3 rounded-xl border border-[var(--border-warn)] bg-[var(--bg-warn)] px-3 py-2">
+      {/* ── Blok utama: kesimpulan tentang murid ini ── */}
+      <div className="px-4 py-3">
+        <p className={`text-sm font-semibold leading-relaxed ${behaviourTone}`}>{conclusion.headline}</p>
+
+        {conclusion.details.length > 0 && (
+          <ul className="mt-2 space-y-1">
+            {conclusion.details.map((d) => (
+              <li key={d} className="text-xs leading-relaxed text-[var(--ink-muted)]">• {d}</li>
+            ))}
+          </ul>
+        )}
+
+        {conclusion.caveat && (
+          <p className="mt-2 rounded-xl border border-[var(--border-warn)] bg-[var(--bg-warn)] px-3 py-2 text-xs leading-relaxed text-[var(--ink-warn)]">
+            {conclusion.caveat}
+          </p>
+        )}
+      </div>
+
+      {/* ── Angka pendukung: hanya yang belum disebut kesimpulan ── */}
+      {counted > 0 && (
+        <div className="grid grid-cols-3 divide-x divide-[var(--border)] border-t border-[var(--border)]">
+          <div className="p-3 text-center">
+            {avgEngScore !== null && (() => {
+              const { text, color } = scoreLabel(avgEngScore);
+              // Angka rata-ratanya SENGAJA tidak ditulis lagi di sini: kesimpulan
+              // di atas sudah menyebutnya beserta penyebutnya. Yang tinggal adalah
+              // bentuk visualnya (titik) + label keadaan, supaya "8/10" tidak
+              // muncul tiga kali dalam satu kartu.
+              return (
+                <>
+                  <div className="flex justify-center">
+                    <RatingIndicator value={Math.round(avgEngScore)} max={10} size="md" variant="dots" hideValue
+                      tone={avgEngScore >= 7 ? "green" : avgEngScore >= 4 ? "amber" : "red"} />
+                  </div>
+                  <p className="text-xs font-medium mt-0.5" style={{ color }}>{text}</p>
+                </>
+              );
+            })()}
+          </div>
+          <div className="p-3 text-center">
+            <p className="text-2xl">
+              {engTrend === "up" ? "📈" : engTrend === "down" ? "📉" : "➡️"}
+            </p>
+            <p className="text-xs font-medium text-[var(--ink-muted)]">
+              {engTrend === "up" ? "Membaik" : engTrend === "down" ? "Menurun" : engTrend === "stable" ? "Stabil" : "—"}
+            </p>
+            <p className="text-xs text-[var(--ink-muted)]">tren</p>
+          </div>
+          <div className="p-3 text-center">
+            <p className="text-2xl font-bold text-[var(--ink-danger)]">{phonePct}%</p>
+            <p className="text-xs font-medium text-[var(--ink-danger)]">Main HP</p>
+            <p className="text-xs text-[var(--ink-muted)]">dari {counted} sesi berdata</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Cakupan data: apa yang TIDAK tercatat (audit P3 #17) ── */}
+      {countedPct < 100 && (
+        <div className="mx-4 my-3 rounded-xl border border-[var(--border-warn)] bg-[var(--bg-warn)] px-3 py-2">
           <p className="text-xs text-[var(--ink-warn)]">
-            {counted === 0 ? (
-              <>
-                <span className="font-semibold">Belum ada sesi yang mencatat pengamatan kondisi.</span>{" "}
-                Semua {engSessions.length} sesi tercatat tanpa indikator apa pun, jadi belum ada rata-rata yang
-                bisa dihitung — catat kondisi saat mengisi Catat Sesi agar angka ini bermakna.
-              </>
-            ) : (
-              <>
-                <span className="font-semibold">Cakupan data {100 - noObservationPct}%.</span>{" "}
-                {noObservation} sesi ({noObservationPct}%) tercatat tanpa pengamatan kondisi, jadi tidak ikut
-                rata-rata — angka di bawah menggambarkan {counted} sesi yang benar-benar diisi, bukan seluruh riwayat.
-              </>
-            )}
+            <span className="font-semibold">Cakupan data {countedPct}%.</span>{" "}
+            {engSessions.length - counted} sesi tercatat tanpa pengamatan kondisi, jadi tidak ikut
+            rata-rata — angka di atas menggambarkan {counted} sesi yang benar-benar diisi, bukan seluruh riwayat.
           </p>
         </div>
       )}
 
-      {/* Summary row */}
-      <div className="grid grid-cols-3 divide-x divide-[var(--border)]">
-        <div className="p-3 text-center">
-          {avgEngScore !== null && (() => {
-            const { text, color } = scoreLabel(avgEngScore);
-            return (
-              <>
-                <div className="flex justify-center">
-                  <RatingIndicator value={Math.round(avgEngScore)} max={10} size="md" variant="dots"
-                    tone={avgEngScore >= 7 ? "green" : avgEngScore >= 4 ? "amber" : "red"} />
-                </div>
-                <p className="text-xs font-medium mt-0.5" style={{ color }}>{text}</p>
-                <p className="text-xs text-[var(--ink-muted)]">rata-rata dari {counted} sesi</p>
-              </>
-            );
-          })()}
-        </div>
-        <div className="p-3 text-center">
-          <p className="text-2xl">
-            {engTrend === "up" ? "📈" : engTrend === "down" ? "📉" : "➡️"}
-          </p>
-          <p className="text-xs font-medium text-[var(--ink-muted)]">
-            {engTrend === "up" ? "Membaik" : engTrend === "down" ? "Menurun" : engTrend === "stable" ? "Stabil" : "—"}
-          </p>
-          <p className="text-xs text-[var(--ink-muted)]">trend</p>
-        </div>
-        <div className="p-3 text-center">
-          <p className="text-2xl font-bold text-[var(--ink-danger)]">{phonePct}%</p>
-          <p className="text-xs font-medium text-[var(--ink-danger)]">Main HP</p>
-          {/* Penyebut, bukan "dari sesi" — kata terakhir itu menyiratkan
-              seluruh riwayat padahal hanya sesi berdata. */}
-          <p className="text-xs text-[var(--ink-muted)]">dari {counted} sesi berdata</p>
-        </div>
-      </div>
-
-      {/* Sumbu 2 — kualitas respons akademik (audit P3 #17) */}
+      {/* ── Sebaran kualitas respons akademik (audit P3 #17) ── */}
       {responseStats && responseStats.rows.length > 0 && (
         <div className="border-t border-[var(--border)] px-4 py-3">
           <p className="text-xs text-[var(--ink-muted)] font-semibold uppercase tracking-wide mb-2">
@@ -139,21 +184,7 @@ export default function EngagementSummary({
         </div>
       )}
 
-      {/* Trend summary */}
-      {recentEng.length > 0 && (
-        <div className="px-4 pb-3">
-          <p className="text-xs text-[var(--ink-muted)]">
-            📈 Rata-rata fokus: <span className="font-semibold text-[var(--ink-strong)]">{avgEngScore}/10</span>
-            {" "}dari {recentEng.length} sesi terakhir
-            {engTrend === "up" && <span className="text-[var(--ink-success)] ml-1">↑ meningkat</span>}
-            {engTrend === "down" && <span className="text-[var(--ink-danger)] ml-1">↓ menurun</span>}
-            {engTrend === "stable" && <span className="text-[var(--ink-muted)] ml-1">→ stabil</span>}
-            {" "}— lihat grafik di atas
-          </p>
-        </div>
-      )}
-
-      {/* Trend chart: skor 15 sesi terakhir (konteks visual pergerakan fokus) */}
+      {/* ── Grafik skor per sesi ── */}
       {recentEng.length >= 3 && (
         <div className="px-4 pb-3 border-t border-[var(--border)] pt-3">
           <LineChart
@@ -167,26 +198,28 @@ export default function EngagementSummary({
             dateXAxis={false}
             formatY={(v) => `${Math.round(v)}`}
           />
-          <p className="mt-1 text-center text-xs text-[var(--ink-muted)]">Skor fokus per sesi — 15 sesi terakhir</p>
+          <p className="mt-1 text-center text-xs text-[var(--ink-muted)]">
+            Skor fokus per sesi — {recentEng.length} sesi terakhir yang punya skor
+          </p>
         </div>
       )}
 
-      {/* Per-subject breakdown */}
+      {/* ── Rincian per mata pelajaran ── */}
       {subjectEngStats.length > 0 && (
         <div className="border-t border-[var(--border)] px-4 py-3">
           <p className="text-xs text-[var(--ink-muted)] font-semibold uppercase tracking-wide mb-2">Per Mata Pelajaran</p>
           <div className="space-y-2.5">
             {paginatedSubjectEngStats.map((stat) => {
-              const { color, bg } = scoreLabel(stat.avgScore);
+              const { color } = scoreLabel(stat.avgScore);
               return (
                 <div key={stat.subject}>
                   <div className="flex items-center justify-between mb-0.5">
                     <span className="text-sm font-medium text-[var(--ink-strong)]">{stat.subject}</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ color, background: bg }}>
+                      <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ color }}>
                         {stat.avgScore}/10
                       </span>
-                      <span className="text-xs text-[var(--ink-muted)]">{stat.count}×</span>
+                      <span className="text-xs text-[var(--ink-muted)]">dari {stat.count} sesi</span>
                     </div>
                   </div>
                   <div className="flex-1 h-1.5 bg-[var(--bg-subtle)] rounded-full overflow-hidden">
@@ -207,27 +240,6 @@ export default function EngagementSummary({
             onPageChange={setSubjectPage}
             label="mapel"
           />
-        </div>
-      )}
-
-      {/* Ringkasan kalimat — penyebutnya disebut, bukan disamarkan (P3 #17) */}
-      {counted >= 5 && avgEngScore !== null && (
-        <div className="mx-4 mb-3 p-3 bg-[var(--surface)] rounded-xl border border-[var(--border)]">
-          <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
-            <span className="font-semibold">📊 Insight: </span>
-            Dari {counted} sesi yang mencatat kondisi (dari total {engSessions.length} sesi),{" "}
-            {student.name.split(" ")[0]} rata-rata mendapat skor{" "}
-            <span className="font-semibold">{avgEngScore}/10</span>{" "}
-            ({scoreLabel(avgEngScore).text.toLowerCase()}).
-            {phoneCount > 0 && (
-              ` Main HP tercatat di ${phoneCount} sesi (${phonePct}% dari sesi berdata).`
-            )}
-            {responseStats && responseStats.rows[0] && (
-              ` Respons akademik yang paling sering: ${responseStats.rows[0].label} (${responseStats.rows[0].count}×).`
-            )}
-            {engTrend === "up" && " Tren terbaru menunjukkan peningkatan keseriusan."}
-            {engTrend === "down" && " Perlu perhatian — tren terbaru menurun."}
-          </p>
         </div>
       )}
     </div>

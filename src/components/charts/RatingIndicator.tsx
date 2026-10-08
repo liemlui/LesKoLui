@@ -6,6 +6,15 @@ interface Props {
   /** Visual style */
   variant?: "dots" | "stars" | "bars";
   tone?: "blue" | "green" | "amber" | "red" | "slate";
+  /**
+   * Sembunyikan teks "N/10" di samping indikator.
+   *
+   * Dipakai saat angka itu sudah disebut di kalimat lain pada kartu yang sama —
+   * supaya pembaca tidak menemukan besaran yang sama tiga kali dalam satu kartu
+   * (keputusan pemilik K6, 2026-10-09). Bentuk visualnya tetap ada; yang hilang
+   * hanya teksnya.
+   */
+  hideValue?: boolean;
 }
 
 const TONE_COLORS: Record<string, { fill: string; empty: string }> = {
@@ -24,6 +33,7 @@ export default function RatingIndicator({
   size = "md",
   variant = "dots",
   tone = "blue",
+  hideValue = false,
 }: Props) {
   const safeValue = Math.max(0, Math.min(value, max));
   const colors = TONE_COLORS[tone];
@@ -95,7 +105,9 @@ export default function RatingIndicator({
           );
         })}
       </svg>
-      <span className={`text-xs font-bold`} style={{ color: colors.fill }}>{safeValue}/{max}</span>
+      {!hideValue && (
+        <span className={`text-xs font-bold`} style={{ color: colors.fill }}>{safeValue}/{max}</span>
+      )}
     </div>
   );
 }

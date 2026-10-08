@@ -46,6 +46,9 @@ export default function RiwayatSesi({
   const topics = [...new Set(
     allSessions.filter((s) => s.status === "DONE").map((s) => s.topic).filter(Boolean) as string[],
   )];
+  // Penyebut sebenarnya, bukan panjang daftar topik unik: satu sesi bisa
+  // menyumbang satu topik, dan banyak sesi tidak menyumbang apa pun.
+  const doneSessions = allSessions.filter((s) => s.status === "DONE").length;
 
   return (
     <div>
@@ -102,7 +105,9 @@ export default function RiwayatSesi({
       {/* ── Topik pernah dibahas ── */}
       {topics.length > 0 && (
         <div className="bg-[var(--surface-strong)] rounded-2xl border border-[var(--border)] shadow-sm p-4 mb-3">
-          <p className="text-xs font-bold text-[var(--ink-muted)] uppercase tracking-wide mb-2">Topik Pernah Dibahas ({topics.length})</p>
+          <p className="text-xs font-bold text-[var(--ink-muted)] uppercase tracking-wide mb-2">
+            Topik Pernah Dibahas ({topics.length} dari {doneSessions} sesi yang punya catatan topik)
+          </p>
           <div className="flex flex-wrap gap-1.5">
             {topics.slice(0, 20).map((t) => (
               <span key={t} className="text-xs bg-[var(--brand-tint)] text-[var(--ink-brand)] px-2 py-0.5 rounded-full font-medium border border-[var(--brand-tint-strong)]">{t}</span>

@@ -66,6 +66,45 @@ function ratio(part: number, whole: number): string {
 }
 
 /**
+ * Menyusun daftar pengamatan dari sesi-sesi berdata.
+ *
+ * Dipakai pemanggil yang punya objek `EngagementLog` mentah; menyaring sesi
+ * tanpa pengamatan di sini supaya pemanggil tidak perlu mengulang aturan
+ * penyaringnya. Sesi dengan `scoreBasis === "none"` sengaja TIDAK ikut: skornya
+ * berarti "tidak ada pengamatan", bukan "nol".
+ */
+export function buildConclusionLog(
+  sessions: readonly { engagement?: ConclusionLogSource | null }[],
+): ConclusionLog[] {
+  const out: ConclusionLog[] = [];
+  for (const s of sessions) {
+    const e = s.engagement;
+    if (!e) continue;
+    if (e.scoreBasis === "none") continue;
+    if (!(typeof e.score === "number" && e.score > 0)) continue;
+    out.push({
+      score: e.score,
+      observed: true,
+      playingPhone: e.playingPhone,
+      drowsy: e.drowsy,
+      prepared: e.prepared,
+      hwMissed: e.hwMissed,
+    });
+  }
+  return out;
+}
+
+/** Bagian `EngagementLog` yang dipakai kesimpulan. */
+export interface ConclusionLogSource {
+  score?: number;
+  scoreBasis?: string;
+  playingPhone?: boolean;
+  drowsy?: boolean;
+  prepared?: boolean;
+  hwMissed?: boolean;
+}
+
+/**
  * Kesimpulan tentang murid. Urutan prioritasnya sengaja:
  *
  * 1. kalau **tidak ada** data pengamatan, katakan apa adanya — jangan mengarang;
