@@ -5,8 +5,18 @@ interface AiCostModalProps {
   description?: string;
   /** Ringkasan data yang dikirim untuk fitur ini. */
   dataSent?: string;
-  /** Konten opsional (mis. checkbox "regenerasi paksa") di atas tombol aksi. */
+  /**
+   * Rincian token dan biaya USD, bila estimatornya menyediakannya.
+   *
+   * Sebelum modal biaya disatukan (G3-04 langkah 3), rincian ini hanya ada di
+   * modal khusus langkah 5 Catat Sesi. Menyatukannya tidak boleh menghilangkan
+   * informasi, jadi ia dipindah ke sini sebagai satu baris tambahan.
+   */
+  tokenNote?: string;
+  /** Konten opsional (mis. pemilih gaya penulisan) di atas tombol aksi. */
   extraContent?: React.ReactNode;
+  /** true saat aksi sedang berjalan, supaya tombolnya tidak bisa ditekan dua kali. */
+  busy?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -15,7 +25,9 @@ import Modal from "./Modal";
 import { DEEPSEEK_MODEL_LABEL, DEEPSEEK_COST_NOTE, DEEPSEEK_PRICING_URL, getDeepSeekPricing } from "../lib/aiConfig";
 import { SparkleIcon } from "../components/icons";
 
-export function AiCostModal({ open, title, estimatedIDR, description, dataSent, extraContent, onConfirm, onCancel }: AiCostModalProps) {
+export function AiCostModal({
+  open, title, estimatedIDR, description, dataSent, tokenNote, extraContent, busy = false, onConfirm, onCancel,
+}: AiCostModalProps) {
   if (!open) return null;
   return (
     <Modal onClose={onCancel} ariaLabel={title}>
@@ -23,6 +35,7 @@ export function AiCostModal({ open, title, estimatedIDR, description, dataSent, 
       <div className="bg-[var(--accent-tint)] rounded-xl p-3 space-y-1">
         <p className="text-sm font-semibold text-[var(--ink-accent)]">Estimasi biaya DeepSeek</p>
         <p className="text-xs text-[var(--ink-accent)]">{DEEPSEEK_MODEL_LABEL} · tarif {getDeepSeekPricing().period}</p>
+        {tokenNote && <p className="text-xs text-[var(--ink-accent)]">{tokenNote}</p>}
         <p className="text-xl font-bold text-[var(--ink-accent)]">≈ Rp {estimatedIDR.toFixed(2)}</p>
         {description && <p className="text-xs text-[var(--ink-accent)]">{description}</p>}
         <p className="text-xs text-[var(--ink-muted)]">{DEEPSEEK_COST_NOTE}</p>
@@ -37,13 +50,13 @@ export function AiCostModal({ open, title, estimatedIDR, description, dataSent, 
       )}
       {extraContent}
       <div className="flex gap-3">
-        <button onClick={onCancel}
-          className="flex-1 py-3 rounded-xl border border-[var(--border)] text-[var(--ink-muted)] font-semibold text-sm">
+        <button onClick={onCancel} disabled={busy}
+          className="flex-1 py-3 rounded-xl border border-[var(--border)] text-[var(--ink-muted)] font-semibold text-sm disabled:opacity-50">
           Batal
         </button>
-        <button onClick={onConfirm}
-          className="flex-1 py-3 rounded-xl bg-[var(--accent-solid)] text-[var(--on-strong)] font-bold text-sm">
-          OK, Lanjutkan
+        <button onClick={onConfirm} disabled={busy}
+          className="flex-1 py-3 rounded-xl bg-[var(--accent-solid)] text-[var(--on-strong)] font-bold text-sm disabled:opacity-50">
+          {busy ? "Menjalankan…" : "OK, Lanjutkan"}
         </button>
       </div>
     </Modal>

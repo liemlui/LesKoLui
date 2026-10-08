@@ -25,9 +25,10 @@
  * **nonaktif dengan alasan yang terlihat** — dan tombol itu milik layar, bukan
  * milik hook. Hook ini hanya mencatat biaya yang benar-benar terjadi.
  */
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AiCostModal } from "../components/AiCostModal";
-import { catatPanggilanAi, type AiFeature } from "./aiUsage";
+import { catatPanggilanAi, pemakaianAiBulanIni, type AiFeature, type PemakaianAiBulan } from "./aiUsage";
+import { getSettings } from "../db/repos";
 
 export interface AiActionRequest {
   /** Judul modal, mis. "Draft Catatan dengan AI". */
@@ -39,6 +40,8 @@ export interface AiActionRequest {
   description?: string;
   /** Ringkasan data yang dikirim ke DeepSeek — ditampilkan di modal. */
   dataSent?: string;
+  /** Rincian token & biaya USD, bila estimatornya menyediakannya. */
+  tokenNote?: string;
   /** Isi tambahan di modal, mis. pemilih gaya penulisan. */
   extraContent?: React.ReactNode;
   /** Pekerjaan yang dijalankan setelah tutor menyetujui biayanya. */
@@ -52,14 +55,52 @@ export interface UseAiActionResult {
   sibuk: boolean;
   /** Modal biaya siap dipasang di layar. `null` = tidak ada yang menunggu. */
   modal: React.ReactNode;
+  /** Pemakaian bulan berjalan, atau null selagi dibaca. */
+  pemakaian: PemakaianAiBulan | null;
+  /**
+   * Alasan tombol AI harus nonaktif, atau "" bila boleh dipakai.
+   *
+   * Keputusan pemilik B4: batas tidak dipasang secara default, tetapi kalau
+   * diisi dan terlampaui, tombol AI nonaktif **dengan alasan yang terlihat**.
+   * Karena itu alasannya dikembalikan sebagai teks, bukan sekadar boolean.
+   */
+  alasanNonaktif: string;
 }
 
 export function useAiAction(): UseAiActionResult {
   const [permintaan, setPermintaan] = useState<AiActionRequest | null>(null);
   const [sibuk, setSibuk] = useState(false);
+  const [pemakaian, setPemakaian] = useState<PemakaianAiBulan | null>(null);
+  const [batasIdr, setBatasIdr] = useState<number | undefined>(undefined);
   // Ref, bukan state: nilainya dibaca di dalam callback tanpa memicu render dan
   // tanpa efek samping di dalam pembaruan state.
   const sedangJalan = useRef(false);
+
+  // Batas dibaca dari pengaturan; dibaca ulang saat halaman dibuka.
+  useEffect(() => {
+    let hidup = true;
+    void getSettings().then((settings) => {
+      if (hidup) setBatasIdr(settings?.ai?.monthlyBudgetIdr);
+    });
+    return () => { hidup = false; };
+  }, []);
+
+  // Pemakaian dihitung berkala: satu panggilan AI menambah biaya, dan gerbangnya
+  // harus ikut naik tanpa menunggu halaman dimuat ulang.
+  useEffect(() => {
+    let hidup = true;
+    const muat = () => {
+      void pemakaianAiBulanIni(batasIdr).then((hasil) => { if (hidup) setPemakaian(hasil); });
+    };
+    muat();
+    const id = window.setInterval(muat, 5000);
+    return () => { hidup = false; window.clearInterval(id); };
+  }, [batasIdr, sibuk]);
+
+  const alasanNonaktif = pemakaian?.terlampaui
+    ? `Batas belanja AI bulan ini (Rp ${pemakaian.batasIdr?.toLocaleString("id-ID")}) sudah terlampaui. `
+      + "Naikkan atau kosongkan batasnya di Pengaturan → AI, atau tunggu bulan berikutnya."
+    : "";
 
   const jalankan = useCallback((berikutnya: AiActionRequest) => {
     // Tolak selama masih ada yang berjalan: dua modal dalam satu layar membuat
@@ -104,11 +145,13 @@ export function useAiAction(): UseAiActionResult {
       estimatedIDR={permintaan.estimatedIDR}
       description={permintaan.description}
       dataSent={permintaan.dataSent}
+      tokenNote={permintaan.tokenNote}
       extraContent={permintaan.extraContent}
+      busy={sibuk}
       onConfirm={() => void konfirmasi()}
       onCancel={batal}
     />
   ) : null;
 
-  return { jalankan, sibuk, modal };
+  return { jalankan, sibuk, modal, pemakaian, alasanNonaktif };
 }

@@ -21,8 +21,9 @@ import { engagementLevelClass } from "../lib/toneStyles";
 import { BEHAVIOR_TAGS, RESPONSE_TAGS } from "../lib/responseTaxonomy";
 import type { SessionType } from "../lib/sessionTemplates";
 import { MIN_DURATION } from "../db/types";
-import { estimatePolishWACost } from "../lib/aiClient";
-import { AiCostModal } from "../components/AiCostModal";
+import { estimatePolishWACost, estimateDraftNoteCost } from "../lib/aiClient";
+import { catatPanggilanAi } from "../lib/aiUsage";
+import { useAiAction } from "../lib/useAiAction";
 import { SimpleMarkdown } from "../components/SimpleMarkdown";
 import Breadcrumb from "../components/Breadcrumb";
 import { clampPage, paginateItems } from "../lib/pagination";
@@ -31,7 +32,6 @@ import type { ScheduleCaptureLock } from "../lib/scheduleCapture";
 import useEngagement, { PRIMARY_ENGAGEMENT_FLAGS, SECONDARY_ENGAGEMENT_FLAGS } from "./captureSession/useEngagement";
 import useStudentBrief from "./captureSession/useStudentBrief";
 import useCaptureDraft from "./captureSession/useCaptureDraft";
-import AiCostConfirmModal from "./captureSession/AiCostConfirmModal";
 import AiTagTooltip from "./captureSession/AiTagTooltip";
 import useAiFill from "./captureSession/useAiFill";
 import CloseOutSheet from "./captureSession/CloseOutSheet";
@@ -694,9 +694,12 @@ export default function CaptureSession() {
   const originalWaMessage = currentStudent && coSessionData
     ? buildWaMessage(currentStudent, coSessionData, coFollowUps.map((item) => item.text), tutorName)
     : "";
+  // G3-04: satu jalur untuk kedua panggilan AI berbiaya di layar ini. Hook ini
+  // yang memegang modal biaya, jadi tidak ada panggilan yang bisa lolos tanpa
+  // tutor melihat harganya lebih dulu.
+  const ai = useAiAction();
   const {
     aiNoteLoading, aiWaLoading, aiWaText, setAiWaText, aiError,
-    showAiCostModal, setShowAiCostModal, showAiWaModal, setShowAiWaModal,
     aiNoteDraft, setAiNoteDraft, aiNoteOriginal, setAiNoteOriginal,
     aiNoteStyle, setAiNoteStyle, showAiContext, setShowAiContext,
     handleLocalGenerate, appendNoteChip, onAiNoteConfirm, onPolishWa,
@@ -710,6 +713,11 @@ export default function CaptureSession() {
       needsRepetition: engNeedsRepeat, hwMissed: engHwMissed, late: engLate,
       bathroomBreaks: engBathroom, restless: engRestless, offTask: engOffTask, score: engScore },
     hasEngagementInput: engTouched, originalWaMessage, tutorName, shortNote, setShortNote,
+    // G3-04: biaya dicatat lewat callback ini, bukan oleh hook itu sendiri,
+    // supaya pengisian AI tetap tidak tahu-menahu soal pembukuan.
+    catatBiaya: (fitur, biayaIdr, keterangan) => {
+      void catatPanggilanAi({ fitur, biayaIdr, perkiraanIdr: biayaIdr, keterangan });
+    },
   });
 
   // G2-10: wizard butuh pengaturan (tarif, profil, AI) — galat baca punya jalan keluar.
@@ -1734,7 +1742,36 @@ export default function CaptureSession() {
               <span className="text-xs text-[var(--ink-muted)]">{shortNote.length}/300</span>
               {settings?.ai?.enabled && settings.ai.apiKey && (subjects.length > 0 || studentSubjects.length > 0) && (
                 <button type="button" disabled={aiNoteLoading}
-                  onClick={() => setShowAiCostModal(true)}
+                  onClick={() => {
+                    // Perkiraan dihitung DI SINI, sekali, lalu dipakai untuk modal
+                    // sekaligus untuk catatan biaya.
+                    const est = estimateDraftNoteCost(activeSubjects, topic || undefined, shortNote.trim() || undefined);
+                    ai.jalankan({
+                      title: "Draft Catatan dengan AI",
+                      fitur: "Draft catatan",
+                      estimatedIDR: est.idrCost,
+                      tokenNote: `~${est.inputTokens} token masukan + ${est.outputTokens} token keluaran · ≈ $${est.usdCost.toFixed(6)}`,
+                      description: shortNote.trim()
+                        ? `Tulisan di textbox (${shortNote.trim().length} karakter) dikirim sebagai bahan utama, lalu dipoles AI.`
+                        : "Textbox kosong — AI akan membuat catatan baru.",
+                      dataSent: "Nama, level dan kelas murid; mapel, topik, jenis dan durasi sesi, mood, area perhatian, prediksi nilai, Situasi Hari Ini, skor dan indikator engagement, label perilaku dan respons, catatan sesi lalu, tindak lanjut, isi textbox, dan gaya penulisan yang dipilih. Data opsional disertakan bila tersedia.",
+                      extraContent: (
+                        <div>
+                          <label className="label">Gaya penulisan</label>
+                          <div className="grid grid-cols-3 gap-2">
+                            {(["rapikan", "perluas", "ringkas"] as const).map((gaya) => (
+                              <button key={gaya} type="button"
+                                onClick={() => setAiNoteStyle(gaya)}
+                                className={`py-2 rounded-xl text-xs font-bold border transition-colors ${aiNoteStyle === gaya ? "bg-[var(--accent-solid)] text-[var(--on-strong)] border-[var(--border-accent)]" : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)] hover:border-[var(--border-accent)]"}`}>
+                                {gaya === "rapikan" ? "Rapikan" : gaya === "perluas" ? "Perluas" : "Ringkas"}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ),
+                      aksi: () => onAiNoteConfirm(est.idrCost),
+                    });
+                  }}
                   className="flex items-center gap-1.5 text-xs font-semibold text-[var(--ink-accent)] bg-[var(--accent-tint)] hover:bg-[var(--accent-tint)] border border-[var(--border-accent)] px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
                   {aiNoteLoading ? "Draft AI..." : "Draft AI"}
                 </button>
@@ -1984,7 +2021,17 @@ export default function CaptureSession() {
           onDone={handleCloseOutDone}
           onClose={closeReport}
           onFixNote={handleFixNote}
-          onPolishWa={() => setShowAiWaModal(true)}
+          onPolishWa={() => {
+            const est = estimatePolishWACost(originalWaMessage.length);
+            ai.jalankan({
+              title: "Poles WA AI",
+              fitur: "Poles pesan WA",
+              estimatedIDR: est,
+              description: "Poles pesan WhatsApp jadi lebih hangat dan personal",
+              dataSent: "Pesan awal sesi: nama murid dan tutor, tanggal, mapel, durasi, catatan sesi, topik, dan tindak lanjut yang tercantum dalam pesan.",
+              aksi: () => onPolishWa(est),
+            });
+          }}
           aiWaEnabled={Boolean(settings?.ai?.enabled && settings.ai.apiKey)}
           aiWaLoading={aiWaLoading}
           aiError={aiError}
@@ -2014,28 +2061,11 @@ export default function CaptureSession() {
         onConfirm={() => confirmDelete?.onConfirm()}
       />
 
-      {/* Poles WA AI modal */}
-      <AiCostModal
-        open={showAiWaModal}
-        title="Poles WA AI"
-        estimatedIDR={estimatePolishWACost(originalWaMessage.length)}
-        description="Poles pesan WhatsApp jadi lebih hangat dan personal"
-        dataSent="Pesan awal sesi: nama murid dan tutor, tanggal, mapel, durasi, catatan sesi, topik, dan tindak lanjut yang tercantum dalam pesan."
-        onCancel={() => setShowAiWaModal(false)}
-        onConfirm={onPolishWa}
-      />
-
-      {/* AI Cost confirm modal */}
-      <AiCostConfirmModal
-        open={showAiCostModal}
-        subjects={activeSubjects}
-        topic={topic || undefined}
-        draftNote={shortNote}
-        style={aiNoteStyle}
-        onStyleChange={setAiNoteStyle}
-        onConfirm={onAiNoteConfirm}
-        onCancel={() => setShowAiCostModal(false)}
-      />
+      {/* G3-04: modal biaya untuk kedua panggilan AI di layar ini datang dari
+          satu jalur `useAiAction`, jadi hanya ada satu komponen modal biaya di
+          seluruh aplikasi. Perkiraan sudah dihitung saat tombolnya ditekan, jadi
+          angka di modal dan angka yang dicatat ke riwayat tidak bisa berbeda. */}
+      {ai.modal}
     </div>
   );
 }

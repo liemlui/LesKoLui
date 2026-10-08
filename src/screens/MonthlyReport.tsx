@@ -30,7 +30,7 @@ import {
   shouldUseStoredReportSnapshot,
   currentPackageSessionRange,
 } from "../lib/reportSessionScope";
-import { AiCostModal } from "../components/AiCostModal";
+import { useAiAction } from "../lib/useAiAction";
 import Modal from "../components/Modal";
 import ConfirmSheet from "../components/ConfirmSheet";
 import PinConfirmModal from "../components/PinConfirmModal";
@@ -137,8 +137,9 @@ export default function MonthlyReportPage() {
   const [editingTeacherNote, setEditingTeacherNote] = useState(false);
   const [teacherNoteText,    setTeacherNoteText]    = useState("");
   const [editingQuote,     setEditingQuote]     = useState(false);
-  const [showNarrativesModal, setShowNarrativesModal] = useState(false);
   const [forceNarratives, setForceNarratives] = useState(false);
+  // G3-04: satu jalur panggilan AI berbiaya. Modal biayanya datang dari hook ini.
+  const ai = useAiAction();
   // Buka kunci laporan final → draft (konfirmasi → PIN → aksi).
   const [unlockConfirmOpen, setUnlockConfirmOpen] = useState(false);
   const [unlockPinOpen, setUnlockPinOpen] = useState(false);
@@ -775,7 +776,6 @@ export default function MonthlyReportPage() {
     invalidateAiRequests();
     setMessage("");
     setPrevTexts(null);
-    setShowNarrativesModal(false);
     setEditingNarrative(null);
     setEditText("");
     setEditingSummary(false);
@@ -1746,10 +1746,35 @@ export default function MonthlyReportPage() {
                   )}
                   {report && settings?.ai?.enabled && settings.ai.apiKey && (
                     <button className="w-full btn text-sm bg-[var(--accent-solid)] text-[var(--on-strong)] hover:bg-[var(--accent-solid)] disabled:opacity-50"
-                      onClick={() => setShowNarrativesModal(true)} disabled={aiLoading || !availability.ok}
-                      title="AI mengisi semua isian: narasi tiap sesi (per batch kecil) + ringkasan, catatan guru, kutipan & rencana depan">
+                      onClick={() => {
+                        // G3-04: perkiraan dihitung sekali di sini, lalu angka
+                        // yang sama dipakai untuk modal sekaligus catatan biaya.
+                        const perkiraan = estimateNarrativesCost(forceNarratives ? reportSessions.length : narrativeDirtyCount)
+                          + estimateReportSummaryCost(reportSessions.length);
+                        ai.jalankan({
+                          title: "Isi Semua dengan AI",
+                          fitur: "Ringkasan laporan",
+                          estimatedIDR: perkiraan,
+                          description: `Narasi ${forceNarratives ? reportSessions.length : narrativeDirtyCount} sesi ditulis dalam batch kecil (maks 8 sesi per panggilan) supaya laporan panjang tidak lagi gagal karena batas token, lalu satu panggilan ringkasan mengisi ringkasan, catatan guru, kutipan & rencana depan untuk ${student?.name ?? "murid"}.${!forceNarratives && narrativeDirtyCount === 0 ? " Semua narasi sudah terbaru — ringkasan, catatan guru & rencana depan tetap diisi." : ""}`,
+                          dataSent: "Nama dan level murid, periode laporan, serta ID, tanggal, mapel dan catatan sesi yang dipilih. Bila tersedia: mood, topik, area perhatian, prediksi dan nilai akhir, refleksi nilai, skor engagement, label perilaku dan respons, serta rata-rata engagement periode sebelumnya.",
+                          extraContent: (
+                            <label className="flex items-start gap-2 mt-3 text-xs text-[var(--ink-muted)] cursor-pointer select-none">
+                              <input type="checkbox" checked={forceNarratives} onChange={(e) => setForceNarratives(e.target.checked)}
+                                className="mt-0.5 h-4 w-4 accent-[var(--border-accent)]" />
+                              <span>Tulis ulang paksa semua narasi (lewati hemat token)</span>
+                            </label>
+                          ),
+                          aksi: () => handleGenerateAll(forceNarratives),
+                        });
+                      }} disabled={aiLoading || !availability.ok || Boolean(ai.alasanNonaktif)}
+                      title={ai.alasanNonaktif || "AI mengisi semua isian: narasi tiap sesi (per batch kecil) + ringkasan, catatan guru, kutipan & rencana depan"}>
                       {aiLoading ? `AI ${aiProgress?.step ?? "…"}` : "Isi Semua dengan AI"}
                     </button>
+                  )}
+                  {/* B4: kalau batas belanja terlampaui, alasannya ditulis di layar,
+                      bukan hanya tombol yang diam-diam mati. */}
+                  {ai.alasanNonaktif && (
+                    <p className="mt-1 text-xs font-semibold text-[var(--ink-danger)]">{ai.alasanNonaktif}</p>
                   )}
 
                   {/* Kesiapan laporan, bukan hanya jumlah narasi. */}
@@ -2297,23 +2322,8 @@ export default function MonthlyReportPage() {
         </Modal>
       )}
 
-      {/* Isi Semua dengan AI cost modal — satu-satunya tombol AI di halaman ini */}
-      <AiCostModal
-        open={showNarrativesModal}
-        title="Isi Semua dengan AI"
-        estimatedIDR={estimateNarrativesCost(forceNarratives ? reportSessions.length : narrativeDirtyCount) + estimateReportSummaryCost(reportSessions.length)}
-        description={`Narasi ${forceNarratives ? reportSessions.length : narrativeDirtyCount} sesi ditulis dalam batch kecil (maks 8 sesi per panggilan) supaya laporan panjang tidak lagi gagal karena batas token, lalu satu panggilan ringkasan mengisi ringkasan, catatan guru, kutipan & rencana depan untuk ${student?.name ?? "murid"}.${!forceNarratives && narrativeDirtyCount === 0 ? " Semua narasi sudah terbaru — ringkasan, catatan guru & rencana depan tetap diisi." : ""}`}
-        dataSent="Nama dan level murid, periode laporan, serta ID, tanggal, mapel dan catatan sesi yang dipilih. Bila tersedia: mood, topik, area perhatian, prediksi dan nilai akhir, refleksi nilai, skor engagement, label perilaku dan respons, serta rata-rata engagement periode sebelumnya."
-        extraContent={
-          <label className="flex items-start gap-2 mt-3 text-xs text-[var(--ink-muted)] cursor-pointer select-none">
-            <input type="checkbox" checked={forceNarratives} onChange={(e) => setForceNarratives(e.target.checked)}
-              className="mt-0.5 h-4 w-4 accent-[var(--border-accent)]" />
-            <span>Tulis ulang paksa semua narasi (lewati hemat token)</span>
-          </label>
-        }
-        onCancel={() => { setShowNarrativesModal(false); setForceNarratives(false); }}
-        onConfirm={() => { setShowNarrativesModal(false); const f = forceNarratives; setForceNarratives(false); handleGenerateAll(f); }}
-      />
+      {/* G3-04: modal biaya dari satu jalur `useAiAction`, bukan dipasang di sini. */}
+      {ai.modal}
 
       {/* Buka kunci laporan final: konfirmasi → PIN Keuangan → aksi (D4). */}
       <ConfirmSheet

@@ -22,6 +22,7 @@ import SettingsLoadError from "../components/SettingsLoadError";
 import Skeleton from "../components/Skeleton";
 import ConfirmSheet from "../components/ConfirmSheet";
 import { DEEPSEEK_MODEL, DEEPSEEK_MODEL_LABEL, DEEPSEEK_DOCS_URL, DEEPSEEK_PRICING_URL, DEEPSEEK_COST_NOTE } from "../lib/aiConfig";
+import { pemakaianAiBulanIni, type PemakaianAiBulan } from "../lib/aiUsage";
 import type { Settings, AuditAction } from "../db/types";
 import { settingsDirtyPatch } from "../lib/settingsDirtyPatch";
 import Toggle from "../components/Toggle";
@@ -384,6 +385,28 @@ export default function SettingsPage() {
     timedOut: settingsTimedOut,
   });
 
+  /**
+   * Pemakaian AI bulan berjalan (G3-04). Dibaca dari catatan audit `ai.call`,
+   * jadi angkanya berasal dari panggilan yang benar-benar terjadi — bukan dari
+   * perkiraan yang mungkin tidak pernah dijalankan.
+   *
+   * Diletakkan **sebelum** gerbang `settingsView !== "ready"` di bawah, karena
+   * aturan hook React menuntut urutan pemanggilan yang sama di setiap render —
+   * hook setelah `return` bersyarat akan membuat urutannya berubah-ubah.
+   */
+  const [pemakaian, setPemakaian] = useState<PemakaianAiBulan | null>(null);
+  const aiAktif = Boolean(form?.ai.enabled);
+  const batasAi = form?.ai.monthlyBudgetIdr;
+
+  useEffect(() => {
+    if (!aiAktif) { setPemakaian(null); return; }
+    let hidup = true;
+    void pemakaianAiBulanIni(batasAi).then((hasil) => {
+      if (hidup) setPemakaian(hasil);
+    });
+    return () => { hidup = false; };
+  }, [aiAktif, batasAi]);
+
   if (settingsView !== "ready") {
     if (settingsView === "loading") {
       return (
@@ -416,7 +439,12 @@ export default function SettingsPage() {
     setDirty(true);
   };
 
-  const updateAi = (field: string, value: string | boolean) => {
+  /**
+   * Pemakaian AI bulan berjalan dipakai blok "Batas belanja AI" di bagian AI.
+   * Hook-nya sudah dipanggil di atas gerbang `settingsView`, jadi di sini hanya
+   * fungsi pengubah yang tinggal.
+   */
+  const updateAi = (field: string, value: string | boolean | number | undefined) => {
     setForm((f) => {
       if (!f) return f;
       const ai = { ...f.ai, [field]: value };
@@ -1009,6 +1037,49 @@ export default function SettingsPage() {
                   <li>Poles WA: isi pesan awal sesi beserta nama murid dan tutor.</li>
                   <li>Analisis keuangan: ringkasan periode, nama dan data keuangan murid, piutang, pengeluaran, serta pembanding dan proyeksi.</li>
                 </ul>
+              </div>
+              <div className="rounded-xl border border-[var(--border)] p-3 space-y-2">
+                <p className="text-sm font-semibold text-[var(--ink-strong)]">Batas belanja AI per bulan</p>
+                <div>
+                  <label htmlFor="set-ai-budget" className="label">Batas bulanan (Rp)</label>
+                  <input
+                    id="set-ai-budget"
+                    className="input"
+                    inputMode="numeric"
+                    placeholder="Kosongkan untuk tanpa batas"
+                    value={form.ai.monthlyBudgetIdr ?? ""}
+                    onChange={(event) => {
+                      const digit = event.target.value.replace(/\D/g, "");
+                      updateAi("monthlyBudgetIdr", digit ? Number(digit) : undefined);
+                    }}
+                  />
+                  <p className="mt-1 text-xs text-[var(--ink-muted)]">
+                    <strong>Kosong berarti tanpa batas</strong> — itu bawaannya, dan AI tidak pernah diblokir karena
+                    kolom ini kosong. Kalau diisi, tombol AI akan nonaktif setelah pemakaian bulan ini melewatinya,
+                    dengan alasannya tertulis di layar.
+                  </p>
+                </div>
+                {/* Pemakaian bulan berjalan dibaca dari catatan audit `ai.call`. */}
+                <div className="rounded-lg bg-[var(--surface)] px-3 py-2 text-xs">
+                  {pemakaian ? (
+                    <>
+                      <p className="text-[var(--ink-strong)]">
+                        Bulan ini: <strong>Rp {pemakaian.terpakaiIdr.toFixed(2)}</strong>
+                        {pemakaian.batasIdr !== undefined && <> dari batas Rp {pemakaian.batasIdr.toLocaleString("id-ID")}</>}
+                        {" · "}{pemakaian.jumlahPanggilan} panggilan
+                      </p>
+                      <p className={pemakaian.terlampaui ? "mt-0.5 font-semibold text-[var(--ink-danger)]" : "mt-0.5 text-[var(--ink-muted)]"}>
+                        {pemakaian.terlampaui
+                          ? "Batas sudah terlampaui — tombol AI nonaktif sampai batas dinaikkan atau bulan berganti."
+                          : pemakaian.sisaIdr !== undefined
+                            ? `Sisa jatah Rp ${pemakaian.sisaIdr.toFixed(2)}.`
+                            : "Tanpa batas."}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-[var(--ink-muted)]">Menghitung pemakaian…</p>
+                  )}
+                </div>
               </div>
             </>
           )}

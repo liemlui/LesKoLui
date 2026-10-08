@@ -18,7 +18,7 @@ import {
   estimateFinancialInsightsCost,
   type FinancialInsightOutput,
 } from "../../lib/aiClient";
-import { AiCostModal } from "../../components/AiCostModal";
+import { useAiAction } from "../../lib/useAiAction";
 import ActivityRing from "../../components/dashboard/ActivityRing";
 import { LineChart, DonutChart, BarChart } from "../../components/charts";
 import type { BarSeries, DonutSegment } from "../../components/charts";
@@ -90,7 +90,9 @@ export default function RingkasanTab({
   // ── AI insight state ──
   const [aiInsightLoadingMonth, setAiInsightLoadingMonth] = useState<string | null>(null);
   const [aiInsightResult, setAiInsightResult] = useState<{ month: string; data: FinancialInsightOutput } | null>(null);
-  const [financialAiCostMonth, setFinancialAiCostMonth] = useState<string | null>(null);
+  // G3-04: satu jalur panggilan AI berbiaya. Hook ini memegang modal biayanya,
+  // jadi analisis keuangan tidak bisa berjalan tanpa tutor melihat harganya.
+  const ai = useAiAction();
   const aiInsightRequestRef = useRef(0);
   const financialAiConfigured = settings.ai.enabled === true && Boolean(settings.ai.apiKey?.trim());
   const aiInsightLoading = aiInsightLoadingMonth === month;
@@ -103,7 +105,6 @@ export default function RingkasanTab({
     aiInsightRequestRef.current += 1;
     setAiInsightLoadingMonth(null);
     setAiInsightResult(null);
-    setFinancialAiCostMonth(null);
     setMessage((current) => current.startsWith("Analisis AI ") ? "" : current);
   }, [month, financialAiConfigured, setMessage]);
 
@@ -271,6 +272,11 @@ export default function RingkasanTab({
   const monthOnlyBilled = totalBilled - crossPeriodTotal;
 
   // ── AI handlers ──
+  /**
+   * G3-04: tombol ini tidak lagi membuka state lokal, melainkan menyerahkan
+   * seluruh urutannya ke `useAiAction` — perkiraan dihitung di sini, ditampilkan
+   * di modal, dan angka yang sama itu yang dicatat ke riwayat biaya.
+   */
   const handleRequestFinancialInsights = () => {
     if (!financialAiConfigured) {
       setMessage("Aktifkan AI dan masukkan DeepSeek API Key di Pengaturan.");
@@ -280,7 +286,15 @@ export default function RingkasanTab({
       setMessage("Data keuangan masih dimuat. Coba lagi sebentar.");
       return;
     }
-    setFinancialAiCostMonth(month);
+    const perkiraan = estimateFinancialInsightsCost();
+    ai.jalankan({
+      title: "Analisis AI Keuangan",
+      fitur: "Ringkasan keuangan",
+      estimatedIDR: perkiraan,
+      description: `Analisis ${monthLabel(month)} dengan pembanding 3 bulan sebelumnya.`,
+      dataSent: "Periode dan ringkasan keuangan; nama murid, nominal dan umur piutang; pendapatan, jumlah sesi, level, tarif dan rata-rata engagement hingga 10 murid; pengeluaran per kategori; rata-rata 3 bulan sebelumnya, proyeksi, kolektibilitas, laporan belum dibagikan, serta indikator piutang dan pembayaran.",
+      aksi: () => handleGenerateInsights(),
+    });
   };
 
   const handleGenerateInsights = async () => {
@@ -731,20 +745,11 @@ export default function RingkasanTab({
         )}
       </div>
 
-      {financialAiConfigured && financialAiCostMonth === month && (
-        <AiCostModal
-          open
-          title="Analisis AI Keuangan"
-          estimatedIDR={estimateFinancialInsightsCost()}
-          description={`Analisis ${monthLabel(month)} dengan pembanding 3 bulan sebelumnya.`}
-          dataSent="Periode dan ringkasan keuangan; nama murid, nominal dan umur piutang; pendapatan, jumlah sesi, level, tarif dan rata-rata engagement hingga 10 murid; pengeluaran per kategori; rata-rata 3 bulan sebelumnya, proyeksi, kolektibilitas, laporan belum dibagikan, serta indikator piutang dan pembayaran."
-          onCancel={() => setFinancialAiCostMonth(null)}
-          onConfirm={() => {
-            setFinancialAiCostMonth(null);
-            void handleGenerateInsights();
-          }}
-        />
-      )}
+      {/* G3-04: satu jalur `useAiAction` untuk seluruh aplikasi. Modal biaya
+          analisis keuangan datang dari hook itu, bukan dipasang sendiri di sini,
+          supaya tidak ada panggilan AI yang bisa lolos tanpa tutor melihat
+          harganya — dan supaya biayanya ikut tercatat di riwayat. */}
+      {ai.modal}
         </div>
       </details>
     </div>

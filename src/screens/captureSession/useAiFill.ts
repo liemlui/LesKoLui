@@ -2,6 +2,7 @@ import { useState } from "react";
 import { draftShortNote, polishWhatsApp } from "../../lib/aiClient";
 import { generateRichNote } from "../../lib/sessionTemplates";
 import type { EngagementNarrativeInput, SessionType } from "../../lib/sessionTemplates";
+import type { AiFeature } from "../../lib/aiUsage";
 
 type AiNoteStyle = "rapikan" | "perluas" | "ringkas";
 
@@ -25,20 +26,24 @@ interface UseAiFillParams {
   tutorName: string;
   shortNote: string;
   setShortNote: React.Dispatch<React.SetStateAction<string>>;
+  /**
+   * Catat biaya panggilan AI yang berhasil (G3-04). Dipanggil **sesudah**
+   * permintaan selesai, supaya pemakaian tidak naik saat panggilannya gagal.
+   * Diteruskan dari `CaptureSession` yang memegang `useAiAction()`.
+   */
+  catatBiaya: (fitur: AiFeature, biayaIdr: number, keterangan: string) => void;
 }
 
 /** State dan tindakan AI untuk wizard catat sesi. UI tetap berada di layar induk. */
 export default function useAiFill({
   student, sessionType, subjects, topic, mood, needsWork, predictedGrade, situasiNote, duration,
   behaviorLabels, responseLabel, previousNote, followUps, engagement, hasEngagementInput,
-  originalWaMessage, tutorName, shortNote, setShortNote,
+  originalWaMessage, tutorName, shortNote, setShortNote, catatBiaya,
 }: UseAiFillParams) {
   const [aiNoteLoading, setAiNoteLoading] = useState(false);
   const [aiWaLoading, setAiWaLoading] = useState(false);
   const [aiWaText, setAiWaText] = useState<string | null>(null);
   const [aiError, setAiError] = useState("");
-  const [showAiCostModal, setShowAiCostModal] = useState(false);
-  const [showAiWaModal, setShowAiWaModal] = useState(false);
   const [aiNoteDraft, setAiNoteDraft] = useState<string | null>(null);
   const [aiNoteOriginal, setAiNoteOriginal] = useState("");
   const [aiNoteStyle, setAiNoteStyle] = useState<AiNoteStyle>("rapikan");
@@ -66,8 +71,7 @@ export default function useAiFill({
     setAiNoteOriginal("");
   };
 
-  const onAiNoteConfirm = async () => {
-    setShowAiCostModal(false);
+  const onAiNoteConfirm = async (biayaIdr: number) => {
     setAiNoteLoading(true); setAiError("");
     setAiNoteDraft(null); setAiNoteOriginal(shortNote);
     try {
@@ -95,24 +99,25 @@ export default function useAiFill({
         followUps, durationHours: duration,
       });
       if (res.note) setAiNoteDraft(res.note);
+      // Biaya dicatat hanya setelah balasan benar-benar diterima.
+      catatBiaya("Draft catatan", biayaIdr, "Draft Catatan dengan AI");
     } catch (e) { setAiError((e as Error).message); }
     finally { setAiNoteLoading(false); }
   };
 
-  const onPolishWa = async () => {
-    setShowAiWaModal(false);
+  const onPolishWa = async (biayaIdr: number) => {
     if (!student) return;
     setAiWaLoading(true); setAiError("");
     try {
       const res = await polishWhatsApp({ original: originalWaMessage, studentName: student.name, tutorName });
       if (res.message) setAiWaText(res.message);
+      catatBiaya("Poles pesan WA", biayaIdr, "Poles WA AI");
     } catch (e) { setAiError((e as Error).message); }
     finally { setAiWaLoading(false); }
   };
 
   return {
     aiNoteLoading, aiWaLoading, aiWaText, setAiWaText, aiError,
-    showAiCostModal, setShowAiCostModal, showAiWaModal, setShowAiWaModal,
     aiNoteDraft, setAiNoteDraft, aiNoteOriginal, setAiNoteOriginal,
     aiNoteStyle, setAiNoteStyle, showAiContext, setShowAiContext,
     handleLocalGenerate, appendNoteChip, onAiNoteConfirm, onPolishWa,
