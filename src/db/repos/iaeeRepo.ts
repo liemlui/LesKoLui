@@ -13,6 +13,27 @@ export async function createIaEeProject(
   return id;
 }
 
+/**
+ * Menyunting proyek yang sudah ada (keputusan pemilik 2026-10-09, K3).
+ *
+ * Sebelum ini satu-satunya jalan memperbaiki judul yang salah ketik adalah
+ * menghapus proyek — dan milestone-nya ikut hilang. Kosongkan patch kalau tidak
+ * ada yang berubah supaya `updatedAt` tidak naik tanpa sebab.
+ *
+ * `studentId` sengaja TIDAK bisa diubah: memindahkan proyek ke murid lain
+ * mengubah siapa yang punya data itu, bukan sekadar menyunting isinya.
+ * `milestones` juga tidak lewat sini — ia punya fungsi sendiri supaya tidak ada
+ * dua jalur yang bisa saling menimpa.
+ */
+export type IaEeProjectPatch = Partial<
+  Pick<IaEeProject, "type" | "subject" | "title" | "deadline" | "notes">
+>;
+
+export async function updateIaEeProject(id: string, patch: IaEeProjectPatch): Promise<void> {
+  if (Object.keys(patch).length === 0) return;
+  await db.iaeeProjects.update(id, { ...patch, updatedAt: timestamp() });
+}
+
 export async function listIaEeProjects(studentId: string): Promise<IaEeProject[]> {
   return db.iaeeProjects.where({ studentId }).sortBy("createdAt");
 }

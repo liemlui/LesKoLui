@@ -444,7 +444,18 @@ export interface Expense {
 
 // ── IA / EE / PP Milestone Tracker ──────────────────────────────────────────
 
-export type IaEeType = "IA" | "EE" | "PP";
+/**
+ * Jenis proyek tugas panjang.
+ *
+ * `IA`/`EE`/`PP` adalah jenis IB yang lama dan dipertahankan apa adanya supaya
+ * data lama tetap terbaca tanpa migrasi. `OTHER` ditambahkan 2026-10-09
+ * (keputusan pemilik K1 + K4) supaya pelacak ini juga berguna untuk murid
+ * non-IB: eksperimen, esai, proyek pribadi, atau tugas jangka panjang apa pun.
+ *
+ * Daftar label dan perilakunya ada di `src/lib/projectTypes.ts` — itu satu
+ * sumbernya, dan `src/lib/backupValidation.ts` memakai daftar yang sama.
+ */
+export type IaEeType = "IA" | "EE" | "PP" | "OTHER";
 export type MilestoneStatus = "pending" | "in_progress" | "done";
 
 export interface IaEeMilestone {

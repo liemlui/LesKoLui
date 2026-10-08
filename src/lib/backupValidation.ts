@@ -1,5 +1,6 @@
 import { db } from "../db/db";
 import type { BackupTable } from "./backup";
+import { PROJECT_TYPE_CODES } from "./projectTypes";
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -35,7 +36,14 @@ const SESSION_STATUSES = new Set(["SCHEDULED", "DONE", "CANCELLED", "NO_SHOW", "
 const PAYMENT_STATUSES = new Set(["UNPAID", "PAID"]);
 const EXPENSE_CATEGORIES = new Set(["transport", "buku", "alat", "platform", "lainnya"]);
 const FOLLOWUP_TYPES = new Set(["continue-topic", "misconception", "send-resource", "other"]);
-const IAEE_TYPES = new Set(["IA", "EE", "PP"]);
+/**
+ * Jenis proyek tugas panjang yang dikenal saat validasi backup.
+ * WAJIB sejalan dengan `IaEeType` di `db/types.ts`. Sejak 2026-10-09 daftarnya
+ * TIDAK disalin lagi ke sini: ia dibaca dari `projectTypes.ts` supaya validator
+ * dan antarmuka tidak bisa berbeda (butir 7 G3-06 menuntut keduanya disamakan).
+ * Jenis yang tidak dikenal tetap hanya jadi PERINGATAN, bukan galat.
+ */
+const IAEE_TYPES = new Set<string>(PROJECT_TYPE_CODES);
 const MILESTONE_STATUSES = new Set(["pending", "in_progress", "done"]);
 /**
  * Jenjang murid yang dikenal saat validasi backup.

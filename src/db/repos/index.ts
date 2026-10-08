@@ -84,9 +84,10 @@ export type { ExpenseCategory } from "./paymentRepo";
 
 // IA / EE Projects
 export {
-  createIaEeProject, listIaEeProjects, deleteIaEeProject,
+  createIaEeProject, listIaEeProjects, deleteIaEeProject, updateIaEeProject,
   addMilestone, updateMilestone, deleteMilestone,
 } from "./iaeeRepo";
+export type { IaEeProjectPatch } from "./iaeeRepo";
 export type { IaEeMilestone } from "./paymentRepo";
 
 // Follow-ups

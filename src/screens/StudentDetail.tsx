@@ -122,7 +122,12 @@ export default function StudentDetail() {
   const handleDeleteSession = async () => {
     if (!detailSession) return;
     if (!settings?.financialPin) {
-      alert("Set PIN Keuangan di Pengaturan sebelum menghapus sesi.");
+      // Dulu `alert()` bawaan peramban. Dialog bawaan dilarang keputusan
+      // `ATURAN-AI.md` §4.1, dan modal ini SUDAH punya keadaan tanpa-PIN beserta
+      // tombol "Atur PIN Keuangan" — jadi cukup buka keadaan itu, dan tutor
+      // langsung dapat jalan keluarnya alih-alih pesan yang harus ditutup dulu.
+      setDeletePinError("");
+      setShowDeletePin(true);
       return;
     }
     const delay = getPinLockoutDelay();
