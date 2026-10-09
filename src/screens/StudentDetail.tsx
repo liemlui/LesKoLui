@@ -22,12 +22,11 @@ import Tabs from "../components/Tabs";
 import Badge from "../components/Badge";
 import { clampPage, paginateItems } from "../lib/pagination";
 import Modal from "../components/Modal";
-import MaskedMoney from "../components/ui/MaskedMoney";
 import SettingsLoadError from "../components/SettingsLoadError";
 import { useMoneyVisible } from "../hooks/useMoneyVisible";
 import { useSettingsQuery } from "../hooks/useSettingsQuery";
 import { getResponseTag } from "../lib/responseTaxonomy";
-import { MAX_HOURLY_RATE, clampCurrencyAmount, isValidCurrencyAmount } from "../lib/money";
+import { MAX_HOURLY_RATE, isValidCurrencyAmount } from "../lib/money";
 import EvidenceCard from "./studentDetail/EvidenceCard";
 import StudyNoteCard from "./studentDetail/StudyNoteCard";
 import UpcomingSchedule from "./studentDetail/UpcomingSchedule";
@@ -35,13 +34,14 @@ import SessionDetailModal from "./studentDetail/SessionDetailModal";
 import SessionNoteEditModal from "./studentDetail/SessionNoteEditModal";
 import ScheduleEditModal from "./studentDetail/ScheduleEditModal";
 import PerluTindakanCard from "./studentDetail/PerluTindakanCard";
+import UangBlok from "./studentDetail/UangBlok";
 import RiwayatSesi from "./studentDetail/RiwayatSesi";
 import RiwayatPembayaran from "./studentDetail/RiwayatPembayaran";
 import IaEeTracker from "./studentDetail/IaEeTracker";
 import NilaiRapor from "./studentDetail/NilaiRapor";
 import { engagementAverage, sessionEngagementScore } from "../lib/engagement";
 import { studentActions } from "../lib/studentActions";
-import { PencilIcon, LockIcon, ChartIcon, ChatIcon } from "../components/icons";
+import { PencilIcon, ChartIcon, ChatIcon } from "../components/icons";
 
 /**
  * StudentDetail — halaman detail murid.
@@ -114,12 +114,9 @@ export default function StudentDetail() {
 
   // Tarif les — visibilitas uang lewat SATU hook (kontrak K3.1/K3.6), bukan state
   // lokal per layar. Gerbang PIN untuk aksi (ganti tarif, hapus sesi) tetap ada.
+  // State sunting tarif (nilai, sedang menyimpan, centang retroaktif) pindah ke
+  // `studentDetail/UangBlok.tsx` sejak butir 3 G3-06.
   const money = useMoneyVisible();
-  const [showRateEdit,  setShowRateEdit]  = useState(false);
-  const [newRate,       setNewRate]       = useState(0);
-  const [rateSaving,    setRateSaving]    = useState(false);
-  /** D1(c): retroaktif HANYA setelah tutor mencentang, tidak pernah otomatis. */
-  const [repriceUnbilledSessions, setRepriceUnbilledSessions] = useState(false);
 
   const handleDeleteSession = async () => {
     if (!detailSession) return;
@@ -147,25 +144,26 @@ export default function StudentDetail() {
     msg("Sesi dihapus");
   };
 
-  const handleSaveRate = async () => {
-    if (!id || !isValidCurrencyAmount(newRate, MAX_HOURLY_RATE)) {
+  /**
+   * Menyimpan tarif murid. Mengembalikan pesan galat untuk ditampilkan blok uang;
+   * string kosong berarti berhasil, jadi pemanggil tidak perlu menebak.
+   */
+  const handleSaveRate = async (rateValue: number, applyRetroactive: boolean): Promise<string> => {
+    if (!id || !isValidCurrencyAmount(rateValue, MAX_HOURLY_RATE)) {
       // Penanda money-safe WAJIB sebaris dengan pemanggilannya: perintah verifikasi K3
       // (`arsitektur/11` §6) dan tes `moneyGate` memfilter per BARIS, bukan per blok.
-      msg(`Tarif harus 1 sampai ${formatRupiah(MAX_HOURLY_RATE)}.`); // money-safe: konstanta batas tarif
-      return;
+      return `Tarif harus 1 sampai ${formatRupiah(MAX_HOURLY_RATE)}.`; // money-safe: konstanta batas tarif
     }
-    const rateChanged = newRate !== student?.hourlyRate;
-    const applyRetroactive = repriceUnbilledSessions && rateChanged;
-    setRateSaving(true);
     try {
       // D1(c): tanpa centang, sesi lama tidak tersentuh — hanya sesi berikutnya
-      // yang memakai tarif baru.
-      await updateStudent(id, { hourlyRate: newRate }, { repriceUnbilledSessions: applyRetroactive });
+      // yang memakai tarif baru. Sesi yang sudah punya nominal manual juga tidak
+      // pernah ditimpa; blok uang menyebutkan jumlahnya di layar.
+      await updateStudent(id, { hourlyRate: rateValue }, { repriceUnbilledSessions: applyRetroactive });
       msg(applyRetroactive ? "Tarif & sesi lama diperbarui ✓" : "Tarif diperbarui ✓");
-      setShowRateEdit(false); setRepriceUnbilledSessions(false);
+      return "";
+    } catch (e) {
+      return "Gagal: " + (e as Error).message;
     }
-    catch (e) { msg("Gagal: " + (e as Error).message); }
-    finally { setRateSaving(false); }
   };
 
   // Edit DONE session notes — SELURUH state modal ini pindah ke
@@ -198,8 +196,9 @@ export default function StudentDetail() {
   }, [allSessions]);
 
   // ── Computed ────────────────────────────────────────────────────────
-  const totalSessions = allSessions?.length ?? 0;
-  const totalHours    = useMemo(() => (allSessions ?? []).reduce((s, x) => s + x.durationHours, 0), [allSessions]);
+  // `totalSessions`/`totalHours` dihapus dari sini (butir 3 G3-06): angka itu
+  // sudah dihitung di blok Uang, di atas sesi SELESAI saja — bukan atas seluruh
+  // riwayat seperti versi lama, yang ikut menghitung sesi terjadwal dan batal.
 
   // Sessions with engagement data
   const engSessions = useMemo(
@@ -307,10 +306,12 @@ export default function StudentDetail() {
   const paginatedHistorySessions = paginateItems(historySessions, safeHistoryPage);
 
   // Aturan "apa yang menunggu tutor" ada di `lib/studentActions.ts`, bukan di JSX.
+  const doneSessions = (allSessions ?? []).filter((s) => s.status === "DONE");
+
   const studentActionList = studentActions({
     today,
     scheduled: upcomingSched ?? [],
-    doneSessions: (allSessions ?? []).filter((s) => s.status === "DONE"),
+    doneSessions,
     payments: studentPayments ?? [],
     followUps: studentFollowUps ?? [],
     unbilledCount: unbilledCount ?? 0,
@@ -456,98 +457,25 @@ export default function StudentDetail() {
             <span className="text-[var(--ink-strong)]">{student.notes}</span>
           </div>
         )}
-
-        {/* Tarif les — satu bentuk terkunci `Rp ••••••` + gembok (K3.2/K3.6) */}
-        <div className="flex items-center gap-2 text-sm pt-1 border-t border-[var(--border)]">
-          <span className="text-[var(--ink-muted)] w-28 flex-shrink-0">Tarif les</span>
-          {money.visible ? (
-            showRateEdit ? (
-              <div className="flex flex-1 flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <input type="number" className="input text-sm py-1.5 flex-1" value={newRate || ""}
-                    onChange={(e) => setNewRate(clampCurrencyAmount(Number(e.target.value), MAX_HOURLY_RATE))}
-                    placeholder={studentBillingPolicy === "session_count" ? "IDR/pertemuan" : "IDR/jam"} />
-                  <button onClick={handleSaveRate} disabled={rateSaving}
-                    className="text-xs bg-[var(--brand-solid)] text-[var(--on-strong)] px-2 py-1.5 rounded-lg font-semibold">
-                    {rateSaving ? "..." : "Simpan"}
-                  </button>
-                  <button onClick={() => { setShowRateEdit(false); setRepriceUnbilledSessions(false); }}
-                    className="text-xs text-[var(--ink-muted)] px-1.5 py-1.5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-                </div>
-                {newRate !== student.hourlyRate && (unbilledCount ?? 0) > 0 && (
-                  <label className="flex items-start gap-2 rounded-lg border border-[var(--border-warn)] bg-[var(--bg-warn)] p-2 text-xs leading-relaxed text-[var(--ink-warn)]">
-                    <input
-                      type="checkbox"
-                      checked={repriceUnbilledSessions}
-                      onChange={(event) => setRepriceUnbilledSessions(event.target.checked)}
-                      className="mt-0.5 h-4 w-4 flex-none accent-[var(--border-warn)]"
-                    />
-                    <span>
-                      Terapkan tarif baru ke {unbilledCount} sesi lama yang belum ditagih (retroaktif).
-                      Tanpa centang ini, sesi lama tetap memakai tarif historisnya dan hanya sesi
-                      berikutnya yang memakai tarif baru. Tindakan retroaktif tercatat di Riwayat Aktivitas.
-                    </span>
-                  </label>
-                )}
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 flex-1">
-                <span className="text-[var(--ink-strong)] font-medium"><MaskedMoney amount={student.hourlyRate} />/{studentBillingPolicy === "session_count" ? "pertemuan" : "jam"}</span>
-                <button onClick={() => { setShowRateEdit(true); setNewRate(student.hourlyRate); }}
-                  className="ml-auto text-xs bg-[var(--bg-subtle)] hover:bg-[var(--bg-subtle)] text-[var(--ink-muted)] px-2 py-1 rounded-lg"><PencilIcon size={13} className="mr-1 inline align-[-2px]" /> Edit</button>
-                <button onClick={money.lock} aria-label="Kunci angka uang"
-                  className="inline-flex h-8 w-8 items-center justify-center text-xs text-[var(--ink-muted)] px-1.5 py-1"><LockIcon size={13} className="mr-1 inline align-[-2px]" /></button>
-              </div>
-            )
-          ) : (
-            <div className="flex items-center gap-2 flex-1">
-              <MaskedMoney amount={student.hourlyRate} className="text-base" hideUnlock={money.needsSetup} />
-              {money.needsSetup && (
-                <button onClick={() => navigate("/settings")}
-                  className="ml-auto text-xs bg-[var(--bg-danger)] hover:bg-[var(--bg-danger)] text-[var(--ink-danger)] px-2 py-1 rounded-lg">Buat PIN</button>
-              )}
-              {money.locked && (
-                <span className="ml-auto text-xs text-[var(--ink-muted)]">Tarif dikunci</span>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-start gap-2 border-t border-[var(--border)] pt-2 text-sm">
-          <span className="w-28 flex-shrink-0 text-[var(--ink-muted)]">Siklus tagihan</span>
-          <span className="min-w-0 flex-1 font-medium text-[var(--ink-strong)]">
-            {studentBillingPolicy === "session_count"
-              ? `Setiap ${student.billingSessionCount ?? 8} pertemuan yang dapat ditagih${
-                  student.pendingBillingPolicy
-                    ? ` · akan beralih ke ${student.pendingBillingPolicy === "monthly" ? "Bulanan" : "Manual"} setelah antrean selesai`
-                    : ""
-                }`
-              : studentBillingPolicy === "manual"
-                ? "Manual"
-                : "Bulanan (Laporan → Tagihan)"}
-          </span>
-          <button
-            type="button"
-            onClick={() => setShowBillingHelp(true)}
-            aria-label="Bantuan siklus tagihan"
-            title="Cara kerja siklus tagihan"
-            className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[var(--bg-subtle)] text-xs font-bold text-[var(--ink-muted)] transition-colors hover:bg-[var(--brand-tint-strong)] hover:text-[var(--ink-brand)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-brand)]"
-          >?</button>
-        </div>
-
-        {totalSessions > 0 && (
-          <div className="pt-3 mt-1 border-t border-[var(--border)] grid grid-cols-2 gap-3">
-            <div className="bg-[var(--brand-tint)] rounded-xl p-3 text-center">
-              <p className="text-xl font-bold text-[var(--ink-brand)]">{totalSessions}</p>
-              <p className="text-xs text-[var(--ink-brand)] font-medium">Total Sesi</p>
-            </div>
-            <div className="bg-[var(--accent-tint)] rounded-xl p-3 text-center">
-              <p className="text-xl font-bold text-[var(--ink-accent)]">{totalHours}j</p>
-              <p className="text-xs text-[var(--ink-accent)] font-medium">Total Jam</p>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Blok uang — butir 3 G3-06. Satu-satunya tempat angka uang di layar Murid
+          (keputusan ATURAN-AI §4.1 butir B1). Sebelumnya tarif dan siklus tagihan
+          menumpang di dalam kartu Info Murid di atas. */}
+      <UangBlok
+        student={student}
+        billableSessions={doneSessions}
+        unbilledCount={unbilledCount ?? 0}
+        billingPolicy={studentBillingPolicy}
+        moneyVisible={money.visible}
+        needsSetup={money.needsSetup}
+        locked={money.locked}
+        onLock={money.lock}
+        onOpenSettings={() => navigate("/settings")}
+        onOpenBillingHelp={() => setShowBillingHelp(true)}
+        onSaveRate={handleSaveRate}
+      />
+
       {student && (
         <StudyNoteCard
           studentId={student.id}
