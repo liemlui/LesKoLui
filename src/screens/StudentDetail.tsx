@@ -1,5 +1,5 @@
 import Skeleton from "../components/Skeleton";
-import { useMemo, useState, useEffect, useRef, type ChangeEvent } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
@@ -16,7 +16,6 @@ import { verifyPin } from "../lib/crypto";
 import { getPinLockoutDelay, recordPinFailure, resetPinLockout } from "../lib/pinLockout";
 import type { CancelMode, EditMode } from "../db/repos";
 import { dayLabel, todayWIB, formatRupiah } from "../lib/format";
-import { isGradeLower } from "../lib/grades";
 import type { Session } from "../db/types";
 import { billingPolicyOf } from "../db/types";
 import { CURRICULUM_META } from "../lib/ibSubjects";
@@ -24,26 +23,25 @@ import Tabs from "../components/Tabs";
 import Badge from "../components/Badge";
 import { clampPage, paginateItems } from "../lib/pagination";
 import ClockTimePicker from "../components/ClockTimePicker";
-import SignaturePad from "../components/SignaturePad";
 import Modal from "../components/Modal";
 import MaskedMoney from "../components/ui/MaskedMoney";
 import SettingsLoadError from "../components/SettingsLoadError";
 import { useMoneyVisible } from "../hooks/useMoneyVisible";
 import { useSettingsQuery } from "../hooks/useSettingsQuery";
 import { Z } from "../lib/zIndex";
-import { compressPhoto, stampPhoto } from "../lib/foto";
 import { getResponseTag } from "../lib/responseTaxonomy";
 import { MAX_HOURLY_RATE, clampCurrencyAmount, isValidCurrencyAmount } from "../lib/money";
 import EvidenceCard from "./studentDetail/EvidenceCard";
 import StudyNoteCard from "./studentDetail/StudyNoteCard";
 import UpcomingSchedule from "./studentDetail/UpcomingSchedule";
 import SessionDetailModal from "./studentDetail/SessionDetailModal";
+import SessionNoteEditModal from "./studentDetail/SessionNoteEditModal";
 import RiwayatSesi from "./studentDetail/RiwayatSesi";
 import RiwayatPembayaran from "./studentDetail/RiwayatPembayaran";
 import IaEeTracker from "./studentDetail/IaEeTracker";
 import NilaiRapor from "./studentDetail/NilaiRapor";
 import { engagementAverage, sessionEngagementScore } from "../lib/engagement";
-import { PencilIcon, CameraIcon, LockIcon, ChartIcon, ImageIcon, ChatIcon } from "../components/icons";
+import { PencilIcon, LockIcon, ChartIcon, ChatIcon } from "../components/icons";
 
 const DURATIONS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
 
@@ -166,125 +164,15 @@ export default function StudentDetail() {
     finally { setRateSaving(false); }
   };
 
-  // Edit DONE session notes
-  const [editSession,     setEditSession]     = useState<Session | null>(null);
-  const [editShortNote,   setEditShortNote]   = useState("");
-  const [editTopic,       setEditTopic]       = useState("");
-  const [editNeedsWork,   setEditNeedsWork]   = useState("");
-  const [editPredictedGrade, setEditPredictedGrade] = useState("");
-  const [editActualGrade,   setEditActualGrade]     = useState("");
-  const [editGradeReflection, setEditGradeReflection] = useState("");
-  const [editGradeError,  setEditGradeError]  = useState("");
-  const [editNoteSaving,  setEditNoteSaving]  = useState(false);
-  const [editPhoto,       setEditPhoto]       = useState<Blob | undefined>();
-  const [editPhotoUrl,    setEditPhotoUrl]    = useState<string | undefined>();
-  const [editPhotoError,  setEditPhotoError]  = useState("");
-  const [editSignature,   setEditSignature]   = useState<Blob | undefined>();
-  const [editSigUrl,      setEditSigUrl]      = useState<string | undefined>();
-  const [showEditSigPad,  setShowEditSigPad]  = useState(false);
-  const [editCost,         setEditCost]         = useState(0);
-  const [editCostOverride, setEditCostOverride] = useState<number | null>(null);
-  const [editNoteDuration, setEditNoteDuration] = useState(1.5);
-  const [isEditingCost,    setIsEditingCost]    = useState(false);
-  const editCameraRef = useRef<HTMLInputElement>(null);
-  const editGalleryRef = useRef<HTMLInputElement>(null);
+  // Edit DONE session notes — SELURUH state modal ini pindah ke
+  // `studentDetail/SessionNoteEditModal.tsx` (G3-06 fase A). Induknya hanya
+  // menyimpan SESI MANA yang sedang disunting; 17 useState, dua useRef, dan dua
+  // useEffect pembuat URL blob ikut pindah supaya induk tidak memegang state
+  // yang bukan urusannya.
+  const [editSession, setEditSession] = useState<Session | null>(null);
 
-  // Keep photo URL in sync with the image selected while editing.
-  useEffect(() => {
-    if (!editPhoto) { setEditPhotoUrl(undefined); return; }
-    const url = URL.createObjectURL(editPhoto);
-    setEditPhotoUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [editPhoto]);
-
-  // Keep sig URL in sync with blob
-  useEffect(() => {
-    if (!editSignature) { setEditSigUrl(undefined); return; }
-    const url = URL.createObjectURL(editSignature);
-    setEditSigUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [editSignature]);
-
-  const openEditNote = (s: Session) => {
-    setEditSession(s);
-    setEditShortNote(s.shortNote ?? "");
-    setEditTopic(s.topic ?? "");
-    setEditNeedsWork(s.needsWork ?? "");
-    setEditPredictedGrade(s.predictedGrade ?? "");
-    setEditActualGrade(s.actualGrade ?? "");
-    setEditGradeReflection(s.gradeReflection ?? "");
-    setEditGradeError("");
-    setEditPhoto(s.photo);
-    setEditPhotoError("");
-    setEditSignature(s.signature);
-    setShowEditSigPad(false);
-    setEditCost(s.cost);
-    setEditCostOverride(s.costOverride ?? null);
-    setEditNoteDuration(s.durationHours);
-    setIsEditingCost(false);
-  };
-
-  const handleEditPhoto = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    const sessionDate = editSession?.date;
-    if (!file || !sessionDate) return;
-    if (!file.type.startsWith("image/")) {
-      setEditPhotoError("File harus berupa gambar (JPG/PNG/WebP).");
-      e.target.value = "";
-      return;
-    }
-    if (file.size > 50 * 1024 * 1024) {
-      setEditPhotoError("Foto terlalu besar (maks. 50 MB).");
-      e.target.value = "";
-      return;
-    }
-    try {
-      const compressed = await compressPhoto(file);
-      setEditPhoto(await stampPhoto(compressed, sessionDate));
-      setEditPhotoError("");
-    } catch {
-      setEditPhotoError("Foto tidak dapat diproses. Coba pilih file lain.");
-    }
-    e.target.value = "";
-  };
-
-  const handleSaveNote = async () => {
-    if (!editSession) return;
-    if (isGradeLower(editActualGrade, editPredictedGrade) && !editGradeReflection.trim()) {
-      setEditGradeError("Nilai akhir lebih rendah dari prediksi — tulis refleksi kenapa.");
-      return;
-    }
-    setEditGradeError("");
-    setEditNoteSaving(true);
-    try {
-      const patch: Partial<Session> = {
-        shortNote: editShortNote.trim(),
-        topic: editTopic.trim() || undefined,
-        needsWork: editNeedsWork.trim() || undefined,
-        predictedGrade: editPredictedGrade.trim() || undefined,
-        actualGrade: editActualGrade.trim() || undefined,
-        gradeReflection: editGradeReflection.trim() || undefined,
-        photo: editPhoto,
-        signature: editSignature,
-      };
-      // Include cost override if tutor manually changed it
-      if (editCostOverride !== null && editCostOverride !== editSession.costOverride) {
-        patch.costOverride = editCostOverride;
-        patch.cost = editCostOverride;
-      } else if (editCostOverride === null && editSession.costOverride != null) {
-        // Tutor reset: clear override → auto-recalculate via null
-        patch.costOverride = null;
-      }
-      // Include duration if changed
-      if (editNoteDuration !== editSession.durationHours) {
-        patch.durationHours = editNoteDuration;
-      }
-      await updateSession(editSession.id, patch);
-      msg("Catatan diperbarui ✓");
-      setEditSession(null);
-    } catch (e) { msg("Gagal: " + (e as Error).message); }
-    finally { setEditNoteSaving(false); }
-  };
+  /** Membuka modal edit catatan untuk satu sesi. Sisa state-nya milik modal itu. */
+  const openEditNote = (s: Session) => setEditSession(s);
 
   // Photo + signature URLs for session history
   const [photoUrls, setPhotoUrls] = useState<Map<string, string>>(new Map());
@@ -744,230 +632,13 @@ export default function StudentDetail() {
 
       {/* ── EDIT SESSION NOTES MODAL ── */}
       {editSession && (
-        <div role="dialog" aria-modal="true" aria-label="Edit catatan sesi" className={`fixed inset-0 bg-[var(--scrim)]/40 ${Z.modal} flex items-end justify-center`} onClick={() => setEditSession(null)}>
-          <div className="bg-[var(--surface-strong)] w-full max-w-md rounded-t-2xl pb-8 max-h-[80vh] overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
-              <div>
-                <h3 className="font-bold text-base">Edit Catatan Sesi</h3>
-                <p className="text-xs text-[var(--ink-muted)] mt-0.5">{editSession.date} · {editSession.durationHours}j</p>
-              </div>
-              <button onClick={() => setEditSession(null)} aria-label="Tutup" className="text-[var(--ink-muted)] text-xl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-            </div>
-            <div className="p-5 space-y-4">
-              {/* ── Durasi & Biaya ── */}
-              <div className="bg-[var(--surface)] rounded-xl p-4 space-y-3">
-                <div>
-                  <label className="label">⏱️ Durasi</label>
-                  <div className="flex flex-wrap gap-1.5 mt-1">
-                    {DURATIONS.filter((d) => d <= 3).map((d) => (
-                      <button
-                        key={d}
-                        type="button"
-                        onClick={() => { setEditNoteDuration(d); if (editCostOverride === null) setEditCost(d * editSession.rateSnapshot); }}
-                        className={`py-1.5 px-3 rounded-lg text-xs font-semibold border transition-colors ${
-                          editNoteDuration === d
-                            ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]"
-                            : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)]"
-                        }`}
-                      >
-                        {d}j
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="label">💰 Biaya</label>
-                  {money.visible && isEditingCost ? (
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[var(--ink-muted)] text-sm font-medium">Rp</span>
-                      <input
-                        type="number"
-                        className="input flex-1"
-                        value={editCostOverride ?? editCost}
-                        onChange={(e) => {
-                          const v = parseInt(e.target.value, 10);
-                          if (!isNaN(v) && v >= 0) setEditCostOverride(v);
-                          else if (e.target.value === "") setEditCostOverride(0);
-                        }}
-                        placeholder="300000"
-                        min={0}
-                        step={500}
-                        autoFocus
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setIsEditingCost(false)}
-                        className="text-xs text-[var(--ink-muted)] hover:text-[var(--ink-muted)] px-2 py-1"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 mt-1">
-                      <MaskedMoney amount={editCostOverride ?? editCost} className="text-base font-bold text-[var(--ink-strong)]" />
-                      {money.visible && editCostOverride !== null && (
-                        <span className="text-xs bg-[var(--bg-warn)] text-[var(--ink-warn)] px-1.5 py-0.5 rounded-full font-medium">
-                          Manual
-                        </span>
-                      )}
-                      {money.visible && editCostOverride !== null && (
-                        <button
-                          type="button"
-                          onClick={() => setEditCostOverride(null)}
-                          className="text-xs text-[var(--ink-danger)] hover:text-[var(--ink-danger)] ml-1"
-                          title="Kembalikan ke hitungan otomatis"
-                        >
-                          ↺ Reset
-                        </button>
-                      )}
-                      {money.visible && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsEditingCost(true);
-                            if (editCostOverride === null) setEditCostOverride(editCost);
-                          }}
-                          className="text-xs text-[var(--ink-brand)] hover:text-[var(--ink-brand)] ml-auto"
-                          title="Edit biaya manual"
-                        >
-                          <PencilIcon size={13} className="mr-1 inline align-[-2px]" /> Edit
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  {money.visible && editCostOverride === null && (
-                    <p className="text-xs text-[var(--ink-muted)] mt-0.5">
-                      <MaskedMoney amount={editSession.rateSnapshot} />/jam × {editNoteDuration}j
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label htmlFor="sd-catatan-singkat" className="label">Catatan Singkat</label>
-                <textarea id="sd-catatan-singkat" className="input" rows={3} value={editShortNote}
-                  onChange={(e) => setEditShortNote(e.target.value)}
-                  placeholder="Apa yang dibahas hari ini?" />
-              </div>
-              <div>
-                <label htmlFor="sd-topik" className="label">Topik Spesifik</label>
-                <input id="sd-topik" className="input" value={editTopic}
-                  onChange={(e) => setEditTopic(e.target.value)}
-                  placeholder="Mis. Quadratic Functions, Essay Structure..." />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label htmlFor="sd-prediksi" className="label">📈 Prediksi Nilai</label>
-                  <input id="sd-prediksi" className="input" maxLength={10} value={editPredictedGrade}
-                    onChange={(e) => setEditPredictedGrade(e.target.value)}
-                    placeholder="mis. 6, 7, A" />
-                </div>
-                <div>
-                  <label htmlFor="sd-aktual" className="label">✅ Nilai Akhir</label>
-                  <input id="sd-aktual" className="input" maxLength={10} value={editActualGrade}
-                    onChange={(e) => { setEditActualGrade(e.target.value); setEditGradeError(""); }}
-                    placeholder="mis. 5, B" />
-                </div>
-              </div>
-              {isGradeLower(editActualGrade, editPredictedGrade) && (
-                <div>
-                  <label htmlFor="sd-refleksi" className="label">💭 Refleksi Nilai <span className="text-[var(--ink-danger)]">*</span></label>
-                  <textarea id="sd-refleksi" className="input text-sm" rows={2} value={editGradeReflection}
-                    onChange={(e) => { setEditGradeReflection(e.target.value); setEditGradeError(""); }}
-                    placeholder="Kenapa nilai akhir lebih rendah dari prediksi? (mis. soal ujian lebih sulit, materi belum dikuasai, kondisi murid...)" />
-                  <p className="text-xs text-[var(--ink-attention)] mt-1">Prediksi ({editPredictedGrade}) lebih tinggi dari nilai akhir ({editActualGrade}) — refleksi wajib diisi.</p>
-                  {editGradeError && <p className="text-xs text-[var(--ink-danger)] mt-1">{editGradeError}</p>}
-                </div>
-              )}
-              <div>
-                <label htmlFor="sd-followup" className="label">Perlu Diulang / Follow-up</label>
-                <input id="sd-followup" className="input" value={editNeedsWork}
-                  onChange={(e) => setEditNeedsWork(e.target.value)}
-                  placeholder="Hal yang perlu dikerjakan di sesi berikutnya..." />
-              </div>
-
-              {/* Foto sesi */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="label !mb-0">📸 Foto Sesi</label>
-                  {editPhotoUrl && (
-                    <button type="button" onClick={() => { setEditPhoto(undefined); setEditPhotoError(""); }}
-                      className="text-xs text-[var(--ink-danger)] hover:text-[var(--ink-danger)]">Hapus</button>
-                  )}
-                </div>
-                <input ref={editCameraRef} type="file" accept="image/*" capture="environment"
-                  onChange={handleEditPhoto} className="hidden" />
-                <input ref={editGalleryRef} type="file" accept="image/*"
-                  onChange={handleEditPhoto} className="hidden" />
-                {editPhotoUrl ? (
-                  <div className="relative overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-                    <img src={editPhotoUrl} alt="Foto sesi" className="h-44 w-full object-cover" />
-                    <div className="absolute bottom-2 right-2 flex gap-1.5">
-                      <button type="button" onClick={() => editCameraRef.current?.click()}
-                        className="rounded-full bg-[var(--scrim)]/65 px-2.5 py-1 text-xs text-[var(--on-strong)]"><CameraIcon size={13} className="mr-1 inline align-[-2px]" /> Kamera</button>
-                      <button type="button" onClick={() => editGalleryRef.current?.click()}
-                        className="rounded-full bg-[var(--scrim)]/65 px-2.5 py-1 text-xs text-[var(--on-strong)]"><ImageIcon size={13} className="mr-1 inline align-[-2px]" /> Galeri</button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-2">
-                    <button type="button" onClick={() => editCameraRef.current?.click()}
-                      className="rounded-xl border-2 border-dashed border-[var(--border)] py-5 text-sm text-[var(--ink-muted)] transition-colors hover:border-[var(--brand-tint-strong)] hover:text-[var(--ink-brand)]">
-                      <CameraIcon size={13} className="mr-1 inline align-[-2px]" /> Ambil Foto
-                    </button>
-                    <button type="button" onClick={() => editGalleryRef.current?.click()}
-                      className="rounded-xl border-2 border-dashed border-[var(--border)] py-5 text-sm text-[var(--ink-muted)] transition-colors hover:border-[var(--border-success)] hover:text-[var(--ink-success)]">
-                      <ImageIcon size={13} className="mr-1 inline align-[-2px]" /> Pilih Galeri
-                    </button>
-                  </div>
-                )}
-                {editPhotoError && <p className="mt-1 text-xs text-[var(--ink-danger)]">{editPhotoError}</p>}
-                <p className="mt-1.5 text-xs text-[var(--ink-muted)]">Foto akan dikompres dan diberi tanggal sesi.</p>
-              </div>
-
-              {/* Tanda Tangan Murid */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="label !mb-0">✍️ Tanda Tangan Murid</label>
-                  {editSigUrl && (
-                    <button type="button" onClick={() => { setEditSignature(undefined); setShowEditSigPad(false); }}
-                      className="text-xs text-[var(--ink-danger)] hover:text-[var(--ink-danger)]">Hapus</button>
-                  )}
-                </div>
-                {showEditSigPad ? (
-                  <div className="space-y-2">
-                    <SignaturePad
-                      onSave={(blob) => { setEditSignature(blob); setShowEditSigPad(false); }}
-                      onClear={() => setEditSignature(undefined)}
-                    />
-                    <button type="button" onClick={() => setShowEditSigPad(false)}
-                      className="text-xs text-[var(--ink-muted)] w-full text-center">Tutup</button>
-                  </div>
-                ) : editSigUrl ? (
-                  <div className="border border-[var(--border)] rounded-xl p-2 bg-[var(--surface)] flex items-center gap-3">
-                    <img src={editSigUrl} alt="TTD" className="h-12 max-w-[120px] object-contain" />
-                    <button type="button" onClick={() => setShowEditSigPad(true)}
-                      className="text-xs text-[var(--ink-brand)] hover:underline">Ganti</button>
-                  </div>
-                ) : (
-                  <button type="button" onClick={() => setShowEditSigPad(true)}
-                    className="w-full py-2.5 border-2 border-dashed border-[var(--border)] rounded-xl text-sm text-[var(--ink-muted)] hover:border-[var(--brand-tint-strong)] hover:text-[var(--ink-brand)] transition-colors">
-                    + Minta tanda tangan murid
-                  </button>
-                )}
-              </div>
-
-              <button onClick={handleSaveNote} disabled={editNoteSaving}
-                className="w-full py-3 rounded-xl bg-[var(--brand-solid)] text-[var(--on-strong)] font-bold text-sm hover:bg-[var(--brand-solid)] disabled:opacity-50 transition-colors">
-                {editNoteSaving ? "Menyimpan..." : "Simpan Catatan"}
-              </button>
-              <button type="button" onClick={() => { setDetailSession(editSession); setEditSession(null); }}
-                className="w-full py-2.5 rounded-xl border border-[var(--border-danger)] text-[var(--ink-danger)] text-sm font-medium hover:bg-[var(--bg-danger)] transition-colors">
-                Kelola / Hapus Sesi
-              </button>
-              <p className="text-center text-xs text-[var(--ink-muted)]">Penghapusan sesi memerlukan PIN Keuangan.</p>
-            </div>
-          </div>
-        </div>
+        <SessionNoteEditModal
+          session={editSession}
+          moneyVisible={money.visible}
+          notify={msg}
+          onClose={() => setEditSession(null)}
+          onKelolaSesi={() => { setDetailSession(editSession); setEditSession(null); }}
+        />
       )}
 
       {/* ── EDIT SCHEDULE MODAL ── */}
