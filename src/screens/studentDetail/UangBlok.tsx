@@ -173,7 +173,7 @@ export default function UangBlok({
           ) : (
             <div className="flex items-center gap-2 flex-1">
               <span className="text-[var(--ink-strong)] font-medium">
-                <MaskedMoney amount={student.hourlyRate} />/{rateUnit}
+                <MaskedMoney amount={student.hourlyRate} label={`Tarif per ${rateUnit}`} />/{rateUnit}
               </span>
               <button
                 type="button"
@@ -186,7 +186,7 @@ export default function UangBlok({
           )
         ) : (
           <div className="flex items-center gap-2 flex-1">
-            <MaskedMoney amount={student.hourlyRate} className="text-base" hideUnlock={needsSetup} />
+            <MaskedMoney amount={student.hourlyRate} className="text-base" hideUnlock={needsSetup} label={`Tarif per ${rateUnit}`} />
             {needsSetup && (
               <button
                 type="button"
@@ -251,7 +251,7 @@ export default function UangBlok({
                 <div className="mt-2 rounded-xl bg-[var(--brand-tint)] px-3 py-2">
                   <p className="text-xs text-[var(--ink-brand)]">Total biaya sesi selesai</p>
                   <p className="text-lg font-bold text-[var(--ink-brand)]">
-                    <MaskedMoney amount={summary.total} />
+                    <MaskedMoney amount={summary.total} label="Total biaya sesi selesai" />
                   </p>
                   <p className="text-xs text-[var(--ink-brand)] mt-0.5 leading-relaxed">
                     Perkiraan dari {summary.count} sesi selesai. Tagihan yang sudah difinalkan memakai nominal

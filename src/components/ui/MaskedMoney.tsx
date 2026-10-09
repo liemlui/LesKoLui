@@ -17,6 +17,17 @@ export interface MaskedMoneyProps {
   hideUnlock?: boolean;
   /** Ganti perilaku tombol buka dengan aksi milik pemanggil. */
   onUnlockRequest?: () => void;
+  /**
+   * Nama besaran ini, mis. "Tarif les" atau "Total biaya sesi selesai".
+   *
+   * Tanpa ini, pembaca layar hanya mendengar teks yang terlihat. Saat terkunci
+   * teksnya adalah `Rp ••••••`, sehingga pengguna pembaca layar kehilangan
+   * keterangan angka itu apa (audit G3-06 butir 8: satu konsep, satu label).
+   * Label yang diberikan dipakai untuk keadaan TERBUKA maupun TERKUNCI.
+   */
+  label?: string;
+  /** Keterangan tambahan di belakang nama, mis. label skor bersama. */
+  valueHint?: string;
 }
 
 /**
@@ -32,16 +43,27 @@ export interface MaskedMoneyProps {
  */
 export default function MaskedMoney({
   amount, variant = "inline", className = "", hideUnlock = false, onUnlockRequest,
+  label, valueHint,
 }: MaskedMoneyProps) {
   const money = useMoneyVisible();
   const [askUnlock, setAskUnlock] = useState(false);
 
+  /** Nama yang bisa diakses: "Tarif les: Rp •••••• — angka terkunci". */
+  const accessibleName = (visibleText: string) => {
+    if (!label) return undefined;
+    const hint = valueHint ? ` ${valueHint}` : "";
+    return money.visible
+      ? `${label}${hint}: ${visibleText}`
+      : `${label}${hint}: ${visibleText} — angka terkunci`;
+  };
+
   if (amount === null || amount === undefined || Number.isNaN(amount)) {
-    return <span className={className}>—</span>;
+    return <span className={className} aria-label={label ? `${label}: belum ada angka` : undefined}>—</span>;
   }
 
   if (money.visible) {
-    return <span className={className}>{formatRupiah(amount)}</span>;
+    const text = formatRupiah(amount);
+    return <span className={className} aria-label={accessibleName(text)}>{text}</span>;
   }
 
   const openUnlock = () => {
@@ -51,7 +73,10 @@ export default function MaskedMoney({
 
   return (
     <>
-      <span className={`inline-flex items-baseline gap-1 ${className}`}>
+      <span
+        className={`inline-flex items-baseline gap-1 ${className}`}
+        aria-label={accessibleName(MASKED_MONEY_TEXT)}
+      >
         <span className={variant === "block" ? "tracking-widest" : "tracking-wider"}>
           {MASKED_MONEY_TEXT}
         </span>

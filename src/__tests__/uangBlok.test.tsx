@@ -191,4 +191,30 @@ describe("Blok Uang — sifat gerbang uang", () => {
       expect(html).not.toMatch(/\bRp\s?1\./);
     }
   });
+
+  it("memberi nama yang bisa diakses untuk setiap angka uang", () => {
+    // Tanpa label, pembaca layar hanya mendengar "Rp ••••••" di keadaan terkunci,
+    // sehingga pengguna tidak tahu angka itu apa (butir 8 G3-06).
+    const html = render({ billableSessions: [sess({ id: "a" })] });
+    expect(html).toContain('aria-label="Tarif per jam:');
+  });
+
+  it("menyebut angka terkunci pada nama yang bisa diakses saat gerbang tertutup", () => {
+    const html = render({ moneyVisible: false });
+    expect(html).toContain("angka terkunci");
+  });
+
+  it("tetap memberi nama saat bagian rincian dibuka", () => {
+    // Catatan: `MaskedMoney` membaca gerbangnya SENDIRI lewat hook
+    // `useMoneyVisible()`, sedangkan prop `moneyVisible` di sini hanya mengatur
+    // bagian rincian biaya. Di aplikasi keduanya sepadan; di tes tanpa penyedia
+    // hook, yang bisa dibuktikan adalah namanya tetap ada.
+    const html = render({ moneyVisible: true });
+    expect(html).toContain('aria-label="Tarif per jam:');
+  });
+
+  it("memberi nama pada total biaya, bukan hanya pada tarif", () => {
+    const html = render({ billableSessions: [sess({ id: "a" })] });
+    expect(html).toContain('aria-label="Total biaya sesi selesai:');
+  });
 });
