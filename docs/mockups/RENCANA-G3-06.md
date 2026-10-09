@@ -274,8 +274,8 @@ Ketiganya dijawab pada 2026-10-09. Kolom terakhir mencatat apa yang benar-benar 
 
 | Kode | Pertanyaan | Jawaban pemilik | Keadaan pelaksanaan |
 |---|---|---|---|
-| K5 | Butir #10: pertahankan halaman (Sebelumnya/Berikutnya), atau ganti jadi tombol "Muat 20 lagi"? | **Pertahankan** pola halaman | belum dikerjakan — `RiwayatSesi.tsx` belum disentuh; yang wajib tetap diperbaiki adalah tombol bersarang di dalam `role="button"` (`:144`/`:197`) |
-| K6 | Dua kartu rata-rata fokus (`EvidenceCard` di Sesi, `EngagementSummary` di Progres): gabung, atau biarkan dua? | **Gabung jadi satu**, dan yang diutamakan **kesimpulan**: "murid ini seperti apa" | mesin kesimpulannya **sudah jadi** (`src/lib/studentConclusion.ts` + 18 tes); menyambungkannya ke `EngagementSummary` masih tersisa |
+| K5 | Butir #10: pertahankan halaman (Sebelumnya/Berikutnya), atau ganti jadi tombol "Muat 20 lagi"? | **Pertahankan** pola halaman | pola halaman tetap; yang WAJIB diperbaiki tinggal tombol bersarang di dalam `role="button"` (`RiwayatSesi.tsx:144`/`:197`) — belum dikerjakan |
+| K6 | Dua kartu rata-rata fokus (`EvidenceCard` di Sesi, `EngagementSummary` di Progres): gabung, atau biarkan dua? | **Gabung jadi satu**, dan yang diutamakan **kesimpulan**: "murid ini seperti apa" | **selesai** (commit `f18fa0e` + `e68e974`) — lihat §7.4 |
 | K7 | Empat `confirm()` bawaan peramban: perbaiki sekarang atau jadi butir tersendiri? | **Perbaiki segera** | **selesai** — lihat §7.3 |
 
 ### 7.3 Pelaksanaan K7 (selesai 2026-10-09)
@@ -289,6 +289,22 @@ Audit ulang menemukan cakupannya lebih luas dari empat tempat yang saya sebut se
 | `Settings.tsx` (5 tempat: `:590`, `:630`, `:1161`, `:1220`, `:1294`) | `confirm()` pada jalur restore dan hapus semua data | **sengaja TIDAK dikerjakan di sini** — berkas itu lingkup G3-09, dan syarat selesai G3-09 sendiri sudah berbunyi "tidak ada lagi dialog bawaan peramban di berkas pengaturan". Ditinggalkan sebagai utang yang tercatat, bukan dilupakan. |
 
 Penjaga regresinya: `src/__tests__/nativeDialogs.test.ts` (14 tes). Ia membaca **berkas sumber** (pola yang sama dengan `moneyGate.test.ts`), membuang komentar lebih dulu supaya dokumentasi yang menyebut `confirm()` tidak dihitung, dan sudah **dibuktikan bisa gagal** dengan menyisipkan pelanggaran sementara ke `StudentDetail.tsx` — tes merah dan menyebut berkasnya, lalu pelanggaran dikembalikan.
+
+### 7.4 Pelaksanaan K6 (selesai 2026-10-09)
+
+Hasil akhirnya: **satu kartu `Kesimpulan`** menggantikan dua kartu yang saling mengulang.
+
+| Berkas | Perubahan |
+|---|---|
+| `src/lib/studentConclusion.ts` (baru) | mesin kesimpulan + `buildConclusionLog` — diuji 18 tes (`studentConclusion.test.ts`) + 11 tes render (`engagementConclusion.test.tsx`) |
+| `src/screens/studentDetail/EngagementSummary.tsx` | ditulis ulang: blok kesimpulan di atas, empat pengulangan dihapus, `:146` versi lama yang salah penyebut **hilang** |
+| `src/screens/studentDetail/EvidenceCard.tsx` | jadi penunjuk tipis (31 baris) — tidak lagi menghitung rata-rata sendiri |
+| `src/components/charts/RatingIndicator.tsx` | prop opsional `hideValue`, supaya "N/10" tidak dicetak ketiga kalinya di kartu yang sama |
+| `src/screens/studentDetail/RiwayatSesi.tsx` | "Topik Pernah Dibahas" kini menyebut penyebut sesungguhnya (`N dari M sesi yang punya catatan topik`) |
+
+Angka pendukung yang tersisa di kartu itu hanya yang **belum** disebut kesimpulan: bentuk visual rata-rata (titik, tanpa angka), tren, dan persentase Main HP beserta penyebutnya. Rumusnya: rata-rata ditulis **sekali**, di kalimat kesimpulan, lengkap dengan penyebutnya.
+
+Bukti render ada di `src/__tests__/engagementConclusion.test.tsx` (11 tes) — termasuk dua tes yang mengunci tepat permintaan pemilik: "rata-rata hanya muncul SEKALI" dan "tidak lagi memuat frasa lama yang salah penyebut".
 
 **Catatan kejujuran soal K1/K4.** Teks penjelasan IA/EE/PP yang ada sekarang
 (`IaEeTracker.tsx:105-107`) adalah ringkasan agen mengikuti kerangka silabus dan **belum dibandingkan
