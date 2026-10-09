@@ -104,7 +104,11 @@ test("03-student-detail", async ({ page }) => {
     await card.click();
     await page.waitForTimeout(2000);
   }
-  for (const t of ["Ringkasan", "Sesi & Jadwal", "Progres", "IA/EE/PP"]) {
+  // Label HARUS sama persis dengan keempat tab di `screens/StudentDetail.tsx`.
+  // Kalau tidak, `clickTab` menelan kegagalannya lewat `catch` (lihat catatan di
+  // test 06) dan test ini "lulus" sambil memotret tab yang sama empat kali.
+  // Diperbarui 2026-10-09 (G3-06 fase A): "Sesi & Jadwal" → "Sesi", "IA/EE/PP" → "Proyek".
+  for (const t of ["Ringkas", "Sesi", "Progres", "Proyek"]) {
     await clickTab(page, t);
     await shot(page, `03-student-${t.toLowerCase().replaceAll(" & ", "-").replaceAll("/", "-")}.png`);
   }

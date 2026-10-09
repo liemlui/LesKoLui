@@ -195,7 +195,9 @@ test("03-student-detail", async ({ page }) => {
   await closeChangelog(page);
   const card = page.locator('a[href*="/students/"][class*="block"]').first();
   if (await card.isVisible()) { await card.click(); await page.waitForTimeout(2000); }
-  for (const t of ["Ringkasan", "Sesi & Jadwal", "Progres", "IA/EE/PP"]) {
+  // Label diperbarui 2026-10-09 (G3-06 fase A): "Sesi & Jadwal" → "Sesi",
+  // "IA/EE/PP" → "Proyek". Harus sama persis dengan tab di `screens/StudentDetail.tsx`.
+  for (const t of ["Ringkas", "Sesi", "Progres", "Proyek"]) {
     await clickTab(page, t);
     await shot(page, `03-student-${t.toLowerCase().replaceAll(" & ", "-").replaceAll("/", "-")}.png`);
   }
@@ -431,7 +433,7 @@ Rollback: `git checkout -- <file>` · `git stash pop` bila perlu.
 - `git log --oneline -5`: `3f27a30 fix(drive): pesan actionable…` · `b9a9426 feat: harden data resilience…` · `dbc5641 chore: release v1.70.5` · `c6e4cd1 release: v1.70.4` · `6dc9e0e chore: release v1.70.3`.
 - Routes (`src/App.tsx:256-270`): `/` `/students` `/students/:id` `/capture` `/report` `/payments` `/settings` `* → /`.
 - Payments tab keys (`Payments.tsx:23`): `ringkasan|tagihan|pengeluaran|audit` → Bulan Ini / Penagihan / Pengeluaran / Rekap Tahunan. **(BASI — potret 2026-09-11, jangan dipakai sebagai keadaan hari ini.)** Keadaan 2026-10-07: kuncinya `ringkasan|tagihan|pengeluaran|rekap` (`audit` masih diterima sebagai alias lama), labelnya Ringkasan / Tagihan / Pengeluaran / Rekap, dan keempatnya bukan lagi tab melainkan sub-layar `?tab=` dari layar Uang bertiga blok.
-- StudentDetail tab keys: `ringkasan|sesi|nilai|iaee` → Ringkasan / Sesi & Jadwal / Progres / IA/EE/PP.
+- StudentDetail tab keys: `ringkasan|sesi|nilai|iaee` → **Ringkas / Sesi / Progres / Proyek** (label diperbarui 2026-10-09, G3-06 fase A; sebelumnya "Ringkasan / Sesi & Jadwal / Progres / IA/EE/PP"). Peta tab ini mengikat lewat keputusan `ATURAN-AI.md` §4.1 "Tetap".
 - Capture STEPS (`CaptureSession.tsx:58-65`): 1 Jadwal 2 Materi 3 Kondisi 4 Detail 5 Catatan 6 Bukti.
 - Settings Section titles: Profil Tutor · PIN Keuangan · Rekening Bank · AI — DeepSeek · Backup & Restore · Hapus Semua Data · Riwayat Aktivitas · Aplikasi (PWA).
 - BottomNav (`BottomNav.tsx:11-53`): Home, Murid, Catat (primary FAB), Laporan, Keuangan.

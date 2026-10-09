@@ -41,11 +41,17 @@ import { engagementAverage, sessionEngagementScore } from "../lib/engagement";
 import { PencilIcon, LockIcon, ChartIcon, ChatIcon } from "../components/icons";
 
 /**
- * StudentDetail — halaman detail murid dengan 5 tab:
- * Sesi, Rapor, Penagihan, IA/EE, AI Insights.
+ * StudentDetail — halaman detail murid.
  *
- * Mengelola: daftar sesi, nilai rapor, tagihan per bulan,
- * proyek IA/EE dengan milestone, analisis AI, PIN verification.
+ * Peta tab yang mengikat (keputusan `ATURAN-AI.md` §4.1 "Tetap"): **Ringkas ·
+ * Sesi · Progres · Proyek**. Uang hanya muncul di tab Ringkas.
+ *
+ * Sebelumnya komentar ini menulis "5 tab: Sesi, Rapor, Penagihan, IA/EE, AI
+ * Insights" — nama yang sudah lama tidak ada di antarmuka. Diperbarui 2026-10-09
+ * bersama penggantian label "Sesi & Jadwal" → "Sesi" dan "IA/EE/PP" → "Proyek".
+ *
+ * Mengelola: sesi dan jadwal murid, nilai rapor, proyek tugas panjang, kondisi
+ * belajar, serta penghapusan sesi dengan PIN Keuangan.
  *
  * @component
  * @route /student/:id
@@ -359,10 +365,10 @@ export default function StudentDetail() {
       {/* Tabs navigasi */}
       <Tabs
         tabs={[
-          { key: "ringkasan", label: "Ringkasan" },
-          { key: "sesi", label: "Sesi & Jadwal" },
+          { key: "ringkasan", label: "Ringkas" },
+          { key: "sesi", label: "Sesi" },
           { key: "nilai", label: "Progres" },
-          { key: "iaee", label: "IA/EE/PP" },
+          { key: "iaee", label: "Proyek" },
         ]}
         active={detailTab}
         onChange={setDetailTab}

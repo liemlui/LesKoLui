@@ -110,12 +110,16 @@ pada putaran eksekusi — kecuali yang memang sudah tercakup fitur G3-06.
 2. **Blok JSX kondisional ditutup di baris terpisah.** `ATURAN-AI.md` §7 sudah mencatat: memotong blok
    besar dengan penggantian teks sederhana menghasilkan penutup ganda. Pakai alat edit berbasis
    kecocokan teks, dan periksa bentuk penutupnya setelah tiap pemotongan.
-3. **Label tab mengunci dua berkas uji yang mudah basi:**
+3. **Label tab mengunci satu berkas uji yang mudah basi — dan satu dokumen aktif:**
    - `e2e/screenshot-audit.spec.ts:107` — daftar `["Ringkasan", "Sesi & Jadwal", "Progres", "IA/EE/PP"]`
-   - `src/__tests__/tabsAccessibility.test.tsx:39` — `{ key: "sesi", label: "Sesi & Jadwal" }`
-   Keduanya **wajib** diperbarui pada putaran yang sama. Tambahan bahaya yang sudah terdokumentasi:
-   `clickTab` menelan kegagalannya lewat `catch`, jadi spec itu bisa "lulus" sambil memotret layar
-   yang tidak berpindah.
+   - `docs/03-PLAYBOOK-AUDIT-UIUX-VISUAL.md` — daftar label yang sama di contoh spec **dan** di daftar jangkar tab
+   Keduanya **wajib** diperbarui pada putaran yang sama, dan keduanya **sudah** diperbarui 2026-10-09. Tambahan
+   bahaya yang sudah terdokumentasi: `clickTab` menelan kegagalannya lewat `catch`, jadi spec itu bisa "lulus"
+   sambil memotret layar yang tidak berpindah.
+   - **Koreksi atas dugaan awal saya:** `src/__tests__/tabsAccessibility.test.tsx:39` ternyata **bukan**
+     pengunci label layar Murid. Berkas itu menguji komponen `Tabs` dengan fixture sendiri, dan label
+     `"Sesi & Jadwal"` di sana sengaja dipakai untuk menguji escaping `&` di markup. Jadi berkas itu
+     **tidak perlu diubah** — dan tidak diubah.
 4. **Gerbang uang `B1` (`ATURAN-AI.md` §4.1) berlaku untuk setiap layar murid.** Setiap komponen baru
    yang bisa memuat angka uang wajib lewat `useMoneyVisible()`. Ada penjaga otomatis untuk ini
    (`src/__tests__/moneyGate.test.tsx`) — jalankan, jangan diasumsikan hijau.
