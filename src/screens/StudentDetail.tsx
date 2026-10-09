@@ -554,6 +554,7 @@ export default function StudentDetail() {
           setSubjectPage={setSubjectPage}
           student={student!}
           responseStats={responseStats}
+          allSessions={allSessions ?? []}
         />
       )}
       </div>
