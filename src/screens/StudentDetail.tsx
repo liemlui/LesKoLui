@@ -11,6 +11,7 @@ import {
   countUnbilledBillableSessions,
   listPaymentsByStudent,
   listPendingFollowUps,
+  listRaporGrades,
 } from "../db/repos";
 import { verifyPin } from "../lib/crypto";
 import { getPinLockoutDelay, recordPinFailure, resetPinLockout } from "../lib/pinLockout";
@@ -79,6 +80,8 @@ export default function StudentDetail() {
   const studentPayments = useLiveQuery(() => (id ? listPaymentsByStudent(id) : []), [id]);
   // Tindak lanjut murid ini — sumber salah satu butir kartu Perlu Tindakan.
   const studentFollowUps = useLiveQuery(() => (id ? listPendingFollowUps(id) : []), [id]);
+  // Nilai rapor per semester — sumber isian nilai rapor di tab Progres (butir 5).
+  const raporGrades = useLiveQuery(() => (id ? listRaporGrades(id) : []), [id]);
 
   // Edit scheduled session modal — state-nya pindah ke
   // `studentDetail/ScheduleEditModal.tsx` (G3-06 fase A). Induknya hanya
@@ -555,6 +558,8 @@ export default function StudentDetail() {
           student={student!}
           responseStats={responseStats}
           allSessions={allSessions ?? []}
+          raporGrades={raporGrades ?? []}
+          notify={msg}
         />
       )}
       </div>

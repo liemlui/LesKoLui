@@ -1,6 +1,7 @@
-import type { Session, Student } from "../../db/types";
+import type { RaporGrade, Session, Student } from "../../db/types";
 import EngagementSummary from "./EngagementSummary";
 import PerbandinganNilai from "./PerbandinganNilai";
+import NilaiRaporIsian from "./NilaiRaporIsian";
 
 interface NilaiRaporProps {
   engSessions: Session[];
@@ -19,6 +20,10 @@ interface NilaiRaporProps {
    * apakah tutor sempat mengisi indikator keaktifan.
    */
   allSessions: readonly Session[];
+  /** Nilai rapor per semester — sumber isian nilai rapor (butir 5 G3-06). */
+  raporGrades: readonly RaporGrade[];
+  /** Notifikasi singkat dari induk, dipakai isian nilai rapor saat menyimpan. */
+  notify: (text: string) => void;
 }
 
 /**
@@ -35,10 +40,13 @@ interface NilaiRaporProps {
 export default function NilaiRapor({
   engSessions, avgEngScore, engTrend, recentEng, subjectEngStats,
   subjectPage, setSubjectPage, student, responseStats, allSessions,
+  raporGrades, notify,
 }: NilaiRaporProps) {
   return (
     <>
       <PerbandinganNilai sessions={allSessions} />
+
+      <NilaiRaporIsian student={student} raporGrades={raporGrades} notify={notify} />
 
       <EngagementSummary
         engSessions={engSessions}
