@@ -10,6 +10,7 @@ import {
   getStudyNote, saveStudyNote,
   countUnbilledBillableSessions,
   listPaymentsByStudent,
+  listPendingFollowUps,
 } from "../db/repos";
 import { verifyPin } from "../lib/crypto";
 import { getPinLockoutDelay, recordPinFailure, resetPinLockout } from "../lib/pinLockout";
@@ -33,11 +34,13 @@ import UpcomingSchedule from "./studentDetail/UpcomingSchedule";
 import SessionDetailModal from "./studentDetail/SessionDetailModal";
 import SessionNoteEditModal from "./studentDetail/SessionNoteEditModal";
 import ScheduleEditModal from "./studentDetail/ScheduleEditModal";
+import PerluTindakanCard from "./studentDetail/PerluTindakanCard";
 import RiwayatSesi from "./studentDetail/RiwayatSesi";
 import RiwayatPembayaran from "./studentDetail/RiwayatPembayaran";
 import IaEeTracker from "./studentDetail/IaEeTracker";
 import NilaiRapor from "./studentDetail/NilaiRapor";
 import { engagementAverage, sessionEngagementScore } from "../lib/engagement";
+import { studentActions } from "../lib/studentActions";
 import { PencilIcon, LockIcon, ChartIcon, ChatIcon } from "../components/icons";
 
 /**
@@ -74,6 +77,8 @@ export default function StudentDetail() {
   // Riwayat pembayaran murid ini (keputusan pemilik 2026-10-07: transaksi lunas
   // tempatnya di halaman murid, bukan di layar Keuangan).
   const studentPayments = useLiveQuery(() => (id ? listPaymentsByStudent(id) : []), [id]);
+  // Tindak lanjut murid ini — sumber salah satu butir kartu Perlu Tindakan.
+  const studentFollowUps = useLiveQuery(() => (id ? listPendingFollowUps(id) : []), [id]);
 
   // Edit scheduled session modal — state-nya pindah ke
   // `studentDetail/ScheduleEditModal.tsx` (G3-06 fase A). Induknya hanya
@@ -301,6 +306,16 @@ export default function StudentDetail() {
   const safeHistoryPage = clampPage(historyPage, historySessions.length);
   const paginatedHistorySessions = paginateItems(historySessions, safeHistoryPage);
 
+  // Aturan "apa yang menunggu tutor" ada di `lib/studentActions.ts`, bukan di JSX.
+  const studentActionList = studentActions({
+    today,
+    scheduled: upcomingSched ?? [],
+    doneSessions: (allSessions ?? []).filter((s) => s.status === "DONE"),
+    payments: studentPayments ?? [],
+    followUps: studentFollowUps ?? [],
+    unbilledCount: unbilledCount ?? 0,
+  });
+
   return (
     <div className="p-4 space-y-4 pb-24">
 
@@ -381,6 +396,17 @@ export default function StudentDetail() {
           aktif (pekerjaan/query tetap lazy). */}
       <div role="tabpanel" id="student-panel-ringkasan" aria-labelledby="student-tab-ringkasan" hidden={detailTab !== "ringkasan"}>
       {detailTab === "ringkasan" && (<>
+      {/* Perlu Tindakan — butir 2 G3-06, sengaja PALING ATAS: pertanyaan pertama
+          tutor saat membuka murid adalah "ada yang menunggu saya?". Kartunya
+          tidak dirender bila tidak ada yang menunggu. */}
+      <PerluTindakanCard
+        actions={studentActionList}
+        onNavigate={(href) => navigate(href)}
+        onJump={(anchor) => {
+          if (anchor === "#jadwal-mendatang" || anchor === "#riwayat-sesi") setDetailTab("sesi");
+        }}
+      />
+
       {/* Info card */}
       <div className="bg-[var(--surface-strong)] rounded-2xl p-4 shadow-sm border border-[var(--border)] space-y-2">
         <h2 className="font-semibold text-[var(--ink-strong)] text-sm mb-2">Info Murid</h2>
