@@ -145,12 +145,21 @@ export default function RiwayatSesi({
             const eng      = s.engagement;
             const photoUrl = photoUrls.get(s.id);
             const sigUrl   = sigUrls.get(s.id);
+            // Kartu sesi.
+            // Butir 10 G3-06: dulu kartu ini `div role="button"` yang memuat
+            // tombol "Edit catatan sesi" DI DALAMNYA — kontrol bersarang, yang
+            // dilarang karena menabrak aturan HTML dan membingungkan pembaca
+            // layar. Sekarang seluruh kartu dibuka oleh SATU `<button>` asli yang
+            // melebar lewat lapisan `absolute inset-0`, dan tombol Edit duduk
+            // sebagai saudaranya, bukan di dalamnya.
             return (
-              <div key={s.id} role="button" tabIndex={0}
-                aria-label={`Buka detail sesi ${(s.subjects ?? []).join(", ") || "Sesi umum"}`}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDetailSession(s); } }}
-                className="bg-[var(--surface-strong)] rounded-xl shadow-sm border border-[var(--border)] px-4 py-3 cursor-pointer active:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-brand)]"
-                onClick={() => setDetailSession(s)}>
+              <div key={s.id} className="relative bg-[var(--surface-strong)] rounded-xl shadow-sm border border-[var(--border)] px-4 py-3">
+                <button
+                  type="button"
+                  aria-label={`Buka detail sesi ${(s.subjects ?? []).join(", ") || "Sesi umum"}`}
+                  onClick={() => setDetailSession(s)}
+                  className="absolute inset-0 w-full h-full cursor-pointer rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-brand)] active:bg-[var(--surface)]"
+                />
                 <div className="flex items-start gap-2">
                   {(photoUrl || sigUrl) && (
                     <div className="flex flex-col gap-1 flex-shrink-0">
@@ -199,9 +208,9 @@ export default function RiwayatSesi({
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
                       <div className="flex items-center gap-1">
                         {s.status === "DONE" && (
-                          <button onClick={(e) => { e.stopPropagation(); openEditNote(s); }}
-                            aria-label="Edit catatan sesi"
-                            className="text-[var(--ink-muted)] hover:text-[var(--ink-brand)] transition-colors text-xs p-1.5 -m-1.5 rounded-full hover:bg-[var(--bg-subtle)]"><PencilIcon size={13} className="mr-1 inline align-[-2px]" /></button>
+                          <button type="button" onClick={() => openEditNote(s)}
+                            aria-label={`Edit catatan sesi ${(s.subjects ?? []).join(", ") || "Sesi umum"}`}
+                            className="relative z-10 text-[var(--ink-muted)] hover:text-[var(--ink-brand)] transition-colors text-xs p-1.5 -m-1.5 rounded-full hover:bg-[var(--bg-subtle)]"><PencilIcon size={13} className="mr-1 inline align-[-2px]" /></button>
                         )}
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.status === "DONE" ? "bg-[var(--bg-success)] text-[var(--ink-success)]" : s.status === "CANCELLED" ? "bg-[var(--bg-danger)] text-[var(--ink-danger)]" : "bg-[var(--brand-tint)] text-[var(--ink-brand)]"}`}>
                           {s.status === "DONE" ? `${s.durationHours}j` : s.status}
