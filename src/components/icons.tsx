@@ -502,3 +502,18 @@ export function SettingsIcon(props: IconProps) {
     </IconBase>
   );
 }
+
+/** Lingkaran berisi "i" — keterangan/informasi (menggantikan emoji ℹ️).
+ *
+ *  Dipakai kartu Perlu Tindakan di tab Ringkas halaman murid (butir 2 G3-06).
+ *  Guard `e2e:uiux` sempat menolak kartu itu karena tiga tingkat kepentingannya
+ *  ditandai emoji (⚠️ 🔔 ℹ️) DI DALAM tombol; lihat catatan TASK-11 di atas. */
+export function InfoIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 11.2v5.3" />
+      <path d="M12 7.7h.01" />
+    </IconBase>
+  );
+}

@@ -1,4 +1,6 @@
+import type { ComponentType } from "react";
 import type { StudentAction } from "../../lib/studentActions";
+import { BellIcon, InfoIcon, WarningIcon } from "../../components/icons";
 
 interface PerluTindakanCardProps {
   actions: StudentAction[];
@@ -14,10 +16,19 @@ const TONE_CLASS: Record<StudentAction["tone"], string> = {
   info: "border-[var(--border)] bg-[var(--surface)] text-[var(--ink-muted)]",
 };
 
-const TONE_ICON: Record<StudentAction["tone"], string> = {
-  danger: "⚠️",
-  warn: "🔔",
-  info: "ℹ️",
+/**
+ * Penanda tingkat kepentingan — **ikon SVG, bukan emoji** (⚠️ 🔔 ℹ️).
+ *
+ * Ini bukan pilihan gaya: guard `e2e:uiux` menuntut 0 emoji di dalam kontrol, dan
+ * tiga emoji itu sempat membuat tes "emoji di kontrol" merah di layar Detail Murid
+ * pada 2026-10-10. Kebijakan emoji yang berlaku (TASK-11) hanya mengizinkan emoji
+ * untuk **keadaan afektif** — mood, situasi, indikator perilaku — sedangkan
+ * "mendesak / perlu perhatian / keterangan" adalah penanda struktural.
+ */
+const TONE_ICON: Record<StudentAction["tone"], ComponentType<{ size?: number; className?: string }>> = {
+  danger: WarningIcon,
+  warn: BellIcon,
+  info: InfoIcon,
 };
 
 /** Berapa baris yang ditampilkan sebelum diringkas jadi satu baris. */
@@ -54,14 +65,16 @@ export default function PerluTindakanCard({ actions, onNavigate, onJump }: Perlu
       </div>
 
       <ul className="divide-y divide-[var(--border)] list-none m-0 p-0">
-        {shown.map((action) => (
+        {shown.map((action) => {
+          const Icon = TONE_ICON[action.tone];
+          return (
           <li key={`${action.type}-${action.href}-${action.title}`}>
             <button
               type="button"
               onClick={() => (action.anchorOnly ? onJump(action.href) : onNavigate(action.href))}
               className={`w-full text-left px-4 py-3 flex items-start gap-2.5 min-h-[44px] transition-colors hover:bg-[var(--surface)] ${TONE_CLASS[action.tone]}`}
             >
-              <span aria-hidden="true" className="flex-shrink-0 text-sm leading-5">{TONE_ICON[action.tone]}</span>
+              <Icon size={15} className="flex-shrink-0 mt-0.5" />
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-semibold">{action.title}</span>
                 <span className="block text-xs mt-0.5 leading-relaxed opacity-90">{action.detail}</span>
@@ -69,7 +82,8 @@ export default function PerluTindakanCard({ actions, onNavigate, onJump }: Perlu
               <span aria-hidden="true" className="flex-shrink-0 text-xs opacity-70 pt-0.5">›</span>
             </button>
           </li>
-        ))}
+          );
+        })}
       </ul>
 
       {rest > 0 && (

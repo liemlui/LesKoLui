@@ -112,6 +112,20 @@ export default function StudentDetail() {
   const [flash, setFlash] = useState("");
   function msg(t: string) { setFlash(t); setTimeout(() => setFlash(""), 3000); }
 
+  /**
+   * Menu aksi murid (butir 11 G3-06) — komponen yang sama dengan layar Daftar Murid.
+   *
+   * **Kenapa state ini ada di sini, bukan di dekat tombolnya.** Sampai 2026-10-10
+   * `useState`-nya diletakkan setelah gerbang `!student` (baris ~306), sehingga
+   * render pertama (murid belum termuat) menjalankan hook yang lebih sedikit
+   * daripada render kedua. React melempar *"Rendered more hooks than during the
+   * previous render"* dan seluruh layar Detail Murid jatuh ke batas galat —
+   * ketahuan dari penjaga `e2e:uiux` (layar tanpa h1 karena yang tampil panel
+   * galat), bukan dari penalaran. Jebakan yang sama sudah tercatat di
+   * `ATURAN-AI.md` §7: semua hook WAJIB berada sebelum gerbang `return`.
+   */
+  const [actionsOpen, setActionsOpen] = useState(false);
+
   // Catatan: state IA/EE/PP (11 useState + form milestone) TIDAK lagi di sini —
   // seluruhnya pindah ke `studentDetail/IaEeTracker.tsx` karena tidak ada bagian
   // lain layar ini yang memakainya (audit utang teknis #3).
@@ -321,8 +335,8 @@ export default function StudentDetail() {
     unbilledCount: unbilledCount ?? 0,
   });
 
-  // Menu aksi murid (butir 11 G3-06) — komponen yang sama dengan layar Daftar Murid.
-  const [actionsOpen, setActionsOpen] = useState(false);
+  // Menu aksi murid: `actionsOpen`/`setActionsOpen` dideklarasikan di atas,
+  // bersama state lain — sebelum gerbang `!student` (lihat catatan di sana).
 
   // Aturan nomor WA yang sama dengan kartu Info Murid di bawah: awalan 0 → 62.
   const parentWaPhone = (student?.parentContact.phone ?? "")

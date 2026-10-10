@@ -10,7 +10,8 @@
 
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import PerbandinganNilai, { barisPerbandingan } from "../screens/studentDetail/PerbandinganNilai";
+import PerbandinganNilai from "../screens/studentDetail/PerbandinganNilai";
+import { barisPerbandingan } from "../screens/studentDetail/perbandinganNilaiRows";
 import { gradeDelta } from "../template/layouts";
 import type { Session } from "../db/types";
 

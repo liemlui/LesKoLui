@@ -1,102 +1,12 @@
 import { useMemo, useState } from "react";
 import type { Session } from "../../db/types";
-import { gradeDelta } from "../../template/layouts";
-import { gradeValue, isGradeLower } from "../../lib/grades";
-import { dayLabel } from "../../lib/format";
 import PaginationControls from "../../components/PaginationControls";
 import { clampPage, paginateItems } from "../../lib/pagination";
-
-/**
- * Apakah dua nilai berada pada SKALA yang sama sehingga boleh dibandingkan.
- *
- * `isGradeLower` sengaja longgar — ia dipakai untuk memblokir PENYIMPANAN, jadi
- * kegagalan membandingkan lebih baik menghasilkan `false` daripada menahan tutor.
- * Akibatnya `isGradeLower("B", "80")` bernilai `true` (B dinilai 8, lalu 8 < 80),
- * padahal huruf dan angka bukan skala yang sama.
- *
- * Untuk sebuah TABEL di layar, longgar itu salah: menulis "nilai akhir di bawah
- * prediksi" untuk pasangan yang tidak sebanding menyesatkan pembaca. Karena itu
- * di sini ditambahkan syarat skala: keduanya huruf, atau keduanya angka.
- */
-function skalaSama(a: string, b: string): boolean {
-  const letter = (v: string) => /^[A-Fa-f][+-]?$/.test(v.trim());
-  return letter(a) === letter(b);
-}
+import { barisPerbandingan } from "./perbandinganNilaiRows";
 
 interface PerbandinganNilaiProps {
   /** Semua sesi murid; penyaringan dilakukan di sini supaya aturannya satu tempat. */
   sessions: readonly Session[];
-}
-
-/** Satu baris perbandingan yang sudah siap dirender. */
-export interface BarisNilai {
-  id: string;
-  /** Tanggal pendek untuk kolom pertama, mis. "12 Jun". */
-  date: string;
-  /** Topik atau mapel — konteks ujian apa yang dinilai. */
-  konteks: string;
-  predicted: string;
-  actual: string;
-  /** "+1", "-2", "sama", atau `undefined` bila tidak bisa dibandingkan. */
-  delta?: string;
-  /** `naik` / `turun` / `sama` — hanya diisi bila perbandingannya mungkin. */
-  arah?: "naik" | "turun" | "sama";
-  /** `true` bila nilai akhir lebih rendah dari prediksi (skala numerik MAUPUN huruf). */
-  turun: boolean;
-}
-
-/**
- * Menyaring dan menyusun baris perbandingan dari daftar sesi.
- *
- * Dipisah dari komponennya supaya bisa diuji tanpa DOM, dan supaya aturan
- * "sesi mana yang masuk tabel" tidak tersembunyi di dalam JSX.
- *
- * Aturan yang dipakai — dan sengaja TIDAK ditulis ulang di sini:
- *
- * - `gradeDelta` (dari `template/layouts`) menentukan besar selisih pada skala
- *   **numerik**. Ini fungsi yang SAMA dengan yang dipakai laporan bulanan
- *   (`useReportData.ts`), jadi layar dan laporan tidak bisa berbeda angka.
- * - `isGradeLower` (dari `lib/grades`) menangkap skala **huruf**, yang tidak
- *   dibandingkan `gradeDelta` — tetapi hanya setelah dipastikan kedua nilai
- *   sebanding (lihat `skalaSama`).
- * - Sesi tanpa prediksi DAN tanpa nilai akhir tidak masuk tabel: tidak ada yang
- *   bisa dibandingkan.
- */
-export function barisPerbandingan(sessions: readonly Session[]): BarisNilai[] {
-  return sessions
-    .filter((s) => s.status === "DONE")
-    .filter((s) => Boolean((s.predictedGrade ?? "").trim() || (s.actualGrade ?? "").trim()))
-    .slice()
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .map((s) => {
-      const predicted = (s.predictedGrade ?? "").trim();
-      const actual = (s.actualGrade ?? "").trim();
-      const delta = gradeDelta(predicted, actual);
-      // `isGradeLower` hanya dipercaya bila kedua nilai benar-benar sebanding:
-      // keduanya ada, bisa dibaca `gradeValue`, dan satu skala. Tanpa syarat ini,
-      // "80" vs "B" akan dilaporkan sebagai turun.
-      const sebanding =
-        Boolean(predicted) && Boolean(actual) &&
-        gradeValue(predicted) !== null && gradeValue(actual) !== null &&
-        skalaSama(predicted, actual);
-      const turun = sebanding && isGradeLower(actual, predicted);
-      // Arah dipakai untuk warna. Bila `gradeDelta` tidak bisa membandingkan
-      // (skala huruf), arah ditentukan oleh `isGradeLower` saja.
-      const arah: BarisNilai["arah"] =
-        delta === undefined ? (turun ? "turun" : undefined) :
-        delta === "sama" ? "sama" :
-        delta.startsWith("+") ? "naik" : "turun";
-      return {
-        id: s.id,
-        date: dayLabel(s.date).split(",")[1]?.trim() ?? s.date.slice(5),
-        konteks: (s.topic ?? "").trim() || s.subjects.join(", ") || "Sesi umum",
-        predicted,
-        actual,
-        delta,
-        arah,
-        turun,
-      };
-    });
 }
 
 /**
