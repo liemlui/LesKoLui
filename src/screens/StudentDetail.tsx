@@ -36,6 +36,7 @@ import SessionNoteEditModal from "./studentDetail/SessionNoteEditModal";
 import ScheduleEditModal from "./studentDetail/ScheduleEditModal";
 import PerluTindakanCard from "./studentDetail/PerluTindakanCard";
 import UangBlok from "./studentDetail/UangBlok";
+import StudentActionsSheet from "../components/StudentActionsSheet";
 import RiwayatSesi from "./studentDetail/RiwayatSesi";
 import RiwayatPembayaran from "./studentDetail/RiwayatPembayaran";
 import IaEeTracker from "./studentDetail/IaEeTracker";
@@ -320,6 +321,14 @@ export default function StudentDetail() {
     unbilledCount: unbilledCount ?? 0,
   });
 
+  // Menu aksi murid (butir 11 G3-06) — komponen yang sama dengan layar Daftar Murid.
+  const [actionsOpen, setActionsOpen] = useState(false);
+
+  // Aturan nomor WA yang sama dengan kartu Info Murid di bawah: awalan 0 → 62.
+  const parentWaPhone = (student?.parentContact.phone ?? "")
+    .replace(/^0/, "62")
+    .replace(/[^0-9]/g, "");
+
   return (
     <div className="p-4 space-y-4 pb-24">
 
@@ -336,10 +345,10 @@ export default function StudentDetail() {
         </div>
       )}
 
-      {/* Header */}
+      {/* Header — butir 11 G3-06: kirim WA, sunting/menu aksi, dan jejak navigasi. */}
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">{student.name}</h1>
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold break-words">{student.name}</h1>
           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
             {student.curriculum ? (
               <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${CURRICULUM_META[student.curriculum].color} ${CURRICULUM_META[student.curriculum].text}`}>
@@ -348,11 +357,33 @@ export default function StudentDetail() {
             ) : (
               <span className="text-xs text-[var(--ink-muted)]">{student.level}</span>
             )}
+            <Badge tone={student.active ? "green" : "slate"}>
+              {student.active ? "Aktif" : "Nonaktif"}
+            </Badge>
           </div>
         </div>
-        <Badge tone={student.active ? "green" : "slate"}>
-          {student.active ? "Aktif" : "Nonaktif"}
-        </Badge>
+
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {parentWaPhone && (
+            <a
+              href={`https://wa.me/${parentWaPhone}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Kirim WhatsApp ke orang tua ${student.name}`}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--bg-success)] text-[var(--ink-success)] border border-[var(--border-success)]"
+            >
+              <ChatIcon size={15} aria-hidden="true" />
+            </a>
+          )}
+          <button
+            type="button"
+            onClick={() => setActionsOpen(true)}
+            aria-label={`Menu aksi untuk ${student.name}`}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--bg-subtle)] text-[var(--ink-muted)]"
+          >
+            <span aria-hidden="true" className="text-lg leading-none">⋯</span>
+          </button>
+        </div>
       </div>
 
       {/* Quick actions */}
@@ -629,6 +660,18 @@ export default function StudentDetail() {
             </button>
           </div>
         </Modal>
+      )}
+      {/* Menu aksi murid — komponen yang SAMA dengan layar Daftar Murid (butir 11
+          G3-06), supaya tombol hapus tidak punya dua perilaku berbeda. */}
+      {actionsOpen && student && (
+        <StudentActionsSheet
+          student={student}
+          actions={student.active
+            ? ["edit", "deactivate", "delete"]
+            : ["edit", "activate", "delete"]}
+          onClose={() => setActionsOpen(false)}
+          onDeleted={() => navigate("/students")}
+        />
       )}
     </div>
   );

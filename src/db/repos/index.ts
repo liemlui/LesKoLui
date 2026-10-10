@@ -16,6 +16,8 @@ export type { AiNarrativeUpdate } from "./aiRepo";
 
 // Students + Rapor Grades
 export { listStudents, getStudent, createStudent, updateStudent, deleteStudent } from "./studentRepo";
+export { studentDeleteSummary } from "./studentRepo";
+export type { StudentDeleteSummary } from "./studentRepo";
 export { listUnbilledBillableSessions, countUnbilledBillableSessions } from "./studentRepo";
 export { listRaporGrades, upsertRaporGrade, deleteRaporGrade } from "./studentRepo";
 export type { StudentBillingUpdateOptions } from "./studentRepo";

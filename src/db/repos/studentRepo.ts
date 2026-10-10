@@ -3,9 +3,14 @@
 import { db } from "../db";
 import type { Student, Session } from "../types";
 import { billingPolicyOf } from "../types";
-import { isBillableSession, sessionCost } from "./sessionRepo";
+import { isBillableSession, sessionCost, listSessionsByStudent } from "./sessionRepo";
 import { logAudit } from "./auditRepo";
 import { packageCoveredSessionIds } from "./helpers";
+import { listReportsByStudent } from "./reportRepo";
+import { listPaymentsByStudent } from "./paymentRepo";
+import { listIaEeProjects } from "./iaeeRepo";
+import { listPendingFollowUps } from "./followUpRepo";
+import { getStudyNote } from "./studyNotesRepo";
 
 export async function listStudents(activeOnly?: boolean): Promise<Student[]> {
   const coll = db.students.orderBy("name");
@@ -178,6 +183,50 @@ export async function deleteStudent(id: string): Promise<void> {
     await db.captureDrafts.where({ studentId: id }).delete();
   });
   await logAudit("student.delete", "student", id, student?.name);
+}
+
+// ── Ringkasan hapus murid ──────────────────────────────────────────
+
+/** Berapa baris dari setiap tabel yang akan ikut terhapus bersama seorang murid. */
+export interface StudentDeleteSummary {
+  sessions: number;
+  reports: number;
+  payments: number;
+  raporGrades: number;
+  iaee: number;
+  followUps: number;
+  studyNote: number;
+}
+
+/**
+ * Ringkasan read-only "yang akan ikut terhapus" untuk konfirmasi hapus murid.
+ *
+ * Diekstrak dari `Students.tsx` pada butir 11 G3-06: layar detail murid juga
+ * menawarkan hapus, dan dua jalur hapus tidak boleh melaporkan angka yang
+ * berbeda. Isinya sengaja HANYA jumlah — bukan nominal uang — supaya ringkasan
+ * ini aman dipakai di layar mana pun, termasuk yang tanpa gerbang uang.
+ *
+ * Tidak ada yang ditulis; ini murni pembacaan.
+ */
+export async function studentDeleteSummary(studentId: string): Promise<StudentDeleteSummary> {
+  const [sessions, reports, payments, raporGrades, iaee, followUps, note] = await Promise.all([
+    listSessionsByStudent(studentId),
+    listReportsByStudent(studentId),
+    listPaymentsByStudent(studentId),
+    listRaporGrades(studentId),
+    listIaEeProjects(studentId),
+    listPendingFollowUps(studentId),
+    getStudyNote(studentId),
+  ]);
+  return {
+    sessions: sessions.length,
+    reports: reports.length,
+    payments: payments.length,
+    raporGrades: raporGrades.length,
+    iaee: iaee.length,
+    followUps: followUps.length,
+    studyNote: note ? 1 : 0,
+  };
 }
 
 // ── Rapor Grades ───────────────────────────────────────────────────

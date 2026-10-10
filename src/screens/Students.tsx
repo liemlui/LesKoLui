@@ -3,22 +3,20 @@ import { useState, useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  listStudents, createStudent, updateStudent, deleteStudent,
+  listStudents,
   listSessionsForMonth, listAllUpcomingScheduled,
   listPendingFollowUps, listPayments,
-  listSessionsByStudent, listReportsByStudent, listPaymentsByStudent,
-  listRaporGrades, listIaEeProjects, getStudyNote,
 } from "../db/repos";
 import type { StudentBillingUpdateOptions } from "../db/repos";
 import { todayWIB, monthOf, monthLabel, dayLabel } from "../lib/format";
-import { usePinGate } from "../hooks/usePinGate";
 import { useSettingsQuery } from "../hooks/useSettingsQuery";
+import { useStudentEditor } from "../hooks/useStudentEditor";
 import SettingsLoadError from "../components/SettingsLoadError";
 import { colorForStudent } from "../lib/studentColor";
 import type { Student } from "../db/types";
 import { levelLabel } from "../db/types";
-import { useToastCtx } from "../components/ToastProvider";
 import StudentForm from "../components/StudentForm";
+import StudentActionsSheet from "../components/StudentActionsSheet";
 import Modal from "../components/Modal";
 import PaginationControls from "../components/PaginationControls";
 import Badge from "../components/Badge";
@@ -31,11 +29,9 @@ export default function Students() {
   const today        = todayWIB();
   const currentMonth = monthOf(today);
   const navigate     = useNavigate();
-  const toast        = useToastCtx();
   const allStudents   = useLiveQuery(() => listStudents(), []);
   const monthSessions = useLiveQuery(() => listSessionsForMonth(currentMonth), [currentMonth]);
   const settingsQuery = useSettingsQuery();
-  const settings      = settingsQuery.settings;
   const upcomingSched = useLiveQuery(() => listAllUpcomingScheduled(today), [today]);
   const followUps     = useLiveQuery(() => listPendingFollowUps(), []);
   const payments      = useLiveQuery(() => listPayments(), []);
@@ -48,12 +44,11 @@ export default function Students() {
   const [histPage, setHistPage] = useState(1);
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
 
-  // PIN gate — shared hook for PIN verification with lockout protection
-  const pin = usePinGate();
-  const [pendingAction, setPendingAction] = useState<{
-    action: "delete" | "deactivate" | "activate" | "edit";
-    student: Student;
-  } | null>(null);
+  // Menu aksi satu murid (butir 11 G3-06). Sebelumnya aksi merusak di layar ini
+  // punya modal PIN-nya SENDIRI; sekarang dipakai bersama layar Detail Murid lewat
+  // `StudentActionsSheet` supaya kedua layar tidak bisa berbeda perilaku.
+  const [actionTarget, setActionTarget] = useState<Student | null>(null);
+  const { saveStudent } = useStudentEditor();
 
   const statsMap = useMemo(() => {
     const m = new Map<string, { count: number; cost: number; hours: number }>();
@@ -77,12 +72,9 @@ export default function Students() {
     return m;
   }, [upcomingSched]);
 
-  // Map: studentId → count of upcoming scheduled sessions (for deactivate warning)
-  const upcomingCountMap = useMemo(() => {
-    const m = new Map<string, number>();
-    (upcomingSched ?? []).forEach((s) => m.set(s.studentId, (m.get(s.studentId) ?? 0) + 1));
-    return m;
-  }, [upcomingSched]);
+  // Peringatan "masih ada N jadwal mendatang" pindah ke `StudentActionsSheet`
+  // (butir 11 G3-06): menu aksinya dipakai bersama layar Detail Murid, jadi
+  // peringatannya pun satu tempat.
 
   // Map: studentId → pending follow-up count (attention badges)
   const followUpCountMap = useMemo(() => {
@@ -110,29 +102,10 @@ export default function Students() {
     return n;
   }, [allStudents, followUpCountMap, unpaidCountMap]);
 
-  // Read-only summary of what would be deleted for the pending student.
-  const deleteTargetId = pendingAction?.action === "delete" ? pendingAction.student.id : null;
-  const deleteSummary = useLiveQuery(async () => {
-    if (!deleteTargetId) return null;
-    const [sessions, reports, pays, rapor, iaee, fups, note] = await Promise.all([
-      listSessionsByStudent(deleteTargetId),
-      listReportsByStudent(deleteTargetId),
-      listPaymentsByStudent(deleteTargetId),
-      listRaporGrades(deleteTargetId),
-      listIaEeProjects(deleteTargetId),
-      listPendingFollowUps(deleteTargetId),
-      getStudyNote(deleteTargetId),
-    ]);
-    return {
-      sessions: sessions.length,
-      reports: reports.length,
-      payments: pays.length,
-      raporGrades: rapor.length,
-      iaee: iaee.length,
-      followUps: fups.length,
-      studyNote: note ? 1 : 0,
-    };
-  }, [deleteTargetId]);
+  // Ringkasan "yang akan ikut terhapus" TIDAK lagi dihitung di sini: sejak butir
+  // 11 G3-06 ia hidup di `studentDeleteSummary()` dan dipakai bersama menunya
+  // (`StudentActionsSheet`), supaya layar Daftar dan layar Detail tidak pernah
+  // melaporkan angka yang berbeda untuk aksi yang sama.
 
   // Post-add guidance: show until the just-added student gets a schedule or session.
   const justAddedStudent = useMemo(
@@ -179,58 +152,14 @@ export default function Students() {
     data: Omit<Student, "id">,
     options?: StudentBillingUpdateOptions,
   ) => {
-    if (editing) {
-      await updateStudent(editing.id, data, options);
-      toast.success(`Profil "${data.name}" diperbarui ✓`);
-    } else {
-      const id = await createStudent(data);
-      toast.success(`Murid "${data.name}" ditambahkan ✓`);
-      if ((allStudents ?? []).length === 0) setJustAddedId(id);
-    }
+    const id = await saveStudent(data, options, editing);
+    if (!editing && (allStudents ?? []).length === 0) setJustAddedId(id);
     setShowForm(false);
     setEditing(null);
   };
 
-  const requirePin = (action: "delete" | "deactivate" | "activate" | "edit", student: Student) => {
-    if (!settings?.financialPin) {
-      if (action === "edit") {
-        // No PIN set — open edit modal directly
-        setEditing(student);
-        setShowForm(true);
-        return;
-      }
-      toast.error("Set PIN Keuangan di Pengaturan sebelum melakukan aksi ini.");
-      return;
-    }
-    setPendingAction({ action, student });
-    pin.resetPin();
-  };
-
-  const executeAction = async () => {
-    if (!pendingAction) return;
-    const { action, student } = pendingAction;
-    if (action === "delete") {
-      await deleteStudent(student.id);
-      toast.success(`Murid "${student.name}" dihapus ✓`);
-    } else if (action === "deactivate") {
-      await updateStudent(student.id, { active: false });
-      toast.info(`"${student.name}" dipindah ke historis`);
-    } else if (action === "activate") {
-      await updateStudent(student.id, { active: true });
-      toast.success(`"${student.name}" diaktifkan kembali ✓`);
-    } else if (action === "edit") {
-      setEditing(student);
-      setShowForm(true);
-    }
-    setPendingAction(null);
-    pin.resetPin();
-  };
-
-  const handlePinConfirm = async () => {
-    if (!pendingAction) return;
-    const ok = await pin.attemptPin(settings?.financialPin ?? "");
-    if (ok) await executeAction();
-  };
+  /** Sekarang seluruh aksi per murid ditangani `StudentActionsSheet`. */
+  const openActions = (student: Student) => setActionTarget(student);
 
   const renderStudentCard = (s: Student) => {
     const stats = statsMap.get(s.id);
@@ -329,37 +258,25 @@ export default function Students() {
 
             {/* Edit btn */}
             <button
-              onClick={(e) => { e.preventDefault(); requirePin("edit", s); }}
+              onClick={(e) => { e.preventDefault(); openActions(s); }}
               className="w-11 h-11 flex items-center justify-center rounded-full bg-[var(--bg-subtle)] hover:bg-[var(--brand-tint-strong)] text-[var(--ink-muted)] hover:text-[var(--ink-brand)] flex-shrink-0 transition-colors text-sm"
               aria-label="Edit murid" title="Edit murid"
             ><PencilIcon size={13} className="mr-1 inline align-[-2px]" /></button>
           </div>
         </Link>
 
-        {/* Action bar */}
-        <div className="border-t border-[var(--border)] px-4 py-2 flex flex-col items-stretch gap-1">
-          {s.active ? (
-            <button
-              onClick={() => requirePin("deactivate", s)}
-              aria-label={`Nonaktifkan ${s.name}`}
-              className="inline-flex min-h-[44px] items-center justify-center text-xs text-[var(--ink-muted)] hover:text-[var(--ink-strong)] px-3 py-1 rounded-lg hover:bg-[var(--surface)] transition-colors"
-            >
-              Nonaktifkan
-            </button>
-          ) : (
-            <button
-              onClick={() => requirePin("activate", s)}
-              className="inline-flex min-h-[44px] items-center justify-center text-xs text-[var(--ink-success)] hover:text-[var(--ink-success)] px-3 py-1 rounded-lg hover:bg-[var(--bg-success)] transition-colors"
-            >
-              Aktifkan
-            </button>
-          )}
+        {/* Action bar — satu pintu ke menu aksi (butir 11 G3-06).
+            Dulu ada dua tombol telanjang di sini (Nonaktifkan + Hapus), dan
+            keduanya memanggil jalur PIN-nya sendiri. Sekarang keduanya hidup di
+            dalam menu yang sama dengan layar Detail Murid, sehingga tombol hapus
+            tidak mungkin lagi berperilaku berbeda di dua layar. */}
+        <div className="border-t border-[var(--border)] px-4 py-2">
           <button
-            onClick={() => requirePin("delete", s)}
-            aria-label={`Hapus permanen ${s.name}`}
-            className="mt-1 inline-flex min-h-[44px] items-center justify-center border-t border-[var(--border)] pt-2 text-xs font-semibold text-[var(--ink-danger)] hover:text-[var(--ink-danger)] px-3 py-1 rounded-lg hover:bg-[var(--bg-danger)] transition-colors"
+            onClick={() => openActions(s)}
+            aria-label={`Kelola ${s.name}`}
+            className="inline-flex w-full min-h-[44px] items-center justify-center text-xs font-semibold text-[var(--ink-muted)] hover:text-[var(--ink-strong)] px-3 py-1 rounded-lg hover:bg-[var(--surface)] transition-colors"
           >
-            Hapus
+            Kelola murid
           </button>
         </div>
       </div>
@@ -518,86 +435,15 @@ export default function Students() {
         </>
       )}
 
-      {/* PIN Confirmation Modal */}
-      {pendingAction && (
-        <Modal
-          onClose={() => { setPendingAction(null); pin.resetPin(); }}
-          ariaLabel="Konfirmasi PIN"
-          panelClassName="relative bg-[var(--surface-strong)] w-full max-w-xs rounded-2xl p-5 space-y-4 shadow-xl mx-4"
-        >
-          <div>
-            <p className="font-bold text-base text-[var(--ink-strong)]">
-              {pendingAction.action === "delete" && "Hapus Murid"}
-              {pendingAction.action === "deactivate" && "Nonaktifkan Murid"}
-              {pendingAction.action === "activate" && "Aktifkan Murid"}
-              {pendingAction.action === "edit" && "Edit Murid"}
-            </p>
-            <p className="text-sm text-[var(--ink-muted)] mt-1">
-              {pendingAction.action === "delete"
-                ? `Data "${pendingAction.student.name}" akan dihapus permanen.`
-                : pendingAction.action === "deactivate"
-                ? `"${pendingAction.student.name}" dipindah ke historis.`
-                : pendingAction.action === "activate"
-                ? `"${pendingAction.student.name}" diaktifkan kembali.`
-                : `Edit profil "${pendingAction.student.name}"?`}
-            </p>
-
-            {pendingAction.action === "deactivate" && (upcomingCountMap.get(pendingAction.student.id) ?? 0) > 0 && (
-              <p className="mt-2 rounded-lg bg-[var(--bg-warn)] border border-[var(--border-warn)] p-2 text-xs text-[var(--ink-warn)]">
-                ⚠️ Masih ada {upcomingCountMap.get(pendingAction.student.id)} jadwal mendatang yang belum selesai.
-                Pertimbangkan untuk membatalkan atau mengatur ulang jadwal tersebut.
-              </p>
-            )}
-
-            {pendingAction.action === "delete" && deleteSummary && (
-              <div className="mt-2 rounded-lg bg-[var(--bg-danger)] border border-[var(--border-danger)] p-2 text-xs text-[var(--ink-danger)]">
-                <p className="font-semibold mb-1">Yang akan ikut terhapus:</p>
-                <ul className="space-y-0.5">
-                  {deleteSummary.sessions > 0 && <li>• {deleteSummary.sessions} sesi</li>}
-                  {deleteSummary.reports > 0 && <li>• {deleteSummary.reports} laporan</li>}
-                  {deleteSummary.payments > 0 && <li>• {deleteSummary.payments} tagihan</li>}
-                  {deleteSummary.followUps > 0 && <li>• {deleteSummary.followUps} follow-up aktif</li>}
-                  {deleteSummary.raporGrades > 0 && <li>• {deleteSummary.raporGrades} nilai rapor</li>}
-                  {deleteSummary.iaee > 0 && <li>• {deleteSummary.iaee} proyek IA/EE</li>}
-                  {deleteSummary.studyNote > 0 && <li>• catatan belajar</li>}
-                  {deleteSummary.sessions === 0 && deleteSummary.reports === 0 && deleteSummary.payments === 0 && deleteSummary.followUps === 0 && deleteSummary.raporGrades === 0 && deleteSummary.iaee === 0 && deleteSummary.studyNote === 0 && (
-                    <li>• Tidak ada riwayat — hanya profil</li>
-                  )}
-                </ul>
-              </div>
-            )}
-          </div>
-          {settings?.financialPin && (
-            <div>
-              <p className="text-xs text-[var(--ink-muted)] mb-1">Masukkan PIN untuk konfirmasi</p>
-              <input type="password" inputMode="numeric" maxLength={6} placeholder="PIN"
-                value={pin.pinInput}
-                onChange={(e) => { pin.setPinInput(e.target.value.replace(/\D/g, "").slice(0, 6)); pin.setPinError(""); }}
-                onKeyDown={(e) => { if (e.key === "Enter") handlePinConfirm(); }}
-                className="input text-center tracking-widest text-lg w-full" autoFocus />
-              {pin.pinError && <p className="text-xs text-[var(--ink-danger)] mt-1">{pin.pinError}</p>}
-            </div>
-          )}
-          <div className="flex gap-2">
-            <button onClick={() => { setPendingAction(null); pin.resetPin(); }}
-              className="flex-1 py-2.5 rounded-xl bg-[var(--bg-subtle)] text-[var(--ink-muted)] font-semibold text-sm">
-              Batal
-            </button>
-            <button
-              onClick={handlePinConfirm}
-              className={`flex-1 py-2.5 rounded-xl text-[var(--on-strong)] font-semibold text-sm ${pendingAction.action === "delete" ? "bg-[var(--bg-danger-strong)] hover:bg-[var(--bg-danger-strong)]" : pendingAction.action === "deactivate" ? "bg-[var(--bg-attention-strong)] hover:bg-[var(--bg-attention-strong)]" : pendingAction.action === "activate" ? "bg-[var(--bg-success-strong)] hover:bg-[var(--bg-success-strong)]" : "bg-[var(--brand-solid)] hover:bg-[var(--brand-solid)]"}`}>
-              {pendingAction.action === "delete" ? "Hapus" : pendingAction.action === "deactivate" ? "Nonaktifkan" : pendingAction.action === "activate" ? "Aktifkan" : "Edit"}
-            </button>
-          </div>
-
-          {pendingAction.action === "delete" && (
-            <button
-              onClick={() => { setPendingAction({ action: "deactivate", student: pendingAction.student }); pin.resetPin(); }}
-              className="inline-flex min-h-[44px] w-full items-center justify-center text-center text-xs font-semibold text-[var(--ink-muted)] hover:text-[var(--ink-strong)] py-1">
-              Alih-alih hapus, nonaktifkan saja →
-            </button>
-          )}
-        </Modal>
+      {/* Menu aksi murid — dipakai bersama layar Detail Murid (butir 11 G3-06). */}
+      {actionTarget && (
+        <StudentActionsSheet
+          student={actionTarget}
+          actions={actionTarget.active
+            ? ["edit", "deactivate", "delete"]
+            : ["edit", "activate", "delete"]}
+          onClose={() => setActionTarget(null)}
+        />
       )}
     </div>
   );
