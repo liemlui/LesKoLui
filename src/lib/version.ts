@@ -11,6 +11,25 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.97.0",
+    date: "2026-10-10",
+    title: "Halaman murid: empat tab, kartu Perlu Tindakan, nilai rapor, dan proyek bebas",
+    items: [
+      "**Halaman murid sekarang punya empat tab: Ringkas · Sesi · Progres · Proyek.** Tab lama \"Nilai\" berganti nama menjadi **Progres**, dan tab **Proyek** menggantikan \"IA/EE/PP\". Isinya dipisah supaya tidak ada lagi satu halaman panjang yang harus digulir untuk mencari apa pun.",
+      "**Kartu \"Perlu Tindakan\" muncul di paling atas tab Ringkas.** Isinya hal-hal yang benar-benar menunggu Anda: jadwal yang sudah lewat, jadwal berikutnya, PR terakhir yang perlu diulang, tagihan yang belum lunas, sesi lama yang belum masuk tagihan, dan tindak lanjut. Setiap barisnya bisa langsung ditekan untuk membuka tempat mengerjakannya. Kalau tidak ada yang menunggu, kartunya tidak muncul sama sekali.",
+      "**Blok uang pindah ke tab Ringkas**, memuat tarif murid beserta rincian biaya sesi yang sudah selesai. Angkanya tetap ikut tersamarkan saat uang sedang dikunci, dan tarif tetap bisa diubah dari situ.",
+      "**Tab Progres membandingkan prediksi dengan nilai akhir.** Nilai yang selama ini tersimpan di tiap sesi — tetapi tidak pernah ditampilkan sebagai perbandingan — kini muncul sebagai tabel, lengkap dengan penanda bila nilai akhir di bawah prediksi. Di bawahnya ada isian **nilai rapor** yang bisa disimpan per semester (sebelumnya tabel dan fungsinya sudah ada, tetapi tidak punya antarmuka sama sekali).",
+      "**Rata-rata fokus kini ditulis satu kali saja, beserta penyebutnya.** Sebelumnya angka yang sama muncul di empat tempat dengan tiga penyebut berbeda, dan salah satunya menempelkan rata-rata seluruh riwayat pada jumlah 15 sesi terakhir. Sekarang ada satu kartu **Kesimpulan** yang menjawab \"murid ini seperti apa\", dan angka pendukungnya masing-masing menyebut penyebutnya.",
+      "**Tab Proyek berguna untuk semua murid, bukan hanya murid IB.** Pelacaknya kini punya jenis proyek bebas — tugas internal, esai, eksperimen, proyek pribadi, atau tugas jangka panjang apa pun — dan milestonenya bisa disunting, bukan hanya dihapus. Murid non-IB tidak lagi melihat tab kosong, dan proyek yang sudah ada tetap terbaca apa adanya.",
+      "**Di riwayat sesi tidak ada lagi tombol di dalam tombol.** Dulu kartu sesi adalah area yang bisa diklik dan di dalamnya masih ada tombol \"Edit catatan\" — menekan yang dalam bisa ikut membuka yang luar. Sekarang keduanya terpisah.",
+      "**Kepala halaman murid punya tombol WhatsApp ke orang tua, tombol sunting, dan menu ⋯** berisi nonaktifkan/aktifkan serta hapus. Menu itu **sama persis** dengan yang dipakai di daftar murid, jadi satu murid tidak mungkin terhapus dengan aturan berbeda dari dua tempat.",
+      "**Daftar murid bisa diurutkan dan disaring.** Ada kotak **Urutkan** — jadwal terdekat, paling butuh perhatian, nama, atau terbaru bergabung — dan tombol **Butuh perhatian (N)** yang menyaring daftar menjadi murid yang punya tindak lanjut atau tagihan belum dibayar. Di bawahnya ada satu baris yang menyebut urutan yang sedang dipakai, misalnya \"Menampilkan 12 murid · urutan Nama (A–Z)\".",
+      "**Kartu murid dipotong menjadi tiga baris**, dan keterangan \"N bulan bersama\" diganti **\"aktif sejak Agustus 2026\"** — bulan dan tahun, bukan jumlah bulan yang dibulatkan ke bawah. Label kurikulumnya memakai bentuk pendek (IGCSE, DP, MYP, O Lvl), dan chip mapel serta nama orang tua tidak lagi memenuhi kartu karena keduanya sudah ada di halaman murid.",
+      "**Formulir murid diurutkan menjadi Identitas · Kontak · Tarif · Siklus Tagihan.** Mata pelajaran ikut kelompok Identitas karena mengikuti kurikulum, dan saat **menambah murid baru** bagian Siklus Tagihan terlipat lebih dulu dengan ringkasan pilihannya (mis. \"Bulanan · Buka\") — kebijakan bawaannya sudah benar untuk sebagian besar murid, jadi tidak perlu menghadang di awal. Saat menyunting murid yang sudah ada, bagian itu langsung terbuka.",
+      "**Halaman detail murid dipecah jadi berkas-berkas kecil**: dari 1.097 menjadi **678 baris**, dengan modal catatan sesi dan modal jadwal pindah ke berkasnya sendiri. Tidak ada perubahan pada perhitungan uang, tarif historis, atau berkas backup.",
+    ],
+  },
+  {
     version: "v1.96.0",
     date: "2026-10-08",
     title: "Laporan bulanan: langkahnya terlihat, hasil AI bisa diulang, narasi tersimpan sendiri",

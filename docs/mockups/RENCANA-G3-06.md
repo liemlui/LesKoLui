@@ -1,10 +1,10 @@
 # RENCANA-G3-06 — peta teknis pekerjaan layar Murid
 
-> **Sekilas.** Jenis: dokumen persiapan kerja (belum dikerjakan). Status: usulan, menunggu keputusan pemilik.
-> Untuk siapa: pemilik yang memutuskan, dan sesi berikutnya yang mengeksekusi.
+> **Sekilas.** Jenis: dokumen persiapan kerja — **sudah dieksekusi seluruhnya**. Status: pekerjaannya **TUNTAS 2026-10-10**; keadaan hasilnya ada di [`../kerja/PEKERJAAN.md`](../kerja/PEKERJAAN.md) §3 G3-06 dan jangkar teknisnya di [`../kerja/CHEATSHEET.md`](../kerja/CHEATSHEET.md) bagian G3-06. Berkas ini disimpan sebagai rujukan **alasan dan peta teknis**, bukan sebagai daftar kerja yang masih terbuka.
+> Untuk siapa: sesi berikutnya yang perlu tahu **mengapa** bentuknya begini, dan pemilik yang ingin menelusuri keputusan K1–K7.
 > **Bukan daftar pekerjaan.** Daftarnya tetap `docs/kerja/PEKERJAAN.md` §3 G3-06. Kalau berkas ini
 > bertentangan dengan `PEKERJAAN.md` atau `ATURAN-AI.md`, dua berkas itu yang menang.
-> Dibuat 2026-10-09. Seluruh angka di bawah **hasil ukur langsung pada berkas**, bukan kutipan dokumen.
+> Dibuat 2026-10-09. Seluruh angka di §1–§2 adalah **potret 2026-10-09**, bukan keadaan hari ini — ukur ulang dengan `npm run measure loc`. Pelaksanaannya ada di §7–§11, dan penutupnya di §12.
 
 ---
 
@@ -130,9 +130,10 @@ pada putaran eksekusi — kecuali yang memang sudah tercakup fitur G3-06.
 
 ## 6. Rancangan pelacak proyek (DISETUJUI pemilik 2026-10-09 — dalam pengerjaan)
 
-> **Status: usulan, belum disetujui, belum dikerjakan.** Semua `file:line` di sini hasil baca
-> 2026-10-09. Bagian yang saya tandai **"keputusan saya"** boleh diputuskan agen menurut
-> `ATURAN-AI.md` §1 butir 5; yang ditandai **K1–K7** wajib pemilik.
+> **Status: SELESAI — disetujui dan dieksekusi 2026-10-09/10.** Semua `file:line` di sini hasil baca
+> 2026-10-09, yaitu potret **sebelum** pekerjaannya: nomor barisnya **sudah tidak berlaku** sesudah
+> `StudentDetail.tsx` dipotong 1.097 → 678 baris. Bagian yang saya tandai **"keputusan saya"** boleh
+> diputuskan agen menurut `ATURAN-AI.md` §1 butir 5; yang ditandai **K1–K7** dijawab pemilik 2026-10-09.
 
 ### 6.1 Pijakan yang sudah final, jadi tidak perlu ditanyakan lagi
 
@@ -397,3 +398,18 @@ memindahkan fungsinya dengan hati-hati. Rekomendasi: pakai apa adanya, jangan pi
 5. **Fase E** — pembaruan dokumen kerja + butir daftar periksa manual baru untuk tab Murid, lalu commit.
 
 Setiap keputusan yang saya ambil sendiri dicatat satu baris alasannya, sesuai `ATURAN-AI.md` §8.
+
+---
+
+## 12. Penutupan (2026-10-10) — butir #12–#14 dan dua bug yang ditemukan penjaga
+
+Fase C ditutup: **#12** kontrol urutan/penyaringan daftar murid (modul murni `src/lib/studentList.ts` + kotak `Urutkan`, tombol `Butuh perhatian (N)`, dan baris label urutan di `Students.tsx`), **#13** kartu murid tiga baris (`kartuIdentitasBaris` + `aktifSejakLabel` + `ringkasSesiBulanIni`), **#14** urutan kelompok formulir murid dan lipatan Siklus Tagihan. Keputusan agen pada putaran itu: chip mapel, nama orang tua, dan "N bulan bersama" dibuang dari kartu (ketiganya tetap di halaman Detail Murid), dan hitungan `cost` yang tidak pernah ditampilkan dihapus dari `Students.tsx` (§4 butir 6 di berkas ini).
+
+**Dua bug nyata ditemukan `npm run e2e:uiux`, bukan oleh penalaran** — keduanya berasal dari pekerjaan G3-06 yang lebih dulu dan **lolos** dari `tsc` maupun suite tes:
+
+1. **Urutan hook di `StudentDetail.tsx`.** `useState` untuk menu aksi diletakkan setelah gerbang `!student`, sehingga render pertama menjalankan hook lebih sedikit daripada render kedua: React melempar *"Rendered more hooks than during the previous render"* dan **seluruh layar Detail Murid jatuh ke batas galat**. Gejala yang terukur di penjaga: "layar tanpa h1", karena yang terukur panel galat. Diperbaiki dengan memindahkan state itu ke atas bersama state lain. Pelajaran: `npx eslint src` (`react-hooks/rules-of-hooks`) adalah satu-satunya penjaga yang menunjuk barisnya.
+2. **Emoji di dalam tombol kartu Perlu Tindakan** (`⚠️` `🔔` `ℹ️` pada `TONE_ICON`) ditolak guard emoji `e2e:uiux`. Diganti ikon SVG: `WarningIcon` · `BellIcon` · `InfoIcon` (ikon `InfoIcon` baru ditambahkan ke `src/components/icons.tsx`). Alasan: kebijakan TASK-11 mengizinkan emoji hanya untuk kosakata **afektif**; "mendesak / perlu perhatian / keterangan" adalah penanda struktural.
+
+**Temuan alat ketiga, yang tidak sampai ke pemilik:** modul `perbandinganNilai.ts` yang saya buat untuk memisahkan `barisPerbandingan` dari komponennya **menutupi** `PerbandinganNilai.tsx` di Windows — TypeScript mencoba `.ts` sebelum `.tsx`, dan impor `./PerbandinganNilai` dari `NilaiRapor.tsx` langsung gagal dengan TS1192. Berkasnya dinamai ulang `perbandinganNilaiRows.ts`.
+
+**Batas kejujuran yang dibawa ke penutup:** tab Murid yang baru (Perlu Tindakan, blok uang, Prediksi vs Nilai Akhir, isian rapor, tab Proyek non-IB) beserta tiga butir terakhir **belum dilihat mata pemilik**; butir daftar periksa manual 30–33 ditambahkan untuk itu dan belum dicentang.

@@ -29,7 +29,7 @@ Lanjutkan proyek Les Ko Lui (jurnal les privat, PWA lokal-first) — Gelombang 3
    §2.1–§2.3, §6.1–§6.4, atau §9, nomor itu sudah tidak ada (peta lama→baru di
    `docs/arsip/README.md` §6).
 2. `les-ko-lui/docs/kerja/PEKERJAAN.md` — SATU-SATUNYA daftar pekerjaan. Spesifikasi lengkap
-   G3-01…G3-10 ada di §3, pekerjaan tanpa dokumen tugas di §4, daftar periksa manual (25 butir)
+   G3-01…G3-10 ada di §3, pekerjaan tanpa dokumen tugas di §4, daftar periksa manual (33 butir)
    di §5.
 3. `les-ko-lui/docs/kerja/SERAH-TERIMA.md` — keadaan + batas kejujuran yang belum beres.
    Bagian 3 dan 4 saja.
@@ -37,19 +37,19 @@ Lanjutkan proyek Les Ko Lui (jurnal les privat, PWA lokal-first) — Gelombang 3
 5. Baru buka SATU `docs/kerja/TASK-XX` yang relevan kalau perlu detail. `docs/RIWAYAT-RILIS.md`
    hanya kalau butuh alasan historis. `docs/arsip/**` beku — jangan kutip angkanya.
 
-### Keadaan yang diukur pada 2026-10-08 (ukur sendiri, jangan percaya tulisan ini)
+### Keadaan yang diukur pada 2026-10-10 (ukur sendiri, jangan percaya tulisan ini)
 
 | Hal | Nilai saat berkas ini ditulis |
 |---|---|
-| Versi | v1.96.0 |
-| Branch / HEAD | `main`, pohon kerja bersih sesudah rilis v1.96.0 |
-| Suite | 982 lulus / 74 berkas |
+| Versi | v1.97.0 |
+| Branch / HEAD | `main`, pohon kerja bersih sesudah rilis v1.97.0 (`git status -sb` untuk selisih dengan `origin/main`) |
+| Suite | 1197 lulus / 89 berkas |
 | `check:docs` | 0 rusak · 0 pelanggaran |
-| `e2e:uiux` | 64 lulus / 0 gagal |
-| `e2e` | 69 lulus / 11 gagal / 6 skip — **sebelas kegagalannya sudah ada sebelum G3-05**, lihat bagian jebakan |
+| `e2e:uiux` | **64 lulus / 0 gagal** — termasuk layar Detail Murid yang pada 2026-10-10 sempat jatuh ke batas galat karena urutan hook (lihat jebakan) |
+| `e2e` | belum dijalankan ulang pada putaran ini. Terukur terakhir 2026-10-08: 69 lulus / 11 gagal / 6 skip — **sebelas kegagalannya sudah ada sebelum G3-05**, lihat bagian jebakan |
 
 Baris berkas besar yang menjadi target refactor (diukur dengan `npm run measure loc`):
-`CaptureSession.tsx` **2.077** · `Settings.tsx` **1.380** (target ≤700) · `StudentDetail.tsx` **1.097** (target ≤800) · `payments/TagihanTab.tsx` **1.021** (target ≤800). `MonthlyReport.tsx` **1.470** — sudah di bawah targetnya (≤1.500) sejak G3-05.
+`CaptureSession.tsx` **2.077** · `Settings.tsx` **1.380** (target ≤700) · `payments/TagihanTab.tsx` **1.021** (target ≤800). `MonthlyReport.tsx` **1.470** (target ≤1.500) dan `StudentDetail.tsx` **678** (target ≤800) — **keduanya sudah tuntas**.
 
 ### Gate — jalankan SEKALI di akhir tugas, bukan per langkah
 
@@ -76,13 +76,12 @@ Butuh izin sandbox penuh: `npm run e2e`, `npm run e2e:uiux`, `git push`.
 
 ### Urutan pekerjaan yang mengikat
 
-**Sisa Gelombang 3 — lima tugas, semuanya belum tersentuh:**
+**Sisa Gelombang 3 — empat tugas, G3-06 sudah tuntas 2026-10-10:**
 
-1. **G3-06 Murid.** Refactor `StudentDetail.tsx` 1.097 → ≤800 + peta tab baru (Ringkas/Sesi/Progres/Proyek) + 14 fitur. Disebut di daftar sebagai "yang terbesar di gelombang ini dan boleh dipecah dua sesi". **Kerjakan ini lebih dulu.**
-2. **G3-07 Foto murid.** Bergantung G3-06.
-3. **G3-08 Kanvas dan istilah.** Bergantung G3-05 (sudah selesai) — panel desain laporan yang baru dirombak ada di `src/screens/monthlyReport/DesignToolbar.tsx`. Jangan kurangi 26 susunan / 34 tema.
-4. **G3-09 Pengaturan.** Refactor `Settings.tsx` 1.380 → ≤700 + 11 fitur.
-5. **G3-10 Reset total dan PIN.** Bergantung G3-09.
+1. **G3-07 Foto murid.** Ketergantungannya (G3-06) sudah selesai, jadi ini yang dikerjakan lebih dulu. Kolom foto pada murid sudah ada dan sudah ikut masuk berkas backup, tetapi belum pernah ditampilkan sama sekali. **Kerjakan ini lebih dulu.**
+2. **G3-08 Kanvas dan istilah.** Bergantung G3-05 (sudah selesai) — panel desain laporan yang baru dirombak ada di `src/screens/monthlyReport/DesignToolbar.tsx`. Jangan kurangi 26 susunan / 34 tema.
+3. **G3-09 Pengaturan.** Refactor `Settings.tsx` 1.380 → ≤700 + 11 fitur. **Lima `confirm()` bawaan peramban masih hidup di berkas itu** (jalur restore dan hapus semua data), dan syarat selesai G3-09 sendiri sudah menuntut semuanya diganti dialog internal.
+4. **G3-10 Reset total dan PIN.** Bergantung G3-09.
 
 **Kemudian §4 PEKERJAAN.md (boleh kapan saja):**
 
@@ -96,7 +95,7 @@ Butuh izin sandbox penuh: `npm run e2e`, `npm run e2e:uiux`, `git push`.
 - **Backlog** — jejak audit untuk perubahan sesi; temuan audit tampilan 2026-10-01 yang tersisa.
 - Pemilih sub-layar keuangan (lihat bagian "Kenyataan yang menyimpang" di bawah).
 
-**Tugas kecil yang tertinggal dari G3-04:** daftar riwayat panggilan AI di Pengaturan, dan memindahkan pembacaan `pemakaian` di `Settings.tsx` ke hook supaya tidak ada dua pembacaan paralel.
+**Sisa kecil dari G3-04:** daftar riwayat panggilan AI di Pengaturan, dan memindahkan pembacaan `pemakaian` di `Settings.tsx` ke hook supaya tidak ada dua pembacaan paralel.
 
 ### Jebakan yang sudah terverifikasi — jangan terperangkap lagi
 
@@ -148,6 +147,15 @@ Ditambahkan dari pengalaman 2026-10-08 (G3-05):
 - **Setelah `npm run e2e`: `git checkout -- e2e/screenshots/` untuk berkas terlacak, lalu hapus PNG tak terlacak yang baru muncul.** Untuk menghapus, verifikasi dulu jalur absolutnya benar-benar di dalam `e2e/screenshots/`.
 - **`npx vitest run <berkas>` GAGAL di sandbox ini** (`spawn EPERM`); yang bekerja adalah `npm run test:sandbox` atau `npx vitest run --pool=threads --maxWorkers=2 <berkas>`, keduanya dengan `NODE_OPTIONS` shim berjalur relatif di proses PowerShell yang sama.
 
+Ditambahkan dari pengalaman 2026-10-10 (G3-06):
+
+- **Hook React setelah gerbang `return` menjatuhkan SELURUH layar, dan hanya `eslint`/penjaga tampilan yang menangkapnya.** `useState` untuk menu aksi di `StudentDetail.tsx` diletakkan setelah `if (!student) return <Skeleton …/>`; akibatnya render pertama menjalankan hook lebih sedikit daripada render kedua, React melempar *"Rendered more hooks than during the previous render"*, dan halaman murid jatuh ke batas galat. `npx tsc -b` **lulus** dan suite tes **lulus** — yang menangkap adalah `npx eslint src` (aturan `react-hooks/rules-of-hooks`) dan `e2e:uiux` (gejalanya muncul sebagai "layar tanpa h1", karena yang terukur panel galat). **Jalankan `npx eslint src` sebelum menutup tugas, bukan sesudah push.**
+- **Guard emoji `e2e:uiux` menolak emoji DI DALAM tombol/heading.** Tiga penanda tingkat kepentingan pada tombol kartu Perlu Tindakan (⚠️ 🔔 ℹ️) membuat dua tes merah di layar Detail Murid. Kebijakan yang berlaku: emoji hanya untuk **kosakata afektif** ber-`data-emoji-vocab="affect"`; penanda struktural wajib ikon SVG (`WarningIcon` · `BellIcon` · `InfoIcon`).
+- **Berkas komponen tidak boleh mengekspor fungsi biasa.** `react-refresh/only-export-components` menyala walau fungsinya murni sekalipun. Pindahkan aturan murni ke modul sendiri — pola `raporForm.ts`, `studentConclusion.ts`, `perbandinganNilaiRows.ts`.
+- **Nama berkas `.ts` yang berbeda hanya besar-kecil huruf dari sebuah `.tsx` menutupi komponennya di Windows.** TypeScript mencoba `.ts` **sebelum** `.tsx`, jadi `perbandinganNilai.ts` membuat impor `./PerbandinganNilai` dari `NilaiRapor.tsx` gagal dengan TS1192 ("has no default export"). Beri akhiran yang benar-benar berbeda.
+- **Repo ini TIDAK memasang `jsdom` maupun `@testing-library/*`.** Komponen diuji dengan `renderToStaticMarkup` (lihat `nilaiRaporIsian.test.tsx`, `perluTindakanCard.test.tsx`), dan invarian struktural diuji dengan membaca berkas sumber lewat `?raw` (`nativeDialogs` · `moneyGate` · `studentSinglePath` · `studentFormGroups`). Menambah jsdom = menambah pustaka, dan itu butuh keputusan pemilik.
+- **Satu flake guard tampilan yang terukur:** tes kontras layar Keuangan pada project `mobile` pernah gagal karena kolom PIN masih `disabled` (data contoh belum siap) sehingga `fill()` di `openPin()` menunggu sampai batas waktu tes; run penutup lulus penuh. Kalau menyentuh `e2e-uiux/uiux-metrics.spec.ts`, beri batas waktu pendek pada `fill()` di dalam lingkaran percobaan itu — **jangan** menaikkan batas 60 detik keputusan pemilik.
+
 ### Kenyataan yang menyimpang dari spesifikasi — sudah diputuskan, jangan diulang
 
 - **Papan pipeline tetap di sub-layar analitik (`?tab=ringkasan`), bukan dipindah ke blok 2 layar
@@ -173,6 +181,13 @@ Ditambahkan dari pengalaman 2026-10-08 (G3-05):
   (`paidAt`, cadangan `month`).
 - **Navigasi bawah tiga pintu + satu aksi:** Hari Ini · Murid · Uang + tombol Catat sesi.
   Rute `/report` dan `/capture` tetap hidup sebagai tautan langsung.
+- **Butir #10 G3-06 tetap memakai pola halaman** (tombol Sebelumnya/Berikutnya), bukan tombol "muat
+  20 lagi" seperti bunyi spesifikasinya — itu jawaban K5 pemilik 2026-10-09. Bagian yang wajib di
+  butir itu, kontrol bersarang di `RiwayatSesi.tsx`, sudah dihapus (`e1106dd`). Jangan "membetulkan"
+  ke tombol muat-lagi tanpa keputusan baru.
+- **Pemotongan `StudentDetail.tsx` lewat ekstraksi modal, bukan pemecahan per tab.** Usulan
+  `RingkasTab.tsx`/`SesiTab.tsx`/… di `docs/mockups/RENCANA-G3-06.md` §3 **tidak** dipakai; target
+  ≤800 sudah tercapai tanpa itu. Jangan mengutip §3 sebagai keadaan hari ini.
 
 ### Larangan yang mengikat (ATURAN-AI §3)
 
@@ -193,7 +208,7 @@ manusia, (2) perintah apa yang dijalankan dan hasilnya sekali saja, (3) apa yang
 
 ### Dua hal yang pemilik berikan izinnya pada 2026-10-07
 
-1. **Agen boleh mencentang daftar periksa manual** (§5 `PEKERJAAN.md`, kini 29 butir) — izin eksplisit
+1. **Agen boleh mencentang daftar periksa manual** (§5 `PEKERJAAN.md`, kini **33 butir**) — izin eksplisit
    pemilik, menyimpang dari kalimat "hanya pemilik yang boleh mencentang" di berkas itu. Centang
    berdasarkan bukti terukur, dan sebutkan di laporan bukti apa yang dipakai.
 2. **Revisi boleh di-push ke `main`** setelah gate hijau dan rilis versi dinaikkan.
@@ -209,3 +224,4 @@ manusia, (2) perintah apa yang dijalankan dan hasilnya sekali saja, (3) apa yang
 | 2026-10-07 | Dibuat untuk menyerahkan sisa Gelombang 3 ke sesi DSH baru setelah v1.95.0 dirilis. |
 | 2026-10-08 | Diperbarui sesudah G3-05 tuntas dan v1.96.0 dirilis: keadaan terukur (v1.96.0 · suite 982/74 · `e2e` 69/11/6 dengan penjelasan bahwa sebelas kegagalan itu sudah ada sebelum G3-05), urutan pekerjaan (G3-06 lebih dulu, G3-05 dikeluarkan), dan lima jebakan baru dari putaran ini — terutama pola spec Playwright yang menemukan murid lewat tombol `toBeEnabled`, dan peringatan agar tidak menyentuh berkas ber-UTF-8 dengan `Get-Content`/`Set-Content`. |
 | 2026-10-08 | Ditambahkan sesudah inspeksi pemilik: layar Laporan **sudah dilihat di perangkat dan dinilai cukup** ("sudah sangat oke"), butir daftar periksa 26–29 dicentang, dan catatan bahwa pemisahan istilah dibuat/dibagikan pada ekspor ikut disetujui lewat inspeksi itu. |
+| 2026-10-10 | Diperbarui sesudah **G3-06 tuntas dan v1.97.0 dirilis**: keadaan terukur (v1.97.0 · suite 1197/89 · `e2e:uiux` **64/0** termasuk layar Detail Murid), urutan pekerjaan (G3-06 dikeluarkan, **G3-07 jadi yang pertama**), dan enam jebakan baru dari putaran ini — terutama **hook React setelah gerbang `return`** (menjatuhkan satu layar penuh, lolos dari `tsc` dan suite, hanya tertangkap `eslint` + `e2e:uiux`), emoji di dalam tombol yang ditolak guard, `react-refresh/only-export-components`, jebakan nama `.ts` vs `.tsx` di Windows, catatan bahwa repo **tidak** memasang jsdom, dan satu flake PIN di guard tampilan. Ditambahkan juga dua penyimpangan yang mengikat: butir #10 tetap berpola halaman, dan `StudentDetail.tsx` dipotong lewat ekstraksi modal (bukan pemecahan per tab). |

@@ -3,7 +3,7 @@
 > **Sekilas.** Jenis: lembar serah-terima untuk sesi berikutnya. Status: berlaku.
 > Untuk siapa: agen AI yang melanjutkan pekerjaan ini, dan pemilik yang ingin tahu keadaan terakhir tanpa membaca seluruh dokumen.
 > Berkas ini diperbarui di akhir sesi, bukan di awal.
-> **Terakhir diselaraskan: 2026-10-08** (G3-05 Laporan bulanan tuntas: refactor 2.361 → 1.470 baris + 11 butir fitur; tampilannya sudah dilihat pemilik di perangkat dan dinilai cukup). Isi historisnya tidak diubah.
+> **Terakhir diselaraskan: 2026-10-10** (G3-06 Murid tuntas: `StudentDetail.tsx` 1.097 → 678 baris, peta tab Ringkas/Sesi/Progres/Proyek, 14 butir — tiga butir terakhir dikerjakan pada putaran ini; tampilan barunya **belum** dilihat pemilik). Isi historisnya tidak diubah.
 > **Yang mengikat tetap `ATURAN-AI.md` dan `PEKERJAAN.md`.** Berkas ini hanya menjelaskan keadaan dan temuan, bukan aturan.
 
 ---
@@ -154,16 +154,28 @@ G3-05 tuntas: refactor terbatas **2.361 → 1.470 baris** (target ≤1.500) dita
 
 ---
 
+### 4.6 Yang berubah pada putaran 2026-10-10 (G3-06 Murid)
+
+G3-06 tuntas: `StudentDetail.tsx` **1.097 → 678 baris** (target ≤800), peta tab Ringkas/Sesi/Progres/Proyek, dan 14 butir. Yang perlu diketahui sesi berikutnya:
+
+1. **Tiga butir terakhir dikerjakan pada putaran ini** — #12 pengurutan + penyaringan daftar murid lewat modul murni baru `src/lib/studentList.ts`, #13 kartu murid dipotong menjadi tiga baris (label pendek kurikulum + "aktif sejak bulan tahun"), #14 urutan kelompok formulir murid dan bagian Siklus Tagihan yang terlipat saat menambah murid baru. Butir #1–#11 dikerjakan 2026-10-09/10 di commit `63dc7e9`…`1f03e21`.
+2. **Penyimpangan yang sudah disetujui pemilik pada butir #10:** pola halaman (Sebelumnya/Berikutnya) **dipertahankan**, bukan diganti tombol "muat 20 lagi" — jawaban K5 pemilik 2026-10-09. Yang wajib diperbaiki di butir itu, kontrol bersarang di `RiwayatSesi.tsx`, sudah dihapus (`e1106dd`).
+3. **Pemotongan `StudentDetail.tsx` ditempuh lewat ekstraksi modal, bukan pemecahan per tab.** `docs/mockups/RENCANA-G3-06.md` §3 mengusulkan `RingkasTab.tsx`/`SesiTab.tsx`/`ProgresTab.tsx`/`ProyekTab.tsx`; itu **tidak** dikerjakan karena target ≤800 sudah tercapai dan memecah tabpanel akan menambah berkas tanpa manfaat terukur. Jangan mengutip §3 sebagai keadaan hari ini.
+4. **Satu bug nyata ditemukan penjaga tampilan, bukan oleh penalaran.** `useState` untuk menu aksi di `StudentDetail.tsx` diletakkan **setelah** gerbang `!student`, sehingga render pertama menjalankan hook yang lebih sedikit daripada render kedua: React melempar *"Rendered more hooks than during the previous render"* dan seluruh layar Detail Murid jatuh ke batas galat. Bug ini sudah ada sejak butir #11 (`1f03e21`) dan **lolos dari `tsc` maupun suite tes** — yang menangkapnya `npm run e2e:uiux` (gejalanya muncul sebagai "layar tanpa h1", karena yang terukur panel galat). Diperbaiki 2026-10-10 dengan memindahkan state itu ke atas bersama state lain. **Pelajaran:** jalankan `npx eslint src` sebelum menutup tugas; aturan `react-hooks/rules-of-hooks`-lah yang menunjuk barisnya, bukan tipe maupun tes.
+5. **`react-refresh/only-export-components` juga merah** di `studentDetail/PerbandinganNilai.tsx` karena berkas itu mengekspor komponen **dan** fungsi biasa; aturan barisnya dipindah ke `studentDetail/perbandinganNilaiRows.ts`. Jebakan penamaan yang ditemukan saat itu: di Windows `.ts` menutupi `.tsx` yang berbeda hanya besar-kecil huruf, jadi modul itu **tidak boleh** dinamai `perbandinganNilai.ts` — impor `./PerbandinganNilai` dari `NilaiRapor.tsx` langsung gagal dengan TS1192.
+6. **Batas kejujuran.** Seluruh tampilan tab Murid yang baru — kartu Perlu Tindakan, blok uang, tabel Prediksi vs Nilai Akhir, isian nilai rapor, dan tab Proyek untuk murid non-IB — beserta tiga butir terakhir **belum pernah dilihat mata pemilik di perangkat**. Butir daftar periksa manual **30–33** ditambahkan untuk itu dan **belum dicentang**.
+
+---
+
 ## 5. Langkah berikutnya
 
 Kerjakan berurutan, satu tugas sampai tuntas, lalu lapor sekali.
 
-1. **G3-06 Murid** — tugas terbesar di gelombang ini dan boleh dipecah dua sesi (bagian tab dan proyek lebih dulu, bagian daftar dan riwayat kemudian). Refactor `StudentDetail.tsx` 1.097 → ≤800 baris, peta tab Ringkas/Sesi/Progres/Proyek, dan 14 fitur.
-2. **G3-07 Foto murid**, karena bergantung pada G3-06.
-3. **G3-08 Kanvas dan istilah**, karena bergantung pada G3-05 (panel desain laporan yang baru saja dirombak ada di sana). Jangan kurangi 26 susunan / 34 tema.
-4. **G3-09 Pengaturan**, lalu **G3-10 reset total dan PIN**.
-5. Pekerjaan di `PEKERJAAN.md` bagian 4 boleh dikerjakan kapan saja tanpa mengubah urutan di atas — termasuk tiga temuan baru 2026-10-08: kegagalan Playwright yang tidak hijau di mesin ini, katalog tangkapan layar yang tidak cocok dengan spec, dan pengukuran ulang G3-01 butir 9.
-6. Daftar periksa manual di `PEKERJAAN.md` bagian 5 (kini 29 butir) hanya bisa ditutup pemilik di perangkat.
+1. **G3-07 Foto murid** — sekarang bisa dikerjakan; ketergantungannya (G3-06) sudah tuntas. Unggah/tampil/hapus foto di formulir, daftar, dan kepala detail, dengan jaminan pelepasan blob URL dan pengukuran dampak penyimpanan.
+2. **G3-08 Kanvas dan istilah**, karena bergantung pada G3-05 (sudah selesai). Panel desain laporan yang baru ada di `src/screens/monthlyReport/DesignToolbar.tsx`. Jangan kurangi 26 susunan / 34 tema.
+3. **G3-09 Pengaturan** (refactor `Settings.tsx` 1.380 → ≤700 + 11 fitur, termasuk mengganti lima `confirm()` bawaan yang masih hidup di berkas itu), lalu **G3-10 reset total dan jalur memasang PIN kembali**.
+4. Pekerjaan di `PEKERJAAN.md` bagian 4 boleh dikerjakan kapan saja tanpa mengubah urutan di atas — termasuk tiga temuan 2026-10-08: kegagalan `e2e` yang tidak hijau di mesin ini (11 kegagalan warisan ber-`SchemaError: DexieError`), katalog tangkapan layar yang tidak lagi cocok dengan spec, dan pengukuran ulang G3-01 butir 9.
+5. Daftar periksa manual di `PEKERJAAN.md` bagian 5 (kini **33 butir**) hanya bisa ditutup pemilik di perangkat. Butir 1–23 belum dicentang, dan butir **30–33** khusus untuk layar Murid yang baru dituntaskan.
 
 ---
 
@@ -180,3 +192,4 @@ Kerjakan berurutan, satu tugas sampai tuntas, lalu lapor sekali.
 | 2026-10-07 | Pemilik memverifikasi tampilan di perangkat: layar Uang tiga blok, tabel Rekap tiga kolom, dan tiga hal di sub-layar Tagihan (pencarian murid, badge keterlambatan + nama hari Indonesia, panel filter lanjutan beserta chipnya). Butir 4.2 nomor 2 dan 3 **ditutup** (dicoret beserta tanggalnya, nomornya tidak digeser supaya rujukan lama tetap sah), dan bagian 4.4 berubah dari "terbukti mesin, belum terbukti mata" menjadi terbukti keduanya. |
 | 2026-10-08 | Bagian 2, 4.5, dan 5 ditulis untuk G3-05 yang tuntas: refactor `MonthlyReport.tsx` 2.361 → 1.470 baris + 11 butir fitur, tiga field opsional baru tanpa kenaikan skema Dexie, ekspor yang tidak lagi menandai laporan "sudah dibagikan", dan batas kejujuran barunya (termasuk perincian 11 kegagalan `e2e` yang **bukan** akibat pekerjaan ini, serta kesalahan `Set-Content` yang saya ulangi dan perbaiki). Bagian 5 diganti dengan urutan baru: G3-06 lebih dulu. |
 | 2026-10-08 | **Batas kejujuran 4.5 nomor 1 ditutup:** pemilik memeriksa layar Laporan di perangkat dan menilai "sudah sangat oke", sehingga butir daftar periksa manual 26–29 dicentang pada hari yang sama. Catatan apa adanya tetap disimpan: persetujuan itu pernyataan pemilik sesudah butir dibacakan, bukan pengukuran per butir, dan butir 28 memuat pertanyaan preferensi yang tidak dijawab terpisah. |
+| 2026-10-10 | **Bagian 2, 4.6, dan 5 ditulis untuk G3-06 yang tuntas.** Sisa tiga butir terakhir dikerjakan (pengurutan/penyaringan daftar murid lewat `src/lib/studentList.ts`, kartu murid tiga baris, urutan kelompok formulir + siklus terlipat). Dua temuan alat masuk ke 4.6: bug urutan hook di `StudentDetail.tsx` yang menjatuhkan seluruh layar Detail Murid ke batas galat (lolos dari `tsc` dan suite, tertangkap `e2e:uiux`) dan pelanggaran `react-refresh/only-export-components` di `PerbandinganNilai.tsx` beserta jebakan penamaan `.ts` vs `.tsx` di Windows. Bagian 5 diganti: G3-07 lebih dulu, dan daftar periksa manual bertambah menjadi 33 butir. |

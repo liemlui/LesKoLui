@@ -458,11 +458,11 @@ diambil dari §2 dokumen ini.
 
 | Dikerjakan sebelum | Berkas | Target (§2) | Baris sekarang | Kenapa |
 |---|---|---|---|---|
-| **G3-01** (Catat Sesi) | `src/screens/CaptureSession.tsx` | **≤ 1.900** | **1.891 saat refactor tuntas** → kini **1.901** (fitur G3-01 mulai ditulis; terukur 2026-10-04, sebelum refactor **2.155**, bukan 2.073 seperti tertulis) | G3-01 menyentuh bilah aksi, stepper, Langkah 4 |
-| **G3-02** (Keuangan) | `src/screens/payments/TagihanTab.tsx` | **≤ 800** | 1.035 (terukur 2026-10-04; ⬜ belum di-refactor) | G3-02 menyentuh daftar tagihan, filter, dan panel nominal |
-| **G3-05** (Laporan) | `src/screens/MonthlyReport.tsx` | **≤ 1.500** | 2.351 (terukur 2026-10-04; ⬜ belum di-refactor) | G3-05 menyentuh pratinjau, autosave narasi, ekspor |
-| **G3-06** (Proyek & tab) | `src/screens/StudentDetail.tsx` | **≤ 800** | 1.083 (terukur 2026-10-04; ⬜ belum di-refactor) | G3-06 merombak peta tab (Ringkas/Sesi/Progres/Proyek) |
-| **G3-09** (Pengaturan) | `src/screens/Settings.tsx` | **≤ 700** | 1.308 (terukur 2026-10-04; ⬜ belum di-refactor) | G3-09 menyentuh bilah simpan, urutan section, restore, dialog |
+| **G3-01** (Catat Sesi) | `src/screens/CaptureSession.tsx` | **≤ 1.900** | **1.891 saat refactor tuntas** → kini **2.077** (terukur 2026-10-10, sesudah fitur G3-01 dan G3-06 ditulis; sebelum refactor **2.155**, bukan 2.073 seperti tertulis) | G3-01 menyentuh bilah aksi, stepper, Langkah 4 |
+| **G3-02** (Keuangan) | `src/screens/payments/TagihanTab.tsx` | **≤ 800** | 1.021 (terukur 2026-10-10 dengan `npm run measure loc`; ⬜ belum di-refactor — G3-02 mengerjakan fiturnya lebih dulu, dan angka ini di atas target) | G3-02 menyentuh daftar tagihan, filter, dan panel nominal |
+| **G3-05** (Laporan) | `src/screens/MonthlyReport.tsx` | **≤ 1.500** | **1.470 ✅ TUNTAS 2026-10-08** (dari 2.351, terukur 2026-10-04) | G3-05 menyentuh pratinjau, autosave narasi, ekspor |
+| **G3-06** (Proyek & tab) | `src/screens/StudentDetail.tsx` | **≤ 800** | **678 ✅ TUNTAS 2026-10-10** (dari 1.097 terukur 2026-10-09; target tercapai lewat ekstraksi modal, **bukan** pemecahan per tab) | G3-06 merombak peta tab (Ringkas/Sesi/Progres/Proyek) |
+| **G3-09** (Pengaturan) | `src/screens/Settings.tsx` | **≤ 700** | 1.380 (terukur 2026-10-10; ⬜ belum di-refactor) | G3-09 menyentuh bilah simpan, urutan section, restore, dialog |
 
 > **Catatan angka (2026-10-04):** kolom "Baris sekarang" di baris atas **diperbarui dengan hasil ukur**, bukan
 > disalin. Angka lama baris yang sama (2.073 / 978 / 2.296 / 1.068 / 1.205) tertulis sebelum berkas-berkas itu
