@@ -80,6 +80,14 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
     String(initial?.billingSessionCount ?? 8)
   );
   const [billingSessionCountError, setBillingSessionCountError] = useState("");
+  /**
+   * Butir 14 G3-06: bagian Siklus Tagihan dilipat saat MENAMBAH murid baru.
+   * Kebijakan bawaannya "Bulanan" dan itu sudah benar untuk sebagian besar murid,
+   * jadi pilihan penagihan tidak perlu tampil di depan sejak awal. Saat menyunting
+   * murid yang sudah ada, bagiannya selalu terbuka — di situ siklus tagihan justru
+   * yang paling sering diubah.
+   */
+  const [billingCycleOpen, setBillingCycleOpen] = useState(Boolean(initial));
   const [includeExistingUnbilledInPackage, setIncludeExistingUnbilledInPackage] = useState(false);
   const [cancelPendingTransition, setCancelPendingTransition] = useState(false);
   /** D1(c): retroaktif HANYA setelah tutor mencentang, tidak pernah otomatis. */
@@ -188,8 +196,22 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
 
   const meta = CURRICULUM_META[curriculum];
 
+  /** Ringkasan satu baris untuk tombol lipatan siklus tagihan. */
+  const billingPolicyLabel =
+    billingPolicy === "session_count"
+      ? `Setiap ${billingSessionCountInput || 8} pertemuan`
+      : billingPolicy === "monthly"
+        ? "Bulanan"
+        : "Manual";
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Empat kelompok formulir (butir 14 G3-06): Identitas → Kontak → Tarif →
+          Siklus Tagihan. Urutannya mengikat. Bagian Siklus Tagihan dilipat saat
+          MENAMBAH murid baru supaya formulir pertama tidak dibebani pilihan
+          penagihan; saat menyunting murid yang sudah ada, semuanya terbuka. */}
+      <p className="text-xs font-semibold text-[var(--ink-muted)] uppercase tracking-wide">Identitas</p>
+
       {/* Nama */}
       <div>
         <label htmlFor="name" className="label">Nama Murid</label>
@@ -239,45 +261,10 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
         </div>
       </div>
 
-      {/* Kontak Orang Tua */}
-      <div className="bg-[var(--surface)] rounded-xl p-3 space-y-3">
-        <p className="text-xs font-semibold text-[var(--ink-muted)] uppercase tracking-wide">Kontak Orang Tua</p>
-        <div>
-          <label htmlFor="parentName" className="label">Nama Orang Tua <span className="text-[var(--ink-muted)] font-normal">(opsional)</span></label>
-          <input id="parentName" className="input" maxLength={60} value={parentName} onChange={(e) => setParentName(e.target.value)} placeholder="Misal: Bpk. Budi" />
-        </div>
-        <div>
-          <label htmlFor="phone" className="label">No. WhatsApp Orang Tua</label>
-          <div className="relative">
-            <input id="phone" className="input pl-10" type="tel" value={phone}
-              onChange={(e) => setPhone(e.target.value)} required placeholder="08xxxxxxxxxx" />
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-success)]">💬</span>
-          </div>
-          {phone && hasInvalidChars(phone) && (
-            <p className="text-xs text-[var(--ink-danger)] mt-0.5">⚠️ Hanya angka — karakter lain akan dihapus otomatis.</p>
-          )}
-          {phone && !hasInvalidChars(phone) && <p className="text-xs text-[var(--ink-muted)] mt-0.5">wa.me/{toWaNumber(phone)}</p>}
-        </div>
-      </div>
-
-      {/* Kontak Murid */}
-      <div className="bg-[var(--brand-tint)] rounded-xl p-3 space-y-3">
-        <p className="text-xs font-semibold text-[var(--ink-brand)] uppercase tracking-wide">Kontak Murid</p>
-        <div>
-          <label htmlFor="studentPhone" className="label">No. WhatsApp Murid <span className="text-[var(--ink-muted)] font-normal">(opsional)</span></label>
-          <div className="relative">
-            <input id="studentPhone" className="input pl-10" type="tel" value={studentPhone}
-              onChange={(e) => setStudentPhone(e.target.value)} placeholder="08xxxxxxxxxx" />
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-success)]">💬</span>
-          </div>
-          {studentPhone && hasInvalidChars(studentPhone) && (
-            <p className="text-xs text-[var(--ink-danger)] mt-0.5">⚠️ Hanya angka — karakter lain akan dihapus otomatis.</p>
-          )}
-          {studentPhone && !hasInvalidChars(studentPhone) && <p className="text-xs text-[var(--ink-muted)] mt-0.5">wa.me/{toWaNumber(studentPhone)}</p>}
-        </div>
-      </div>
-
-      {/* Mata Pelajaran — curriculum-aware */}
+      {/* Mata Pelajaran — curriculum-aware. Ikut kelompok Identitas karena mapel
+          mengikuti kurikulum murid, bukan kontak maupun tagihan (butir 14 G3-06).
+          Pindah ke sini 2026-10-10; sebelumnya blok ini berada di antara Kontak
+          Murid dan Tarif, sehingga urutan bagian formulir tidak terbaca. */}
       <div>
         <label className="label">
           Mata Pelajaran <span className="text-[var(--ink-muted)] font-normal text-xs">(opsional)</span>
@@ -343,6 +330,44 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
         )}
       </div>
 
+      {/* Kontak Orang Tua */}
+      <div className="bg-[var(--surface)] rounded-xl p-3 space-y-3">
+        <p className="text-xs font-semibold text-[var(--ink-muted)] uppercase tracking-wide">Kontak Orang Tua</p>
+        <div>
+          <label htmlFor="parentName" className="label">Nama Orang Tua <span className="text-[var(--ink-muted)] font-normal">(opsional)</span></label>
+          <input id="parentName" className="input" maxLength={60} value={parentName} onChange={(e) => setParentName(e.target.value)} placeholder="Misal: Bpk. Budi" />
+        </div>
+        <div>
+          <label htmlFor="phone" className="label">No. WhatsApp Orang Tua</label>
+          <div className="relative">
+            <input id="phone" className="input pl-10" type="tel" value={phone}
+              onChange={(e) => setPhone(e.target.value)} required placeholder="08xxxxxxxxxx" />
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-success)]">💬</span>
+          </div>
+          {phone && hasInvalidChars(phone) && (
+            <p className="text-xs text-[var(--ink-danger)] mt-0.5">⚠️ Hanya angka — karakter lain akan dihapus otomatis.</p>
+          )}
+          {phone && !hasInvalidChars(phone) && <p className="text-xs text-[var(--ink-muted)] mt-0.5">wa.me/{toWaNumber(phone)}</p>}
+        </div>
+      </div>
+
+      {/* Kontak Murid */}
+      <div className="bg-[var(--brand-tint)] rounded-xl p-3 space-y-3">
+        <p className="text-xs font-semibold text-[var(--ink-brand)] uppercase tracking-wide">Kontak Murid</p>
+        <div>
+          <label htmlFor="studentPhone" className="label">No. WhatsApp Murid <span className="text-[var(--ink-muted)] font-normal">(opsional)</span></label>
+          <div className="relative">
+            <input id="studentPhone" className="input pl-10" type="tel" value={studentPhone}
+              onChange={(e) => setStudentPhone(e.target.value)} placeholder="08xxxxxxxxxx" />
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-success)]">💬</span>
+          </div>
+          {studentPhone && hasInvalidChars(studentPhone) && (
+            <p className="text-xs text-[var(--ink-danger)] mt-0.5">⚠️ Hanya angka — karakter lain akan dihapus otomatis.</p>
+          )}
+          {studentPhone && !hasInvalidChars(studentPhone) && <p className="text-xs text-[var(--ink-muted)] mt-0.5">wa.me/{toWaNumber(studentPhone)}</p>}
+        </div>
+      </div>
+
       {/* Tarif les per jam */}
       <div className="bg-[var(--bg-attention)] rounded-xl p-3 space-y-1">
         <label htmlFor="rateInput" className="label !mb-0">
@@ -387,8 +412,23 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
         )}
       </div>
 
-      {/* Siklus tagihan */}
-      <fieldset className="rounded-2xl border border-[var(--brand-tint-strong)] bg-[var(--brand-tint)]/60 p-3 sm:p-4">
+      {/* Siklus tagihan — dilipat saat murid baru (butir 14 G3-06). */}
+      {!initial && (
+        <button
+          type="button"
+          aria-expanded={billingCycleOpen}
+          aria-controls="siklus-tagihan"
+          onClick={() => setBillingCycleOpen((v) => !v)}
+          className="flex w-full min-h-[44px] items-center justify-between gap-3 rounded-2xl border border-[var(--brand-tint-strong)] bg-[var(--brand-tint)]/60 px-4 py-2 text-left"
+        >
+          <span className="text-sm font-semibold text-[var(--ink-strong)]">Siklus Tagihan</span>
+          <span className="text-xs font-semibold text-[var(--ink-brand)]">
+            {billingCycleOpen ? "Sembunyikan" : `${billingPolicyLabel} · Buka`}
+          </span>
+        </button>
+      )}
+      {(!initial || billingCycleOpen) && (
+      <fieldset id="siklus-tagihan" className="rounded-2xl border border-[var(--brand-tint-strong)] bg-[var(--brand-tint)]/60 p-3 sm:p-4">
         <legend className="px-1 text-sm font-semibold text-[var(--ink-strong)]">Siklus Tagihan</legend>
         <p id="billing-policy-help" className="mb-3 text-xs leading-relaxed text-[var(--ink-muted)]">
           Atur kapan tagihan murid ini dibuat. Hanya sesi selesai dan no-show yang ditandai dapat ditagih yang masuk hitungan.
@@ -514,6 +554,7 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
           </div>
         )}
       </fieldset>
+      )}
 
       <div>
         <label htmlFor="notes" className="label">Catatan <span className="text-[var(--ink-muted)] font-normal text-xs">(opsional)</span></label>
