@@ -11,6 +11,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.98.0",
+    date: "2026-10-11",
+    title: "Foto murid: unggah, tampil bulat di daftar dan halaman murid, hapus dengan konfirmasi",
+    items: [
+      "**Murid sekarang bisa punya foto.** Di formulir murid — saat menambah maupun menyunting — ada bagian **Foto Murid** di antara Kontak Murid dan Tarif Les. Pilih fotonya, dan aplikasi mengecilkannya sendiri ke paling besar 640 piksel, jadi foto dari kamera HP tidak akan membengkakkan penyimpanan atau berkas backup.",
+      "**Foto tampil bulat di dua tempat.** Di **daftar murid**, kartu murid memakai fotonya sebagai avatar bulat; murid yang belum punya foto tetap memakai inisial berwarna seperti sebelumnya. Di **halaman murid**, foto yang sama muncul di sebelah namanya. Bagian foto yang keluar dari bingkai bulat hanya terpotong **di tampilan** — foto yang tersimpan tetap utuh, sehingga tidak ada bagian gambar yang hilang dari berkas backup Anda.",
+      "**Menghapus foto juga ada, dan tidak bisa salah tekan.** Tombol **Hapus foto** memunculkan pertanyaan konfirmasi, dan penghapusannya baru benar-benar terjadi saat Anda menekan **Simpan**. Kalau Anda berubah pikiran dan menekan **Batal**, fotonya masih ada — sama seperti kolom lain di formulir.",
+      "**Antarmukanya menyebutkan hal yang perlu Anda tahu.** Foto murid ikut masuk berkas **backup**, dan foto murid **tidak** dipakai di laporan PDF — laporan bulanan hanya memuat foto sesi. Keterangan itu ada di kolom fotonya dan di bagian **Penyimpanan Lokal** di Pengaturan.",
+    ],
+  },
+  {
     version: "v1.97.0",
     date: "2026-10-10",
     title: "Halaman murid: empat tab, kartu Perlu Tindakan, nilai rapor, dan proyek bebas",

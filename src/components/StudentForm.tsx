@@ -12,6 +12,7 @@ import { levelForCurriculum } from "../db/types";
 import { DEFAULT_RATE, billingPolicyOf } from "../db/types";
 import { ALL_CURRICULA, CURRICULUM_META, getSubjectGroups } from "../lib/ibSubjects";
 import Toggle from "./Toggle";
+import StudentPhotoField from "./StudentPhotoField";
 import { MAX_HOURLY_RATE, isValidCurrencyAmount, parseCurrencyDigits } from "../lib/money";
 
 interface Props {
@@ -95,6 +96,12 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
   const [saveError, setSaveError] = useState("");
   const [active,  setActive]  = useState(initial?.active ?? true);
   const [notes,   setNotes]   = useState(initial?.notes ?? "");
+  /**
+   * G3-07: foto murid ikut di formulir ini. Drafnya hidup di sini, bukan di
+   * dalam `StudentPhotoField`, supaya Simpan/Batal berperilaku sama seperti
+   * kolom lain (menghapus foto baru berlaku saat Simpan).
+   */
+  const [photo,   setPhoto]   = useState<Blob | undefined>(initial?.photo);
 
   // Jumlah sesi yang belum ditagih — menentukan apakah pilihan retroaktif perlu
   // ditawarkan. Tarif historis dibekukan secara default (D1(c)).
@@ -164,7 +171,9 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
         active,
         enrolledAt: initial?.enrolledAt ?? todayWIB(),
         notes: notes.trim() || undefined,
-        photo: initial?.photo,
+        // G3-07: `undefined` di sini memang menghapus kolomnya di Dexie —
+        // itulah yang membuat tombol Simpan menjadi titik hapus foto.
+        photo,
       };
       // Pertahankan peralihan tertunda saat user sekadar mengedit profil tanpa
       // mengubah siklus: billingPolicy tidak dikirim agar updateStudent tidak
@@ -367,6 +376,10 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
           {studentPhone && !hasInvalidChars(studentPhone) && <p className="text-xs text-[var(--ink-muted)] mt-0.5">wa.me/{toWaNumber(studentPhone)}</p>}
         </div>
       </div>
+
+      {/* Foto Murid — G3-07. Diletakkan sesudah kontak murid dan sebelum tarif:
+          identitas dulu, angka belakangan. */}
+      <StudentPhotoField photo={photo} onChange={setPhoto} name={name || initial?.name} id={initial?.id} />
 
       {/* Tarif les per jam */}
       <div className="bg-[var(--bg-attention)] rounded-xl p-3 space-y-1">

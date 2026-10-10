@@ -37,19 +37,19 @@ Lanjutkan proyek Les Ko Lui (jurnal les privat, PWA lokal-first) — Gelombang 3
 5. Baru buka SATU `docs/kerja/TASK-XX` yang relevan kalau perlu detail. `docs/RIWAYAT-RILIS.md`
    hanya kalau butuh alasan historis. `docs/arsip/**` beku — jangan kutip angkanya.
 
-### Keadaan yang diukur pada 2026-10-10 (ukur sendiri, jangan percaya tulisan ini)
+### Keadaan yang diukur pada 2026-10-11 (ukur sendiri, jangan percaya tulisan ini)
 
 | Hal | Nilai saat berkas ini ditulis |
 |---|---|
-| Versi | v1.97.0 |
-| Branch / HEAD | `main`, pohon kerja bersih sesudah rilis v1.97.0 (`git status -sb` untuk selisih dengan `origin/main`) |
-| Suite | 1197 lulus / 89 berkas |
+| Versi | v1.98.0 |
+| Branch / HEAD | `main`, pohon kerja bersih sesudah rilis v1.98.0 (`git status -sb` untuk selisih dengan `origin/main`) |
+| Suite | 1226 lulus / 90 berkas |
 | `check:docs` | 0 rusak · 0 pelanggaran |
-| `e2e:uiux` | **64 lulus / 0 gagal** — termasuk layar Detail Murid yang pada 2026-10-10 sempat jatuh ke batas galat karena urutan hook (lihat jebakan) |
-| `e2e` | belum dijalankan ulang pada putaran ini. Terukur terakhir 2026-10-08: 69 lulus / 11 gagal / 6 skip — **sebelas kegagalannya sudah ada sebelum G3-05**, lihat bagian jebakan |
+| `e2e:uiux` | **64 lulus / 0 gagal** |
+| `e2e` | **68 lulus / 12 gagal / 6 skip** pada 2026-10-11 (dua run, hasil sama). Sepuluh kegagalannya warisan 2026-10-08 (`report-export-ratio` 3 layout × 2 project, `report-unlock` × 2, `capture-closeout-failure` × 2, semuanya `SchemaError: DexieError`); dua lagi berganti-ganti antar-run dan keduanya spec layar Keuangan (`finance`, `billing-session-count.runtime`) — `finance` **lulus 2/2 saat dijalankan sendirian**. **Jangan mengklaim "e2e hijau"** tanpa perincian ini |
 
 Baris berkas besar yang menjadi target refactor (diukur dengan `npm run measure loc`):
-`CaptureSession.tsx` **2.077** · `Settings.tsx` **1.380** (target ≤700) · `payments/TagihanTab.tsx` **1.021** (target ≤800). `MonthlyReport.tsx` **1.470** (target ≤1.500) dan `StudentDetail.tsx` **678** (target ≤800) — **keduanya sudah tuntas**.
+`CaptureSession.tsx` **2.077** · `Settings.tsx` **1.387** (target ≤700) · `payments/TagihanTab.tsx` **1.021** (target ≤800). `MonthlyReport.tsx` **1.470** (target ≤1.500) sudah tuntas. **`StudentDetail.tsx` **698** dengan sasaran **≤700** (keputusan pemilik 2026-10-11) — sisa 2 baris, jadi penambahan berikutnya wajib lewat komponen terpisah.** `StudentForm.tsx` 589 dan `Students.tsx` 519, keduanya masih di bawah sasarannya.
 
 ### Gate — jalankan SEKALI di akhir tugas, bukan per langkah
 
@@ -76,12 +76,13 @@ Butuh izin sandbox penuh: `npm run e2e`, `npm run e2e:uiux`, `git push`.
 
 ### Urutan pekerjaan yang mengikat
 
-**Sisa Gelombang 3 — empat tugas, G3-06 sudah tuntas 2026-10-10:**
+**Sisa Gelombang 3 — tiga tugas, G3-07 sudah tuntas 2026-10-11:**
 
-1. **G3-07 Foto murid.** Ketergantungannya (G3-06) sudah selesai, jadi ini yang dikerjakan lebih dulu. Kolom foto pada murid sudah ada dan sudah ikut masuk berkas backup, tetapi belum pernah ditampilkan sama sekali. **Kerjakan ini lebih dulu.**
-2. **G3-08 Kanvas dan istilah.** Bergantung G3-05 (sudah selesai) — panel desain laporan yang baru dirombak ada di `src/screens/monthlyReport/DesignToolbar.tsx`. Jangan kurangi 26 susunan / 34 tema.
-3. **G3-09 Pengaturan.** Refactor `Settings.tsx` 1.380 → ≤700 + 11 fitur. **Lima `confirm()` bawaan peramban masih hidup di berkas itu** (jalur restore dan hapus semua data), dan syarat selesai G3-09 sendiri sudah menuntut semuanya diganti dialog internal.
-4. **G3-10 Reset total dan PIN.** Bergantung G3-09.
+1. **G3-08 Kanvas dan istilah.** Bergantung G3-05 (sudah selesai) — panel desain laporan yang baru dirombak ada di `src/screens/monthlyReport/DesignToolbar.tsx`. Jangan kurangi 26 susunan / 34 tema. **Kerjakan ini lebih dulu.**
+2. **G3-09 Pengaturan.** Refactor `Settings.tsx` 1.387 → ≤700 + 11 fitur. **Lima `confirm()` bawaan peramban masih hidup di berkas itu** (jalur restore dan hapus semua data), dan syarat selesai G3-09 sendiri sudah menuntut semuanya diganti dialog internal.
+3. **G3-10 Reset total dan PIN.** Bergantung G3-09.
+
+**Menunggu mata pemilik (jangan dikerjakan agen):** butir daftar periksa manual **34–35** (foto murid) ditambahkan 2026-10-11 dan belum dicentang. Butir 35 memeriksa jalur **Batal** sesudah menghapus foto — satu-satunya bagian G3-07 yang tidak bisa dibuktikan suite, karena repo ini tidak memasang jsdom.
 
 **Kemudian §4 PEKERJAAN.md (boleh kapan saja):**
 
@@ -156,6 +157,17 @@ Ditambahkan dari pengalaman 2026-10-10 (G3-06):
 - **Repo ini TIDAK memasang `jsdom` maupun `@testing-library/*`.** Komponen diuji dengan `renderToStaticMarkup` (lihat `nilaiRaporIsian.test.tsx`, `perluTindakanCard.test.tsx`), dan invarian struktural diuji dengan membaca berkas sumber lewat `?raw` (`nativeDialogs` · `moneyGate` · `studentSinglePath` · `studentFormGroups`). Menambah jsdom = menambah pustaka, dan itu butuh keputusan pemilik.
 - **Satu flake guard tampilan yang terukur:** tes kontras layar Keuangan pada project `mobile` pernah gagal karena kolom PIN masih `disabled` (data contoh belum siap) sehingga `fill()` di `openPin()` menunggu sampai batas waktu tes; run penutup lulus penuh. Kalau menyentuh `e2e-uiux/uiux-metrics.spec.ts`, beri batas waktu pendek pada `fill()` di dalam lingkaran percobaan itu — **jangan** menaikkan batas 60 detik keputusan pemilik.
 
+Ditambahkan dari pengalaman 2026-10-11 (G3-07):
+
+- **Menghitung pasangan `createObjectURL`/`revokeObjectURL` dari berkas sumber TIDAK BISA DIPERCAYA.** Penjaga pertama untuk foto murid membandingkan jumlah keduanya per berkas dan **salah menuduh kode yang benar di tujuh berkas**: `useBlobUrl.ts` memasang URL di dalam `try` dan melepasnya lewat cleanup `useEffect` di baris lain, sementara `foto.ts` membuat **satu** URL dan melepasnya di **dua** jalur — `img.onload` dan `img.onerror`. Itu bentuk yang benar, bukan kebocoran. Penjaga itu **dibuang**, bukan dilonggarkan; penggantinya adalah pengujian runtime pada hook (`renderToStaticMarkup` + `URL.createObjectURL` yang dipalsukan) ditambah penyerahan pelepasan pada render nyata ke `e2e:uiux`. **Pelajaran umumnya: kalau sebuah invarian tidak bisa diuji runtime di suite ini, ujilah di peramban — jangan ditebak dari teks sumber.**
+- **Playwright mengabaikan berkas spec yang berada di dalam direktori berawalan titik, walau `testDir` menunjuk langsung ke sana dan `testMatch` cocok.** Gejalanya `Error: No tests found` tanpa petunjuk apa pun. Terjadi pada harness pengukuran di `.design-audit/g3-07/`. Jalan keluarnya: jangan letakkan spec di sana — pakai skrip Node yang memanggil Chromium langsung (`chromium.launch()` dari paket `playwright`), seperti `.design-audit/g3-07/measure.mjs`.
+- **Chromium menolak impor modul lintas berkas pada halaman `file://`** (CSP bawaan) sehingga pustaka tidak pernah termuat dan pengukuran menggantung tanpa galat yang jelas. Untuk mengukur barang peramban, layani halamannya lewat HTTP: `python -m http.server 5199 --directory .` lalu buka `http://localhost:5199/...`. Perhatikan juga bahwa `python -m http.server` mewarisi direktori kerja pemanggilnya — pakai `--directory` eksplisit.
+- **`useWebWorker: true` membuat pengecilan foto ±10× lebih lambat dengan hasil identik byte-per-byte** (terukur 3.270 ms vs 325 ms pada gambar 3.000×4.000 px). Berlaku untuk `compressPhoto()` di ketiga pemakainya (foto murid, foto sesi, logo). Belum diputuskan; alat ukurnya sudah ada.
+- **`maxSizeMB` menekan mutu lebih dulu, sehingga jumlah piksel hasilnya bisa jauh di bawah `maxWidthOrHeight`.** Terukur: gambar 3.000×4.000 px keluar **480×640 px**, bukan 640×853. Jadi jangan menulis jaminan ukuran berkas di antarmuka hanya dari nilai `maxSizeMB` — ukur dulu, lalu tulis apa adanya.
+- **`sr-only` tidak mengeluarkan kontrol dari urutan fokus.** Input berkas yang disembunyikan tetap bisa difokus papan ketik; tambahkan `tabIndex={-1}` dan biarkan tombol yang terlihat menjadi satu-satunya jalan masuknya.
+- **Sasaran baris `StudentDetail.tsx` yang berlaku adalah ≤700** (keputusan pemilik 2026-10-11), dan berkasnya terukur **698**. Setiap penambahan di berkas itu harus lewat komponen terpisah. Angka ≤800 yang tertulis di bagian G3-06 `PEKERJAAN.md` adalah catatan keadaan saat G3-06 ditutup, bukan sasaran yang berlaku.
+- **`undefined` pada `db.students.update()` menghapus kolomnya.** Itulah mekanisme "Hapus foto"; jangan menambahkan cadangan `?? existing.photo` yang akan membuat tombol hapus tidak pernah berpengaruh.
+
 ### Kenyataan yang menyimpang dari spesifikasi — sudah diputuskan, jangan diulang
 
 - **Papan pipeline tetap di sub-layar analitik (`?tab=ringkasan`), bukan dipindah ke blok 2 layar
@@ -169,6 +181,7 @@ Ditambahkan dari pengalaman 2026-10-10 (G3-06):
   dari `.design-audit/uiux-guard/*-keuangan.json`). Jangan dikerjakan ulang.
 - **Keputusan D4 separuh sudah tercapai** lewat entri `e2e:uiux` `keuangan-tagihan`.
 - **Layar Laporan sudah dirombak G3-05** (2026-10-08) dan **tidak perlu dikerjakan ulang**: `MonthlyReport.tsx` 1.470 baris, bilah aksi tetap + penunjuk lima langkah, panel hasil AI per sesi, penyimpanan narasi otomatis, penanda AI per isian, pratinjau ber-pembesaran, dan pratinjau susunan lewat `Modal`. **Tampilannya sudah dilihat pemilik di perangkat dan dinilai cukup** ("sudah sangat oke"), jadi butir daftar periksa 26–29 sudah dicentang — jangan diangkat lagi. **Ekspor tidak lagi menandai laporan "sudah dibagikan"** — itu keputusan yang disengaja (butir 3 G3-05) dan sudah disetujui lewat inspeksi; kalau pemilik ingin perilaku lama, itu satu baris di `useReportExport.ts`. **G3-08 bekerja di atas panel desain baru** (`src/screens/monthlyReport/DesignToolbar.tsx`), bukan lagi di `MonthlyReport.tsx`.
+- **Foto murid diselesaikan dengan tiga penyimpangan yang disetujui pemilik 2026-10-11** (G3-07), dan ketiganya mengikat pekerjaan berikutnya: (a) **pemotongan bulat lewat CSS saja** — isi blob tidak pernah dipotong, sehingga berkas backup tidak kehilangan bagian gambar; (b) **tombol Hapus foto baru berlaku saat Simpan** — pratinjau dikosongkan lebih dulu, dan Batal tetap berarti "tidak ada yang berubah"; (c) **batas 150 KB tidak dijanjikan di antarmuka** — yang ditulis adalah batas piksel yang dijamin mesin (640 px) beserta ukuran hasil yang biasa muncul, karena pengukuran menunjukkan `maxSizeMB` menekan mutu lebih dulu sehingga berkasnya justru jauh lebih kecil. Jangan "mengembalikan" kalimat lama yang menjanjikan 150 KB.
 
 ### Yang pemilik sudah putuskan soal istilah (2026-10-07) — berlaku untuk semua layar baru
 
@@ -225,3 +238,4 @@ manusia, (2) perintah apa yang dijalankan dan hasilnya sekali saja, (3) apa yang
 | 2026-10-08 | Diperbarui sesudah G3-05 tuntas dan v1.96.0 dirilis: keadaan terukur (v1.96.0 · suite 982/74 · `e2e` 69/11/6 dengan penjelasan bahwa sebelas kegagalan itu sudah ada sebelum G3-05), urutan pekerjaan (G3-06 lebih dulu, G3-05 dikeluarkan), dan lima jebakan baru dari putaran ini — terutama pola spec Playwright yang menemukan murid lewat tombol `toBeEnabled`, dan peringatan agar tidak menyentuh berkas ber-UTF-8 dengan `Get-Content`/`Set-Content`. |
 | 2026-10-08 | Ditambahkan sesudah inspeksi pemilik: layar Laporan **sudah dilihat di perangkat dan dinilai cukup** ("sudah sangat oke"), butir daftar periksa 26–29 dicentang, dan catatan bahwa pemisahan istilah dibuat/dibagikan pada ekspor ikut disetujui lewat inspeksi itu. |
 | 2026-10-10 | Diperbarui sesudah **G3-06 tuntas dan v1.97.0 dirilis**: keadaan terukur (v1.97.0 · suite 1197/89 · `e2e:uiux` **64/0** termasuk layar Detail Murid), urutan pekerjaan (G3-06 dikeluarkan, **G3-07 jadi yang pertama**), dan enam jebakan baru dari putaran ini — terutama **hook React setelah gerbang `return`** (menjatuhkan satu layar penuh, lolos dari `tsc` dan suite, hanya tertangkap `eslint` + `e2e:uiux`), emoji di dalam tombol yang ditolak guard, `react-refresh/only-export-components`, jebakan nama `.ts` vs `.tsx` di Windows, catatan bahwa repo **tidak** memasang jsdom, dan satu flake PIN di guard tampilan. Ditambahkan juga dua penyimpangan yang mengikat: butir #10 tetap berpola halaman, dan `StudentDetail.tsx` dipotong lewat ekstraksi modal (bukan pemecahan per tab). |
+| 2026-10-11 | Diperbarui sesudah **G3-07 tuntas dan v1.98.0 dirilis**: keadaan terukur (v1.98.0 · suite **1226/90** · `e2e:uiux` **64/0** · `e2e` **68/12/6** dengan catatan bahwa satu kegagalan tambahan belum dipastikan warisan), urutan pekerjaan (G3-07 dikeluarkan, **G3-08 jadi yang pertama**, dan butir periksa manual 34–35 ditandai menunggu mata pemilik), serta **delapan jebakan baru** — terutama bahwa **menghitung pasangan `createObjectURL`/`revokeObjectURL` dari berkas sumber tidak bisa dipercaya** (penjaga pertama salah menuduh kode yang benar di tujuh berkas lalu dibuang), **Playwright mengabaikan spec di dalam direktori berawalan titik** (`No tests found` tanpa petunjuk), **Chromium menolak impor modul di halaman `file://`**, `useWebWorker` yang ±10× lebih lambat dengan hasil identik, `maxSizeMB` yang menekan mutu lebih dulu sehingga piksel hasilnya di bawah 640, `sr-only` yang tidak mengeluarkan kontrol dari urutan fokus, sasaran baris `StudentDetail.tsx` yang sekarang **≤700** dan hampir penuh (698), dan `undefined` pada `db.students.update()` yang **menghapus** kolomnya. Ditambahkan juga bagian penyimpangan G3-07: pemotongan lewat CSS, hapus-foto-berlaku-saat-Simpan, dan larangan mengembalikan janji "paling besar 150 KB" di antarmuka. |

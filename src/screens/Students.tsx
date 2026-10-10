@@ -12,7 +12,7 @@ import { todayWIB, monthOf, monthLabel, dayLabel } from "../lib/format";
 import { useSettingsQuery } from "../hooks/useSettingsQuery";
 import { useStudentEditor } from "../hooks/useStudentEditor";
 import SettingsLoadError from "../components/SettingsLoadError";
-import { colorForStudent } from "../lib/studentColor";
+import StudentAvatar from "../components/StudentAvatar";
 import type { Student } from "../db/types";
 import {
   STUDENT_SORT_DEFAULT,
@@ -238,11 +238,10 @@ export default function Students() {
       <div key={s.id} className="bg-[var(--surface-strong)] rounded-xl shadow-sm border border-[var(--border)]">
         <Link to={`/students/${s.id}`} className="block p-4">
           <div className="flex items-start gap-3">
-            {/* Avatar */}
-            <div className="w-11 h-11 rounded-full flex items-center justify-center text-[var(--on-strong)] font-bold text-lg flex-shrink-0"
-              style={{ background: colorForStudent(s.id) }}>
-              {s.name.charAt(0).toUpperCase()}
-            </div>
+            {/* Avatar — G3-07: foto murid bila ada, inisial berwarna bila tidak.
+                Warna cadangan datang dari `StudentAvatar` supaya layar daftar dan
+                layar detail tidak bisa berbeda. */}
+            <StudentAvatar name={s.name} seed={s.id} photo={s.photo} size={44} />
 
             <div className="flex-1 min-w-0">
               {/* Baris 1 — nama dan seluruh penanda keadaan */}

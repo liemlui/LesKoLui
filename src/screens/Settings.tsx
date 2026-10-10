@@ -93,6 +93,13 @@ function StorageUsage() {
       ) : (
         <p className="text-xs text-[var(--ink-muted)]">Perkiraan penyimpanan tidak tersedia di browser ini</p>
       )}
+      {/* G3-07: foto murid sudah dikecilkan saat diunggah, jadi ia tidak punya
+          perawatan otomatis seperti foto sesi — tetapi ia IKUT berkas backup,
+          dan itu perlu dikatakan di layar tempat tutor mengurus penyimpanan. */}
+      <p className="text-xs leading-relaxed text-[var(--ink-muted)]">
+        Foto murid (maksimal 640 piksel) dan foto sesi ikut terhitung di sini dan ikut masuk berkas
+        backup. Foto murid tidak masuk laporan PDF.
+      </p>
     </div>
   );
 }

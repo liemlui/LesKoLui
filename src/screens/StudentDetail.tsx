@@ -37,6 +37,7 @@ import ScheduleEditModal from "./studentDetail/ScheduleEditModal";
 import PerluTindakanCard from "./studentDetail/PerluTindakanCard";
 import UangBlok from "./studentDetail/UangBlok";
 import StudentActionsSheet from "../components/StudentActionsSheet";
+import StudentAvatar from "../components/StudentAvatar";
 import RiwayatSesi from "./studentDetail/RiwayatSesi";
 import RiwayatPembayaran from "./studentDetail/RiwayatPembayaran";
 import IaEeTracker from "./studentDetail/IaEeTracker";
@@ -359,21 +360,26 @@ export default function StudentDetail() {
         </div>
       )}
 
-      {/* Header — butir 11 G3-06: kirim WA, sunting/menu aksi, dan jejak navigasi. */}
+      {/* Header — butir 11 G3-06: kirim WA, sunting/menu aksi, dan jejak navigasi.
+          Sejak G3-07 avatar murid ikut di sini; komponennya sama dengan yang
+          dipakai daftar murid supaya bentuknya tidak pernah menyimpang. */}
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold break-words">{student.name}</h1>
-          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-            {student.curriculum ? (
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${CURRICULUM_META[student.curriculum].color} ${CURRICULUM_META[student.curriculum].text}`}>
-                {CURRICULUM_META[student.curriculum].shortLabel}
-              </span>
-            ) : (
-              <span className="text-xs text-[var(--ink-muted)]">{student.level}</span>
-            )}
-            <Badge tone={student.active ? "green" : "slate"}>
-              {student.active ? "Aktif" : "Nonaktif"}
-            </Badge>
+        <div className="flex items-start gap-3 min-w-0">
+          <StudentAvatar name={student.name} seed={student.id} photo={student.photo} size={64} />
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold break-words">{student.name}</h1>
+            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+              {student.curriculum ? (
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${CURRICULUM_META[student.curriculum].color} ${CURRICULUM_META[student.curriculum].text}`}>
+                  {CURRICULUM_META[student.curriculum].shortLabel}
+                </span>
+              ) : (
+                <span className="text-xs text-[var(--ink-muted)]">{student.level}</span>
+              )}
+              <Badge tone={student.active ? "green" : "slate"}>
+                {student.active ? "Aktif" : "Nonaktif"}
+              </Badge>
+            </div>
           </div>
         </div>
 

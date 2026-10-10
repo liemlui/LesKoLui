@@ -102,6 +102,21 @@
   - Butir #10 (#muat 20 lagi) **dipertahankan sebagai pola halaman** atas keputusan K5 pemilik — jangan "membetulkan" ke tombol muat-lagi tanpa keputusan baru.
 - **Verifikasi:** `npm run measure loc` · **`npx eslint src`** (wajib di tugas ini — hanya ini yang menangkap `rules-of-hooks`) · `npm run test:sandbox` · `npm run e2e:uiux` · `npm run check:docs`. Untuk memisahkan regresi dari warisan: `git stash push -u`, jalankan spec yang sama, lalu `git stash pop`.
 
+## G3-07 — Foto murid (unggah, tampil, hapus) — TUNTAS 2026-10-11
+
+- **Target:** kolom `photo` pada murid akhirnya dipakai; tidak ada refactor berangka di tugas ini. Berkas baru: `hooks/useBlobUrl.ts` · `lib/studentPhoto.ts` · `components/StudentAvatar.tsx` · `components/StudentPhotoField.tsx`. Berkas disentuh: `components/StudentForm.tsx` (576 → 589) · `screens/Students.tsx` (520 → 519) · `screens/StudentDetail.tsx` (692 → 698) · `screens/Settings.tsx` · `__tests__/nativeDialogs.test.ts`.
+- **Jangkar kontrak:** `useBlobUrl(blob)` (satu-satunya tempat `URL.createObjectURL`/`revokeObjectURL` untuk foto murid) · `studentInitial(name)` · `StudentAvatar({ name, seed, photo, size })` · `StudentPhotoField({ photo, onChange, name, id })` · `compressPhoto()` + `PHOTO_MAX_PX` (640) · `RAW_MAX_MB` (50). Skema Dexie tetap **v15** — kolom `photo` sudah ada sejak lama dan tidak diindeks, jadi tidak ada migrasi.
+- **Jebakan:**
+  - **Pemotongan bulat HANYA lewat CSS** (`object-cover` + `overflow-hidden`). Jangan memotong blob-nya: foto yang tersimpan ikut berkas backup, dan memotongnya berarti kehilangan bagian gambar secara permanen tanpa cara membatalkan.
+  - **Tombol Hapus foto tidak langsung menyentuh penyimpanan.** Pratinjau dikosongkan dan `photo: undefined` baru dikirim saat **Simpan**, sehingga Batal tetap berarti "tidak ada yang berubah". Karena itu `StudentForm.tsx` memuat baris `photo,` (bukan `photo: initial?.photo`) — mengembalikannya akan membuat tombol hapus tidak pernah berpengaruh.
+  - **`undefined` di `db.students.update()` MENGHAPUS kolomnya**, bukan mengabaikannya. Itulah mekanisme hapus fotonya; jangan "mengamankan" dengan `?? existing.photo`.
+  - **Jumlah `createObjectURL` tidak bisa dipasangkan dengan `revokeObjectURL` secara per-baris.** `foto.ts` membuat satu URL dan melepasnya di **dua** jalur (`onload` dan `onerror`), dan `useBlobUrl` memasangnya di dalam `try` sambil melepasnya lewat cleanup `useEffect` di baris lain. Penjaga berbasis hitungan baris akan **salah menuduh kode yang benar** (terjadi 2026-10-11 di tujuh berkas). Yang benar: uji runtime pada hook, dan serahkan pelepasan pada render nyata ke `e2e:uiux`.
+  - **Input berkas `sr-only` wajib `tabIndex={-1}`**, kalau tidak kontrol tak terlihat itu ikut urutan fokus papan ketik.
+  - **Sasaran baris `StudentDetail.tsx` yang berlaku adalah ≤700** (keputusan pemilik 2026-10-11); berkasnya terukur **698**. Penambahan berikutnya harus lewat komponen terpisah. `PEKERJAAN.md` bagian G3-06 masih menulis ≤800 — itu catatan keadaan saat G3-06 ditutup, bukan sasaran yang berlaku.
+  - **`useWebWorker: true` membuat pengecilan ±10× lebih lambat dengan hasil identik** (terukur 3.270 ms vs 325 ms pada gambar 12 MP). Belum diputuskan; berlaku juga untuk foto sesi dan logo.
+- **Cara mengukur dampak penyimpanan** (jangan salin angkanya, jalankan alatnya): `python -m http.server 5199 --directory .` lalu `node .design-audit/g3-07/measure.mjs`. Alat itu menyalakan Chromium, membuka `.design-audit/g3-07/ukur.html` yang memakai pustaka dan parameter yang sama dengan `compressPhoto()`, dan menulis hasilnya ke `.design-audit/g3-07/hasil-ukur.json`. **Hasil 2026-10-11:** 22,3 MB → 102,9 KB dan 0,45 MB → 20,1 KB, keduanya **480×640 px** (bukan 640 di sisi panjang — `maxSizeMB` menekan mutu lebih dulu, sehingga jumlah piksel ikut turun).
+- **Verifikasi:** `npx tsc -b` · `npx eslint src` · `npm run test:sandbox` (1226 lulus / 90 berkas) · `npm run build` (`dist/sw.js`) · `npm run e2e:uiux` (64 lulus / 0 gagal) · `npm run check:docs`. Penjaga baru: `__tests__/studentPhoto.test.tsx` (28 tes).
+
 ## Verifikasi per gate (dua tingkat — menggantikan "Smart Gating 4 tier")
 
 > **Diganti 2026-10-07.** Bagian ini dulu memuat tabel **empat tier** (T0–T3). Sistem itu sudah dicabut;

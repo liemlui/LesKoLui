@@ -8,6 +8,7 @@ import upcomingScheduleSrc from "../screens/studentDetail/UpcomingSchedule.tsx?r
 import engagementSummarySrc from "../screens/studentDetail/EngagementSummary.tsx?raw";
 import studentsSrc from "../screens/Students.tsx?raw";
 import studentFormSrc from "../components/StudentForm.tsx?raw";
+import studentPhotoFieldSrc from "../components/StudentPhotoField.tsx?raw";
 import monthlyReportSrc from "../screens/MonthlyReport.tsx?raw";
 import captureSessionSrc from "../screens/CaptureSession.tsx?raw";
 import manageSessionSrc from "../screens/home/ManageSessionSheet.tsx?raw";
@@ -44,7 +45,7 @@ function stripComments(src: string): string {
  * sebagai PEMANGGILAN — bukan sebagai bagian dari nama lain seperti
  * `onConfirm(`, `ConfirmSheet`, atau `handleConfirm(`.
  */
-function nativeDialogLines(src: string): string[] {
+export function nativeDialogLines(src: string): string[] {
   const cleaned = stripComments(src);
   return cleaned
     .split("\n")
@@ -64,6 +65,7 @@ const STUDENT_FILES = {
   "Ringkasan keterlibatan": engagementSummarySrc,
   "Daftar murid": studentsSrc,
   "Formulir murid": studentFormSrc,
+  "Kolom foto murid": studentPhotoFieldSrc,
 };
 
 /** Berkas lain yang sudah bersih dan tidak boleh kembali kotor. */
