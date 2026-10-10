@@ -1,10 +1,11 @@
 # PANDUAN-CEK-DI-HP — memeriksa tab Murid dari HP (rilis v1.97.0)
 
-> **Sekilas.** Jenis: panduan pemeriksaan untuk pemilik. Status: berlaku untuk rilis **v1.97.0**.
+> **Sekilas.** Jenis: panduan pemeriksaan untuk pemilik. Status: **sudah dipakai dan selesai** — pemeriksaan 2026-10-10 berjalan sesuai rencana, butir 30–33 dicentang.
 > Untuk siapa: pemilik aplikasi, dengan HP di tangan.
 > **Ini bukan daftar pekerjaan.** Daftarnya tetap [`PEKERJAAN.md`](PEKERJAAN.md); butir yang dicentang ada di §5 berkas itu.
-> Alasan panduan ini ada: seluruh tab Murid yang baru **belum pernah dilihat mata manusia** — yang ada baru bukti mesin
+> Alasan panduan ini ada: saat dibuat, seluruh tab Murid yang baru **belum pernah dilihat mata manusia** — yang ada baru bukti mesin
 > (suite tes, `e2e:uiux` 64 lulus / 0 gagal, dan pengukuran baris). Bukti mesin **tidak** membuktikan tampilannya enak dipakai.
+> Panduan ini tetap berlaku kalau nanti ada perubahan pada layar Murid: ulangi Bagian A dengan versi yang baru.
 
 ---
 
@@ -170,3 +171,4 @@ Sertakan tangkapan layar bila ada yang meleset — itu paling cepat saya pakai.
 | Tanggal | Perubahan |
 |---|---|
 | 2026-10-10 | Dibuat setelah rilis v1.97.0, untuk memeriksa tab Murid yang baru (butir 30–33) dari HP. Bagian 0 memuat syarat yang tidak boleh dilewati: nomor versi di jendela Catatan perubahan, dan peringatan bahwa di alamat online **tidak ada** pemuat data contoh sehingga yang diperiksa adalah data asli. |
+| 2026-10-10 | **Dipakai.** Pemilik memeriksa tab Murid dari HP dan melaporkan hasilnya sesuai rencana; butir 30–33 dicentang di `PEKERJAAN.md` §5 dengan jenis bukti "pernyataan pemilik" (satu pernyataan untuk keempat butir, bukan tangkapan layar atau pengukuran per butir). Status berkas ini berubah menjadi selesai — tetap dipakai lagi kalau layar Murid berubah. |
