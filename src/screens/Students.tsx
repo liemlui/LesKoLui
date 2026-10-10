@@ -14,14 +14,27 @@ import { useStudentEditor } from "../hooks/useStudentEditor";
 import SettingsLoadError from "../components/SettingsLoadError";
 import { colorForStudent } from "../lib/studentColor";
 import type { Student } from "../db/types";
-import { levelLabel } from "../db/types";
+import {
+  STUDENT_SORT_DEFAULT,
+  STUDENT_SORT_OPTIONS,
+  aktifSejakLabel,
+  countAttention,
+  filterStudents,
+  kartuIdentitasBaris,
+  listAttentionCount,
+  ringkasSesiBulanIni,
+  sortStudents,
+  studentSortLabel,
+  type StudentListSignals,
+  type StudentSortKey,
+} from "../lib/studentList";
 import StudentForm from "../components/StudentForm";
 import StudentActionsSheet from "../components/StudentActionsSheet";
 import Modal from "../components/Modal";
 import PaginationControls from "../components/PaginationControls";
 import Badge from "../components/Badge";
 import { clampPage, paginateItems } from "../lib/pagination";
-import { BellIcon, PencilIcon, ReceiptIcon, UserIcon } from "../components/icons";
+import { BellIcon, PencilIcon, ReceiptIcon } from "../components/icons";
 
 type Tab = "aktif" | "historis";
 
@@ -38,6 +51,10 @@ export default function Students() {
 
   const [tab, setTab] = useState<Tab>("aktif");
   const [search, setSearch] = useState("");
+  // Butir 12 G3-06: urutan dan penyaringan daftar. Keduanya hanya keadaan layar —
+  // tidak ada yang disimpan ke basis data, jadi tidak ada perubahan skema.
+  const [sortKey, setSortKey] = useState<StudentSortKey>(STUDENT_SORT_DEFAULT);
+  const [onlyAttention, setOnlyAttention] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Student | null>(null);
   const [activePage, setActivePage] = useState(1);
@@ -50,13 +67,16 @@ export default function Students() {
   const [actionTarget, setActionTarget] = useState<Student | null>(null);
   const { saveStudent } = useStudentEditor();
 
+  // Hanya jumlah sesi dan jam yang dihitung. Nilai `cost` pernah ikut dijumlahkan
+  // di sini padahal tidak pernah ditampilkan di kartu (temuan RENCANA-G3-06 §4
+  // butir 6); dihapus 2026-10-10 supaya layar ini tidak menyimpan data uang yang
+  // tidak melewati gerbang `useMoneyVisible` (keputusan B1).
   const statsMap = useMemo(() => {
-    const m = new Map<string, { count: number; cost: number; hours: number }>();
+    const m = new Map<string, { count: number; hours: number }>();
     (monthSessions ?? []).forEach((s) => {
-      const curr = m.get(s.studentId) ?? { count: 0, cost: 0, hours: 0 };
+      const curr = m.get(s.studentId) ?? { count: 0, hours: 0 };
       m.set(s.studentId, {
         count: curr.count + 1,
-        cost: curr.cost + s.cost,
         hours: curr.hours + s.durationHours,
       });
     });
@@ -92,15 +112,14 @@ export default function Students() {
     return m;
   }, [payments]);
 
-  // How many active students need attention (for the summary line)
-  const needsAttentionCount = useMemo(() => {
-    let n = 0;
-    (allStudents ?? []).forEach((s) => {
-      if (!s.active) return;
-      if ((followUpCountMap.get(s.id) ?? 0) > 0 || (unpaidCountMap.get(s.id) ?? 0) > 0) n++;
-    });
-    return n;
-  }, [allStudents, followUpCountMap, unpaidCountMap]);
+  // Sinyal yang dipakai pengurutan dan penyaringan (butir 12 G3-06). Disusun sekali
+  // di sini supaya layar tetap membaca peta yang sudah ada, bukan menghitung ulang
+  // per kartu.
+  const signals = useMemo<StudentListSignals>(() => ({
+    nextSessionDate: (id) => nextSessionMap.get(id)?.date,
+    attentionCount: (id) =>
+      listAttentionCount(followUpCountMap.get(id) ?? 0, unpaidCountMap.get(id) ?? 0),
+  }), [nextSessionMap, followUpCountMap, unpaidCountMap]);
 
   // Ringkasan "yang akan ikut terhapus" TIDAK lagi dihitung di sini: sejak butir
   // 11 G3-06 ia hidup di `studentDeleteSummary()` dan dipakai bersama menunya
@@ -118,19 +137,38 @@ export default function Students() {
 
   const q = search.toLowerCase().trim();
 
-  const active = useMemo(() => {
-    const list = (allStudents ?? []).filter((s) => s.active && (!q || s.name.toLowerCase().includes(q)));
-    return [...list].sort((a, b) => {
-      const an = nextSessionMap.get(a.id)?.date;
-      const bn = nextSessionMap.get(b.id)?.date;
-      if (an && bn) return an.localeCompare(bn);
-      if (an) return -1;
-      if (bn) return 1;
-      return 0;
-    });
-  }, [allStudents, nextSessionMap, q]);
+  // Dua tingkat, dan bedanya disengaja: `sumber*` adalah yang cocok dengan
+  // pencarian — itulah dasar hitungan tombol "butuh perhatian", supaya angkanya
+  // menjawab "berapa di daftar yang sedang saya lihat". `active`/`inactive` adalah
+  // yang benar-benar ditampilkan sesudah filter perhatian ikut dipakai.
+  const sumberAktif = useMemo(
+    () => filterStudents((allStudents ?? []).filter((s) => s.active), { query: q }, signals),
+    [allStudents, q, signals],
+  );
+  const sumberHistoris = useMemo(
+    () => filterStudents((allStudents ?? []).filter((s) => !s.active), { query: q }, signals),
+    [allStudents, q, signals],
+  );
 
-  const inactive = useMemo(() => (allStudents ?? []).filter((s) => !s.active && (!q || s.name.toLowerCase().includes(q))), [allStudents, q]);
+  const active = useMemo(
+    () => sortStudents(filterStudents(sumberAktif, { onlyAttention }, signals), sortKey, signals),
+    [sumberAktif, onlyAttention, sortKey, signals],
+  );
+  const inactive = useMemo(
+    () => sortStudents(filterStudents(sumberHistoris, { onlyAttention }, signals), sortKey, signals),
+    [sumberHistoris, onlyAttention, sortKey, signals],
+  );
+
+  const perhatianTampil = useMemo(
+    () => countAttention(tab === "aktif" ? sumberAktif : sumberHistoris, signals),
+    [tab, sumberAktif, sumberHistoris, signals],
+  );
+
+  /** Jumlah murid aktif apa adanya — dasar ringkasan bulan, bukan hasil penyaringan. */
+  const jumlahMuridAktif = useMemo(
+    () => (allStudents ?? []).filter((s) => s.active).length,
+    [allStudents],
+  );
 
   const totalMonthSessions = useMemo(
     () => [...statsMap.values()].reduce((sum, s) => sum + s.count, 0),
@@ -164,13 +202,17 @@ export default function Students() {
   const renderStudentCard = (s: Student) => {
     const stats = statsMap.get(s.id);
     const next  = nextSessionMap.get(s.id);
-    const daysEnrolled = Math.floor(
-      (new Date(today + "T00:00:00").getTime() - new Date(s.enrolledAt + "T00:00:00").getTime())
-      / (1000 * 60 * 60 * 24)
-    );
-    const monthsSince = Math.floor(daysEnrolled / 30);
     const pendingFollowUps = followUpCountMap.get(s.id) ?? 0;
     const unpaidInvoices = unpaidCountMap.get(s.id) ?? 0;
+    // Butir 13 G3-06: kartu dipotong menjadi TIGA baris keterangan —
+    // (1) nama + penanda keadaan, (2) identitas akademik, (3) keanggotaan + sesi bulan ini.
+    // Yang sengaja tidak lagi ada di kartu: chip mapel, nama orang tua, dan
+    // "N bulan bersama". Semuanya tetap ada di halaman Detail Murid. Jumlah bulan
+    // dibuang karena pembulatan ke bawah pernah membuat murid yang bergabung
+    // lewat sebulan terbaca "1 bulan bersama"; bulan + tahun tidak bisa salah baca.
+    const identitas = kartuIdentitasBaris(s);
+    const keanggotaan = aktifSejakLabel(s.enrolledAt);
+    const sesiBulanIni = ringkasSesiBulanIni(stats);
 
     const nextChip = (() => {
       if (!next) return null;
@@ -203,56 +245,36 @@ export default function Students() {
             </div>
 
             <div className="flex-1 min-w-0">
+              {/* Baris 1 — nama dan seluruh penanda keadaan */}
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="font-bold text-base">{s.name}</p>
                 {!s.active && (
                   <span className="text-xs bg-[var(--bg-subtle)] text-[var(--ink-muted)] px-2 py-0.5 rounded-full">nonaktif</span>
                 )}
                 {nextChip}
+                {pendingFollowUps > 0 && (
+                  <Badge tone="amber" size="sm"><BellIcon size={11} className="inline align-[-2px] mr-1" />{pendingFollowUps} follow-up</Badge>
+                )}
+                {unpaidInvoices > 0 && (
+                  <Badge tone="red" size="sm"><ReceiptIcon size={11} className="inline align-[-2px] mr-1" />{unpaidInvoices} tagihan belum dibayar</Badge>
+                )}
               </div>
 
-              {/* Level + subjects */}
-              <p className="text-sm text-[var(--ink-muted)] truncate">
-                {levelLabel(s)}{s.school ? ` · ${s.school}` : ""}
-              </p>
-              {s.subjects.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {s.subjects.slice(0, 4).map((sub) => (
-                    <span key={sub} className="text-xs bg-[var(--brand-tint)] text-[var(--ink-brand)] px-2 py-0.5 rounded-full">{sub}</span>
-                  ))}
-                  {s.subjects.length > 4 && (
-                    <span className="text-xs text-[var(--ink-muted)]">+{s.subjects.length - 4}</span>
-                  )}
-                </div>
+              {/* Baris 2 — identitas akademik, memakai label PENDEK kurikulum */}
+              {identitas && (
+                <p className="text-sm text-[var(--ink-muted)] truncate">{identitas}</p>
               )}
 
-              {/* Attention badges */}
-              {(pendingFollowUps > 0 || unpaidInvoices > 0) && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {pendingFollowUps > 0 && (
-                    <Badge tone="amber" size="sm"><BellIcon size={11} className="inline align-[-2px] mr-1" />{pendingFollowUps} follow-up</Badge>
-                  )}
-                  {unpaidInvoices > 0 && (
-                    <Badge tone="red" size="sm"><ReceiptIcon size={11} className="inline align-[-2px] mr-1" />{unpaidInvoices} tagihan belum dibayar</Badge>
-                  )}
-                </div>
-              )}
-
-              {/* Stats row */}
-              <div className="flex items-center gap-3 mt-2 flex-wrap">
-                {stats ? (
-                  <span className="text-xs font-semibold text-[var(--ink-brand)] bg-[var(--brand-tint)] px-2 py-0.5 rounded-full">
-                    Bulan ini: {stats.count} sesi · {stats.hours}j
-                  </span>
-                ) : (
-                  <span className="text-xs text-[var(--ink-muted)]">Belum ada sesi bulan ini</span>
+              {/* Baris 3 — sejak kapan bergabung + sesi bulan ini */}
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                {keanggotaan && (
+                  <span className="text-xs text-[var(--ink-muted)]">{keanggotaan}</span>
                 )}
-                {monthsSince > 0 && (
-                  <span className="text-xs text-[var(--ink-muted)]">{monthsSince} bulan bersama</span>
-                )}
-                {s.parentContact?.name && (
-                  <span className="text-xs text-[var(--ink-muted)] truncate"><UserIcon size={12} className="inline align-[-2px] mr-1" />{s.parentContact.name}</span>
-                )}
+                <span className={stats
+                  ? "text-xs font-semibold text-[var(--ink-brand)] bg-[var(--brand-tint)] px-2 py-0.5 rounded-full"
+                  : "text-xs text-[var(--ink-muted)]"}>
+                  {sesiBulanIni}
+                </span>
               </div>
             </div>
 
@@ -326,22 +348,12 @@ export default function Students() {
         </div>
       )}
 
-      {/* Needs-attention summary */}
-      {needsAttentionCount > 0 && (
-        <div className="flex items-center gap-2 bg-[var(--bg-warn)] border border-[var(--border-warn)] rounded-xl px-3 py-2">
-          <BellIcon size={14} className="text-[var(--ink-warn)]" />
-          <p className="text-xs font-semibold text-[var(--ink-warn)]">
-            {needsAttentionCount} murid butuh perhatian (follow-up atau tagihan)
-          </p>
-        </div>
-      )}
-
       {/* Summary banner */}
       {totalMonthSessions > 0 && (
         <div className="bg-[var(--brand-tint)] rounded-xl p-3 flex items-center justify-between">
           <div>
             <p className="text-xs text-[var(--ink-brand)] font-medium uppercase tracking-wide">{monthLabel(currentMonth)}</p>
-            <p className="text-sm font-bold text-[var(--ink-brand)]">{totalMonthSessions} sesi · {active.length} murid aktif</p>
+            <p className="text-sm font-bold text-[var(--ink-brand)]">{totalMonthSessions} sesi · {jumlahMuridAktif} murid aktif</p>
           </div>
           <span className="text-2xl">📈</span>
         </div>
@@ -391,12 +403,66 @@ export default function Students() {
         </button>
       </div>
 
+      {/* Kontrol urutan dan penyaringan (butir 12 G3-06).
+          Spanduk kuning lama hanya MEMBERI TAHU berapa murid yang butuh perhatian;
+          sekarang tombol ini yang menyaring, dengan angka yang sama. Tombolnya
+          selalu ada supaya filter bisa dilepas walau hasilnya sedang kosong. */}
+      <div className="flex items-end gap-2">
+        <div className="flex-1 min-w-0">
+          <label htmlFor="urutkan-murid" className="label">Urutkan</label>
+          <select
+            id="urutkan-murid"
+            className="input min-h-[44px]"
+            value={sortKey}
+            onChange={(e) => {
+              setSortKey(e.target.value as StudentSortKey);
+              setActivePage(1);
+              setHistPage(1);
+            }}
+          >
+            {STUDENT_SORT_OPTIONS.map((option) => (
+              <option key={option.key} value={option.key}>{option.label}</option>
+            ))}
+          </select>
+        </div>
+        <button
+          type="button"
+          aria-pressed={onlyAttention}
+          onClick={() => {
+            setOnlyAttention((v) => !v);
+            setActivePage(1);
+            setHistPage(1);
+          }}
+          className={`inline-flex min-h-[44px] items-center gap-1.5 px-3 rounded-xl border text-xs font-semibold transition-colors ${
+            onlyAttention
+              ? "bg-[var(--bg-warn)] border-[var(--border-warn)] text-[var(--ink-warn)]"
+              : "bg-[var(--bg-subtle)] border-[var(--border)] text-[var(--ink-muted)]"
+          }`}
+        >
+          <BellIcon size={14} />
+          {onlyAttention ? "Tampilkan semua" : `Butuh perhatian (${perhatianTampil})`}
+        </button>
+      </div>
+
+      {/* Label urutan yang sedang dipakai — diminta butir 12 supaya tutor tidak
+          perlu menebak dari isi kotak pilihan saja. Bukan live region: layar ini
+          sudah punya beberapa, dan dua `role="status"` pernah mematahkan locator. */}
+      <p className="text-xs text-[var(--ink-muted)]">
+        Menampilkan {tab === "aktif" ? active.length : inactive.length} murid
+        {" · "}urutan <span className="font-semibold text-[var(--ink-strong)]">{studentSortLabel(sortKey)}</span>
+        {onlyAttention ? " · hanya yang butuh perhatian" : ""}
+      </p>
+
       {/* Active students */}
       {tab === "aktif" && (
         <>
           {active.length === 0 ? (
             q ? (
               <p className="text-[var(--ink-muted)] text-center py-8">Tidak ada hasil untuk "{search}".</p>
+            ) : onlyAttention ? (
+              <p className="text-[var(--ink-muted)] text-center py-8">
+                Tidak ada murid aktif yang butuh perhatian saat ini.
+              </p>
             ) : (
               <div className="text-center py-8">
                 <p className="text-[var(--ink-muted)]">Belum ada murid aktif.</p>
@@ -423,6 +489,10 @@ export default function Students() {
           {inactive.length === 0 ? (
             q ? (
               <p className="text-[var(--ink-muted)] text-center py-8">Tidak ada hasil untuk "{search}".</p>
+            ) : onlyAttention ? (
+              <p className="text-[var(--ink-muted)] text-center py-8">
+                Tidak ada murid nonaktif yang butuh perhatian saat ini.
+              </p>
             ) : (
               <p className="text-[var(--ink-muted)] text-center py-8">Tidak ada murid nonaktif.</p>
             )
