@@ -1,0 +1,172 @@
+# PANDUAN-CEK-DI-HP — memeriksa tab Murid dari HP (rilis v1.97.0)
+
+> **Sekilas.** Jenis: panduan pemeriksaan untuk pemilik. Status: berlaku untuk rilis **v1.97.0**.
+> Untuk siapa: pemilik aplikasi, dengan HP di tangan.
+> **Ini bukan daftar pekerjaan.** Daftarnya tetap [`PEKERJAAN.md`](PEKERJAAN.md); butir yang dicentang ada di §5 berkas itu.
+> Alasan panduan ini ada: seluruh tab Murid yang baru **belum pernah dilihat mata manusia** — yang ada baru bukti mesin
+> (suite tes, `e2e:uiux` 64 lulus / 0 gagal, dan pengukuran baris). Bukti mesin **tidak** membuktikan tampilannya enak dipakai.
+
+---
+
+## 0. Sebelum mulai — jangan dilewati
+
+**0.1 Alamat aplikasinya.** Bukalah alamat produksi Anda di HP. Saya **tidak** menemukan alamatnya tercatat di
+dokumen mana pun, jadi saya tidak mengarangnya: proyek Vercel-nya bernama `les-ko-lui` (tercatat di `.vercel/project.json`),
+dan yang membuktikan deployment-nya sudah jalan adalah langkah 0.2.
+
+**0.2 Pastikan HP Anda benar-benar memuat v1.97.0.** Ini langkah paling penting: kalau HP masih memuat versi lama,
+**semua** butir di bawah akan tampak "gagal" padahal kodenya belum ada di sana.
+
+- Begitu aplikasi terbuka, harus muncul jendela **Catatan perubahan** dengan:
+  - tanggal **2026-10-10**,
+  - judul **"Halaman murid: empat tab, kartu Perlu Tindakan, nilai rapor, dan proyek bebas"**,
+  - baris **Versi v1.97.0** di bawah judul.
+- Tutup dengan tombol **Mengerti, Terima Kasih**. Jendela ini muncul **sekali per versi**, jadi kalau Anda sudah menutupnya
+  ia tidak muncul lagi — itu wajar.
+- **Kalau jendela itu TIDAK muncul sama sekali:** kemungkinan besar HP masih memuat versi lama (atau Vercel belum selesai
+  men-deploy, karena push-nya baru saja). Tutup aplikasi lalu buka lagi, atau muat ulang halaman.
+  **Kalau tetap tidak muncul, hentikan pemeriksaan dan beri tahu saya** — melanjutkan hanya akan menghasilkan laporan palsu.
+
+**0.3 Data apa yang dipakai.** Aplikasi ini menyimpan data **di HP Anda sendiri**. Di alamat online **tidak ada pemuat
+data contoh**: `seedDummy` hanya hidup di server pengembangan (dipasang `src/main.tsx` di dalam `import.meta.env.DEV`).
+Jadi yang Anda periksa adalah **data asli Anda** — bukan data contoh, meski butir daftar periksa di `PEKERJAAN.md` §5
+menulis "memakai data contoh" (kalimat itu ditulis untuk server pengembangan).
+
+Konsekuensinya, tiga larangan untuk sesi pemeriksaan ini:
+
+1. **Jangan menekan "Hapus" pada murid asli**, dan jangan sentuh **Hapus Semua Data** di Pengaturan.
+2. **Jangan mengubah tarif murid asli** — mengubah tarif memunculkan pertanyaan tentang sesi lama yang belum ditagih.
+3. Satu langkah di bawah memang menambah data: **membuat satu murid percobaan**. Itu aman, dan cara menghapusnya ada di butir 32.
+
+**0.4 Perkiraan waktu.** Bagian A ±10 menit. Bagian B opsional.
+
+---
+
+## Bagian A — empat butir yang menunggu Anda (30–33)
+
+### Butir 30 — daftar murid bisa diurutkan dan disaring
+
+1. Buka pintu **Murid** di navigasi bawah.
+2. **Yang harus terlihat:** di bawah pemilih **Aktif / Historis** ada tiga hal baru — kotak **Urutkan**, tombol
+   **Butuh perhatian (N)**, dan satu baris keterangan.
+3. Ganti **Urutkan** ke **Nama (A–Z)** → susunan kartu berubah jadi alfabetis, dan baris keterangan berubah menjadi
+   mis. "Menampilkan 12 murid · **urutan Nama (A–Z)**".
+4. Ganti ke **Terbaru bergabung** → murid yang paling akhir Anda tambahkan ada di paling atas.
+5. Tekan **Butuh perhatian (N)** → daftar menyusut: yang tersisa hanya murid yang punya badge **follow-up** atau
+   **tagihan belum dibayar**. Tombolnya berubah jadi **Tampilkan semua**, dan baris keterangan menambah
+   "· hanya yang butuh perhatian".
+6. Tekan **Tampilkan semua** → daftar penuh kembali.
+7. Perhatikan juga: kalau tidak ada murid yang butuh perhatian, tombolnya berbunyi **Butuh perhatian (0)** dan setelah
+   ditekan muncul kalimat "Tidak ada murid aktif yang butuh perhatian saat ini."
+
+**Catat kalau meleset:** tombol/kotak terpotong di layar sempit · urutan tidak berubah · angka (N) tidak cocok dengan
+jumlah kartu yang punya badge · keterangan urutan tidak ikut berubah.
+
+### Butir 31 — kartu murid tiga baris
+
+Lihat satu kartu murid di daftar yang sama. Isinya **tepat tiga baris keterangan**:
+
+| Baris | Isi yang harus terlihat |
+|---|---|
+| 1 | Nama + penanda keadaan: jadwal terdekat (mis. "📅 Besok 16:00"), tanda **nonaktif** bila muridnya nonaktif, jumlah **follow-up**, jumlah **tagihan belum dibayar** |
+| 2 | Label **pendek** kurikulum + kelas + sekolah, mis. "IGCSE · Grade 10 · SMA Tunas" |
+| 3 | "**aktif sejak Agustus 2026**" + "Bulan ini 4 sesi · 6j" atau "Belum ada sesi bulan ini" |
+
+**Yang sengaja TIDAK lagi ada di kartu:** chip mata pelajaran, nama orang tua, dan tulisan "N bulan bersama".
+Ketiganya tetap ada di halaman Detail Murid — itu keputusan yang saya ambil dan catat.
+
+**Periksa khusus:** buka murid yang baru Anda tambahkan minggu ini. Baris ketiganya harus menyebut **bulan dan tahun**
+yang benar (mis. "aktif sejak Oktober 2026"), bukan "0 bulan bersama".
+
+**Catat kalau meleset:** baris saling menumpuk/terpotong di layar sempit · nama panjang meluber keluar kartu ·
+label kurikulum muncul sebagai kode aneh · baris ketiga kosong padahal muridnya jelas punya sesi bulan ini.
+
+### Butir 32 — formulir murid: urutan bagian + siklus tagihan yang terlipat
+
+1. Tekan **+ Tambah Murid**.
+2. **Yang harus terlihat, berurutan dari atas:** **IDENTITAS** (Nama Murid → Kurikulum → Kelas/Grade + Sekolah →
+   Mata Pelajaran) → **Kontak Orang Tua** → **Kontak Murid** → **Tarif Les** → tombol **Siklus Tagihan** dalam keadaan
+   **terlipat**, dengan tulisan di sisi kanannya seperti "Bulanan · Buka".
+3. Isi **Nama Murid** = `Cek HP 2026-10-10`, dan **No. WhatsApp Orang Tua** (dua kolom itu wajib; sisanya boleh kosong).
+4. Tekan tombol **Siklus Tagihan** → bagiannya terbuka (tulisan tombolnya jadi "Sembunyikan"), pilih
+   **Setiap N pertemuan**, isi jumlahnya misalnya 8, lalu tekan tombolnya lagi untuk **menutup**, lalu tekan **Simpan**.
+   - **Yang harus terjadi: muridnya benar-benar tersimpan** — jendela tertutup dan kartu barunya muncul di daftar.
+   - Kalau tombol **Simpan** tampak tidak melakukan apa-apa, atau muncul keluhan validasi tentang kolom yang tidak
+     terlihat di layar, itu **bug yang saya cari** — catat persis apa yang terjadi.
+5. Buka murid itu lagi lewat ikon pensil (**Edit**) → **Siklus Tagihan harus langsung terbuka**, dan pilihannya masih
+   **Setiap 8 pertemuan**.
+6. **Bersihkan:** tutup formulirnya, pada kartu `Cek HP 2026-10-10` tekan **Kelola murid** → **Hapus** → masukkan PIN.
+   Murid itu tidak punya sesi atau tagihan, jadi tidak ada data lain yang ikut hilang. **Kalau Anda ragu, tekan
+   "Nonaktifkan" saja** dan saya bereskan sisanya.
+
+### Butir 33 — empat tab di halaman satu murid
+
+Buka satu murid yang **sudah punya sesi**, lalu periksa keempat tabnya:
+
+- **Ringkas** — kartu **Perlu Tindakan** di paling atas (mis. "Ada jadwal yang sudah lewat", "Sesi hari ini",
+  "Perlu diulang di sesi berikutnya", "3 tagihan belum lunas", "1 tindak lanjut menunggu"). Setiap baris bisa ditekan
+  dan membuka tempat mengerjakannya. **Kalau tidak ada yang menunggu, kartu itu tidak muncul — itu benar, bukan bug.**
+  Di bawahnya blok **Uang** berisi **Tarif les** dan rincian biaya sesi selesai. Kalau uang sedang terkunci, angkanya
+  tampil tersamarkan; tekan **Buka** dan masukkan PIN untuk melihat angkanya.
+- **Sesi** — bukti keaktifan, riwayat sesi, dan jadwal murid. Di sini periksa satu hal khusus: menekan tombol
+  **Edit catatan sesi** di dalam kartu **tidak boleh** ikut membuka detail sesinya (dulu bisa, karena tombol ada di
+  dalam area yang bisa diklik).
+- **Progres** — tabel **Prediksi vs Nilai Akhir** (muncul bila ada sesi yang punya prediksi atau nilai akhir, lengkap
+  dengan penanda bila nilai akhir di bawah prediksi), kartu **Kesimpulan** tentang murid itu, dan **isian nilai rapor**
+  (pilih semester → isi nilai → simpan). Coba simpan satu nilai rapor percobaan, lalu hapus/perbaiki bila perlu.
+- **Proyek** — untuk murid **non-IB** yang belum punya proyek harus muncul kalimat
+  "**Belum ada proyek untuk murid ini.**" beserta contoh yang bisa dilacak dan tombol **+ Proyek** — **bukan tab kosong**.
+  Tekan **+ Proyek**: pemilih jenisnya sekarang bebas (IA · EE · PP · proyek lain), dan kolom mata pelajaran otomatis
+  wajib atau tidak wajib mengikuti jenis yang dipilih.
+- **Kepala halaman** (di atas judul): tombol **WhatsApp** ke orang tua, ikon **pensil**, dan menu **⋯** berisi
+  nonaktifkan/aktifkan serta hapus.
+
+**Catat kalau meleset:** salah satu tab kosong tanpa penjelasan · tabel/grafik terpotong di layar sempit ·
+angka uang terlihat padahal uang sedang terkunci · menu **⋯** tidak menampilkan pilihannya.
+
+---
+
+## Bagian B — opsional: butir lama yang juga belum dicentang (1–23)
+
+Butir-butir ini ditulis untuk layar yang sudah lama berubah, jadi kalau Anda ingin sekalian, lakukan per layar
+(bukan per butir) — dan cukup catat layar mana yang terasa aneh:
+
+| Layar | Butir | Inti yang dicek |
+|---|---|---|
+| Catat Sesi (wizard 6 langkah) | 1–10, 13–20 | Katalog topik sesuai jenjang murid · chip topik tidak berganda · undo hapus topik & tindak lanjut · tombol Simpan ada di langkah 5 dan 6 · tanda seru pada langkah wajib · halaman kembali ke atas saat pindah langkah · warna tombol utama nyaman dibaca · draf tersimpan saat keluar lalu kembali |
+| Ekspor CSV | 12 | Ada kolom bab topik dan sumber skor; kolom jenjang berbunyi seperti "IGCSE kelas sepuluh", bukan kode tingkat universitas |
+| Beranda — panel **Kelola sesi** | 21–23 | Enam aksi bekerja (simpan · batalkan · hapus · catat · tidak hadir · jadwalkan ulang) · pesan berbeda antara batalkan dan hapus · memindahkan sesi ke murid lain memunculkan peringatan nominal lalu konfirmasi, dan nominal manual tidak hilang |
+| Uang | 24–25 | Satu layar tiga blok (Ringkasan · Perlu ditagih · Bulan ini) · tiap sub-layar punya tombol "← Kembali ke Uang" · tabel Rekap tiga kolom nyaman dibaca tanpa geser samping, dan CSV-nya sama seperti dulu |
+
+Butir **26–29** (layar Laporan) sudah dicentang 2026-10-08 dan tidak perlu diulang.
+
+---
+
+## Bagian C — cara melapor ke saya
+
+Cukup satu pesan, dengan bentuk seperti ini:
+
+```
+Butir 30: LULUS  (atau: MELESET — <satu kalimat apa yang terlihat>)
+Butir 31: LULUS
+Butir 32: LULUS
+Butir 33: MELESET — tab Progres tabelnya kepotong di kanan
+```
+
+Sertakan tangkapan layar bila ada yang meleset — itu paling cepat saya pakai.
+
+**Apa yang saya lakukan dengan jawaban Anda:**
+
+1. Butir yang **LULUS** saya centang di `PEKERJAAN.md` §5 dengan tanggal dan bukti "pernyataan pemilik", persis seperti
+   butir 24–29 dicentang.
+2. Butir yang **MELESET** saya masukkan ke `PEKERJAAN.md` §4 sebagai temuan bertanggal, lalu saya perbaiki dan
+   laporkan; kalau perbaikannya menyentuh lebih dari tiga layar, gate-nya dijalankan penuh.
+3. Kalau ada yang tidak jelas **apa yang seharusnya terlihat**, tanyakan — panduan ini boleh diperbaiki.
+
+---
+
+## Riwayat berkas ini
+
+| Tanggal | Perubahan |
+|---|---|
+| 2026-10-10 | Dibuat setelah rilis v1.97.0, untuk memeriksa tab Murid yang baru (butir 30–33) dari HP. Bagian 0 memuat syarat yang tidak boleh dilewati: nomor versi di jendela Catatan perubahan, dan peringatan bahwa di alamat online **tidak ada** pemuat data contoh sehingga yang diperiksa adalah data asli. |

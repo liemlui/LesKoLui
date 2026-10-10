@@ -335,7 +335,13 @@ Bagian ini untuk pekerjaan yang tidak masuk urutan gelombang. Boleh dikerjakan k
 
 ## 5. Daftar periksa manual
 
-Bagian ini hanya bisa ditutup pemilik dengan mata di perangkat. Agen tidak boleh mencentangnya. Semuanya memakai data contoh dari aplikasi. Perkiraan waktu seluruhnya sekitar lima belas menit.
+Bagian ini hanya bisa ditutup pemilik dengan mata di perangkat. Agen tidak boleh mencentangnya — kecuali butir yang sudah diberi izin eksplisit oleh pemilik (izin 2026-10-07 di riwayat bagian 6), dan itu pun hanya atas pernyataan pemilik sebagai bukti. Perkiraan waktu seluruhnya sekitar lima belas menit.
+
+> **Panduan langkah-demi-langkah untuk memeriksa dari HP ada di [`PANDUAN-CEK-DI-HP.md`](PANDUAN-CEK-DI-HP.md).**
+> Dua hal penting di sana: (a) pemeriksaan **wajib** dimulai dengan memastikan nomor versi di jendela Catatan perubahan —
+> kalau HP masih memuat versi lama, semua butir akan salah nilai; (b) kalimat "memakai data contoh" di bagian ini ditulis
+> untuk **server pengembangan**, karena pemuat data contoh (`seedDummy`) hidup di dalam `import.meta.env.DEV`. Di alamat
+> online, yang diperiksa adalah **data asli**, sehingga langkah yang menghapus atau mengubah data murid asli dilarang.
 
 > **Butir 24 dan 25 ditambahkan 2026-10-07** untuk tampilan yang belum punya butirnya sendiri. Butir 1–23
 > seluruhnya menulis "tab", padahal layar Uang sudah menjadi satu layar tiga blok sejak v1.94.0 — jadi tidak ada
