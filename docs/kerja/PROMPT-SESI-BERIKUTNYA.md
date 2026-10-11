@@ -22,14 +22,14 @@ Lanjutkan proyek Les Ko Lui (jurnal les privat, PWA lokal-first) — Gelombang 3
 
 **Baca berurutan, hemat token, jangan membaca semuanya:**
 
-1. `les-ko-lui/docs/kerja/ATURAN-AI.md` (±191 baris) — KONTRAK. Delapan bagian: §1 cara bekerja +
-   tabel gate dua tingkat · §2 integritas dokumen · §3 berkas terlarang · §4 keputusan final
-   pemilik (B1–B4, D1–D8) · §5 fakta kode · §6 perintah + lingkungan sandbox · §7 jebakan ·
-   §8 bentuk laporan. **Nomor bagiannya berubah 2026-10-07** — kalau ada dokumen menunjuk §0,
-   §2.1–§2.3, §6.1–§6.4, atau §9, nomor itu sudah tidak ada (peta lama→baru di
-   `docs/arsip/README.md` §6).
+1. `les-ko-lui/docs/kerja/ATURAN-AI.md` — KONTRAK. Delapan bagian: §1 cara bekerja +
+   tabel gate dua tingkat · **§1.1 goal dan todos wajib setiap pekerjaan** · §2 integritas dokumen ·
+   §3 berkas terlarang · §4 keputusan final pemilik (B1–B4, D1–D8) · §5 fakta kode · §6 perintah +
+   lingkungan sandbox · §7 jebakan · §8 bentuk laporan. **Nomor bagiannya berubah 2026-10-07** —
+   kalau ada dokumen menunjuk §0, §2.1–§2.3, §6.1–§6.4, atau §9, nomor itu sudah tidak ada
+   (peta lama→baru di `docs/arsip/README.md` §6).
 2. `les-ko-lui/docs/kerja/PEKERJAAN.md` — SATU-SATUNYA daftar pekerjaan. Spesifikasi lengkap
-   G3-01…G3-10 ada di §3, pekerjaan tanpa dokumen tugas di §4, daftar periksa manual (33 butir)
+   G3-01…G3-10 ada di §3, pekerjaan tanpa dokumen tugas di §4, daftar periksa manual (38 butir)
    di §5.
 3. `les-ko-lui/docs/kerja/SERAH-TERIMA.md` — keadaan + batas kejujuran yang belum beres.
    Bagian 3 dan 4 saja.
@@ -50,6 +50,24 @@ Lanjutkan proyek Les Ko Lui (jurnal les privat, PWA lokal-first) — Gelombang 3
 
 Baris berkas besar yang menjadi target refactor (diukur dengan `npm run measure loc`):
 `CaptureSession.tsx` **2.077** · `Settings.tsx` **1.387** (target ≤700, tugas berikutnya) · `payments/TagihanTab.tsx` **1.021** (target ≤800). `MonthlyReport.tsx` **1.470** (target ≤1.500) sudah tuntas. **`StudentDetail.tsx` **698** dengan sasaran **≤700** (keputusan pemilik 2026-10-11) — sisa 2 baris, jadi penambahan berikutnya wajib lewat komponen terpisah.** `StudentForm.tsx` 589 dan `Students.tsx` 519, keduanya masih di bawah sasarannya.
+
+### WAJIB SEBELUM LANGKAH PERTAMA: goal + todos
+
+**Keputusan pemilik 2026-10-11 (`ATURAN-AI.md` §1.1).** Pemilik memantau kemajuan dari pelacak yang
+hidup, bukan dari laporan lisan. Sebelum menyentuh berkas apa pun, untuk **setiap** pekerjaan —
+termasuk perubahan dokumen dan penyelidikan kecil:
+
+1. buat **goal** (`create_goal`) yang memuat sasaran konkret dan bisa diperiksa, bukan "mengerjakan tugas";
+2. buat **daftar todos** (`todo_write`) yang memuat seluruh langkahnya sejak awal.
+
+Lalu: tandai `completed` segera setelah langkahnya benar-benar selesai, dan **tutup goal dengan
+`complete`** saat pekerjaannya tuntas. Goal yang dibiarkan terbuka setelah pekerjaan selesai merusak
+pemantauan, karena ia tampak seperti pekerjaan yang masih berjalan. `blocked` hanya setelah
+penghambat yang sama bertahan tiga putaran.
+
+Ini **tidak** bertentangan dengan aturan "satu tugas tuntas lalu lapor sekali": yang dilarang adalah
+**melapor** per langkah, bukan **mencatat** kemajuan. Kalau alatnya tidak tersedia di sesi itu,
+tulis apa adanya di laporan sebagai batas kejujuran — jangan mengaku sudah melacak.
 
 ### Gate — jalankan SEKALI di akhir tugas, bukan per langkah
 

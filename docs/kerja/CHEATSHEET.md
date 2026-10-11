@@ -135,6 +135,12 @@
 
 ## Verifikasi per gate (dua tingkat — menggantikan "Smart Gating 4 tier")
 
+> **Sebelum gate apa pun: goal dan todos wajib dibuat lebih dulu** untuk setiap pekerjaan
+> (keputusan pemilik 2026-10-11, [`ATURAN-AI.md`](ATURAN-AI.md) **§1.1**). `create_goal` +
+> `todo_write` **sebelum** langkah pertama, `todo_write` diperbarui begitu satu langkah selesai,
+> dan `update_goal` → `complete` saat pekerjaannya tuntas. Ini bukan laporan per langkah — yang
+> dilarang §1 butir 1 adalah **melapor** per langkah, bukan **mencatat** kemajuan.
+
 > **Diganti 2026-10-07.** Bagian ini dulu memuat tabel **empat tier** (T0–T3). Sistem itu sudah dicabut;
 > yang berlaku sekarang **dua tingkat**, dan gate dijalankan **sekali di akhir tugas**, bukan per langkah.
 > Kontraknya di [`ATURAN-AI.md`](ATURAN-AI.md) **§1**. Tabel lama sengaja tidak disalin ke sini — dua

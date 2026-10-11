@@ -18,6 +18,32 @@
 6. **Angka mutakhir tidak ditulis di dokumen.** Tulis perintah cara mengukurnya. Angka yang disalin akan basi dan menyesatkan sesi berikutnya.
 7. **Kalau menemukan pekerjaan yang belum selesai tapi tidak ada di daftar**, langsung tambahkan ke daftar dengan tanggal dan sumbernya. Jangan menunggu izin, dan jangan membiarkannya hilang.
 
+---
+
+### 1.1 Goal dan todos wajib dibuat setiap pekerjaan (keputusan pemilik 2026-10-11)
+
+**Aturan ini wajib, bukan anjuran.** Pemilik memantau kemajuan dari pelacak yang hidup, bukan dari laporan lisan. Pekerjaan yang tidak punya goal dan todos **tidak meninggalkan jejak kemajuan yang bisa dibaca** — dan justru itu gunanya pelacakan bagi pemilik.
+
+Setiap kali memulai sebuah pekerjaan, agen DSH **wajib**, sebelum menyentuh berkas apa pun:
+
+1. **Membuat goal** dengan `create_goal` yang memuat sasaran konkret pekerjaan itu — bukan "mengerjakan tugas", melainkan hasil yang bisa diperiksa (mis. "menurunkan `Settings.tsx` menjadi ≤700 baris dan memasang sebelas fitur G3-09 beserta bukti gate-nya").
+2. **Membuat daftar todos** yang memuat seluruh langkah pekerjaan itu sejak awal, satu todo per langkah yang bisa diselesaikan.
+
+Ketentuan yang mengikat:
+
+| Hal | Ketentuan |
+|---|---|
+| Cakupan "setiap pekerjaan" | Berikut **setiap** tugas dari `PEKERJAAN.md`, **setiap** butir di bagian 4, **setiap** permintaan pemilik yang mengubah berkas (termasuk perubahan dokumen), dan **setiap** penyelidikan yang berujung pada keputusan. Sekecil apa pun pekerjaannya. |
+| Saat membuat | **Sebelum** langkah pertama dikerjakan, bukan sesudah. Goal dan todos yang dibuat di tengah pekerjaan tidak bisa dipakai memantau pekerjaan itu. |
+| Saat memperbarui | Satu todo ditandai `completed` **segera** setelah langkahnya benar-benar selesai. Satu todo berstatus `in_progress` pada satu waktu; beberapa hanya bila langkahnya memang berjalan paralel. |
+| Saat menemukan pekerjaan baru | Tambahkan todo-nya **pada putaran yang sama**, dan perbarui goal bila sasarannya ikut berubah. |
+| Saat pekerjaan tuntas | **Wajib** menutup goal dengan `complete`. Goal yang dibiarkan terbuka setelah pekerjaannya selesai merusak pemantauan, karena ia tampak seperti pekerjaan yang masih berjalan. Setelah itu tutup todos yang tersisa — tidak boleh ada todo yang masih `in_progress`/`pending` pada pekerjaan yang sudah dilaporkan selesai. |
+| Kalau tertahan | Tandai `blocked` **hanya** setelah penghambat yang sama bertahan tiga putaran berturut-turut, dan tulis penghambatnya secara konkret. Kesulitan, ketidakpastian, atau sisa pekerjaan **bukan** alasan `blocked`. |
+
+**Ini tidak bertentangan dengan §1 butir 1** ("satu tugas dikerjakan sampai tuntas, lalu lapor satu kali"). Yang dilarang butir 1 adalah **melapor** per langkah kepada pemilik; yang diwajibkan di sini adalah **mencatat** kemajuan pada alat pelacak. Goal dan todos adalah alat pemantauan, bukan laporan, sehingga memperbaruinya **tidak** memerlukan izin pemilik dan **tidak** memutus pekerjaan.
+
+**Kalau alatnya tidak tersedia, katakan apa adanya.** Bila sesi DSH tidak memiliki `create_goal`/`update_goal` atau `todo_write`, tulis itu di laporan sebagai batas kejujuran (bentuk laporan §8) dan jangan mengaku sudah melacak apa pun. Pekerjaan tetap dikerjakan; yang tidak boleh adalah mengklaim punya jejak pelacakan padahal tidak.
+
 **Gate dua tingkat (menggantikan sistem empat tier lama):**
 
 | Jenis perubahan | Yang dijalankan |

@@ -25,7 +25,7 @@
 
 | Mau | Buka | Catatan |
 |---|---|---|
-| Memulai pekerjaan apa pun | [`kerja/ATURAN-AI.md`](kerja/ATURAN-AI.md) | Pintu masuk wajib. Aturan kerja, keputusan final pemilik, berkas yang dilarang disentuh, perintah, dan jebakan. |
+| Memulai pekerjaan apa pun | [`kerja/ATURAN-AI.md`](kerja/ATURAN-AI.md) | Pintu masuk wajib. Aturan kerja, keputusan final pemilik, berkas yang dilarang disentuh, perintah, dan jebakan. **Sebelum langkah pertama: baca §1.1 — goal dan todos wajib dibuat untuk setiap pekerjaan.** |
 | Melihat daftar pekerjaan beserta spesifikasi lengkapnya | [`kerja/PEKERJAAN.md`](kerja/PEKERJAAN.md) | Satu-satunya daftar pekerjaan. Spesifikasi kesepuluh tugas Gelombang 3 ada di dalamnya, bukan di arsip. |
 | Tahu keadaan terakhir dan apa yang belum selesai | [`kerja/SERAH-TERIMA.md`](kerja/SERAH-TERIMA.md) | Keadaan repository, temuan sesi terakhir, dan langkah berikutnya. |
 | Melihat jangkar kode, jebakan, dan perintah verifikasi sebuah tugas | [`kerja/CHEATSHEET.md`](kerja/CHEATSHEET.md) | Catatan teknis per tugas. Daftar pekerjaan dan spesifikasinya tetap di `PEKERJAAN.md`. |
