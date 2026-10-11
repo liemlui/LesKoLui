@@ -22,9 +22,11 @@ test("tombol keluar di Pengaturan membuka konfirmasi tanpa memakai navigasi back
   if (await changelog.isVisible({ timeout: 1500 }).catch(() => false)) await changelog.click();
   await dismissWarning.click({ timeout: 5000 }).catch(() => undefined);
 
-  // Bagian Pengaturan berupa accordion dan tertutup secara default, jadi header
-  // "Aplikasi (PWA)" harus dibuka dulu sebelum tombolnya bisa diklik.
-  const appSection = page.getByRole("button", { name: /Aplikasi \(PWA\)/ });
+  // Bagian Pengaturan berupa accordion dan tertutup secara default. Sejak G3-09
+  // butir 4 judul bagiannya hanya "Aplikasi" (dulu "Aplikasi (PWA)"), dan
+  // penandanya `data-bagian` — dipakai di sini supaya perubahan kata judul tidak
+  // mematahkan penjaga ini lagi.
+  const appSection = page.locator('[data-bagian="aplikasi"] button').first();
   await appSection.click();
   await expect(appSection).toHaveAttribute("aria-expanded", "true");
 

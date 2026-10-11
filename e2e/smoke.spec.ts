@@ -48,6 +48,9 @@ test.describe("smoke", () => {
     await page.goto("/settings");
     await closeChangelog(page);
     await expect(page).toHaveURL(/\/settings$/);
-    await expect(page.getByText("Backup & Restore")).toBeVisible();
+    // Judul bagiannya "Backup dan Restore" sejak G3-09 butir 4 (dulu
+    // "Backup & Restore"). Ditambatkan pada `data-bagian`, bukan teks judul,
+    // supaya perubahan kata tidak mematahkan penjaga ini lagi.
+    await expect(page.locator('[data-bagian="backup"]')).toBeVisible();
   });
 });

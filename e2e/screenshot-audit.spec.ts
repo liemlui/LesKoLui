@@ -170,15 +170,16 @@ test("07-settings", async ({ page }) => {
   await page.waitForTimeout(2500);
   await closeChangelog(page);
   await shot(page, "07-settings-top.png");
-  const titles = ["Profil Tutor", "PIN Keuangan", "Rekening Bank", "AI — DeepSeek",
-    "Backup & Restore", "Riwayat Aktivitas", "Aplikasi (PWA)", "Hapus Semua Data"];
-  for (const title of titles) {
-    const btn = page.getByRole("button", { name: new RegExp(esc(title)) });
+  // Judul + urutan bagian mengikuti G3-09 butir 4. Ditambatkan pada `data-bagian`
+  // supaya perubahan kata judul tidak mematahkan katalog tangkapan layar ini.
+  const titles = ["backup", "ai", "profil", "pin", "rekening", "aplikasi", "riwayat", "bahaya"];
+  for (const id of titles) {
+    const btn = page.locator(`[data-bagian="${id}"] button`).first();
     if (await btn.isVisible({ timeout: 1000 }).catch(() => false)) {
       await btn.click();
       await page.waitForTimeout(450);
     }
-    await shot(page, `07-settings-${title.replaceAll(" ", "-").replaceAll("—", "").toLowerCase()}.png`);
+    await shot(page, `07-settings-${id}.png`);
   }
 });
 

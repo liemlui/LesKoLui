@@ -39,9 +39,13 @@ async function dismissChangelog(page: Page) {
   }
 }
 
-/** Pengaturan memakai accordion: hanya satu bagian terbuka, jadi buka dulu. */
-async function openSettingsSection(page: Page, title: string) {
-  const header = page.getByRole("button", { name: new RegExp(`^${title}`) });
+/**
+ * Bagian Pengaturan memakai accordion: hanya satu yang terbuka pada satu waktu.
+ * Ditambatkan pada `data-bagian` (bukan teks judul), karena judul bagian berubah
+ * di G3-09 butir 4 — dulu "Backup & Restore", sekarang "Backup dan Restore".
+ */
+async function openSettingsSection(page: Page, id: string) {
+  const header = page.locator(`[data-bagian="${id}"] button`).first();
   await expect(header).toBeVisible({ timeout: 30_000 });
   if ((await header.getAttribute("aria-expanded")) !== "true") await header.click();
   await expect(header).toHaveAttribute("aria-expanded", "true");
@@ -50,7 +54,7 @@ async function openSettingsSection(page: Page, title: string) {
 async function createFinancialPin(page: Page) {
   await page.goto("/settings");
   await dismissChangelog(page);
-  await openSettingsSection(page, "PIN Keuangan");
+  await openSettingsSection(page, "pin");
   await page.getByRole("button", { name: "Buat PIN" }).click();
   await page.locator("#set-pin-baru").fill(PIN);
   await page.locator("#set-pin-konfirmasi").fill(PIN);
@@ -107,18 +111,13 @@ test("build produksi: service worker mengontrol halaman & app tetap terbuka saat
 
 test("build produksi: restore dari file .jles mengganti seluruh data di runtime", async ({ page }) => {
   test.setTimeout(300_000);
-  const dialogs: string[] = [];
-  page.on("dialog", (dialog) => {
-    dialogs.push(dialog.message());
-    void dialog.accept();
-  });
 
   await createFinancialPin(page);
   await createStudent(page, STUDENT_IN_BACKUP, "081200000001");
 
   // ── Ekspor backup lewat UI (file .jles terenkripsi) ────────────────────
   await page.goto("/settings");
-  await openSettingsSection(page, "Backup & Restore");
+  await openSettingsSection(page, "backup");
   await page.locator("#set-backup-pass").fill(PASS);
   const downloadPromise = page.waitForEvent("download", { timeout: 120_000 });
   await page.getByRole("button", { name: /Backup ke File/ }).click();
@@ -131,18 +130,26 @@ test("build produksi: restore dari file .jles mengganti seluruh data di runtime"
 
   // ── Restore dari file ──────────────────────────────────────────────────
   await page.goto("/settings");
-  await openSettingsSection(page, "Backup & Restore");
+  await openSettingsSection(page, "backup");
   await page.locator("#set-restore-file").setInputFiles(backupFile);
   await page.locator("#set-backup-pass").fill(PASS);
   await page.getByRole("button", { name: /Restore dari File/ }).click();
+
+  /**
+   * G3-09 butir 7: konfirmasi restore bukan lagi `confirm()` bawaan peramban,
+   * melainkan dialog internal yang menyebut berkas dan ukurannya. Dialog itu
+   * muncul SEBELUM PIN, dan itu memang urutan yang diminta.
+   */
+  const ringkasan = page.getByRole("dialog", { name: "Pulihkan dari berkas ini?" });
+  await expect(ringkasan).toBeVisible({ timeout: 20_000 });
+  await expect(ringkasan.getByText(/Ukuran berkas/)).toBeVisible();
+  await ringkasan.getByRole("button", { name: "Ya, pulihkan" }).click();
+
   await confirmWithPin(page, "Konfirmasi Restore", "Restore");
 
   // Restore mengunduh cadangan pra-restore, lalu memuat ulang halaman otomatis.
   await expect(page.getByText(/Restore berhasil/)).toBeVisible({ timeout: 120_000 });
   await page.waitForURL(/\/settings/, { timeout: 60_000 });
-
-  // Dialog konfirmasi restore + (bila ada) peringatan validasi muncul ke pengguna.
-  expect(dialogs.some((message) => /Restore akan mengganti semua data/.test(message))).toBe(true);
 
   await page.goto("/students");
   await expect(page.getByText(STUDENT_IN_BACKUP)).toBeVisible({ timeout: 30_000 });

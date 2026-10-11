@@ -19,7 +19,13 @@
  */
 import { test, expect, type Page } from "@playwright/test";
 
-const SETTINGS_FORM_MARKER = "Backup & Restore";
+/**
+ * Penanda "Pengaturan sudah selesai dimuat". Sejak G3-09 butir 4 judul bagiannya
+ * "Backup dan Restore", dan sejak refactor G3-09 bentuknya akordeon dengan
+ * `data-bagian` — penanda itu dipakai supaya perubahan kata judul tidak
+ * mematahkan penjaga ini lagi.
+ */
+const SETTINGS_FORM_MARKER = "Backup dan Restore";
 const LOAD_FAILURE = "Pengaturan gagal dimuat";
 
 /** Kotak galat Pengaturan — `role="alert"` yang isinya pesan spesifik (bukan overlay lain). */

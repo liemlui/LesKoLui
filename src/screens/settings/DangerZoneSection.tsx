@@ -1,11 +1,9 @@
 import { useState } from "react";
-import { db } from "../../db/db";
-import { logAudit } from "../../db/repos";
 import Modal from "../../components/Modal";
 import { Section } from "./Section";
 import { TrashIcon } from "../../components/icons";
+import { RESET_TABLES } from "./dangerZoneRows";
 import { RESET_CONFIRM_WORD, confirmButtonEnabled } from "../../lib/recoveryPresentation";
-import type { AuditAction } from "../../db/types";
 
 /**
  * Bagian "Hapus Semua Data" di zona berbahaya Pengaturan.
@@ -19,25 +17,10 @@ import type { AuditAction } from "../../db/types";
  * 2. mengetik kalimat {@link RESET_CONFIRM_WORD} untuk mengaktifkan tombol;
  * 3. PIN Keuangan.
  *
- * Daftar tabel yang dibersihkan **eksplisit dan lengkap** (G3-10 butir 1 meminta
- * daftar yang sama disebutkan di antarmuka). Kalau kelak ada tabel baru di
- * `db.ts`, tabel itu harus ditambahkan di sini DAN di teks yang dibaca tutor —
- * itulah gunanya daftar ini hidup di satu tempat.
+ * Daftar tabelnya hidup di `settings/dangerZoneRows.ts` — dipisah karena berkas
+ * komponen tidak boleh mengekspor bukan-komponen (`react-refresh/only-export-components`),
+ * dan karena daftar itu perlu bisa dibaca tes tanpa DOM.
  */
-export const RESET_TABLES = [
-  { tabel: "murid", ambil: () => db.students },
-  { tabel: "sesi", ambil: () => db.sessions },
-  { tabel: "laporan", ambil: () => db.reports },
-  { tabel: "tagihan", ambil: () => db.payments },
-  { tabel: "tindak lanjut", ambil: () => db.followUps },
-  { tabel: "nilai rapor", ambil: () => db.raporGrades },
-  { tabel: "pengeluaran", ambil: () => db.expenses },
-  { tabel: "proyek tugas panjang", ambil: () => db.iaeeProjects },
-  { tabel: "catatan belajar", ambil: () => db.studyNotes },
-  { tabel: "draf pencatatan sesi", ambil: () => db.captureDrafts },
-  { tabel: "pengaturan (PIN, kunci AI, logo, rekening, profil)", ambil: () => db.settings },
-  { tabel: "catatan audit", ambil: () => db.auditLog },
-] as const;
 
 type Lapis = "ringkasan" | "ketik";
 
@@ -134,20 +117,4 @@ export default function DangerZoneSection({ onRequirePin }: DangerZoneSectionPro
       )}
     </Section>
   );
-}
-
-/**
- * Jalankan penghapusan. Dipisah dari komponennya supaya urutannya bisa dibaca:
- * **bersihkan tabel dulu, catat audit SESUDAH** — `logAudit` menulis ke
- * `db.auditLog` yang ikut dibersihkan, jadi urutan sebaliknya akan menghapus
- * jejaknya sendiri.
- */
-export async function jalankanResetSemuaData(): Promise<void> {
-  const tabel = RESET_TABLES.map((t) => t.ambil());
-  await db.transaction("rw", tabel, async () => {
-    for (const t of tabel) await t.clear();
-  });
-  await logAudit("data.reset" as AuditAction, "data");
-  // Pengingat backup terakhir ikut dibuang supaya pengingat muncul lagi setelah reset.
-  try { localStorage.removeItem("leskolui_last_auto_backup_prompt"); } catch { /* penyimpanan tidak tersedia */ }
 }

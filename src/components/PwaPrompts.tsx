@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { useRegisterSW } from "virtual:pwa-register/react";
+import PwaUpdateUi from "./PwaUpdateUi";
+import { usePwaUpdate } from "../hooks/usePwaUpdate";
 import {
   SNOOZE_DAYS_AFTER_DISMISS,
   SNOOZE_DAYS_AFTER_PROMPT,
@@ -26,33 +27,38 @@ function detectStandaloneNow(): boolean {
 }
 
 export function PwaPrompts() {
-  // ── SW auto-update: cek berkala (reload otomatis ditangani registerType autoUpdate) ──
+  // ── SW: cek berkala; PEMASANGAN pembaruan selalu keputusan tutor ────────────
+  // `registerType: "prompt"` di vite.config.ts, jadi service worker baru
+  // MENUNGGU sampai `updateServiceWorker(true)` dipanggil. Itulah sebabnya
+  // tombol Perbarui harus benar-benar bekerja — kalau tidak, tutor terjebak di
+  // versi lama tanpa cara keluar.
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [updateReady, setUpdateReady] = useState(false);
   const [chunkError, setChunkError] = useState(false);
-  const { updateServiceWorker } = useRegisterSW({
-    onNeedRefresh() { setUpdateReady(true); },
-    onRegisteredSW(_swUrl, r) {
-      if (!r) return;
+  const { ready: updateReady, checking, check: periksaManual, apply: pasangPembaruan } = usePwaUpdate();
 
-      intervalRef.current = setInterval(async () => {
-        if (!r.installing && navigator.onLine) {
-          try { await r.update(); } catch { /* network error, try again next tick */ }
-        }
-      }, CHECK_INTERVAL_MS);
-
-      const onVisible = () => {
-        if (document.visibilityState === "visible" && !r.installing && navigator.onLine) {
-          r.update().catch((e: unknown) => { console.warn("SW update check failed:", e); });
-        }
-      };
-      document.addEventListener("visibilitychange", onVisible);
-      return () => {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        document.removeEventListener("visibilitychange", onVisible);
-      };
-    },
-  });
+  /**
+   * Pemeriksaan berkala + saat halaman kembali terlihat. Dulu ini hidup di dalam
+   * `onRegisteredSW` milik `useRegisterSW`; sekarang memakai {@link periksaManual}
+   * dari hook yang sama dengan tombol di Pengaturan, sehingga hanya ada SATU
+   * jalur pemeriksaan dan satu sumber kebenaran "pembaruan siap".
+   */
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      if (document.visibilityState === "visible" && navigator.onLine) {
+        periksaManual().catch((e: unknown) => { console.warn("SW update check failed:", e); });
+      }
+    }, CHECK_INTERVAL_MS);
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && navigator.onLine) {
+        periksaManual().catch((e: unknown) => { console.warn("SW update check failed:", e); });
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [periksaManual]);
 
   // Cleanup interval saat unmount
   useEffect(() => {
@@ -130,17 +136,6 @@ export function PwaPrompts() {
 
   const showInstall = shouldShowInstallPrompt({ hasPrompt: !!deferred, standalone, snoozed });
 
-  const applyUpdate = async () => {
-    const detail: { flushes: Array<() => Promise<void>> } = { flushes: [] };
-    window.dispatchEvent(new CustomEvent("leskolui:before-pwa-update", { detail }));
-    try {
-      await Promise.all(detail.flushes.map((flush) => flush()));
-      await updateServiceWorker(true);
-    } catch (error) {
-      console.warn("PWA update postponed because draft could not be flushed", error);
-    }
-  };
-
   const recoverChunk = () => {
     if (sessionStorage.getItem("leskolui_chunk_reload")) return;
     sessionStorage.setItem("leskolui_chunk_reload", "1");
@@ -149,14 +144,27 @@ export function PwaPrompts() {
 
   return (
     <>
-      {(updateReady || chunkError) && (
+      {/* Keadaan darurat: berkas rute gagal dimuat (biasanya setelah penerapan
+          versi baru). Ini bukan pembaruan yang bisa ditunda — halaman memang
+          perlu dimuat ulang. */}
+      {chunkError && (
         <div className="fixed top-3 inset-x-3 z-50 mx-auto max-w-md rounded-xl bg-[var(--surface-inverse)] p-3 text-[var(--on-strong)] shadow-xl">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold">{chunkError ? "Versi aplikasi perlu dimuat ulang." : "Pembaruan aplikasi siap dipasang."}</p>
-            <button type="button" onClick={chunkError ? recoverChunk : () => void applyUpdate()} className="rounded-lg bg-[var(--surface-strong)] px-3 py-2 text-sm font-semibold text-[var(--ink-strong)]">{chunkError ? "Muat ulang" : "Perbarui"}</button>
+            <p className="text-sm font-semibold">Versi aplikasi perlu dimuat ulang.</p>
+            <button type="button" onClick={recoverChunk} className="rounded-lg bg-[var(--surface-strong)] px-3 py-2 text-sm font-semibold text-[var(--ink-strong)]">Muat ulang</button>
           </div>
         </div>
       )}
+
+      {/* Tawaran pembaruan: punya tombol tutup, dan kegagalan pemasangan tertulis
+          di layar (dulu hanya `console.warn`, sehingga tombolnya tampak mati). */}
+      <PwaUpdateUi
+        variant="banner"
+        ready={updateReady}
+        checking={checking}
+        onCheck={periksaManual}
+        onApply={pasangPembaruan}
+      />
       {/* Install prompt */}
       {showInstall && (
         <div className="fixed inset-x-0 z-50 px-4" style={{ bottom: "calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 0.75rem)" }}>

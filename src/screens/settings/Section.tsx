@@ -4,9 +4,12 @@ import { createContext, useContext, useId, useState, type ReactNode } from "reac
  * Akordeon layar Pengaturan: hanya satu bagian terbuka pada satu waktu.
  *
  * Diekstrak dari `screens/Settings.tsx` (G3-09, langkah ekstraksi) tanpa
- * mengubah perilakunya. `id` bagian = judulnya, jadi judul bagian harus unik —
- * itulah sebabnya `SETTINGS_SECTIONS` di bawah menjadi daftar tunggal judul
- * bagian, dan urutannya adalah urutan tampil di layar (G3-09 butir 4).
+ * mengubah perilakunya. `id` bagian = kuncinya, dan judulnya diambil dari
+ * `settings/sections.ts` — lihat berkas itu untuk urutan yang mengikat.
+ *
+ * Berkas ini **hanya mengekspor komponen**: daftar bagian dan judulnya hidup di
+ * `settings/sections.ts`, karena `react-refresh/only-export-components`
+ * mematikan HMR begitu sebuah berkas komponen juga mengekspor bukan-komponen.
  */
 
 const AccordionContext = createContext<{
@@ -25,31 +28,6 @@ export function AccordionProvider({
     <AccordionContext.Provider value={{ openId, setOpenId }}>{children}</AccordionContext.Provider>
   );
 }
-
-/**
- * Urutan bagian yang mengikat (G3-09 butir 4):
- * Backup dan Restore · AI · Profil · PIN · Rekening Bank · Aplikasi ·
- * Riwayat Aktivitas · Hapus Semua Data (paling bawah, di balik pemisah zona bahaya).
- *
- * `danger: true` menandai satu-satunya bagian di zona berbahaya. Daftar ini juga
- * dipakai pintasan baris ringkasan status, sehingga tidak ada judul bagian yang
- * disalin sebagai teks lepas di dua tempat.
- */
-export const SETTINGS_SECTIONS = [
-  { id: "backup", title: "Backup dan Restore" },
-  { id: "ai", title: "AI — DeepSeek" },
-  { id: "profil", title: "Profil Tutor" },
-  { id: "pin", title: "PIN Keuangan" },
-  { id: "rekening", title: "Rekening Bank" },
-  { id: "aplikasi", title: "Aplikasi" },
-  { id: "riwayat", title: "Riwayat Aktivitas" },
-  { id: "bahaya", title: "Hapus Semua Data", danger: true },
-] as const;
-
-/** Judul bagian menurut id-nya, untuk badge dan pintasan. */
-export const SECTION_TITLE: Record<string, string> = Object.fromEntries(
-  SETTINGS_SECTIONS.map((s) => [s.id, s.title]),
-);
 
 export function Section({
   id, title, icon, badge, defaultOpen = false, children,
@@ -78,6 +56,7 @@ export function Section({
   return (
     <div
       id={`bagian-${id}`}
+      data-bagian={id}
       className="bg-[var(--surface-strong)] rounded-2xl shadow-sm border border-[var(--border)] overflow-hidden"
     >
       <button

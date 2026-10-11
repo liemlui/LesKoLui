@@ -23,9 +23,13 @@ import ExitAppModal from "../components/ExitAppModal";
 import { UserIcon, BankIcon, RobotIcon, BackupIcon, TrashIcon, ReceiptIcon, PhoneIcon, CameraIcon, ChartIcon, SearchIcon, CloudIcon, RefreshIcon, DownloadIcon, UploadIcon } from "../components/icons";
 import { MIN_PASS, WORDLIST, passStrength } from "../lib/passphrase";
 import { RESET_CONFIRM_WORD, recoveryButtonEnabled, recoveryTargetSummary } from "../lib/recoveryPresentation";
+import { offlineState, persistState } from "../lib/appSettingsStatus";
+import { usePwaUpdate } from "../hooks/usePwaUpdate";
+import PwaUpdateUi from "../components/PwaUpdateUi";
 import { AccordionProvider, DangerZoneDivider, Section } from "./settings/Section";
 import PinSection from "./settings/PinSection";
-import DangerZoneSection, { jalankanResetSemuaData } from "./settings/DangerZoneSection";
+import DangerZoneSection from "./settings/DangerZoneSection";
+import { jalankanResetSemuaData } from "./settings/dangerZoneActions";
 import ConfirmActionModal, { type ConfirmDialogState } from "./settings/ConfirmActionModal";
 import { useJalurPemulihan } from "./settings/useBackupSection";
 import StorageUsage from "./settings/StorageUsage";
@@ -104,7 +108,6 @@ export default function SettingsPage() {
    * `confirm()` bawaan peramban — lihat `settings/ConfirmActionModal.tsx`).
    */
   const jembatanPeringatan = jalur.jembatanPeringatan;
-  /** Tahap restore yang sedang berjalan — ditampilkan agar layar tidak "diam". */
   const [relaySecret, setRelaySecret] = useState(() => { try { return localStorage.getItem("leskolui_relay_secret") || ""; } catch { return ""; } });
   const [relayBusy,   setRelayBusy]   = useState(false);
   const [openSection, setOpenSection] = useState<string | null>(null);
@@ -112,6 +115,55 @@ export default function SettingsPage() {
   const restoreRef = useRef<HTMLInputElement>(null);
   const fileRef    = useRef<HTMLInputElement>(null);
   const savedFormRef = useRef<Settings | null>(null);
+
+  /**
+   * Keadaan pembaruan aplikasi — satu sumber dengan banner di `PwaPrompts`
+   * (G3-09 butir 10). Karena itu tutor tetap bisa memasang pembaruan dari sini
+   * setelah menutup tawarannya di banner.
+   */
+  const pembaruan = usePwaUpdate();
+
+  /**
+   * Status penyimpanan permanen & kesiapan offline untuk bagian Aplikasi.
+   *
+   * Dibaca dari peramban, bukan ditebak: `persist()` dipanggil sekali di
+   * `App.tsx` dan hasilnya sering `false` sampai aplikasi dipasang, sedangkan
+   * "siap offline" hanya benar kalau ada service worker yang MENGENDALIKAN
+   * halaman — bukan dari `navigator.onLine`, yang justru bernilai false saat
+   * offline sehingga menyesatkan orang yang paling butuh informasi ini.
+   */
+  const [persisted, setPersisted] = useState<boolean | null>(null);
+  const [swMengontrol, setSwMengontrol] = useState<boolean | null>(null);
+  const [onLine, setOnLine] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
+  useEffect(() => {
+    let hidup = true;
+    void navigator.storage?.persisted?.()
+      .then((v) => { if (hidup) setPersisted(v); })
+      .catch(() => { if (hidup) setPersisted(false); });
+    if ("serviceWorker" in navigator) {
+      const sync = () => { if (hidup) setSwMengontrol(Boolean(navigator.serviceWorker.controller)); };
+      sync();
+      navigator.serviceWorker.addEventListener("controllerchange", sync);
+      const syncOnline = () => setOnLine(navigator.onLine);
+      window.addEventListener("online", syncOnline);
+      window.addEventListener("offline", syncOnline);
+      return () => {
+        hidup = false;
+        navigator.serviceWorker.removeEventListener("controllerchange", sync);
+        window.removeEventListener("online", syncOnline);
+        window.removeEventListener("offline", syncOnline);
+      };
+    }
+    return () => { hidup = false; };
+  }, []);
+
+  /** `null` = belum terbaca; jangan mengklaim apa pun sebelum peramban menjawab. */
+  const statusPenyimpanan = persisted === null
+    ? { tone: "info" as const, text: "Memeriksa...", detail: "Menanyakan ke peramban apakah data aplikasi ini dijanjikan tidak dibuang sendiri." }
+    : persistState({ persisted });
+  const statusOffline = swMengontrol === null
+    ? { tone: "info" as const, text: "Belum diketahui", detail: "Status siap offline diperiksa setelah halaman selesai dimuat." }
+    : offlineState({ controlled: swMengontrol, onLine });
 
   // Shallow copy preserves Blobs — JSON.stringify would corrupt them
   useEffect(() => {
@@ -1006,34 +1058,56 @@ export default function SettingsPage() {
       <Section id="aplikasi" title="Aplikasi" icon={<PhoneIcon size={18} />}>
         <div className="pt-3 space-y-3">
           <StorageUsage />
+
+          {/**
+           * G3-09 butir 10 — pembaruan manual. Ini jalur yang tetap bisa dipakai
+           * tutor SESUDAH menutup tawaran pembaruan di banner, jadi menutup
+           * tawaran tidak pernah mengunci kemampuan memasang versi baru.
+           */}
+          <PwaUpdateUi
+            variant="panel"
+            ready={pembaruan.ready}
+            checking={pembaruan.checking}
+            onCheck={pembaruan.check}
+            onApply={pembaruan.apply}
+          />
+
           <div className="bg-[var(--surface)] rounded-xl p-3 space-y-1.5">
             <div className="flex justify-between text-sm">
               <span className="text-[var(--ink-muted)]">Versi</span>
               <span className="font-semibold text-[var(--ink-strong)]">{APP_VERSION}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-[var(--ink-muted)]">Framework</span>
-              <span className="text-[var(--ink-muted)]">React + Vite + Tailwind</span>
+              <span className="text-[var(--ink-muted)]">Penyimpanan permanen</span>
+              <span className={statusPenyimpanan.tone === "ok" ? "text-[var(--ink-muted)]" : "text-[var(--ink-warn)]"}>
+                {statusPenyimpanan.text}
+              </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-[var(--ink-muted)]">Database</span>
-              <span className="text-[var(--ink-muted)]">IndexedDB (lokal)</span>
+              <span className="text-[var(--ink-muted)]">Siap offline</span>
+              <span className={statusOffline.tone === "ok" ? "text-[var(--ink-muted)]" : "text-[var(--ink-warn)]"}>
+                {statusOffline.text}
+              </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-[var(--ink-muted)]">Mode</span>
-              <span className="text-[var(--ink-muted)]">{import.meta.env.DEV ? "⚙️ Development" : "🚀 Production"}</span>
+              <span className="text-[var(--ink-muted)]">{import.meta.env.DEV ? "Development" : "Production"}</span>
             </div>
           </div>
+          <p className="text-xs leading-relaxed text-[var(--ink-muted)]">{statusPenyimpanan.detail}</p>
+          <p className="text-xs leading-relaxed text-[var(--ink-muted)]">{statusOffline.detail}</p>
 
           <button
+            type="button"
             onClick={() => setShowExitModal(true)}
-            className="w-full py-2.5 rounded-xl bg-[var(--bg-danger)] text-[var(--ink-danger)] text-sm font-semibold hover:bg-[var(--bg-danger)] transition-colors">
-            ⏻ Keluar Aplikasi
+            className="w-full min-h-[44px] py-2.5 rounded-xl bg-[var(--bg-danger)] text-[var(--ink-danger)] text-sm font-semibold hover:bg-[var(--bg-danger)] transition-colors">
+            Keluar Aplikasi
           </button>
 
           <button
+            type="button"
             onClick={() => setConfirmClearCache(true)}
-            className="w-full py-2.5 rounded-xl bg-[var(--bg-subtle)] text-[var(--ink-strong)] text-sm font-semibold hover:bg-[var(--bg-subtle)] transition-colors">
+            className="w-full min-h-[44px] py-2.5 rounded-xl bg-[var(--bg-subtle)] text-[var(--ink-strong)] text-sm font-semibold hover:bg-[var(--bg-subtle)] transition-colors">
             <TrashIcon size={13} className="mr-1 inline align-[-2px]" /> Bersihkan Cache (butuh internet setelahnya)
           </button>
         </div>
