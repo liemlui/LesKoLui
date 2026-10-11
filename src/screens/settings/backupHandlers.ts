@@ -7,6 +7,7 @@ import {
 import { exportDataCsvBlob } from "../../lib/exportData";
 import { downloadBlob } from "../../lib/download";
 import { todayWIB } from "../../lib/format";
+import { DRIVE_AUTO_KEY, DRIVE_PASS_KEY, RELAY_SECRET_KEY } from "../../lib/backupPassphrase";
 import type { Settings } from "../../db/types";
 import type { JalurPemulihan } from "./useBackupSection";
 
@@ -63,11 +64,6 @@ export interface BackupHandlers {
   doTestRelay: () => Promise<void>;
   toggleDriveAuto: (v: boolean) => void;
 }
-
-/** Kunci penyimpanan setelan backup otomatis (nilai tidak berubah). */
-export const DRIVE_AUTO_KEY = "leskolui_drive_auto";
-export const DRIVE_PASS_KEY = "leskolui_drive_pass";
-export const RELAY_SECRET_KEY = "leskolui_relay_secret";
 
 export function buatBackupHandlers(deps: BackupHandlersDeps): BackupHandlers {
   const { jalur, backupPass, form, setForm, toast, minPass, muatUlang } = deps;

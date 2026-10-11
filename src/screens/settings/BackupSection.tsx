@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { MIN_PASS, generatePassphrase, passStrength } from "../../lib/passphrase";
+import { passphraseStoredChip, readPassphraseStored } from "../../lib/backupPassphrase";
+import { safeLocalStorage } from "../../lib/pwaInstall";
 import { recoveryButtonEnabled, recoveryTargetSummary } from "../../lib/recoveryPresentation";
 import { downloadBlob } from "../../lib/download";
 import { todayWIB } from "../../lib/format";
@@ -73,6 +75,12 @@ export default function BackupSection({
   const driveSiap = isDriveConfigured();
   /** Kata sandi sudah cukup panjang untuk dipakai backup. */
   const siapPakai = backupPass.length >= MIN_PASS;
+  /**
+   * Chip keadaan kata sandi (G3-09 butir 6). Dibaca dari penyimpanan, bukan dari
+   * state toggle, supaya keadaannya jujur juga setelah halaman dimuat ulang.
+   */
+  const [sandiTersimpan, setSandiTersimpan] = useState(() => readPassphraseStored(safeLocalStorage()));
+  const chipSandi = passphraseStoredChip(sandiTersimpan);
 
   /**
    * Salin kata sandi ke papan klip (G3-09 butir 6).
@@ -214,6 +222,22 @@ export default function BackupSection({
           <p className="text-xs text-[var(--ink-muted)]">
             Dipakai untuk <b>backup &amp; restore</b> (File &amp; Drive). <b>Simpan baik-baik</b> — kata sandi ini tak tersimpan & wajib untuk membuka backup di HP lain.
           </p>
+          {/* Chip keadaan kata sandi (G3-09 butir 6). Selalu tampil — termasuk saat
+              TIDAK tersimpan — supaya tutor tahu tidak ada sandi yang tertinggal
+              di perangkat ini. */}
+          <div className="space-y-1">
+            <span
+              role="status"
+              className={`inline-block rounded-full px-2.5 py-1 text-xs font-medium ${
+                chipSandi.tone === "warn"
+                  ? "bg-[var(--bg-warn)] text-[var(--ink-warn)]"
+                  : "bg-[var(--bg-subtle)] text-[var(--ink-strong)]"
+              }`}
+            >
+              {chipSandi.text}
+            </span>
+            <p className="text-xs leading-relaxed text-[var(--ink-muted)]">{chipSandi.detail}</p>
+          </div>
         </div>
 
         {/* Metode 1: File */}
@@ -336,7 +360,15 @@ export default function BackupSection({
             <label className="flex items-center gap-2.5 pt-2 border-t border-[var(--border-success)] cursor-pointer">
               <Toggle
                 checked={driveAuto}
-                onChange={(v) => { setDriveAuto(v); aksi.toggleDriveAuto(v); }}
+                onChange={(v) => {
+                  setDriveAuto(v);
+                  aksi.toggleDriveAuto(v);
+                  // Chip keadaan ikut disamakan: menyalakan menyimpan sandi,
+                  // mematikan menghapusnya. Membacanya ulang dari penyimpanan
+                  // (bukan menyalin `v`) supaya chipnya mencerminkan apa yang
+                  // BENAR-BENAR tersimpan, termasuk saat penyimpanan diblokir.
+                  setSandiTersimpan(readPassphraseStored(safeLocalStorage()));
+                }}
                 label="Auto backup Drive mingguan"
               />
               <span className="text-xs font-medium text-[var(--ink-success)]">Auto backup mingguan (1-tap dari reminder)</span>

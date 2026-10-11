@@ -3,9 +3,12 @@ import { Section } from "./Section";
 import StorageUsage from "./StorageUsage";
 import PwaUpdateUi from "../../components/PwaUpdateUi";
 import { APP_VERSION, CHANGELOG } from "../../lib/version";
-import { offlineState, persistState } from "../../lib/appSettingsStatus";
+import {
+  detectInstallPlatform, installEntryHint, installInstructions, offlineState, persistState,
+} from "../../lib/appSettingsStatus";
 import { PhoneIcon, TrashIcon } from "../../components/icons";
 import { usePwaUpdate } from "../../hooks/usePwaUpdate";
+import { STANDALONE_MEDIA_QUERIES, isStandaloneLaunch } from "../../lib/pwaInstall";
 
 /**
  * Bagian "Aplikasi" di layar Pengaturan — G3-09 butir 10.
@@ -79,6 +82,33 @@ export default function AppSection({ onKeluar, onBersihkanCache }: AppSectionPro
 
   const entriSekarang = CHANGELOG.find((c) => c.version === APP_VERSION);
 
+  /**
+   * Petunjuk pemasangan menurut peramban (G3-09 butir 10).
+   *
+   * `maxTouchPoints > 1` diteruskan karena iPadOS 13+ mengaku sebagai macOS —
+   * tanpa itu, iPad mendapat petunjuk komputer yang tidak punya ikon pasang di
+   * bilah alamat.
+   */
+  const platformPasang = typeof navigator === "undefined"
+    ? "unknown"
+    : detectInstallPlatform(navigator.userAgent, navigator.maxTouchPoints ?? 0);
+  /**
+   * Apakah aplikasi sedang dibuka sebagai aplikasi terpasang.
+   *
+   * Dipakai `lib/pwaInstall.ts` (media query yang sama dengan banner), bukan
+   * tebakan dari `navigator.standalone` saja — iOS memakai penanda itu, Android
+   * memakai mode tampilan. Kalau sudah terpasang, petunjuk langkahnya tidak
+   * ditampilkan lagi: menyuruh orang memasang aplikasi yang sudah terpasang
+   * membuatnya meragukan apakah pemasangannya berhasil.
+   */
+  const terpasang = typeof window === "undefined"
+    ? false
+    : isStandaloneLaunch(
+      STANDALONE_MEDIA_QUERIES.map((q) => window.matchMedia(q).matches),
+      (navigator as Navigator & { standalone?: boolean }).standalone,
+    );
+  const petunjuk = installInstructions(platformPasang, { alreadyInstalled: terpasang });
+
   return (
     <Section id="aplikasi" title="Aplikasi" icon={<PhoneIcon size={18} />}>
       <div className="pt-3 space-y-3">
@@ -117,6 +147,24 @@ export default function AppSection({ onKeluar, onBersihkanCache }: AppSectionPro
         </div>
         <p className="text-xs leading-relaxed text-[var(--ink-muted)]">{statusPenyimpanan.detail}</p>
         <p className="text-xs leading-relaxed text-[var(--ink-muted)]">{statusOffline.detail}</p>
+
+        {/* G3-09 butir 10: pintu PEMASANGAN MANUAL beserta petunjuk per peramban.
+            Ini yang menutup celah iPhone — banner "Pasang" di `PwaPrompts.tsx`
+            tidak pernah muncul di iOS karena Safari tidak menembakkan
+            `beforeinstallprompt`, sehingga sebelum ini tutor iPhone tidak punya
+            cara apa pun memasang aplikasinya. */}
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 space-y-2">
+          <p className="text-sm font-semibold text-[var(--ink-strong)]">{petunjuk.title}</p>
+          <p className="text-xs leading-relaxed text-[var(--ink-muted)]">{petunjuk.note}</p>
+          {petunjuk.steps.length > 0 && (
+            <>
+              <p className="text-xs leading-relaxed text-[var(--ink-muted)]">{installEntryHint(platformPasang)}</p>
+              <ol className="list-decimal space-y-1 pl-5 text-xs leading-relaxed text-[var(--ink-strong)]">
+                {petunjuk.steps.map((s) => <li key={s.no}>{s.text}</li>)}
+              </ol>
+            </>
+          )}
+        </div>
 
         {/* G3-09 butir 10: catatan perubahan beserta nomor versinya. Sebelumnya
             catatan hanya muncul sekali otomatis saat versi baru terpasang, dan
