@@ -33,6 +33,13 @@ export interface JalurPemulihan {
   /** Verifikasi berkas Drive punya keadaan sibuknya sendiri (tidak menulis). */
   verifying: boolean;
   setVerifying: (v: boolean) => void;
+  /**
+   * Keadaan sibuk "Tes relay". Dipisah dari {@link busy} karena menguji relay
+   * hanya menghubungi server, tidak menulis apa pun — memblokir tombol pemulihan
+   * karenanya akan menghalangi pekerjaan yang sah.
+   */
+  relayBusy: boolean;
+  setRelayBusy: (v: boolean) => void;
   /** Peringatan validasi yang menunggu keputusan tutor; `null` = tidak ada. */
   peringatan: string[] | null;
   jembatanPeringatan: JembatanDialog;
@@ -44,6 +51,7 @@ export function useJalurPemulihan(): JalurPemulihan {
   const [running, setRunning] = useState<RecoveryAction | null>(null);
   const [tahapKini, setTahapKini] = useState<ImportProgressStep | null>(null);
   const [verifying, setVerifying] = useState(false);
+  const [relayBusy, setRelayBusy] = useState(false);
   const [peringatan, setPeringatan] = useState<string[] | null>(null);
   const penunggu = useRef<((lanjut: boolean) => void) | null>(null);
 
@@ -67,6 +75,7 @@ export function useJalurPemulihan(): JalurPemulihan {
     busy: recoveryBusyState(running, tahapKini),
     mulai, tahap, selesai,
     verifying, setVerifying,
+    relayBusy, setRelayBusy,
     peringatan,
     jembatanPeringatan: { jawab },
     tanyaPeringatan,
