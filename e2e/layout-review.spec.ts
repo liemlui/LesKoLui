@@ -3,9 +3,10 @@
  * bulan Juni lalu screenshot halaman pertamanya ke e2e/screenshots/layouts/.
  * Untuk audit paginasi & estetika (bukan test assert).
  *
- * Pemilih layout = **daftar chip di balik tombol "Layout"** di dalam
- * `<details>` "Ubah tema & layout" (diperbarui 2026-10-04; sebelumnya `<select>`,
- * yang membuat spec ini merah sejak pemilihnya berganti).
+ * Pemilih layout = **daftar chip di balik chip "Susunan"** di dalam
+ * `<details>` "Ubah tampilan laporan" (diperbarui 2026-10-11 untuk G3-08, yang
+ * memisahkan chip Tema dari chip Susunan; sebelumnya satu tombol "Layout" di
+ * dalam `<details>` "Ubah tema & layout").
  *
  * Jalankan: npx playwright test e2e/layout-review.spec.ts
  */
@@ -109,14 +110,15 @@ test("render semua layout laporan", async ({ page }) => {
   await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).click();
   await page.locator("[data-report-page]").first().waitFor({ timeout: 10_000 });
 
-  // Pemilih layout kini DAFTAR CHIP di balik tombol "Layout" di dalam <details>
-  // "Ubah tema & layout". Enumerasi dibaca dari chip itu sendiri supaya spec
-  // tidak perlu memelihara daftar layout terpisah.
-  await page.locator("summary").filter({ hasText: "Ubah tema" }).click();
-  const layoutToggle = page.getByRole("button", { name: "Layout", exact: true });
+  // Pemilih layout kini DAFTAR CHIP di balik chip "Susunan" di dalam <details>
+  // "Ubah tampilan laporan" (G3-08 memisahkan chip Tema dari chip Susunan).
+  // Enumerasi dibaca dari chip itu sendiri supaya spec tidak perlu memelihara
+  // daftar layout terpisah.
+  await page.locator("summary").filter({ hasText: "Ubah tampilan laporan" }).click();
+  const layoutToggle = page.getByRole("button", { name: "Susunan", exact: true });
   await expect(layoutToggle).toBeVisible({ timeout: 10_000 });
   await layoutToggle.click();
-  const chips = page.locator('button[title="Cocok untuk narasi panjang"], button[title="Ringkas"]');
+  const chips = page.locator('#panel-susunan-laporan button[role="radio"]');
   await expect(chips.first()).toBeVisible({ timeout: 10_000 });
   const layouts = await chips.evaluateAll((els) => els.map((el) => {
     const label = el.textContent?.trim() || "";

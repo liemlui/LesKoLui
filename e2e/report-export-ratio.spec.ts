@@ -24,21 +24,25 @@ async function closeChangelog(page: Page) {
 const REPRESENTATIVE_LAYOUTS = ["Cards", "Infografis Expert", "Analitik"];
 
 /**
- * Buka panel tema & layout, tampilkan daftar chip layout, lalu klik chip yang
+ * Buka panel tampilan laporan, tampilkan daftar chip susunan, lalu klik chip yang
  * diminta.
  *
  * Panel `<details>` ini dikontrol state React (`open={designOpen}`), jadi klik
  * pada summary bisa kalah balapan dengan render ulang — dan daftar chip-nya
- * sendiri tersembunyi di balik tombol "Layout" (`showLayoutList`). Karena itu
- * pemilihan diulang sambil **memeriksa keadaan sebenarnya** (atribut `open` dan
- * visibilitas tombol), bukan menebak jumlah klik. Versi yang menebak 4 klik
- * membuat spec ini merah acak — layout yang gagal berubah tiap run.
+ * sendiri tersembunyi di balik chip "Susunan" (`showLayoutList`). Sejak G3-08
+ * chip itu bernama "Susunan", bukan lagi "Layout". Karena itu pemilihan diulang
+ * sambil **memeriksa keadaan sebenarnya** (atribut `open` dan visibilitas tombol),
+ * bukan menebak jumlah klik. Versi yang menebak 4 klik membuat spec ini merah
+ * acak — layout yang gagal berubah tiap run.
  */
 async function pickLayout(page: Page, layoutName: string) {
-  const details = page.locator("details").filter({ hasText: "🎨 Tema:" });
+  const details = page.locator("details").filter({ hasText: "Tema:" });
   const summary = details.locator("summary").first();
-  const toggle = page.getByRole("button", { name: "Layout", exact: true });
-  const chip = page.getByRole("button", { name: layoutName, exact: true });
+  const toggle = page.getByRole("button", { name: "Susunan", exact: true });
+  // G3-08 mengubah chip susunan menjadi `role="radio"` di dalam `radiogroup`
+  // (sebelumnya tombol biasa). Pencarian karena itu memakai peran radio —
+  // `getByRole("button", ...)` tidak akan pernah menemukannya lagi.
+  const chip = page.getByRole("radio", { name: layoutName, exact: true });
 
   for (let attempt = 0; attempt < 8; attempt += 1) {
     if (await chip.isVisible().catch(() => false)) {
@@ -92,9 +96,9 @@ for (const layoutName of REPRESENTATIVE_LAYOUTS) {
     await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).click();
     await expect(page.locator("[data-report-page]").first()).toBeVisible({ timeout: 10_000 });
 
-    // ── Ganti layout via chip di toolbar desain ─────────────────────────
-    // Chip layout hanya terlihat setelah panel `<details>` terbuka DAN tombol
-    // "Layout" ditekan — `pickLayout` menangani keduanya dengan memeriksa
+    // ── Ganti layout via chip susunan di panel desain ───────────────────
+    // Chip susunan hanya terlihat setelah panel `<details>` terbuka DAN chip
+    // "Susunan" ditekan — `pickLayout` menangani keduanya dengan memeriksa
     // keadaan sebenarnya (lihat catatan di helper itu).
     await pickLayout(page, layoutName);
     await expect(page.getByText("Layout diganti!")).toBeVisible({ timeout: 15_000 });

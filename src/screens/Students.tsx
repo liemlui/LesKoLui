@@ -21,6 +21,7 @@ import {
   countAttention,
   filterStudents,
   kartuIdentitasBaris,
+  kartuIdentitasLengkap,
   listAttentionCount,
   ringkasSesiBulanIni,
   sortStudents,
@@ -211,6 +212,7 @@ export default function Students() {
     // dibuang karena pembulatan ke bawah pernah membuat murid yang bergabung
     // lewat sebulan terbaca "1 bulan bersama"; bulan + tahun tidak bisa salah baca.
     const identitas = kartuIdentitasBaris(s);
+    const identitasLengkap = kartuIdentitasLengkap(s);
     const keanggotaan = aktifSejakLabel(s.enrolledAt);
     const sesiBulanIni = ringkasSesiBulanIni(stats);
 
@@ -259,9 +261,12 @@ export default function Students() {
                 )}
               </div>
 
-              {/* Baris 2 — identitas akademik, memakai label PENDEK kurikulum */}
+              {/* Baris 2 — identitas akademik, memakai label PENDEK kurikulum.
+                  G3-08 langkah 6: baris ini dipotong (`truncate`), jadi nama
+                  sekolah dan mapel yang lengkap wajib tersedia lewat `title`.
+                  Tanpa itu, murid dengan nama sekolah panjang tidak bisa dibedakan. */}
               {identitas && (
-                <p className="text-sm text-[var(--ink-muted)] truncate">{identitas}</p>
+                <p className="text-sm text-[var(--ink-muted)] truncate" title={identitasLengkap}>{identitas}</p>
               )}
 
               {/* Baris 3 — sejak kapan bergabung + sesi bulan ini */}

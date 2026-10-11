@@ -1,4 +1,8 @@
 import { useMemo, useState } from "react";
+import { jarakKiriGrafik } from "./grafikAngka";
+
+/** Ukuran teks sumbu. G3-08: paling kecil sebelas piksel, supaya terbaca di lebar 390. */
+const UKURAN_SUMBU = 11;
 
 export interface BarSeries {
   label: string;
@@ -23,8 +27,16 @@ interface Props {
   onRangeChange?: (r: BarChartRange) => void;
   /** Tone for empty state */
   emptyLabel?: string;
-  /** Format y-axis values */
+  /** Format y-axis values (dipakai juga sebagai nilai penuh di keterangan) */
   formatValue?: (v: number) => string;
+  /**
+   * Nilai penuh untuk keterangan/`aria-label` bila label sumbu dipendekkan.
+   * Bila tidak diisi, `formatValue` yang dipakai — jadi tidak ada grafik yang
+   * keterangannya berbeda dari sumbunya tanpa sengaja.
+   */
+  formatTooltip?: (v: number) => string;
+  /** Nama grafik untuk pembaca layar. Wajib: "Diagram batang" saja tidak menjelaskan apa pun. */
+  ariaLabel?: string;
   /** Visual separators between stacked bars */
   showSeparators?: boolean;
 }
@@ -44,6 +56,8 @@ export default function BarChart({
   onRangeChange,
   emptyLabel = "Belum ada data",
   formatValue = (v) => String(v),
+  formatTooltip,
+  ariaLabel,
   showSeparators = true,
 }: Props) {
   const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string } | null>(null);
@@ -87,17 +101,25 @@ export default function BarChart({
     return { maxStack: max, stacksByLabel: map };
   }, [series, labels]);
 
-  const padding = { top: 10, right: 16, bottom: showAxes ? 32 : 8, left: showAxes ? 48 : 8 };
+  const yMax = maxStack > 0 ? maxStack * 1.15 : 10;
+  const yTicks = 4;
+  const yStep = yMax / yTicks;
+
+  // G3-08: jarak kiri mengikuti label sumbu TERPANJANG, bukan angka tetap. Sebelumnya
+  // angka panjang ("Rp 1.200.000") menabrak garis sumbu pada lebar 390 piksel.
+  const labelSumbuY = showAxes
+    ? Array.from({ length: yTicks + 1 }, (_, i) => formatValue(yStep * i))
+    : [];
+  const paddingLeft = showAxes
+    ? jarakKiriGrafik(labelSumbuY, { ukuranPiksel: UKURAN_SUMBU, jarakMinimum: 36 })
+    : 8;
+  const padding = { top: 10, right: 16, bottom: showAxes ? 40 : 8, left: paddingLeft };
   const chartW = 600; // viewBox width
   const chartH = height + padding.top + padding.bottom;
   const barAreaW = chartW - padding.left - padding.right;
   const barAreaH = height;
   const barGap = Math.max(4, barAreaW / (labels.length * 4));
   const barWidth = labels.length > 0 ? (barAreaW - barGap * (labels.length + 1)) / labels.length : 0;
-
-  const yMax = maxStack > 0 ? maxStack * 1.15 : 10;
-  const yTicks = 4;
-  const yStep = yMax / yTicks;
 
   if (labels.length === 0 || series.length === 0) {
     return (
@@ -128,7 +150,7 @@ export default function BarChart({
 
       <div className="relative" onMouseLeave={() => setTooltip(null)}>
         <svg viewBox={`0 0 ${chartW} ${chartH}`} className="w-full" style={{ maxHeight: chartH }}
-          role="img" aria-label="Bar chart">
+          role="img" aria-label={ariaLabel ?? "Diagram batang"}>
           {/* Y-axis grid lines + labels */}
           {showAxes && Array.from({ length: yTicks + 1 }).map((_, i) => {
             const val = yStep * i;
@@ -138,7 +160,7 @@ export default function BarChart({
                 <line x1={padding.left} x2={chartW - padding.right} y1={y} y2={y}
                   stroke="#e2e8f0" strokeWidth={i === 0 ? 1 : 0.5} />
                 <text x={padding.left - 6} y={y + 4} textAnchor="end"
-                  className="text-[10px] fill-[var(--border-strong)]" fontFamily="system-ui">{formatValue(val)}</text>
+                  fontSize={UKURAN_SUMBU} fill="var(--border-strong)" fontFamily="system-ui">{formatValue(val)}</text>
               </g>
             );
           })}
@@ -154,36 +176,31 @@ export default function BarChart({
                   const barH = yMax > 0 ? (item.series.value / yMax) * barAreaH : 0;
                   const y = padding.top + barAreaH - (yMax > 0 ? ((item.y0 + item.series.value) / yMax) * barAreaH : 0);
                   const color = item.series.color ?? DEFAULT_COLORS[si % DEFAULT_COLORS.length];
+                  const nilaiPenuh = (formatTooltip ?? formatValue)(item.series.value);
+                  const keterangan = `${item.series.label}: ${nilaiPenuh}`;
+                  const tampilkanTooltip = (target: SVGRectElement, toggle: boolean) => {
+                    const r = target.getBoundingClientRect();
+                    const svg = (target.closest("svg") as SVGSVGElement)?.getBoundingClientRect();
+                    if (!svg) return;
+                    const posisi = { x: r.left - svg.left + r.width / 2, y: r.top - svg.top - 8, text: keterangan };
+                    setTooltip((prev) => (toggle && prev ? null : posisi));
+                  };
                   return (
                     <g key={`${label}-${si}`}>
+                      {/* G3-08: batang bisa difokus dengan papan ketik dan punya nama
+                          untuk pembaca layar. Sebelumnya angka hanya bisa dibaca
+                          dengan tetikus. */}
                       <rect
                         x={x} y={Math.max(padding.top, y)} width={Math.max(1, barWidth)}
                         height={Math.max(0, barH)}
                         fill={color} rx={2}
-                        onMouseEnter={(e) => {
-                          const rect = (e.currentTarget as SVGRectElement).getBoundingClientRect();
-                          const svg = (e.currentTarget.closest("svg") as SVGSVGElement)?.getBoundingClientRect();
-                          if (svg) {
-                            setTooltip({
-                              x: rect.left - svg.left + rect.width / 2,
-                              y: rect.top - svg.top - 8,
-                              text: `${item.series.label}: ${formatValue(item.series.value)}`,
-                            });
-                          }
-                        }}
-                        onClick={(e) => {
-                          const rect = (e.currentTarget as SVGRectElement).getBoundingClientRect();
-                          const svg = (e.currentTarget.closest("svg") as SVGSVGElement)?.getBoundingClientRect();
-                          if (svg) {
-                            setTooltip((prev) =>
-                              prev ? null : {
-                                x: rect.left - svg.left + rect.width / 2,
-                                y: rect.top - svg.top - 8,
-                                text: `${item.series.label}: ${formatValue(item.series.value)}`,
-                              }
-                            );
-                          }
-                        }}
+                        tabIndex={0}
+                        role="img"
+                        aria-label={`${label} · ${keterangan}`}
+                        onMouseEnter={(e) => tampilkanTooltip(e.currentTarget, false)}
+                        onFocus={(e) => tampilkanTooltip(e.currentTarget, false)}
+                        onBlur={() => setTooltip(null)}
+                        onClick={(e) => tampilkanTooltip(e.currentTarget, true)}
                       />
                       {/* Visual separator between stacked bars */}
                       {showSeparators && si > 0 && barH > 2 && (
@@ -195,11 +212,12 @@ export default function BarChart({
                     </g>
                   );
                 })}
-                {/* X-axis label */}
+                {/* X-axis label — nama murid utuh di `title`, label sumbu boleh dipendekkan. */}
                 {showAxes && (
                   <text x={x + barWidth / 2} y={chartH - 6} textAnchor="middle"
-                    className="text-[10px] fill-[var(--border-strong)]" fontFamily="system-ui">
-                    {label.length > 6 ? label.slice(0, 5) + "…" : label}
+                    fontSize={UKURAN_SUMBU} fill="var(--border-strong)" fontFamily="system-ui">
+                    <title>{label}</title>
+                    {label.length > 12 ? label.slice(0, 11) + "…" : label}
                   </text>
                 )}
               </g>

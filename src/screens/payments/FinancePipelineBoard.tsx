@@ -180,7 +180,7 @@ function KartuMurid({
           <>
             {" · "}
             <span className="font-semibold text-[var(--ink-danger)]">
-              piutang {umur} bulan
+              belum dibayar {umur} bulan
             </span>
           </>
         )}

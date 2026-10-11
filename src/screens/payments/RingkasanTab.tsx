@@ -27,6 +27,7 @@ import { forecastNextMonth } from "../../lib/forecast";
 import { calculateFinancialHistoryAverage } from "../../lib/financialInsights";
 import { buildInsightContext } from "../../lib/financialInsights";
 import { formatIdrNumber, sumExpensesByCategory, EXPENSE_LABELS } from "../../lib/finance";
+import { formatRupiahRingkas } from "../../components/charts/grafikAngka";
 import { buildStudentPipeline } from "../../lib/financePipeline";
 import FinancePipelineBoard from "./FinancePipelineBoard";
 
@@ -297,7 +298,7 @@ export default function RingkasanTab({
       fitur: "Ringkasan keuangan",
       estimatedIDR: perkiraan,
       description: `Analisis ${monthLabel(month)} dengan pembanding 3 bulan sebelumnya.`,
-      dataSent: "Periode dan ringkasan keuangan; nama murid, nominal dan umur piutang; pendapatan, jumlah sesi, level, tarif dan rata-rata engagement hingga 10 murid; pengeluaran per kategori; rata-rata 3 bulan sebelumnya, proyeksi, kolektibilitas, laporan belum dibagikan, serta indikator piutang dan pembayaran.",
+      dataSent: "Periode dan ringkasan keuangan; nama murid, nominal dan umur tagihan belum dibayar; pendapatan, jumlah sesi, level, tarif dan fokus rata-rata hingga 10 murid; pengeluaran per kategori; rata-rata 3 bulan sebelumnya, proyeksi, kolektibilitas, laporan belum dibagikan, serta indikator tagihan belum dibayar dan pembayaran.",
       aksi: () => handleGenerateInsights(),
     });
   };
@@ -392,12 +393,12 @@ export default function RingkasanTab({
         </h2>
         <div className="mt-2 grid grid-cols-2 gap-2">
           <div className="rounded-xl bg-[var(--surface-strong)]/90 px-3 py-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-warn)]">Piutang (semua bulan)</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-warn)]">Belum dibayar (semua bulan)</p>
             <p className="mt-0.5 text-base font-bold text-[var(--ink-warn)]">{formatRupiah(allUnpaidTotal)}</p>
             <p className="mt-0.5 text-xs text-[var(--ink-warn)]">{allUnpaidCount} tagihan belum lunas</p>
           </div>
           <div className="rounded-xl bg-[var(--surface-strong)]/90 px-3 py-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-muted)]">Piutang dari {selectedMonthLabel}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-muted)]">Belum dibayar dari {selectedMonthLabel}</p>
             <p className="mt-0.5 text-base font-bold text-[var(--ink-strong)]">{formatRupiah(cash.piutang)}</p>
             <p className="mt-0.5 text-xs text-[var(--ink-muted)]">{monthPayments.length - paidCount} tagihan bulan ini</p>
           </div>
@@ -468,7 +469,7 @@ export default function RingkasanTab({
           </h2>
           <p className="mt-1 text-xs leading-relaxed text-[var(--ink-muted)]">
             Dihitung dari <strong>periode sesi</strong>: nilai sesi menjadi tagihan, lalu tagihan dibayar atau tetap
-            menjadi piutang.
+            belum dibayar.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2">
@@ -488,7 +489,7 @@ export default function RingkasanTab({
             <p className="mt-1 text-xs text-[var(--ink-success)]">{paidCount} dari {monthPayments.length} tagihan bulan ini</p>
           </div>
           <div className="rounded-xl border border-[var(--border-warn)] bg-[var(--bg-warn)]/60 p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-warn)]">Piutang {selectedMonthLabel}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-warn)]">Belum dibayar {selectedMonthLabel}</p>
             <p className="mt-1 text-lg font-bold text-[var(--ink-warn)]">{formatRupiah(cash.piutang)}</p>
             <p className="mt-1 text-xs text-[var(--ink-warn)]">Tagihan bulan ini yang belum dibayar</p>
           </div>
@@ -546,7 +547,7 @@ export default function RingkasanTab({
             {monthPayments.length === 0
               ? `Belum ada tagihan pada ${selectedMonthLabel}. Buat laporan lalu terbitkan invoice dari tab Tagihan.`
               : collectionRate < 100
-                ? `${monthPayments.length - paidCount} tagihan masih belum dibayar. Tindak lanjuti agar piutang berubah menjadi uang masuk.`
+                ? `${monthPayments.length - paidCount} tagihan masih belum dibayar. Tindak lanjuti agar tagihan itu berubah menjadi uang masuk.`
                 : `Semua tagihan ${selectedMonthLabel} sudah dibayar. Pantau sisa kas dan pengeluaran agar margin tetap sehat.`}
           </p>
           <Link
@@ -661,7 +662,9 @@ export default function RingkasanTab({
             series={studentBarSeries}
             labels={studentLabels}
             height={Math.max(120, studentAnalytics.length * 28)}
-            formatValue={formatIdrNumber}
+            formatValue={formatRupiahRingkas}
+            formatTooltip={formatIdrNumber}
+            ariaLabel={`Potensi sesi per murid, ${selectedMonthLabel}`}
           />
         ) : (
           <p className="text-xs text-[var(--ink-muted)] text-center py-4">Belum ada sesi selesai pada {selectedMonthLabel}</p>
@@ -729,7 +732,9 @@ export default function RingkasanTab({
           ]}
           height={160}
           dateXAxis
-          formatY={formatIdrNumber}
+          formatY={formatRupiahRingkas}
+          formatTooltip={formatIdrNumber}
+          ariaLabel={`Tren kas masuk dan pengeluaran ${trendPeriodLabel}`}
         />
       </div>
 
@@ -743,7 +748,9 @@ export default function RingkasanTab({
             thickness={12}
             centerLabel="Total"
             centerValue={formatIdrNumber(expenseTotal)}
-            showLegend={false}
+            showLegend
+            formatTooltip={formatIdrNumber}
+            ariaLabel={`Pengeluaran per kategori, ${selectedMonthLabel}`}
           />
         ) : (
           <p className="text-xs text-[var(--ink-muted)] py-4">Belum ada pengeluaran</p>

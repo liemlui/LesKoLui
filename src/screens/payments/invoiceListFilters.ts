@@ -62,7 +62,7 @@ export function emptyIssuedMessage({
   }
   const query = searchText.trim();
   if (hasAgingFilter && hasRows && hasMatchingRows) {
-    return "Tidak ada tagihan yang lolos saringan umur piutang ini. Ketuk chip umurnya lagi untuk melepas saringan.";
+    return "Tidak ada tagihan yang lolos saringan umur tagihan ini. Ketuk chip umurnya lagi untuk melepas saringan.";
   }
   if (query !== "") {
     return hasRows
@@ -125,7 +125,7 @@ export interface ActiveInvoiceFiltersArgs {
 
 export interface ActiveInvoiceFilter {
   key: "search" | "aging" | "origin";
-  /** Sebutan pendek untuk dibaca mesin baca layar, mis. `umur piutang 31–60 hari`. */
+  /** Sebutan pendek untuk dibaca mesin baca layar, mis. `umur tagihan 31–60 hari`. */
   label: string;
 }
 
@@ -145,7 +145,7 @@ export function activeInvoiceFilters({
   const query = searchText.trim();
   if (query !== "") filters.push({ key: "search", label: `pencarian "${query}"` });
   if (agingFilter !== "all") {
-    filters.push({ key: "aging", label: `umur piutang ${AGE_BUCKET_LABEL[agingFilter]}` });
+    filters.push({ key: "aging", label: `umur tagihan ${AGE_BUCKET_LABEL[agingFilter]}` });
   }
   if (originFilter !== "semua") {
     filters.push({ key: "origin", label: `asal ${originFilterLabel(originFilter).toLowerCase()}` });

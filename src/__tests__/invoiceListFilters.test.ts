@@ -109,11 +109,11 @@ describe("emptyIssuedMessage — satu pesan per keadaan filter", () => {
     })).toBe("Belum ada tagihan yang diterbitkan.");
   });
 
-  it("saringan chip umur piutang punya pesannya sendiri", () => {
+  it("saringan chip umur tagihan punya pesannya sendiri", () => {
     expect(emptyIssuedMessage({
       invoiceStatusFilter: "unpaid", searchText: "", hasRows: true, hasMatchingRows: true,
       hasReadyData: false, hasAgingFilter: true,
-    })).toContain("umur piutang");
+    })).toContain("umur tagihan");
   });
 
   it("kombinasi tahap dan asal yang tidak cocok tetap dijelaskan", () => {
@@ -123,12 +123,12 @@ describe("emptyIssuedMessage — satu pesan per keadaan filter", () => {
     })).toBe("Tidak ada tagihan yang cocok dengan langkah dan asal ini.");
   });
 
-  it("tanpa chip umur piutang, pesan tidak menuduh saringan umur", () => {
+  it("tanpa chip umur tagihan, pesan tidak menuduh saringan umur", () => {
     const message = emptyIssuedMessage({
       invoiceStatusFilter: "unpaid", searchText: "", hasRows: true, hasMatchingRows: false,
       hasReadyData: false, hasAgingFilter: false,
     });
-    expect(message).not.toContain("umur piutang");
+    expect(message).not.toContain("umur tagihan");
   });
 });
 
@@ -201,7 +201,7 @@ describe("activeInvoiceFilters — saringan yang tersembunyi saat panel tertutup
     expect(filters[0].label).not.toContain("  ");
   });
 
-  it("umur piutang memakai label bucket dari lib/finance, bukan label karangan", () => {
+  it("umur tagihan memakai label bucket dari lib/finance, bukan label karangan", () => {
     const filters = activeInvoiceFilters({ searchText: "", agingFilter: "31-60", originFilter: "semua" });
     expect(filters).toHaveLength(1);
     expect(filters[0].key).toBe("aging");

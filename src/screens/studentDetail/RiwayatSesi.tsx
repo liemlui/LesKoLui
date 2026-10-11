@@ -72,7 +72,7 @@ export default function RiwayatSesi({
       {/* ── Grafik skor ── */}
       {scored.length >= 2 && (
         <div className="bg-[var(--surface-strong)] rounded-2xl border border-[var(--border)] shadow-sm p-4 mb-3">
-          <p className="text-xs font-bold text-[var(--ink-muted)] uppercase tracking-wide mb-3">Grafik Engagement (15 sesi terakhir)</p>
+          <p className="text-xs font-bold text-[var(--ink-muted)] uppercase tracking-wide mb-3">Grafik fokus (15 sesi terakhir)</p>
           <div className="relative">
             {/* Garis acuan skor 5 (netral) */}
             <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 border-t border-dashed border-[var(--border)] z-0" />

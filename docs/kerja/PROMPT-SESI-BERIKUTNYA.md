@@ -41,15 +41,15 @@ Lanjutkan proyek Les Ko Lui (jurnal les privat, PWA lokal-first) — Gelombang 3
 
 | Hal | Nilai saat berkas ini ditulis |
 |---|---|
-| Versi | v1.98.0 |
-| Branch / HEAD | `main`, pohon kerja bersih sesudah rilis v1.98.0 (`git status -sb` untuk selisih dengan `origin/main`) |
-| Suite | 1226 lulus / 90 berkas |
+| Versi | v1.99.0 |
+| Branch / HEAD | `main`, pohon kerja bersih sesudah G3-08 (`git status -sb` untuk selisih dengan `origin/main`) |
+| Suite | 1.242 lulus / 91 berkas |
 | `check:docs` | 0 rusak · 0 pelanggaran |
-| `e2e:uiux` | **64 lulus / 0 gagal** |
-| `e2e` | **68 lulus / 12 gagal / 6 skip** pada 2026-10-11 (dua run, hasil sama). Sepuluh kegagalannya warisan 2026-10-08 (`report-export-ratio` 3 layout × 2 project, `report-unlock` × 2, `capture-closeout-failure` × 2, semuanya `SchemaError: DexieError`); dua lagi berganti-ganti antar-run dan keduanya spec layar Keuangan (`finance`, `billing-session-count.runtime`) — `finance` **lulus 2/2 saat dijalankan sendirian**. **Jangan mengklaim "e2e hijau"** tanpa perincian ini |
+| `e2e:uiux` | **63 lulus / 1 gagal** — yang gagal adalah batas waktu `locator.fill` pada gerbang PIN `/payments — tiga blok`; **lulus 4/4 saat dijalankan sendirian**, jadi beban mesin. Jangan mengklaim "hijau" tanpa perincian ini |
+| `e2e` | **67 lulus / 13 gagal / 6 skip**. Dua belas kegagalan persis daftar warisan 2026-10-08 (`report-export-ratio` 3×2, `report-unlock` ×2, `capture-closeout-failure` ×2, `finance` ×2 — `SchemaError: DexieError` atau batas waktu di bawah beban); yang ketiga belas `screenshot-katalog` "11-narasi-per-sesi" **lulus sendirian** |
 
 Baris berkas besar yang menjadi target refactor (diukur dengan `npm run measure loc`):
-`CaptureSession.tsx` **2.077** · `Settings.tsx` **1.387** (target ≤700) · `payments/TagihanTab.tsx` **1.021** (target ≤800). `MonthlyReport.tsx` **1.470** (target ≤1.500) sudah tuntas. **`StudentDetail.tsx` **698** dengan sasaran **≤700** (keputusan pemilik 2026-10-11) — sisa 2 baris, jadi penambahan berikutnya wajib lewat komponen terpisah.** `StudentForm.tsx` 589 dan `Students.tsx` 519, keduanya masih di bawah sasarannya.
+`CaptureSession.tsx` **2.077** · `Settings.tsx` **1.387** (target ≤700, tugas berikutnya) · `payments/TagihanTab.tsx` **1.021** (target ≤800). `MonthlyReport.tsx` **1.470** (target ≤1.500) sudah tuntas. **`StudentDetail.tsx` **698** dengan sasaran **≤700** (keputusan pemilik 2026-10-11) — sisa 2 baris, jadi penambahan berikutnya wajib lewat komponen terpisah.** `StudentForm.tsx` 589 dan `Students.tsx` 519, keduanya masih di bawah sasarannya.
 
 ### Gate — jalankan SEKALI di akhir tugas, bukan per langkah
 
@@ -76,16 +76,16 @@ Butuh izin sandbox penuh: `npm run e2e`, `npm run e2e:uiux`, `git push`.
 
 ### Urutan pekerjaan yang mengikat
 
-**Sisa Gelombang 3 — tiga tugas, G3-07 sudah tuntas 2026-10-11:**
+**Sisa Gelombang 3 — dua tugas, G3-08 sudah tuntas 2026-10-11:**
 
-1. **G3-08 Kanvas dan istilah.** Bergantung G3-05 (sudah selesai) — panel desain laporan yang baru dirombak ada di `src/screens/monthlyReport/DesignToolbar.tsx`. Jangan kurangi 26 susunan / 34 tema. **Kerjakan ini lebih dulu.**
-2. **G3-09 Pengaturan.** Refactor `Settings.tsx` 1.387 → ≤700 + 11 fitur. **Lima `confirm()` bawaan peramban masih hidup di berkas itu** (jalur restore dan hapus semua data), dan syarat selesai G3-09 sendiri sudah menuntut semuanya diganti dialog internal.
-3. **G3-10 Reset total dan PIN.** Bergantung G3-09.
+1. **G3-09 Pengaturan.** Refactor `Settings.tsx` 1.387 → ≤700 + 11 fitur. **Lima `confirm()` bawaan peramban masih hidup di berkas itu** (jalur restore dan hapus semua data), dan syarat selesai G3-09 sendiri sudah menuntut semuanya diganti dialog internal. **Kerjakan ini lebih dulu.**
+2. **G3-10 Reset total dan PIN.** Bergantung pada G3-09.
 
-**Menunggu mata pemilik (jangan dikerjakan agen):** butir daftar periksa manual **34–35** (foto murid) ditambahkan 2026-10-11 dan belum dicentang. Butir 35 memeriksa jalur **Batal** sesudah menghapus foto — satu-satunya bagian G3-07 yang tidak bisa dibuktikan suite, karena repo ini tidak memasang jsdom.
+**Menunggu mata pemilik (jangan dikerjakan agen):** butir daftar periksa manual **34–38** belum dicentang — **34–35** foto murid (ditambahkan 2026-10-11), dan **36–38** panel desain laporan + perancang tema + tiga grafik Keuangan (ditambahkan 2026-10-11 bersama G3-08). Butir 35 memeriksa jalur **Batal** sesudah menghapus foto, dan butir 36–38 memeriksa hal yang memang tidak bisa dinilai dari kode.
 
 **Kemudian §4 PEKERJAAN.md (boleh kapan saja):**
 
+- **Tiga temuan baru 2026-10-11 (G3-08):** (a) **sub-layar `?tab=ringkasan` layar Keuangan belum masuk cakupan `e2e:uiux`** — itulah sebabnya cacat urutan `yRange` pada `LineChart` lolos dari tipe, suite, **dan** penjaga tampilan, lalu ditemukan tangkapan layar; menambahkannya = penjaga baru, butuh keputusan pemilik; (b) `useWebWorker` yang sepuluh kali lebih lambat; (c) baris sasaran `StudentDetail.tsx` yang sudah hampir penuh.
 - **Dua temuan baru 2026-10-08** (keduanya dari G3-05, dan keduanya menunggu keputusan atau penyelidikan, bukan sekadar kerja): (a) **`e2e` tidak pernah hijau di mesin ini** — sebelas kegagalan yang sudah ada sebelum G3-05, didominasi galat halaman `SchemaError: DexieError`; (b) **katalog tangkapan layar yang dilacak git tidak cocok lagi** dengan yang dihasilkan spec (19 PNG baru tak terlacak, nama lama dan folder `mobile-dark` masih terlacak).
 - **Pengukuran ulang G3-01 butir 9** — penahannya (G3-04) sudah selesai, jadi "label biaya pada tombol AI, pengumuman status, tombol coba lagi saat gagal" harus diukur ulang, bukan diasumsikan selesai.
 - **D2 — perhitungan biaya saat sesi ditutup mengabaikan nominal manual.** Satu-satunya sisa yang menyentuh uang, dan sudah tercatat sebagai masalah nyata di `SERAH-TERIMA.md` §4.2.
@@ -147,6 +147,16 @@ Ditambahkan dari pengalaman 2026-10-08 (G3-05):
 - **Peringatan git "CRLF will be replaced by LF" saat `git stash` adalah sinyal kerusakan encoding.** Jangan diabaikan.
 - **Setelah `npm run e2e`: `git checkout -- e2e/screenshots/` untuk berkas terlacak, lalu hapus PNG tak terlacak yang baru muncul.** Untuk menghapus, verifikasi dulu jalur absolutnya benar-benar di dalam `e2e/screenshots/`.
 - **`npx vitest run <berkas>` GAGAL di sandbox ini** (`spawn EPERM`); yang bekerja adalah `npm run test:sandbox` atau `npx vitest run --pool=threads --maxWorkers=2 <berkas>`, keduanya dengan `NODE_OPTIONS` shim berjalur relatif di proses PowerShell yang sama.
+
+Ditambahkan dari pengalaman 2026-10-11 (G3-08):
+
+- **`tsc` dan suite tes TIDAK menangkap kesalahan urutan deklarasi pada waktu jalan.** Menaruh perhitungan yang memakai `yRange` **sebelum** `const yRange` di `LineChart.tsx` membuat **seluruh sub-layar analitik Keuangan jatuh ke batas galat** (`Cannot access 'yRange' before initialization`) sementara `npx tsc -b` lulus, 1.242 tes lulus, **dan** `e2e:uiux` lulus. **Perubahan tampilan wajib dilihat dengan mata** (tangkapan layar), bukan hanya diuji. Alat siap pakai: `.design-audit/g3-08/` — jalankan dari `les-ko-lui/` dengan `npx playwright test --config=../.design-audit/g3-08/audit.config.ts`.
+- **`e2e:uiux` TIDAK mengukur sub-layar `?tab=ringkasan`** — hanya `/payments` polos dan `?tab=tagihan`. Tiga grafik (tren kas, potensi per murid, donat pengeluaran) hidup di sub-layar itu, jadi ia tidak punya penjaga otomatis sama sekali. Menambahkan entri `keuangan-ringkasan` ke `SCREENS` = penjaga baru, butuh keputusan pemilik; tercatat di `PEKERJAAN.md` bagian 4.
+- **Chip susunan laporan kini `role="radio"` di dalam `radiogroup`, bukan `role="button"`.** Spec yang mencari `getByRole("button", { name: <nama susunan> })` menunggu selamanya. Wadahnya `#panel-susunan-laporan`; chip tema ada di `#panel-tema-laporan`. `<details>` desain sekarang difilter dengan teks **`"Tema:"`**, bukan `"🎨"`.
+- **Sesudah PIN Keuangan dibuka, JANGAN `page.goto()` lagi** di spec atau alat pemeriksa visual: buka-kunci berlaku selama aplikasi terbuka (keputusan **B2**), dan memuat ulang mengembalikannya ke gerbang PIN. Berpindah sub-layar lewat pintasan **"Analitik lanjutan"**. Gejalanya menipu: yang terpotret adalah **layar PIN**, bukan layar tujuan.
+- **Kartu tema bertanda centang: pakai bentuk, bukan hanya warna.** Warna saja tidak terbaca pembaca layar dan tidak terlihat oleh tutor dengan buta warna; `CheckIcon` + `aria-checked` menyelesaikannya.
+- **Nama variabel dan kolom data berbasis "piutang" JANGAN diubah** saat merapikan istilah antarmuka (`cash.piutang`, `r.piutang`, `agedPiutang`, `piutangDetail`). Glosarium hanya menyentuh **teks yang dibaca tutor**; **isi CSV juga tidak disentuh** karena formatnya dibekukan `csv.test.ts`.
+- **Menukar dua baris tabel markdown dengan `edit` berbasis jangkar teks mudah salah** — jangkar yang cocok di dua baris membuat satu baris tertimpa. Setelah menyunting tabel riwayat, periksa **nomor baris** tiap baris tanggal (`Select-String -Pattern '^\| 2026-10-11'`) dan urutannya (terbaru di atas). Menukar dua baris penuh lebih aman lewat skrip yang memverifikasi prefiks barisnya dulu.
 
 Ditambahkan dari pengalaman 2026-10-10 (G3-06):
 

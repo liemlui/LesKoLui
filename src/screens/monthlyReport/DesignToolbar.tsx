@@ -1,21 +1,35 @@
 /**
- * Bilah desain laporan: tema, susunan, sampul, dan pembangun tema kustom.
+ * Bilah desain laporan: tema, susunan, sampul, dan perancang tema kustom.
  *
- * Dipisah dari MonthlyReport.tsx (refactor terbatas G3-05) — butir 11: pratinjau
- * susunan memakai komponen `Modal` yang sudah ada, sehingga **Escape**,
- * **penguncian fokus**, dan **pemulihan fokus** bekerja. Sebelumnya modal itu
- * dirender tangan sebagai `<div role="dialog">` tanpa ketiganya.
+ * Dipisah dari MonthlyReport.tsx (refactor terbatas G3-05).
+ *
+ * G3-08 menyentuh berkas ini di dua tempat:
+ *
+ * 1. **Judul kartu dipisah.** Sebelumnya satu baris mencampur nama tema dan nama
+ *    susunan ("🎨 Tema: Winter Blue · Kartu"), sehingga tutor tidak tahu mana yang
+ *    sedang diubah. Sekarang ada chip **Tema** dan chip **Susunan**, masing-masing
+ *    dengan ikon dan keadaan buka sendiri — dan isinya pun tidak bisa tertukar.
+ * 2. **Beban pilihan dikurangi.** Susunan dikelompokkan menurut panjang narasi
+ *    yang didukung, dan dua puluh enam tombol pratinjau kecil diganti **satu**
+ *    tombol pratinjau untuk susunan terpilih. Fungsinya tidak hilang: tiap
+ *    susunan masih bisa dilihat contohnya, tetapi satu per satu.
+ *
+ * Pratinjau memakai `Modal` yang sudah ada, jadi **Escape**, penguncian fokus, dan
+ * pemulihan fokus bekerja.
  */
 
+import { useState } from "react";
 import { LAYOUTS } from "../../template/layouts";
 import { ReportRenderer } from "../../template/ReportRenderer";
 import { SAMPLE_REPORT_DATA } from "../../template/sampleData";
 import Modal from "../../components/Modal";
-import { EyeIcon } from "../../components/icons";
+import { ChecklistIcon, EyeIcon, SparkleIcon } from "../../components/icons";
 import type { CustomTheme, Layout, Theme } from "../../template/types";
 import type { MonthlyReport } from "../../db/types";
 import { CustomThemeBuilder } from "./CustomThemeBuilder";
 import ScaledPreview from "./ScaledPreview";
+import ThemeGallery from "./ThemeGallery";
+import { kelompokkanSusunan, ringkasSusunan, type KelompokSusunan } from "./susunanLaporan";
 
 interface DesignToolbarProps {
   report: MonthlyReport;
@@ -35,11 +49,18 @@ interface DesignToolbarProps {
   onUndoDesign: () => void;
   onSelectTheme: (themeId: string) => void;
   onSelectLayout: (layoutId: string) => void;
-  previewLayoutId: string | null;
-  onPreviewLayout: (layoutId: string | null) => void;
   /** Tema yang sedang dipakai — dipakai pratinjau susunan. */
   activeTheme: Theme;
   onSaveCustomTheme: (theme: CustomTheme) => void;
+}
+
+/** Gaya chip yang dipakai bersama oleh Tema dan Susunan. */
+function chipClass(aktif: boolean): string {
+  return `inline-flex min-h-[44px] items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-sm font-semibold transition-colors ${
+    aktif
+      ? "border-[var(--border-brand)] bg-[var(--brand-tint)] text-[var(--ink-brand)]"
+      : "border-[var(--border)] bg-[var(--surface)] text-[var(--ink-muted)] hover:border-[var(--border-strong)]"
+  }`;
 }
 
 export default function DesignToolbar({
@@ -47,159 +68,179 @@ export default function DesignToolbar({
   showThemeList, onToggleThemeList, showLayoutList, onToggleLayoutList,
   showCustomBuilder, onToggleCustomBuilder, coverPage, onToggleCover,
   onRandomize, undoCount, onUndoDesign, onSelectTheme, onSelectLayout,
-  previewLayoutId, onPreviewLayout, activeTheme, onSaveCustomTheme,
+  activeTheme, onSaveCustomTheme,
 }: DesignToolbarProps) {
   const layouts: Layout[] = LAYOUTS;
   const activeThemeName = themes.find((t) => t.id === report.templateKey.themeId)?.name ?? "—";
-  const activeLayoutName = layouts.find((l) => l.id === report.templateKey.layoutId)?.name ?? "—";
-  const previewLayout = previewLayoutId ? layouts.find((l) => l.id === previewLayoutId) : undefined;
+  const activeLayout = layouts.find((l) => l.id === report.templateKey.layoutId);
+  const activeLayoutName = activeLayout?.name ?? "—";
+  const kelompok: KelompokSusunan[] = kelompokkanSusunan(layouts);
+
+  // Satu tombol pratinjau untuk susunan terpilih (`report.templateKey.layoutId`).
+  // G3-08 meminta dua puluh enam tombol pratinjau kecil diganti satu tombol;
+  // pratinjau selalu menampilkan susunan yang SEDANG dipakai, bukan pilihan lain.
+  const [pratinjauTerbuka, setPratinjauTerbuka] = useState(false);
+  const layoutPratinjau = activeLayout;
+
+  const bukaPratinjau = () => setPratinjauTerbuka(true);
 
   return (
     <>
       <details
-        className="group space-y-2.5 rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] p-3 shadow-sm"
+        className="group space-y-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] p-3 shadow-sm"
         open={open}
         onToggle={(e) => onToggleOpen(e.currentTarget.open)}
       >
         <summary className="flex cursor-pointer select-none flex-wrap items-center justify-between gap-1">
-          <span className="min-w-0 text-sm font-semibold text-[var(--ink-strong)]">
-            🎨 Tema: {activeThemeName}
-            {" · "}{activeLayoutName}
+          <span className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm font-semibold text-[var(--ink-strong)]">
+            <span className="inline-flex items-center gap-1">
+              <SparkleIcon size={14} aria-hidden="true" />
+              Tema: {activeThemeName}
+            </span>
+            <span aria-hidden="true" className="text-[var(--ink-muted)]">·</span>
+            <span className="inline-flex items-center gap-1">
+              <ChecklistIcon size={14} aria-hidden="true" />
+              Susunan: {activeLayoutName}
+            </span>
           </span>
-          <span className="text-xs font-semibold text-[var(--ink-brand)] group-open:hidden">Ubah tema & layout ▸</span>
+          <span className="text-xs font-semibold text-[var(--ink-brand)] group-open:hidden">Ubah tampilan laporan ▸</span>
           <span className="hidden text-xs font-semibold text-[var(--ink-muted)] group-open:inline">▾</span>
         </summary>
 
-        {/* Baris 1: Acak + Pilih tema + Layout + Undo + Cover */}
+        {/* Baris 1: Acak + chip Tema + chip Susunan + Undo */}
         <div className="flex flex-wrap items-center gap-2">
-          <button className="btn btn-secondary min-h-[44px] flex-shrink-0 whitespace-nowrap px-2 py-1.5 text-sm" onClick={onRandomize}>Acak</button>
           <button
             className="btn btn-secondary min-h-[44px] flex-shrink-0 whitespace-nowrap px-2 py-1.5 text-sm"
+            onClick={onRandomize}
+            title="Pilih tema dan susunan secara acak"
+          >
+            Acak
+          </button>
+          <button
+            className={chipClass(showThemeList)}
             onClick={onToggleThemeList}
             aria-expanded={showThemeList}
-            title="Tampilkan semua tema. Untuk memilih layout, buka tombol “Layout”."
+            aria-controls="panel-tema-laporan"
           >
-            {showThemeList ? "Sembunyikan tema" : "Pilih tema"}
+            <SparkleIcon size={14} aria-hidden="true" />
+            Tema
           </button>
           <button
-            className="btn btn-secondary min-h-[44px] flex-shrink-0 whitespace-nowrap px-2 py-1.5 text-sm"
+            className={chipClass(showLayoutList)}
             onClick={onToggleLayoutList}
             aria-expanded={showLayoutList}
-            title="Tampilkan semua layout halaman laporan."
+            aria-controls="panel-susunan-laporan"
           >
-            {showLayoutList ? "Sembunyikan layout" : "Layout"}
+            <ChecklistIcon size={14} aria-hidden="true" />
+            Susunan
           </button>
-          {undoCount > 0 && (
-            <button className="btn btn-secondary min-h-[44px] flex-shrink-0 px-2 py-1.5 text-sm" onClick={onUndoDesign}>↩ Undo</button>
-          )}
-          {showLayoutList && (
-            <div className="flex w-full flex-wrap gap-1">
-              {layouts.map((layout) => (
-                <span key={layout.id} className="relative inline-flex">
-                  <button
-                    type="button"
-                    aria-pressed={report.templateKey.layoutId === layout.id}
-                    title={layout.supportsLongNarrative ? "Cocok untuk narasi panjang" : "Ringkas"}
-                    onClick={() => onSelectLayout(layout.id)}
-                    className={`inline-flex min-h-[36px] items-center rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
-                      report.templateKey.layoutId === layout.id
-                        ? "border-[var(--border-brand)] bg-[var(--brand-solid)] text-[var(--on-strong)]"
-                        : "border-[var(--border)] bg-[var(--surface)] text-[var(--ink-muted)] hover:bg-[var(--bg-subtle)]"
-                    }`}
-                  >
-                    {layout.name}
-                  </button>
-                  <button
-                    type="button"
-                    title={`Pratinjau ${layout.name}`}
-                    aria-label={`Pratinjau susunan ${layout.name}`}
-                    onClick={() => onPreviewLayout(layout.id)}
-                    className="absolute -right-1.5 -top-1.5 z-10 flex h-4 w-4 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-strong)] text-[8px] leading-none text-[var(--ink-muted)] shadow-sm transition-colors hover:border-[var(--brand-tint-strong)] hover:text-[var(--ink-brand)]"
-                  >
-                    <EyeIcon size={13} />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
           <button
+            className={chipClass(coverPage)}
             onClick={onToggleCover}
             aria-pressed={coverPage}
-            className={`inline-flex min-h-[44px] items-center whitespace-nowrap rounded-lg border px-2 py-1.5 text-sm transition-colors ${
-              coverPage
-                ? "border-[var(--border-brand)] bg-[var(--brand-solid)] text-[var(--on-strong)]"
-                : "border-[var(--border)] bg-[var(--surface)] text-[var(--ink-muted)]"
-            }`}
+            title="Tambah halaman sampul di depan laporan"
           >
-            {coverPage ? "Cover ✓" : "Cover"}
+            {coverPage ? "Sampul ✓" : "Sampul"}
           </button>
+          <button className={chipClass(showCustomBuilder)} onClick={onToggleCustomBuilder} aria-expanded={showCustomBuilder}>
+            {showCustomBuilder ? "Tutup perancang" : "Tema kustom"}
+          </button>
+          {undoCount > 0 && (
+            <button className="btn btn-secondary min-h-[44px] flex-shrink-0 px-2 py-1.5 text-sm" onClick={onUndoDesign}>
+              ↩ Urungkan
+            </button>
+          )}
         </div>
 
-        {/* Baris 2: pembangun tema kustom (mode "Bandingkan" dihapus — pemilik
-            hanya memilih satu tema yang sesuai). */}
-        <div className="flex gap-2">
-          <button className="btn btn-secondary min-h-[44px] flex-1 px-2 py-1 text-xs" onClick={onToggleCustomBuilder} aria-expanded={showCustomBuilder}>
-            {showCustomBuilder ? "Tutup" : "Custom Theme"}
-          </button>
-        </div>
-
-        {/* Daftar tema TIDAK ditampilkan otomatis: tema diacak oleh tombol Acak.
-            Galeri hanya dibuka bila diminta. */}
+        {/* ── Tema ─────────────────────────────────────────────────────────── */}
         {showThemeList && (
-          <>
-            <div className="grid max-h-[200px] grid-cols-6 gap-1.5 overflow-y-auto">
-              {themes.map((theme) => {
-                const isActive = report.templateKey.themeId === theme.id;
-                const bgColor = theme.bg.includes("gradient") ? theme.accent : theme.bg;
-                return (
-                  <button
-                    key={theme.id}
-                    title={theme.name}
-                    aria-pressed={isActive}
-                    onClick={() => onSelectTheme(theme.id)}
-                    className={`overflow-hidden rounded-lg border-2 transition-all ${
-                      isActive
-                        ? "border-[var(--border-strong)] ring-2 ring-[var(--border-brand)] ring-offset-1"
-                        : "border-[var(--border)] hover:border-[var(--border-strong)]"
-                    }`}
-                  >
-                    <div style={{ background: bgColor, height: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <span style={{ fontFamily: theme.fontDisplay, fontSize: 10, color: theme.ink, fontWeight: 700, lineHeight: 1, textAlign: "center", padding: "0 2px" }}>
-                        {theme.headerText.slice(0, 4)}
-                      </span>
-                    </div>
-                    <div style={{ padding: "2px 3px", fontSize: 10, color: "#6b7280", textAlign: "center", background: "#fff" }}>
-                      {theme.name.length > 10 ? theme.name.slice(0, 9) + "…" : theme.name}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-xs text-[var(--ink-muted)]">{activeThemeName}</p>
-          </>
+          <section id="panel-tema-laporan" aria-label="Tema laporan" className="space-y-2">
+            <h3 className="text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">Tema</h3>
+            <ThemeGallery
+              themes={themes}
+              activeId={report.templateKey.themeId}
+              activeName={activeThemeName}
+              onSelect={onSelectTheme}
+            />
+          </section>
         )}
 
-        {showCustomBuilder && (
-          <CustomThemeBuilder onSave={onSaveCustomTheme} />
+        {/* ── Susunan ──────────────────────────────────────────────────────── */}
+        {showLayoutList && (
+          <section id="panel-susunan-laporan" aria-label="Susunan halaman laporan" className="space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">Susunan</h3>
+            {/* G3-08: dua puluh enam tombol pratinjau kecil diganti satu tombol
+                untuk susunan terpilih. */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                className="btn btn-secondary min-h-[44px] px-2.5 py-1.5 text-sm"
+                onClick={bukaPratinjau}
+              >
+                <EyeIcon size={14} className="mr-1 inline align-[-2px]" />
+                Pratinjau susunan terpilih
+              </button>
+              {activeLayout && (
+                <span className="text-xs text-[var(--ink-muted)]">
+                  {activeLayout.name} · {ringkasSusunan(activeLayout) || "tanpa keterangan tambahan"}
+                </span>
+              )}
+            </div>
+
+            {kelompok.map((grup) => (
+              <div key={grup.key} className="space-y-1.5">
+                <p className="text-xs font-semibold text-[var(--ink-strong)]">
+                  {grup.judul} <span className="font-normal text-[var(--ink-muted)]">({grup.susunan.length})</span>
+                </p>
+                <p className="text-xs text-[var(--ink-muted)]">{grup.keterangan}</p>
+                <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={`Susunan kelompok ${grup.judul}`}>
+                  {grup.susunan.map((layout) => {
+                    const aktif = report.templateKey.layoutId === layout.id;
+                    return (
+                      <button
+                        key={layout.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={aktif}
+                        title={`${layout.name} — ${grup.judul}${ringkasSusunan(layout) ? ` · ${ringkasSusunan(layout)}` : ""}`}
+                        onClick={() => {
+                          onSelectLayout(layout.id);
+                        }}
+                        className={`inline-flex min-h-[44px] items-center rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
+                          aktif
+                            ? "border-[var(--border-brand)] bg-[var(--brand-solid)] text-[var(--on-strong)]"
+                            : "border-[var(--border)] bg-[var(--surface)] text-[var(--ink-muted)] hover:bg-[var(--bg-subtle)]"
+                        }`}
+                      >
+                        {layout.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </section>
         )}
+
+        {showCustomBuilder && <CustomThemeBuilder onSave={onSaveCustomTheme} />}
       </details>
 
       {/* Pratinjau susunan on-demand — memakai data contoh (SAMPLE_REPORT_DATA),
           bukan data murid, dan tanpa panggilan AI. Memakai `Modal` supaya
-          Escape, penguncian fokus, dan pemulihan fokus bekerja (butir 11). */}
-      {previewLayout && (
+          Escape, penguncian fokus, dan pemulihan fokus bekerja. */}
+      {pratinjauTerbuka && layoutPratinjau && (
         <Modal
-          onClose={() => onPreviewLayout(null)}
-          ariaLabel={`Pratinjau susunan ${previewLayout.name}`}
+          onClose={() => setPratinjauTerbuka(false)}
+          ariaLabel={`Pratinjau susunan ${layoutPratinjau.name}`}
           panelClassName="relative w-full max-w-[320px] rounded-2xl bg-[var(--surface-strong)] p-3 shadow-xl outline-none"
         >
           <p className="mb-2 flex items-center gap-1 pr-10 text-xs font-semibold text-[var(--ink-strong)]">
             <EyeIcon size={13} />
-            {previewLayout.name}
+            {layoutPratinjau.name}
           </p>
           <div className="flex max-h-[60vh] justify-center overflow-y-auto">
             <ScaledPreview scale={0.5}>
-              <ReportRenderer data={SAMPLE_REPORT_DATA} theme={activeTheme} layoutId={previewLayout.id} />
+              <ReportRenderer data={SAMPLE_REPORT_DATA} theme={activeTheme} layoutId={layoutPratinjau.id} />
             </ScaledPreview>
           </div>
           <p className="mt-2 text-center text-xs text-[var(--ink-muted)]">

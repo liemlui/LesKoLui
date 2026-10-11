@@ -11,6 +11,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.99.0",
+    date: "2026-10-11",
+    title: "Tema dan susunan dipisah, perancang tema berbahasa Indonesia, grafik lebih terbaca",
+    items: [
+      "**Tema dan susunan laporan tidak lagi tercampur.** Sebelumnya satu baris menuliskan keduanya sekaligus (\"Tema: Executive · Infografis Expert\") dan satu tombol membuka keduanya, sehingga tidak jelas mana yang sedang diubah. Sekarang ada **dua tombol terpisah — Tema dan Susunan — masing-masing dengan ikon dan panelnya sendiri**. Tidak ada tema atau susunan yang dihapus: pilihannya tetap **34 tema** dan **26 susunan**.",
+      "**Memilih susunan jadi lebih ringan.** Dua puluh enam susunan tidak lagi ditawarkan sekaligus tanpa pembeda. Sekarang dikelompokkan menurut panjang narasi yang didukung — **Narasi panjang**, **Banyak foto**, dan **Ringkas** — dan dua puluh enam tombol pratinjau kecil di tiap susunan diganti **satu tombol pratinjau untuk susunan yang sedang dipakai**. Fungsi pratinjaunya tidak hilang, hanya dipindah ke tempat yang lebih mudah dipakai.",
+      "**Galeri tema lebih mudah ditekan dan dibaca.** Kisi tema dari enam kolom menjadi **empat kolom**, sehingga setiap kartu cukup besar untuk disentuh dengan nyaman di HP dan **nama temanya terbaca** (dulu terpotong). Tema yang sedang dipakai ditandai dengan tanda centang, bukan hanya dengan warna.",
+      "**Perancang tema kustom sepenuhnya berbahasa Indonesia, dan setiap pilihan bentuk punya contoh warnanya.** Judul teks, gaya judul/label/foto, hiasan, jenis huruf, serta nama warnanya sekarang memakai istilah Indonesia (sebelumnya \"Header Style\", \"Photo Style\", \"Decoration\", \"Display Font\", dan seterusnya). Di bawah setiap pilihan bentuk ada contoh warna kecil beserta namanya, sehingga pilihan seperti \"Klasik sepia\" atau \"Warna ganda\" bisa dibayangkan sebelum dicoba. Tema kustom yang sudah pernah disimpan tetap terbaca.",
+      "**Grafik lebih terbaca di HP.** Tulisan sumbu grafik diperbesar, dan jarak kiri grafik kini mengikuti **label terpanjang** — sebelumnya angka seperti \"Rp 1.200.000\" bisa bertabrakan dengan garis sumbu. Angka sumbu dipendekkan (**\"Rp 890 rb\"**, **\"Rp 1,2 jt\"**) sementara **nilai penuhnya muncul di keterangan** saat batang atau titiknya disentuh, diklik, atau difokus dengan papan ketik. Legenda grafik donat pengeluaran dihidupkan kembali (Platform · Buku · Transport beserta persentasenya).",
+      "**Satu istilah untuk satu hal.** Di seluruh antarmuka: **tagihan** untuk objeknya (invoice hanya untuk dokumennya), **belum dibayar** menggantikan istilah \"piutang\", **umur tagihan**, **kata sandi enkripsi** menggantikan \"passphrase\", dan **fokus rata-rata** untuk skor kondisi belajar. Isi berkas **CSV tidak berubah sama sekali** — format ekspor tetap persis seperti sebelumnya.",
+      "**Nama yang terpotong tetap bisa dibaca utuh.** Kartu murid yang memotong baris identitasnya kini menyediakan **nama sekolah dan mata pelajaran lengkap** saat kursor diarahkan (atau dibaca pembaca layar), sehingga dua murid dari sekolah dengan awalan nama yang sama tidak lagi tampak identik.",
+    ],
+  },
+  {
     version: "v1.98.0",
     date: "2026-10-11",
     title: "Foto murid: unggah, tampil bulat di daftar dan halaman murid, hapus dengan konfirmasi",

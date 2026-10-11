@@ -140,18 +140,18 @@ ${invoiceRows.join("\n")}
 
         {unexplainedGap > 0 && (
           <p className="rounded-lg bg-[var(--surface)] px-3 py-2 text-xs leading-relaxed text-[var(--ink-muted)]">
-            Selisih <strong>{formatRupiah(unexplainedGap)}</strong> antara pendapatan dan uang masuk adalah piutang:
+            Selisih <strong>{formatRupiah(unexplainedGap)}</strong> antara pendapatan dan uang masuk adalah tagihan yang belum dibayar:
             sudah dihitung sebagai pendapatan, tetapi transfernya belum diterima pada {auditYear}.
           </p>
         )}
 
         <div className="flex flex-wrap gap-1.5 text-xs">
           {auditTotals.sesi > 0 && <span className="rounded-full bg-[var(--bg-subtle)] text-[var(--ink-muted)] px-2 py-0.5 font-semibold">{auditTotals.sesi} pertemuan · {auditTotals.jam} jam</span>}
-          {auditTotals.piutang > 0 && <span className="rounded-full bg-[var(--bg-warn)] text-[var(--ink-warn)] px-2 py-0.5 font-semibold">Piutang {formatRupiah(auditTotals.piutang)}</span>}
+          {auditTotals.piutang > 0 && <span className="rounded-full bg-[var(--bg-warn)] text-[var(--ink-warn)] px-2 py-0.5 font-semibold">Belum dibayar {formatRupiah(auditTotals.piutang)}</span>}
           {marginRate > 0 && <span className="rounded-full bg-[var(--accent-tint)] text-[var(--ink-accent)] px-2 py-0.5 font-semibold">Margin {marginRate}%</span>}
         </div>
 
-        {/* Tabel utama: 3 kolom. Bulan · Sisa kas · Piutang — cukup untuk
+        {/* Tabel utama: 3 kolom. Bulan · Sisa kas · Belum dibayar — cukup untuk
             menjawab "bulan mana yang bocor" tanpa menggeser layar. */}
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
@@ -159,7 +159,7 @@ ${invoiceRows.join("\n")}
               <tr className="text-[var(--ink-muted)] text-left">
                 <th className="font-medium pb-1">Bulan</th>
                 <th className="font-medium pb-1 text-right">Sisa kas</th>
-                <th className="font-medium pb-1 text-right">Piutang</th>
+                <th className="font-medium pb-1 text-right">Belum dibayar</th>
               </tr>
             </thead>
             <tbody>
@@ -216,7 +216,7 @@ ${invoiceRows.join("\n")}
                   <th className="font-medium pb-1 text-right">Uang masuk</th>
                   <th className="font-medium pb-1 text-right">Pengeluaran</th>
                   <th className="font-medium pb-1 text-right">Sisa kas</th>
-                  <th className="font-medium pb-1 text-right">Piutang</th>
+                  <th className="font-medium pb-1 text-right">Belum dibayar</th>
                   <th className="font-medium pb-1 text-center">CSV</th>
                 </tr>
               </thead>
@@ -262,7 +262,7 @@ ${invoiceRows.join("\n")}
         </button>
 
         <div className="pt-2 border-t border-[var(--border)]">
-          <p className="text-xs text-[var(--ink-warn)] font-semibold mb-2 uppercase tracking-wide">Piutang · {auditYear}</p>
+          <p className="text-xs text-[var(--ink-warn)] font-semibold mb-2 uppercase tracking-wide">Belum dibayar · {auditYear}</p>
           {piutangRows.length === 0 ? (
             <p className="rounded-lg bg-[var(--bg-success)] px-3 py-2 text-xs text-[var(--ink-success)]">Tidak ada invoice belum dibayar pada {auditYear}.</p>
           ) : (

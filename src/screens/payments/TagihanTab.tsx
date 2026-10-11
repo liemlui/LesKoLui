@@ -387,7 +387,7 @@ export default function TagihanTab({
 
     const nominal = formatRupiah(payment.totalCost);
     if (wasPaid) {
-      setMessage(`Pelunasan dibatalkan · uang masuk −${nominal}, piutang +${nominal} ✓`);
+      setMessage(`Pelunasan dibatalkan · uang masuk −${nominal}, tagihan kembali belum dibayar +${nominal} ✓`);
       toast.show(
         `Pelunasan dibatalkan · uang masuk −${nominal}`,
         "info", 8000,
@@ -406,7 +406,7 @@ export default function TagihanTab({
     if (payment.status === "PAID") {
       setConfirmState({
         title: "Tandai belum dibayar?",
-        message: `Tagihan ${studentName} (${formatRupiah(payment.totalCost)}) akan kembali dihitung sebagai piutang — uang masuk berkurang dan tagihan ini kembali muncul di daftar belum dibayar.`,
+        message: `Tagihan ${studentName} (${formatRupiah(payment.totalCost)}) akan kembali dihitung sebagai tagihan belum dibayar — uang masuk berkurang dan tagihan ini kembali muncul di daftar belum dibayar.`,
         confirmLabel: "Tandai belum dibayar",
         danger: true,
         onConfirm: () => { setConfirmState(null); void togglePaid(payment, true); },
@@ -415,7 +415,7 @@ export default function TagihanTab({
     }
     setConfirmState({
       title: "Tandai sudah dibayar?",
-      message: `Uang masuk +${formatRupiah(payment.totalCost)} dan piutang −${formatRupiah(payment.totalCost)} untuk tagihan ${studentName}. Tagihan ini akan berstatus lunas.`,
+      message: `Uang masuk +${formatRupiah(payment.totalCost)} dan tagihan belum dibayar −${formatRupiah(payment.totalCost)} untuk tagihan ${studentName}. Tagihan ini akan berstatus lunas.`,
       confirmLabel: "Tandai lunas",
       onConfirm: () => { setConfirmState(null); void togglePaid(payment, false); },
     });
@@ -573,14 +573,14 @@ export default function TagihanTab({
             diff terbaca sebagai pemindahan, bukan penulisan ulang. */}
         {showAdvancedFilters && (
           <div id="filter-lanjutan-tagihan" role="group" aria-label="Filter lanjutan" className="mt-2 space-y-2">
-        <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3" aria-label="Umur piutang">
+        <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3" aria-label="Umur tagihan">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">Umur piutang</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">Umur tagihan</p>
               <p className="mt-0.5 text-xs text-[var(--ink-muted)]">Tap bar untuk menyaring daftar invoice belum dibayar pada periode ini.</p>
             </div>
             <span className="rounded-full bg-[var(--surface-strong)] px-2 py-1 text-xs font-semibold text-[var(--ink-warn)] shadow-sm">
-              {agingTotal > 0 ? formatRupiah(agingTotal) : "Tidak ada piutang"}
+              {agingTotal > 0 ? formatRupiah(agingTotal) : "Tidak ada tagihan belum dibayar"}
             </span>
           </div>
           <div className="mt-3 space-y-2">
@@ -593,7 +593,7 @@ export default function TagihanTab({
                   type="button"
                   disabled={row.count === 0}
                   aria-pressed={selected}
-                  aria-label={`Filter umur piutang ${AGE_BUCKET_LABEL[row.bucket]}: ${row.count} invoice, ${formatRupiah(row.amount)}`}
+                  aria-label={`Filter umur tagihan ${AGE_BUCKET_LABEL[row.bucket]}: ${row.count} invoice, ${formatRupiah(row.amount)}`}
                   onClick={() => {
                     selectCollectionStage("unpaid");
                     setAgingFilter((current) => current === row.bucket ? "all" : row.bucket);
@@ -651,13 +651,13 @@ export default function TagihanTab({
             value={paidCount}
             total={allPayments.length}
             label="Kolektibilitas invoice"
-            detail={allPayments.length > 0 ? `${unpaidCount} invoice masih menjadi piutang` : "Terbitkan invoice dari antrean yang siap"}
+            detail={allPayments.length > 0 ? `${unpaidCount} tagihan masih belum dibayar` : "Terbitkan tagihan dari antrean yang siap"}
             size="sm"
             tone={collectionRate >= 80 ? "green" : collectionRate > 0 ? "amber" : "slate"}
           />
           <p className="mt-2 border-t border-[var(--border)] pt-2 text-xs leading-relaxed text-[var(--ink-muted)]">
             <span className="font-semibold text-[var(--ink-strong)]">Status invoice ≠ uang masuk.</span>{" "}
-            Pelunasan menutup piutang; uang masuk dicatat menurut tanggal pembayaran di Ringkasan.
+            Pelunasan menutup tagihan; uang masuk dicatat menurut tanggal pembayaran di Ringkasan.
           </p>
         </div>
 

@@ -13,6 +13,10 @@ interface Props {
   emptyLabel?: string;
   /** Show a legend below */
   showLegend?: boolean;
+  /** Nilai penuh untuk keterangan bila `centerValue` dipendekkan (G3-08). */
+  formatTooltip?: (v: number) => string;
+  /** Nama grafik untuk pembaca layar. */
+  ariaLabel?: string;
 }
 
 const DEFAULT_COLORS = [
@@ -30,6 +34,8 @@ export default function DonutChart({
   centerValue,
   emptyLabel = "Belum ada data",
   showLegend = true,
+  formatTooltip,
+  ariaLabel,
 }: Props) {
   const total = segments.reduce((s, seg) => s + Math.max(0, seg.value), 0);
   const radius = (size - thickness) / 2;
@@ -50,13 +56,15 @@ export default function DonutChart({
     <div className="inline-flex flex-col items-center gap-3">
       <div className="relative" style={{ width: size, height: size }}>
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
-          className="-rotate-90" role="img" aria-label={`Donut chart: ${centerLabel}`}>
+          className="-rotate-90" role="img" aria-label={ariaLabel ?? `Diagram donat: ${centerLabel}`}>
           {segments.map((seg, i) => {
             const pct = total > 0 ? Math.max(0, seg.value) / total : 0;
             const dash = pct * circumference;
             const offset = -accumulated;
             accumulated += dash;
             const color = seg.color ?? DEFAULT_COLORS[i % DEFAULT_COLORS.length];
+            const persen = Math.round(pct * 100);
+            const nilaiPenuh = (formatTooltip ?? ((v: number) => String(v)))(seg.value);
             return (
               <circle
                 key={i}
@@ -67,7 +75,12 @@ export default function DonutChart({
                 strokeDasharray={`${dash} ${circumference - dash}`}
                 strokeDashoffset={offset}
                 strokeLinecap={pct >= 0.98 ? "butt" : "round"}
-              />
+                tabIndex={0}
+                aria-label={`${seg.label}: ${persen}%, ${nilaiPenuh}`}
+              >
+                {/* G3-08: nilai penuh tersedia tanpa harus membaca legenda. */}
+                <title>{`${seg.label}: ${persen}% · ${nilaiPenuh}`}</title>
+              </circle>
             );
           })}
         </svg>
@@ -81,19 +94,20 @@ export default function DonutChart({
       </div>
 
       {showLegend && (
-        <div className="flex flex-wrap gap-x-3 gap-y-1 justify-center">
+        <ul className="flex flex-wrap gap-x-3 gap-y-1 justify-center">
           {segments.map((seg, i) => {
             const color = seg.color ?? DEFAULT_COLORS[i % DEFAULT_COLORS.length];
             const pct = total > 0 ? Math.round((Math.max(0, seg.value) / total) * 100) : 0;
+            const nilaiPenuh = (formatTooltip ?? ((v: number) => String(v)))(seg.value);
             return (
-              <div key={i} className="flex items-center gap-1.5 text-xs text-[var(--ink-muted)]">
-                <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: color }} />
+              <li key={i} className="flex items-center gap-1.5 text-xs text-[var(--ink-muted)]" title={`${seg.label}: ${pct}% · ${nilaiPenuh}`}>
+                <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: color }} aria-hidden="true" />
                 <span className="font-medium">{seg.label}</span>
                 <span className="text-[var(--ink-muted)]">{pct}%</span>
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
     </div>
   );

@@ -1,4 +1,8 @@
 import { useMemo, useState } from "react";
+import { jarakKiriGrafik } from "./grafikAngka";
+
+/** Ukuran teks sumbu. G3-08: paling kecil sebelas piksel, supaya terbaca di lebar 390. */
+const UKURAN_SUMBU = 11;
 
 export interface LineSeries {
   label: string;
@@ -14,6 +18,14 @@ interface Props {
   showAxes?: boolean;
   emptyLabel?: string;
   formatY?: (v: number) => string;
+  /**
+   * Nilai penuh untuk keterangan/`aria-label` bila label sumbu dipendekkan.
+   * Bila tidak diisi, `formatY` yang dipakai — keterangan tidak pernah diam-diam
+   * memakai aturan angka yang berbeda dari sumbunya.
+   */
+  formatTooltip?: (v: number) => string;
+  /** Nama grafik untuk pembaca layar. */
+  ariaLabel?: string;
   /** Whether X axis labels are dates — shortens formatting */
   dateXAxis?: boolean;
 }
@@ -48,6 +60,8 @@ export default function LineChart({
   showAxes = true,
   emptyLabel = "Belum ada data",
   formatY = (v) => String(v),
+  formatTooltip,
+  ariaLabel,
   dateXAxis = true,
 }: Props) {
   const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string } | null>(null);
@@ -79,12 +93,25 @@ export default function LineChart({
     return { allLabels: labels, yMin: paddedMin, yMax: paddedMax, seriesData: sd };
   }, [series]);
 
-  const padding = { top: 10, right: 16, bottom: showAxes ? 32 : 8, left: showAxes ? 48 : 8 };
+  // G3-08: jarak kiri mengikuti label sumbu TERPANJANG, bukan angka tetap 48.
+  // Dihitung SETELAH `yRange` ada — versi pertama perbaikan ini menaruhnya di atas
+  // dan menjatuhkan seluruh layar Keuangan dengan `Cannot access 'yRange' before
+  // initialization`. Tipe tidak menangkapnya; yang menangkap adalah pemeriksaan
+  // mata pada layar sesudah perubahan.
+  const yRange = yMax - yMin || 1;
+  const labelSumbuY = showAxes
+    ? Array.from({ length: 5 }, (_, i) => formatY(yMin + (yRange / 4) * i))
+    : [];
+  const padding = {
+    top: 10,
+    right: 16,
+    bottom: showAxes ? 32 : 8,
+    left: showAxes ? jarakKiriGrafik(labelSumbuY, { ukuranPiksel: UKURAN_SUMBU, jarakMinimum: 36 }) : 8,
+  };
   const chartW = 600;
   const chartH = height + padding.top + padding.bottom;
   const plotW = chartW - padding.left - padding.right;
   const plotH = height;
-  const yRange = yMax - yMin || 1;
 
   const toX = (i: number) =>
     padding.left + (allLabels.length > 1 ? (i / (allLabels.length - 1)) * plotW : plotW / 2);
@@ -102,7 +129,7 @@ export default function LineChart({
   return (
     <div className="relative" onMouseLeave={() => setTooltip(null)}>
       <svg viewBox={`0 0 ${chartW} ${chartH}`} className="w-full" style={{ maxHeight: chartH }}
-        role="img" aria-label="Line chart">
+        role="img" aria-label={ariaLabel ?? "Diagram garis"}>
         {/* Y-axis grid lines */}
         {showAxes && Array.from({ length: 5 }).map((_, i) => {
           const val = yMin + (yRange / 4) * i;
@@ -112,7 +139,7 @@ export default function LineChart({
               <line x1={padding.left} x2={chartW - padding.right} y1={y} y2={y}
                 stroke="#e2e8f0" strokeWidth={0.5} />
               <text x={padding.left - 6} y={y + 4} textAnchor="end"
-                className="text-[10px] fill-[var(--border-strong)]" fontFamily="system-ui">{formatY(val)}</text>
+                fontSize={UKURAN_SUMBU} fill="var(--border-strong)" fontFamily="system-ui">{formatY(val)}</text>
             </g>
           );
         })}
@@ -132,20 +159,24 @@ export default function LineChart({
           const color = s.color ?? DEFAULT_COLORS[si % DEFAULT_COLORS.length];
           const points = allLabels.map((l, li) => {
             const val = s.pointMap.get(l);
-            return val != null ? { x: toX(li), y: toY(val), val } : null;
-          }).filter((p): p is { x: number; y: number; val: number } => p !== null);
+            return val != null ? { x: toX(li), y: toY(val), val, label: l } : null;
+          }).filter((p): p is { x: number; y: number; val: number; label: string } => p !== null);
 
           if (points.length < 2) {
             // Single point — draw a dot
             const p = points[0];
             if (!p) return null;
+            const label = s.data[0]?.x ?? "";
             return (
               <g key={si}>
-                <circle cx={p.x} cy={p.y} r={4} fill={color} />
+                <circle cx={p.x} cy={p.y} r={4} fill={color}
+                  tabIndex={0} role="img"
+                  aria-label={`${s.label} · ${label}: ${(formatTooltip ?? formatY)(p.val)}`} />
                 {showAxes && (
-                  <text x={toX(allLabels.indexOf(s.data[0]?.x ?? ""))} y={chartH - 6}
-                    textAnchor="middle" className="text-[10px] fill-[var(--border-strong)]" fontFamily="system-ui">
-                    {dateXAxis ? shortDateLabel(s.data[0]?.x ?? "") : (s.data[0]?.x ?? "")}
+                  <text x={toX(allLabels.indexOf(label))} y={chartH - 6}
+                    textAnchor="middle" fontSize={UKURAN_SUMBU} fill="var(--border-strong)" fontFamily="system-ui">
+                    <title>{label}</title>
+                    {dateXAxis ? shortDateLabel(label) : (label.length > 12 ? label.slice(0, 11) + "…" : label)}
                   </text>
                 )}
               </g>
@@ -165,36 +196,31 @@ export default function LineChart({
               )}
               {/* Line */}
               <path d={lineD} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-              {/* Data points */}
-              {points.map((p, pi) => (
-                <circle
-                  key={pi} cx={p.x} cy={p.y} r={3} fill="white" stroke={color} strokeWidth={2}
-                  onMouseEnter={(e) => {
-                    const svg = (e.currentTarget.closest("svg") as SVGSVGElement)?.getBoundingClientRect();
-                    if (svg) {
-                      const rect = (e.currentTarget as SVGCircleElement).getBoundingClientRect();
-                      setTooltip({
-                        x: rect.left - svg.left + 6,
-                        y: rect.top - svg.top - 6,
-                        text: `${s.label}: ${formatY(p.val)}`,
-                      });
-                    }
-                  }}
-                  onClick={(e) => {
-                    const svg = (e.currentTarget.closest("svg") as SVGSVGElement)?.getBoundingClientRect();
-                    if (svg) {
-                      const rect = (e.currentTarget as SVGCircleElement).getBoundingClientRect();
-                      setTooltip((prev) =>
-                        prev ? null : {
-                          x: rect.left - svg.left + 6,
-                          y: rect.top - svg.top - 6,
-                          text: `${s.label}: ${formatY(p.val)}`,
-                        }
-                      );
-                    }
-                  }}
-                />
-              ))}
+              {/* Data points — G3-08: tiap titik bisa difokus dengan papan ketik dan
+                  punya nama lengkap untuk pembaca layar. */}
+              {points.map((p, pi) => {
+                const label = p.label;
+                const nilaiPenuh = (formatTooltip ?? formatY)(p.val);
+                const tampilkanTooltip = (target: SVGCircleElement, toggle: boolean) => {
+                  const svg = (target.closest("svg") as SVGSVGElement)?.getBoundingClientRect();
+                  if (!svg) return;
+                  const r = target.getBoundingClientRect();
+                  const posisi = { x: r.left - svg.left + 6, y: r.top - svg.top - 6, text: `${s.label}: ${nilaiPenuh}` };
+                  setTooltip((prev) => (toggle && prev ? null : posisi));
+                };
+                return (
+                  <circle
+                    key={pi} cx={p.x} cy={p.y} r={3} fill="white" stroke={color} strokeWidth={2}
+                    tabIndex={0}
+                    role="img"
+                    aria-label={`${s.label} · ${label}: ${nilaiPenuh}`}
+                    onMouseEnter={(e) => tampilkanTooltip(e.currentTarget, false)}
+                    onFocus={(e) => tampilkanTooltip(e.currentTarget, false)}
+                    onBlur={() => setTooltip(null)}
+                    onClick={(e) => tampilkanTooltip(e.currentTarget, true)}
+                  />
+                );
+              })}
             </g>
           );
         })}
@@ -202,8 +228,9 @@ export default function LineChart({
         {/* X-axis labels */}
         {showAxes && allLabels.length <= 14 && allLabels.map((label, li) => (
           <text key={`xl-${li}`} x={toX(li)} y={chartH - 6} textAnchor="middle"
-            className="text-[10px] fill-[var(--border-strong)]" fontFamily="system-ui">
-            {dateXAxis ? shortDateLabel(label) : (label.length > 6 ? label.slice(0, 5) + "…" : label)}
+            fontSize={UKURAN_SUMBU} fill="var(--border-strong)" fontFamily="system-ui">
+            <title>{label}</title>
+            {dateXAxis ? shortDateLabel(label) : (label.length > 12 ? label.slice(0, 11) + "…" : label)}
           </text>
         ))}
       </svg>

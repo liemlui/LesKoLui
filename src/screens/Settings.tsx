@@ -694,7 +694,7 @@ export default function SettingsPage() {
       localStorage.setItem("leskolui_drive_auto", "1");
       localStorage.setItem("leskolui_drive_pass", backupPass);
       setDriveAuto(true);
-      toastCtx.success("Auto backup Drive aktif ✓ (passphrase tersimpan di perangkat)");
+      toastCtx.success("Auto backup Drive aktif ✓ (kata sandi enkripsi tersimpan di perangkat)");
     } else {
       localStorage.removeItem("leskolui_drive_auto");
       localStorage.removeItem("leskolui_drive_pass");
@@ -1042,7 +1042,7 @@ export default function SettingsPage() {
                 <ul className="list-disc pl-4 space-y-1 text-xs text-[var(--ink-muted)]">
                   <li>Catatan dan laporan: identitas murid serta data belajar sesuai sesi yang dipilih. Draft catatan juga menyertakan Situasi Hari Ini dan tindak lanjut bila tersedia.</li>
                   <li>Poles WA: isi pesan awal sesi beserta nama murid dan tutor.</li>
-                  <li>Analisis keuangan: ringkasan periode, nama dan data keuangan murid, piutang, pengeluaran, serta pembanding dan proyeksi.</li>
+                  <li>Analisis keuangan: ringkasan periode, nama dan data keuangan murid, tagihan belum dibayar, pengeluaran, serta pembanding dan proyeksi.</li>
                 </ul>
               </div>
               <div className="rounded-xl border border-[var(--border)] p-3 space-y-2">
@@ -1132,13 +1132,13 @@ export default function SettingsPage() {
                   </div>
                   <p className="text-xs font-medium" style={{ color: st.color }}>
                     Kekuatan: {st.label}
-                    {backupPass.length < MIN_PASS && ` — minimal ${MIN_PASS} karakter (pakai "Generate" untuk kunci kuat)`}
+                    {backupPass.length < MIN_PASS && ` — minimal ${MIN_PASS} karakter (pakai "Generate" untuk kata sandi yang kuat)`}
                   </p>
                 </div>
               );
             })()}
             <p className="text-xs text-[var(--ink-muted)]">
-              Dipakai untuk <b>backup &amp; restore</b> (File &amp; Drive). <b>Simpan baik-baik</b> — kunci ini tak tersimpan & wajib untuk membuka backup di HP lain.
+              Dipakai untuk <b>backup &amp; restore</b> (File &amp; Drive). <b>Simpan baik-baik</b> — kata sandi ini tak tersimpan & wajib untuk membuka backup di HP lain.
             </p>
           </div>
 

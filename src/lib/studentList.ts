@@ -166,6 +166,32 @@ export function kartuIdentitasBaris(student: Student): string {
 }
 
 /**
+ * Keterangan lengkap untuk baris kartu yang dipotong (G3-08 langkah 6).
+ *
+ * Kartu murid memakai label PENDEK kurikulum supaya tiga baris tetap terbaca, dan
+ * barisnya dipotong dengan `truncate`. Yang dipotong harus tetap bisa dibaca utuh,
+ * jadi teks lengkapnya disediakan untuk atribut `title`:
+ *
+ * - kurikulum ditulis panjang ("IB Diploma Programme") karena singkatannya yang
+ *   tampil di kartu;
+ * - kelas dan sekolah ditulis apa adanya — dua sekolah dengan awalan nama yang
+ *   sama hanya bisa dibedakan dari teks lengkapnya.
+ *
+ * Murid lama yang kurikulumnya belum diisi tidak kehilangan keterangan: bagian
+ * yang belum ada dilewati, bukan dicetak "undefined".
+ */
+export function kartuIdentitasLengkap(student: Student): string {
+  const parts: string[] = [];
+  const meta = student.curriculum ? CURRICULUM_META[student.curriculum] : undefined;
+  if (meta) parts.push(meta.label);
+  const grade = student.grade?.trim();
+  if (grade) parts.push(grade);
+  const school = student.school?.trim();
+  if (school) parts.push(school);
+  return parts.join(" · ");
+}
+
+/**
  * "aktif sejak Agustus 2026" — bulan dan tahun, bukan jumlah bulan (butir 13).
  * Jumlah bulan membulat ke bawah dan pernah membuat murid yang bergabung empat
  * puluh hari lalu terbaca "1 bulan bersama" padahal sudah lewat sebulan.

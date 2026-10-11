@@ -276,7 +276,7 @@ export default function UangBeranda({ month, rows, overview, onBukaSub }: UangBe
             gagal penjaga "kontrol interaktif < 24 px" (2026-10-07). Tautannya
             sudah punya barisnya sendiri di atas, jadi di sini cukup kalimatnya. */}
         <p className="mt-3 border-t border-[var(--border)] pt-2 text-xs leading-relaxed text-[var(--ink-muted)]">
-          Sisa kas berbeda dari laba akrual: piutang yang belum tertagih sudah dihitung sebagai pendapatan, tetapi
+          Sisa kas berbeda dari laba akrual: tagihan yang belum tertagih sudah dihitung sebagai pendapatan, tetapi
           belum masuk rekening.
         </p>
       </section>

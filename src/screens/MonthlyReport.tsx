@@ -569,13 +569,14 @@ export default function MonthlyReportPage() {
   // jangan tampilkan semua list, cukup acak saja"). Tombol "🎲 Acak" memilih
   // tema + layout untuk pengguna; galeri hanya dibuka bila benar-benar diminta.
   const [showThemeList, setShowThemeList] = useState(false);
-  // Daftar layout juga di balik tombol sendiri. Filter kategori
+  // Daftar susunan juga di balik tombol sendiri. Filter kategori
   // (Classic/Modern/Visual/Analytic/Formal/Playful) DIHAPUS atas permintaan
   // pemilik — kategori hanya menambah langkah memilih tanpa membantu.
+  // G3-08 menggantinya dengan pengelompokan menurut panjang narasi (lihat
+  // `monthlyReport/susunanLaporan.ts`) dan satu tombol pratinjau untuk susunan
+  // terpilih, sehingga keadaan "susunan mana yang dipratinjau" tidak lagi perlu
+  // disimpan di layar ini.
   const [showLayoutList, setShowLayoutList] = useState(false);
-  // C-2: preview on-demand per kombinasi layout yang diklik (bukan render
-  // seluruh galeri sekaligus). Preview memakai SAMPLE_REPORT_DATA — tanpa AI.
-  const [previewLayoutId, setPreviewLayoutId] = useState<string | null>(null);
 
   // Kontrol export: cukup jumlah sesi per halaman. Tinggi halaman selalu
   // otomatis (pilihan rasio 3:4/Auto dihapus atas permintaan pemilik).
@@ -1304,8 +1305,6 @@ export default function MonthlyReportPage() {
               onUndoDesign={() => void handleUndoDesign()}
               onSelectTheme={(themeId) => void handleSelectTheme(themeId)}
               onSelectLayout={handleSelectLayout}
-              previewLayoutId={previewLayoutId}
-              onPreviewLayout={setPreviewLayoutId}
               activeTheme={theme}
               onSaveCustomTheme={(customTheme) => void handleSaveCustomTheme(customTheme)}
             />

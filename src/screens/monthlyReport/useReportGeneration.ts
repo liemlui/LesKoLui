@@ -490,7 +490,7 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
     const summary = [
       `Periode ${period} berisi ${reportSessions.length} sesi (${totalHours} jam) untuk ${subjects.join(", ") || "materi yang dipelajari"}.`,
       topics.length > 0 ? `Topik yang dibahas antara lain ${topics.join(", ")}.` : undefined,
-      avgEngagement != null ? `Rata-rata fokus ${avgEngagement}/10.` : undefined,
+      avgEngagement != null ? `Fokus rata-rata ${avgEngagement}/10.` : undefined,
       needs.length > 0 ? `Area yang masih perlu perhatian: ${needs.join("; ")}.` : undefined,
     ].filter((line): line is string => Boolean(line)).join(" ");
 

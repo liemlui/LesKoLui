@@ -185,7 +185,7 @@ export default function ReportStatusPanel({
             </div>
             {olderUnpaidCount > 0 && (
               <p className="mt-2 rounded-lg border border-[var(--border-warn)] bg-[var(--bg-warn)] px-2.5 py-1.5 text-xs font-medium leading-relaxed text-[var(--ink-warn)]">
-                ⚠ {olderUnpaidCount} tagihan bulan sebelumnya belum lunas · {formatRupiahDisplay(olderUnpaidTotal, moneyVisible)}. Buka Keuangan agar piutang tidak menumpuk.
+                ⚠ {olderUnpaidCount} tagihan bulan sebelumnya belum lunas · {formatRupiahDisplay(olderUnpaidTotal, moneyVisible)}. Buka Keuangan agar tagihan belum dibayar tidak menumpuk.
               </p>
             )}
           </div>

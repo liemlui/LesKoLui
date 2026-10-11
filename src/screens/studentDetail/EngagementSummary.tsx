@@ -189,7 +189,7 @@ export default function EngagementSummary({
         <div className="px-4 pb-3 border-t border-[var(--border)] pt-3">
           <LineChart
             series={[{
-              label: "Engagement",
+              label: "Fokus",
               data: recentEng.map((s, i) => ({ x: String(i + 1), y: sessionEngagementScore(s) ?? 0 })),
               areaFill: true,
               color: "#2563eb",
@@ -197,6 +197,7 @@ export default function EngagementSummary({
             height={120}
             dateXAxis={false}
             formatY={(v) => `${Math.round(v)}`}
+            ariaLabel={`Skor fokus ${recentEng.length} sesi terakhir`}
           />
           <p className="mt-1 text-center text-xs text-[var(--ink-muted)]">
             Skor fokus per sesi — {recentEng.length} sesi terakhir yang punya skor

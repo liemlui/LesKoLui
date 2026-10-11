@@ -181,7 +181,7 @@ export function useInvoiceRecovery({ setMessage, setConfirmState, pinAvailable }
       confirmTitle: "Hapus tagihan manual ini?",
       confirmMessage:
         `Hapus tagihan manual ${studentName} (${formatRupiah(invoice.totalCost)}, ${monthLabel(invoice.month)})?\n`
-        + "Baris tagihan hilang dari daftar piutang.",
+        + "Baris tagihan hilang dari daftar belum dibayar.",
       confirmLabel: "Hapus",
       action: () => deleteManualPayment(invoice.id),
       success: `Tagihan manual ${studentName} dihapus ✓`,
