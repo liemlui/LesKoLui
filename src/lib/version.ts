@@ -11,6 +11,27 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.100.0",
+    date: "2026-10-11",
+    title: "Pengaturan dipecah jadi berkas kecil, tombol Perbarui aplikasi diperbaiki, dan perubahan yang belum disimpan tidak lagi hilang",
+    items: [
+      "**Halaman Pengaturan tidak lagi satu berkas raksasa.** Berkasnya turun dari **1.387 menjadi 637 baris**, dan setiap bagian besar pindah ke berkasnya sendiri. Tidak ada pengaturan yang hilang atau berpindah tempat: semua kolom, tombol, dan alurnya sama seperti sebelumnya. Yang berubah hanya cara berkasnya disusun — dan itu yang membuat perbaikan berikutnya mungkin.",
+      "**Tombol Perbarui aplikasi akhirnya benar-benar bekerja, dan kegagalannya tidak lagi disembunyikan.** Sebelumnya tombol itu **menelan pesan galatnya** sehingga apa pun yang salah — jaringan putus, aplikasi belum siap dipasang — hasilnya sama saja: tombol yang ditekan tidak melakukan apa-apa. Sekarang kalau gagal, **alasannya tertulis di layar** beserta anjuran yang bisa dikerjakan, dan tombolnya tidak bisa ditekan dua kali saat pemasangan sedang berjalan.",
+      "**Tawaran pembaruan bisa ditutup, dan menutupnya tidak menghalangi pemasangan.** Ada tombol tutup dan pilihan **Nanti saja**; tawaran itu tidak muncul lagi selama tujuh hari. Yang penting: **tombol pasang tetap tersedia di Pengaturan → Aplikasi**, jadi satu ketukan tidak sengaja pada Tutup tidak mengunci Anda di versi lama.",
+      "**Anda bisa memeriksa dan memasang pembaruan sendiri kapan saja.** Di **Pengaturan → Aplikasi** ada **Periksa pembaruan** dan **Perbarui sekarang**, beserta nomor versi yang sedang berjalan. Sebelumnya tidak ada satu pun cara memasang pembaruan secara manual.",
+      "**Status aplikasi sekarang ditulis apa adanya.** Di bagian Aplikasi ada **penyimpanan permanen** (apakah peramban sudah menjanjikan data Anda tidak dibuang sendiri saat ruang menipis) dan **siap offline** (apakah aplikasi benar-benar bisa dibuka tanpa internet). Yang kedua disimpulkan dari kesiapan berkas aplikasi di perangkat, bukan dari status jaringan sesaat.",
+      "**Catatan perubahan bisa dibuka lagi kapan saja.** Dulu catatan perubahan hanya muncul sekali sendiri saat versi baru terpasang; setelah ditutup tidak ada jalan membukanya lagi. Sekarang ada tombol **Catatan perubahan + nomor versi** di **Pengaturan → Aplikasi**.",
+      "**Perubahan yang belum disimpan tidak lagi hilang tanpa kabar.** Ada **bilah simpan yang menempel di bawah layar**, jadi tombol Simpan selalu terjangkau tanpa menggulir, dan statusnya menyebut **waktunya** — \"Belum disimpan\", \"Menyimpan...\", atau **\"Tersimpan 14:03\"**. Kalau Anda meninggalkan halaman dengan perubahan yang belum tersimpan, aplikasi **memperingatkan lebih dulu**. Sebelum memasang pembaruan aplikasi, pengaturan Anda **disimpan lebih dulu**.",
+      "**Ringkasan tiga baris di atas Pengaturan.** Tanpa membuka satu bagian pun, Anda langsung melihat **kapan backup terakhir, keadaan AI, dan pemakaian penyimpanan** — masing-masing dengan tombol pintasan ke bagiannya. Ini juga yang membuat keadaan \"belum pernah backup\" akhirnya terlihat, bukan hanya bisa diketahui kalau kebetulan membuka bagiannya.",
+      "**Setiap bagian Pengaturan punya penanda keadaannya sendiri**, mis. backup terakhir berapa hari lalu, profil sudah lengkap atau belum, rekening sudah diisi atau belum, dan PIN sudah aktif atau belum.",
+      "**Kata sandi enkripsi backup sekarang bisa disalin dan disimpan ke berkas.** Ada tombol **Salin** dan **Unduh berkas kunci**; berkas kuncinya memuat kata sandinya beserta tanggal dan penjelasan untuk apa berkas itu. Peringatan risikonya juga muncul saat backup otomatis dinyalakan, karena fitur itu menyimpan kata sandi enkripsi di perangkat ini.",
+      "**Ringkasan Pengaturan berkelompok sesuai kepentingannya.** Urutan bagiannya kini **Backup dan Restore · AI · Profil · PIN · Rekening Bank · Aplikasi · Riwayat Aktivitas**, dan **Hapus Semua Data** dipindah ke paling bawah di balik pemisah **zona berbahaya** — supaya tidak ada lagi tombol yang bisa menghapus semuanya berdiri tepat di sebelah pengaturan biasa.",
+      "**Tidak ada lagi pertanyaan bawaan peramban di Pengaturan.** Enam kotak pertanyaan khas peramban (termasuk yang meminta mengetik \"RESET\") diganti kotak pertanyaan milik aplikasi sendiri, dengan akibat yang ditulis sebagai daftar. Yang paling terasa: saat memulihkan backup, **ringkasan berkasnya disebutkan lebih dulu** — nama berkas, ukurannya, dan tanggal backupnya — sebelum data Anda diganti.",
+      "**Pemulihan backup tidak lagi terasa menggantung.** Nama tahap yang sedang berjalan muncul di layar untuk **semua** jalur pemulihan, dan selama satu jalur berjalan tombol jalur lain nonaktif — sehingga tidak ada dua pemulihan yang berjalan bersamaan dan saling menimpa.",
+      "**Beberapa cacat yang tidak terlihat selama ini ikut diperbaiki.** Dua kotak pertanyaan di bagian Backup sempat dirancang terpasang **dua kali** sekaligus, sehingga aplikasi menampilkan dua dialog yang isinya sama; hitungan mundur penguncian PIN kini benar-benar terlihat saat PIN salah berulang; dan pemakaian penyimpanan yang gagal diukur sekarang **mengatakannya**, bukan menghilang diam-diam.",
+    ],
+  },
+  {
     version: "v1.99.0",
     date: "2026-10-11",
     title: "Tema dan susunan dipisah, perancang tema berbahasa Indonesia, grafik lebih terbaca",

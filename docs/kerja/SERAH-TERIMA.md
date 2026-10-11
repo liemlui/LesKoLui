@@ -3,7 +3,7 @@
 > **Sekilas.** Jenis: lembar serah-terima untuk sesi berikutnya. Status: berlaku.
 > Untuk siapa: agen AI yang melanjutkan pekerjaan ini, dan pemilik yang ingin tahu keadaan terakhir tanpa membaca seluruh dokumen.
 > Berkas ini diperbarui di akhir sesi, bukan di awal.
-> **Terakhir diselaraskan: 2026-10-11** (G3-08 Kanvas dan istilah tuntas: tema & susunan dipisah, perancang tema berbahasa Indonesia dengan contoh warna, grafik terbaca, dan glosarium antarmuka; satu cacat urutan pada waktu jalan ditemukan oleh tangkapan layar, bukan oleh tipe atau tes). Isi historisnya tidak diubah.
+> **Terakhir diselaraskan: 2026-10-11** (G3-09 Pengaturan, tahap 1 dan 2: `Settings.tsx` 1.387 → **637 baris**, seluruh bagian besar jadi berkasnya sendiri, enam dialog bawaan peramban digantikan dialog internal, dan **tombol "Perbarui" PWA yang tidak berfungsi diperbaiki**). Isi historisnya tidak diubah.
 > **Yang mengikat tetap `ATURAN-AI.md` dan `PEKERJAAN.md`.** Berkas ini hanya menjelaskan keadaan dan temuan, bukan aturan.
 
 ---
@@ -33,7 +33,16 @@ Periksa sendiri, jangan percaya tulisan di sini, karena keadaan berubah setiap c
 | Baris berkas besar | `npm run measure loc` |
 | Kebenaran dokumen | `npm run check:docs` |
 
-Catatan keadaan sebagai konteks, **potret 2026-10-05** (jangan dikutip sebagai keadaan hari ini): pohon kerja bersih, cabang `main` sama dengan `origin/main`, dan suite tes lulus penuh dengan enam puluh enam berkas. Keadaan 2026-10-07 sesudah pembenahan dokumen: commit `a390852` sudah di `origin/main`, pohon bersih, suite **849 lulus / 66 berkas**. Keadaan 2026-10-08 sesudah G3-05: suite **982 lulus / 74 berkas**, `e2e:uiux` 64 lulus / 0 gagal, dan `e2e` **69 lulus / 11 gagal / 6 skip** — perincian kegagalannya ada di bagian 4.5, dan **tidak satu pun berasal dari pekerjaan yang sedang dikerjakan**. Keadaan 2026-10-11 sesudah G3-08: suite **1.242 lulus / 91 berkas**, `e2e:uiux` **63 lulus / 1 gagal** (gagal = batas waktu gerbang PIN di bawah beban; **lulus 4/4 saat dijalankan sendirian**), dan `e2e` **67 lulus / 13 gagal / 6 skip**. Dua belas dari tiga belas kegagalan `e2e` persis daftar warisan 2026-10-08 (`report-export-ratio` 3 layout × 2 project, `report-unlock` × 2, `capture-closeout-failure` × 2, `finance` × 2, semuanya galat halaman `SchemaError: DexieError` atau batas waktu di bawah beban), dan yang ketiga belas — `screenshot-katalog` "11-narasi-per-sesi" — **lulus saat dijalankan sendirian**. Tidak satu pun berasal dari G3-08. Angka-angka itu akan basi — yang dipakai adalah perintahnya.
+Catatan keadaan sebagai konteks, **potret 2026-10-05** (jangan dikutip sebagai keadaan hari ini): pohon kerja bersih, cabang `main` sama dengan `origin/main`, dan suite tes lulus penuh dengan enam puluh enam berkas. Keadaan 2026-10-07 sesudah pembenahan dokumen: commit `a390852` sudah di `origin/main`, pohon bersih, suite **849 lulus / 66 berkas**. Keadaan 2026-10-08 sesudah G3-05: suite **982 lulus / 74 berkas**, `e2e:uiux` 64 lulus / 0 gagal, dan `e2e` **69 lulus / 11 gagal / 6 skip** — perincian kegagalannya ada di bagian 4.5, dan **tidak satu pun berasal dari pekerjaan yang sedang dikerjakan**. Keadaan 2026-10-11 sesudah G3-08: suite **1.242 lulus / 91 berkas**, `e2e:uiux` **63 lulus / 1 gagal** (gagal = batas waktu gerbang PIN di bawah beban; **lulus 4/4 saat dijalankan sendirian**), dan `e2e` **67 lulus / 13 gagal / 6 skip**. Dua belas dari tiga belas kegagalan `e2e` persis daftar warisan 2026-10-08 (`report-export-ratio` 3 layout × 2 project, `report-unlock` × 2, `capture-closeout-failure` × 2, `finance` × 2, semuanya galat halaman `SchemaError: DexieError` atau batas waktu di bawah beban), dan yang ketiga belas — `screenshot-katalog` "11-narasi-per-sesi" — **lulus saat dijalankan sendirian**. Tidak satu pun berasal dari G3-08. **Keadaan 2026-10-11 sesudah G3-09 tahap 2:** suite **1.355 lulus / 97 berkas**, `tsc -b` bersih, `eslint src` 0, `build` menghasilkan `dist/sw.js`, `check:docs` 0 pelanggaran — dan **`e2e:uiux` belum dijalankan** (lihat bagian 4.9 nomor 1). Angka-angka itu akan basi — yang dipakai adalah perintahnya.
+
+> **Temuan alat 2026-10-11: gate R2 `check:docs` lulus secara hampa.** Aturan R2 memeriksa
+> `versi_app:` dan `test: N` di **kepala YAML** setiap dokumen aktif, tetapi setelah pembenahan
+> dokumen **tidak ada satu pun dokumen aktif yang masih punya kepala itu** — `grep "versi_app"`
+> hanya menemukan berkas di `docs/arsip/`, dan berkas arsip sengaja dilewati gate. Jadi gate itu
+> sekarang selalu melaporkan 0 pelanggaran untuk R2 tanpa memeriksa apa pun. **Ini bukan cacat
+> pekerjaan G3-09** dan tidak diperbaiki di sini: memperbaikinya berarti menambah kepala YAML ke
+> puluhan dokumen, dan itu keputusan pemilik (aturan §1 butir 4). Dicatat supaya tidak ada yang
+> membaca "check:docs 0 pelanggaran" sebagai "versi dan jumlah tes di dokumen sudah benar".
 
 **Gate di mesin ini hanya lokal.** Integrasi berkelanjutan di GitHub tidak diaktifkan dan tidak akan diaktifkan. Jangan menawarkannya lagi.
 
@@ -201,14 +210,103 @@ G3-08 tuntas dalam satu putaran: enam langkah sekaligus. Tiga berkas murni baru,
 
 ---
 
+### 4.9 Yang berubah pada putaran 2026-10-11 (G3-09 Pengaturan, tahap 1 dan 2)
+
+Target baris **tercapai**: `src/screens/Settings.tsx` **1.387 → 637 baris** (sasaran ≤700), dan seluruh
+bagian besar kini berkasnya sendiri di `src/screens/settings/`. Dua belas fitur terpasang. Yang perlu
+diketahui sesi berikutnya:
+
+1. **Gate `e2e:uiux` BELUM dijalankan untuk putaran ini, dan tidak bisa dijalankan dari sesi ini.**
+   Perintahnya gagal dengan `spawn EPERM` (sandbox menolak pipa stdio; `ATURAN-AI` §6 sudah mencatat
+   bahwa gate itu butuh izin sandbox penuh). **Jangan membaca "tsc + suite + eslint bersih" sebagai
+   "tampilan sudah diperiksa".** Sebagai gantinya ada pemeriksa statis di
+   `.design-audit/g3-09/periksa-tampilan.mjs` yang membuktikan tiga batasan dari sumber: tidak ada
+   emoji di kontrol, setiap token warna yang dipakai benar-benar ada di `src/index.css` (71 token),
+   dan setiap tombol punya tinggi yang bisa dijamin (`min-h-*`, `py-*`, atau kotak `h-N w-N`).
+   **Itu bukan pengganti penjaga tampilan** — kontras terukur dan ukuran ter-render hanya bisa
+   dibuktikan dengan menjalankannya.
+
+2. **Empat spec e2e disesuaikan, bukan dilonggarkan.** Judul bagian berubah (G3-09 butir 4:
+   "Backup & Restore" → "Backup dan Restore", "Aplikasi (PWA)" → "Aplikasi") dan `confirm()` di jalur
+   restore digantikan dialog internal, sehingga empat spec (`smoke`, `loading-states`,
+   `screenshot-audit`, `home-exit`) serta `e2e-pwa/pwa-runtime.spec.ts` menunggu hal yang sudah tidak
+   ada. Penjaganya kini **bertambat pada `data-bagian`**, bukan pada teks judul — supaya perubahan kata
+   tidak mematahkannya lagi. **Yang perlu diketahui: `e2e-pwa/pwa-runtime.spec.ts` sekarang menuntut
+   dialog internal "Pulihkan dari berkas ini?" beserta baris "Ukuran berkas", bukan lagi `dialog.accept()`.**
+
+3. **Dua cacat nyata ditemukan saat memindahkan blok, bukan oleh `tsc` atau suite:**
+   (a) **blok terduplikasi** di bagian Backup — baris tahap pemulihan dan dua dialog konfirmasi
+   tertulis **dua kali**, sehingga aplikasi merender dua dialog dengan nama aksesibilitas identik
+   (pembaca layar mengumumkannya dua kali; Playwright akan menemukan dua elemen untuk satu peran);
+   (b) **`useMemo` setelah `return` bersyarat** saat `aksiBackup` pertama dipasang — aturan hook React
+   dilanggar, dan **eslint** yang menangkapnya (bukan `tsc`). Keduanya sudah diperbaiki.
+   Pelajarannya berulang dari G3-06 dan G3-08: **kode yang dipindah wajib dibaca ulang, bukan hanya
+   dipindahkan.**
+
+4. **Enam dialog bawaan peramban di berkas ini sudah nol** (`confirm()` ×5 + `prompt()` ×1 di `HEAD`
+   2026-10-11). Dua di antaranya peringatan validasi impor, dan penggantinya bukan kosmetik:
+   `onValidationWarnings` sekarang mengembalikan Promise yang baru selesai setelah tutor menekan tombol,
+   sehingga **impor benar-benar tertahan** — dulu `confirm()` memblokir utas, sekarang tidak ada impor
+   yang berjalan dengan asumsi.
+
+5. **Perbaikan PWA di luar G3-09** (permintaan pemilik 2026-10-11, commit `6fac628`): tombol "Perbarui"
+   tidak berfungsi karena `applyUpdate` **menelan galatnya dengan `console.warn`**. Akar penyebabnya
+   di perangkat pemilik **tidak berhasil direproduksi dari sini** dan tidak diklaim; yang diperbaiki
+   adalah **cara gagalnya terlihat**. Sekarang ada tombol tutup (penolakan disimpan 7 hari, dan
+   **tidak** mematikan kemampuan memasang), serta jalur perbarui manual + status penyimpanan permanen
+   + status siap offline di Pengaturan → Aplikasi. **Klaim "tombol Perbarui bekerja" belum punya bukti
+   runtime** — hanya bukti unit (23 tes) dan build.
+
+6. **Artefak suite diperbarui dengan angka yang benar-benar dijalankan:** `.design-audit-suite.json`
+   **1.226/90 → 1.355/97**. Sebelum diperbarui, gate `check:docs` hanya bisa membandingkan dokumen
+   dengan artefak yang basi — dan itu sebabnya laporan gate menampilkan angka lama.
+
+7. **Berkas baru dan perannya.** Di `src/screens/settings/`: `Section.tsx` (akordeon + pemisah zona
+   bahaya), `sections.ts` (daftar urutan bagian), `BackupSection.tsx` + `backupHandlers.ts`,
+   `AiSection.tsx`, `ProfileBankSections.tsx`, `AppSection.tsx`, `SettingsSaveBar.tsx`,
+   `SettingsStatusSummary.tsx`, `PinSection.tsx`, `DangerZoneSection.tsx` + `dangerZoneRows.ts` +
+   `dangerZoneActions.ts`, `ConfirmActionModal.tsx`, `useBackupSection.ts`, `StorageUsage.tsx`,
+   `PhotoMaintenance.tsx`, `AuditLogViewer.tsx`. Di `src/lib/`: `passphrase.ts`,
+   `recoveryPresentation.ts`, `settingsStatus.ts`, `appSettingsStatus.ts`, `auditDisplay.ts`,
+   `settingsSaveBar.ts`, `pwaUpdate.ts`. Di `src/hooks/`: `usePwaUpdate.ts`, `useStorageEstimate.ts`.
+   Di `src/components/`: `PwaUpdateUi.tsx`. **Empat ekspor non-komponen dipisah ke berkasnya sendiri**
+   (`sections.ts`, `dangerZoneRows.ts`, `dangerZoneActions.ts`, dan `sisaHariPenolakan` yang dibuang)
+   karena aturan `react-refresh/only-export-components` — jebakan yang sama dengan G3-06.
+
+8. **Batas kejujuran putaran ini.** Yang **belum** dibuktikan: `e2e:uiux` (lihat nomor 1),
+   `e2e` penuh, `e2e:pwa`, dan tampilan bagian Pengaturan yang baru **belum pernah dirender dan
+   dilihat mata**. Sebelas fitur G3-09 **sudah terpasang semuanya**; yang belum ada adalah
+   **butir daftar periksa manual untuk Pengaturan** (belum dibuat, dan hanya pemilik yang bisa
+   menutupnya) serta pembuktian tampilan di perangkat.
+
+---
+
 ## 5. Langkah berikutnya
 
 Kerjakan berurutan, satu tugas sampai tuntas, lalu lapor sekali.
 
-1. **G3-09 Pengaturan** (refactor `Settings.tsx` 1.387 → ≤700 + 11 fitur, termasuk mengganti lima `confirm()` bawaan yang masih hidup di berkas itu), lalu **G3-10 reset total dan jalur memasang PIN kembali**.
-2. **Menunggu mata pemilik — total lima butir, jangan dikerjakan agen:** **34–35** (foto murid, ditambahkan 2026-10-11) dan **36–38** (panel desain laporan, perancang tema, dan tiga grafik Keuangan, ditambahkan 2026-10-11 bersama G3-08). Butir 35 memeriksa jalur **Batal** sesudah menghapus foto, dan butir 36–38 memeriksa hal yang memang tidak bisa dinilai dari kode.
-3. Pekerjaan di `PEKERJAAN.md` bagian 4 boleh dikerjakan kapan saja tanpa mengubah urutan di atas — termasuk tiga temuan 2026-10-08: kegagalan `e2e` yang tidak hijau di mesin ini (kegagalan warisan ber-`SchemaError: DexieError`), katalog tangkapan layar yang tidak lagi cocok dengan spec, dan pengukuran ulang G3-01 butir 9. Ditambah tiga temuan 2026-10-11: `useWebWorker` yang sepuluh kali lebih lambat, baris sasaran `StudentDetail.tsx` yang sudah hampir penuh, dan **sub-layar `?tab=ringkasan` yang belum masuk cakupan penjaga tampilan** (lubang yang membuat cacat urutan G3-08 lolos dari semua penjaga otomatis).
-4. Daftar periksa manual di `PEKERJAAN.md` bagian 5 (kini **38 butir**) hanya bisa ditutup pemilik di perangkat. **Butir 24–29 dan 30–33 sudah dicentang** (30–33 pada 2026-10-10 sesudah pemeriksaan di HP); **butir 34–38 menunggu**, dan **butir 1–23 masih terbuka** dan boleh dikerjakan kapan saja tanpa mengubah urutan di atas.
+1. **G3-09 Pengaturan — sisa yang belum tuntas.** Target baris **sudah tercapai** (637 ≤ 700) dan
+   kesebelas fitur **sudah terpasang**, tetapi belum ditutup karena: `e2e:uiux` belum dijalankan
+   (butuh izin sandbox penuh), tampilan barunya belum dilihat mata, dan butir daftar periksa manual
+   untuk Pengaturan belum dibuat. Setelah itu **G3-10 reset total dan jalur memasang PIN kembali**.
+
+2. **Menunggu mata pemilik — total lima butir, jangan dikerjakan agen:** **34–35** (foto murid,
+   ditambahkan 2026-10-11) dan **36–38** (panel desain laporan, perancang tema, dan tiga grafik
+   Keuangan, ditambahkan 2026-10-11 bersama G3-08). Butir 35 memeriksa jalur **Batal** sesudah
+   menghapus foto, dan butir 36–38 memeriksa hal yang memang tidak bisa dinilai dari kode.
+
+3. Pekerjaan di `PEKERJAAN.md` bagian 4 boleh dikerjakan kapan saja tanpa mengubah urutan di atas —
+   termasuk tiga temuan 2026-10-08: kegagalan `e2e` yang tidak hijau di mesin ini (kegagalan warisan
+   ber-`SchemaError: DexieError`), katalog tangkapan layar yang tidak lagi cocok dengan spec, dan
+   pengukuran ulang G3-01 butir 9. Ditambah temuan 2026-10-11: `useWebWorker` yang sepuluh kali lebih
+   lambat, baris sasaran `StudentDetail.tsx` yang sudah hampir penuh, **sub-layar `?tab=ringkasan`
+   yang belum masuk cakupan penjaga tampilan**, dan **gate R2 `check:docs` yang lulus secara hampa**
+   (tidak ada dokumen aktif yang masih punya kepala YAML `versi_app`/`test`).
+
+4. Daftar periksa manual di `PEKERJAAN.md` bagian 5 (kini **38 butir**) hanya bisa ditutup pemilik di
+   perangkat. **Butir 24–29 dan 30–33 sudah dicentang** (30–33 pada 2026-10-10 sesudah pemeriksaan di
+   HP); **butir 34–38 menunggu**, dan **butir 1–23 masih terbuka** dan boleh dikerjakan kapan saja
+   tanpa mengubah urutan di atas.
 
 ---
 

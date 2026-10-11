@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { MIN_PASS, generatePassphrase, passStrength } from "../../lib/passphrase";
 import { recoveryButtonEnabled, recoveryTargetSummary } from "../../lib/recoveryPresentation";
+import { downloadBlob } from "../../lib/download";
+import { todayWIB } from "../../lib/format";
 import { isDriveConfigured } from "./backupHandlers";
 import { Section } from "./Section";
 import StorageUsage from "./StorageUsage";
@@ -69,6 +71,60 @@ export default function BackupSection({
 
   const jalurSibuk = jalur.busy;
   const driveSiap = isDriveConfigured();
+  /** Kata sandi sudah cukup panjang untuk dipakai backup. */
+  const siapPakai = backupPass.length >= MIN_PASS;
+
+  /**
+   * Salin kata sandi ke papan klip (G3-09 butir 6).
+   *
+   * `navigator.clipboard` **tidak selalu ada**: di peramban tanpa konteks aman
+   * (http biasa) atau saat izinnya ditolak, `writeText` menolak. Kegagalannya
+   * diberitahukan apa adanya — tombol salin yang diam adalah keluhan yang sama
+   * dengan tombol perbarui yang tidak bekerja.
+   */
+  const salinSandi = async () => {
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("papan klip tidak tersedia di peramban ini");
+      await navigator.clipboard.writeText(backupPass);
+      toast.success("Kata sandi enkripsi disalin ✓ Tempel di tempat aman, lalu hapus dari papan klip.");
+    } catch (e) {
+      toast.error("Gagal menyalin: " + ((e as Error).message || "papan klip diblokir") + ". Tampilkan lalu salin manual.");
+      setShowBackupPass(true);
+    }
+  };
+
+  /**
+   * Unduh berkas kunci (G3-09 butir 6).
+   *
+   * Isinya sengaja **bukan hanya kata sandinya**: ada tanggal, nama aplikasi, dan
+   * satu kalimat yang menjelaskan untuk apa berkas ini dan apa risikonya. Berkas
+   * kunci tanpa penjelasan akan ditemukan setahun kemudian tanpa konteks.
+   */
+  const unduhBerkasKunci = () => {
+    const garis = [
+      "LES KO LUI — BERKAS KUNCI BACKUP",
+      "",
+      `Dibuat: ${new Date().toLocaleString("id-ID", { dateStyle: "full", timeStyle: "short" })}`,
+      `Kata sandi enkripsi: ${backupPass}`,
+      "",
+      "APA INI",
+      "Kata sandi di atas dipakai untuk MEMBUKA berkas backup (.jles) aplikasi Les Ko Lui.",
+      "Tanpa kata sandi ini, berkas backup TIDAK BISA dibuka — oleh siapa pun, termasuk aplikasi ini.",
+      "",
+      "YANG PERLU DILAKUKAN",
+      "1. Simpan berkas ini di tempat yang aman, terpisah dari berkas backup-nya.",
+      "2. Kalau backup disimpan di Google Drive, JANGAN simpan berkas ini di Drive yang sama.",
+      "3. Jangan kirim berkas ini lewat WhatsApp atau email biasa.",
+      "",
+      "CATATAN",
+      "Kata sandi ini tidak tersimpan di dalam aplikasi dan tidak bisa dipulihkan.",
+      "Mengganti kata sandi berarti backup lama tetap memakai kata sandi yang lama.",
+      "",
+    ];
+    const blob = new Blob([garis.join("\n")], { type: "text/plain;charset=utf-8" });
+    downloadBlob(blob, `leskolui-berkas-kunci-${todayWIB()}.txt`);
+    toast.success("Berkas kunci diunduh ✓ Simpan terpisah dari berkas backup.");
+  };
 
   /** Baris sasaran pemulihan dari satu sumber: `recoveryTargetSummary`. */
   const barisSasaran = (sasaran: { fileName?: string; sizeBytes?: number }): string[] =>
@@ -84,7 +140,32 @@ export default function BackupSection({
 
         {/* Kata sandi bersama — dipakai semua backup & restore */}
         <div className="bg-[var(--surface)] rounded-xl p-3 space-y-2">
-          <label htmlFor="set-backup-pass" className="label">Kata Sandi Enkripsi</label>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <label htmlFor="set-backup-pass" className="label m-0">Kata Sandi Enkripsi</label>
+            {/* G3-09 butir 6: salin + unduh berkas kunci. Keduanya menonaktif
+                selama katanya belum memenuhi batas minimum — tombol yang menyalin
+                kata sandi terlalu pendek hanya menyebarkan sandi yang lemah. */}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={!siapPakai}
+                title={siapPakai ? undefined : `Isi kata sandi minimal ${MIN_PASS} karakter dulu.`}
+                onClick={() => void salinSandi()}
+                className="min-h-[44px] rounded-lg bg-[var(--bg-subtle)] px-3 py-2 text-xs font-medium text-[var(--ink-strong)] disabled:opacity-50"
+              >
+                Salin
+              </button>
+              <button
+                type="button"
+                disabled={!siapPakai}
+                title={siapPakai ? undefined : `Isi kata sandi minimal ${MIN_PASS} karakter dulu.`}
+                onClick={unduhBerkasKunci}
+                className="min-h-[44px] rounded-lg bg-[var(--bg-subtle)] px-3 py-2 text-xs font-medium text-[var(--ink-strong)] disabled:opacity-50"
+              >
+                Unduh berkas kunci
+              </button>
+            </div>
+          </div>
           <div className="flex gap-2">
             <input
               id="set-backup-pass"

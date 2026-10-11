@@ -2,12 +2,12 @@ import { useState, useEffect, useRef } from "react";
 import { saveSettings } from "../db/repos";
 import { useToastCtx } from "../components/ToastProvider";
 import { compressPhoto } from "../lib/foto";
-import { APP_VERSION } from "../lib/version";
 import { settingsLoadGate } from "../lib/settingsPresentation";
 import { PESAN_TINGGALKAN_HALAMAN, harusDitahan, perluBeforeUnload } from "../lib/settingsSaveBar";
 import SettingsSaveBar from "./settings/SettingsSaveBar";
 import { useSettingsQuery } from "../hooks/useSettingsQuery";
 import SettingsLoadError from "../components/SettingsLoadError";
+import { ReceiptIcon } from "../components/icons";
 import Skeleton from "../components/Skeleton";
 import ConfirmSheet from "../components/ConfirmSheet";
 import { DEEPSEEK_MODEL } from "../lib/aiConfig";
@@ -16,11 +16,7 @@ import type { Settings } from "../db/types";
 import { settingsDirtyPatch } from "../lib/settingsDirtyPatch";
 import PinConfirmModal from "../components/PinConfirmModal";
 import ExitAppModal from "../components/ExitAppModal";
-import { TrashIcon, ReceiptIcon, PhoneIcon } from "../components/icons";
 import { MIN_PASS } from "../lib/passphrase";
-import { offlineState, persistState } from "../lib/appSettingsStatus";
-import { usePwaUpdate } from "../hooks/usePwaUpdate";
-import PwaUpdateUi from "../components/PwaUpdateUi";
 import { AccordionProvider, DangerZoneDivider, Section } from "./settings/Section";
 import PinSection from "./settings/PinSection";
 import DangerZoneSection from "./settings/DangerZoneSection";
@@ -29,7 +25,9 @@ import { useJalurPemulihan } from "./settings/useBackupSection";
 import BackupSection from "./settings/BackupSection";
 import AiSection from "./settings/AiSection";
 import ProfileBankSections from "./settings/ProfileBankSections";
-import StorageUsage from "./settings/StorageUsage";
+import SettingsStatusSummary from "./settings/SettingsStatusSummary";
+import AppSection from "./settings/AppSection";
+import { useStorageEstimate } from "../hooks/useStorageEstimate";
 import { buatBackupHandlers } from "./settings/backupHandlers";
 import AuditLogViewer from "./settings/AuditLogViewer";
 
@@ -98,6 +96,16 @@ export default function SettingsPage() {
    * kegagalannya juga dicatat sebagai keadaan (G3-09 butir 8).
    */
   const [simpanGagal, setSimpanGagal] = useState<string | null>(null);
+
+  /**
+   * Pemakaian penyimpanan untuk baris ringkasan status (G3-09 butir 3).
+   *
+   * Dibaca di sini, bukan diwarisi dari `AppSection`: ringkasan status berada di
+   * ATAS halaman sementara bagian Aplikasi jauh di bawah. `estimate()` murah dan
+   * tidak menulis apa pun, jadi membacanya di dua tempat jauh lebih sederhana
+   * daripada menaikkan angkanya dari komponen bawah ke komponen atas.
+   */
+  const penyimpanan = useStorageEstimate();
   /**
    * Rujukan keadaan untuk penjaga di dalam `useEffect` berisi `[]`: kalau
    * penjaganya dipasang ulang setiap kali `dirty` berubah, pendengarnya
@@ -163,7 +171,11 @@ export default function SettingsPage() {
    * (G3-09 butir 10). Karena itu tutor tetap bisa memasang pembaruan dari sini
    * setelah menutup tawarannya di banner.
    */
-  const pembaruan = usePwaUpdate();
+
+  /**
+   * Pemakaian penyimpanan perangkat. Dibaca di sini karena dipakai DUA tempat:
+   * ringkasan status tiga baris (G3-09 butir 3) dan bagian Aplikasi.
+   */
 
   /**
    * Status penyimpanan permanen & kesiapan offline untuk bagian Aplikasi.
@@ -174,38 +186,8 @@ export default function SettingsPage() {
    * halaman — bukan dari `navigator.onLine`, yang justru bernilai false saat
    * offline sehingga menyesatkan orang yang paling butuh informasi ini.
    */
-  const [persisted, setPersisted] = useState<boolean | null>(null);
-  const [swMengontrol, setSwMengontrol] = useState<boolean | null>(null);
-  const [onLine, setOnLine] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
-  useEffect(() => {
-    let hidup = true;
-    void navigator.storage?.persisted?.()
-      .then((v) => { if (hidup) setPersisted(v); })
-      .catch(() => { if (hidup) setPersisted(false); });
-    if ("serviceWorker" in navigator) {
-      const sync = () => { if (hidup) setSwMengontrol(Boolean(navigator.serviceWorker.controller)); };
-      sync();
-      navigator.serviceWorker.addEventListener("controllerchange", sync);
-      const syncOnline = () => setOnLine(navigator.onLine);
-      window.addEventListener("online", syncOnline);
-      window.addEventListener("offline", syncOnline);
-      return () => {
-        hidup = false;
-        navigator.serviceWorker.removeEventListener("controllerchange", sync);
-        window.removeEventListener("online", syncOnline);
-        window.removeEventListener("offline", syncOnline);
-      };
-    }
-    return () => { hidup = false; };
-  }, []);
 
   /** `null` = belum terbaca; jangan mengklaim apa pun sebelum peramban menjawab. */
-  const statusPenyimpanan = persisted === null
-    ? { tone: "info" as const, text: "Memeriksa...", detail: "Menanyakan ke peramban apakah data aplikasi ini dijanjikan tidak dibuang sendiri." }
-    : persistState({ persisted });
-  const statusOffline = swMengontrol === null
-    ? { tone: "info" as const, text: "Belum diketahui", detail: "Status siap offline diperiksa setelah halaman selesai dimuat." }
-    : offlineState({ controlled: swMengontrol, onLine });
 
   // Shallow copy preserves Blobs — JSON.stringify would corrupt them
   useEffect(() => {
@@ -496,6 +478,16 @@ export default function SettingsPage() {
           hierarki heading dan ambang guard G1-11 ("setiap layar ≥1 h2") terpenuhi. */}
       <h2 className="sr-only">Bagian pengaturan</h2>
 
+      {/* Ringkasan status tiga baris (G3-09 butir 3): menjawab "kapan backup
+          terakhir", "AI hidup atau mati", dan "penyimpanan terpakai berapa"
+          tanpa membuka tiga akordeon satu per satu. */}
+      <SettingsStatusSummary
+        form={form}
+        pemakaian={pemakaian}
+        storage={{ used: penyimpanan.used, quota: penyimpanan.quota }}
+        bukaBagian={setOpenSection}
+      />
+
       <BackupSection
         form={form}
         jalur={jalur}
@@ -530,63 +522,10 @@ export default function SettingsPage() {
 
 
       {/* ── PWA / Aplikasi ── */}
-      <Section id="aplikasi" title="Aplikasi" icon={<PhoneIcon size={18} />}>
-        <div className="pt-3 space-y-3">
-          <StorageUsage />
-
-          {/**
-           * G3-09 butir 10 — pembaruan manual. Ini jalur yang tetap bisa dipakai
-           * tutor SESUDAH menutup tawaran pembaruan di banner, jadi menutup
-           * tawaran tidak pernah mengunci kemampuan memasang versi baru.
-           */}
-          <PwaUpdateUi
-            variant="panel"
-            ready={pembaruan.ready}
-            checking={pembaruan.checking}
-            onCheck={pembaruan.check}
-            onApply={pembaruan.apply}
-          />
-
-          <div className="bg-[var(--surface)] rounded-xl p-3 space-y-1.5">
-            <div className="flex justify-between text-sm">
-              <span className="text-[var(--ink-muted)]">Versi</span>
-              <span className="font-semibold text-[var(--ink-strong)]">{APP_VERSION}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-[var(--ink-muted)]">Penyimpanan permanen</span>
-              <span className={statusPenyimpanan.tone === "ok" ? "text-[var(--ink-muted)]" : "text-[var(--ink-warn)]"}>
-                {statusPenyimpanan.text}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-[var(--ink-muted)]">Siap offline</span>
-              <span className={statusOffline.tone === "ok" ? "text-[var(--ink-muted)]" : "text-[var(--ink-warn)]"}>
-                {statusOffline.text}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-[var(--ink-muted)]">Mode</span>
-              <span className="text-[var(--ink-muted)]">{import.meta.env.DEV ? "Development" : "Production"}</span>
-            </div>
-          </div>
-          <p className="text-xs leading-relaxed text-[var(--ink-muted)]">{statusPenyimpanan.detail}</p>
-          <p className="text-xs leading-relaxed text-[var(--ink-muted)]">{statusOffline.detail}</p>
-
-          <button
-            type="button"
-            onClick={() => setShowExitModal(true)}
-            className="w-full min-h-[44px] py-2.5 rounded-xl bg-[var(--bg-danger)] text-[var(--ink-danger)] text-sm font-semibold hover:bg-[var(--bg-danger)] transition-colors">
-            Keluar Aplikasi
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setConfirmClearCache(true)}
-            className="w-full min-h-[44px] py-2.5 rounded-xl bg-[var(--bg-subtle)] text-[var(--ink-strong)] text-sm font-semibold hover:bg-[var(--bg-subtle)] transition-colors">
-            <TrashIcon size={13} className="mr-1 inline align-[-2px]" /> Bersihkan Cache (butuh internet setelahnya)
-          </button>
-        </div>
-      </Section>
+      <AppSection
+        onKeluar={() => setShowExitModal(true)}
+        onBersihkanCache={() => setConfirmClearCache(true)}
+      />
 
       {/* ── Riwayat Aktivitas (audit trail) ── */}
       <Section id="riwayat" title="Riwayat Aktivitas" icon={<ReceiptIcon size={18} />}>
