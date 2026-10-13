@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { hashPin, verifyPin } from "../../lib/crypto";
 import { getPinLockoutDelay, recordPinFailure, resetPinLockout } from "../../lib/pinLockout";
 import { Section } from "./Section";
@@ -34,9 +34,19 @@ export interface PinSectionProps {
   onSave: (updated: Settings) => Promise<void>;
   /** Diisi induk supaya perubahan PIN tanpa simpan bisa ditahan (G3-09 butir 2). */
   sectionRef?: (el: HTMLDivElement | null) => void;
+  /**
+   * Langsung buka formulir "Buat PIN" saat bagian ini dipasang (G3-10 butir 3).
+   *
+   * Dipakai jalur "pasang PIN baru sesudah reset": tutor datang dari banner dengan
+   * maksud tunggal memasang PIN, jadi menampilkan tombol "Buat PIN" lebih dulu berarti
+   * menambah satu ketukan untuk sesuatu yang sudah jelas. Hanya berlaku bila PIN-nya
+   * memang **belum** ada — kalau sudah ada, yang benar adalah "Ganti PIN" yang meminta
+   * PIN lama dulu, dan itu tidak boleh dilewati.
+   */
+  autoStart?: boolean;
 }
 
-export default function PinSection({ financialPin, securityQuestion, securityAnswer, onSave, sectionRef }: PinSectionProps) {
+export default function PinSection({ financialPin, securityQuestion, securityAnswer, onSave, sectionRef, autoStart = false }: PinSectionProps) {
   const [pinMode, setPinMode] = useState<PinMode>("view");
   const [oldPin, setOldPin] = useState("");
   const [forgotA, setForgotA] = useState("");
@@ -58,6 +68,20 @@ export default function PinSection({ financialPin, securityQuestion, securityAns
     setLockLeft(detik);
     return detik;
   };
+
+  /**
+   * G3-10 butir 3: datang dari ajakan sesudah reset → langsung ke formulir "Buat PIN".
+   *
+   * Dijalankan **sekali** saat dipasang (dependensi kosong), dan hanya kalau PIN-nya
+   * memang belum ada. `autoStart` sengaja tidak masuk dependensi: ia ditetapkan dari
+   * hash alamat saat halaman dibuka dan tidak pernah berubah selama halaman hidup,
+   * sedangkan memasukkannya akan membuat efek ini berjalan ulang setiap render dan
+   * mengganggu tutor yang sedang mengetik (mode dikembalikan ke "edit" terus-menerus).
+   */
+  useEffect(() => {
+    if (autoStart && !financialPin) setPinMode("edit");
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sengaja sekali saat dipasang; lihat komentar di atas.
+  }, []);
 
   const handleVerifyOldPin = async () => {
     if (!financialPin || verifyOldBusy) return;

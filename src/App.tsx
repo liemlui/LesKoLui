@@ -2,6 +2,7 @@ import { useEffect, lazy, Suspense, useState, useCallback } from "react";
 import { createBrowserRouter, RouterProvider, Outlet, Navigate, useNavigate, useLocation } from "react-router-dom";
 import BottomNav from "./components/BottomNav";
 import { PwaPrompts } from "./components/PwaPrompts";
+import PinResetInvite from "./components/PinResetInvite";
 import ChangelogModal from "./components/ChangelogModal";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Skeleton from "./components/Skeleton";
@@ -305,6 +306,11 @@ function Layout() {
           </div>
         </div>
       )}
+
+      {/* G3-10 butir 3: sesudah reset, ajakan memasang PIN baru — bukan layar kosong tanpa
+          penjelasan. Ditaruh di Layout, bukan di Beranda, karena reset bisa berakhir di rute
+          mana pun dan ajakan ini harus terlihat di semuanya. */}
+      <PinResetInvite />
 
       <Suspense fallback={<div className="p-4 space-y-4"><Skeleton variant="card" /><Skeleton variant="text" lines={4} /></div>}>
         <Outlet />

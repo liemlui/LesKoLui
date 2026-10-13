@@ -41,12 +41,13 @@ Lanjutkan proyek Les Ko Lui (jurnal les privat, PWA lokal-first) — Gelombang 3
 
 | Hal | Nilai saat berkas ini ditulis |
 |---|---|
-| Versi | v1.99.0 |
-| Branch / HEAD | `main`, pohon kerja bersih sesudah G3-08 (`git status -sb` untuk selisih dengan `origin/main`) |
-| Suite | 1.242 lulus / 91 berkas |
+| Versi | v1.101.0 |
+| Branch / HEAD | `main` (jalankan `git status -sb` untuk selisih dengan `origin/main`; putaran 2026-10-11 lupa memeriksa apakah commit terakhirnya sudah terdorong — **periksa sendiri**) |
+| Suite | 1.363 lulus / 98 berkas sesudah G3-09; sesudah G3-10 butir 3 bertambah **22 tes** di berkas `pinResetInvite.test.ts` (angkanya dibaca dari keluaran `npm run test:sandbox`, jangan dari baris ini) |
+| `tsc -b` · `eslint src` | bersih (0 error, 0 warning) sesudah G3-10 butir 3 |
 | `check:docs` | 0 rusak · 0 pelanggaran |
-| `e2e:uiux` | **63 lulus / 1 gagal** — yang gagal adalah batas waktu `locator.fill` pada gerbang PIN `/payments — tiga blok`; **lulus 4/4 saat dijalankan sendirian**, jadi beban mesin. Jangan mengklaim "hijau" tanpa perincian ini |
-| `e2e` | **67 lulus / 13 gagal / 6 skip**. Dua belas kegagalan persis daftar warisan 2026-10-08 (`report-export-ratio` 3×2, `report-unlock` ×2, `capture-closeout-failure` ×2, `finance` ×2 — `SchemaError: DexieError` atau batas waktu di bawah beban); yang ketiga belas `screenshot-katalog` "11-narasi-per-sesi" **lulus sendirian** |
+| `e2e:uiux` | **tidak dijalankan pada putaran G3-10 butir 3** — jadi halaman `/settings` yang berubah **tidak punya penjaga tampilan** untuk perubahan itu. Angka terakhir yang terukur (2026-10-11, G3-09) adalah **64 lulus / 0 gagal** |
+| `e2e` | **67 lulus / 13 gagal / 6 skip** (potret 2026-10-11 sesudah G3-08). Dua belas kegagalan persis daftar warisan 2026-10-08 (`report-export-ratio` 3×2, `report-unlock` ×2, `capture-closeout-failure` ×2, `finance` ×2 — `SchemaError: DexieError` atau batas waktu di bawah beban); yang ketiga belas `screenshot-katalog` "11-narasi-per-sesi" **lulus sendirian** |
 
 Baris berkas besar yang menjadi target refactor (diukur dengan `npm run measure loc`):
 `CaptureSession.tsx` **2.077** · `Settings.tsx` **1.387** (target ≤700, tugas berikutnya) · `payments/TagihanTab.tsx` **1.021** (target ≤800). `MonthlyReport.tsx` **1.470** (target ≤1.500) sudah tuntas. **`StudentDetail.tsx` **698** dengan sasaran **≤700** (keputusan pemilik 2026-10-11) — sisa 2 baris, jadi penambahan berikutnya wajib lewat komponen terpisah.** `StudentForm.tsx` 589 dan `Students.tsx` 519, keduanya masih di bawah sasarannya.
@@ -94,12 +95,25 @@ Butuh izin sandbox penuh: `npm run e2e`, `npm run e2e:uiux`, `git push`.
 
 ### Urutan pekerjaan yang mengikat
 
-**Sisa Gelombang 3 — dua tugas, G3-08 sudah tuntas 2026-10-11:**
+**Sisa Gelombang 3 — TIDAK ADA TUGAS KODE TERSISA.** Diperbarui 2026-10-11 sesudah G3-10 butir 3
+(v1.101.0). Yang benar-benar tersisa di gelombang ini hanyalah pekerjaan tangan pemilik:
 
-1. **G3-09 Pengaturan.** Refactor `Settings.tsx` 1.387 → ≤700 + 11 fitur. **Lima `confirm()` bawaan peramban masih hidup di berkas itu** (jalur restore dan hapus semua data), dan syarat selesai G3-09 sendiri sudah menuntut semuanya diganti dialog internal. **Kerjakan ini lebih dulu.**
-2. **G3-10 Reset total dan PIN.** Bergantung pada G3-09.
+1. **G3-09 Pengaturan.** Target baris tercapai (`Settings.tsx` **566** baris), kesebelas fitur terpasang,
+   gate mesin hijau (`tsc` · `eslint` · suite · `build` · `check:docs` · `e2e:uiux` 64/0). Yang tersisa
+   **hanya** tampilannya yang belum pernah dilihat mata pemilik.
+2. **G3-10.** **Empat dari lima butir selesai.** Butir 3 (ajakan memasang PIN baru sesudah reset)
+   ditutup 2026-10-11. **Butir 5** (uji memakai data contoh) sudah dipindahkan menjadi **butir 39**
+   daftar periksa manual, karena hanya bisa dijalankan pemilik di server pengembangan — di alamat
+   online tidak ada pemuat data contoh sehingga yang terhapus adalah data asli.
 
-**Menunggu mata pemilik (jangan dikerjakan agen):** butir daftar periksa manual **34–38** belum dicentang — **34–35** foto murid (ditambahkan 2026-10-11), dan **36–38** panel desain laporan + perancang tema + tiga grafik Keuangan (ditambahkan 2026-10-11 bersama G3-08). Butir 35 memeriksa jalur **Batal** sesudah menghapus foto, dan butir 36–38 memeriksa hal yang memang tidak bisa dinilai dari kode.
+**Menunggu mata pemilik (jangan dikerjakan agen) — kini 8 butir:** daftar periksa manual **34–35**
+(foto murid, ditambahkan 2026-10-11), **36–38** (panel desain laporan + perancang tema + tiga grafik
+Keuangan, ditambahkan 2026-10-11 bersama G3-08), **39** (jalur reset total + ajakan PIN baru,
+ditambahkan 2026-10-11 bersama G3-10 butir 3 — **wajib di server pengembangan**), dan **butir daftar
+periksa untuk layar Pengaturan yang belum dibuat** (v1.100.0 dan v1.101.0 sama-sama menyentuh layar itu
+tanpa punya butirnya sendiri). **Butir 1–23 masih terbuka.** Panduan langkah-demi-langkahnya ada di
+`PANDUAN-CEK-DI-HP.md`, yang 2026-10-11 diperluas supaya mencakup **seluruh** sisa butir (sebelumnya
+hanya 30–35), lengkap dengan tabel keadaan supaya tidak ada pemeriksaan yang diulang.
 
 **Kemudian §4 PEKERJAAN.md (boleh kapan saja):**
 
@@ -196,6 +210,17 @@ Ditambahkan dari pengalaman 2026-10-11 (G3-07):
 - **Sasaran baris `StudentDetail.tsx` yang berlaku adalah ≤700** (keputusan pemilik 2026-10-11), dan berkasnya terukur **698**. Setiap penambahan di berkas itu harus lewat komponen terpisah. Angka ≤800 yang tertulis di bagian G3-06 `PEKERJAAN.md` adalah catatan keadaan saat G3-06 ditutup, bukan sasaran yang berlaku.
 - **`undefined` pada `db.students.update()` menghapus kolomnya.** Itulah mekanisme "Hapus foto"; jangan menambahkan cadangan `?? existing.photo` yang akan membuat tombol hapus tidak pernah berpengaruh.
 
+Ditambahkan dari pengalaman 2026-10-11 (G3-10 butir 3):
+
+- **Status sebuah tugas di dokumen bisa SALAH, dan satu-satunya cara memeriksanya adalah `grep` ke kode.** `PEKERJAAN.md` dan `SERAH-TERIMA.md` sama-sama menulis G3-10 "belum" selama beberapa hari, padahal **butir 1, 2, dan 4-nya sudah ada di kode sejak G3-09** (`dangerZoneRows.ts` · `DangerZoneSection.tsx` · `dangerZoneActions.ts`). Tidak ada gate yang bisa menangkapnya: `tsc` tidak mengeluh soal fitur yang tidak pernah ditulis, dan suite tidak punya tes untuknya. **Sebelum mengerjakan tugas yang ditandai "belum", periksa dulu apakah butir-butirnya sudah ada di kode.** Kelas yang sama dengan dua sub-butir G3-09 yang sempat terlewat (`grep installInstructions` → 0 pemakaian).
+- **Penanda lintas-reload untuk sesuatu yang ikut terhapus reset HARUS hidup di luar basis data.** Tabel `settings` (tempat PIN Keuangan) dibersihkan `db.transaction`, jadi penanda di dalamnya mustahil dibaca sesudahnya — penandanya dipasang di `localStorage` (`leskolui_pin_reset_pending`). Perhatikan bahwa ini **kebalikan** dari `leskolui_last_auto_backup_prompt`, yang justru sengaja dibuang supaya pengingatnya muncul lagi: jangan menyeragamkan keduanya.
+- **Saat menulis penanda di `localStorage` dari jalur yang baru saja menghapus tabel, tulis SESUDAH pembersihan.** `localStorage` tidak ikut dibersihkan `db.transaction`, tetapi menulis lebih dulu berarti penandanya hidup berdampingan dengan data yang belum terhapus — dan bila kelak pembersihannya diperluas, urutan yang salah akan menghapusnya. Urutannya diuji lewat pembacaan sumber `?raw`, bukan diingat.
+- **Penjaga untuk "fitur yang seharusnya ada" butuh DUA lapis: perilaku DAN sambungan.** `pinResetInvite.test.ts` menguji fungsi murni dengan `Storage` palsu **dan** membaca berkas sumber `?raw` untuk membuktikan penandanya benar-benar ditulis saat reset dan dibaca saat halaman dibuka. Tanpa lapis kedua, modul yang benar tetapi **tidak dipanggil siapa pun** akan tampak hijau — persis bagaimana butir ini bisa terlewat.
+- **`useLiveQuery` lewat `useSettingsQuery()` membuat keadaan hilang-sendiri gratis.** Banner ajakan PIN menghilang begitu PIN tersimpan tanpa satu baris kode tambahan, karena syarat tampilnya `tampilkanAjakanPin(penandaAda, adaPin)` dibaca dari pengaturan yang reaktif. Lebih baik daripada memasang pembersih di dua tempat.
+- **Jangan menaruh penanda "sudah dibaca" pada tombol yang mengarahkan, taruh pada aksi yang benar-benar menyelesaikan.** Penanda ajakan PIN dibuang di jalur **penyimpanan PIN yang berhasil** (`simpanPin`), bukan di tombol "Buat PIN sekarang" — kalau tidak, tutor yang membuka Pengaturan lalu menutupnya tanpa menyimpan tidak akan pernah melihat ajakannya lagi.
+- **`Section` di layar Pengaturan memasang `id={`bagian-${id}`}` dan akordeonnya dikendalikan `openSection`.** Jadi tautan dalam-aplikasi ke sebuah bagian butuh DUA hal: hash yang benar (`/settings#bagian-pin`) **dan** pembacaan hash itu di `Settings.tsx` untuk membuka akordeonnya — hash saja hanya menggulir ke elemen yang isinya belum dirender. Dipasang 2026-10-11 lewat satu `useEffect` berisi `[]`; perhatikan bahwa eslint **menandai direktif `exhaustive-deps` yang tidak perlu** di situ, jadi jalankan `npx eslint src` dan buang direktif yang dilaporkan.
+- **Mengubah `/settings` tidak tertangkap `e2e:uiux` pada putaran ini** — gate itu tidak dijalankan sesudah perubahan G3-10 butir 3, sehingga halaman Pengaturan yang berubah tidak punya penjaga tampilan untuk perubahan itu. Kalau menyentuh layar Pengaturan lagi, jalankan `e2e:uiux` **pada putaran yang sama** (butuh izin sandbox penuh) atau tulis batas itu di laporan.
+
 ### Kenyataan yang menyimpang dari spesifikasi — sudah diputuskan, jangan diulang
 
 - **Papan pipeline tetap di sub-layar analitik (`?tab=ringkasan`), bukan dipindah ke blok 2 layar
@@ -266,4 +291,5 @@ manusia, (2) perintah apa yang dijalankan dan hasilnya sekali saja, (3) apa yang
 | 2026-10-08 | Diperbarui sesudah G3-05 tuntas dan v1.96.0 dirilis: keadaan terukur (v1.96.0 · suite 982/74 · `e2e` 69/11/6 dengan penjelasan bahwa sebelas kegagalan itu sudah ada sebelum G3-05), urutan pekerjaan (G3-06 lebih dulu, G3-05 dikeluarkan), dan lima jebakan baru dari putaran ini — terutama pola spec Playwright yang menemukan murid lewat tombol `toBeEnabled`, dan peringatan agar tidak menyentuh berkas ber-UTF-8 dengan `Get-Content`/`Set-Content`. |
 | 2026-10-08 | Ditambahkan sesudah inspeksi pemilik: layar Laporan **sudah dilihat di perangkat dan dinilai cukup** ("sudah sangat oke"), butir daftar periksa 26–29 dicentang, dan catatan bahwa pemisahan istilah dibuat/dibagikan pada ekspor ikut disetujui lewat inspeksi itu. |
 | 2026-10-10 | Diperbarui sesudah **G3-06 tuntas dan v1.97.0 dirilis**: keadaan terukur (v1.97.0 · suite 1197/89 · `e2e:uiux` **64/0** termasuk layar Detail Murid), urutan pekerjaan (G3-06 dikeluarkan, **G3-07 jadi yang pertama**), dan enam jebakan baru dari putaran ini — terutama **hook React setelah gerbang `return`** (menjatuhkan satu layar penuh, lolos dari `tsc` dan suite, hanya tertangkap `eslint` + `e2e:uiux`), emoji di dalam tombol yang ditolak guard, `react-refresh/only-export-components`, jebakan nama `.ts` vs `.tsx` di Windows, catatan bahwa repo **tidak** memasang jsdom, dan satu flake PIN di guard tampilan. Ditambahkan juga dua penyimpangan yang mengikat: butir #10 tetap berpola halaman, dan `StudentDetail.tsx` dipotong lewat ekstraksi modal (bukan pemecahan per tab). |
+| 2026-10-11 | Diperbarui sesudah **G3-10 butir 3 tuntas dan v1.101.0 dirilis**: keadaan terukur (v1.101.0 · `tsc`/`eslint` bersih · 22 tes baru · **`e2e:uiux` tidak dijalankan pada putaran itu** dan itu ditulis apa adanya), urutan pekerjaan (**tidak ada tugas kode tersisa di Gelombang 3**; yang tersisa hanya pekerjaan tangan pemilik, kini **8 butir**: 34–39 ditambah butir daftar periksa Pengaturan yang belum dibuat), dan **tujuh jebakan baru** — terutama bahwa **status sebuah tugas di dokumen bisa salah** (G3-10 ditulis "belum" padahal empat dari lima butirnya sudah ada di kode sejak G3-09; yang menemukannya `grep` ke kode, bukan membaca ulang dokumen), bahwa **penanda lintas-reload untuk hal yang ikut terhapus reset harus hidup di luar basis data**, bahwa **penjaga "fitur yang seharusnya ada" butuh dua lapis** (perilaku + sambungan lewat berkas sumber `?raw`) supaya modul yang tidak dipanggil siapa pun tidak lolos, dan bahwa **tautan ke bagian Pengaturan butuh hash DAN pembacaan hash** karena akordeonnya dikendalikan `openSection`. |
 | 2026-10-11 | Diperbarui sesudah **G3-07 tuntas dan v1.98.0 dirilis**: keadaan terukur (v1.98.0 · suite **1226/90** · `e2e:uiux` **64/0** · `e2e` **68/12/6** dengan catatan bahwa satu kegagalan tambahan belum dipastikan warisan), urutan pekerjaan (G3-07 dikeluarkan, **G3-08 jadi yang pertama**, dan butir periksa manual 34–35 ditandai menunggu mata pemilik), serta **delapan jebakan baru** — terutama bahwa **menghitung pasangan `createObjectURL`/`revokeObjectURL` dari berkas sumber tidak bisa dipercaya** (penjaga pertama salah menuduh kode yang benar di tujuh berkas lalu dibuang), **Playwright mengabaikan spec di dalam direktori berawalan titik** (`No tests found` tanpa petunjuk), **Chromium menolak impor modul di halaman `file://`**, `useWebWorker` yang ±10× lebih lambat dengan hasil identik, `maxSizeMB` yang menekan mutu lebih dulu sehingga piksel hasilnya di bawah 640, `sr-only` yang tidak mengeluarkan kontrol dari urutan fokus, sasaran baris `StudentDetail.tsx` yang sekarang **≤700** dan hampir penuh (698), dan `undefined` pada `db.students.update()` yang **menghapus** kolomnya. Ditambahkan juga bagian penyimpangan G3-07: pemotongan lewat CSS, hapus-foto-berlaku-saat-Simpan, dan larangan mengembalikan janji "paling besar 150 KB" di antarmuka. |

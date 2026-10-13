@@ -1,12 +1,23 @@
-# PANDUAN-CEK-DI-HP — memeriksa layar Murid dari HP (rilis v1.98.0)
+# PANDUAN-CEK-DI-HP — memeriksa layar dari HP (rilis v1.101.0)
 
-> **Sekilas.** Jenis: panduan pemeriksaan untuk pemilik. Status: **berlaku** — bagian A menunggu Anda (foto murid, butir 34–35).
+> **Sekilas.** Jenis: panduan pemeriksaan untuk pemilik. Status: **berlaku** — bagian A dan B menunggu Anda.
 > Untuk siapa: pemilik aplikasi, dengan HP di tangan.
 > **Ini bukan daftar pekerjaan.** Daftarnya tetap [`PEKERJAAN.md`](PEKERJAAN.md); butir yang dicentang ada di §5 berkas itu.
-> Alasan panduan ini ada: saat dibuat, seluruh tab Murid yang baru **belum pernah dilihat mata manusia** — yang ada baru bukti mesin
-> (suite tes, `e2e:uiux` 64 lulus / 0 gagal, dan pengukuran baris). Bukti mesin **tidak** membuktikan tampilannya enak dipakai.
-> **Riwayat pemakaian:** pemeriksaan pertama (butir 30–33, tab Murid) **selesai 2026-10-10** dan hasilnya sesuai rencana.
-> Sekarang berkas ini dipakai lagi untuk foto murid (butir 34–35, rilis v1.98.0); bagian lama tetap disimpan di bagian A′.
+> Alasan panduan ini ada: sebagian tampilan aplikasi ini **belum pernah dilihat mata manusia** — yang ada baru bukti mesin
+> (suite tes, `e2e:uiux`, dan pengukuran baris). Bukti mesin **tidak** membuktikan tampilannya enak dipakai.
+> **Riwayat pemakaian:** pemeriksaan pertama (butir 30–33, tab Murid) **selesai 2026-10-10** dan hasilnya sesuai rencana;
+> pemeriksaan kedua (butir 34–35, foto murid) **belum pernah dijalankan** — bagian A di bawah masih menunggu.
+>
+> **Keadaan butir per 2026-10-11, supaya tidak ada yang dikerjakan dua kali:**
+>
+> | Butir | Isi | Keadaan |
+> |---|---|---|
+> | 1–23 | layar lama (Catat Sesi · CSV · Beranda · Uang) | **terbuka** — panduan ringkasnya di bagian C |
+> | 24–29 | Uang tiga blok & Laporan | **sudah dicentang** 2026-10-07/08 — jangan diulang |
+> | 30–33 | tab Murid | **sudah dicentang** 2026-10-10 — arsipnya di bagian D, jangan diulang |
+> | 34–35 | foto murid | **menunggu** — bagian A |
+> | 36–38 | panel desain laporan & tiga grafik | **menunggu** — bagian B |
+> | 39 | jalur reset total + ajakan PIN baru | **menunggu**, dan **wajib di server pengembangan** — bagian B2 |
 
 ---
 
@@ -16,33 +27,40 @@
 dokumen mana pun, jadi saya tidak mengarangnya: proyek Vercel-nya bernama `les-ko-lui` (tercatat di `.vercel/project.json`),
 dan yang membuktikan deployment-nya sudah jalan adalah langkah 0.2.
 
-**0.2 Pastikan HP Anda benar-benar memuat v1.98.0.** Ini langkah paling penting: kalau HP masih memuat versi lama,
+**0.2 Pastikan HP Anda benar-benar memuat v1.101.0.** Ini langkah paling penting: kalau HP masih memuat versi lama,
 **semua** butir di bawah akan tampak "gagal" padahal kodenya belum ada di sana.
 
 - Begitu aplikasi terbuka, harus muncul jendela **Catatan perubahan** dengan:
   - tanggal **2026-10-11**,
-  - judul **"Foto murid: unggah, tampil bulat di daftar dan halaman murid, hapus dengan konfirmasi"**,
-  - baris **Versi v1.98.0** di bawah judul.
-- Tutup dengan tombol **Mengerti, Terima Kasih**. Jendela ini muncul **sekali per versi**, jadi kalau Anda sudah menutupnya
-  ia tidak muncul lagi — itu wajar.
-- **Kalau jendela itu TIDAK muncul sama sekali:** kemungkinan besar HP masih memuat versi lama (atau Vercel belum selesai
-  men-deploy, karena push-nya baru saja). Tutup aplikasi lalu buka lagi, atau muat ulang halaman.
-  **Kalau tetap tidak muncul, hentikan pemeriksaan dan beri tahu saya** — melanjutkan hanya akan menghasilkan laporan palsu.
+  - judul **"Sesudah menghapus semua data, aplikasi menjelaskan apa yang hilang dan mengajak memasang PIN lagi"**,
+  - baris **Versi v1.101.0** di bawah judul.
+- Kalau jendela itu sudah pernah Anda tutup pada versi ini, ia tidak muncul lagi — itu wajar. Cara memastikan nomor
+  versinya tetap sama: buka **Pengaturan → Aplikasi**, di situ ada tombol **Catatan perubahan** beserta nomor versi
+  yang sedang berjalan.
+- **Kalau nomor versinya masih v1.100.0 atau lebih lama:** kemungkinan besar HP masih memuat versi lama (atau Vercel belum
+  selesai men-deploy, karena push-nya baru saja). Tutup aplikasi lalu buka lagi, atau muat ulang halaman — atau tekan
+  **Perbarui sekarang** di **Pengaturan → Aplikasi**.
+  **Kalau tetap tidak berubah, hentikan pemeriksaan dan beri tahu saya** — melanjutkan hanya akan menghasilkan laporan palsu.
 
 **0.3 Data apa yang dipakai.** Aplikasi ini menyimpan data **di HP Anda sendiri**. Di alamat online **tidak ada pemuat
 data contoh**: `seedDummy` hanya hidup di server pengembangan (dipasang `src/main.tsx` di dalam `import.meta.env.DEV`).
 Jadi yang Anda periksa adalah **data asli Anda** — bukan data contoh, meski butir daftar periksa di `PEKERJAAN.md` §5
 menulis "memakai data contoh" (kalimat itu ditulis untuk server pengembangan).
 
-Konsekuensinya, tiga larangan untuk sesi pemeriksaan ini:
+Konsekuensinya, empat larangan untuk sesi pemeriksaan ini:
 
-1. **Jangan menekan "Hapus" pada murid asli**, dan jangan sentuh **Hapus Semua Data** di Pengaturan.
+1. **Jangan menekan "Hapus" pada murid asli**, dan di alamat online **jangan sentuh Hapus Semua Data** di Pengaturan.
 2. **Jangan mengubah tarif murid asli** — mengubah tarif memunculkan pertanyaan tentang sesi lama yang belum ditagih.
 3. **Untuk butir foto, pakai satu murid yang memang sudah punya foto atau memang Anda siapkan fotonya** — dan perhatikan
    bahwa di butir 35 Anda akan **benar-benar menghapus** foto itu di akhir. Kalau foto itu Anda sayangkan, pakai murid
    percobaan, bukan murid asli.
+4. **Butir 39 (reset total) TIDAK boleh dijalankan di alamat online sama sekali.** Butir itu menghapus seluruh data, dan
+   di alamat online yang terhapus adalah **data asli Anda** karena tidak ada pemuat data contoh. Butir itu hanya boleh
+   dijalankan di **server pengembangan** — caranya ada di bagian B2, dan bagian itu terpisah justru supaya tidak
+   tercampur dengan pemeriksaan lain.
 
-**0.4 Perkiraan waktu.** Bagian A ±5 menit (dua butir foto). Bagian A′ dan B arsip/opsional.
+**0.4 Perkiraan waktu.** Bagian A ±5 menit (dua butir foto) · bagian B ±6 menit (panel desain + tiga grafik) ·
+bagian B2 ±5 menit (**hanya di server pengembangan**) · bagian C dan D arsip/opsional.
 
 ---
 
@@ -89,11 +107,117 @@ tidak bisa dibuktikan oleh tes otomatis.
 
 ---
 
-## Bagian A′ — arsip: butir tab Murid (30–33), sudah dicentang 2026-10-10
+## Bagian B — panel desain laporan dan tiga grafik (36–38)
+
+> Bagian ini **boleh dijalankan di alamat online** dengan data asli Anda: tidak ada langkah yang menghapus apa pun.
+> Satu hal yang perlu disiapkan: **satu laporan bulanan yang sudah pernah dibuat** (mis. Juni 2026). Kalau belum ada,
+> buat dulu lewat **Laporan → pilih murid + periode → Buat Laporan**.
+
+### Butir 36 — Tema dan Susunan benar-benar terasa sebagai dua hal berbeda
+
+1. Buka **Laporan**, pilih murid Andi dan periode **Juni 2026**, lalu gulir ke bilah desain di bawah pratinjau.
+2. **Yang harus terlihat:** judul bilahnya memisahkan dua hal — **`Tema: <nama tema>`** dengan **ikon kilau**, dan
+   **`Susunan: <nama susunan>`** dengan **ikon daftar centang**. Bukan satu baris yang mencampur keduanya.
+3. Di dalamnya ada **dua tombol terpisah: Tema dan Susunan**. Buka **Tema** — yang terbuka hanya panel Tema. Tutup, lalu
+   buka **Susunan** — yang terbuka hanya panel Susunan. *(Ini yang paling mudah "kelihatan gagal": kalau membuka yang
+   satu ikut membuka yang lain, laporkan.)*
+4. Di panel **Susunan**: chip-nya **dikelompokkan** menjadi **Narasi panjang · Banyak foto · Ringkas**, masing-masing
+   dengan satu baris keterangan, dan hanya ada **satu** tombol **Pratinjau susunan terpilih** — **bukan** satu tombol
+   pratinjau kecil di tiap susunan seperti dulu.
+5. Tekan satu chip susunan: laporannya berganti. Lalu tekan tombol pratinjau: yang tampil adalah contoh susunan yang
+   **sedang dipakai** itu.
+6. Buka panel **Tema**: kisinya **empat kolom**, nama tiap tema **terbaca utuh** (tidak terpotong), dan tema yang sedang
+   dipakai bertanda **centang** — bukan hanya berbeda warna.
+
+**Catat kalau meleset:** salah satu panel tidak bisa dibuka · chip susunan tidak berkelompok · nama tema terpotong ·
+tanda centang tidak muncul pada tema yang sedang dipakai.
+
+### Butir 37 — perancang tema berbahasa Indonesia dan contoh warnanya membantu
+
+1. Masih di bilah desain, tekan **Tema kustom**.
+2. **Seluruh tulisan di panel itu harus berbahasa Indonesia**, tanpa satu pun istilah Inggris tersisa:
+   **Nama tema · Teks judul · Warna latar · Warna aksen · Warna teks · Warna teks sekunder · Bentuk judul · Bentuk label ·
+   Bentuk foto · Hiasan · Jenis huruf judul · Jenis huruf isi · Warna palet (4 warna)**.
+3. Di bawah **setiap** pilihan bentuk harus ada **deretan contoh warna kecil beserta namanya** (mis. "Balon bal",
+   "Klasik sepia sep", "Warna ganda dua"), sehingga Anda bisa membayangkan hasilnya **sebelum** menyimpan.
+   *(Pertanyaan yang saya butuh jawabannya: apakah contoh warna itu benar-benar membantu memilih, atau justru menambah
+   keramaian? Ini penilaian Anda, bukan penilaian mesin.)*
+4. Isi satu tema, tekan **Simpan Tema Kustom**, lalu buka panel **Tema**: tema baru Anda muncul di kisi dan namanya
+   tetap terbaca.
+5. Tutup panel, lalu buka lagi — tema kustom itu **masih ada**. *(Ini bukti bahwa kunci penyimpanannya tidak berubah,
+   sehingga tema yang sudah Anda buat sebelum versi ini pun tidak hilang.)*
+
+### Butir 38 — tiga grafik Keuangan terbaca di layar HP
+
+1. Buka **Uang**, lalu baris pintasan **Analitik lanjutan**, dengan data contoh bulan **Juni 2026**.
+2. **Tren kas masuk & pengeluaran:** label sumbu tegak harus **terbaca** dan **tidak bertabrakan** dengan garis sumbu,
+   walaupun angkanya ratusan ribu atau jutaan. Sentuh salah satu titik: keterangannya menyebut **nominal penuh**
+   (mis. "Uang masuk: Rp 1.200.000"), bukan angka pendek seperti "1,2 jt".
+3. **Potensi Sesi per Murid:** nama murid di sumbu datar terbaca, dan tinggi batangnya sesuai.
+4. **Pengeluaran per Kategori:** donatnya tampil **beserta legenda** (mis. Platform · Buku · Transport beserta
+   persentasenya). **Legenda yang hilang adalah tanda regresi** — di versi-versi sebelumnya legenda itu tidak hidup.
+5. **Periksa juga dengan papan ketik** (kalau Anda memakai papan ketik Bluetooth): tekan **Tab** sampai fokus masuk ke
+   salah satu batang atau titik grafik — keterangannya harus muncul **sama seperti saat disentuh**.
+
+**Catat kalau meleset:** label sumbu bertabrakan · angka terpotong di tepi layar · keterangan tidak muncul saat disentuh ·
+legenda donat hilang · fokus papan ketik tidak masuk ke grafik.
+
+---
+
+## Bagian B2 — jalur reset total, **hanya di server pengembangan** (butir 39)
+
+> ### ⛔ Baca dulu sebelum menekan apa pun
+>
+> Butir ini **menghapus seluruh data** di perangkat yang menjalankannya. Di **alamat online** yang terhapus adalah
+> **data asli Anda**, karena `seedDummy` (pemuat data contoh) hanya hidup di server pengembangan. Karena itu:
+>
+> - **Jangan jalankan bagian ini di alamat online.** Kalau Anda hanya memakai alamat online, **lewati bagian ini** —
+>   lebih baik butir 39 tetap terbuka daripada data asli hilang.
+> - Jalankan di **server pengembangan** (`npm run dev` di folder `les-ko-lui`, lalu buka alamat `localhost` yang
+>   ditampilkan). Di sana data contoh dimuat sendiri, jadi yang hilang nanti bukan data nyata.
+> - Kalau Anda **sudah pernah** menjalankan reset di server pengembangan dan data contoh tidak muncul lagi, muat ulang
+>   halaman beberapa saat — pemuat data contoh berjalan sendiri saat basis datanya kosong.
+>
+> Butir ini sekaligus menutup **butir 5 G3-10** ("uji memakai data contoh, jangan memakai data nyata"), yang tidak bisa
+> dijalankan dari sisi saya justru karena alasan di atas.
+
+1. Buka **Pengaturan**, gulir ke paling bawah, dan cari bagian **Hapus Semua Data** — letaknya **di balik pemisah
+   bertuliskan "Zona berbahaya"**, bukan di sebelah pengaturan biasa.
+2. Tekan tombolnya. **Tiga lapis harus muncul berurutan**, dan **tidak boleh ada satu pun kotak pertanyaan bawaan
+   peramban** (kotak yang muncul dengan tulisan alamat situs di bagian atasnya):
+   - **Lapis 1:** ringkasan berbentuk **daftar** apa saja yang akan hilang (murid · sesi · laporan · tagihan · tindak
+     lanjut · nilai rapor · pengeluaran · proyek tugas panjang · catatan belajar · draf pencatatan sesi · pengaturan
+     termasuk PIN, kunci AI, logo, rekening · catatan audit), dengan tombol **Lanjutkan**.
+   - **Lapis 2:** kolom yang menuntut Anda mengetik **`HAPUS DATA`** — tombol **Hapus data** baru aktif setelah itu.
+   - **Lapis 3:** permintaan **PIN Keuangan**.
+3. Konfirmasi. Aplikasi memuat ulang, dan **data kembali kosong**.
+4. **Ini bagian terpenting dari butir ini — yang baru dipasang 2026-10-11.** Sesudah muat ulang harus muncul **kotak
+   ajakan di atas layar** bertuliskan **"Pasang PIN Keuangan lagi"**, yang menjelaskan bahwa **PIN Keuangan ikut
+   terhapus**, beserta dua tombol: **Buat PIN sekarang** dan **Buka backup**.
+   *Yang tidak boleh terjadi: layar tampak biasa saja tanpa penjelasan apa pun.* Kalau begitu, laporkan — itu berarti
+   yang saya pasang tidak bekerja.
+5. Tekan **Buat PIN sekarang**. **Yang harus terlihat:** halaman Pengaturan terbuka **langsung di bagian PIN Keuangan**,
+   dan formulir **PIN baru sudah terbuka** — bukan daftar bagian Pengaturan yang semuanya tertutup.
+6. Tekan **Batal** tanpa mengisi apa pun, lalu kembali ke layar lain (mis. **Hari Ini**). Kotak ajakannya harus
+   **muncul lagi** — ini disengaja, supaya ajakan itu tidak bisa hilang tanpa Anda putuskan.
+7. Buat PIN baru sampai **Simpan PIN** berhasil. **Yang harus terlihat:** kotak ajakannya **hilang sendiri**, dan di
+   **Pengaturan → Riwayat Aktivitas** ada satu catatan **"Reset semua data"** beserta waktunya.
+8. *(Opsional, dan silakan dilewati kalau Anda tidak yakin)* Kalau Anda ingin memastikan pemulihan backup bekerja,
+   tekan **Buka backup** pada kotak ajakan itu dan pulihkan dari berkas backup yang sudah Anda unduh. Perlu diketahui:
+   **PIN tidak ikut di dalam berkas backup**, jadi pemulihan **tidak** mengembalikan PIN lama.
+
+**Catat kalau meleset:** salah satu dari tiga lapis tidak muncul · muncul kotak bawaan peramban · sesudah muat ulang
+tidak ada kotak ajakan · **Buat PIN sekarang** tidak membuka bagian PIN · kotak ajakan tidak muncul lagi sesudah Batal ·
+kotak ajakan tidak hilang sesudah PIN disimpan · catatan **"Reset semua data"** tidak ada di Riwayat Aktivitas.
+
+---
+
+## Bagian D — arsip: butir tab Murid (30–33), sudah dicentang 2026-10-10
 
 > Bagian ini **tidak perlu diulang** kalau layar Murid tidak berubah sejak v1.97.0. Isinya disimpan apa adanya
 > karena inilah bukti yang mendasari centang butir 30–33 di `PEKERJAAN.md` §5, dan karena panduan ini akan
-> dipakai lagi kalau layar Murid berubah. Sisa Bagian A (foto murid) ada di atas.
+> dipakai lagi kalau layar Murid berubah. Butir yang masih **menunggu** ada di bagian A (foto murid), B (panel
+> desain + grafik), dan B2 (reset total, hanya di server pengembangan).
 
 ### Butir 30 — daftar murid bisa diurutkan dan disaring
 
@@ -177,7 +301,7 @@ angka uang terlihat padahal uang sedang terkunci · menu **⋯** tidak menampilk
 
 ---
 
-## Bagian B — opsional: butir lama yang juga belum dicentang (1–23)
+## Bagian C — opsional: butir lama yang juga belum dicentang (1–23)
 
 Butir-butir ini ditulis untuk layar yang sudah lama berubah, jadi kalau Anda ingin sekalian, lakukan per layar
 (bukan per butir) — dan cukup catat layar mana yang terasa aneh:
@@ -193,18 +317,23 @@ Butir **26–29** (layar Laporan) sudah dicentang 2026-10-08 dan tidak perlu diu
 
 ---
 
-## Bagian C — cara melapor ke saya
+## Bagian E — cara melapor ke saya
 
 Cukup satu pesan, dengan bentuk seperti ini:
 
 ```
 Butir 34: LULUS  (atau: MELESET — <satu kalimat apa yang terlihat>)
 Butir 35: LULUS
+Butir 36: LULUS
+Butir 37: LULUS
+Butir 38: LULUS
+Butir 39: LULUS   (hanya kalau dijalankan di server pengembangan; kalau dilewati, tulis LEWAT)
 ```
 
 Sertakan tangkapan layar bila ada yang meleset — itu paling cepat saya pakai. Untuk butir foto, tangkapan layar
 **daftar murid** (memperlihatkan murid berfoto dan murid berinisial berdampingan) dan **kepala halaman detail**
-paling berguna, karena bentuk bulat dan potongannya paling sulit dijelaskan dengan kata-kata.
+paling berguna, karena bentuk bulat dan potongannya paling sulit dijelaskan dengan kata-kata. Untuk butir 39,
+tangkapan layar yang paling berguna adalah **kotak ajakan "Pasang PIN Keuangan lagi"** sesudah muat ulang.
 
 **Apa yang saya lakukan dengan jawaban Anda:**
 
@@ -223,3 +352,4 @@ paling berguna, karena bentuk bulat dan potongannya paling sulit dijelaskan deng
 | 2026-10-10 | Dibuat setelah rilis v1.97.0, untuk memeriksa tab Murid yang baru (butir 30–33) dari HP. Bagian 0 memuat syarat yang tidak boleh dilewati: nomor versi di jendela Catatan perubahan, dan peringatan bahwa di alamat online **tidak ada** pemuat data contoh sehingga yang diperiksa adalah data asli. |
 | 2026-10-10 | **Dipakai.** Pemilik memeriksa tab Murid dari HP dan melaporkan hasilnya sesuai rencana; butir 30–33 dicentang di `PEKERJAAN.md` §5 dengan jenis bukti "pernyataan pemilik" (satu pernyataan untuk keempat butir, bukan tangkapan layar atau pengukuran per butir). Status berkas ini berubah menjadi selesai — tetap dipakai lagi kalau layar Murid berubah. |
 | 2026-10-11 | **Dipakai lagi untuk foto murid (rilis v1.98.0, butir 34–35).** Judul, nomor versi, dan syarat di bagian 0 diperbarui ke **v1.98.0** (tanggal Catatan perubahan 2026-10-11 dan judul entrinya). Bagian A diganti dengan dua butir foto; panduan tab Murid yang lama **tidak dihapus** melainkan dipindah menjadi **Bagian A′** sebagai arsip yang mendasari centang butir 30–33. Ditambahkan satu larangan baru di bagian 0.3: untuk butir foto, pakai murid yang fotonya memang siap Anda hapus di akhir butir 35. Butir 35 sengaja memeriksa **dua kali Batal**, karena jalur batal itulah satu-satunya bagian G3-07 yang tidak bisa dibuktikan suite tes (repo ini tidak memasang jsdom sehingga formulir tidak bisa dirender di tes). |
+| 2026-10-11 | **Diperluas menjadi panduan seluruh sisa daftar periksa, dan nomor versinya diperbarui ke v1.101.0.** Sampai hari ini berkas ini hanya memuat butir 30–35, sementara `PEKERJAAN.md` §5 sudah sampai butir 39 dan **butir 1–23 tidak punya panduan sama sekali** — hanya satu tabel ringkas per layar. Yang ditambahkan: (a) **tabel keadaan butir** di kepala berkas, supaya tidak ada pemeriksaan yang diulang (24–29 dan 30–33 sudah dicentang, jangan diulang lagi); (b) **Bagian B** untuk butir 36–38 (panel desain laporan, perancang tema, tiga grafik Keuangan) dengan pertanyaan penilaian yang memang hanya bisa dijawab pemilik, mis. apakah contoh warna itu membantu atau justru menambah keramaian; (c) **Bagian B2** untuk butir 39 (jalur reset total + ajakan PIN baru) yang **dipisah dan diberi peringatan sendiri**, karena butir itu menghapus seluruh data dan **wajib dijalankan di server pengembangan** — di alamat online yang terhapus adalah data asli; (d) **larangan keempat** di bagian 0.3 untuk hal yang sama; (e) bagian arsip tab Murid diganti nama menjadi **Bagian D**, bagian laporan menjadi **Bagian E**, dan bagian lama 1–23 menjadi **Bagian C**, supaya urutannya mengikuti `PEKERJAAN.md` §5. Cara memastikan nomor versi juga ditambah satu jalan kedua lewat **Pengaturan → Aplikasi**, karena jendela Catatan perubahan hanya muncul sekali per versi sehingga tutor yang sudah menutupnya tidak punya cara memeriksa versi. |

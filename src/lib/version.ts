@@ -11,6 +11,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.101.0",
+    date: "2026-10-11",
+    title: "Sesudah menghapus semua data, aplikasi menjelaskan apa yang hilang dan mengajak memasang PIN lagi",
+    items: [
+      "**Setelah \"Hapus Semua Data\", Anda tidak lagi ditinggal dengan layar kosong.** Sebelumnya, menghapus semua data membuat aplikasi memuat ulang ke Beranda yang kosong tanpa satu pun penjelasan — dan yang paling mudah terlewat: **PIN Keuangan Anda ikut terhapus**, karena PIN disimpan bersama pengaturan. Akibatnya data keuangan bisa dibuka siapa pun yang memegang HP itu, tanpa Anda sadari. Sekarang muncul satu kotak di atas layar yang menyebutkan hal itu apa adanya, dengan dua tombol: **Buat PIN sekarang** dan **Buka backup**.",
+      "**Menekan \"Buat PIN sekarang\" langsung membuka kolom PIN-nya.** Anda tidak perlu mencari bagian PIN di daftar Pengaturan: halamannya terbuka tepat di bagian itu, dengan formulir PIN baru sudah terbuka. Kalau PIN-nya sudah ada, ajakan itu hilang sendiri — jadi tidak ada pemberitahuan yang tertinggal di layar sambil berbohong.",
+      "**Pemberitahuannya juga mengingatkan satu hal yang mudah disalahpahami:** **PIN tidak ikut di dalam berkas backup**. Jadi memulihkan backup tidak mengembalikan PIN lama — PIN-nya memang harus dipasang ulang. Kalimat itu ada di kotak yang sama, beserta letak panduan backupnya.",
+      "**Sekali dibaca, bisa ditutup.** Ada tombol tutup; setelah ditutup, pemberitahuan itu tidak muncul lagi. Kalau Anda malah menutup Pengaturan tanpa menyimpan PIN, kotaknya muncul lagi lain kali — itu disengaja, supaya ajakan ini tidak bisa hilang tanpa Anda putuskan.",
+    ],
+  },
+  {
     version: "v1.100.0",
     date: "2026-10-11",
     title: "Pengaturan dipecah jadi berkas kecil, tombol Perbarui aplikasi diperbaiki, dan perubahan yang belum disimpan tidak lagi hilang",

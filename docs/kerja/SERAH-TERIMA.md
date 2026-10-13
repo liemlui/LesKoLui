@@ -3,7 +3,7 @@
 > **Sekilas.** Jenis: lembar serah-terima untuk sesi berikutnya. Status: berlaku.
 > Untuk siapa: agen AI yang melanjutkan pekerjaan ini, dan pemilik yang ingin tahu keadaan terakhir tanpa membaca seluruh dokumen.
 > Berkas ini diperbarui di akhir sesi, bukan di awal.
-> **Terakhir diselaraskan: 2026-10-11** (G3-09 Pengaturan, tahap 1 dan 2: `Settings.tsx` 1.387 → **576 baris**, seluruh bagian besar jadi berkasnya sendiri, enam dialog bawaan peramban digantikan dialog internal, **tombol "Perbarui" PWA yang tidak berfungsi diperbaiki**, dan **gate `e2e:uiux` hijau 64/0**). Isi historisnya tidak diubah.
+> **Terakhir diselaraskan: 2026-10-11** (G3-10 butir 3: ajakan memasang PIN baru sesudah reset total, rilis **v1.101.0**; **koreksi penting** — butir 1, 2, dan 4 G3-10 ternyata sudah ada sejak G3-09 dan dokumen sempat menulis tugas itu "belum"). Ditambah G3-09 Pengaturan, tahap 1 dan 2: `Settings.tsx` 1.387 → **576 baris**, seluruh bagian besar jadi berkasnya sendiri, enam dialog bawaan peramban digantikan dialog internal, **tombol "Perbarui" PWA yang tidak berfungsi diperbaiki**, dan **gate `e2e:uiux` hijau 64/0**. Isi historisnya tidak diubah.
 > **Yang mengikat tetap `ATURAN-AI.md` dan `PEKERJAAN.md`.** Berkas ini hanya menjelaskan keadaan dan temuan, bukan aturan.
 
 ---
@@ -33,7 +33,7 @@ Periksa sendiri, jangan percaya tulisan di sini, karena keadaan berubah setiap c
 | Baris berkas besar | `npm run measure loc` |
 | Kebenaran dokumen | `npm run check:docs` |
 
-Catatan keadaan sebagai konteks, **potret 2026-10-05** (jangan dikutip sebagai keadaan hari ini): pohon kerja bersih, cabang `main` sama dengan `origin/main`, dan suite tes lulus penuh dengan enam puluh enam berkas. Keadaan 2026-10-07 sesudah pembenahan dokumen: commit `a390852` sudah di `origin/main`, pohon bersih, suite **849 lulus / 66 berkas**. Keadaan 2026-10-08 sesudah G3-05: suite **982 lulus / 74 berkas**, `e2e:uiux` 64 lulus / 0 gagal, dan `e2e` **69 lulus / 11 gagal / 6 skip** — perincian kegagalannya ada di bagian 4.5, dan **tidak satu pun berasal dari pekerjaan yang sedang dikerjakan**. Keadaan 2026-10-11 sesudah G3-08: suite **1.242 lulus / 91 berkas**, `e2e:uiux` **63 lulus / 1 gagal** (gagal = batas waktu gerbang PIN di bawah beban; **lulus 4/4 saat dijalankan sendirian**), dan `e2e` **67 lulus / 13 gagal / 6 skip**. Dua belas dari tiga belas kegagalan `e2e` persis daftar warisan 2026-10-08 (`report-export-ratio` 3 layout × 2 project, `report-unlock` × 2, `capture-closeout-failure` × 2, `finance` × 2, semuanya galat halaman `SchemaError: DexieError` atau batas waktu di bawah beban), dan yang ketiga belas — `screenshot-katalog` "11-narasi-per-sesi" — **lulus saat dijalankan sendirian**. Tidak satu pun berasal dari G3-08. **Keadaan 2026-10-11 sesudah G3-09 tahap 2:** suite **1.363 lulus / 98 berkas**, `tsc -b` bersih, `eslint src` 0, `build` menghasilkan `dist/sw.js`, `check:docs` 0 pelanggaran, dan **`e2e:uiux` 64 lulus / 0 gagal** — dirinci di bagian 4.9 nomor 1. Versi **v1.100.0**. Angka-angka itu akan basi — yang dipakai adalah perintahnya.
+Catatan keadaan sebagai konteks, **potret 2026-10-05** (jangan dikutip sebagai keadaan hari ini): pohon kerja bersih, cabang `main` sama dengan `origin/main`, dan suite tes lulus penuh dengan enam puluh enam berkas. Keadaan 2026-10-07 sesudah pembenahan dokumen: commit `a390852` sudah di `origin/main`, pohon bersih, suite **849 lulus / 66 berkas**. Keadaan 2026-10-08 sesudah G3-05: suite **982 lulus / 74 berkas**, `e2e:uiux` 64 lulus / 0 gagal, dan `e2e` **69 lulus / 11 gagal / 6 skip** — perincian kegagalannya ada di bagian 4.5, dan **tidak satu pun berasal dari pekerjaan yang sedang dikerjakan**. Keadaan 2026-10-11 sesudah G3-08: suite **1.242 lulus / 91 berkas**, `e2e:uiux` **63 lulus / 1 gagal** (gagal = batas waktu gerbang PIN di bawah beban; **lulus 4/4 saat dijalankan sendirian**), dan `e2e` **67 lulus / 13 gagal / 6 skip**. Dua belas dari tiga belas kegagalan `e2e` persis daftar warisan 2026-10-08 (`report-export-ratio` 3 layout × 2 project, `report-unlock` × 2, `capture-closeout-failure` × 2, `finance` × 2, semuanya galat halaman `SchemaError: DexieError` atau batas waktu di bawah beban), dan yang ketiga belas — `screenshot-katalog` "11-narasi-per-sesi" — **lulus saat dijalankan sendirian**. Tidak satu pun berasal dari G3-08. **Keadaan 2026-10-11 sesudah G3-09 tahap 2:** suite **1.363 lulus / 98 berkas**, `tsc -b` bersih, `eslint src` 0, `build` menghasilkan `dist/sw.js`, `check:docs` 0 pelanggaran, dan **`e2e:uiux` 64 lulus / 0 gagal** — dirinci di bagian 4.9 nomor 1. Versi **v1.100.0**. **Keadaan 2026-10-11 sesudah G3-10 butir 3 (v1.101.0):** `npx tsc -b` bersih, `npx eslint src` bersih (0 error, 0 warning), berkas penjaga baru 22 lulus, suite penuh dan `check:docs` dijalankan sekali di akhir putaran (angkanya di keluaran perintah, bukan di sini) — dan **`e2e:uiux` tidak dijalankan pada putaran itu**, sehingga halaman `/settings` yang berubah tidak punya penjaga tampilan di putaran tersebut. Angka-angka itu akan basi — yang dipakai adalah perintahnya.
 
 > **Temuan alat 2026-10-11: gate R2 `check:docs` lulus secara hampa.** Aturan R2 memeriksa
 > `versi_app:` dan `test: N` di **kepala YAML** setiap dokumen aktif, tetapi setelah pembenahan
@@ -306,20 +306,89 @@ diketahui sesi berikutnya:
 
 ---
 
+### 4.10 Yang berubah pada putaran 2026-10-11 (G3-10 butir 3 — ajakan PIN baru sesudah reset)
+
+G3-10 butir 3 tuntas, rilis **v1.101.0**. Yang perlu diketahui sesi berikutnya, terutama karena
+**dokumen ini sempat salah tentang G3-10**:
+
+1. **Koreksi yang harus dibaca lebih dulu: G3-10 bukan tugas yang "belum".** Empat dari lima butirnya
+   sudah ada di kode sejak G3-09, dan tidak ada gate yang pernah memberi tahu hal itu — `tsc` tidak
+   mengeluh soal fitur yang tidak pernah ditulis, dan suite tidak punya tes untuknya. Yang benar-benar
+   belum hanya **butir 3**. Bukti per butir ada di tabel keadaan `PEKERJAAN.md` bagian 3 (G3-10).
+   **Pelajaran alatnya:** status sebuah tugas yang ditulis dari ingatan bisa salah selama berhari-hari;
+   yang menemukannya adalah `grep` ke kode, bukan membaca ulang dokumen. Sebelum mengerjakan tugas yang
+   ditandai "belum", periksa dulu apakah butir-butirnya sudah ada.
+
+2. **Yang dipasang untuk butir 3.** Berkas murni baru `src/lib/pinReset.ts` dan komponen baru
+   `src/components/PinResetInvite.tsx`, dirender di **`Layout`** (`App.tsx`) — bukan di Beranda, karena
+   reset bisa berakhir di rute mana pun dan syaratnya berbunyi "bukan layar kosong tanpa penjelasan".
+   Penandanya (`leskolui_pin_reset_pending`) hidup di **`localStorage`, bukan di tabel** — tabel
+   `settings` yang memuat PIN Keuangan ikut dibersihkan reset, jadi penanda di dalamnya mustahil dibaca
+   sesudahnya. Ini **kebalikan** dari `leskolui_last_auto_backup_prompt` yang justru sengaja dibuang
+   supaya pengingatnya muncul lagi; jangan menyeragamkan keduanya.
+
+3. **Ajakan itu menuntut DUA syarat** (`tampilkanAjakanPin(penandaAda, adaPin)`): penandanya ada **dan**
+   PIN-nya memang belum terpasang. Karena itu penandanya dibuang di jalur **penyimpanan PIN yang
+   berhasil** (`simpanPin` di `Settings.tsx`), **bukan** di tombol menuju Pengaturan — supaya tutor yang
+   membuka Pengaturan lalu menutupnya tanpa menyimpan tetap melihat ajakannya.
+
+4. **Dua sambungan kecil yang membuat ajakannya berguna, bukan sekadar ada.** (a) `Settings.tsx`
+   (576 → **566** baris) membaca hash alamat `#bagian-pin` sekali saat dipasang dan membuka bagian itu;
+   id bagiannya (`bagian-<id>`) memang dipasang `settings/Section.tsx`, jadi tidak ada teks yang disalin.
+   (b) `PinSection.tsx` menerima prop `autoStart` yang **hanya** mengaktifkan formulir "Buat PIN" bila PIN
+   belum ada — jalur "Ganti PIN" yang meminta PIN lama **tidak boleh** dilewati. Keduanya diuji lewat
+   pembacaan sumber `?raw`.
+
+5. **Klaim urutan audit DIVERIFIKASI, bukan diasumsikan.** `dangerZoneActions.ts` menulis jejak audit
+   sesudah membersihkan tabel, dan itu benar karena `logAudit` (`db/repos/auditRepo.ts`) hanya menulis ke
+   `db.auditLog` dan **tidak membaca `settings`**. Ia juga menelan galatnya sendiri (`console.warn`),
+   sehingga kegagalan menulis jejak tidak menggagalkan reset. Jangan mengubah urutan itu tanpa memeriksa
+   ulang sifat ini.
+
+6. **Penjaga baru `src/__tests__/pinResetInvite.test.ts` (22 tes) bekerja dua lapis, dan lapis kedua yang
+   penting.** Lapis pertama menguji fungsi murni dengan `Storage` palsu (termasuk penyimpanan yang
+   melempar, karena mode privat tidak boleh menjatuhkan layar). Lapis kedua membaca **berkas sumber**
+   (`?raw`) untuk membuktikan penanda itu benar-benar **ditulis** saat reset dan **dibaca** saat halaman
+   dibuka. Tanpa lapis kedua, modul yang benar tetapi tidak dipanggil siapa pun akan tampak hijau —
+   persis bagaimana butir ini bisa terlewat selama ini.
+
+7. **Batas kejujuran putaran ini.** Yang **sudah** dibuktikan: `npx tsc -b` bersih · `npx eslint src`
+   bersih (0 error, 0 warning) · berkas tes baru **22 lulus** · suite penuh beserta `check:docs`
+   dijalankan sekali di akhir (angkanya ada di bagian 2). Yang **belum**: ajakan itu **belum pernah
+   dilihat mata** di perangkat, dan tampilannya memang tidak bisa dibuktikan suite ini (repo tidak
+   memasang jsdom, dan `renderToStaticMarkup` tidak menjalankan `useEffect` yang membuka bagian).
+   `e2e:uiux` **tidak** dijalankan pada putaran ini, sehingga halaman `/settings` yang berubah tidak
+   punya penjaga tampilan di putaran ini. Karena itu **butir 39** ditambahkan ke daftar periksa manual,
+   dan **butir 5 G3-10** (uji memakai data contoh) ikut ditutup lewat butir yang sama.
+
+8. **Butir 39 wajib dijalankan di server pengembangan, dan itu terbalik dari panduan HP.** Di alamat
+   online tidak ada pemuat data contoh (`seedDummy` hidup di dalam `import.meta.env.DEV`), jadi
+   menjalankan tombol **Hapus Semua Data** di sana akan menghapus **data asli pemilik**. Peringatan
+   §0.3 di `PANDUAN-CEK-DI-HP.md` berlaku terbalik untuk butir ini.
+
+---
+
 ## 5. Langkah berikutnya
 
 Kerjakan berurutan, satu tugas sampai tuntas, lalu lapor sekali.
 
-1. **G3-09 Pengaturan — sisa yang belum tuntas.** Target baris **sudah tercapai** (576 ≤ 700),
-   kesebelas fitur **sudah terpasang**, dan gate mesin sudah hijau (`tsc` · `eslint` · suite ·
-   `build` · `check:docs` · **`e2e:uiux` 64/0**). Yang tersisa **hanya yang butuh mata pemilik**:
-   tampilan barunya belum pernah dilihat, dan butir daftar periksa manual untuk Pengaturan belum
-   dibuat. Setelah itu **G3-10 reset total dan jalur memasang PIN kembali**.
+1. **Gelombang 3 secara fungsional sudah tuntas; yang tersisa adalah pekerjaan tangan pemilik.**
+   G3-09 Pengaturan: target baris **tercapai** (566 ≤ 700), kesebelas fitur **terpasang**, dan gate mesin
+   sudah hijau (`tsc` · `eslint` · suite · `build` · `check:docs` · **`e2e:uiux` 64/0**) — yang tersisa
+   hanya **tampilannya yang belum pernah dilihat mata**, dan itu hanya bisa ditutup pemilik.
+   G3-10: **empat dari lima butir selesai**; butir 3 (ajakan PIN baru) ditutup 2026-10-11 di v1.101.0,
+   dan **butir 5** (uji memakai data contoh) sudah dipindahkan menjadi **butir 39** daftar periksa
+   manual karena hanya bisa dijalankan pemilik di server pengembangan.
+   **Tidak ada tugas kode tersisa di Gelombang 3.**
 
-2. **Menunggu mata pemilik — total lima butir, jangan dikerjakan agen:** **34–35** (foto murid,
-   ditambahkan 2026-10-11) dan **36–38** (panel desain laporan, perancang tema, dan tiga grafik
-   Keuangan, ditambahkan 2026-10-11 bersama G3-08). Butir 35 memeriksa jalur **Batal** sesudah
-   menghapus foto, dan butir 36–38 memeriksa hal yang memang tidak bisa dinilai dari kode.
+2. **Menunggu mata pemilik — total delapan butir, jangan dikerjakan agen:** **34–35** (foto murid,
+   ditambahkan 2026-10-11), **36–38** (panel desain laporan, perancang tema, dan tiga grafik Keuangan,
+   ditambahkan 2026-10-11 bersama G3-08), **39** (jalur reset total + ajakan PIN baru, ditambahkan
+   2026-10-11 bersama G3-10 butir 3 — **wajib di server pengembangan, jangan di alamat online**), dan
+   **butir daftar periksa manual untuk layar Pengaturan yang belum dibuat** (v1.100.0 dan v1.101.0
+   sama-sama menyentuh layar itu tanpa punya butirnya sendiri — sama persis dengan keadaan layar Uang
+   sebelum butir 24–25 ditambahkan 2026-10-07). Butir 35 memeriksa jalur **Batal** sesudah menghapus
+   foto, dan butir 36–38 memeriksa hal yang memang tidak bisa dinilai dari kode.
 
 3. Pekerjaan di `PEKERJAAN.md` bagian 4 boleh dikerjakan kapan saja tanpa mengubah urutan di atas —
    termasuk tiga temuan 2026-10-08: kegagalan `e2e` yang tidak hijau di mesin ini (kegagalan warisan
@@ -329,10 +398,10 @@ Kerjakan berurutan, satu tugas sampai tuntas, lalu lapor sekali.
    yang belum masuk cakupan penjaga tampilan**, dan **gate R2 `check:docs` yang lulus secara hampa**
    (tidak ada dokumen aktif yang masih punya kepala YAML `versi_app`/`test`).
 
-4. Daftar periksa manual di `PEKERJAAN.md` bagian 5 (kini **38 butir**) hanya bisa ditutup pemilik di
+4. Daftar periksa manual di `PEKERJAAN.md` bagian 5 (kini **39 butir**) hanya bisa ditutup pemilik di
    perangkat. **Butir 24–29 dan 30–33 sudah dicentang** (30–33 pada 2026-10-10 sesudah pemeriksaan di
-   HP); **butir 34–38 menunggu**, dan **butir 1–23 masih terbuka** dan boleh dikerjakan kapan saja
-   tanpa mengubah urutan di atas.
+   HP); **butir 34–39 menunggu**, dan **butir 1–23 masih terbuka** dan boleh dikerjakan kapan saja
+   tanpa mengubah urutan di atas. **Butir 39 khusus: wajib di server pengembangan, bukan alamat online.**
 
 ---
 
@@ -340,6 +409,7 @@ Kerjakan berurutan, satu tugas sampai tuntas, lalu lapor sekali.
 
 | Tanggal | Perubahan |
 |---|---|
+| 2026-10-11 | **Bagian 2, 4.10, dan 5 ditulis untuk G3-10 butir 3 yang tuntas (ajakan PIN baru sesudah reset, v1.101.0)** — sekaligus **mengoreksi keadaan G3-10**: butir 1, 2, dan 4 ternyata sudah ada di kode sejak G3-09, dan dokumen ini sempat menulis tugas itu "belum". Yang dipasang: `lib/pinReset.ts` + `components/PinResetInvite.tsx` (dirender di `Layout`), penanda di `localStorage` **karena tabel `settings` ikut dibersihkan reset**, dua syarat tampil, dan dua sambungan (`Settings.tsx` membaca hash `#bagian-pin`; `PinSection.tsx` menerima `autoStart` yang hanya berlaku bila PIN belum ada). Penjaga baru **22 tes** yang bekerja dua lapis, lapis kedua membaca berkas sumber `?raw` supaya modul yang benar tetapi tidak dipanggil siapa pun tidak bisa lolos. Klaim urutan audit diverifikasi di `auditRepo.ts`, bukan diasumsikan. Butir 5 G3-10 dipindahkan menjadi **butir 39** daftar periksa manual (wajib di server pengembangan), sehingga daftar itu kini **39 butir**. |
 | 2026-10-05 | Dibuat sebagai pengganti berkas arahan lanjutan yang sudah beku. |
 | 2026-10-05 | Diperbarui berkali-kali mengikuti pekerjaan Keuangan dan panel Kelola sesi. |
 | 2026-10-05 | Ditulis ulang mengikuti perubahan besar: aturan kerja baru, delapan keputusan pemilik, pemulihan tiga butir pekerjaan yang hilang, dan pemindahan spesifikasi Gelombang 3 ke daftar pekerjaan. |

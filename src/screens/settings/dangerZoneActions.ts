@@ -1,6 +1,7 @@
 import { db } from "../../db/db";
 import { logAudit } from "../../db/repos";
 import { RESET_TABLES } from "./dangerZoneRows";
+import { tandaiPinBelumDibuat } from "../../lib/pinReset";
 
 /**
  * Jalankan "Hapus Semua Data".
@@ -26,4 +27,11 @@ export async function jalankanResetSemuaData(): Promise<void> {
   // Pengingat backup terakhir ikut dibuang supaya pengingat muncul lagi setelah
   // reset — itulah yang dijanjikan teks di layar kepada tutor.
   try { localStorage.removeItem("leskolui_last_auto_backup_prompt"); } catch { /* penyimpanan tidak tersedia */ }
+  // G3-10 butir 3. Penanda ini justru HARUS bertahan melewati pembersihan tabel,
+  // karena tabel `settings` (tempat PIN Keuangan) ikut terhapus: tanpa penanda di
+  // luar basis data, halaman sesudah muat ulang tidak punya cara tahu bahwa yang
+  // hilang termasuk PIN, dan tutor hanya melihat Beranda kosong tanpa penjelasan.
+  // Urutannya mengikat: ditulis SESUDAH pembersihan, sebab `localStorage` tidak
+  // ikut dibersihkan `db.transaction` di atas.
+  tandaiPinBelumDibuat();
 }

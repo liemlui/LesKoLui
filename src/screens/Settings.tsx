@@ -22,6 +22,7 @@ import PinSection from "./settings/PinSection";
 import DangerZoneSection from "./settings/DangerZoneSection";
 import { jalankanResetSemuaData } from "./settings/dangerZoneActions";
 import { useJalurPemulihan } from "./settings/useBackupSection";
+import { lupakanPinBelumDibuat } from "../lib/pinReset";
 import BackupSection from "./settings/BackupSection";
 import AiSection from "./settings/AiSection";
 import ProfileBankSections from "./settings/ProfileBankSections";
@@ -128,6 +129,25 @@ export default function SettingsPage() {
    */
   const jalur = useJalurPemulihan();
   const [openSection, setOpenSection] = useState<string | null>(null);
+  /**
+   * Bagian yang diminta lewat alamat (`/settings#bagian-pin`).
+   *
+   * Dipakai `PinResetInvite` sesudah reset total (G3-10 butir 3) supaya tutor langsung
+   * mendarat di bagian PIN yang terbuka, bukan di halaman Pengaturan yang seluruh
+   * bagiannya tertutup. Dibaca sekali saat halaman dipasang: id bagiannya (`bagian-pin`,
+   * `bagian-backup`) memang dipasang `settings/Section.tsx`, jadi ini satu-satunya tempat
+   * yang perlu tahu terjemahan "hash → id akordeon".
+   */
+  const bagianDariAlamat = () => {
+    const hash = typeof window === "undefined" ? "" : window.location.hash;
+    return hash.startsWith("#bagian-") ? hash.slice("#bagian-".length) : null;
+  };
+  /**
+   * Datang dari ajakan "pasang PIN baru"? Kalau ya, bagian PIN langsung dibuka dan
+   * formulir "Buat PIN" langsung tampil — perjalanan tutor dari banner ke kolom PIN
+   * jadi satu ketukan, bukan tiga.
+   */
+  const [pinAutoStart] = useState(() => bagianDariAlamat() === "pin");
   const [showExitModal, setShowExitModal] = useState(false);
   const fileRef    = useRef<HTMLInputElement>(null);
   const savedFormRef = useRef<Settings | null>(null);
@@ -207,6 +227,18 @@ export default function SettingsPage() {
     setLogoUrl(url);
     return () => URL.revokeObjectURL(url);
   }, [form?.logo]);
+
+  /**
+   * Buka bagian yang diminta lewat hash alamat (G3-10 butir 3).
+   *
+   * Dijalankan sekali saat dipasang. Efeknya sengaja **tidak** mengubah hash: tutor yang
+   * menggulir atau membuka bagian lain lalu memuat ulang halaman tetap mendarat di bagian
+   * yang sama, dan tidak ada riwayat peramban yang bertambah karena sekadar membuka akordeon.
+   */
+  useEffect(() => {
+    const bagian = bagianDariAlamat();
+    if (bagian) setOpenSection(bagian);
+  }, []);
 
   // ── Loading / kegagalan pembacaan pengaturan (audit L-09) ───────────────────
   // Batas tunggu + probe independen sekarang di `useSettingsQuery()` (G2-10).
@@ -347,6 +379,11 @@ export default function SettingsPage() {
     savedFormRef.current = updated;
     setForm(updated);
     setDirty(false);
+    // G3-10 butir 3: PIN sudah benar-benar tersimpan, jadi ajakan di banner
+    // `PinResetInvite` tidak berlaku lagi. Dibuang di sini — bukan di tombol
+    // "Buat PIN sekarang" — supaya tutor yang membuka Pengaturan lalu menutupnya
+    // tanpa menyimpan tetap melihat ajakannya.
+    lupakanPinBelumDibuat();
     toastCtx.success("PIN berhasil diperbarui ✓");
   };
 
@@ -518,6 +555,7 @@ export default function SettingsPage() {
         securityQuestion={form.securityQuestion}
         securityAnswer={form.securityAnswer}
         onSave={simpanPin}
+        autoStart={pinAutoStart}
       />
 
 
