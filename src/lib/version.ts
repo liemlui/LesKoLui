@@ -11,6 +11,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.106.0",
+    date: "2026-10-15",
+    title: "Titik rilis: semua perbaikan sejak v1.101.0 sudah terkumpul di versi ini",
+    items: [
+      "**Jendela ini muncul karena satu hal: pastikan backup Anda sudah dibuat dengan versi terbaru.** Ini titik rilis resmi, bukan versi dengan fitur atau tampilan baru — isinya adalah **seluruh perbaikan sejak v1.101.0** yang sudah Anda pakai dan periksa selama beberapa hari terakhir: backup manual yang bisa dijalankan lagi, nominal yang Anda isi sendiri tidak lagi tertimpa saat sesinya dicatat, kolom biaya yang tidak tersangkut angka 0, daftar mapel & topik di Catat Sesi yang mengikuti muridnya, lipatan Siklus Tagihan yang benar-benar bisa menutup, riwayat laporan yang hanya menampilkan murid yang sedang dibuka, tombol perkuat AI di tiap bagian laporan, dan narasi sesi yang kini hanya dibaca di layar Laporan.",
+      "**Penyebabnya satu hal yang perlu Anda tahu, dan ini bukan kesalahan Anda.** Sejak v1.101.0 sampai v1.105.0, ada **lima versi berturut-turut yang diberi nomor tanpa perubahan kode yang benar-benar baru** — nomornya naik, isinya sama. Akibatnya jendela Catatan perubahan sempat muncul berkali-kali tanpa kabar yang berarti, termasuk satu rilis yang judulnya tidak menyebut semua perbaikan di dalamnya.",
+      "**Kalau aplikasi ini Anda buka di beberapa perangkat, periksa nomor versinya satu per satu.** Versi yang tertinggal tidak selalu gagal dengan sendirinya — ia bisa tampak berjalan normal, padahal satu atau lebih perbaikan di atas belum ada di situ. Nomor versinya ada di **Pengaturan → Aplikasi → Catatan perubahan**.",
+      "**Saran yang sepadan, sekarang setelah backup bisa dipakai lagi:** buat satu backup dari perangkat utama, lalu pastikan berkasnya **bisa dibuka** lewat tombol verifikasi di **Pengaturan → Backup dan Restore**. Jangan memulihkannya sebagai uji coba — pemulihan menimpa data asli di perangkat itu.",
+    ],
+  },
+  {
     version: "v1.105.0",
     date: "2026-10-15",
     title: "Perkuat AI per bagian, dan kesimpulan tidak lagi gagal pada laporan panjang",
@@ -25,7 +36,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "v1.104.0",
     date: "2026-10-14",
-    title: "Kolom biaya, daftar mapel & topik saat mencatat sesi, dan lipatan Siklus Tagihan",
+    title: "Kolom biaya, daftar mapel & topik saat mencatat sesi, lipatan Siklus Tagihan, dan riwayat laporan",
     items: [
       "**Menghapus isi kolom biaya tidak lagi menyisakan angka 0.** Sebelumnya, begitu Anda menghapus nilainya, kolomnya terisi **0** — dan untuk mengetik nilai baru Anda harus menghapus angka nol itu lebih dulu. Sekarang kolom kosong berarti **\"kembali ke hitungan otomatis\"**, dan Anda bisa langsung mengetik angka baru.",
       "**Menyimpan 0 pada kolom biaya sekarang benar-benar melepas nominal manualnya.** Dulu angka 0 dianggap \"tidak ada perubahan\", sehingga nominal lama Anda tetap dipakai — padahal Anda baru saja mengosongkan kolomnya. Sekarang mengosongkan kolom (atau mengisinya 0) secara jelas mengembalikan biaya sesi ke hitungan otomatis dari tarif murid.",

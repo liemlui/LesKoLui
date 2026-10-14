@@ -49,3 +49,8 @@ leskolui-data-*.csv
 # Guard `npm run e2e:uiux` menulisnya ke `<repo>/../.design-audit/` — di luar
 # repo. Baris ini hanya jaring pengaman bila kelak OUT_DIR dipindah ke dalam.
 .design-audit/
+
+# Folder kerja sementara DSH (profil Chrome, log, dan bukti tangkapan layar dari
+# pemeriksaan manual). Bukan bagian aplikasi; ditaruh di sini supaya `git status`
+# tetap bersih dan tidak ada artefak yang ikut terkirim tanpa sengaja.
+.dsh-tmp/
