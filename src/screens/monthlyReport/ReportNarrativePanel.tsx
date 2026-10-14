@@ -1,14 +1,13 @@
 /**
- * Panel "Narasi Sesi" (G3-05 butir 6, 8, 9).
+ * Panel "Narasi Sesi" (G3-05 butir 7 & 8, lalu butir 6 & 9 dihentikan 2026-10-14).
  *
- *  - butir 6: setiap narasi yang bisa disunting dirender sebagai tombol sungguhan
- *    (peran tombol, urutan fokus, Enter/Spasi bekerja).
- *  - butir 8: penanda "dibuat AI" per narasi, hilang sendiri setelah disunting
- *    manual — dibaca dari `aiNarrativeTextHash` sesi (fingerprint teks narasi
- *    saat AI menulisnya), bukan dari bendera terpisah.
- *  - butir 9: penyimpanan otomatis setelah berhenti mengetik, dengan status
- *    "sedang menyimpan" dan waktu tersimpan.
  *  - butir 7: chip yang menyebut berapa sesi yang sedang ditampilkan.
+ *  - butir 8: penanda "dibuat AI" per narasi — dibaca dari `aiNarrativeTextHash`
+ *    sesi (fingerprint teks narasi saat AI menulisnya), bukan bendera terpisah.
+ *  - **butir 6 dan 9 tidak berlaku lagi di layar ini** sejak keputusan pemilik
+ *    2026-10-14: narasi tidak lagi disunting di sini karena sudah dibuat dengan AI
+ *    di alur Catat Sesi setiap hari. Karena itu tidak ada tombol penyunting maupun
+ *    penyimpanan otomatis di panel ini — narasinya hanya ditampilkan.
  */
 
 import { EyeIcon, BoltIcon, PencilIcon } from "../../components/icons";
@@ -16,7 +15,6 @@ import PaginationControls from "../../components/PaginationControls";
 import { dayLabel } from "../../lib/format";
 import { narrativeIsAiWritten } from "./aiFieldMarks";
 import type { Session } from "../../db/types";
-import type { NarrativeSaveState } from "./useNarrativeAutosave";
 
 interface ReportNarrativePanelProps {
   open: boolean;
@@ -30,35 +28,16 @@ interface ReportNarrativePanelProps {
   filteredTotal: number;
   /** Chip cakupan penyaring; undefined = tidak sedang menyaring. */
   scopeChip?: string;
-  editingId: string | null;
-  draftText: string;
-  onStartEdit: (session: Session) => void;
-  onDraftChange: (text: string) => void;
-  onFinishEdit: () => void;
-  saveState: NarrativeSaveState;
-  savedLabel?: string;
   onGenerateFree: () => void;
   page: number;
   onPageChange: (page: number) => void;
 }
 
-function saveStatusLabel(state: NarrativeSaveState, savedLabel?: string): string | undefined {
-  switch (state) {
-    case "pending": return "Menunggu tersimpan…";
-    case "saving": return "Sedang menyimpan…";
-    case "saved": return savedLabel ?? "Tersimpan";
-    case "error": return "Gagal menyimpan — periksa penyimpanan lalu ketik lagi.";
-    default: return undefined;
-  }
-}
-
-/** Penanda AI pada narasi sebuah sesi: masih ada hanya bila isinya belum disunting. */
+/** Penanda AI pada narasi sebuah sesi; lihat `narrativeIsAiWritten`. */
 export default function ReportNarrativePanel({
   open, onToggle, sessions, totalSessions, sessionsWithNarrative, filteredTotal, scopeChip,
-  editingId, draftText, onStartEdit, onDraftChange, onFinishEdit,
-  saveState, savedLabel, onGenerateFree, page, onPageChange,
+  onGenerateFree, page, onPageChange,
 }: ReportNarrativePanelProps) {
-  const status = saveStatusLabel(saveState, savedLabel);
 
   return (
     <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] shadow-sm">
@@ -91,7 +70,8 @@ export default function ReportNarrativePanel({
           </div>
 
           {sessions.map((session) => {
-            const isEditing = editingId === session.id;
+            // Narasi tidak lagi disunting di layar Laporan (keputusan pemilik
+            // 2026-10-14); penyuntingannya ada di alur Catat Sesi.
             const aiMarked = narrativeIsAiWritten(session);
             return (
               <div key={session.id} className="mt-2 rounded-xl bg-[var(--surface)] p-3">
@@ -109,56 +89,26 @@ export default function ReportNarrativePanel({
                   )}
                 </div>
 
-                {isEditing ? (
-                  <div className="space-y-2">
-                    <textarea
-                      className="input text-sm"
-                      rows={3}
-                      aria-label={`Narasi sesi ${dayLabel(session.date)}`}
-                      value={draftText}
-                      onChange={(e) => onDraftChange(e.target.value)}
-                    />
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        className="btn btn-primary text-xs"
-                        onClick={onFinishEdit}
-                      >
-                        Selesai
-                      </button>
-                      {status && (
-                        <span
-                          role="status"
-                          aria-live="polite"
-                          className={`text-xs ${saveState === "error" ? "font-semibold text-[var(--ink-danger)]" : "text-[var(--ink-muted)]"}`}
-                        >
-                          {status}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => onStartEdit(session)}
-                    aria-label={`Sunting narasi sesi ${dayLabel(session.date)}`}
-                    className="group flex w-full items-start gap-2 rounded-lg p-1 text-left transition-colors hover:bg-[var(--bg-subtle)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-brand)]"
-                  >
-                    <span className="line-clamp-2 flex-1 text-sm text-[var(--ink-strong)] transition-colors group-hover:text-[var(--ink-brand)]">
-                      {session.narrative ?? session.shortNote}
-                    </span>
-                    <span className={`flex-shrink-0 rounded-full px-1.5 py-0.5 text-xs font-semibold ${
-                      session.narrative
-                        ? "bg-[var(--bg-success)] text-[var(--ink-success)]"
-                        : "bg-[var(--bg-warn)] text-[var(--ink-warn)]"
-                    }`}>
-                      {session.narrative ? "✓" : "Edit"}
-                    </span>
-                  </button>
-                )}
-                {!isEditing && (
+                {/* Sejak v1.105.0 narasi **tidak disunting di layar Laporan**
+                    (keputusan pemilik 2026-10-14: narasi sudah dibuat dengan AI
+                    di alur Catat Sesi setiap hari, jadi di sini cukup dibaca).
+                    Yang dirender adalah paragraf biasa — bukan tombol — supaya
+                    tidak ada ajakan menyunting yang menyesatkan. */}
+                <div className="flex w-full items-start gap-2 p-1">
+                  <span className="flex-1 text-sm text-[var(--ink-strong)]">
+                    {session.narrative ?? session.shortNote}
+                  </span>
+                  <span className={`flex-shrink-0 rounded-full px-1.5 py-0.5 text-xs font-semibold ${
+                    session.narrative
+                      ? "bg-[var(--bg-success)] text-[var(--ink-success)]"
+                      : "bg-[var(--bg-warn)] text-[var(--ink-warn)]"
+                  }`}>
+                    {session.narrative ? "✓" : "Belum ada"}
+                  </span>
+                </div>
+                {(
                   <p className="mt-1 flex items-center gap-1 text-[11px] text-[var(--ink-muted)]">
-                    <EyeIcon size={11} /> Ketuk untuk menyunting — perubahan tersimpan otomatis.
+                    <EyeIcon size={11} /> Narasi dibuat dari alur <strong>Catat Sesi</strong> — di sini hanya dibaca.
                   </p>
                 )}
               </div>

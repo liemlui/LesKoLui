@@ -5,6 +5,8 @@ import type { MonthlyReport, Session, Student } from "../db/types";
 
 const generateNarrativesMock = vi.hoisted(() => vi.fn());
 const generateReportSummaryMock = vi.hoisted(() => vi.fn());
+const generateReportFieldMock = vi.hoisted(() => vi.fn());
+const generateStagedSummaryMock = vi.hoisted(() => vi.fn());
 const applyAiNarrativeBatchMock = vi.hoisted(() => vi.fn());
 const upsertReportMock = vi.hoisted(() => vi.fn());
 
@@ -15,6 +17,8 @@ vi.mock("../lib/aiClient", async (importOriginal) => {
     ...actual,
     generateNarratives: generateNarrativesMock,
     generateReportSummary: generateReportSummaryMock,
+    generateReportField: generateReportFieldMock,
+    generateStagedSummary: generateStagedSummaryMock,
   };
 });
 vi.mock("../db/repos", () => ({
@@ -163,10 +167,17 @@ describe("handleGenerateAll (satu tombol AI)", () => {
   beforeEach(() => {
     generateNarrativesMock.mockReset();
     generateReportSummaryMock.mockReset();
+    generateReportFieldMock.mockReset();
+    generateStagedSummaryMock.mockReset();
     applyAiNarrativeBatchMock.mockReset();
     upsertReportMock.mockReset();
     applyAiNarrativeBatchMock.mockResolvedValue(undefined);
     upsertReportMock.mockResolvedValue("report-1");
+    // Perkuat per bagian (dipakai ringkasan bertahap untuk meringkas tiap batch).
+    generateReportFieldMock.mockImplementation(async (_field: string, input: NarrativesInput) => ({
+      summary: `Ringkasan bagian ${input.sessions.length} sesi`,
+    }));
+    generateStagedSummaryMock.mockResolvedValue({ summary: "Kesimpulan dari ringkasan bagian" });
     vi.stubGlobal("navigator", { onLine: true });
   });
 
@@ -197,9 +208,23 @@ describe("handleGenerateAll (satu tombol AI)", () => {
     // Setiap batch sukses disimpan langsung — tidak menunggu akhir.
     expect(applyAiNarrativeBatchMock).toHaveBeenCalledTimes(batchInputs.length);
     expect(applyAiNarrativeBatchMock.mock.calls[0][1]).toHaveLength(8);
-    // Ringkasan tetap satu panggilan kecil atas SELURUH sesi.
-    expect(generateReportSummaryMock).toHaveBeenCalledTimes(1);
-    expect((generateReportSummaryMock.mock.calls[0][0] as NarrativesInput).sessions).toHaveLength(19);
+    // Ringkasan TIDAK lagi satu panggilan atas seluruh sesi: laporan panjang
+    // memakai ringkasan bertahap (keputusan pemilik 2026-10-14), sehingga
+    // konteks panggilan terakhir tidak tumbuh mengikuti jumlah sesi.
+    expect(generateStagedSummaryMock).toHaveBeenCalledTimes(1);
+    const digests = (generateStagedSummaryMock.mock.calls[0][0] as { digests: string[]; sessionCount: number });
+    expect(digests.sessionCount).toBe(19);
+    expect(digests.digests).toHaveLength(3); // 8 + 8 + 3 sesi
+    // Ringkasan per bagian dijalankan sekali per batch, masing-masing kecil.
+    const batchSummaryCalls = generateReportFieldMock.mock.calls.filter((call) => call[0] === "summaryText");
+    expect(batchSummaryCalls).toHaveLength(3);
+    for (const call of batchSummaryCalls) {
+      expect((call[1] as NarrativesInput).sessions.length).toBeLessThanOrEqual(AI_BATCH_MAX_SESSIONS);
+    }
+    // Muatan panggilan terakhir adalah ringkasan bagian, bukan seluruh sesi —
+    // inilah yang membuat "konteks terlalu panjang" tidak terulang.
+    expect(digests.digests.every((digest) => typeof digest === "string" && digest.length > 0)).toBe(true);
+    expect((digests as unknown as { sessions?: unknown }).sessions).toBeUndefined();
     expect(messages.at(-1)).toBe("Isi AI selesai ✓ 19 narasi + ringkasan, catatan guru & rencana depan terisi");
   });
 
@@ -303,5 +328,92 @@ describe("handleGenerateAll (satu tombol AI)", () => {
     expect(written.quote).toBe("Kutipan dari batch penuh");
     expect(written.nextMonthPlan?.priorities[0]?.target).toBe("Latihan tiap hari");
     expect(messages.at(-1)).toContain("catatan guru dari batch tetap disimpan");
+  });
+});
+
+/**
+ * Keputusan pemilik 2026-10-14: tombol perkuat **per bagian**.
+ *
+ * Invarian yang dijaga: memperkuat satu bagian **tidak boleh menyentuh bagian
+ * lain** — dan yang paling berbahaya adalah mengosongkannya (`""`), sebab itu
+ * menghapus tulisan tutor tanpa pemberitahuan. Inilah yang membuat perkuat
+ * kesimpulan tidak pernah menghapus kutipan atau catatan guru.
+ */
+describe("handlePerkuatBagian — satu bagian saja", () => {
+  beforeEach(() => {
+    generateReportFieldMock.mockReset();
+    generateStagedSummaryMock.mockReset();
+    upsertReportMock.mockReset();
+    upsertReportMock.mockResolvedValue("report-1");
+    vi.stubGlobal("navigator", { onLine: true });
+  });
+
+  it("hanya menulis bagian yang diminta, bagian lain dikirim apa adanya", async () => {
+    const session = makeSession();
+    const report = makeReport();
+    const messages: string[] = [];
+    const hook = renderHook(makeDepsFor([session], report, messages));
+    generateReportFieldMock.mockResolvedValue({ quote: "Kutipan baru dari AI" });
+
+    await hook.handlePerkuatBagian("quote");
+
+    expect(generateReportFieldMock).toHaveBeenCalledTimes(1);
+    expect(generateReportFieldMock.mock.calls[0][0]).toBe("quote");
+    const written = upsertReportMock.mock.calls[0][0] as MonthlyReport;
+    expect(written.quote).toBe("Kutipan baru dari AI");
+    // Bagian lain TIDAK dikosongkan — nilainya sama seperti sebelumnya.
+    expect(written.summaryText).toBe(report.summaryText);
+    expect(written.teacherNote).toBe(report.teacherNote);
+    expect(messages.at(-1)).toContain("Kutipan diperkuat dengan AI");
+  });
+
+  it("keluaran kosong tidak mengosongkan isian yang sudah ada", async () => {
+    const session = makeSession();
+    const report = makeReport();
+    const messages: string[] = [];
+    const hook = renderHook(makeDepsFor([session], report, messages));
+    generateReportFieldMock.mockResolvedValue({});
+
+    await hook.handlePerkuatBagian("summaryText");
+
+    // Tidak ada penulisan sama sekali, dan tutor diberi tahu apa yang terjadi.
+    expect(upsertReportMock).not.toHaveBeenCalled();
+    expect(messages.at(-1)).toContain("Gagal");
+  });
+
+  it("laporan kecil memakai satu panggilan, bukan ringkasan bertahap", async () => {
+    const session = makeSession();
+    const report = makeReport();
+    const messages: string[] = [];
+    const hook = renderHook(makeDepsFor([session], report, messages));
+    generateReportFieldMock.mockResolvedValue({ summary: "Kesimpulan baru" });
+
+    await hook.handlePerkuatBagian("summaryText");
+
+    expect(generateStagedSummaryMock).not.toHaveBeenCalled();
+    expect((upsertReportMock.mock.calls[0][0] as MonthlyReport).summaryText).toBe("Kesimpulan baru");
+  });
+
+  it("laporan panjang: kesimpulan lewat ringkasan bertahap, muatan terakhir tanpa catatan sesi", async () => {
+    const sessions = makeDirtySessions(17).map((s) => ({ ...s, shortNote: "c".repeat(300) }));
+    const report = { ...makeReport(), sessionIds: sessions.map((s) => s.id) };
+    const messages: string[] = [];
+    const hook = renderHook(makeDepsFor(sessions, report, messages));
+    generateReportFieldMock.mockImplementation(async (_field: string, input: NarrativesInput) => ({
+      summary: `ringkasan ${input.sessions.length} sesi`,
+    }));
+    generateStagedSummaryMock.mockResolvedValue({ summary: "Kesimpulan bertahap" });
+
+    await hook.handlePerkuatBagian("summaryText");
+
+    expect(generateStagedSummaryMock).toHaveBeenCalledTimes(1);
+    const muatan = generateStagedSummaryMock.mock.calls[0][0] as {
+      digests: string[]; sessionCount: number; sessions?: unknown;
+    };
+    expect(muatan.sessionCount).toBe(17);
+    expect(muatan.digests.length).toBeGreaterThan(1);
+    // Muatan terakhir hanya berisi ringkasan bagian — bukan catatan sesi mentah.
+    expect(muatan.sessions).toBeUndefined();
+    expect((upsertReportMock.mock.calls[0][0] as MonthlyReport).summaryText).toBe("Kesimpulan bertahap");
   });
 });

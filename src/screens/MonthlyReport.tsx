@@ -19,7 +19,8 @@ import {
   reportIdsWithInvoice,
 } from "../db/repos/helpers";
 import { pickTemplate } from "../lib/rotation";
-import { estimateReportSummaryCost, estimateNarrativesCost } from "../lib/aiClient";
+import { estimateReportSummaryCost, estimateNarrativesCost, estimateReportFieldCost, AI_BATCH_MAX_SESSIONS, type AiReportFieldKey } from "../lib/aiClient";
+import { formatIdrNumber } from "../lib/finance";
 import {
   resolveReportMutationTarget,
   selectCountReportSessions,
@@ -39,8 +40,8 @@ import { useMoneyVisible } from "../hooks/useMoneyVisible";
 import { TrashIcon } from "../components/icons";
 import { useSettingsQuery } from "../hooks/useSettingsQuery";
 import { useReportExport } from "./monthlyReport/useReportExport";
-import { useReportGeneration } from "./monthlyReport/useReportGeneration";
-import { useNarrativeAutosave, narrativeSavedLabel } from "./monthlyReport/useNarrativeAutosave";
+import { useReportGeneration, LABEL_BAGIAN } from "./monthlyReport/useReportGeneration";
+import { useNarrativeAutosave } from "./monthlyReport/useNarrativeAutosave";
 import { useReportData } from "./monthlyReport/useReportData";
 import Breadcrumb from "../components/Breadcrumb";
 import { clampPage, paginateItems } from "../lib/pagination";
@@ -662,11 +663,10 @@ export default function MonthlyReportPage() {
   // Generasi AI (narasi/ringkasan + fallback gratis) — di-extract ke hook tersendiri.
   const {
     aiLoading, aiProgress, aiResult, clearAiResult, prevTexts, setPrevTexts, invalidateAiRequests,
-    handleGenerateAll,
+    handleGenerateAll, handlePerkuatBagian,
     pickFailedSessions, retryFailedAi,
     handleGenerateLocalNarratives, handleGenerateLocalTexts,
-  } = useReportGeneration({
-    student,
+  } = useReportGeneration({    student,
     report,
     reportSessions,
     periodStart,
@@ -681,6 +681,43 @@ export default function MonthlyReportPage() {
     setOpenTeks,
     setOpenPlan,
   });
+
+  /**
+   * Label biaya untuk tombol "Perkuat AI" per bagian (keputusan pemilik
+   * 2026-10-14). Dihitung dari estimator yang sama seperti modal biaya, jadi
+   * angka di tombol dan angka di modal tidak bisa berbeda. Tanda `±` dipakai
+   * karena ini perkiraan sebelum panggilan berjalan.
+   */
+  const perkuatLabel = useMemo(() => {
+    const label = (field: AiReportFieldKey) =>
+      `±${formatIdrNumber(Math.max(1, Math.ceil(estimateReportFieldCost(field, reportSessions.length))))}`;
+    return {
+      summaryText: label("summaryText"),
+      teacherNote: label("teacherNote"),
+      quote: label("quote"),
+      nextMonthPlan: label("nextMonthPlan"),
+    } satisfies Record<AiReportFieldKey, string>;
+  }, [reportSessions.length]);
+
+  /**
+   * Perkuat satu bagian lewat jalur berbiaya yang sama seperti tombol AI lain di
+   * aplikasi ini: modal biaya tampil lebih dulu, dan yang tercatat di audit adalah
+   * perkiraan yang sama dengan yang dilihat tutor.
+   */
+  const perkuatSatuBagian = (field: AiReportFieldKey) => {
+    const nama = LABEL_BAGIAN[field];
+    ai.jalankan({
+      title: `Perkuat ${nama} dengan AI`,
+      fitur: "Ringkasan laporan",
+      estimatedIDR: estimateReportFieldCost(field, reportSessions.length),
+      description: `Hanya bagian **${nama}** yang ditulis ulang. Bagian lain tidak disentuh, jadi kegagalan panggilan ini tidak mengosongkan isian yang sudah ada.`
+        + (field === "summaryText" && reportSessions.length > AI_BATCH_MAX_SESSIONS
+          ? ` Kesimpulan membaca SELURUH ${reportSessions.length} sesi, tetapi lewat ringkasan bertahap (${Math.ceil(reportSessions.length / AI_BATCH_MAX_SESSIONS)} bagian) supaya tidak melewati batas konteks.`
+          : ""),
+      dataSent: "Nama dan level murid, periode laporan, serta tanggal, mapel dan catatan sesi pada periode ini. Bila tersedia: mood, topik, area perhatian, prediksi dan nilai akhir, skor engagement, dan rata-rata fokus periode sebelumnya.",
+      aksi: () => handlePerkuatBagian(field),
+    });
+  };
 
   // Penyimpanan narasi otomatis: status "sedang menyimpan" dan waktu tersimpan.
   const storedNarrative = useMemo(
@@ -1339,13 +1376,6 @@ export default function MonthlyReportPage() {
               sessionsWithNarrative={sessionsWithNarrativeAll}
               filteredTotal={filteredSessions.length}
               scopeChip={scopeChip}
-              editingId={narrativeEdit?.id ?? null}
-              draftText={narrativeEdit?.text ?? ""}
-              onStartEdit={(session) => setNarrativeEdit({ id: session.id, text: session.narrative ?? session.shortNote ?? "" })}
-              onDraftChange={(text) => setNarrativeEdit((current) => (current ? { ...current, text } : current))}
-              onFinishEdit={() => { void narrativeAutosave.flush(); setNarrativeEdit(null); }}
-              saveState={narrativeAutosave.state}
-              savedLabel={narrativeSavedLabel(narrativeAutosave.savedAt)}
               onGenerateFree={() => void handleGenerateLocalNarratives()}
               page={safeNarrativePage}
               onPageChange={setNarrativePage}
@@ -1358,6 +1388,10 @@ export default function MonthlyReportPage() {
               scopeKey={reportScopeKey}
               onSaveField={saveReportField}
               onGenerateFree={() => void handleGenerateLocalTexts()}
+              onPerkuat={perkuatSatuBagian}
+              perkuatLabel={perkuatLabel}
+              aiBusy={aiLoading || Boolean(ai.alasanNonaktif)}
+              aiDisabledReason={ai.alasanNonaktif || undefined}
             />
 
             <ReportPlanPanel
@@ -1367,6 +1401,10 @@ export default function MonthlyReportPage() {
               scopeKey={reportScopeKey}
               onSavePlan={saveNextMonthPlan}
               aiEnabled={aiAvailable}
+              onPerkuat={() => perkuatSatuBagian("nextMonthPlan")}
+              perkuatLabel={perkuatLabel.nextMonthPlan}
+              aiBusy={aiLoading || Boolean(ai.alasanNonaktif)}
+              aiDisabledReason={ai.alasanNonaktif || undefined}
             />
           </div>
         )}

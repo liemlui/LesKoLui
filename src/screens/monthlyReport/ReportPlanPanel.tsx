@@ -8,7 +8,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { TargetIcon } from "../../components/icons";
+import { SparkleIcon, TargetIcon } from "../../components/icons";
 import { PLAN_STATUSES } from "./helpers";
 import { isAiWritten } from "./aiFieldMarks";
 import { NextMonthPlanEditor } from "./NextMonthPlanEditor";
@@ -23,10 +23,20 @@ interface ReportPlanPanelProps {
   onSavePlan: (plan: NextMonthPlan) => Promise<void>;
   /** AI aktif (kunci + tombol hidup) → tampilkan petunjuk tombol AI. */
   aiEnabled: boolean;
+  /**
+   * Perkuat **rencana** saja dengan AI (keputusan pemilik 2026-10-14). Tombolnya
+   * ada di panel ini, bukan hanya di tombol besar di atas.
+   */
+  onPerkuat: () => void;
+  /** Perkiraan biaya, mis. "±Rp 3". */
+  perkuatLabel?: string;
+  aiBusy: boolean;
+  aiDisabledReason?: string;
 }
 
 export default function ReportPlanPanel({
   open, onToggle, report, scopeKey, onSavePlan, aiEnabled,
+  onPerkuat, perkuatLabel, aiBusy, aiDisabledReason,
 }: ReportPlanPanelProps) {
   const [editingPlan, setEditingPlan] = useState(false);
   useEffect(() => { setEditingPlan(false); }, [scopeKey]);
@@ -114,9 +124,16 @@ export default function ReportPlanPanel({
                 {hasPlan ? "Edit Rencana" : "＋ Susun Rencana"}
               </button>
               {aiEnabled && (
-                <p className="pt-1 text-xs text-[var(--ink-muted)]">
-                  Ringkasan, catatan guru &amp; rencana depan ikut diisi oleh tombol <strong>Isi Semua dengan AI</strong> di panel atas.
-                </p>
+                <button
+                  type="button"
+                  onClick={onPerkuat}
+                  disabled={aiBusy || Boolean(aiDisabledReason)}
+                  title={aiDisabledReason || "Minta AI menyusun ulang rencana periode berikutnya"}
+                  className="inline-flex min-h-[32px] items-center rounded-lg border border-[var(--border-accent)] bg-[var(--accent-tint)] px-2.5 py-1 text-xs font-semibold text-[var(--ink-accent)] transition-colors disabled:opacity-50"
+                >
+                  <SparkleIcon size={12} className="mr-1 inline align-[-2px]" />
+                  Perkuat AI{perkuatLabel ? ` · ${perkuatLabel}` : ""}
+                </button>
               )}
             </>
           )}

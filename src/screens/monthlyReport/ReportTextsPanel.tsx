@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { BoltIcon, PencilIcon, SparkleIcon } from "../../components/icons";
 import { isAiWritten } from "./aiFieldMarks";
 import EditableText from "./EditableText";
+import type { AiReportFieldKey } from "../../lib/aiClient";
 import type { MonthlyReport } from "../../db/types";
 
 type ReportTextField = "summaryText" | "teacherNote" | "quote";
@@ -24,10 +25,24 @@ interface ReportTextsPanelProps {
   scopeKey: string;
   onSaveField: (field: ReportTextField, value: string) => Promise<void>;
   onGenerateFree: () => void;
+  /**
+   * Perkuat **satu** bagian dengan AI (keputusan pemilik 2026-10-14): tombolnya
+   * ada di bagian masing-masing, bukan satu tombol besar untuk semuanya. Yang
+   * diminta hanya isian itu, sehingga keluarannya pendek dan kegagalannya tidak
+   * menjatuhkan isian lain.
+   */
+  onPerkuat: (field: AiReportFieldKey) => void;
+  /** Perkiraan biaya per isian, mis. `{ summaryText: "±Rp 3" }` — ditampilkan di tombol. */
+  perkuatLabel: Partial<Record<AiReportFieldKey, string>>;
+  /** true selama satu panggilan AI berjalan (tombolnya dimatikan). */
+  aiBusy: boolean;
+  /** Alasan tombol AI mati (mis. batas belanja bulan ini), ditulis apa adanya. */
+  aiDisabledReason?: string;
 }
 
 export default function ReportTextsPanel({
   open, onToggle, report, scopeKey, onSaveField, onGenerateFree,
+  onPerkuat, perkuatLabel, aiBusy, aiDisabledReason,
 }: ReportTextsPanelProps) {
   const [editing, setEditing] = useState<ReportTextField | null>(null);
   const [draft, setDraft] = useState("");
@@ -52,6 +67,26 @@ export default function ReportTextsPanel({
 
   const anyAiWritten = (["summaryText", "teacherNote", "quote"] as const)
     .some((field) => isAiWritten(report, field));
+
+  /**
+   * Tombol perkuat untuk satu isian.
+   *
+   * Bentuknya sengaja seragam: label biayanya selalu tampil (dihitung pemanggil
+   * dengan estimator yang sama seperti modal biaya), dan tombolnya mati saat ada
+   * panggilan berjalan atau saat AI memang tidak boleh dipakai.
+   */
+  const tombolPerkuat = (field: AiReportFieldKey) => (
+    <button
+      type="button"
+      onClick={() => onPerkuat(field)}
+      disabled={aiBusy || Boolean(aiDisabledReason)}
+      title={aiDisabledReason || "Minta AI menulis ulang bagian ini saja"}
+      className="mt-1 inline-flex min-h-[32px] items-center rounded-lg border border-[var(--border-accent)] bg-[var(--accent-tint)] px-2.5 py-1 text-xs font-semibold text-[var(--ink-accent)] transition-colors disabled:opacity-50"
+    >
+      <SparkleIcon size={12} className="mr-1 inline align-[-2px]" />
+      Perkuat AI{perkuatLabel[field] ? ` · ${perkuatLabel[field]}` : ""}
+    </button>
+  );
 
   return (
     <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] shadow-sm">
@@ -102,37 +137,44 @@ export default function ReportTextsPanel({
               aiMarked={isAiWritten(report, "summaryText")}
               hint={busy && editing === "summaryText" ? <span className="text-xs text-[var(--ink-muted)]">Menyimpan…</span> : undefined}
             />
+            {tombolPerkuat("summaryText")}
           </div>
 
-          <EditableText
-            fieldId="mr-catatan-guru"
-            label="Catatan Guru"
-            value={report.teacherNote}
-            placeholder="Ketuk untuk menambahkan kemajuan dan fokus prioritas..."
-            editing={editing === "teacherNote"}
-            draft={draft}
-            onDraftChange={setDraft}
-            onStartEdit={() => beginEdit("teacherNote", report.teacherNote)}
-            onSave={() => void save("teacherNote")}
-            onCancel={() => setEditing(null)}
-            aiMarked={isAiWritten(report, "teacherNote")}
-          />
+          <div>
+            <EditableText
+              fieldId="mr-catatan-guru"
+              label="Catatan Guru"
+              value={report.teacherNote}
+              placeholder="Ketuk untuk menambahkan kemajuan dan fokus prioritas..."
+              editing={editing === "teacherNote"}
+              draft={draft}
+              onDraftChange={setDraft}
+              onStartEdit={() => beginEdit("teacherNote", report.teacherNote)}
+              onSave={() => void save("teacherNote")}
+              onCancel={() => setEditing(null)}
+              aiMarked={isAiWritten(report, "teacherNote")}
+            />
+            {tombolPerkuat("teacherNote")}
+          </div>
 
-          <EditableText
-            fieldId="mr-kutipan"
-            label="Kutipan"
-            value={report.quote ? `"${report.quote}"` : undefined}
-            placeholder="Ketuk untuk tambah kutipan..."
-            editing={editing === "quote"}
-            draft={draft}
-            onDraftChange={setDraft}
-            onStartEdit={() => beginEdit("quote", report.quote)}
-            onSave={() => void save("quote")}
-            onCancel={() => setEditing(null)}
-            aiMarked={isAiWritten(report, "quote")}
-            italic
-            singleLine
-          />
+          <div>
+            <EditableText
+              fieldId="mr-kutipan"
+              label="Kutipan"
+              value={report.quote ? `"${report.quote}"` : undefined}
+              placeholder="Ketuk untuk tambah kutipan..."
+              editing={editing === "quote"}
+              draft={draft}
+              onDraftChange={setDraft}
+              onStartEdit={() => beginEdit("quote", report.quote)}
+              onSave={() => void save("quote")}
+              onCancel={() => setEditing(null)}
+              aiMarked={isAiWritten(report, "quote")}
+              italic
+              singleLine
+            />
+            {tombolPerkuat("quote")}
+          </div>
         </div>
       )}
     </section>

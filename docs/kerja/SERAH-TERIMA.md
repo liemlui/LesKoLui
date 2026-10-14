@@ -415,13 +415,27 @@ Pemilik memeriksa butir 30–44 langsung di server pengembangan. Hasilnya: **34�
 2. **Bug: panel "Laporan tersimpan" menampilkan laporan semua murid.** Pemilik: *"kok munculkan semua laporan. Mending ndak perlu, sebab fokus di laporan ini ya anak yang lagi kita amati."* Panel itu memuat `listAllReports()` beserta pemilih murid; sekarang `listReportsByStudent(studentId)`, pemilihnya dihapus, judulnya "Riwayat laporan <nama murid>". Keputusan pemilik 2026-10-01 yang mendasarinya tetap terjaga: laporan murid yang sama masih bisa dibuka dari daftar ini.
 
 3. **Temuan yang menunggu keputusan pemilik (belum dikerjakan), semuanya tercatat di `PEKERJAAN.md` §4:**
-   - **Panggilan AI "perkuat" gagal karena konteks terlalu panjang, dan Coba lagi hanya mengulang muatan yang sama.** Ini temuan terpenting. `estimateNarrativesCost` mengirim ±120 token **per sesi** beserta keluaran setiap sesi sekaligus. Arah yang diminta pemilik: tombol perkuat **per bagian**, dan **kesimpulan** tetap membaca seluruh sesi tetapi lewat **ringkasan hemat token**. Menyentuh prompt di `aiClient` → bentuknya harus diputuskan pemilik lebih dulu. **Butir 42 tidak bisa ditutup sampai ini selesai** — tombolnya bekerja, tetapi mengulang panggilan yang sama pasti gagal lagi.
-   - **Narasi sesi tidak perlu disunting lagi di layar Laporan** (fokus: kesimpulan · kutipan guru · rencana). Menghapusnya berarti `ReportNarrativePanel` kehilangan tempat sementara PDF tetap memuat narasi sesi — perlu keputusan bentuknya.
-   - **Pemilih gaya Rapikan · Perluas · Ringkas terasa tidak berpengaruh.** Bukan bug: tombolnya hanya menyimpan pilihan, dan gaya itu dipakai pada panggilan **berikutnya**. Yang kurang adalah umpan baliknya.
-   - **Saat mencatat sesi, mapel & topik belum mengikuti muridnya**: mapel terdaftar belum tampil lebih dulu/dilipat, dan daftar topik belum dibatasi mapel yang dipilih.
-   - **Tombol lipatan "Siklus Tagihan" tidak menyembunyikan isinya pada murid yang sudah ada** (di kode memang begitu: isinya selalu dirender bila `initial` ada).
+   - **Panggilan AI "perkuat" gagal karena konteks terlalu panjang, dan Coba lagi hanya mengulang muatan yang sama.** Ini temuan terpenting. **SUDAH DIKERJAKAN 2026-10-15 (v1.105.0)** — lihat §4.14. **Butir 42 (Coba lagi) tinggal dicoba pemilik di perangkat.**
+   - **Narasi sesi tidak perlu disunting lagi di layar Laporan** (fokus: kesimpulan · kutipan guru · rencana). **SUDAH DIKERJAKAN 2026-10-15 (v1.105.0)** — panel narasi kini hanya-baca, dan prop penyuntingannya dihapus dari panel itu.
+   - **Pemilih gaya Rapikan · Perluas · Ringkas terasa tidak berpengaruh.** Bukan bug: tombolnya hanya menyimpan pilihan, dan gaya itu dipakai pada panggilan **berikutnya**. Yang kurang adalah umpan baliknya. **Masih terbuka.**
+   - **Saat mencatat sesi, mapel & topik belum mengikuti muridnya.** **SELESAI 2026-10-14 (v1.104.0).**
+   - **Tombol lipatan "Siklus Tagihan" tidak menyembunyikan isinya pada murid yang sudah ada.** **SELESAI 2026-10-14 (v1.104.0).**
 
 4. **Batas kejujuran putaran ini.** Sudah dibuktikan: `npx tsc -b` bersih · `npx eslint src` bersih · berkas uji baru **12 tes** hijau · suite penuh dijalankan sekali di akhir. Belum: **`e2e:uiux` tidak dijalankan** pada putaran ini, dan pemeriksaan pemilik dilakukan di **server pengembangan dengan data contoh** — bukan di HP dengan data asli.
+
+### 4.14 Yang berubah pada putaran 2026-10-15 (perkuat AI per bagian + ringkasan bertahap, v1.105.0)
+
+Dua keputusan pemilik 2026-10-14 dikerjakan pada putaran ini.
+
+1. **Perkuat AI per bagian.** `generateReportField(field, input)` di `lib/aiClient.ts` dengan prompt **turunan** `SYSTEM_PROMPT_REPORT_SUMMARY` — kalimat penilaiannya dipertahankan apa adanya supaya mutu keluarannya tidak berubah, bukan aturan baru. Validatornya hanya menuntut isian yang diminta. Tombolnya dipasang di tempat bagiannya: `ReportTextsPanel` (Kesimpulan · Catatan Guru · Kutipan) dan `ReportPlanPanel` (Rencana), masing-masing menyebut perkiraan biaya dari `estimateReportFieldCost`.
+
+2. **Yang paling penting: perkuat satu bagian tidak menyentuh bagian lain.** `isiBagian()` mengembalikan `undefined` untuk isian yang tidak diminta — **bukan `""`** — sebab `""` akan **mengosongkan tulisan tutor** yang sudah ada. Ada tes khusus untuk itu (`useReportGeneration.test.ts`, +4 tes), termasuk kasus keluaran AI kosong: tidak ada penulisan sama sekali dan tutor diberi tahu.
+
+3. **Ringkasan bertahap.** `ringkasanBertahap()` adalah orchestrator **murni** dengan dua fungsi yang disuntikkan (`ringkasBatch`, `susunAkhir`), sehingga aturan "berapa panggilan" bisa diuji tanpa jaringan — dan `generateStagedSummary()` menyusun kesimpulan dari ringkasan tiap batch **beserta fakta angka** (jumlah sesi, rentang tanggal, mapel, rata-rata fokus). Dipakai di `handlePerkuatBagian("summaryText")` **dan** `handleGenerateAll`. **Laporan kecil tidak berubah:** bila seluruh sesi muat dalam satu batch, jalur bertahap mengembalikan `null` dan panggilan tunggal yang lama tetap dipakai — invarian ini punya tesnya sendiri.
+
+4. **Narasi sesi hanya-baca di layar Laporan.** Prop penyuntingan (`editingId` · `draftText` · `onStartEdit` · `onDraftChange` · `onFinishEdit` · `saveState` · `savedLabel`) **dihapus** dari `ReportNarrativePanel`, bukan sekadar disembunyikan lewat CSS — supaya tidak ada dua tempat yang bisa berbeda pendapat soal apakah editor boleh muncul. Narasi tetap tampil dan tetap tercetak di PDF. **Catatan teknis:** `useNarrativeAutosave` beserta tesnya masih ada di repo tetapi **tidak lagi terpakai** layar Laporan; menghapusnya adalah keputusan terpisah karena menyentuh berkas uji.
+
+5. **Batas kejujuran putaran ini.** Sudah dibuktikan: `npx tsc -b` bersih · `npx eslint src` bersih · suite **1.434 lulus / 103 berkas**, 0 gagal · `check:docs` 0 pelanggaran. Belum: **`e2e:uiux` tidak dijalankan** pada putaran ini meskipun markup layar Laporan berubah (tombol baru + panel narasi), dan **butir 42 belum bisa dicentang** sampai pemilik mencoba "Coba lagi" lagi di perangkat.
 
 ---
 

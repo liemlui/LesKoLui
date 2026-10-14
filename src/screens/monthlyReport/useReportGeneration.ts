@@ -11,7 +11,10 @@
  */
 
 import { useCallback, useRef, useState } from "react";
-import { chunkSessionsForAi, generateReportSummary, generateNarratives } from "../../lib/aiClient";
+import {
+  chunkSessionsForAi, generateReportField, generateReportSummary, generateNarratives,
+  generateStagedSummary, ringkasanBertahap, type AiReportFieldKey,
+} from "../../lib/aiClient";
 import { buildReportAiInput } from "../../lib/reportSessionScope";
 import { pickDirtyNarrativeSessions, reportSummaryFingerprint, sessionAiFingerprint } from "../../lib/aiIncremental";
 import { normaliseAiPlan, cleanText, buildSessionNarrative, sessionSubjectLabel } from "./helpers";
@@ -62,6 +65,29 @@ export const AI_NO_SESSION_HINT =
 
 function sessionLabel(session: Session): string {
   return `${session.date} — ${sessionSubjectLabel(session.subjects)}`;
+}
+
+/** Nama bagian laporan untuk pesan ke tutor — satu tempat, supaya pesan & tombol tidak berbeda kata. */
+export const LABEL_BAGIAN: Record<AiReportFieldKey, string> = {
+  summaryText: "Kesimpulan",
+  teacherNote: "Catatan Guru",
+  quote: "Kutipan",
+  nextMonthPlan: "Rencana",
+};
+
+/**
+ * Ambil hanya isian yang diminta dari keluaran AI per bagian.
+ *
+ * Sengaja memeriksa satu per satu dan bukan `?? ""`: `""` akan **mengosongkan**
+ * isian laporan yang sudah ada, dan itu kehilangan tulisan tutor tanpa
+ * pemberitahuan. Yang tidak diminta selalu `undefined`.
+ */
+export function isiBagian(
+  bagian: AiReportFieldKey,
+  out: { summary?: string; teacherNote?: string; quote?: string },
+): string | undefined {
+  const teks = bagian === "summaryText" ? out.summary : bagian === "teacherNote" ? out.teacherNote : out.quote;
+  return teks?.trim() || undefined;
 }
 
 export function useReportGeneration(deps: ReportGenerationDeps) {
@@ -344,8 +370,11 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
         processed += batch.length;
       }
 
-      // Satu panggilan ringkasan atas SELURUH sesi (bukan per batch) untuk
-      // ringkasan, CATATAN GURU, kutipan, dan rencana depan.
+      // Ringkasan periode: satu panggilan atas SELURUH sesi **bila sesinya masih
+      // sedikit** (perilaku lama, tidak berubah), atau **ringkasan bertahap** bila
+      // sesinya banyak — tiap batch diringkas dulu, lalu kesimpulan disusun dari
+      // ringkasan batch itu (keputusan pemilik 2026-10-14). Inilah yang membuat
+      // konteks panggilan terakhir tidak tumbuh mengikuti jumlah sesi.
       let summaryText: string | undefined;
       let teacherNote: string | undefined;
       let quote: string | undefined;
@@ -353,13 +382,43 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
       if (opts.withSummary) {
         setAiProgress({ done: targetSessions.length, total: targetSessions.length, step: "Menyusun ringkasan…" });
         try {
-          const out = await generateReportSummary(buildReportAiInput(student, period, selectedSessions, prevAvgEngagement));
+          const bertahap = await ringkasanBertahap(selectedSessions, {
+            ringkasBatch: async (bagan) => {
+              const out = await generateReportField("summaryText", buildReportAiInput(student, period, bagan, prevAvgEngagement));
+              return out.summary?.trim() ?? "";
+            },
+            susunAkhir: async (digests) => {
+              const skor = selectedSessions.map((s) => s.engagement?.score).filter((n): n is number => typeof n === "number");
+              const tanggal = selectedSessions.map((s) => s.date).filter(Boolean).sort();
+              const out = await generateStagedSummary({
+                student: { name: student.name, level: student.level },
+                month: period,
+                sessionCount: selectedSessions.length,
+                firstDate: tanggal[0],
+                lastDate: tanggal[tanggal.length - 1],
+                subjects: [...new Set(selectedSessions.flatMap((s) => s.subjects ?? []))],
+                avgEngagement: skor.length > 0 ? Math.round((skor.reduce((a, b) => a + b, 0) / skor.length) * 10) / 10 : undefined,
+                prevAvgEngagement,
+                digests: digests.filter(Boolean),
+              });
+              return out.summary.trim();
+            },
+          });
           if (requestId !== aiRequestRef.current) return;
-          summaryText = out.summary ?? "";
-          teacherNote = out.teacherNote?.trim() || undefined;
-          quote = out.quote?.trim() || undefined;
-          plan = normaliseAiPlan(out.nextMonthPlan);
-          summaryOk = true;
+          if (bertahap) {
+            // Catatan guru, kutipan, dan rencana tetap diisi dari batch narasi
+            // (sudah ada di atas) — panggilan besar ini tidak lagi diminta.
+            summaryText = bertahap.summary;
+            summaryOk = true;
+          } else {
+            const out = await generateReportSummary(buildReportAiInput(student, period, selectedSessions, prevAvgEngagement));
+            if (requestId !== aiRequestRef.current) return;
+            summaryText = out.summary ?? "";
+            teacherNote = out.teacherNote?.trim() || undefined;
+            quote = out.quote?.trim() || undefined;
+            plan = normaliseAiPlan(out.nextMonthPlan);
+            summaryOk = true;
+          }
         } catch (e) {
           summaryError = (e as Error).message;
         }
@@ -512,6 +571,129 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
     setOpenTeks(true);
   };
 
+  /**
+   * Kesimpulan lewat **ringkasan bertahap** bila sesinya banyak.
+   *
+   * Bentuknya dua tingkat: (1) tiap batch sesi diringkas sendiri-sendiri,
+   * (2) kesimpulan akhir disusun dari ringkasan batch itu — bukan dari seluruh
+   * catatan sesi. Inilah yang membuat konteks panggilan terakhir tidak tumbuh
+   * mengikuti jumlah sesi, sehingga keluhan "konteks terlalu panjang" tidak
+   * terulang pada laporan dengan banyak sesi.
+   *
+   * Bila seluruh sesi muat dalam satu batch, jalur ini mengembalikan kesimpulan
+   * dari **panggilan tunggal** yang sudah ada — perilaku laporan kecil tidak
+   * berubah sama sekali.
+   */
+  const ringkasKesimpulanBertahap = async (
+    student: Student,
+    periodStart: string,
+    periodEnd: string,
+    month: string,
+    sessions: readonly Session[],
+    prevAvgEngagement?: number,
+  ): Promise<string> => {
+    const period = periodLabel(periodStart, periodEnd) || monthLabel(month);
+    const bertahap = await ringkasanBertahap(sessions, {
+      ringkasBatch: async (bagan) => {
+        const out = await generateReportField("summaryText", buildReportAiInput(
+          student, period, bagan, prevAvgEngagement,
+        ));
+        return out.summary?.trim() ?? "";
+      },
+      susunAkhir: async (digests) => {
+        // Skor engagement sesi dibaca dari `session.engagement.score` — sama
+        // seperti `buildReportAiInput`, bukan rumus kedua.
+        const skor = sessions.map((s) => s.engagement?.score).filter((n): n is number => typeof n === "number");
+        const tanggal = sessions.map((s) => s.date).filter(Boolean).sort();
+        const mapel = [...new Set(sessions.flatMap((s) => s.subjects ?? []))];
+        const out = await generateStagedSummary({
+          student: { name: student.name, level: student.level },
+          month: period,
+          sessionCount: sessions.length,
+          firstDate: tanggal[0],
+          lastDate: tanggal[tanggal.length - 1],
+          subjects: mapel,
+          avgEngagement: skor.length > 0 ? Math.round((skor.reduce((a, b) => a + b, 0) / skor.length) * 10) / 10 : undefined,
+          prevAvgEngagement,
+          digests: digests.filter(Boolean),
+        });
+        return out.summary.trim();
+      },
+    });
+    if (bertahap) return bertahap.summary;
+    const out = await generateReportField("summaryText", buildReportAiInput(
+      student, period, sessions, prevAvgEngagement,
+    ));
+    return out.summary?.trim() ?? "";
+  };
+
+  /**
+   * Perkuat **satu bagian** laporan (keputusan pemilik 2026-10-14).
+   *
+   * Kenapa per bagian: panggilan besar yang meminta semuanya sekaligus itulah
+   * yang sering gagal karena konteks terlalu panjang, dan kegagalannya
+   * menjatuhkan semua isian. Di sini hanya satu isian yang diminta, sehingga
+   * keluarannya pendek dan kegagalannya **tidak menyentuh isian lain**.
+   *
+   * Isian lain hanya ditulis sebagai nilai yang sudah ada (`?? draft.…`) supaya
+   * `upsertReport` tidak pernah mengosongkannya.
+   */
+  const handlePerkuatBagian = async (bagian: AiReportFieldKey) => {
+    const { student, reportSessions, prevAvgEngagement, periodStart, periodEnd, month, ensureReport, setMessage } = deps;
+    if (!student) return;
+    if (reportSessions.length === 0) { setMessage(AI_NO_SESSION_HINT); return; }
+    if (!navigator.onLine) { setMessage(AI_OFFLINE_HINT); return; }
+    const requestId = ++aiRequestRef.current;
+    setAiLoading(true);
+    setAiProgress({ done: 0, total: 1, step: `Memperkuat ${LABEL_BAGIAN[bagian]}…` });
+    try {
+      const draft = await ensureReport();
+      if (!draft || requestId !== aiRequestRef.current) return;
+
+      // Kesimpulan memakai ringkasan bertahap bila sesinya banyak; isian lain dan
+      // laporan kecil tetap satu panggilan seperti sebelumnya.
+      const out = bagian === "summaryText"
+        ? { summary: await ringkasKesimpulanBertahap(student, periodStart, periodEnd, month, reportSessions, prevAvgEngagement) }
+        : await generateReportField(bagian, buildReportAiInput(
+            student,
+            periodLabel(periodStart, periodEnd) || monthLabel(month),
+            reportSessions,
+            prevAvgEngagement,
+          ));
+      if (requestId !== aiRequestRef.current) return;
+
+      const tulisan = isiBagian(bagian, out);
+      if (!tulisan) { setMessage(`Gagal: AI tidak mengembalikan ${LABEL_BAGIAN[bagian]}. Coba lagi.`); return; }
+
+      const prev = {
+        summaryText: draft.summaryText,
+        teacherNote: draft.teacherNote,
+        quote: draft.quote,
+        nextMonthPlan: draft.nextMonthPlan,
+      };
+      await upsertReport({
+        ...draft,
+        summaryText: bagian === "summaryText" ? tulisan : draft.summaryText,
+        teacherNote: bagian === "teacherNote" ? tulisan : draft.teacherNote,
+        quote: bagian === "quote" ? tulisan : draft.quote,
+        nextMonthPlan: bagian === "nextMonthPlan"
+          ? (normaliseAiPlan(out.nextMonthPlan as Parameters<typeof normaliseAiPlan>[0]) ?? draft.nextMonthPlan)
+          : draft.nextMonthPlan,
+        // Sidik jari kesimpulan ikut diperbarui supaya tombol besar tidak
+        // menganggapnya basi pada putaran berikutnya.
+        ...(bagian === "summaryText" ? { summaryHash: reportSummaryFingerprint(draft, reportSessions) } : {}),
+        aiFieldHashes: markAiFields(draft.aiFieldHashes, { [bagian]: tulisan }),
+      });
+      if (requestId !== aiRequestRef.current) return;
+      setPrevTexts(prev);
+      setMessage(`${LABEL_BAGIAN[bagian]} diperkuat dengan AI ✓`);
+    } catch (e) {
+      if (requestId === aiRequestRef.current) setMessage(`Gagal memperkuat ${LABEL_BAGIAN[bagian]}: ${(e as Error).message}`);
+    } finally {
+      if (requestId === aiRequestRef.current) { setAiLoading(false); setAiProgress(null); }
+    }
+  };
+
   return {
     aiLoading,
     aiProgress,
@@ -523,6 +705,7 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
     handlePolish,
     handleGenerateNarratives,
     handleGenerateAll,
+    handlePerkuatBagian,
     pickFailedSessions,
     retryFailedAi,
     handleGenerateLocalNarratives,

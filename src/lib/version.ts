@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.105.0",
+    date: "2026-10-15",
+    title: "Perkuat AI per bagian, dan kesimpulan tidak lagi gagal pada laporan panjang",
+    items: [
+      "**Tombol \"Perkuat AI\" sekarang ada di bagian masing-masing.** Sebelumnya satu tombol besar meminta AI menulis ulang semuanya sekaligus — dan kalau panggilan itu gagal, semua isian ikut gagal. Sekarang **Kesimpulan**, **Catatan Guru**, **Kutipan**, dan **Rencana** punya tombolnya sendiri, masing-masing menyebut perkiraan biayanya. Memperkuat satu bagian **tidak menyentuh bagian lain**, jadi tulisan yang sudah Anda rapikan tidak pernah terhapus oleh panggilan yang gagal.",
+      "**Kesimpulan tetap membaca SELURUH sesi, tetapi tidak dikirim mentah-mentah lagi.** Untuk laporan dengan banyak sesi, catatan sesi diringkas per bagian lebih dulu, lalu kesimpulan disusun dari ringkasan-ringkasan itu. Inilah yang membuat keluhan \"konteks terlalu panjang\" tidak terulang: ukuran bahan yang dikirim ke panggilan terakhir tidak lagi tumbuh mengikuti jumlah sesi.",
+      "**Laporan kecil tidak berubah sama sekali.** Kalau sesi dalam satu periode masih sedikit, kesimpulannya dibuat dengan satu panggilan seperti sebelumnya — jalur bertahap hanya dipakai saat memang perlu.",
+      "**Narasi sesi tidak lagi disunting di layar Laporan.** Narasi tetap tampil dan tetap ikut tercetak di laporan, tetapi penyuntingannya ada di alur **Catat Sesi** — tempat Anda memang sudah memakai AI setiap hari untuk menulisnya. Di layar Laporan tertulis apa adanya: \"Narasi dibuat dari alur Catat Sesi — di sini hanya dibaca.\"",
+      "**Tombol \"Coba lagi\" saat panggilan AI gagal sekarang masuk akal untuk dipakai.** Sebelumnya ia mengulang permintaan yang sama persis, sehingga hasilnya pasti gagal lagi. Karena bahan yang dikirim sudah dikecilkan, pengulangan punya kesempatan berhasil.",
+    ],
+  },
+  {
     version: "v1.104.0",
     date: "2026-10-14",
     title: "Kolom biaya, daftar mapel & topik saat mencatat sesi, dan lipatan Siklus Tagihan",
