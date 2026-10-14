@@ -252,8 +252,15 @@ async function openPin(page: Page) {
   for (let attempt = 0; attempt < 6; attempt += 1) {
     if (await heading.isVisible().catch(() => false)) return;
     if (await pin.isVisible({ timeout: 1_000 }).catch(() => false)) {
-      await pin.fill("123456");
-      await page.getByRole("button", { name: "Buka", exact: true }).click().catch(() => { /* coba lagi */ });
+      // Batas waktu pendek pada `fill` — perbaikan 2026-10-14. Sebelumnya
+      // `fill()` memakai batas waktu test (60 detik), sehingga satu momen
+      // "kolom PIN muncul tetapi belum aktif" (data contoh masih disemai)
+      // memakan SELURUH anggaran waktu dan keenam percobaan tidak pernah
+      // berjalan. Terukur: 3 dari 64 tes gagal karena ini pada run 2026-10-14,
+      // dan kegagalannya tidak berhubungan dengan layar yang sedang diubah.
+      // Dengan batas 2 detik, percobaan berikutnya benar-benar dicoba.
+      await pin.fill("123456", { timeout: 2_000 }).catch(() => { /* kolom belum aktif; coba lagi */ });
+      await page.getByRole("button", { name: "Buka", exact: true }).click({ timeout: 2_000 }).catch(() => { /* coba lagi */ });
     }
     await page.waitForTimeout(500);
   }

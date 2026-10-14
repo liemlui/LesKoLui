@@ -1,6 +1,6 @@
-# PANDUAN-CEK-DI-HP — memeriksa layar dari HP (rilis v1.101.0)
+# PANDUAN-CEK-DI-HP — memeriksa layar dari HP (rilis v1.102.0)
 
-> **Sekilas.** Jenis: panduan pemeriksaan untuk pemilik. Status: **berlaku** — bagian A dan B menunggu Anda.
+> **Sekilas.** Jenis: panduan pemeriksaan untuk pemilik. Status: **berlaku** — bagian A, B, dan F menunggu Anda.
 > Untuk siapa: pemilik aplikasi, dengan HP di tangan.
 > **Ini bukan daftar pekerjaan.** Daftarnya tetap [`PEKERJAAN.md`](PEKERJAAN.md); butir yang dicentang ada di §5 berkas itu.
 > Alasan panduan ini ada: sebagian tampilan aplikasi ini **belum pernah dilihat mata manusia** — yang ada baru bukti mesin
@@ -8,7 +8,7 @@
 > **Riwayat pemakaian:** pemeriksaan pertama (butir 30–33, tab Murid) **selesai 2026-10-10** dan hasilnya sesuai rencana;
 > pemeriksaan kedua (butir 34–35, foto murid) **belum pernah dijalankan** — bagian A di bawah masih menunggu.
 >
-> **Keadaan butir per 2026-10-11, supaya tidak ada yang dikerjakan dua kali:**
+> **Keadaan butir per 2026-10-14, supaya tidak ada yang dikerjakan dua kali:**
 >
 > | Butir | Isi | Keadaan |
 > |---|---|---|
@@ -18,6 +18,7 @@
 > | 34–35 | foto murid | **menunggu** — bagian A |
 > | 36–38 | panel desain laporan & tiga grafik | **menunggu** — bagian B |
 > | 39 | jalur reset total + ajakan PIN baru | **menunggu**, dan **wajib di server pengembangan** — bagian B2 |
+> | 40–43 | backup manual · biaya AI di tombolnya · tombol Coba lagi · biaya di Riwayat Aktivitas | **menunggu** — bagian F (baru, dari v1.102.0) |
 
 ---
 
@@ -27,17 +28,17 @@
 dokumen mana pun, jadi saya tidak mengarangnya: proyek Vercel-nya bernama `les-ko-lui` (tercatat di `.vercel/project.json`),
 dan yang membuktikan deployment-nya sudah jalan adalah langkah 0.2.
 
-**0.2 Pastikan HP Anda benar-benar memuat v1.101.0.** Ini langkah paling penting: kalau HP masih memuat versi lama,
+**0.2 Pastikan HP Anda benar-benar memuat v1.102.0.** Ini langkah paling penting: kalau HP masih memuat versi lama,
 **semua** butir di bawah akan tampak "gagal" padahal kodenya belum ada di sana.
 
 - Begitu aplikasi terbuka, harus muncul jendela **Catatan perubahan** dengan:
-  - tanggal **2026-10-11**,
-  - judul **"Sesudah menghapus semua data, aplikasi menjelaskan apa yang hilang dan mengajak memasang PIN lagi"**,
-  - baris **Versi v1.101.0** di bawah judul.
+  - tanggal **2026-10-14**,
+  - judul **"Backup manual bisa dipakai lagi — dan biaya AI terlihat sebelum tombolnya ditekan"**,
+  - baris **Versi v1.102.0** di bawah judul.
 - Kalau jendela itu sudah pernah Anda tutup pada versi ini, ia tidak muncul lagi — itu wajar. Cara memastikan nomor
   versinya tetap sama: buka **Pengaturan → Aplikasi**, di situ ada tombol **Catatan perubahan** beserta nomor versi
   yang sedang berjalan.
-- **Kalau nomor versinya masih v1.100.0 atau lebih lama:** kemungkinan besar HP masih memuat versi lama (atau Vercel belum
+- **Kalau nomor versinya masih v1.101.0 atau lebih lama:** kemungkinan besar HP masih memuat versi lama (atau Vercel belum
   selesai men-deploy, karena push-nya baru saja). Tutup aplikasi lalu buka lagi, atau muat ulang halaman — atau tekan
   **Perbarui sekarang** di **Pengaturan → Aplikasi**.
   **Kalau tetap tidak berubah, hentikan pemeriksaan dan beri tahu saya** — melanjutkan hanya akan menghasilkan laporan palsu.
@@ -212,6 +213,82 @@ kotak ajakan tidak hilang sesudah PIN disimpan · catatan **"Reset semua data"**
 
 ---
 
+## Bagian F — **baru di v1.102.0**: backup, biaya AI, dan riwayat biaya (butir 40–43)
+
+> Empat butir ini lahir dari perbaikan rilis **v1.102.0**. Dua di antaranya menyentuh **uang Anda** (biaya AI) dan
+> **keselamatan data** (backup), jadi jangan dilewati. Semuanya bisa dikerjakan **di alamat online** dengan **data asli** —
+> **tidak ada satu pun langkah di bagian ini yang menghapus atau mengubah data murid**.
+
+### Butir 40 — Backup manual benar-benar bisa dijalankan lagi
+
+**Kenapa diperiksa:** dua rilis sebelum ini **tidak bisa backup manual sama sekali**. Kolom kata sandi enkripsi sudah
+diisi, tetapi isinya tidak pernah sampai ke proses backup, sehingga selalu muncul keluhan "Kata sandi enkripsi minimal
+8 karakter!" atau "Masukkan kata sandi backup!" — padahal sandinya panjang. Jadi lulus/tidaknya butir ini bukan soal
+tampilan: yang diperiksa adalah **berkas backup-nya benar-benar jadi**.
+
+1. Buka **Pengaturan → Backup dan Restore**.
+2. Isi **kata sandi enkripsi** dengan sandi yang Anda pakai biasa (minimal 8 karakter). Perhatikan **penanda keadaan
+   kata sandi** di bagian itu — ia menyebut apakah sandi sedang tersimpan di perangkat ini.
+3. Tekan **Backup ke File**.
+4. **LULUS** bila: tidak muncul keluhan tentang sandi, ada berkas terunduh, dan nama berkasnya masuk akal.
+   **MELESET** bila: muncul salah satu dari dua keluhan di atas, atau tidak ada berkas apa pun yang terunduh.
+5. Kalau Anda memakai **Backup ke Drive**, ulangi langkah yang sama untuk tombol itu — jalurnya berbeda dan pemeriksaan
+   ini belum pernah dijalankan pada keduanya.
+
+> **Catatan apa adanya:** isi berkas backup tidak diperiksa butir ini. Yang diperiksa adalah **jalurnya bekerja lagi** —
+> memulihkan (restore) berkas itu ke perangkat ini akan menimpa data asli, jadi **jangan** melakukannya sebagai uji coba.
+
+### Butir 41 — kedua tombol AI menyebut biaya sebelum ditekan
+
+**Kenapa diperiksa:** angka biaya sebelumnya hanya muncul di dalam modal konfirmasi. Sekarang tombolnya sendiri
+menyebutkannya, dan itu harus **terbaca** di layar HP — kalau terpotong atau bertabrakan dengan tombol lain, gunanya hilang.
+Ada **dua** tombol yang diperiksa, jangan hanya yang pertama.
+
+1. Buka **Catat Sesi**, maju ke langkah **Catatan** (langkah 5), dengan satu murid terpilih.
+2. Lihat tombol AI di dekat kotak catatan. **LULUS** bila tombolnya berbunyi seperti **"Draft AI · ±Rp 1"** —
+   ada angka biayanya, tidak terpotong, dan tidak menabrak tombol lain.
+3. Tekan tombolnya: modal konfirmasi harus menyebut **angka yang sama** dengan yang ada di tombol. Tutup modalnya.
+4. Lanjutkan sampai **laporan sesi** terbuka (langkah 6), lalu lihat tombol di bagian **Update Orang Tua**.
+   Tombolnya harus berbunyi seperti **"Poles AI · ±Rp 1"** — perlakuan yang sama.
+5. **MELESET** bila: salah satu tombolnya hanya berbunyi "Draft AI"/"Poles AI" tanpa angka · angkanya terpotong ·
+   atau angka di tombol berbeda dari angka di modal.
+
+> Angka "±Rp 1" itu normal: satu panggilan AI memang di bawah satu rupiah, dan nilainya sengaja dibulatkan **ke atas**
+> supaya tidak pernah muncul "Rp 0" — angka yang justru berarti gratis.
+
+### Butir 42 — panggilan AI yang gagal punya tombol "Coba lagi"
+
+Butir ini **butuh panggilan yang gagal**, jadi cara termudah adalah membuatnya gagal dengan sengaja:
+
+1. Buka **Pengaturan → AI**, lalu **kosongkan atau rusak sementara kunci API**-nya (mis. hapus satu huruf di belakang).
+2. Kembali ke **Catat Sesi** langkah 5, tekan tombol AI, dan setujui biayanya di modal.
+3. **LULUS** bila: muncul pesan galat **beserta tombol "Coba lagi"** di sebelahnya, dan menekan tombol itu membuka
+   **modal biaya lagi** (bukan langsung memanggil tanpa konfirmasi — percobaan ulang tetap berbiaya, jadi harganya
+   harus tetap terlihat).
+4. **MELESET** bila: yang muncul hanya teks galat tanpa tombol · tombolnya tidak melakukan apa-apa · atau panggilan
+   berjalan tanpa modal biaya.
+5. Kalau Anda sempat, ulangi sekali di **laporan sesi (langkah 6)** pada tombol **Poles AI** — jalur itu memakai
+   komponen yang sama tetapi ditempatkan di dalam laporan sesi, jadi pemeriksaannya terpisah.
+6. **Kembalikan kunci API Anda** sesudah selesai, lalu ulangi sekali: panggilan harus berhasil seperti biasa.
+
+> Catatan: pesan galat yang Anda lihat berbunyi apa adanya dari penyedia AI. Yang diperiksa butir ini **tombol dan
+> alurnya**, bukan bunyi pesannya.
+
+### Butir 43 — Riwayat Aktivitas menyebut fitur dan biaya setiap panggilan AI
+
+**Kenapa diperiksa:** ini yang menjawab pertanyaan "bulan ini uangnya habis untuk apa". Datanya sudah tersimpan sejak
+lama, tetapi tidak pernah ditampilkan — jadi jawabannya dulu tidak ada di layar mana pun.
+
+1. Buka **Pengaturan → Riwayat Aktivitas**.
+2. Cari baris **"Panggilan AI berbiaya"**.
+3. **LULUS** bila barisnya menyebut **fitur** (mis. "Draft catatan" atau "Poles pesan WA") **dan biayanya**
+   (mis. "±Rp 1"), di samping jamnya yang sudah ada sejak dulu.
+4. Untuk panggilan yang terjadi **sebelum v1.102.0**, barisnya akan berbunyi **"biaya tidak tercatat"** — itu **bukan**
+   kesalahan: entri lama memang tidak menyimpan biayanya. **MELESET** hanya bila panggilan **baru** (sesudah versi ini)
+   juga berbunyi "biaya tidak tercatat", atau bila biaya tidak muncul sama sekali.
+
+---
+
 ## Bagian D — arsip: butir tab Murid (30–33), sudah dicentang 2026-10-10
 
 > Bagian ini **tidak perlu diulang** kalau layar Murid tidak berubah sejak v1.97.0. Isinya disimpan apa adanya
@@ -328,6 +405,10 @@ Butir 36: LULUS
 Butir 37: LULUS
 Butir 38: LULUS
 Butir 39: LULUS   (hanya kalau dijalankan di server pengembangan; kalau dilewati, tulis LEWAT)
+Butir 40: LULUS
+Butir 41: LULUS
+Butir 42: LULUS
+Butir 43: LULUS
 ```
 
 Sertakan tangkapan layar bila ada yang meleset — itu paling cepat saya pakai. Untuk butir foto, tangkapan layar

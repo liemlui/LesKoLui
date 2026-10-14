@@ -29,7 +29,7 @@ Lanjutkan proyek Les Ko Lui (jurnal les privat, PWA lokal-first) — Gelombang 3
    kalau ada dokumen menunjuk §0, §2.1–§2.3, §6.1–§6.4, atau §9, nomor itu sudah tidak ada
    (peta lama→baru di `docs/arsip/README.md` §6).
 2. `les-ko-lui/docs/kerja/PEKERJAAN.md` — SATU-SATUNYA daftar pekerjaan. Spesifikasi lengkap
-   G3-01…G3-10 ada di §3, pekerjaan tanpa dokumen tugas di §4, daftar periksa manual (38 butir)
+   G3-01…G3-10 ada di §3, pekerjaan tanpa dokumen tugas di §4, daftar periksa manual (**43 butir**)
    di §5.
 3. `les-ko-lui/docs/kerja/SERAH-TERIMA.md` — keadaan + batas kejujuran yang belum beres.
    Bagian 3 dan 4 saja.
@@ -37,20 +37,20 @@ Lanjutkan proyek Les Ko Lui (jurnal les privat, PWA lokal-first) — Gelombang 3
 5. Baru buka SATU `docs/kerja/TASK-XX` yang relevan kalau perlu detail. `docs/RIWAYAT-RILIS.md`
    hanya kalau butuh alasan historis. `docs/arsip/**` beku — jangan kutip angkanya.
 
-### Keadaan yang diukur pada 2026-10-11 (ukur sendiri, jangan percaya tulisan ini)
+### Keadaan yang diukur pada 2026-10-14 (ukur sendiri, jangan percaya tulisan ini)
 
 | Hal | Nilai saat berkas ini ditulis |
 |---|---|
-| Versi | v1.101.0 |
-| Branch / HEAD | `main` (jalankan `git status -sb` untuk selisih dengan `origin/main`; putaran 2026-10-11 lupa memeriksa apakah commit terakhirnya sudah terdorong — **periksa sendiri**) |
-| Suite | 1.363 lulus / 98 berkas sesudah G3-09; sesudah G3-10 butir 3 bertambah **22 tes** di berkas `pinResetInvite.test.ts` (angkanya dibaca dari keluaran `npm run test:sandbox`, jangan dari baris ini) |
-| `tsc -b` · `eslint src` | bersih (0 error, 0 warning) sesudah G3-10 butir 3 |
+| Versi | v1.102.0 |
+| Branch / HEAD | `main` (jalankan `git status -sb` untuk selisih dengan `origin/main`; putaran 2026-10-14 **belum push** — periksa sendiri) |
+| Suite | **1.406 lulus / 101 berkas · 0 gagal** (diukur 2026-10-14, `npm run test:sandbox`). Putaran itu menambah tes di `captureSessionHelpers.test.ts` (+4), `auditDisplay.test.ts` (+6), dan berkas alat ukur baru `topicGapCount.test.ts` (+1) |
+| `tsc -b` · `eslint src` | bersih sesudah putaran 2026-10-14 (v1.102.0) |
 | `check:docs` | 0 rusak · 0 pelanggaran |
-| `e2e:uiux` | **tidak dijalankan pada putaran G3-10 butir 3** — jadi halaman `/settings` yang berubah **tidak punya penjaga tampilan** untuk perubahan itu. Angka terakhir yang terukur (2026-10-11, G3-09) adalah **64 lulus / 0 gagal** |
+| `e2e:uiux` | **64 lulus / 0 gagal** (5,8 menit, dijalankan 2026-10-14). **Artefak terukur layar yang berubah, dua viewport:** `/capture` → `h1` 1 · `h2` 1 · kontras 0 pelanggaran · kontrol <24 px 0 · emoji 0 · teks <12 px 0 · terpotong 0; `/settings` → sama, dengan `under44Count` 2 dan `truncCount` 1 yang **tidak diuji ambangnya** (kontrol sekunder boleh 24–36 px; elemen mana yang terpotong belum diperiksa satu per satu) |
 | `e2e` | **67 lulus / 13 gagal / 6 skip** (potret 2026-10-11 sesudah G3-08). Dua belas kegagalan persis daftar warisan 2026-10-08 (`report-export-ratio` 3×2, `report-unlock` ×2, `capture-closeout-failure` ×2, `finance` ×2 — `SchemaError: DexieError` atau batas waktu di bawah beban); yang ketiga belas `screenshot-katalog` "11-narasi-per-sesi" **lulus sendirian** |
 
-Baris berkas besar yang menjadi target refactor (diukur dengan `npm run measure loc`):
-`CaptureSession.tsx` **2.077** · `Settings.tsx` **1.387** (target ≤700, tugas berikutnya) · `payments/TagihanTab.tsx` **1.021** (target ≤800). `MonthlyReport.tsx` **1.470** (target ≤1.500) sudah tuntas. **`StudentDetail.tsx` **698** dengan sasaran **≤700** (keputusan pemilik 2026-10-11) — sisa 2 baris, jadi penambahan berikutnya wajib lewat komponen terpisah.** `StudentForm.tsx` 589 dan `Students.tsx` 519, keduanya masih di bawah sasarannya.
+Baris berkas besar yang menjadi target refactor (diukur sendiri 2026-10-14, `npm run measure loc`):
+`CaptureSession.tsx` **2.108** · `Settings.tsx` **637** (sasaran ≤700, **tercapai**) · `payments/TagihanTab.tsx` **1.021** (sasaran ≤800, belum) · `MonthlyReport.tsx` **1.469** (sasaran ≤1.500, tercapai). **`StudentDetail.tsx` 698 dengan sasaran ≤700** (keputusan pemilik 2026-10-11) — sisa 2 baris, jadi penambahan berikutnya wajib lewat komponen terpisah. `StudentForm.tsx` 589 dan `Students.tsx` 519, keduanya masih di bawah sasarannya.
 
 ### WAJIB SEBELUM LANGKAH PERTAMA: goal + todos
 
@@ -117,18 +117,21 @@ hanya 30–35), lengkap dengan tabel keadaan supaya tidak ada pemeriksaan yang d
 
 **Kemudian §4 PEKERJAAN.md (boleh kapan saja):**
 
+- **Dua temuan baru 2026-10-14 (putaran verifikasi):** (a) **skrip `.design-audit/topic-coverage-audit.mjs` yang disebut sebagai alat ukur katalog topik TIDAK ADA di repositori** — angkanya karena itu tidak bisa direproduksi; penggantinya `src/__tests__/topicGapCount.test.ts` (selalu lulus, mencetak angkanya). (b) **D3 tidak bisa dikerjakan apa adanya** karena daftar "23 peta alias" juga berasal dari skrip itu; daftarnya harus dibangun ulang lebih dulu, dan **angka 23 tidak boleh dikutip**.
 - **Tiga temuan baru 2026-10-11 (G3-08):** (a) **sub-layar `?tab=ringkasan` layar Keuangan belum masuk cakupan `e2e:uiux`** — itulah sebabnya cacat urutan `yRange` pada `LineChart` lolos dari tipe, suite, **dan** penjaga tampilan, lalu ditemukan tangkapan layar; menambahkannya = penjaga baru, butuh keputusan pemilik; (b) `useWebWorker` yang sepuluh kali lebih lambat; (c) baris sasaran `StudentDetail.tsx` yang sudah hampir penuh.
 - **Dua temuan baru 2026-10-08** (keduanya dari G3-05, dan keduanya menunggu keputusan atau penyelidikan, bukan sekadar kerja): (a) **`e2e` tidak pernah hijau di mesin ini** — sebelas kegagalan yang sudah ada sebelum G3-05, didominasi galat halaman `SchemaError: DexieError`; (b) **katalog tangkapan layar yang dilacak git tidak cocok lagi** dengan yang dihasilkan spec (19 PNG baru tak terlacak, nama lama dan folder `mobile-dark` masih terlacak).
-- **Pengukuran ulang G3-01 butir 9** — penahannya (G3-04) sudah selesai, jadi "label biaya pada tombol AI, pengumuman status, tombol coba lagi saat gagal" harus diukur ulang, bukan diasumsikan selesai.
+- **Pengukuran ulang G3-01 butir 9** — **SUDAH DIUKUR DAN DIKERJAKAN 2026-10-14 (v1.102.0).** Hasil pengukurannya: ketiga syaratnya **tidak satu pun** terpasang di HEAD, padahal penahannya (G3-04) sudah selesai sejak 2026-10-07. Sekarang label biaya ada di tombol AI (`labelBiayaAi()`), status diumumkan (`aria-live` + `role="alert"`), dan ada tombol **Coba lagi** untuk panggilan AI yang gagal. **Jangan diukur ulang.**
+- **Syarat "riwayat panggilan AI menampilkan waktu, fitur, dan biaya" (G3-04)** — **SUDAH DITUTUP 2026-10-14 (v1.102.0).** `auditAiDetail()` di `lib/auditDisplay.ts` menampilkan fitur + biaya di Riwayat Aktivitas; sebelum itu kolomnya ditulis tetapi tidak dibaca layar mana pun.
 - **D2 — perhitungan biaya saat sesi ditutup mengabaikan nominal manual.** Satu-satunya sisa yang menyentuh uang, dan sudah tercatat sebagai masalah nyata di `SERAH-TERIMA.md` §4.2.
-- **D3** — 23 peta alias mapel lintas kurikulum (Nasional Informatika & Penjaskes masih memakai katalog ilmu komputer internasional).
-- **Katalog topik** — 58 dari 78 pasangan mapel belum punya katalog; **D5** — periksa katalog IB.
-- **D4 sisa separuh** — catatan palet terkunci. Setengah lainnya sudah tercapai 2026-10-07 lewat entri `keuangan-tagihan`.
+- **D3** — **statusnya berubah 2026-10-14: dua kasus terjelasnya sudah benar di kode** (`resolveSubjectAliases("Informatika")` → `["informatika"]`, `("Penjaskes")` → `["penjaskes"]`), jadi barisnya tidak lagi "Belum". Yang tersisa: meninjau **seluruh** peta alias, dan itu **tidak bisa dimulai** sebelum daftar temuan lama dibangun ulang (skripnya hilang).
+- **Katalog topik** — **109 dari 167 pasangan punya katalog · 58 belum** (diukur 2026-10-14). **D5** — periksa katalog IB terhadap panduan silabus resmi; **butir ini sudah pernah "selesai" di kode tetapi belum pernah diverifikasi, jangan disebut terverifikasi.**
+- **D4** — **SUDAH SELESAI seluruhnya 2026-10-14.** Tab tagihan sudah dijaga entri `keuangan-tagihan`, dan "jejak perubahan warna/token" memang sudah dijalankan lewat riwayat 2026-10-03 · G3-08 · G3-09 · G3-10. **Tidak ada berkas "palet terkunci" yang perlu dibuat** — keputusan pemilik berbunyi "dicatat di bagian riwayat tugas dengan alasan dan tanggal", yaitu kewajiban pencatatan.
+- **D6** — **SUDAH TERPENUHI, jangan dikerjakan.** H1 "Keuangan" → 3×H2 tanpa lompatan level (terukur di `.design-audit/uiux-guard/*-keuangan.json`).
 - **D8** — flake beban-tinggi pada `report-export.spec.ts:85` dan `screenshot-katalog.spec.ts:139` (sudah berulang kali dibuktikan lulus sendirian).
 - **Backlog** — jejak audit untuk perubahan sesi; temuan audit tampilan 2026-10-01 yang tersisa.
 - Pemilih sub-layar keuangan (lihat bagian "Kenyataan yang menyimpang" di bawah).
 
-**Sisa kecil dari G3-04:** daftar riwayat panggilan AI di Pengaturan, dan memindahkan pembacaan `pemakaian` di `Settings.tsx` ke hook supaya tidak ada dua pembacaan paralel.
+**Sisa kecil dari G3-04:** **SUDAH DITUTUP 2026-10-14.** "Daftar riwayat panggilan AI di Pengaturan" kini ada (`auditAiDetail()` di `lib/auditDisplay.ts`, ditampilkan `settings/AuditLogViewer.tsx`), dan `pemakaian` tetap dibaca lewat satu jalur `useLiveQuery` yang diteruskan sebagai prop ke `AiSection` — tidak ada dua pembacaan paralel.
 
 ### Jebakan yang sudah terverifikasi — jangan terperangkap lagi
 
@@ -210,6 +213,18 @@ Ditambahkan dari pengalaman 2026-10-11 (G3-07):
 - **Sasaran baris `StudentDetail.tsx` yang berlaku adalah ≤700** (keputusan pemilik 2026-10-11), dan berkasnya terukur **698**. Setiap penambahan di berkas itu harus lewat komponen terpisah. Angka ≤800 yang tertulis di bagian G3-06 `PEKERJAAN.md` adalah catatan keadaan saat G3-06 ditutup, bukan sasaran yang berlaku.
 - **`undefined` pada `db.students.update()` menghapus kolomnya.** Itulah mekanisme "Hapus foto"; jangan menambahkan cadangan `?? existing.photo` yang akan membuat tombol hapus tidak pernah berpengaruh.
 
+Ditambahkan dari pengalaman 2026-10-14 (putaran verifikasi + rilis v1.102.0):
+
+- **Status butir di dokumen bisa salah ke DUA arah, dan yang menentukan hanya `grep` ke kode.** Dua kali sekarang: G3-10 ditulis "belum" padahal empat dari lima butirnya sudah ada (2026-10-11), dan putaran ini menemukan kebalikannya — **G3-01 butir 9 dan syarat riwayat AI G3-04 ditulis "selesai"/"tertahan" padahal syaratnya tidak satu pun terpasang**. Aturan praktis: sebelum menutup atau mengerjakan butir, buka berkasnya dan cari fiturnya; jangan percaya kata "selesai" di tabel keadaan.
+- **"Tertahan sampai tugas X dikerjakan" kehilangan artinya begitu X selesai — dan tidak ada gate yang memberi tahu.** `tsc` tidak mengeluh soal fitur yang tidak pernah ditulis, dan suite tidak punya tes untuknya. Kalau sebuah butir punya penahan, **catat tanggal pemeriksaan ulangnya** saat penahannya selesai.
+- **Perbaikan yang menyentuh perilaku terlihat pengguna tidak boleh ditinggal tanpa nomor versi.** Perbaikan sandi backup (`80af587`) sudah dikomit dan sudah punya tes, tetapi `package.json`, `CHANGELOG`, dan `RIWAYAT-RILIS` tidak disentuh — akibatnya satu-satunya cara mengetahui perbaikan itu ada adalah membuka `git log`, dan dokumen tetap menyebut versi lama. Jalankan rilis tiga berkas itu pada putaran yang sama.
+- **Alat ukur yang disebut dokumen bisa tidak ada sama sekali.** `.design-audit/topic-coverage-audit.mjs` disebut sebagai sumber angka katalog topik dan **tidak ada di repositori** (folder `.design-audit/` juga **tidak dilacak git**), sehingga angkanya tidak bisa direproduksi siapa pun. Sebelum mengutip angka dari dokumen, **jalankan perintah pengukurnya**; kalau perintahnya tidak ada, ganti dengan alat yang benar-benar ada di repo (contoh: `src/__tests__/topicGapCount.test.ts`).
+- **Penyebut sebuah pecahan lebih mudah basi daripada pembilangnya.** Baris "dua puluh dari tujuh puluh delapan pasangan" salah **penyebut** selama berhari-hari: yang benar 167 pasangan, bukan 78. Menyalin angka tanpa menjalankan pengukurnya menyembunyikan kesalahan seperti ini.
+- **Menyisipkan tes "alat ukur" itu boleh, tetapi jangan menyamarkannya sebagai penjaga.** `topicGapCount.test.ts` selalu lulus dan hanya mencetak angka; komentar di berkasnya menjelaskan hal itu. Kalau kelak angka itu mau dijadikan ambang, itu **penjaga baru** dan butuh keputusan pemilik (§1 butir 4).
+- **Cara mengukur biaya AI di bawah satu rupiah: bulatkan KE ATAS.** `labelBiayaAi()` dan `auditAiDetail()` memakai `Math.max(1, Math.ceil(...))`. Membulatkan ke bawah menghasilkan "Rp 0" — angka yang justru menyatakan panggilannya gratis, padahal biayanya dicatat.
+- **`await locator.fill()` tanpa opsi memakai batas waktu SELURUH test, bukan batas waktu aksi.** Itu akar flake `e2e:uiux` yang sudah tercatat sejak 2026-10-10 tetapi belum diperbaiki: di dalam lingkaran percobaan `openPin()` (`e2e-uiux/uiux-metrics.spec.ts`), satu momen "kolom PIN muncul tetapi belum aktif" membuat `fill()` menunggu sampai 60 detik habis — sehingga keenam percobaan tidak pernah benar-benar dijalankan, dan hasilnya **3 dari 64 tes gagal** pada run 2026-10-14 (dua di sub-layar Tagihan, satu di layar Keuangan — **bukan** layar yang sedang diubah). Perbaikan yang dipakai: `fill(..., { timeout: 2_000 })` + `click(..., { timeout: 2_000 })` di dalam lingkaran itu. Belum ada tes baru untuk ini, karena yang dibuktikan adalah run penuh yang hijau. **Jangan** menaikkan batas 60 detik (keputusan pemilik).
+- **Gejala "element is not enabled" lalu "element was detached from the DOM" pada kolom PIN adalah tanda data contoh belum selesai disemai** — bukan tanda gerbang PIN-nya rusak. Jangan mengubah komponen PIN karena gejala ini.
+
 Ditambahkan dari pengalaman 2026-10-11 (G3-10 butir 3):
 
 - **Status sebuah tugas di dokumen bisa SALAH, dan satu-satunya cara memeriksanya adalah `grep` ke kode.** `PEKERJAAN.md` dan `SERAH-TERIMA.md` sama-sama menulis G3-10 "belum" selama beberapa hari, padahal **butir 1, 2, dan 4-nya sudah ada di kode sejak G3-09** (`dangerZoneRows.ts` · `DangerZoneSection.tsx` · `dangerZoneActions.ts`). Tidak ada gate yang bisa menangkapnya: `tsc` tidak mengeluh soal fitur yang tidak pernah ditulis, dan suite tidak punya tes untuknya. **Sebelum mengerjakan tugas yang ditandai "belum", periksa dulu apakah butir-butirnya sudah ada di kode.** Kelas yang sama dengan dua sub-butir G3-09 yang sempat terlewat (`grep installInstructions` → 0 pemakaian).
@@ -274,7 +289,7 @@ manusia, (2) perintah apa yang dijalankan dan hasilnya sekali saja, (3) apa yang
 
 ### Dua hal yang pemilik berikan izinnya pada 2026-10-07
 
-1. **Agen boleh mencentang daftar periksa manual** (§5 `PEKERJAAN.md`, kini **33 butir**) — izin eksplisit
+1. **Agen boleh mencentang daftar periksa manual** (§5 `PEKERJAAN.md`, kini **43 butir**) — izin eksplisit
    pemilik, menyimpang dari kalimat "hanya pemilik yang boleh mencentang" di berkas itu. Centang
    berdasarkan bukti terukur, dan sebutkan di laporan bukti apa yang dipakai.
 2. **Revisi boleh di-push ke `main`** setelah gate hijau dan rilis versi dinaikkan.
@@ -287,6 +302,7 @@ manusia, (2) perintah apa yang dijalankan dan hasilnya sekali saja, (3) apa yang
 
 | Tanggal | Perubahan |
 |---|---|
+| 2026-10-14 | **Diperbarui sesudah putaran verifikasi ke kode dan rilis v1.102.0.** Kepala berkas diselaraskan dengan keadaan terukur: daftar periksa manual **39 butir** (sebelumnya tertulis 38 di §"Mulai dari sini"), tabel keadaan versi **v1.102.0**, angka baris berkas hasil ukur sendiri (`Settings.tsx` **637**, bukan 1.387; `CaptureSession.tsx` **2.108**, bukan 2.077), dan catatan bahwa `e2e:uiux` **tidak** dijalankan pada putaran ini. Urutan pekerjaan diperbarui: **pengukuran ulang G3-01 butir 9, syarat riwayat AI G3-04, D4, dan D6 dicabut dari daftar sisa** (dua yang pertama dikerjakan, dua yang terakhir sudah terpenuhi), D3 berubah status karena dua kasus terjelasnya sudah benar di kode sementara daftar "23 peta alias" **tidak bisa direproduksi**, dan katalog topik diperbarui menjadi **109/167 · 58 belum**. **Enam jebakan baru** ditambahkan, terutama: status butir di dokumen bisa salah ke **dua arah** dan hanya `grep` yang menentukan; penahan yang sudah selesai tidak otomatis berarti butirnya terpasang; perbaikan tanpa nomor versi tidak bisa dilacak; dan **alat ukur yang disebut dokumen bisa tidak ada sama sekali** di repositori. |
 | 2026-10-07 | Dibuat untuk menyerahkan sisa Gelombang 3 ke sesi DSH baru setelah v1.95.0 dirilis. |
 | 2026-10-08 | Diperbarui sesudah G3-05 tuntas dan v1.96.0 dirilis: keadaan terukur (v1.96.0 · suite 982/74 · `e2e` 69/11/6 dengan penjelasan bahwa sebelas kegagalan itu sudah ada sebelum G3-05), urutan pekerjaan (G3-06 lebih dulu, G3-05 dikeluarkan), dan lima jebakan baru dari putaran ini — terutama pola spec Playwright yang menemukan murid lewat tombol `toBeEnabled`, dan peringatan agar tidak menyentuh berkas ber-UTF-8 dengan `Get-Content`/`Set-Content`. |
 | 2026-10-08 | Ditambahkan sesudah inspeksi pemilik: layar Laporan **sudah dilihat di perangkat dan dinilai cukup** ("sudah sangat oke"), butir daftar periksa 26–29 dicentang, dan catatan bahwa pemisahan istilah dibuat/dibagikan pada ekspor ikut disetujui lewat inspeksi itu. |

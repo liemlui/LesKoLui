@@ -20,6 +20,24 @@ export interface WaSessionSummary {
 }
 
 /**
+ * Label biaya untuk tombol AI (G3-01 butir 9).
+ *
+ * Perkiraan biaya satu panggilan DeepSeek berada di bawah satu rupiah, sehingga
+ * pembulatan ke bawah akan menampilkan "Rp 0" — angka yang justru menyatakan
+ * panggilannya gratis. Karena itu nilainya **dibulatkan ke atas** ke rupiah
+ * penuh, dan tandanya `±` supaya jelas itu perkiraan sebelum panggilan berjalan,
+ * bukan tagihan. Nilai penuh dalam dolar tetap tersedia di modal biaya, jadi
+ * tidak ada informasi yang hilang — hanya dipindah ke tempat yang benar.
+ *
+ * Nilai bukan angka (seharusnya tidak terjadi) dikembalikan sebagai `—` supaya
+ * tombol tidak pernah mencetak `NaN`.
+ */
+export function labelBiayaAi(idrCost: number): string {
+  if (!Number.isFinite(idrCost) || idrCost < 0) return "—";
+  return `±Rp ${Math.max(1, Math.ceil(idrCost)).toLocaleString("id-ID")}`;
+}
+
+/**
  * Susun pesan WhatsApp ke orang tua.
  *
  * Sengaja TIDAK memuat `situasiNote` (konteks pribadi/kekeluargaan) maupun

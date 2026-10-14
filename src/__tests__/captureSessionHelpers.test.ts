@@ -3,7 +3,7 @@ import {
   buildWaMessage, topicLevelHint, draftStamp,
   mergeTopics, splitTopics, mergeTopicUnits, recentTopics,
   appendSituasi, hasSituasi, saveErrorMessage, feedbackTypeForResult, todayHeroLoadState,
-  isStepSkippable, isStepComplete, incompleteSteps,
+  isStepSkippable, isStepComplete, incompleteSteps, labelBiayaAi,
 } from "../screens/captureSession/helpers";
 import {
   DURATIONS, STEP_META, isValidStep, ENGAGEMENT_FLAG_META, SITUASI_CHIPS,
@@ -404,5 +404,27 @@ describe("pembagian indikator terdepan vs sisanya", () => {
     const all = [...PRIMARY_ENGAGEMENT_FLAGS, ...SECONDARY_ENGAGEMENT_FLAGS];
     expect(new Set(all).size).toBe(12);
     for (const key of all) expect(ENGAGEMENT_FLAG_META[key]).toBeDefined();
+  });
+});
+
+describe("labelBiayaAi — label biaya pada tombol AI (G3-01 butir 9)", () => {
+  it("membulatkan ke ATAS ke rupiah penuh, bukan ke bawah", () => {
+    expect(labelBiayaAi(0.8)).toBe("±Rp 1");
+    expect(labelBiayaAi(12.2)).toBe("±Rp 13");
+  });
+
+  it("tidak pernah menampilkan 'Rp 0' untuk panggilan yang tetap berbiaya", () => {
+    // Perkiraan satu panggilan DeepSeek memang di bawah satu rupiah; membulatkan
+    // ke bawah akan menampilkan angka yang berarti "gratis".
+    expect(labelBiayaAi(0.001)).toBe("±Rp 1");
+  });
+
+  it("memakai pemisah ribuan Indonesia saat angkanya besar", () => {
+    expect(labelBiayaAi(1500)).toBe("±Rp 1.500");
+  });
+
+  it("nilai yang tidak masuk akal tidak pernah mencetak NaN", () => {
+    expect(labelBiayaAi(Number.NaN)).toBe("—");
+    expect(labelBiayaAi(-1)).toBe("—");
   });
 });

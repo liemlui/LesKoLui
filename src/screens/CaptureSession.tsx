@@ -51,6 +51,7 @@ import type { StepMeta, StepNum } from "./captureSession/constants";
 import {
   buildWaMessage, topicLevelHint, draftStamp, splitTopics,
   appendSituasi, hasSituasi, saveErrorMessage, isStepSkippable, incompleteSteps,
+  labelBiayaAi,
 } from "./captureSession/helpers";
 
 /** Ikon per langkah ditempelkan di sini (bukan di `constants.ts`) supaya berkas
@@ -699,7 +700,7 @@ export default function CaptureSession() {
   // tutor melihat harganya lebih dulu.
   const ai = useAiAction();
   const {
-    aiNoteLoading, aiWaLoading, aiWaText, setAiWaText, aiError,
+    aiNoteLoading, aiWaLoading, aiWaText, setAiWaText, aiError, aiRetry, clearAiError,
     aiNoteDraft, setAiNoteDraft, aiNoteOriginal, setAiNoteOriginal,
     aiNoteStyle, setAiNoteStyle, showAiContext, setShowAiContext,
     handleLocalGenerate, appendNoteChip, onAiNoteConfirm, onPolishWa,
@@ -719,6 +720,24 @@ export default function CaptureSession() {
       void catatPanggilanAi({ fitur, biayaIdr, perkiraanIdr: biayaIdr, keterangan });
     },
   });
+
+  // G3-01 butir 9: label biaya pada tombol AI. Perkiraannya dihitung dengan
+  // fungsi yang SAMA seperti yang dipakai modal biaya (bukan rumus kedua), lalu
+  // dibulatkan ke atas ke rupiah penuh supaya angkanya tidak pernah terlihat
+  // lebih murah daripada tagihan sebenarnya. `useMemo` wajib ada di sini —
+  // sebelum gerbang `settingsQuery` di bawah — karena hook tidak boleh berada
+  // setelah `return` bersyarat (pelajaran G3-06/G3-09: itu menjatuhkan layar).
+  const draftNoteCostLabel = useMemo(() => {
+    const est = estimateDraftNoteCost(activeSubjects, topic || undefined, shortNote.trim() || undefined);
+    return labelBiayaAi(est.idrCost);
+  }, [activeSubjects, topic, shortNote]);
+
+  // Sama untuk tombol "Poles AI" di laporan sesi (langkah 6) — satu fungsi
+  // estimator dengan modal biayanya, jadi angkanya tidak bisa berbeda.
+  const polishWaCostLabel = useMemo(
+    () => labelBiayaAi(estimatePolishWACost(originalWaMessage.length)),
+    [originalWaMessage],
+  );
 
   // G2-10: wizard butuh pengaturan (tarif, profil, AI) — galat baca punya jalan keluar.
   if (settingsQuery.error || settingsQuery.timedOut) {
@@ -1773,7 +1792,7 @@ export default function CaptureSession() {
                     });
                   }}
                   className="flex items-center gap-1.5 text-xs font-semibold text-[var(--ink-accent)] bg-[var(--accent-tint)] hover:bg-[var(--accent-tint)] border border-[var(--border-accent)] px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
-                  {aiNoteLoading ? "Draft AI..." : "Draft AI"}
+                  {aiNoteLoading ? "Draft AI..." : `Draft AI · ${draftNoteCostLabel}`}
                 </button>
               )}
             </div>
@@ -1818,7 +1837,26 @@ export default function CaptureSession() {
               </button>
             )}
 
-            {aiError && <p className="text-xs text-[var(--ink-danger)] mt-1">{aiError}</p>}
+            {/* G3-01 butir 9: pengumuman status + jalan keluar saat panggilan AI
+                gagal. Sebelum ini pesan galatnya hanya muncul sebagai teks biasa
+                tanpa peran apa pun (pembaca layar tidak mengumumkannya) dan tanpa
+                tombol apa pun, sehingga tutor harus menebak bahwa tombolnya bisa
+                ditekan lagi. Percobaan ulang sengaja lewat `ai.jalankan` yang sama,
+                jadi modal biaya tampil lagi — percobaan ulang tetap berbiaya. */}
+            <div aria-live="polite" aria-atomic="true">
+              {aiNoteLoading && <p className="mt-1 text-xs text-[var(--ink-muted)]">AI sedang menulis…</p>}
+            </div>
+            {aiError && (
+              <div role="alert" className="mt-1 flex items-start justify-between gap-2">
+                <p className="text-xs text-[var(--ink-danger)]">{aiError}</p>
+                {aiRetry && (
+                  <button type="button" onClick={aiRetry}
+                    className="shrink-0 rounded-lg border border-[var(--border-danger)] bg-[var(--surface-strong)] px-3 py-1 text-xs font-bold text-[var(--ink-danger)] transition hover:bg-[var(--bg-danger)]">
+                    Coba lagi
+                  </button>
+                )}
+              </div>
+            )}
             {suggestions.length > 0 && (
               <div className="mt-1 bg-[var(--surface-strong)] border border-[var(--border)] rounded-xl overflow-hidden shadow-sm">
                 {suggestions.map((s) => (
@@ -2025,7 +2063,7 @@ export default function CaptureSession() {
           onAddFollowUp={addCoFollowUp}
           onDeleteFollowUp={requestDeleteFollowUp}
           onDone={handleCloseOutDone}
-          onClose={closeReport}
+          onClose={() => { clearAiError(); closeReport(); }}
           onFixNote={handleFixNote}
           onPolishWa={() => {
             const est = estimatePolishWACost(originalWaMessage.length);
@@ -2041,6 +2079,8 @@ export default function CaptureSession() {
           aiWaEnabled={Boolean(settings?.ai?.enabled && settings.ai.apiKey)}
           aiWaLoading={aiWaLoading}
           aiError={aiError}
+          aiCostLabel={polishWaCostLabel}
+          onRetryAi={aiRetry}
           onClearAiWa={() => setAiWaText(null)}
           closeOutError={message?.retry === "closeout" ? message.text : null}
           onRetry={() => { setMessage(null); handleCloseOutDone(); }}

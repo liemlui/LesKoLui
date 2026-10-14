@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.102.0",
+    date: "2026-10-14",
+    title: "Backup manual bisa dipakai lagi — dan biaya AI terlihat sebelum tombolnya ditekan",
+    items: [
+      "**Backup manual akhirnya bisa dijalankan lagi.** Dua versi terakhir yang beredar **tidak bisa backup sama sekali**: kolom kata sandi enkripsi sudah diisi, tetapi isinya tidak pernah sampai ke proses backup, sehingga selalu muncul \"Kata sandi enkripsi minimal 8 karakter!\" atau \"Masukkan kata sandi backup!\" — padahal sandinya panjang. Penyebabnya adalah perpindahan bagian Backup ke berkasnya sendiri: keadaan kata sandinya ikut pindah, sementara pengubahnya tetap membaca keadaan lama yang kosong. Sekarang hanya ada **satu** tempat yang menyimpan kata sandi itu, dan penyimpanan otomatis ke Google Drive tidak terpengaruh.",
+      "**Perbaikannya dijaga tes yang mengikat isinya, bukan hanya ketiadaan pesan galat.** Tes barunya memastikan sandi yang diketik tutor adalah **sandi yang benar-benar dipakai mengenkripsi**, dan bahwa sandi di bawah delapan karakter memang ditolak.",
+      "**Tombol Draft AI menyebut perkiraan biayanya sebelum ditekan.** Sebelumnya angka itu hanya muncul di dalam modal konfirmasi. Sekarang tombolnya berbunyi misalnya **\"Draft AI · ±Rp 1\"**, dihitung dengan rumus yang sama seperti modalnya — jadi angka di tombol dan angka di modal tidak bisa berbeda. Tanda `±` dipakai karena itu perkiraan sebelum panggilan berjalan.",
+      "**Panggilan AI yang gagal punya tombol \"Coba lagi\" dan diumumkan ke pembaca layar.** Dulu kegagalan hanya muncul sebagai teks kecil tanpa tombol, sehingga bahan yang sudah terkumpul harus diisi ulang dan pembaca layar tidak mengumumkan apa pun. Percobaan ulang sengaja lewat jalur berbiaya yang sama: harganya tetap terlihat lebih dulu sebelum uangnya dibelanjakan.",
+      "**Riwayat Aktivitas menyebut fitur dan biaya setiap panggilan AI.** Datanya sudah tersimpan sejak lama, tetapi tidak pernah dibaca layar mana pun — jadi pertanyaan \"bulan ini uangnya habis untuk apa\" belum bisa dijawab dari daftar aktivitas. Sekarang barisnya menyebut misalnya **\"Panggilan AI berbiaya — Draft catatan · ±Rp 1\"**.",
+    ],
+  },
+  {
     version: "v1.101.0",
     date: "2026-10-11",
     title: "Sesudah menghapus semua data, aplikasi menjelaskan apa yang hilang dan mengajak memasang PIN lagi",

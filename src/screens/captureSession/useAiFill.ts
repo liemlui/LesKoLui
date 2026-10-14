@@ -44,10 +44,36 @@ export default function useAiFill({
   const [aiWaLoading, setAiWaLoading] = useState(false);
   const [aiWaText, setAiWaText] = useState<string | null>(null);
   const [aiError, setAiError] = useState("");
+  /**
+   * Aksi AI terakhir yang gagal (G3-01 butir 9). Berisi aksi yang bisa dijalankan
+   * ulang dengan bahan yang sudah terkumpul saat tombol pertama ditekan.
+   *
+   * Kenapa disimpan di sini dan bukan dihitung ulang dari keadaan saat ini:
+   * kegagalan jaringan tidak boleh menuntut tutor mengisi ulang apa pun, dan
+   * bahan panggilan (mapel, topik, skor, tindak lanjut) memang sudah dikumpulkan
+   * fungsi ini. Yang diulang adalah panggilan yang sama, bukan panggilan baru
+   * dengan bahan yang mungkin sudah berubah.
+   */
+  const [aiRetry, setAiRetry] = useState<(() => void) | null>(null);
   const [aiNoteDraft, setAiNoteDraft] = useState<string | null>(null);
   const [aiNoteOriginal, setAiNoteOriginal] = useState("");
   const [aiNoteStyle, setAiNoteStyle] = useState<AiNoteStyle>("rapikan");
   const [showAiContext, setShowAiContext] = useState(false);
+
+  /**
+   * Umumkan keadaan panggilan AI dan sediakan jalan keluar saat gagal.
+   *
+   * `biayaIdr` dibawa masuk supaya tombol "Coba lagi" bisa memakai **jalur yang
+   * sama** dengan tombol aslinya — lewat `useAiAction` di layar induk, yang berarti
+   * modal biaya tampil lagi. Itu disengaja: percobaan ulang tetap panggilan
+   * berbiaya, jadi harganya harus tetap terlihat sebelum uangnya dibelanjakan.
+   */
+  const tandaiGagalAi = (e: unknown, ulangi: (biayaIdr: number) => void, biayaIdr: number) => {
+    setAiError((e as Error).message);
+    setAiRetry(() => () => ulangi(biayaIdr));
+  };
+
+  const clearAiError = () => { setAiError(""); setAiRetry(null); };
 
   const handleLocalGenerate = () => {
     setShortNote(generateRichNote({
@@ -101,7 +127,8 @@ export default function useAiFill({
       if (res.note) setAiNoteDraft(res.note);
       // Biaya dicatat hanya setelah balasan benar-benar diterima.
       catatBiaya("Draft catatan", biayaIdr, "Draft Catatan dengan AI");
-    } catch (e) { setAiError((e as Error).message); }
+      setAiRetry(null);
+    } catch (e) { tandaiGagalAi(e, onAiNoteConfirm, biayaIdr); }
     finally { setAiNoteLoading(false); }
   };
 
@@ -112,12 +139,13 @@ export default function useAiFill({
       const res = await polishWhatsApp({ original: originalWaMessage, studentName: student.name, tutorName });
       if (res.message) setAiWaText(res.message);
       catatBiaya("Poles pesan WA", biayaIdr, "Poles WA AI");
-    } catch (e) { setAiError((e as Error).message); }
+      setAiRetry(null);
+    } catch (e) { tandaiGagalAi(e, onPolishWa, biayaIdr); }
     finally { setAiWaLoading(false); }
   };
 
   return {
-    aiNoteLoading, aiWaLoading, aiWaText, setAiWaText, aiError,
+    aiNoteLoading, aiWaLoading, aiWaText, setAiWaText, aiError, aiRetry, clearAiError,
     aiNoteDraft, setAiNoteDraft, aiNoteOriginal, setAiNoteOriginal,
     aiNoteStyle, setAiNoteStyle, showAiContext, setShowAiContext,
     handleLocalGenerate, appendNoteChip, onAiNoteConfirm, onPolishWa,

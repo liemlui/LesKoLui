@@ -105,3 +105,44 @@ export function auditTimeLabel(ts: string): string {
 export function auditActionLabel(action: AuditAction): string {
   return AUDIT_LABEL[action] ?? action;
 }
+
+/**
+ * Rincian satu entri audit yang hanya dimiliki panggilan AI (G3-04).
+ *
+ * Syarat selesai tugas itu berbunyi "riwayat panggilan AI menampilkan **waktu,
+ * fitur, dan biaya**". Waktunya sudah ditampilkan setiap baris (`auditTimeLabel`);
+ * yang belum ada adalah fitur dan biayanya — padahal keduanya sudah tersimpan di
+ * entri `ai.call` (`aiFeature`, `costIdr`) sejak G3-04 dan **tidak dibaca satu
+ * layar pun**. Fungsi ini yang membacanya.
+ *
+ * Sengaja mengembalikan `null` untuk entri yang bukan panggilan AI: biaya hanya
+ * bermakna untuk `ai.call`, dan menampilkan biaya di baris lain akan
+ * menyesatkan. Biaya yang tidak tercatat (entri lama sebelum kolomnya ada)
+ * disebutkan apa adanya sebagai "biaya tidak tercatat", bukan dikira-kira.
+ */
+export function auditAiDetail(entry: {
+  action: AuditAction;
+  aiFeature?: string;
+  costIdr?: number;
+  estimatedIdr?: number;
+}): string | null {
+  if (entry.action !== "ai.call") return null;
+
+  const bagian: string[] = [];
+  if (entry.aiFeature?.trim()) bagian.push(entry.aiFeature.trim());
+  bagian.push(
+    typeof entry.costIdr === "number"
+      ? `±Rp ${Math.max(1, Math.ceil(entry.costIdr)).toLocaleString("id-ID")}`
+      : "biaya tidak tercatat",
+  );
+  // Selisih perkiraan vs hasil hanya ditampilkan bila memang berbeda — angka yang
+  // sama dua kali di satu baris hanya menambah kebisingan.
+  if (
+    typeof entry.estimatedIdr === "number" &&
+    typeof entry.costIdr === "number" &&
+    Math.abs(entry.estimatedIdr - entry.costIdr) >= 1
+  ) {
+    bagian.push(`perkiraan ±Rp ${Math.max(1, Math.ceil(entry.estimatedIdr)).toLocaleString("id-ID")}`);
+  }
+  return bagian.join(" · ");
+}

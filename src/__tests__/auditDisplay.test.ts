@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   AUDIT_LABEL,
   auditActionLabel,
+  auditAiDetail,
   auditDayKey,
   auditDayLabel,
   auditTimeLabel,
@@ -118,5 +119,38 @@ describe("auditActionLabel", () => {
 describe("auditTimeLabel", () => {
   it("menuliskan jam dan menit dua digit", () => {
     expect(auditTimeLabel(lokal(2026, 10, 11, 9, 5))).toMatch(/^09[.:]05$/);
+  });
+});
+
+describe("auditAiDetail — fitur & biaya panggilan AI (G3-04)", () => {
+  it("hanya berlaku untuk panggilan AI; aksi lain tidak menampilkan biaya", () => {
+    expect(auditAiDetail({ action: "data.reset", costIdr: 12 })).toBeNull();
+    expect(auditAiDetail({ action: "session.delete" })).toBeNull();
+  });
+
+  it("menyebut fitur dan biayanya", () => {
+    expect(auditAiDetail({ action: "ai.call", aiFeature: "Draft catatan", costIdr: 0.8 }))
+      .toBe("Draft catatan · ±Rp 1");
+  });
+
+  it("biaya di bawah satu rupiah dibulatkan KE ATAS, bukan menjadi Rp 0", () => {
+    // Membulatkan ke bawah akan menampilkan "Rp 0" — angka yang justru menyatakan
+    // panggilannya gratis.
+    expect(auditAiDetail({ action: "ai.call", costIdr: 0.02 })).toBe("±Rp 1");
+  });
+
+  it("entri lama tanpa kolom biaya menyebut apa adanya, bukan dikira-kira", () => {
+    expect(auditAiDetail({ action: "ai.call", aiFeature: "Poles pesan WA" }))
+      .toBe("Poles pesan WA · biaya tidak tercatat");
+  });
+
+  it("perkiraan hanya ditampilkan bila memang berbeda dari hasilnya", () => {
+    expect(auditAiDetail({ action: "ai.call", costIdr: 5, estimatedIdr: 5 })).toBe("±Rp 5");
+    expect(auditAiDetail({ action: "ai.call", costIdr: 5, estimatedIdr: 9 }))
+      .toBe("±Rp 5 · perkiraan ±Rp 9");
+  });
+
+  it("tanpa nama fitur tetap menampilkan biayanya", () => {
+    expect(auditAiDetail({ action: "ai.call", costIdr: 3 })).toBe("±Rp 3");
   });
 });

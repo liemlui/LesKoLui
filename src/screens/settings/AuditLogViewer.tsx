@@ -1,6 +1,6 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { listAuditLog } from "../../db/repos";
-import { auditActionLabel, auditTimeLabel, groupAuditByDay } from "../../lib/auditDisplay";
+import { auditActionLabel, auditAiDetail, auditTimeLabel, groupAuditByDay } from "../../lib/auditDisplay";
 
 /**
  * Penampil Riwayat Aktivitas (audit trail, L-1).
@@ -24,15 +24,25 @@ export default function AuditLogViewer() {
           <p className="sticky top-0 z-10 bg-[var(--surface-strong)]/95 py-0.5 text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">
             {g.label}
           </p>
-          {g.items.map((e) => (
-            <div key={e.id} className="flex items-start justify-between gap-2 text-xs border-b border-[var(--border)] pb-1.5">
-              <div className="min-w-0">
-                <p className="font-medium text-[var(--ink-strong)]">{auditActionLabel(e.action)}</p>
-                {e.details && <p className="text-[var(--ink-muted)] truncate">{e.details}</p>}
+          {g.items.map((e) => {
+            // G3-04: panggilan AI menyebut fitur dan biayanya. Datanya sudah lama
+            // tersimpan di entri audit, tetapi belum pernah dibaca layar mana pun —
+            // sehingga syarat "riwayat panggilan AI menampilkan waktu, fitur, dan
+            // biaya" belum benar-benar terpenuhi sampai baris ini ada.
+            const aiDetail = auditAiDetail(e);
+            return (
+              <div key={e.id} className="flex items-start justify-between gap-2 text-xs border-b border-[var(--border)] pb-1.5">
+                <div className="min-w-0">
+                  <p className="font-medium text-[var(--ink-strong)]">{auditActionLabel(e.action)}</p>
+                  {aiDetail && (
+                    <p className="text-[var(--ink-accent)] font-semibold">{aiDetail}</p>
+                  )}
+                  {e.details && <p className="text-[var(--ink-muted)] truncate">{e.details}</p>}
+                </div>
+                <span className="text-[var(--ink-muted)] flex-shrink-0">{auditTimeLabel(e.timestamp)}</span>
               </div>
-              <span className="text-[var(--ink-muted)] flex-shrink-0">{auditTimeLabel(e.timestamp)}</span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ))}
     </div>
