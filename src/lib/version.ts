@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.108.0",
+    date: "2026-10-15",
+    title: "Kolom Biaya berhenti mengisi ulang dirinya sendiri, dan nominal manual tidak lagi hilang saat durasi sesi diperbaiki",
+    items: [
+      "**Kolom \"💰 Biaya\" berhenti mengisi ulang dirinya sendiri.** Dilaporkan apa adanya: *\"pada saat mau edit tarif sesi secara manual, saat hapus semua, justru kembali terisi penuh.\"* Menghapus seluruh isi kolom tidak pernah menghasilkan kolom kosong — angkanya kembali penuh dengan nominal sesi saat itu. Akibatnya ketikan berikutnya menyambung ke angka lama: **500.000 + 250.000 menjadi 500.000.250.000**, dan angka gabungan itu benar-benar tersimpan sebagai nominal manual sesi — angka yang dibaca tagihan. Sekarang kolom menampilkan **persis apa yang Anda ketik**, termasuk saat kosong, dan kosong tetap berarti **kembali ke hitungan otomatis**.",
+      "**Memperbaiki durasi sesi tidak lagi menghapus nominal yang Anda isi sendiri.** Ini cacat kedua di kolom yang sama, dan akibatnya lebih senyap. Contohnya: sesi 2 jam Anda isi manual **Rp 175.000** karena sesinya hanya berjalan 45 menit. Beberapa hari kemudian Anda sadar durasinya salah dan membetulkannya menjadi 3 jam — tanpa menyentuh kolom biaya. Versi lama **membuang** nominal manual itu dan menghitung ulang dari tarif, sehingga harga yang Anda sepakati berubah sendiri menjadi **Rp 750.000** (3 jam × Rp 250.000) — angka yang dibaca tagihan dan laporan. Sekarang nominal manual **bertahan**, dan modalnya menjelaskan kedua angka: nominal manual yang tetap dipakai, plus perkiraan hitungan otomatis untuk durasi baru, **beserta tombol \"↺ Pakai hitungan otomatis\"** kalau justru hitungan itu yang Anda maksud.",
+      "**Mengubah durasi juga tidak lagi diam-diam mengubah sesi otomatis menjadi sesi bernominal manual.** Dulu menekan tombol durasi (mis. \"3j\") ikut menulis ke kolom biaya, sehingga sesi yang tadinya dihitung otomatis berubah status menjadi *nominal manual tutor* hanya karena satu tombol diklik. Sesi seperti itu keluar dari tarif murid, **dilewati** saat tarif murid dikoreksi (perhitungan ulang retroaktif sengaja tidak menyentuh nominal manual), dan muncul di rincian uang sebagai *\"koreksi manual yang Anda isi sendiri\"* — padahal Anda tidak mengetik nominal apa pun.",
+      "**Untuk murid paket per pertemuan, angka perkiraan tidak lagi dikali durasi.** Murid paket ditagih tarif tetap per pertemuan, tetapi baris biaya dan perkiraan lamanya menuliskan bentuk \"tarif per jam × jumlah jam\" — misalnya tampak Rp 600.000 untuk 3 jam, padahal yang benar tetap Rp 200.000. Sekarang bentuk itu hanya dipakai untuk murid per jam.",
+      "**Satu hal yang sebaiknya Anda periksa sekali, karena perilaku lama bisa meninggalkan jejak.** Kalau dulu Anda pernah mengisi nominal manual pada sebuah sesi **lalu mengubah durasinya**, nominal itu sudah terhapus oleh versi lama dan tidak bisa dipulihkan otomatis — yang tersisa adalah hasil hitungan tarif × durasi. Buka sesi seperti itu lewat **tab Sesi → ikon pensil**, lalu isi ulang nominalnya bila memang ada harga yang disepakati. Sejak versi ini nominal manual bertahan.",
+    ],
+  },
+  {
     version: "v1.107.0",
     date: "2026-10-15",
     title: "Laporan akhirnya memakai narasi sesi, dan bahan yang dikirim ke AI 65% lebih ringkas",

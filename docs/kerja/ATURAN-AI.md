@@ -147,6 +147,17 @@ Keputusan lama bernomor Q1 sampai Q45 (2026-09-25 sampai 2026-10-04) sudah final
 
 Pertanyaan baru ke pemilik hanya sah untuk tiga hal: mengubah uang, mengubah perilaku pengguna, dan menghapus data. Di luar tiga hal itu, putuskan sendiri dan tulis alasannya satu baris. Pertanyaan yang sudah pernah dijawab tidak boleh diajukan lagi, termasuk dalam bentuk yang sedikit berbeda.
 
+### 4.5 Keputusan pemilik 2026-10-14 (sesi verifikasi kolom biaya sesi)
+
+> Ditambahkan sebagai bagian **baru di akhir §4** — bukan disisipkan di tengah — supaya nomor
+> bagian yang sudah dirujuk dokumen lain (§4.1–§4.4, §5–§8) tidak bergeser. Jebakan penomoran
+> ulang ada di §7.
+
+| Nomor | Keputusan | Akibat yang mengikat |
+|---|---|---|
+| D9 | **Memperbaiki durasi sesi tidak boleh menghapus nominal manual tutor.** Modal catatan sesi menampilkan catatan berisi kedua angka — nominal manual yang tetap dipakai dan perkiraan hitungan otomatis untuk durasi baru — beserta satu tombol untuk berpindah ke hitungan itu. | `updateSession` dan `updateSeriesSessions` menulis `cost` berpasangan dengan `costOverride` (bukan menghitung ulang lalu membuang nominalnya). Perilaku ini bertabrakan dengan perilaku lama W3/W7 di TASK-10 L1, yang karena itu **dicabut**: tes `sessionPricing.test.ts` yang dulu menuntut "durasi berubah → override dilepas" sekarang menuntut sebaliknya, dan sisi lainnya (sesi tanpa nominal manual tetap menghitung ulang) dijaga tes terpisah. Penjaga browser: `e2e/session-cost-manual.spec.ts`. |
+| D10 | **`playwright.config.ts` boleh diperbaiki pada bagian `webServer`.** | Perintahnya menjadi `npx vite --port 5174 --strictPort`. Bentuk lama `npm run dev -- --port 5174 --strictPort` tidak pernah bisa jalan: npm menelan `--port` sehingga Vite membaca `5174` sebagai root direktori dan membalas 404 di semua permintaan. Ini keputusan yang membuka larangan §3 untuk satu baris itu saja — bukan izin mengubah konfigurasi lain. |
+
 ---
 
 ## 5. Fakta kode yang mengikat
@@ -154,7 +165,7 @@ Pertanyaan baru ke pemilik hanya sah untuk tiga hal: mengubah uang, mengubah per
 - Skor sesi dihitung dari indikator yang terisi, dan penyebutnya disebutkan di antarmuka. Sesi tanpa indikator tidak dihitung.
 - Uang tidak pernah ditampilkan di Beranda. Bukan disamarkan, tetapi tidak ada barisnya.
 - Perhitungan tagihan, ekspor CSV, dan total laporan yang sudah difinalkan dibekukan. Perubahan tampilan tidak boleh mengubah angkanya.
-- `costOverride` adalah pernyataan eksplisit tutor dan tidak boleh dihitung ulang oleh mesin.
+- `costOverride` adalah pernyataan eksplisit tutor dan tidak boleh dihitung ulang oleh mesin — **termasuk saat durasi sesi diubah.** `updateSession` dan `updateSeriesSessions` mempertahankan nominal manual dan menulis `cost` berpasangan dengannya; yang dilepas hanya sesi yang memang tidak punya nominal manual. Untuk kembali ke hitungan otomatis, tutor melepasnya sendiri lewat `costOverride: null` (tombol "↺ Pakai hitungan otomatis" di modal catatan sesi).
 - `rateSnapshot` adalah tarif yang menempel pada sesi dan menentukan angka akhir saat sesi ditutup.
 - Versi aplikasi dibaca dari `package.json`. Catatan perubahan dibaca dari `src/lib/version.ts`.
 
@@ -202,6 +213,14 @@ Yang tetap butuh izin sandbox penuh dan tidak bisa disiasati: `npm run e2e`, `np
 - Baris tabel markdown jangan disunting dengan jangkar pendek. Jangkar harus satu baris utuh, dan teks pengganti tidak boleh memuat teks jangkar.
 - Berkas `.mjs` dan `.cjs` untuk alat bantu ditaruh di `.design-audit/`, yang tidak dilacak git. Jangan ditaruh di folder sementara.
 - **Menomori ulang bagian sebuah kontrak bisa memutus rujukan nomor bagian di dokumen lain.** Revisi berkas ini 2026-10-07 meniadakan §0, §2.1, §2.2, §2.3, §6.1–§6.4, dan §9 yang dulu ada; enam rujukan di dokumen lain langsung menunjuk bagian yang tidak ada lagi. **Kalau menomori ulang, perbaiki seluruh rujukan nomor bagiannya pada putaran yang sama.** `npm run check:docs` **tidak** memeriksa hal ini: gate itu hanya menguji tautan `.md`, bukan nomor bagian atau nama jangkar.
+- **`npm run dev -- --port 5174 --strictPort` tidak pernah memakai port yang diminta.** npm menelan `--port` (peringatannya: *Unknown cli config --port*), sehingga Vite menerima `5174` sebagai **root direktori**: server tetap menyala dan tetap mencetak `Local: http://localhost:5174/`, tetapi setiap permintaan dibalas **404** dengan halaman kosong dan `window.seedDummy` tidak ada. Gejalanya menipu — terbaca seperti aplikasi yang rusak, padahal servernya salah melayani. Sudah diperbaiki di `playwright.config.ts` (§4.5 D10). Untuk menjalankan sendiri: `npx vite --port <port> --strictPort`. **Sebelum menyalahkan aplikasi, buktikan servernya** (`GET /` harus 200 dan memuat `<!doctype html>`).
+- **Jangan menjalankan dev server kedua di repo yang sama tanpa memisahkan `cacheDir`.** Keduanya berbagi `node_modules/.vite`; server yang sedang jalan lalu mulai membalas `504 (Outdated Optimize Dep)` dan halaman menampilkan "Ada yang tidak beres — Failed to fetch dynamically imported module". Pakai server yang sudah jalan, atau jalankan instance terpisah dengan `cacheDir` sendiri.
+- **Seeder DEV menulis bertahap** (terukur: murid muncul ±2 detik, sesi lengkap ±6 detik). Tes browser harus menunggu pesan selesai `[seedDummy] Data dummy berhasil dimasukkan ✓` di console, bukan sekadar "muridnya sudah ada" — kalau tidak, tab Sesi dibuka sebelum sesinya dibuat. Jangan pula membuka IndexedDB sebelum Dexie membuatnya: `indexedDB.open("jurnalles")` tanpa versi lebih dulu menciptakan DB kosong versi 1 dan menabrak migrasinya.
+- **Tombol di dalam sheet atau modal bisa berada di luar viewport** (mis. catatan perubahan yang panjang), dan `force: true` **tidak** menolong — Playwright gagal dengan "Element is outside of the viewport". Klik lewat DOM: `locator.evaluate((el: HTMLElement) => el.click())`.
+- **Uang: buka lewat gerbang PIN di layar Uang**, bukan gembok di blok Uang layar murid — gembok itu disembunyikan selama setelan PIN belum terbaca (`hideUnlock={needsSetup}`), sehingga kadang belum ada saat dibutuhkan. Status buka-kunci hidup di **memori modul**, jadi sesudah terbuka jangan `page.goto` lagi: reload menguncinya kembali. Pakai klik (navigasi sisi klien).
+- **Helper tes wajib menutup dengan assertion, bukan `return` diam-diam**, dan jangan menebak baris data yang sedang diuji: ambil snapshot seluruh tabel, diff, lalu ikat baris yang berubah ke sesuatu yang tampil di layar (mis. tanggal di header modal). Dua kebiasaan itu sudah pernah menghasilkan kesimpulan "tidak ada dampak" yang salah dan kegagalan di tempat yang menyesatkan.
+- **PowerShell di mesin ini 5.1**: `Set-Content -Encoding utf8NoBOM` tidak ada (enum-nya beda). Tulis UTF-8 tanpa BOM lewat `[System.IO.File]::WriteAllText($p, $c, (New-Object System.Text.UTF8Encoding($false)))`, lalu **verifikasi dengan membaca kembali berkasnya**. Mencetak "berhasil" dari niat sendiri pernah menipu: perintahnya gagal, berkasnya tidak ada, dan laporannya sudah bilang "ditulis".
+- **Pelajaran verifikasi lintas proyek** disimpan sebagai skill DSH `browser-bug-verification` (`~/.dsh/skills/browser-bug-verification/`) — berisi daftar kesalahan, kendala sandbox, dan kerangka harness Playwright. Yang **mengikat repo ini tetap §7 di berkas ini**, bukan salinan di luar repo.
 
 ---
 
