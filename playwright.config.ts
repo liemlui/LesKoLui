@@ -32,7 +32,16 @@ export default defineConfig({
   webServer: {
     // Port di-pin agar cocok dengan baseURL — tanpa ini vite default ke 5173
     // dan webServer timeout menunggu 5174.
-    command: "npm run dev -- --port 5174 --strictPort",
+    //
+    // **Kenapa `npx vite`, bukan `npm run dev --`.** Bentuk lamanya
+    // (`npm run dev -- --port 5174 --strictPort`) gagal tanpa suara: npm menelan
+    // `--port` sebagai konfigurasi npm (peringatannya: *Unknown cli config --port*),
+    // sehingga Vite menerima `5174` sebagai **root direktori**, bukan port. Server
+    // tetap menyala dan tetap mencetak `Local: http://localhost:5174/`, tetapi
+    // setiap permintaan dibalas 404 dengan halaman kosong — dan seluruh tes E2E
+    // gagal seolah aplikasinya yang rusak. Dilaporkan pemilik 2026-10-14,
+    // diperbaiki atas keputusan pemilik 2026-10-14 (`ATURAN-AI.md` §4.5).
+    command: "npx vite --port 5174 --strictPort",
     url: "http://localhost:5174",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
