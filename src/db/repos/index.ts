@@ -24,6 +24,7 @@ export type { StudentBillingUpdateOptions } from "./studentRepo";
 
 // Sessions + Scheduling + Photo maintenance + Streak
 export {
+  sessionCost,
   createSession, createSessionWithCloseoutDraft, markSessionDone,
   markSessionDoneWithCloseoutDraft, updateSession, deleteSession,
   cancelSession, markSessionNoShow, rescheduleSession,

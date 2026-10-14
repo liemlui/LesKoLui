@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, type ChangeEvent } from "react";
 import type { Session } from "../../db/types";
-import { updateSession } from "../../db/repos";
+import { sessionCost, updateSession } from "../../db/repos";
 import { isGradeLower } from "../../lib/grades";
 import { compressPhoto, stampPhoto } from "../../lib/foto";
 import { Z } from "../../lib/zIndex";
@@ -14,6 +14,14 @@ const DURATIONS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
 
 interface SessionNoteEditModalProps {
   session: Session;
+  /**
+   * `billingPolicyOf(student) === "session_count"` — murid paket ditagih tarif
+   * **flat per pertemuan**, bukan tarif × durasi (`sessionCost()` di
+   * `db/repos/sessionRepo.ts`). Dipakai untuk memperkirakan biaya saat tutor
+   * mengubah durasi. Sengaja **wajib**: tanpa ini pemanggil bisa diam-diam
+   * memakai rumus per jam untuk murid paket, dan angkanya salah.
+   */
+  perSession: boolean;
   /** Apakah angka uang sedang terbuka (gerbang `useMoneyVisible` dari induk). */
   moneyVisible: boolean;
   notify: (text: string) => void;
@@ -39,9 +47,16 @@ interface SessionNoteEditModalProps {
  *   tidak boleh dihitung ulang mesin. Karena itu perubahan biaya hanya ditulis
  *   saat tutor benar-benar mengubahnya, dan "Reset" mengirim `null` supaya
  *   perhitungan otomatis berlaku lagi.
+ * - **Kolom "Biaya" dikendalikan `biayaTeks` — teks mentah tutor.** Jangan
+ *   pernah memasang nilai turunan (`session.cost`, `efektifBiaya`, atau
+ *   `Number(...) || 0`) sebagai `value` kolom itu: begitu teksnya kosong, kolom
+ *   akan mengisi ulang dirinya sendiri dan ketikan tutor berikutnya menyambung
+ *   ke angka lama. Kolom kosong adalah keadaan yang sah — itulah "otomatis".
+ *   Penjaganya ada di e2e `session-cost-manual.spec.ts` (unit test tidak bisa
+ *   melihatnya: repo ini tanpa DOM).
  */
 export default function SessionNoteEditModal({
-  session, moneyVisible, notify, onClose, onKelolaSesi,
+  session, perSession, moneyVisible, notify, onClose, onKelolaSesi,
 }: SessionNoteEditModalProps) {
   const [shortNote, setShortNote]         = useState(session.shortNote ?? "");
   const [topic, setTopic]                 = useState(session.topic ?? "");
@@ -62,11 +77,24 @@ export default function SessionNoteEditModal({
   /**
    * Isian nominal manual. **Teks, bukan angka** — supaya kolomnya bisa kosong.
    *
-   * Dulu keadaannya `number | null` dan isian kosong dipaksa menjadi `0`,
-   * sehingga tutor yang menghapus nilainya melihat angka 0 yang harus dihapus
-   * lagi sebelum bisa mengetik (dilaporkan pemilik 2026-10-14), dan menyimpan 0
-   * malah mempertahankan nominal lama. Aturannya sekarang ada di
-   * `studentDetail/sessionCostPatch.ts` dan dijaga tesnya.
+   * Tiga bug di kolom yang sama, semuanya dilaporkan pemilik 2026-10-14:
+   *
+   * 1. keadaan lama `number | null` memaksa isian kosong menjadi `0`, sehingga
+   *    tutor harus menghapus angka 0 itu dulu sebelum bisa mengetik;
+   * 2. keadaan teks ini sempat **mengisi ulang dirinya sendiri**: kolomnya
+   *    dikendalikan nilai turunan yang jatuh balik ke `session.cost` setiap kali
+   *    teksnya kosong. Menghapus isi karena itu tidak pernah menghasilkan kolom
+   *    kosong — dan ketikan berikutnya menyambung ke angka yang baru dipulihkan
+   *    itu ("500000" + "250000" = "500000250000"), lalu angka gabungan itu
+   *    benar-benar tersimpan sebagai nominal manual sesi;
+   * 3. tombol durasi dulu ikut menulis ke kolom ini, sehingga sesi yang dihitung
+   *    otomatis berubah menjadi "nominal manual tutor" hanya karena satu tombol
+   *    durasi diklik (lihat catatan di blok durasi).
+   *
+   * Aturan yang berlaku sekarang: **kolom menampilkan persis apa yang diketik
+   * tutor**, termasuk saat kosong. Kosong berarti "kembali ke hitungan
+   * otomatis" — aturannya ada di `studentDetail/sessionCostPatch.ts` dan dijaga
+   * `sessionCostPatch.test.ts`.
    */
   const [biayaTeks, setBiayaTeks]         = useState<string>(session.costOverride != null ? String(session.costOverride) : "");
   const [duration, setDuration]           = useState(session.durationHours);
@@ -75,15 +103,22 @@ export default function SessionNoteEditModal({
   // ── Turunan dari isian biaya (lihat `sessionCostPatch.ts`) ──────────────────
   // Kosong/0 = "kembali ke hitungan otomatis", bukan nominal nol rupiah.
   const inputBiaya = bacaBiayaSesi(biayaTeks);
-  /** Angka yang ditampilkan & dipakai sebagai nilai awal saat mode Edit. */
-  const efektifBiaya = inputBiaya.mode === "manual" ? inputBiaya.nilai : session.cost;
+  /** Durasi sesi ini sedang berbeda dari yang tersimpan. */
+  const durasiBerubah = duration !== session.durationHours;
   /**
-   * Nilai kolom saat mode Edit. Selalu angka, supaya kolom `type="number"`
-   * tidak pernah menerima `""` yang membuat React mengeluh soal nilai kosong —
-   * tutor tetap bisa menghapus isinya sendiri, dan saat itu keadaannya berubah
-   * jadi "otomatis".
+   * Angka yang ditampilkan di baris "Biaya" (dan nilai awal saat mode Edit).
+   *
+   * Selama durasinya tidak disentuh, yang tampil adalah `session.cost` — angka
+   * yang benar-benar tersimpan, apa adanya. Bila tutor mengubah durasi, angka
+   * tersimpan itu tidak lagi mewakili apa pun, jadi yang ditampilkan adalah
+   * **perkiraan hasil simpan** memakai `sessionCost()` — rumus yang sama dengan
+   * yang dipakai `updateSession` saat menyimpan — bukan rumus sendiri di sini.
    */
-  const nilaiTampil = inputBiaya.mode === "manual" ? inputBiaya.nilai : Number(session.cost) || 0;
+  const efektifBiaya = inputBiaya.mode === "manual"
+    ? inputBiaya.nilai
+    : durasiBerubah
+      ? sessionCost(session.rateSnapshot, duration, perSession)
+      : session.cost;
 
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
@@ -192,12 +227,27 @@ export default function SessionNoteEditModal({
           <div className="bg-[var(--surface)] rounded-xl p-4 space-y-3">
             <div>
               <label className="label">⏱️ Durasi</label>
+              {/* Durasi TIDAK menulis ke kolom biaya.
+                  Dulu onClick di sini juga menjalankan
+                  `if (bacaBiayaSesi(biayaTeks).mode === "auto") setBiayaTeks(String(d * rateSnapshot))`.
+                  Niatnya memperbarui angka yang terlihat; akibatnya kolom jadi
+                  bernilai manual, sehingga sesi yang tadinya dihitung otomatis
+                  berubah menjadi "nominal manual tutor" hanya karena satu tombol
+                  durasi diklik. Sesi seperti itu keluar dari tarif murid, dilewati
+                  repricing retroaktif (`studentRepo` melewati sesi ber-
+                  `costOverride`), dan muncul di rincian uang sebagai koreksi manual
+                  yang tidak pernah ditulis tutor. Angka otomatisnya sekarang
+                  ditampilkan sebagai turunan (`efektifBiaya`) dan `updateSession`
+                  yang menghitung ulang saat durasinya benar-benar disimpan.
+                  Rumus `d * rateSnapshot` di baris lama itu juga salah untuk murid
+                  paket per pertemuan, yang tarifnya flat — sekarang memakai
+                  `sessionCost()` yang sama dengan repo. */}
               <div className="flex flex-wrap gap-1.5 mt-1">
                 {DURATIONS.filter((d) => d <= 3).map((d) => (
                   <button
                     key={d}
                     type="button"
-                    onClick={() => { setDuration(d); if (bacaBiayaSesi(biayaTeks).mode === "auto") setBiayaTeks(String(d * session.rateSnapshot)); }}
+                    onClick={() => setDuration(d)}
                     className={`py-1.5 px-3 rounded-lg text-xs font-semibold border transition-colors ${
                       duration === d
                         ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]"
@@ -218,7 +268,12 @@ export default function SessionNoteEditModal({
                     type="number"
                     className="input flex-1"
                     aria-label="Nominal biaya manual"
-                    value={nilaiTampil}
+                    /* Teks mentah tutor, bukan angka turunan: `""` adalah nilai
+                       terkontrol yang sah untuk input number, dan justru itulah
+                       satu-satunya cara menyampaikan "kembali otomatis".
+                       Angka turunan di sini pernah membuat kolom mengisi ulang
+                       dirinya sendiri setiap kali dikosongkan. */
+                    value={biayaTeks}
                     onChange={(e) => setBiayaTeks(e.target.value)}
                     placeholder="300000"
                     min={0}
@@ -265,7 +320,11 @@ export default function SessionNoteEditModal({
               )}
               {moneyVisible && inputBiaya.mode === "auto" && (
                 <p className="text-xs text-[var(--ink-muted)] mt-0.5">
-                  <MaskedMoney amount={session.rateSnapshot} />/jam × {duration}j
+                  {/* Murid paket ditagih tarif flat per pertemuan, jadi bentuk
+                      "tarif/jam × Nj" akan bertentangan dengan angkanya sendiri. */}
+                  {perSession
+                    ? <><MaskedMoney amount={session.rateSnapshot} />/pertemuan (tarif paket)</>
+                    : <><MaskedMoney amount={session.rateSnapshot} />/jam × {duration}j</>}
                 </p>
               )}
             </div>

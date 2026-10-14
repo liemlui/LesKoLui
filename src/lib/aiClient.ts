@@ -855,23 +855,42 @@ export async function ringkasanBertahap<T extends { shortNote: string }>(
   return { summary: await deps.susunAkhir(digests), batchCount: batches.length };
 }
 
+/** Jumlah token kasar dari teks Indonesia: ±3,6 karakter per token. */
+export function perkiraanTokenTeks(teks: string): number {
+  return Math.ceil(teks.length / 3.6);
+}
+
 /**
  * Perkiraan biaya perkuat satu isian.
  *
- * Diturunkan dari rumus yang sudah dipakai `estimateReportSummaryCost` dan
- * `estimateNarrativesCost`: ±120 token masukan per sesi, ditambah keluaran sesuai
- * panjang isiannya. Angkanya **perkiraan untuk ditampilkan di tombol**, bukan
- * tagihan — biaya sebenarnya dicatat dari pemakaian nyata.
+ * **Dibetulkan 2026-10-15.** Rumus lama memakai asumsi tetap **±120 token per
+ * sesi**, dan asumsi itu terukur **terlalu kecil**: dengan muatan yang dikirim
+ * sebelum perbaikan (seluruh kolom setiap sesi), satu sesi berbiaya
+ * ±205–307 token, sehingga angka di tombol bisa 1,7–2,6× lebih kecil daripada
+ * kenyataan. Sekarang perkiraannya dihitung dari **muatan yang benar-benar akan
+ * dikirim** (`bahanSesi`), jadi angka di tombol dan di modal mengikuti isi
+ * laporan yang sesungguhnya — bukan jumlah sesi saja.
+ *
+ * `bahanSesi` opsional: pemanggil yang belum punya sesinya (mis. label tombol
+ * pada keadaan awal) tetap mendapat perkiraan kasar. Angka ini **perkiraan untuk
+ * ditampilkan**, bukan tagihan — biaya sebenarnya dicatat dari pemakaian nyata.
  */
-export function estimateReportFieldCost(field: AiReportFieldKey, sessionCount: number): number {
+export function estimateReportFieldCost(
+  field: AiReportFieldKey,
+  sessionCount: number,
+  bahanSesi?: readonly { shortNote: string }[],
+): number {
   const keluaran = field === "quote" ? 60 : field === "teacherNote" ? 160 : 260;
-  const masukan = 700 + sessionCount * 120;
+  const masukan = 700 + (bahanSesi
+    ? perkiraanTokenTeks(JSON.stringify(bahanSesi))
+    // Tanpa bahan: pakai patokan hasil ukur ringkasan sesi (±150 token per sesi).
+    : sessionCount * 150);
   return calcIdr(masukan, keluaran);
 }
 
 /** Perkiraan biaya satu panggilan ringkasan bertahap (baca ringkasan batch, bukan sesi). */
 export function estimateStagedSummaryCost(batchCount: number): number {
-  return calcIdr(700 + Math.max(1, batchCount) * 120, 300);
+  return calcIdr(700 + Math.max(1, batchCount) * 150, 300);
 }
 
 /**

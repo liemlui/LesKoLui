@@ -428,6 +428,8 @@ Pemilik memeriksa butir 30–44 langsung di server pengembangan. Hasilnya: **34�
 
 Dua keputusan pemilik 2026-10-14 dikerjakan pada putaran ini.
 
+> **Dilanjutkan pada hari yang sama oleh §4.15** — dan klaim di §4.14 nomor 3 ternyata **terlalu luas**: jalur ringkasan bertahap hanya dipasang untuk Kesimpulan, sedangkan tiga isian lain masih mengirim seluruh kolom sesi. Baca §4.15 sebelum mengutip §4.14.
+
 1. **Perkuat AI per bagian.** `generateReportField(field, input)` di `lib/aiClient.ts` dengan prompt **turunan** `SYSTEM_PROMPT_REPORT_SUMMARY` — kalimat penilaiannya dipertahankan apa adanya supaya mutu keluarannya tidak berubah, bukan aturan baru. Validatornya hanya menuntut isian yang diminta. Tombolnya dipasang di tempat bagiannya: `ReportTextsPanel` (Kesimpulan · Catatan Guru · Kutipan) dan `ReportPlanPanel` (Rencana), masing-masing menyebut perkiraan biaya dari `estimateReportFieldCost`.
 
 2. **Yang paling penting: perkuat satu bagian tidak menyentuh bagian lain.** `isiBagian()` mengembalikan `undefined` untuk isian yang tidak diminta — **bukan `""`** — sebab `""` akan **mengosongkan tulisan tutor** yang sudah ada. Ada tes khusus untuk itu (`useReportGeneration.test.ts`, +4 tes), termasuk kasus keluaran AI kosong: tidak ada penulisan sama sekali dan tutor diberi tahu.
@@ -437,6 +439,24 @@ Dua keputusan pemilik 2026-10-14 dikerjakan pada putaran ini.
 4. **Narasi sesi hanya-baca di layar Laporan.** Prop penyuntingan (`editingId` · `draftText` · `onStartEdit` · `onDraftChange` · `onFinishEdit` · `saveState` · `savedLabel`) **dihapus** dari `ReportNarrativePanel`, bukan sekadar disembunyikan lewat CSS — supaya tidak ada dua tempat yang bisa berbeda pendapat soal apakah editor boleh muncul. Narasi tetap tampil dan tetap tercetak di PDF. **Catatan teknis:** `useNarrativeAutosave` beserta tesnya masih ada di repo tetapi **tidak lagi terpakai** layar Laporan; menghapusnya adalah keputusan terpisah karena menyentuh berkas uji.
 
 5. **Batas kejujuran putaran ini.** Sudah dibuktikan: `npx tsc -b` bersih · `npx eslint src` bersih · suite **1.434 lulus / 103 berkas**, 0 gagal · `check:docs` 0 pelanggaran. Belum: **`e2e:uiux` tidak dijalankan** pada putaran ini meskipun markup layar Laporan berubah (tombol baru + panel narasi), dan **butir 42 belum bisa dicentang** sampai pemilik mencoba "Coba lagi" lagi di perangkat.
+
+### 4.15 Yang berubah pada putaran 2026-10-15 (ringkasan sesi untuk AI, v1.107.0)
+
+Pemilik bertanya kenapa "perkuat AI" masih bisa kelebihan konteks padahal tombolnya sudah per bagian. Jawabannya terbukti dari kode, dan **klaim §4.14 nomor 3 terlalu luas**: jalur ringkasan bertahap hanya dipasang untuk **Kesimpulan**.
+
+1. **Sebabnya.** Catatan Guru, Kutipan, dan Rencana memakai `generateReportField` (per bagian, benar) tetapi bahannya tetap `buildReportAiInput` yang mengirim **sebelas kolom per sesi**. Diukur dengan alat ukur sementara terhadap muatan asli: **±620–1.230 karakter per sesi**; laporan 40 sesi × catatan 800 karakter = **42.552 karakter**.
+
+2. **Temuan sampingan yang lebih penting daripada ukurannya: narasi sesi tidak pernah ikut ke laporan.** `buildReportAiInput` mengirim `shortNote` saja. Narasi yang pemilik tulis setiap hari di alur Catat Sesi — dan yang memang lebih rapi — **tidak terpakai** saat menyusun kesimpulan. Jadi pekerjaan harian itu hanya muncul di PDF, tidak masuk bahan AI.
+
+3. **Perbaikan yang dipakai (pilihan A yang disetujui pemilik: ringkasan lokal padat, tanpa panggilan AI tambahan).** `buildSessionDigest()` + `compactSessionText()` + `DIGEST_TEXT_MAX` (240) di `lib/reportSessionScope.ts`. Satu sesi kini mengirim **tanggal · mapel · topik · inti (±240 karakter, dipotong di batas kata) · skor fokus sebagai angka**. Aturan yang mengikat, masing-masing beralasan: **inti diambil dari narasi bila ada** (kalau tidak, dari catatan) sehingga satu sesi tidak pernah mengirim dua cerita; **angka yang sudah menjadi kolom tidak diulang ke dalam kalimat** — ini jawaban atas permintaan *"setiap sesi jangan sampai ada info mengulang jadi lebih ringkas"*; **bagian kosong tidak dikirim** sebagai kunci tanpa isi.
+
+4. **Hasil terukur:** 40 sesi × catatan 800 karakter → **42.552 → 14.951 karakter (65% lebih kecil, 374 char/sesi)**. Angka ini dicetak oleh tesnya sendiri, jadi tidak bisa basi tanpa terlihat.
+
+5. **Estimator biaya dibetulkan.** `estimateReportFieldCost` memakai patokan tetap ±120 token per sesi yang terukur **1,7–2,6× terlalu kecil**; sekarang ia menerima bahan sesi dan menghitung dari muatan yang benar-benar akan dikirim (`perkiraanTokenTeks`, ±3,6 karakter per token), dengan patokan tanpa bahan dinaikkan ke ±150 token per sesi.
+
+6. **Tombol kedua di Catat Sesi TIDAK dikerjakan, dan itu keputusan pemilik sendiri.** Pemilik mengusulkan *"tombol submit catat sesi ada 2, bagian untuk ringkas semua info di sesi dengan ai aja"*, tetapi pada pesan yang sama ia menyatakan sudah memakai AI setiap hari di alur Catat Sesi — sehingga tombol kedua akan menggandakan panggilan yang sama. **Jalur yang tersisa tetap ada:** sesi yang narasinya belum dibuat diisi lewat "Isi Semua dengan AI" (`pickDirtyNarrativeSessions` sudah memisahkan sesi kosong dari sesi yang narasinya sudah ada), dan `isBagian()` tidak pernah mengosongkan isian lain.
+
+7. **Batas kejujuran putaran ini.** Sudah dibuktikan: `npx tsc -b` bersih · `npx eslint src` bersih · suite **1.447 lulus / 104 berkas**, 0 gagal · `npm run build` ✓ · `check:docs` 0 pelanggaran. Belum: **`e2e:uiux` tidak dijalankan**, dan **mutu keluaran AI dari bahan yang kini lebih ringkas belum diperiksa pemilik** — ini yang paling perlu dilihat: kalau kesimpulan/kutipan terasa lebih dangkal, ambang `DIGEST_TEXT_MAX` (240) yang harus dinaikkan, dan itu satu angka di satu berkas.
 
 ---
 

@@ -2,7 +2,6 @@ import { reportStatus, type MonthlyReport } from "../db/types";
 import type { Session, Student } from "../db/types";
 import type { AiInput } from "./aiClient";
 import { dayLabel, todayWIB } from "./format";
-import { BEHAVIOR_TAGS, RESPONSE_TAGS } from "./responseTaxonomy";
 
 /**
  * Select the oldest N uncovered sessions while preserving chronological input
@@ -177,7 +176,79 @@ export function findPreviousPeriodReport(
     )[0];
 }
 
-/** Build AI input from the already-selected report scope, never from history. */
+/** Batas panjang inti sesi di dalam ringkasan yang dikirim ke AI. */
+export const DIGEST_TEXT_MAX = 240;
+
+/**
+ * Ringkas teks inti sesi: rapikan spasi, potong di batas kata, dan buang
+ * pengulangan yang tidak menambah apa pun.
+ *
+ * Dipotong di batas kata (bukan di tengah kata) supaya kalimatnya tidak rusak;
+ * kalau tidak ada spasi yang layak, potong apa adanya dan beri tanda "…" — teks
+ * yang jujur terpotong lebih baik daripada kalimat yang tampak utuh padahal bukan.
+ */
+export function compactSessionText(teks: string | undefined, maks = DIGEST_TEXT_MAX): string {
+  const rapi = (teks ?? "").replace(/\s+/g, " ").trim();
+  if (rapi.length <= maks) return rapi;
+  const potong = rapi.slice(0, maks);
+  const spasiTerakhir = potong.lastIndexOf(" ");
+  return `${(spasiTerakhir > maks * 0.6 ? potong.slice(0, spasiTerakhir) : potong).trimEnd()}…`;
+}
+
+/**
+ * Satu sesi dalam bentuk **ringkas** untuk dikirim ke AI.
+ *
+ * Aturan yang mengikat, beserta alasannya:
+ *
+ * 1. **Isi intinya diambil dari narasi sesi bila ada, kalau tidak dari catatan.**
+ *    Narasi ditulis lebih dulu (di alur Catat Sesi) dan sudah berupa inti yang
+ *    rapi, jadi tidak perlu dikirim bersama catatan asli — keduanya menceritakan
+ *    sesi yang sama, dan itu pengulangan yang paling mahal.
+ * 2. **Panjangnya dibatasi** (`DIGEST_TEXT_MAX`) supaya satu catatan yang sangat
+ *    panjang tidak membuat muatan seluruh laporan melewati batas konteks.
+ * 3. **Angka yang sudah menjadi data kolom tidak diulang ke dalam teks** — skor
+ *    fokus dikirim sebagai `fokus`, bukan disisipkan ke kalimat.
+ * 4. **Bagian yang kosong tidak dikirim sama sekali** (bukan `null`).
+ */
+export interface SessionDigest {
+  id: string;
+  date: string;
+  subject: string;
+  topic?: string;
+  /** Inti sesi: narasi bila ada, kalau tidak catatan. Sudah dipadatkan. */
+  inti?: string;
+  /** Skor fokus, dibaca laporan sebagai angka — tidak diulang di dalam `inti`. */
+  fokus?: number;
+}
+
+export function buildSessionDigest(session: Session): SessionDigest {
+  const inti = compactSessionText(session.narrative) || compactSessionText(session.shortNote);
+  return {
+    id: session.id,
+    date: session.date,
+    subject: session.subjects.join(", "),
+    topic: session.topic?.trim() || undefined,
+    inti: inti || undefined,
+    fokus: session.engagement?.score,
+  };
+}
+
+/**
+ * Build AI input from the already-selected report scope, never from history.
+ *
+ * **Perubahan 2026-10-15 (permintaan pemilik).** Sebelumnya fungsi ini mengirim
+ * seluruh kolom setiap sesi apa adanya: catatan lengkap + mood + topik + area
+ * perhatian + prediksi nilai + nilai akhir + refleksi nilai + skor + label
+ * perilaku + label respons. Terukur **±620–1.230 karakter per sesi**, sehingga
+ * laporan 40 sesi bisa melewati 48.000 karakter dan panggilan AI gagal dengan
+ * keluhan konteks terlalu panjang. Sekarang yang dikirim adalah ringkasan tiap
+ * sesi (inti yang sudah dipadatkan + tanggal, mapel, topik, skor fokus).
+ *
+ * Temuan yang ikut ditutup: **narasi sesi tidak pernah ikut ke laporan.** Fungsi
+ * ini mengirim `shortNote` saja, padahal narasi ditulis lebih dulu di alur Catat
+ * Sesi dan justru lebih rapi. Sekarang narasi dipakai lebih dulu — lihat
+ * `buildSessionDigest`.
+ */
 export function buildReportAiInput(
   student: Pick<Student, "name" | "level">,
   period: string,
@@ -188,24 +259,16 @@ export function buildReportAiInput(
     student: { name: student.name, level: student.level },
     month: period,
     prevAvgEngagement,
-    sessions: reportSessions.map((session) => ({
-      id: session.id,
-      date: dayLabel(session.date),
-      subject: session.subjects.join(", "),
-      shortNote: session.shortNote,
-      mood: session.mood,
-      topic: session.topic,
-      needsWork: session.needsWork,
-      predictedGrade: session.predictedGrade,
-      actualGrade: session.actualGrade,
-      gradeReflection: session.gradeReflection,
-      engagementScore: session.engagement?.score,
-      behaviorLabels: session.behaviorTags
-        ?.map((id) => BEHAVIOR_TAGS.find((tag) => tag.id === id)?.label)
-        .filter((label): label is string => Boolean(label)),
-      responseLabel: session.responseTag
-        ? RESPONSE_TAGS.find((tag) => tag.id === session.responseTag)?.label
-        : undefined,
-    })),
+    sessions: reportSessions.map((session) => {
+      const digest = buildSessionDigest(session);
+      return {
+        id: digest.id,
+        date: dayLabel(digest.date),
+        subject: digest.subject,
+        shortNote: digest.inti ?? "",
+        topic: digest.topic,
+        engagementScore: digest.fokus,
+      };
+    }),
   };
 }

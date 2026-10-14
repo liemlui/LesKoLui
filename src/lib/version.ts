@@ -11,6 +11,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.107.0",
+    date: "2026-10-15",
+    title: "Laporan akhirnya memakai narasi sesi, dan bahan yang dikirim ke AI 65% lebih ringkas",
+    items: [
+      "**Narasi sesi yang Anda tulis setiap hari akhirnya ikut ke laporan.** Sebelumnya laporan hanya membaca **catatan singkat** sesi, sedangkan narasi yang Anda buat dengan AI **tidak pernah terpakai** oleh laporan — jadi pekerjaan itu hanya muncul di laporan, tidak pernah dipakai untuk menyusun kesimpulan. Sekarang narasi dipakai lebih dulu; catatan singkat hanya dipakai untuk sesi yang narasinya belum ada.",
+      "**Bahan yang dikirim ke AI sekarang 65% lebih ringkas, dan tidak ada informasi yang dikirim dua kali.** Satu sesi dulu mengirim sebelas kolom sekaligus (catatan lengkap, mood, topik, area perhatian, prediksi nilai, nilai akhir, refleksi nilai, skor fokus, label perilaku, label respons) — terukur **±620–1.230 karakter per sesi**, sehingga laporan dengan banyak sesi melewati batas dan panggilan AI gagal dengan keluhan konteks terlalu panjang. Sekarang satu sesi mengirim: tanggal, mapel, topik, **inti sesi (±240 karakter)**, dan skor fokus sebagai angka. Terukur pada laporan 40 sesi: **42.552 → 14.951 karakter**.",
+      "**Yang sudah menjadi data tidak lagi diulang di dalam kalimat.** Skor fokus, jam, dan biaya tidak lagi disisipkan ke dalam inti sesi — laporan membacanya dari kolomnya sendiri. Ini yang dimaksud tidak ada info mengulang: satu sesi kini hanya menceritakan **apa yang terjadi**, bukan mengulang angka yang sudah tersimpan.",
+      "**Perkiraan biaya di tombol Perkuat AI sekarang mengikuti isi laporan Anda, bukan cuma jumlah sesi.** Angka lama memakai patokan yang terukur **1,7–2,6× terlalu kecil** dari kenyataan, jadi biayanya terlihat lebih murah daripada yang sebenarnya. Sekarang angkanya dihitung dari bahan yang benar-benar akan dikirim.",
+    ],
+  },
+  {
     version: "v1.106.0",
     date: "2026-10-15",
     title: "Titik rilis: semua perbaikan sejak v1.101.0 sudah terkumpul di versi ini",

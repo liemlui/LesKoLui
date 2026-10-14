@@ -27,6 +27,7 @@ import {
   selectPeriodReportSessions,
   shouldUseStoredReportSnapshot,
   currentPackageSessionRange,
+  buildSessionDigest,
 } from "../lib/reportSessionScope";
 import { useAiAction } from "../lib/useAiAction";
 import Modal from "../components/Modal";
@@ -689,15 +690,19 @@ export default function MonthlyReportPage() {
    * karena ini perkiraan sebelum panggilan berjalan.
    */
   const perkuatLabel = useMemo(() => {
+    // Bahan sesi dihitung dengan aturan yang sama seperti yang akan dikirim
+    // (`buildSessionDigest`), supaya perkiraan biayanya mengikuti isi laporan
+    // yang sesungguhnya — bukan sekadar jumlah sesi.
+    const bahan = reportSessions.map((session) => ({ shortNote: buildSessionDigest(session).inti ?? "" }));
     const label = (field: AiReportFieldKey) =>
-      `±${formatIdrNumber(Math.max(1, Math.ceil(estimateReportFieldCost(field, reportSessions.length))))}`;
+      `±${formatIdrNumber(Math.max(1, Math.ceil(estimateReportFieldCost(field, reportSessions.length, bahan))))}`;
     return {
       summaryText: label("summaryText"),
       teacherNote: label("teacherNote"),
       quote: label("quote"),
       nextMonthPlan: label("nextMonthPlan"),
     } satisfies Record<AiReportFieldKey, string>;
-  }, [reportSessions.length]);
+  }, [reportSessions]);
 
   /**
    * Perkuat satu bagian lewat jalur berbiaya yang sama seperti tombol AI lain di
@@ -706,10 +711,11 @@ export default function MonthlyReportPage() {
    */
   const perkuatSatuBagian = (field: AiReportFieldKey) => {
     const nama = LABEL_BAGIAN[field];
+    const bahan = reportSessions.map((session) => ({ shortNote: buildSessionDigest(session).inti ?? "" }));
     ai.jalankan({
       title: `Perkuat ${nama} dengan AI`,
       fitur: "Ringkasan laporan",
-      estimatedIDR: estimateReportFieldCost(field, reportSessions.length),
+      estimatedIDR: estimateReportFieldCost(field, reportSessions.length, bahan),
       description: `Hanya bagian **${nama}** yang ditulis ulang. Bagian lain tidak disentuh, jadi kegagalan panggilan ini tidak mengosongkan isian yang sudah ada.`
         + (field === "summaryText" && reportSessions.length > AI_BATCH_MAX_SESSIONS
           ? ` Kesimpulan membaca SELURUH ${reportSessions.length} sesi, tetapi lewat ringkasan bertahap (${Math.ceil(reportSessions.length / AI_BATCH_MAX_SESSIONS)} bagian) supaya tidak melewati batas konteks.`

@@ -620,6 +620,7 @@ export default function StudentDetail() {
       {editSession && (
         <SessionNoteEditModal
           session={editSession}
+          perSession={studentBillingPolicy === "session_count"}
           moneyVisible={money.visible}
           notify={msg}
           onClose={() => setEditSession(null)}
