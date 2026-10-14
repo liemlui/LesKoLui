@@ -299,8 +299,27 @@ export async function updateSession(id: string, patch: Partial<Session>): Promis
       if (muridBaru) finalPatch.rateSnapshot = muridBaru.hourlyRate;
     }
   } else if (patch.durationHours !== undefined) {
-    // Duration changed without manual override → auto recalculate, clear prior override
-    if (session && tarifEfektif !== undefined) {
+    // ── Durasi berubah: nominal manual DIPERTAHANKAN (keputusan pemilik 2026-10-14) ──
+    //
+    // Sebelum ini cabang ini selalu menghitung ulang dari tarif dan **melepas**
+    // `costOverride`. Akibatnya memperbaiki durasi sesi menghapus harga yang sudah
+    // disepakati tanpa tutor sadar: sesi 2 jam bernominal manual Rp 175.000 yang
+    // durasinya dibetulkan menjadi 3 jam berubah sendiri menjadi Rp 750.000, dan
+    // angka itulah yang dibaca tagihan. Itu bertabrakan dengan D2/`ATURAN-AI.md` §5
+    // ("nominal manual adalah pernyataan eksplisit tutor, tidak boleh dihitung ulang
+    // mesin") yang sudah dipegang `markSessionDone`, `updateSeriesSessions` (ganti
+    // murid), dan panel "Kelola sesi" di Beranda.
+    //
+    // Alasan lama (W3/W7) tetap dihormati: `cost` dan `costOverride` tidak boleh
+    // bertentangan. Karena itu keduanya ditulis **berpasangan** pada nilai manual
+    // yang sama — bukan dibiarkan berbeda. Tutor yang memang ingin kembali ke
+    // hitungan otomatis melepasnya secara eksplisit lewat `costOverride: null`
+    // (tombol "↺ Pakai hitungan otomatis" di modal catatan sesi).
+    const manual = session?.costOverride;
+    if (typeof manual === "number" && manual > 0) {
+      finalPatch.cost = manual;
+      if (muridBaru) finalPatch.rateSnapshot = muridBaru.hourlyRate;
+    } else if (session && tarifEfektif !== undefined) {
       finalPatch.cost = sessionCost(tarifEfektif, patch.durationHours, perSessionEfektif);
       finalPatch.costOverride = undefined;
       if (muridBaru) finalPatch.rateSnapshot = muridBaru.hourlyRate;
@@ -779,13 +798,20 @@ export async function updateSeriesSessions(
     for (const s of toUpdate) {
       const finalPatch: Partial<Session> = { ...patch, updatedAt: now };
       if (patch.durationHours !== undefined) {
-        const rate = muridBaru?.hourlyRate ?? s.rateSnapshot;
-        finalPatch.cost = sessionCost(rate, patch.durationHours, muridBaru ? perSessionBaru : perSession);
-        // Konsisten dengan `updateSession` (TASK-10 L1, W3): durasi berubah tanpa
-        // nominal manual yang eksplisit → override lama dilepas, sehingga `cost`
-        // dan `costOverride` tidak saling bertentangan.
-        finalPatch.costOverride = undefined;
-        if (muridBaru) finalPatch.rateSnapshot = muridBaru.hourlyRate;
+        // Sama dengan `updateSession`: nominal manual tutor dipertahankan
+        // (keputusan pemilik 2026-10-14, menguatkan D2) dan ditulis berpasangan
+        // dengan `cost` supaya keduanya tidak pernah bertentangan. Yang dilepas
+        // hanya sesi yang memang tidak punya nominal manual.
+        const manual = typeof s.costOverride === "number" && s.costOverride > 0 ? s.costOverride : null;
+        if (manual !== null) {
+          finalPatch.cost = manual;
+          if (muridBaru) finalPatch.rateSnapshot = muridBaru.hourlyRate;
+        } else {
+          const rate = muridBaru?.hourlyRate ?? s.rateSnapshot;
+          finalPatch.cost = sessionCost(rate, patch.durationHours, muridBaru ? perSessionBaru : perSession);
+          finalPatch.costOverride = undefined;
+          if (muridBaru) finalPatch.rateSnapshot = muridBaru.hourlyRate;
+        }
       } else if (muridBaru && s.costOverride === undefined) {
         finalPatch.rateSnapshot = muridBaru.hourlyRate;
         finalPatch.cost = sessionCost(muridBaru.hourlyRate, s.durationHours, perSessionBaru);

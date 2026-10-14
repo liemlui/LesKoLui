@@ -105,6 +105,8 @@ export default function SessionNoteEditModal({
   const inputBiaya = bacaBiayaSesi(biayaTeks);
   /** Durasi sesi ini sedang berbeda dari yang tersimpan. */
   const durasiBerubah = duration !== session.durationHours;
+  /** Perkiraan biaya bila sesi ini mengikuti hitungan otomatis (dipakai di catatan nominal manual). */
+  const biayaOtomatis = sessionCost(session.rateSnapshot, duration, perSession);
   /**
    * Angka yang ditampilkan di baris "Biaya" (dan nilai awal saat mode Edit).
    *
@@ -117,7 +119,7 @@ export default function SessionNoteEditModal({
   const efektifBiaya = inputBiaya.mode === "manual"
     ? inputBiaya.nilai
     : durasiBerubah
-      ? sessionCost(session.rateSnapshot, duration, perSession)
+      ? biayaOtomatis
       : session.cost;
 
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -326,6 +328,34 @@ export default function SessionNoteEditModal({
                     ? <><MaskedMoney amount={session.rateSnapshot} />/pertemuan (tarif paket)</>
                     : <><MaskedMoney amount={session.rateSnapshot} />/jam × {duration}j</>}
                 </p>
+              )}
+              {/* Nominal manual + durasi baru = dua angka yang berbeda, dan tutor
+                  harus bisa melihat keduanya tanpa menebak. Keputusan pemilik
+                  2026-10-14: nominal manual TIDAK dihitung ulang saat durasi
+                  berubah (`sessionRepo.updateSession`), jadi catatan ini yang
+                  memberi tahu bahwa hitungan otomatisnya lain — lengkap dengan
+                  satu tombol untuk berpindah ke hitungan itu. */}
+              {moneyVisible && inputBiaya.mode === "manual" && durasiBerubah && (
+                <div data-catatan="biaya-manual-durasi" className="mt-2 rounded-lg border border-[var(--border-warn)] bg-[var(--bg-warn)] p-2 text-xs leading-relaxed text-[var(--ink-warn)]">
+                  <p className="m-0">
+                    Nominal manual <MaskedMoney amount={inputBiaya.nilai} /> tetap dipakai meski durasinya
+                    berubah — mesin tidak menghitung ulang nominal yang Anda tetapkan sendiri.
+                  </p>
+                  <p className="mt-1 mb-0">
+                    Perkiraan hitungan otomatis untuk {duration}j:{" "}
+                    <MaskedMoney amount={biayaOtomatis} />
+                    {perSession
+                      ? " (tarif paket per pertemuan, tidak dikali durasi)"
+                      : ` (${duration}j × tarif per jam)`}.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setBiayaTeks("")}
+                    className="mt-2 min-h-[36px] rounded-lg border border-[var(--border-warn)] bg-[var(--surface-strong)] px-2.5 py-1 font-semibold text-[var(--ink-warn)]"
+                  >
+                    ↺ Pakai hitungan otomatis
+                  </button>
+                </div>
               )}
             </div>
           </div>

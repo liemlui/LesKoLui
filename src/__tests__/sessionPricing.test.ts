@@ -255,7 +255,19 @@ describe("repricing eksplisit (D1(c))", () => {
     expect(await db.auditLog.count()).toBe(1);
   });
 
-  it("edit durasi seri melepas override manual — sama seperti edit tunggal (W3/W7)", async () => {
+  /**
+   * Keputusan pemilik **2026-10-14** (menguatkan D2): **memperbaiki durasi tidak
+   * boleh menghapus nominal manual tutor.**
+   *
+   * Perilaku lama (W3/W7 di TASK-10 L1) melepas `costOverride` begitu durasi
+   * berubah, dengan alasan supaya `cost` dan `costOverride` tidak bertentangan.
+   * Alasan itu tetap dihormati — tetapi dicapai dengan cara yang benar: keduanya
+   * ditulis **berpasangan pada nilai manual yang sama**, bukan dengan membuang
+   * nominal yang sudah disepakati. Tanpa perubahan ini, sesi 2 jam bernominal
+   * manual Rp 175.000 yang durasinya dibetulkan menjadi 3 jam berubah sendiri
+   * menjadi Rp 750.000 — dan angka itu yang dibaca tagihan.
+   */
+  it("edit durasi mempertahankan nominal manual — sama untuk edit tunggal dan seri", async () => {
     const sid = await createStudent(makeStudent("monthly"));
     await scheduleBatch([
       { studentId: sid, date: "2026-07-07", time: "15:00", durationHours: 1.5 },
@@ -264,19 +276,38 @@ describe("repricing eksplisit (D1(c))", () => {
     const rows = (await db.sessions.where({ studentId: sid }).toArray()).sort((a, b) => a.date.localeCompare(b.date));
     expect(rows).toHaveLength(2);
 
-    // Edit tunggal (W3) → override dilepas.
+    // Edit tunggal: override bertahan, dan `cost` ditulis berpasangan dengannya.
     await updateSession(rows[0].id, { costOverride: 175_000 });
     await updateSession(rows[0].id, { durationHours: 2 });
     const single = (await db.sessions.get(rows[0].id))!;
-    expect(single.costOverride).toBeUndefined();
-    expect(single.cost).toBe(Math.round(2 * RATE));
+    expect(single.durationHours).toBe(2);
+    expect(single.costOverride).toBe(175_000);
+    expect(single.cost).toBe(175_000);
 
-    // Edit seri (W7) → perilaku yang sama.
+    // Edit seri: perilaku yang sama.
     await updateSession(rows[1].id, { costOverride: 180_000 });
     await updateSeriesSessions({ id: rows[1].id, seriesId: "seri-1", date: rows[1].date }, { durationHours: 3 }, "all");
     const series = (await db.sessions.get(rows[1].id))!;
-    expect(series.costOverride).toBeUndefined();
-    expect(series.cost).toBe(Math.round(3 * RATE));
+    expect(series.durationHours).toBe(3);
+    expect(series.costOverride).toBe(180_000);
+    expect(series.cost).toBe(180_000);
+  });
+
+  /**
+   * Sisi sebaliknya dari keputusan yang sama: yang dilepas hanya sesi yang
+   * memang **tidak** punya nominal manual. Tanpa penjaga ini, perbaikan di atas
+   * bisa berkembang menjadi "durasi tidak pernah lagi menghitung ulang".
+   */
+  it("tanpa nominal manual, edit durasi tetap menghitung ulang dari tarif", async () => {
+    const sid = await createStudent(makeStudent("monthly"));
+    const sessionId = await scheduleSession({ studentId: sid, date: "2026-07-21", time: "15:00", durationHours: 1.5 });
+
+    await updateSession(sessionId, { durationHours: 3 });
+
+    const s = (await db.sessions.get(sessionId))!;
+    expect(s.durationHours).toBe(3);
+    expect(s.costOverride).toBeUndefined();
+    expect(s.cost).toBe(Math.round(3 * RATE));
   });
 });
 
