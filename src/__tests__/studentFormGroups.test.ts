@@ -31,10 +31,14 @@ function naikUrut(posisi: readonly number[]): boolean {
 
 /**
  * Benarkah kolom `required` milik siklus tagihan berada DI DALAM wilayah yang
- * dijaga `(!initial || billingCycleOpen)`? Kalau tidak, jebakan di atas terbuka.
+ * dijaga `billingCycleOpen`? Kalau tidak, jebakan di atas terbuka.
+ *
+ * Gerbangnya **satu syarat** sejak 2026-10-14: dulu `(!initial || billingCycleOpen)`
+ * sehingga untuk murid yang sudah ada isinya selalu dirender dan tombol
+ * "Sembunyikan" tidak berpengaruh (temuan pemilik di perangkat).
  */
 function kolomWajibDiDalamLipatan(src: string): boolean {
-  const gerbang = src.indexOf("{(!initial || billingCycleOpen) && (");
+  const gerbang = src.indexOf("{billingCycleOpen && (");
   if (gerbang < 0) return false;
   const akhir = src.indexOf("</fieldset>", gerbang);
   if (akhir < 0) return false;
@@ -78,6 +82,13 @@ describe("lipatan Siklus Tagihan (butir 14)", () => {
     expect(studentFormSrc).toMatch(/useState\(Boolean\(initial\)\)/);
     expect(studentFormSrc).toMatch(/aria-expanded=\{billingCycleOpen\}/);
   });
+
+  it("tombolnya benar-benar bisa menutup bagian itu pada KEDUA keadaan (temuan 2026-10-14)", () => {
+    // Satu syarat saja: tidak ada lagi `!initial` yang membuat isinya selalu
+    // ter-render untuk murid yang sudah ada.
+    expect(studentFormSrc).toMatch(/\{billingCycleOpen && \(/);
+    expect(studentFormSrc).not.toMatch(/\{!initial \|\| billingCycleOpen\}/);
+  });
 });
 
 describe("penjaga ini benar-benar bisa gagal", () => {
@@ -92,7 +103,7 @@ describe("penjaga ini benar-benar bisa gagal", () => {
 
   it("menangkap kolom wajib yang ter-render di luar lipatan", () => {
     const bocor = [
-      '{(!initial || billingCycleOpen) && (',
+      '{billingCycleOpen && (',
       '<fieldset id="siklus-tagihan">',
       "</fieldset>",
       '<input id="billingSessionCount" required />',

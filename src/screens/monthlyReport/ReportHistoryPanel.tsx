@@ -11,21 +11,20 @@ import MaskedMoney from "../../components/ui/MaskedMoney";
 import EmptyState from "../../components/EmptyState";
 import { BookIcon } from "../../components/icons";
 import { dayLabel, monthLabel, periodLabel } from "../../lib/format";
-import { reportStatus, type MonthlyReport, type Student } from "../../db/types";
+import { reportStatus, type MonthlyReport } from "../../db/types";
 
 interface ReportHistoryPanelProps {
   open: boolean;
   onToggle: () => void;
-  /** Semua laporan yang dimuat (untuk keadaan kosong). */
+  /** Laporan **murid yang sedang dipilih** (bukan seluruh murid) — lihat catatan di badan berkas. */
   history: readonly MonthlyReport[];
   /** Laporan yang sedang ditampilkan (sudah dipotong bila belum diperluas). */
   visible: readonly MonthlyReport[];
   filteredCount: number;
   expanded: boolean;
   onToggleExpanded: () => void;
-  studentOptions: readonly Student[];
-  filterStudentId: string;
-  onFilterStudent: (studentId: string) => void;
+  /** Nama murid yang riwayatnya sedang dibuka, untuk judul panel. */
+  studentName?: string;
   /** id laporan yang sedang dibuka — diberi tanda "sedang dibuka". */
   currentReportId?: string;
   onOpen: (report: MonthlyReport) => void;
@@ -33,7 +32,7 @@ interface ReportHistoryPanelProps {
 
 export default function ReportHistoryPanel({
   open, onToggle, history, visible, filteredCount, expanded, onToggleExpanded,
-  studentOptions, filterStudentId, onFilterStudent, currentReportId, onOpen,
+  studentName, currentReportId, onOpen,
 }: ReportHistoryPanelProps) {
   return (
     <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] shadow-sm">
@@ -44,10 +43,10 @@ export default function ReportHistoryPanel({
       >
         <div>
           <p className="text-sm font-semibold text-[var(--ink-strong)]">
-            <BookIcon size={13} className="mr-1 inline align-[-2px]" /> Laporan tersimpan
+            <BookIcon size={13} className="mr-1 inline align-[-2px]" /> Riwayat laporan{studentName ? ` ${studentName}` : ""}
           </p>
           <p className="mt-0.5 text-xs text-[var(--ink-muted)]">
-            Buka lagi laporan yang sudah pernah dibuat — draft maupun yang sudah final.
+            Laporan murid ini yang sudah pernah dibuat — draft maupun yang sudah final.
           </p>
         </div>
         <span className="text-sm text-[var(--ink-muted)]">{open ? "▲" : "▼"}</span>
@@ -57,31 +56,21 @@ export default function ReportHistoryPanel({
         <div className="space-y-2 border-t border-[var(--border)] p-4">
           {history.length === 0 ? (
             <EmptyState
-              message="Belum ada laporan tersimpan"
-              description="Pilih murid dan periode di bawah, lalu buat laporan pertama."
+              message="Belum ada laporan untuk murid ini"
+              description="Pilih periode di bawah, lalu buat laporan pertamanya."
               icon="🗂️"
             />
           ) : (
             <>
-              <select
-                className="input text-sm"
-                aria-label="Saring riwayat laporan menurut murid"
-                value={filterStudentId}
-                onChange={(e) => onFilterStudent(e.target.value)}
-              >
-                <option value="">Semua murid</option>
-                {studentOptions.map((student) => <option key={student.id} value={student.id}>{student.name}</option>)}
-              </select>
               <ul className="divide-y divide-[var(--border)]">
                 {visible.map((row) => {
-                  const owner = studentOptions.find((student) => student.id === row.studentId);
                   const status = reportStatus(row);
                   const isCurrent = currentReportId === row.id;
                   return (
                     <li key={row.id} className="flex items-center justify-between gap-2 py-2">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-[var(--ink-strong)]">
-                          {owner?.name ?? "Murid dihapus"}
+                          {studentName ?? "Murid ini"}
                           {isCurrent && <span className="ml-1 text-xs text-[var(--ink-brand)]">• sedang dibuka</span>}
                         </p>
                         <p className="text-xs text-[var(--ink-muted)]">

@@ -16,7 +16,25 @@
  * perilaku gulir di layar nyata; itu wilayah `npm run e2e:uiux` (§6.2).
  */
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+/**
+ * Lipatan "Mapel lain" dimulai dalam keadaan **terbuka** di tes ini.
+ *
+ * Alasannya bukan kenyamanan: yang dijaga tes ini adalah cacat 2026-10-04
+ * ("Mathematics tampil dua kali") dan **satu chip per mapel**, sedangkan pada
+ * markup statis lipatan selalu terlipat sehingga chip-nya memang tidak dirender.
+ * Memaksa keadaan awal "terbuka" membuat tes mengukur **isi** daftarnya, bukan
+ * keadaan lipatannya — dan keadaan lipatan itu sendiri diuji terpisah di bawah.
+ *
+ * Hanya `useState` yang diganti; `useMemo` (dipakai menghitung kelompok mapel)
+ * dibiarkan asli.
+ */
+vi.mock("react", async (imporAsli) => {
+  const asli = await imporAsli<typeof import("react")>();
+  return { ...asli, default: asli, useState: () => [true, () => {}] };
+});
+
 import SubjectPickerSheet from "../screens/captureSession/SubjectPickerSheet";
 import { IB_MYP_SUBJECTS, getSubjectGroups } from "../lib/ibSubjects";
 import type { Student } from "../db/types";
@@ -124,7 +142,12 @@ describe("SubjectPickerSheet — bentuk inline (Q-2 opsi A)", () => {
         {...props({ profileSubjects: ["Mathematics"] })}
       />,
     );
-    const mathChips = markup.split("Mathematics").length - 1;
+    // Yang menentukan "tampil dua kali" adalah **chip yang bisa diketuk**, jadi
+    // yang dihitung adalah `<button>` yang memuat nama itu — bukan penyebutan
+    // namanya di markup (tombol "Mapel lain (N)" mengutip jumlahnya, dan itu
+    // bukan pilihan yang kedua).
+    const semuaTombol = markup.match(/<button[\s\S]*?<\/button>/g) ?? [];
+    const mathChips = semuaTombol.filter((tombol) => tombol.includes("Mathematics")).length;
     expect(mathChips).toBe(1);
     // Kelompoknya diberi nama supaya tutor tahu itu mapel murid, bukan katalog.
     expect(markup).toContain("Mapel murid ini");
@@ -132,6 +155,21 @@ describe("SubjectPickerSheet — bentuk inline (Q-2 opsi A)", () => {
     const catalogGroupAt = markup.indexOf("Language &amp; Literature");
     expect(profileGroupAt).toBeGreaterThan(-1);
     expect(profileGroupAt).toBeLessThan(catalogGroupAt);
+  });
+
+  it("mapel di luar profil dilipat, bukan dihapus (permintaan pemilik 2026-10-14)", () => {
+    const markup = renderToStaticMarkup(
+      <SubjectPickerSheet
+        variant="inline"
+        student={student({ curriculum: "IB MYP" })}
+        {...props({ profileSubjects: ["Mathematics"] })}
+      />,
+    );
+    // Tombolnya ada, menyebut keadaan lipatannya, dan memasang `aria-expanded`…
+    expect(markup).toMatch(/(Mapel lain \(\d+\)|Sembunyikan mapel lain)/);
+    expect(markup).toContain('aria-expanded="true"');
+    // …dan mapel profil tetap terlihat tanpa perlu membuka lipatannya.
+    expect(markup).toContain("Mathematics");
   });
 
   it("tanpa mapel profil, tidak ada kelompok `Mapel murid ini`", () => {

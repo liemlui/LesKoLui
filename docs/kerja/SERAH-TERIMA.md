@@ -406,6 +406,23 @@ Sisa terakhir yang menyentuh uang ditutup pada hari yang sama, dan cara menemuka
 
 6. **Batas kejujuran putaran ini.** Sudah dibuktikan: `npx tsc -b` bersih · `npx eslint src` bersih · suite **1.409 lulus / 101 berkas**, 0 gagal · `check:docs` 0 pelanggaran. Belum: **`e2e:uiux` tidak dijalankan** pada putaran ini (perubahan hanya di repositori, bukan tampilan), dan yang paling penting — **butir 44 daftar periksa manual belum dicentang**, karena hanya pemilik yang bisa membuktikan bahwa angka yang ia isi sendiri memang angka yang tercatat di perangkatnya.
 
+### 4.13 Yang berubah pada putaran 2026-10-14 (pemeriksaan pemilik di server dev + v1.104.0)
+
+Pemilik memeriksa butir 30–44 langsung di server pengembangan. Hasilnya: **34–38, 40, 41, 43, dan 44 dicentang**; **42 tidak dicentang** (dicoba, gagal lagi); **39 sengaja tidak dicoba**. Dua bug yang ditemukan pada saat itu sudah diperbaiki dan dirilis **v1.104.0**; sisanya dicatat sebagai temuan yang menunggu keputusan.
+
+1. **Bug: kolom "💰 Biaya" di modal catatan sesi tersangkut angka 0.** Dilaporkan: *"saat hapus nilai awalnya sampai habis, textbox bernilai 0 terus dan susah buat nulis nilai baru. Saat nilai nol di save, masih pakai data lama."* Penyebabnya: isian kosong ditulis sebagai `setCostOverride(0)`, dan nol itu lalu dianggap "tidak berubah" sehingga niat melepas nominal manualnya tidak pernah tersampaikan — **nominal lama tetap dipakai**. Perbaikan dipindah ke modul murni `src/screens/studentDetail/sessionCostPatch.ts` dengan **12 tes** (isian kosong/nol = kembali ke hitungan otomatis; pelepasan dikirim sebagai `costOverride: null` yang eksplisit; `1e5` tidak lagi dibaca sebagai 1).
+
+2. **Bug: panel "Laporan tersimpan" menampilkan laporan semua murid.** Pemilik: *"kok munculkan semua laporan. Mending ndak perlu, sebab fokus di laporan ini ya anak yang lagi kita amati."* Panel itu memuat `listAllReports()` beserta pemilih murid; sekarang `listReportsByStudent(studentId)`, pemilihnya dihapus, judulnya "Riwayat laporan <nama murid>". Keputusan pemilik 2026-10-01 yang mendasarinya tetap terjaga: laporan murid yang sama masih bisa dibuka dari daftar ini.
+
+3. **Temuan yang menunggu keputusan pemilik (belum dikerjakan), semuanya tercatat di `PEKERJAAN.md` §4:**
+   - **Panggilan AI "perkuat" gagal karena konteks terlalu panjang, dan Coba lagi hanya mengulang muatan yang sama.** Ini temuan terpenting. `estimateNarrativesCost` mengirim ±120 token **per sesi** beserta keluaran setiap sesi sekaligus. Arah yang diminta pemilik: tombol perkuat **per bagian**, dan **kesimpulan** tetap membaca seluruh sesi tetapi lewat **ringkasan hemat token**. Menyentuh prompt di `aiClient` → bentuknya harus diputuskan pemilik lebih dulu. **Butir 42 tidak bisa ditutup sampai ini selesai** — tombolnya bekerja, tetapi mengulang panggilan yang sama pasti gagal lagi.
+   - **Narasi sesi tidak perlu disunting lagi di layar Laporan** (fokus: kesimpulan · kutipan guru · rencana). Menghapusnya berarti `ReportNarrativePanel` kehilangan tempat sementara PDF tetap memuat narasi sesi — perlu keputusan bentuknya.
+   - **Pemilih gaya Rapikan · Perluas · Ringkas terasa tidak berpengaruh.** Bukan bug: tombolnya hanya menyimpan pilihan, dan gaya itu dipakai pada panggilan **berikutnya**. Yang kurang adalah umpan baliknya.
+   - **Saat mencatat sesi, mapel & topik belum mengikuti muridnya**: mapel terdaftar belum tampil lebih dulu/dilipat, dan daftar topik belum dibatasi mapel yang dipilih.
+   - **Tombol lipatan "Siklus Tagihan" tidak menyembunyikan isinya pada murid yang sudah ada** (di kode memang begitu: isinya selalu dirender bila `initial` ada).
+
+4. **Batas kejujuran putaran ini.** Sudah dibuktikan: `npx tsc -b` bersih · `npx eslint src` bersih · berkas uji baru **12 tes** hijau · suite penuh dijalankan sekali di akhir. Belum: **`e2e:uiux` tidak dijalankan** pada putaran ini, dan pemeriksaan pemilik dilakukan di **server pengembangan dengan data contoh** — bukan di HP dengan data asli.
+
 ---
 
 ## 5. Langkah berikutnya

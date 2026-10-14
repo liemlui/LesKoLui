@@ -7,6 +7,7 @@ import { Z } from "../../lib/zIndex";
 import SignaturePad from "../../components/SignaturePad";
 import MaskedMoney from "../../components/ui/MaskedMoney";
 import { CameraIcon, ImageIcon, PencilIcon } from "../../components/icons";
+import { bacaBiayaSesi, patchBiayaSesi } from "./sessionCostPatch";
 
 /** Pilihan durasi cepat, sama dengan yang dipakai layar Catat Sesi. */
 const DURATIONS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
@@ -58,10 +59,31 @@ export default function SessionNoteEditModal({
   const [sigUrl, setSigUrl]               = useState<string | undefined>();
   const [showSigPad, setShowSigPad]       = useState(false);
 
-  const [cost, setCost]                   = useState(session.cost);
-  const [costOverride, setCostOverride]   = useState<number | null>(session.costOverride ?? null);
+  /**
+   * Isian nominal manual. **Teks, bukan angka** — supaya kolomnya bisa kosong.
+   *
+   * Dulu keadaannya `number | null` dan isian kosong dipaksa menjadi `0`,
+   * sehingga tutor yang menghapus nilainya melihat angka 0 yang harus dihapus
+   * lagi sebelum bisa mengetik (dilaporkan pemilik 2026-10-14), dan menyimpan 0
+   * malah mempertahankan nominal lama. Aturannya sekarang ada di
+   * `studentDetail/sessionCostPatch.ts` dan dijaga tesnya.
+   */
+  const [biayaTeks, setBiayaTeks]         = useState<string>(session.costOverride != null ? String(session.costOverride) : "");
   const [duration, setDuration]           = useState(session.durationHours);
   const [isEditingCost, setIsEditingCost] = useState(false);
+
+  // ── Turunan dari isian biaya (lihat `sessionCostPatch.ts`) ──────────────────
+  // Kosong/0 = "kembali ke hitungan otomatis", bukan nominal nol rupiah.
+  const inputBiaya = bacaBiayaSesi(biayaTeks);
+  /** Angka yang ditampilkan & dipakai sebagai nilai awal saat mode Edit. */
+  const efektifBiaya = inputBiaya.mode === "manual" ? inputBiaya.nilai : session.cost;
+  /**
+   * Nilai kolom saat mode Edit. Selalu angka, supaya kolom `type="number"`
+   * tidak pernah menerima `""` yang membuat React mengeluh soal nilai kosong —
+   * tutor tetap bisa menghapus isinya sendiri, dan saat itu keadaannya berubah
+   * jadi "otomatis".
+   */
+  const nilaiTampil = inputBiaya.mode === "manual" ? inputBiaya.nilai : Number(session.cost) || 0;
 
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
@@ -124,12 +146,11 @@ export default function SessionNoteEditModal({
         signature,
       };
       // Nominal manual hanya ditulis bila tutor benar-benar mengubahnya.
-      if (costOverride !== null && costOverride !== session.costOverride) {
-        patch.costOverride = costOverride;
-        patch.cost = costOverride;
-      } else if (costOverride === null && session.costOverride != null) {
-        // Tutor menekan Reset → override dibersihkan, mesin menghitung ulang.
-        patch.costOverride = null;
+      const ubahBiaya = patchBiayaSesi(bacaBiayaSesi(biayaTeks), session.costOverride);
+      if (ubahBiaya) {
+        patch.cost = ubahBiaya.cost;
+        // `null` = tutor melepas nominal manual; mesin menghitung ulang dari tarif.
+        patch.costOverride = ubahBiaya.costOverride;
       }
       if (duration !== session.durationHours) {
         patch.durationHours = duration;
@@ -176,7 +197,7 @@ export default function SessionNoteEditModal({
                   <button
                     key={d}
                     type="button"
-                    onClick={() => { setDuration(d); if (costOverride === null) setCost(d * session.rateSnapshot); }}
+                    onClick={() => { setDuration(d); if (bacaBiayaSesi(biayaTeks).mode === "auto") setBiayaTeks(String(d * session.rateSnapshot)); }}
                     className={`py-1.5 px-3 rounded-lg text-xs font-semibold border transition-colors ${
                       duration === d
                         ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]"
@@ -197,12 +218,8 @@ export default function SessionNoteEditModal({
                     type="number"
                     className="input flex-1"
                     aria-label="Nominal biaya manual"
-                    value={costOverride ?? cost}
-                    onChange={(e) => {
-                      const v = parseInt(e.target.value, 10);
-                      if (!isNaN(v) && v >= 0) setCostOverride(v);
-                      else if (e.target.value === "") setCostOverride(0);
-                    }}
+                    value={nilaiTampil}
+                    onChange={(e) => setBiayaTeks(e.target.value)}
                     placeholder="300000"
                     min={0}
                     step={500}
@@ -218,16 +235,16 @@ export default function SessionNoteEditModal({
                 </div>
               ) : (
                 <div className="flex items-center gap-2 mt-1">
-                  <MaskedMoney amount={costOverride ?? cost} className="text-base font-bold text-[var(--ink-strong)]" />
-                  {moneyVisible && costOverride !== null && (
+                  <MaskedMoney amount={efektifBiaya} className="text-base font-bold text-[var(--ink-strong)]" />
+                  {moneyVisible && inputBiaya.mode === "manual" && (
                     <span className="text-xs bg-[var(--bg-warn)] text-[var(--ink-warn)] px-1.5 py-0.5 rounded-full font-medium">
                       Manual
                     </span>
                   )}
-                  {moneyVisible && costOverride !== null && (
+                  {moneyVisible && inputBiaya.mode === "manual" && (
                     <button
                       type="button"
-                      onClick={() => setCostOverride(null)}
+                      onClick={() => setBiayaTeks("")}
                       className="text-xs text-[var(--ink-danger)] hover:text-[var(--ink-danger)] ml-1"
                       title="Kembalikan ke hitungan otomatis"
                     >
@@ -237,7 +254,7 @@ export default function SessionNoteEditModal({
                   {moneyVisible && (
                     <button
                       type="button"
-                      onClick={() => { setIsEditingCost(true); if (costOverride === null) setCostOverride(cost); }}
+                      onClick={() => { setIsEditingCost(true); setBiayaTeks(String(efektifBiaya)); }}
                       className="text-xs text-[var(--ink-brand)] hover:text-[var(--ink-brand)] ml-auto"
                       title="Edit biaya manual"
                     >
@@ -246,7 +263,7 @@ export default function SessionNoteEditModal({
                   )}
                 </div>
               )}
-              {moneyVisible && costOverride === null && (
+              {moneyVisible && inputBiaya.mode === "auto" && (
                 <p className="text-xs text-[var(--ink-muted)] mt-0.5">
                   <MaskedMoney amount={session.rateSnapshot} />/jam × {duration}j
                 </p>

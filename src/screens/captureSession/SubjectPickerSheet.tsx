@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Modal from "../../components/Modal";
 import { IB_MYP_SUBJECTS, IB_DP_GROUPS, getSubjectGroups, CURRICULUM_META } from "../../lib/ibSubjects";
 import type { Student } from "../../db/types";
@@ -77,23 +77,56 @@ export default function SubjectPickerSheet({
     return profileGroup && profileGroup.subjects.length > 0 ? [profileGroup, ...rest] : rest;
   }, [student?.curriculum, profileSubjects]);
 
+  /**
+   * Mapel di luar profil murid **dilipat**, dan itu permintaan pemilik
+   * 2026-10-14: *"waktu catat sesi, lebih baik yang muncul ya subjek yang di
+   * daftarkan ini, sedangkan subjek lain tetap ada tapi di hide atau collapse
+   * aja."*
+   *
+   * Sebelumnya seluruh katalog kurikulum dieja datar sehingga mapel yang benar-
+   * benar dipakai murid tenggelam di antara puluhan chip lain. Yang berubah
+   * hanya **tingginya**, bukan isinya: semua mapel tetap ada, satu ketukan lebih
+   * jauh. Urutan kelompoknya juga tidak diubah — profil tetap paling atas.
+   */
+  const [tampilkanSemuaMapel, setTampilkanSemuaMapel] = useState(false);
+  /** Kelompok pertama yang selalu terlihat: profil murid bila ada, atau katalog pertama. */
+  const grupUtama = groups[0];
+  const grupLain = groups.slice(1);
+  const banyakMapelLain = grupLain.reduce((n, g) => n + g.subjects.length, 0);
+
+  const chipMapel = (s: string) => (
+    <button key={s} type="button"
+      className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+        subjects.includes(s) ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]" : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)] hover:border-[var(--border-brand)]"}`}
+      onClick={() => onToggleSubject(s)}>
+      {subjects.includes(s) ? "✓ " : ""}{s}
+    </button>
+  );
+
   const subjectList = student?.curriculum ? (
     <div className="p-4 space-y-4">
-      {groups.map((grp) => (
-        <div key={grp.group}>
-          <p className="text-xs text-[var(--ink-muted)] font-semibold uppercase tracking-wide mb-2">{grp.group}</p>
-          <div className="flex flex-wrap gap-2">
-            {grp.subjects.map((s) => (
-              <button key={s} type="button"
-                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                  subjects.includes(s) ? "bg-[var(--brand-solid)] text-[var(--on-strong)] border-[var(--border-brand)]" : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)] hover:border-[var(--border-brand)]"}`}
-                onClick={() => onToggleSubject(s)}>
-                {subjects.includes(s) ? "✓ " : ""}{s}
-              </button>
-            ))}
-          </div>
+      {grupUtama && (
+        <div key={grupUtama.group}>
+          <p className="text-xs text-[var(--ink-muted)] font-semibold uppercase tracking-wide mb-2">{grupUtama.group}</p>
+          <div className="flex flex-wrap gap-2">{grupUtama.subjects.map(chipMapel)}</div>
         </div>
-      ))}
+      )}
+      {grupLain.length > 0 && (
+        <div className="space-y-4">
+          <button type="button" onClick={() => setTampilkanSemuaMapel((v) => !v)}
+            aria-expanded={tampilkanSemuaMapel}
+            className="flex w-full min-h-[44px] items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-strong)] px-3 text-left text-sm font-semibold text-[var(--ink-brand)]">
+            <span>{tampilkanSemuaMapel ? "Sembunyikan mapel lain" : `Mapel lain (${banyakMapelLain})`}</span>
+            <span aria-hidden="true">{tampilkanSemuaMapel ? "▲" : "▼"}</span>
+          </button>
+          {tampilkanSemuaMapel && grupLain.map((grp) => (
+            <div key={grp.group}>
+              <p className="text-xs text-[var(--ink-muted)] font-semibold uppercase tracking-wide mb-2">{grp.group}</p>
+              <div className="flex flex-wrap gap-2">{grp.subjects.map(chipMapel)}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   ) : (
     <>

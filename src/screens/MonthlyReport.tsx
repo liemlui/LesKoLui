@@ -6,7 +6,6 @@ import {
   listStudents, getStudent,
   listSessionsByStudentRange, listBillableSessionsByStudentRange,
   getReportById, findReportByPeriod, listReportsByStudent, listConfirmedReportsByStudent,
-  listAllReports,
   upsertReport, createReportForPeriod, discardReport, updateSession, saveSettings,
   getPaymentByReport, syncReportPayment, listPaymentsByStudent,
   reportTotalsDrifted, frozenReportTotals, unlockReport,
@@ -224,15 +223,21 @@ export default function MonthlyReportPage() {
   // membuka laporan yang sudah pernah dibuat (keputusan pemilik 2026-10-01).
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyExpanded, setHistoryExpanded] = useState(false);
-  const [historyStudentId, setHistoryStudentId] = useState("");
 
   // Semua laporan murid — untuk daftar draft yang belum disahkan.
   const allReports = useLiveQuery(() => (studentId ? listReportsByStudent(studentId) : []), [studentId]);
   const drafts = useMemo(() => (allReports ?? []).filter((r) => reportStatus(r) === "draft"), [allReports]);
-  // Riwayat laporan lintas murid — hanya dimuat saat panel riwayat dibuka.
+  // Riwayat laporan murid yang sedang dibuka saja.
+  //
+  // Sampai 2026-10-14 panel ini memuat **seluruh** laporan semua murid, lalu
+  // menyediakan pemilih murid untuk menyaringnya. Pemilik memeriksanya di
+  // perangkat dan menilainya salah fokus: *"kok munculkan semua laporan. Mending
+  // ndak perlu, sebab fokus di laporan ini ya anak yang lagi kita amati."*
+  // Sekarang cakupannya mengikuti murid yang sedang dipilih — sama seperti seluruh
+  // layar Laporan yang memang bekerja per murid.
   const everyReport = useLiveQuery(
-    () => (historyOpen ? listAllReports() : []),
-    [historyOpen],
+    () => (studentId ? listReportsByStudent(studentId) : []),
+    [studentId],
   );
   const reportHistory = useMemo(() => {
     const rows = [...(everyReport ?? [])];
@@ -240,10 +245,7 @@ export default function MonthlyReportPage() {
       || (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
     return rows;
   }, [everyReport]);
-  const reportHistoryFiltered = useMemo(
-    () => reportHistory.filter((r) => !historyStudentId || r.studentId === historyStudentId),
-    [reportHistory, historyStudentId],
-  );
+  const reportHistoryFiltered = reportHistory;
   const historyVisible = historyExpanded ? reportHistoryFiltered : reportHistoryFiltered.slice(0, 6);
   // Hanya laporan yang sudah SAH yang mengunci tanggal (overlap guard).
   const confirmedReports = useLiveQuery(() => (studentId ? listConfirmedReportsByStudent(studentId) : []), [studentId]);
@@ -1039,6 +1041,9 @@ export default function MonthlyReportPage() {
   }
 
   if (!students) return <Skeleton variant="card" lines={4} className="p-4" />;
+  // Dipakai pemilih murid di `ReportScopeControls`. Dulu juga dipakai panel
+  // riwayat untuk menyaring lintas murid; sejak 2026-10-14 panel itu hanya
+  // menampilkan laporan murid yang sedang dipilih, jadi tidak perlu lagi.
   const studentOptions = student && !students.some((candidate) => candidate.id === student.id)
     ? [...students, student].sort((a, b) => a.name.localeCompare(b.name))
     : students;
@@ -1134,10 +1139,8 @@ export default function MonthlyReportPage() {
           filteredCount={reportHistoryFiltered.length}
           expanded={historyExpanded}
           onToggleExpanded={() => setHistoryExpanded((v) => !v)}
-          studentOptions={studentOptions}
-          filterStudentId={historyStudentId}
-          onFilterStudent={setHistoryStudentId}
           currentReportId={report?.id}
+          studentName={student?.name}
           onOpen={(row) => applyScopeChange(() => { setStudentId(row.studentId); lockReportSnapshot(row); })}
         />
 

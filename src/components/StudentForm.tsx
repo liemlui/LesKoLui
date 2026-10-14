@@ -88,8 +88,7 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
    * murid yang sudah ada, bagiannya selalu terbuka — di situ siklus tagihan justru
    * yang paling sering diubah.
    */
-  const [billingCycleOpen, setBillingCycleOpen] = useState(Boolean(initial));
-  const [includeExistingUnbilledInPackage, setIncludeExistingUnbilledInPackage] = useState(false);
+  const [billingCycleOpen, setBillingCycleOpen] = useState(Boolean(initial));  const [includeExistingUnbilledInPackage, setIncludeExistingUnbilledInPackage] = useState(false);
   const [cancelPendingTransition, setCancelPendingTransition] = useState(false);
   /** D1(c): retroaktif HANYA setelah tutor mencentang, tidak pernah otomatis. */
   const [repriceUnbilledSessions, setRepriceUnbilledSessions] = useState(false);
@@ -425,22 +424,30 @@ export default function StudentForm({ initial, onSave, onCancel }: Props) {
         )}
       </div>
 
-      {/* Siklus tagihan — dilipat saat murid baru (butir 14 G3-06). */}
-      {!initial && (
-        <button
-          type="button"
-          aria-expanded={billingCycleOpen}
-          aria-controls="siklus-tagihan"
-          onClick={() => setBillingCycleOpen((v) => !v)}
-          className="flex w-full min-h-[44px] items-center justify-between gap-3 rounded-2xl border border-[var(--brand-tint-strong)] bg-[var(--brand-tint)]/60 px-4 py-2 text-left"
-        >
-          <span className="text-sm font-semibold text-[var(--ink-strong)]">Siklus Tagihan</span>
-          <span className="text-xs font-semibold text-[var(--ink-brand)]">
-            {billingCycleOpen ? "Sembunyikan" : `${billingPolicyLabel} · Buka`}
-          </span>
-        </button>
-      )}
-      {(!initial || billingCycleOpen) && (
+      {/* Siklus tagihan — bisa dilipat di KEDUA keadaan (murid baru maupun lama).
+          Butir 14 G3-06 dulu menuntut bagian ini terlipat hanya saat menambah
+          murid baru; pemilik memeriksanya 2026-10-14 dan menemukan tombolnya
+          tidak berpengaruh pada murid yang sudah ada: *"Siklus tagihan ada buka
+          dan sembunyikan, dia tidak efek, hanya show buka terus tanpa bisa di
+          hide."* Sebabnya syaratnya dulu berbunyi `!initial ATAU billingCycleOpen`
+          (ditulis sebagai ekspresi JS di baris isi, sengaja tidak disalin ke
+          komentar ini supaya penjaga teks di tes tetap bisa membuktikan syarat
+          itu benar-benar hilang) — untuk murid lama `initial` terisi, sehingga
+          isinya selalu dirender dan labelnya selalu "Sembunyikan".
+          Sekarang satu syarat saja, jadi kedua keadaan berperilaku sama. */}
+      <button
+        type="button"
+        aria-expanded={billingCycleOpen}
+        aria-controls="siklus-tagihan"
+        onClick={() => setBillingCycleOpen((v) => !v)}
+        className="flex w-full min-h-[44px] items-center justify-between gap-3 rounded-2xl border border-[var(--brand-tint-strong)] bg-[var(--brand-tint)]/60 px-4 py-2 text-left"
+      >
+        <span className="text-sm font-semibold text-[var(--ink-strong)]">Siklus Tagihan</span>
+        <span className="text-xs font-semibold text-[var(--ink-brand)]">
+          {billingCycleOpen ? "Sembunyikan" : `${billingPolicyLabel} · Buka`}
+        </span>
+      </button>
+      {billingCycleOpen && (
       <fieldset id="siklus-tagihan" className="rounded-2xl border border-[var(--brand-tint-strong)] bg-[var(--brand-tint)]/60 p-3 sm:p-4">
         <legend className="px-1 text-sm font-semibold text-[var(--ink-strong)]">Siklus Tagihan</legend>
         <p id="billing-policy-help" className="mb-3 text-xs leading-relaxed text-[var(--ink-muted)]">

@@ -106,7 +106,7 @@ export default function CaptureSession() {
     showBrowse, setShowBrowse, openUnit, setOpenUnit, browseSubjects, browseGroups,
     topicUnit, recentTopicChips, addTopic, addTopicsFromInput, removeTopic, restoreTopic,
   } = useTopicSelection({
-    subjects, studentSubjects, student: currentStudent,
+    subjects, student: currentStudent,
     recentSessions: studentRecentSessions,
   });
   /** C-13: hapus topik / tindak lanjut bisa diurungkan lewat toast selama 8 dtk. */
@@ -1282,9 +1282,15 @@ export default function CaptureSession() {
                   <div className="divide-y divide-[var(--border)] bg-[var(--surface-strong)]">
                     {browseGroups.length === 0 ? (
                       <p className="px-3.5 py-3 text-xs text-[var(--ink-muted)]">
-                        Belum ada bab untuk mapel ini pada jenjang {
-                          topicLevelHint(currentStudent.curriculum, currentStudent.grade, topicMeta?.targetLevel ?? null) ?? "murid ini"
-                        }. Pakai pencarian atau tulis topik sendiri di bawah.
+                        {browseSubjects.length === 0
+                          // Sejak 2026-10-14 daftar bab mengikuti mapel yang dipilih,
+                          // jadi keadaan ini berarti mapelnya belum dipilih — bukan
+                          // berarti katalognya kosong. Pesannya dibedakan supaya tutor
+                          // tahu langkah berikutnya.
+                          ? "Pilih mata pelajaran di atas dulu — daftar babnya mengikuti mapel yang Anda pilih."
+                          : <>Belum ada bab untuk mapel ini pada jenjang {
+                              topicLevelHint(currentStudent.curriculum, currentStudent.grade, topicMeta?.targetLevel ?? null) ?? "murid ini"
+                            }. Pakai pencarian atau tulis topik sendiri di bawah.</>}
                       </p>
                     ) : (
                       <>

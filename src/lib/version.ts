@@ -11,6 +11,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.104.0",
+    date: "2026-10-14",
+    title: "Kolom biaya, daftar mapel & topik saat mencatat sesi, dan lipatan Siklus Tagihan",
+    items: [
+      "**Menghapus isi kolom biaya tidak lagi menyisakan angka 0.** Sebelumnya, begitu Anda menghapus nilainya, kolomnya terisi **0** — dan untuk mengetik nilai baru Anda harus menghapus angka nol itu lebih dulu. Sekarang kolom kosong berarti **\"kembali ke hitungan otomatis\"**, dan Anda bisa langsung mengetik angka baru.",
+      "**Menyimpan 0 pada kolom biaya sekarang benar-benar melepas nominal manualnya.** Dulu angka 0 dianggap \"tidak ada perubahan\", sehingga nominal lama Anda tetap dipakai — padahal Anda baru saja mengosongkan kolomnya. Sekarang mengosongkan kolom (atau mengisinya 0) secara jelas mengembalikan biaya sesi ke hitungan otomatis dari tarif murid.",
+      "**Riwayat laporan tidak lagi menampilkan laporan semua murid.** Panel itu sebelumnya memuat seluruh laporan semua murid beserta pemilih muridnya, sehingga saat Anda sedang mengerjakan laporan seorang anak, daftarnya ikut menampilkan anak-anak lain. Sekarang isinya **hanya laporan murid yang sedang dibuka**, dan namanya tertulis di judul panel.",
+      "**Yang tidak berubah:** nominal yang Anda isi sendiri tetap tidak boleh dihitung ulang mesin, dan mengubah durasi sesi tetap menghitung ulang biayanya dari tarif murid.",
+      "**Saat mencatat sesi, mata pelajaran murid tampil lebih dulu dan mapel lain dilipat.** Sebelumnya seluruh daftar mapel dieja terbuka, sehingga mapel yang benar-benar dipakai anak itu tenggelam di antara puluhan pilihan lain. Sekarang yang tampil lebih dulu hanya mapel yang terdaftar di profil murid — sisanya ada di balik tombol **Mapel lain (N)**, jadi tidak ada pilihan yang hilang.",
+      "**Daftar topik di Catat Sesi mengikuti mata pelajaran yang Anda pilih.** Dulu daftarnya bisa menampilkan topik dari mapel lain — termasuk mapel yang tidak sedang diajarkan di sesi itu — sehingga topik yang benar ikut tercampur. Sekarang: daftar bab mengikuti mapel terpilih, dan kalau mapelnya belum dipilih, aplikasi memintanya lebih dulu alih-alih menampilkan katalog yang salah.",
+      "**Tombol lipatan \"Siklus Tagihan\" di formulir murid akhirnya benar-benar bisa menutup.** Sebelumnya pada murid yang sudah ada tombolnya hanya bisa membuka dan tidak pernah menyembunyikan isinya. Sekarang perilakunya sama untuk murid baru maupun murid lama: terbuka saat menyunting (supaya kebijakan tagihannya terlihat), dan bisa ditutup dengan satu ketukan.",
+    ],
+  },
+  {
     version: "v1.103.0",
     date: "2026-10-14",
     title: "Nominal yang Anda isi sendiri tidak lagi tertimpa saat sesinya dicatat",

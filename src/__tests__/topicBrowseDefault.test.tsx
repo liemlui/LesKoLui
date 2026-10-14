@@ -22,7 +22,6 @@ import useTopicSelection from "../screens/captureSession/useTopicSelection";
 function Probe() {
   const t = useTopicSelection({
     subjects: ["Matematika"],
-    studentSubjects: ["Matematika"],
     student: undefined,
     recentSessions: [],
   });

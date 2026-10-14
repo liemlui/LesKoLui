@@ -7,14 +7,13 @@ import type { Session, Student } from "../../db/types";
 
 interface UseTopicSelectionParams {
   subjects: string[];
-  studentSubjects: string[];
   student?: Student;
   recentSessions: Session[];
 }
 
 /** State dan aksi topik untuk wizard Catat Sesi; draf tetap dimiliki layar induk. */
 export default function useTopicSelection({
-  subjects, studentSubjects, student, recentSessions,
+  subjects, student, recentSessions,
 }: UseTopicSelectionParams) {
   const [topics, setTopics] = useState<string[]>([]);
   /** Bab katalog untuk tiap topik terpilih (audit P1 #9). Topik yang diketik
@@ -39,9 +38,21 @@ export default function useTopicSelection({
   // `mergeTopics` — aturan itu tinggal di `helpers.ts` supaya penyimpanan &
   // pemulihan draf tidak pernah berbeda tafsir).
   const topic = useMemo(() => mergeTopics(topics, topicSearch), [topics, topicSearch]);
-  // Kalau mapel terpilih lebih dari satu, jangan bias pencarian ke satu mapel saja.
-  const topicSearchSubject = subjects.length >= 2 ? undefined : subjects[0] ?? studentSubjects[0];
-  /** Satu pintu masuk pencarian topik: selalu segarkan hasil + metanya.
+  /**
+   * Mapel yang membiaskan pencarian topik.
+   *
+   * **Satu mapel terpilih → hanya mapel itu.** Sebelum 2026-10-14 pencariannya
+   * jatuh ke `studentSubjects[0]` bila belum ada mapel terpilih, dan itu membuat
+   * topik muncul untuk mapel yang **tidak sedang diajarkan di sesi ini**.
+   * Permintaan pemilik: *"Untuk topik belajar di catat sesi juga harusnya hanya
+   * sesuai mata pelajaran yang kita pilih dong."*
+   *
+   * Dua mapel terpilih atau lebih → `undefined`, artinya pencarian tidak dibias
+   * ke satu mapel: menyaringnya ke salah satu justru menyembunyikan topik mapel
+   * yang satunya lagi. Tanpa mapel terpilih → tanpa bias juga, sebab menebak
+   * dari profil murid adalah persis keluhan di atas.
+   */
+  const topicSearchSubject = subjects.length === 1 ? subjects[0] : undefined;  /** Satu pintu masuk pencarian topik: selalu segarkan hasil + metanya.
    *  Meta dipakai agar hasil di jenjang kurikulum lain tidak tampil seolah
    *  normal (cacat T-03). */
   const topicSearchOptions = {
@@ -66,7 +77,13 @@ export default function useTopicSelection({
   // bergantung pada array itu langsung. Dipakai kunci gabungan (pemisah NUL —
   // karakter yang tidak mungkin muncul di nama mapel) supaya katalog tidak
   // terbuka ulang tiap render sekaligus aturan exhaustive-deps tetap terpenuhi.
-  const browseSubjects = subjects.length > 0 ? subjects : studentSubjects;
+  //
+  // **Daftar bab juga mengikuti mapel yang dipilih** (permintaan pemilik
+  // 2026-10-14). Sebelumnya ia jatuh ke seluruh mapel profil murid bila belum ada
+  // mapel terpilih, sehingga tutor membaca katalog mapel yang tidak sedang
+  // diajarkan. Tanpa mapel terpilih, daftarnya kosong dan layarnya yang
+  // mengarahkan tutor memilih mapel lebih dulu.
+  const browseSubjects = subjects;
   const browseSubjectsKey = browseSubjects.join("\u0000");
   const browseGrade = student?.grade;
   const browseCurriculum = student?.curriculum;

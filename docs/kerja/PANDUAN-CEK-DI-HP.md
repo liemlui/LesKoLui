@@ -8,18 +8,23 @@
 > **Riwayat pemakaian:** pemeriksaan pertama (butir 30–33, tab Murid) **selesai 2026-10-10** dan hasilnya sesuai rencana;
 > pemeriksaan kedua (butir 34–35, foto murid) **belum pernah dijalankan** — bagian A di bawah masih menunggu.
 >
-> **Keadaan butir per 2026-10-14, supaya tidak ada yang dikerjakan dua kali:**
+> **Keadaan butir per 2026-10-14 sesudah pemeriksaan pemilik di server dev, supaya tidak ada yang dikerjakan dua kali:**
 >
 > | Butir | Isi | Keadaan |
 > |---|---|---|
-> | 1–23 | layar lama (Catat Sesi · CSV · Beranda · Uang) | **terbuka** — panduan ringkasnya di bagian C |
+> | 1–23 | layar lama (Catat Sesi · CSV · Beranda · Uang) | **terbuka** — panduan ringkasnya di bagian C. Pemilik menilai bagian ini *"terlalu rumit"* dan memilih memperbaiki bug-nya saat muncul saja |
 > | 24–29 | Uang tiga blok & Laporan | **sudah dicentang** 2026-10-07/08 — jangan diulang |
-> | 30–33 | tab Murid | **sudah dicentang** 2026-10-10 — arsipnya di bagian D, jangan diulang |
-> | 34–35 | foto murid | **menunggu** — bagian A |
-> | 36–38 | panel desain laporan & tiga grafik | **menunggu** — bagian B |
-> | 39 | jalur reset total + ajakan PIN baru | **menunggu**, dan **wajib di server pengembangan** — bagian B2 |
-> | 40–43 | backup manual · biaya AI di tombolnya · tombol Coba lagi · biaya di Riwayat Aktivitas | **menunggu** — bagian F (baru, dari v1.102.0) |
-> | 44 | nominal manual tidak tertimpa saat sesinya dicatat | **menunggu** — bagian F, dan **menyentuh uang** |
+> | 30–33 | tab Murid | **sudah dicentang** — 30–33 pada 2026-10-10 di HP, **diperiksa ulang 2026-10-14 di server dev** ("filter aman · aman · aman · aman dan ok") |
+> | 34–35 | foto murid | **sudah dicentang 2026-10-14** di server dev — "foto betul sesuai sampai simpan", "hapus foto berhasil, batal juga berhasil" |
+> | 36–38 | panel desain laporan & tiga grafik | **sudah dicentang 2026-10-14** — "sudah bagus dan tidak tercampur", "tema, susunan, sampul sudah sangat baik", "bagian ini juga sudah bagus" |
+> | 39 | jalur reset total | **sengaja TIDAK dicoba pemilik 2026-10-14** ("reset hampir tidak pernah saya pakai"). Jangan dijalankan di alamat online; kalau kelak mau ditutup, bagian B2 |
+> | 40 | backup manual | **sudah dicentang 2026-10-14** — "sudah berhasil kok" |
+> | 41 | biaya di kedua tombol AI | **sudah dicentang 2026-10-14** — dengan catatan terpisah bahwa pemilih gaya ringkas/perluas terasa tidak berpengaruh (temuan §4 `PEKERJAAN.md`, belum diperbaiki) |
+> | 42 | tombol Coba lagi saat AI gagal | **BELUM — dicoba dan gagal lagi.** Pemilik: *"sudah saya coba saat gagal dan coba ai lagi, ya tetap gagal lagi. Akhirnya ndak pakai ai."* Akarnya konteks yang terlalu panjang, bukan tombolnya (lihat temuan §4) |
+> | 43 | biaya di Riwayat Aktivitas | **sudah dicentang 2026-10-14** — "oke sudah baik" |
+> | 44 | nominal manual tidak tertimpa | **sudah dicentang 2026-10-14** — mengganti nominal sesi berhasil. Dua bug yang ditemukan saat itu (kolom tersangkut 0 · simpan 0 memakai nominal lama) sudah diperbaiki di v1.104.0 |
+>
+> **Layar Pengaturan belum punya butirnya sendiri** meskipun v1.100.0–v1.104.0 menyentuhnya. Itu tetap pekerjaan yang menunggu.
 
 ---
 
