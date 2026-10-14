@@ -30,8 +30,6 @@ async function shot(page: Page, name: string, opts: Opts = { fullPage: true }) {
   }
 }
 
-const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
 async function closeChangelog(page: Page) {
   try {
     const btn = page.getByText(/Mengerti|Terima Kasih/);
