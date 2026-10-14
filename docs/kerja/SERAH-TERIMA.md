@@ -3,7 +3,7 @@
 > **Sekilas.** Jenis: lembar serah-terima untuk sesi berikutnya. Status: berlaku.
 > Untuk siapa: agen AI yang melanjutkan pekerjaan ini, dan pemilik yang ingin tahu keadaan terakhir tanpa membaca seluruh dokumen.
 > Berkas ini diperbarui di akhir sesi, bukan di awal.
-> **Terakhir diselaraskan: 2026-10-14** (putaran **verifikasi ke kode** atas seluruh butir pekerjaan terbuka, lalu rilis **v1.102.0**). Seluruh dokumen ini diselaraskan dengan keadaan sesudah rilis itu, termasuk baris yang sebelumnya **salah**: "38 butir" daftar periksa manual di berkas prompt sesi, "dua puluh dari tujuh puluh delapan pasangan katalog", alat ukur `.design-audit/topic-coverage-audit.mjs` yang tidak ada, dan baris `Settings.tsx`/`CaptureSession.tsx` yang basi. Angka terukur pada putaran itu: `Settings.tsx` **637** · `CaptureSession.tsx` **2.108** · `StudentDetail.tsx` **698** (sasaran ≤700) · `TagihanTab.tsx` **1.021** (sasaran ≤800) · `MonthlyReport.tsx` **1.469** (sasaran ≤1.500). Satu koreksi keadaan yang penting: **tiga butir yang dokumen ini dan `PEKERJAAN.md` tulis "selesai" ternyata belum terpasang** (G3-01 butir 9 dan syarat riwayat AI di G3-04) — lihat §4.11. Isi historis di bawah tidak diubah.
+> **Terakhir diselaraskan: 2026-10-14** (putaran **verifikasi ke kode** atas seluruh butir pekerjaan terbuka, lalu dua rilis: **v1.102.0** dan **v1.103.0**). Seluruh dokumen ini diselaraskan dengan keadaan sesudah kedua rilis itu, termasuk baris yang sebelumnya **salah**: "38 butir" daftar periksa manual di berkas prompt sesi, "dua puluh dari tujuh puluh delapan pasangan katalog", alat ukur `.design-audit/topic-coverage-audit.mjs` yang tidak ada, dan baris `Settings.tsx`/`CaptureSession.tsx` yang basi. **v1.103.0 menutup keputusan D2** — satu-satunya sisa yang menyentuh uang: `markSessionDone` tidak pernah memeriksa `costOverride`, sehingga nominal manual yang diisi tutor pada sesi terjadwal hilang tepat saat sesinya dicatat. Angka terukur pada putaran itu: `Settings.tsx` **637** · `CaptureSession.tsx` **2.108** · `StudentDetail.tsx` **698** (sasaran ≤700) · `TagihanTab.tsx` **1.021** (sasaran ≤800) · `MonthlyReport.tsx` **1.469** (sasaran ≤1.500). Satu koreksi keadaan yang penting: **tiga butir yang dokumen ini dan `PEKERJAAN.md` tulis "selesai" ternyata belum terpasang** (G3-01 butir 9, syarat riwayat AI di G3-04, dan perbaikan sandi backup yang dikomit tanpa nomor versi) — lihat §4.11 dan §4.12.
 > **Sebelumnya, 2026-10-11:** G3-10 butir 3 (ajakan memasang PIN baru sesudah reset total, rilis **v1.101.0**; **koreksi penting** — butir 1, 2, dan 4 G3-10 ternyata sudah ada sejak G3-09 dan dokumen sempat menulis tugas itu "belum"). Ditambah G3-09 Pengaturan: `Settings.tsx` 1.387 → 637 baris, seluruh bagian besar jadi berkasnya sendiri, enam dialog bawaan peramban digantikan dialog internal, **tombol "Perbarui" PWA yang tidak berfungsi diperbaiki**, dan **gate `e2e:uiux` hijau 64/0**.
 > **Yang mengikat tetap `ATURAN-AI.md` dan `PEKERJAAN.md`.** Berkas ini hanya menjelaskan keadaan dan temuan, bukan aturan.
 
@@ -390,6 +390,22 @@ Putaran ini **bukan putaran fitur baru**: pemilik meminta seluruh butir pekerjaa
 
 6. **Satu flake penjaga tampilan diperbaiki pada putaran ini, bukan sekadar dicatat.** Run `e2e:uiux` pertama pada 2026-10-14 menghasilkan **61 lulus / 3 gagal**, ketiganya **bukan** pada layar yang saya ubah: dua di sub-layar Tagihan dan satu di layar Keuangan, semuanya berhenti di `openPin()` dengan `element is not enabled` pada kolom PIN lalu `element was detached from the DOM`. Penyebabnya persis yang sudah dicatat sejak 2026-10-10: kolom PIN muncul sebelum PIN contoh benar-benar tersimpan, dan `pin.fill()` **memakai batas waktu test (60 detik)** sehingga satu momen "belum aktif" memakan seluruh anggaran waktu dan keenam percobaan di lingkaran itu tidak pernah benar-benar berjalan. Perbaikan: `fill()` dan `click()` di dalam lingkaran itu diberi batas **2 detik** (bukan menaikkan batas 60 detik, yang dilarang keputusan pemilik). Sesudah perbaikan, kedelapan tes "Tagihan" lulus (48,9 detik) dan **run penuh berikutnya 64 lulus / 0 gagal**, sehingga `e2e:uiux` kembali hijau untuk pertama kali sejak 2026-10-11.
 
+### 4.12 Yang berubah pada putaran 2026-10-14 (D2 — nominal manual tidak tertimpa, v1.103.0)
+
+Sisa terakhir yang menyentuh uang ditutup pada hari yang sama, dan cara menemukannya patut diingat karena **tidak satu pun penjaga yang ada bisa melihatnya**:
+
+1. **Bug-nya.** `markSessionDone` (`src/db/repos/sessionRepo.ts`) menulis `cost: sessionCost(session.rateSnapshot, duration, perSession)` **tanpa pernah melihat `session.costOverride`**. Akibatnya nominal manual yang diisi tutor dari panel "Kelola sesi" pada sesi **terjadwal** hilang **tepat saat sesinya dicatat** — momen ketika angkanya mulai dipakai untuk menagih.
+
+2. **Kenapa sulit terlihat.** `costOverride` **tetap tersimpan**; hanya kolom `cost` yang berbeda, dan **yang dibaca tagihan adalah `cost`**. Jadi layar pengaturan sesi tampak benar sementara tagihannya memakai angka lain. `updateSession` sudah punya komentar "Manual cost override takes precedence over auto-calculation" dan memang menghormatinya — yang bocor adalah jalur **penutupan** sesi, bukan jalur penyuntingan.
+
+3. **Dibuktikan lebih dulu sebagai tes merah, baru diperbaiki.** Dengan murid **per pertemuan** (tarif flat) supaya nominal manual dan hitungan otomatisnya tidak mungkin kebetulan sama: override 175.000 → `cost` tercatat **200.000**. Tiga tes mengunci perilakunya sekarang: bertahan saat durasi ikut dikirim ke `markSessionDone`, bertahan saat durasi tidak dikirim, dan sesi **tanpa** nominal manual tetap dihitung dari tarif (perilaku lama tidak berubah).
+
+4. **Urutan yang mengikat di kode:** nominal manual diperiksa **sebelum** hitungan otomatis, dan hanya nilai `> 0` yang dianggap override (nilai `0`/`null` berarti tutor melepasnya, dan itu tetap dihormati oleh `updateSession`).
+
+5. **Temuan terpisah yang dicatat, belum dikerjakan: `rescheduleSession` masih membuang `costOverride`.** Fungsi itu membuat sesi pengganti dengan `cost: sessionCost(...)` (`sessionRepo.ts:517-531`), jadi menjadwalkan ulang sesi yang punya nominal manual membuat nominalnya kembali ke hitungan otomatis **tanpa pemberitahuan**. Ini jalur berbeda dari D2 dan **sengaja tidak saya kerjakan pada putaran yang sama**: kalau durasinya ikut berubah (mis. 1,5 → 2 jam), nominal manual lama mungkin tidak lagi sesuai — meneruskannya bisa salah, membuangnya juga bisa salah. Dua pilihan dicatat di `PEKERJAAN.md` §4; pilihan yang lebih kecil risikonya adalah **memberi tahu tutor di konfirmasi** bahwa nominal manual akan dilepas.
+
+6. **Batas kejujuran putaran ini.** Sudah dibuktikan: `npx tsc -b` bersih · `npx eslint src` bersih · suite **1.409 lulus / 101 berkas**, 0 gagal · `check:docs` 0 pelanggaran. Belum: **`e2e:uiux` tidak dijalankan** pada putaran ini (perubahan hanya di repositori, bukan tampilan), dan yang paling penting — **butir 44 daftar periksa manual belum dicentang**, karena hanya pemilik yang bisa membuktikan bahwa angka yang ia isi sendiri memang angka yang tercatat di perangkatnya.
+
 ---
 
 ## 5. Langkah berikutnya
@@ -403,18 +419,20 @@ Kerjakan berurutan, satu tugas sampai tuntas, lalu lapor sekali.
    G3-10: **empat dari lima butir selesai**; butir 3 (ajakan PIN baru) ditutup 2026-10-11 di v1.101.0,
    dan **butir 5** (uji memakai data contoh) sudah dipindahkan menjadi **butir 39** daftar periksa
    manual karena hanya bisa dijalankan pemilik di server pengembangan.
-   **Tidak ada tugas kode tersisa di Gelombang 3.**
+   **Tidak ada tugas kode tersisa di Gelombang 3.** Di luar gelombang, **D2 ditutup 2026-10-14**
+   (v1.103.0) sehingga **tidak ada lagi sisa pekerjaan yang menyentuh uang**.
 
-2. **Menunggu mata pemilik — sepuluh butir, jangan dikerjakan agen:** **34–35** (foto murid),
+2. **Menunggu mata pemilik — sebelas butir, jangan dikerjakan agen:** **34–35** (foto murid),
    **36–38** (panel desain laporan, perancang tema, dan tiga grafik Keuangan), **39** (jalur reset total
    + ajakan PIN baru — **wajib di server pengembangan, jangan di alamat online**), dan
-   **butir daftar periksa manual untuk layar Pengaturan yang belum dibuat** (v1.100.0, v1.101.0, **dan
-   v1.102.0** sama-sama menyentuh layar itu tanpa punya butirnya sendiri — sama persis dengan keadaan
-   layar Uang sebelum butir 24–25 ditambahkan 2026-10-07). Ditambah **empat hal yang berubah 2026-10-14
-   di v1.102.0 dan belum pernah dilihat mata**: Backup ke File dan Backup ke Drive, label biaya pada
-   tombol AI, tombol **Coba lagi** saat panggilan AI gagal, dan baris biaya di Riwayat Aktivitas.
-   Butir 35 memeriksa jalur **Batal** sesudah menghapus foto, dan butir 36–38 memeriksa hal yang memang
-   tidak bisa dinilai dari kode.
+   **butir daftar periksa manual untuk layar Pengaturan yang belum dibuat** (v1.100.0–v1.103.0
+   sama-sama menyentuh layar itu tanpa punya butirnya sendiri — sama persis dengan keadaan
+   layar Uang sebelum butir 24–25 ditambahkan 2026-10-07). Ditambah **lima hal yang berubah
+   2026-10-14 dan belum pernah dilihat mata**: Backup ke File dan Backup ke Drive (40), label biaya
+   pada kedua tombol AI (41), tombol **Coba lagi** saat panggilan AI gagal (42), baris biaya di
+   Riwayat Aktivitas (43), dan **nominal manual tidak tertimpa saat sesinya dicatat (44 — menyentuh
+   uang, jangan dilewati)**. Butir 35 memeriksa jalur **Batal** sesudah menghapus foto, dan butir
+   36–38 memeriksa hal yang memang tidak bisa dinilai dari kode.
 
 3. Pekerjaan di `PEKERJAAN.md` bagian 4 boleh dikerjakan kapan saja tanpa mengubah urutan di atas —
    termasuk tiga temuan 2026-10-08: kegagalan `e2e` yang tidak hijau di mesin ini (kegagalan warisan
@@ -427,12 +445,12 @@ Kerjakan berurutan, satu tugas sampai tuntas, lalu lapor sekali.
    (sudah diukur **dan** dikerjakan), syarat riwayat AI G3-04, **D6**, **D4**, dan status D3 yang
    berbunyi "belum" untuk dua kasus terjelasnya.
 
-4. Daftar periksa manual di `PEKERJAAN.md` bagian 5 (kini **43 butir**) hanya bisa ditutup pemilik di
+4. Daftar periksa manual di `PEKERJAAN.md` bagian 5 (kini **44 butir**) hanya bisa ditutup pemilik di
    perangkat. **Butir 24–29 dan 30–33 sudah dicentang** (30–33 pada 2026-10-10 sesudah pemeriksaan di
-   HP); **butir 34–43 menunggu** (40–43 ditambahkan 2026-10-14 bersama v1.102.0), dan **butir 1–23
-   masih terbuka** dan boleh dikerjakan kapan saja tanpa mengubah urutan di atas. **Butir 39 khusus:
-   wajib di server pengembangan, bukan alamat online; butir 40–43 sebaliknya — boleh di alamat online
-   dengan data asli, dan butir 40 tidak boleh diuji dengan memulihkan berkas backupnya.**
+   HP); **butir 34–44 menunggu** (40–43 ditambahkan bersama v1.102.0, butir 44 bersama v1.103.0),
+   dan **butir 1–23 masih terbuka** dan boleh dikerjakan kapan saja tanpa mengubah urutan di atas.
+   **Butir 39 khusus: wajib di server pengembangan, bukan alamat online; butir 40–44 sebaliknya — boleh
+   di alamat online dengan data asli, dan butir 40 tidak boleh diuji dengan memulihkan berkas backupnya.**
 
 ---
 
@@ -440,6 +458,7 @@ Kerjakan berurutan, satu tugas sampai tuntas, lalu lapor sekali.
 
 | Tanggal | Perubahan |
 |---|---|
+| 2026-10-14 | **Bagian 4.12 dan kepala berkas ditulis untuk D2 yang tuntas (v1.103.0).** Satu-satunya sisa yang menyentuh uang ditutup: `markSessionDone` tidak pernah memeriksa `costOverride`, sehingga nominal manual pada sesi terjadwal hilang tepat saat sesinya dicatat. Dibuktikan lebih dulu sebagai tes merah (murid per pertemuan: 175.000 → 200.000), lalu diperbaiki dan dikunci **tiga tes**. **Temuan terpisah dicatat, belum dikerjakan:** `rescheduleSession` masih membuang `costOverride` saat membuat sesi pengganti — dua pilihan perbaikannya ada di `PEKERJAAN.md` §4, dan yang lebih kecil risikonya adalah memberi tahu tutor di konfirmasi. Butir daftar periksa manual bertambah menjadi **44**, dan butir 44 khusus menyentuh uang sehingga tidak boleh dijawab dari kode. |
 | 2026-10-14 | **Bagian 2, 4.11, 5, dan kepala berkas ditulis untuk putaran verifikasi ke kode + rilis v1.102.0.** Kepala berkas diperbarui: angka baris yang basi dibetulkan dengan hasil ukur sendiri (`Settings.tsx` **637**, bukan 576; `CaptureSession.tsx` **2.108**, bukan 2.077), dan penyebut daftar periksa manual ditegaskan **43 butir** (39 sebelum butir 40–43 ditambahkan bersama v1.102.0). **Tiga butir yang dokumen tulis "selesai" ternyata belum ada di kode** dan ditutup pada putaran ini: G3-01 butir 9 (label biaya tombol AI · pengumuman status · tombol coba lagi — **tidak satu pun** terpasang, padahal penahannya sudah selesai sejak G3-04 tuntas 2026-10-07), syarat "riwayat panggilan AI menampilkan waktu, fitur, dan biaya" di G3-04 (kolom `aiFeature`/`costIdr` ditulis sejak 2026-10-07 tetapi **tidak dibaca satu layar pun**), dan perbaikan sandi backup yang sudah dikomit **tanpa nomor versi**. Dua butir ditutup karena ternyata sudah terpenuhi: **D6** (H1 → 3×H2 tanpa lompatan level, terukur) dan **D4** (tab tagihan sudah dijaga; tidak ada berkas "palet terkunci" yang perlu dibuat karena keputusannya berbunyi "dicatat di riwayat"). Satu baris angka dibetulkan bersama alat ukurnya: katalog topik **109/167 · 58 belum** (dulu ditulis "20 dari 78" dengan skrip yang **tidak ada di repositori**), dan penggantinya `src/__tests__/topicGapCount.test.ts`. **D3** tidak lagi berbunyi "Belum" untuk dua kasus terjelasnya, dan angka "23 peta alias" **dicabut** karena daftarnya tidak bisa direproduksi. Pelajaran proses yang ditulis di 4.11: status butir di dokumen yang ditulis dari ingatan **bisa salah berhari-hari**; yang menentukan hanya `grep` ke kode. |
 | 2026-10-11 | **Bagian 2, 4.10, dan 5 ditulis untuk G3-10 butir 3 yang tuntas (ajakan PIN baru sesudah reset, v1.101.0)** — sekaligus **mengoreksi keadaan G3-10**: butir 1, 2, dan 4 ternyata sudah ada di kode sejak G3-09, dan dokumen ini sempat menulis tugas itu "belum". Yang dipasang: `lib/pinReset.ts` + `components/PinResetInvite.tsx` (dirender di `Layout`), penanda di `localStorage` **karena tabel `settings` ikut dibersihkan reset**, dua syarat tampil, dan dua sambungan (`Settings.tsx` membaca hash `#bagian-pin`; `PinSection.tsx` menerima `autoStart` yang hanya berlaku bila PIN belum ada). Penjaga baru **22 tes** yang bekerja dua lapis, lapis kedua membaca berkas sumber `?raw` supaya modul yang benar tetapi tidak dipanggil siapa pun tidak bisa lolos. Klaim urutan audit diverifikasi di `auditRepo.ts`, bukan diasumsikan. Butir 5 G3-10 dipindahkan menjadi **butir 39** daftar periksa manual (wajib di server pengembangan), sehingga daftar itu kini **39 butir**. |
 | 2026-10-05 | Dibuat sebagai pengganti berkas arahan lanjutan yang sudah beku. |

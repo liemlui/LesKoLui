@@ -19,6 +19,7 @@
 > | 36–38 | panel desain laporan & tiga grafik | **menunggu** — bagian B |
 > | 39 | jalur reset total + ajakan PIN baru | **menunggu**, dan **wajib di server pengembangan** — bagian B2 |
 > | 40–43 | backup manual · biaya AI di tombolnya · tombol Coba lagi · biaya di Riwayat Aktivitas | **menunggu** — bagian F (baru, dari v1.102.0) |
+> | 44 | nominal manual tidak tertimpa saat sesinya dicatat | **menunggu** — bagian F, dan **menyentuh uang** |
 
 ---
 
@@ -213,7 +214,7 @@ kotak ajakan tidak hilang sesudah PIN disimpan · catatan **"Reset semua data"**
 
 ---
 
-## Bagian F — **baru di v1.102.0**: backup, biaya AI, dan riwayat biaya (butir 40–43)
+## Bagian F — **baru di v1.102.0 dan v1.103.0**: backup, biaya AI, riwayat biaya, dan nominal manual (butir 40–44)
 
 > Empat butir ini lahir dari perbaikan rilis **v1.102.0**. Dua di antaranya menyentuh **uang Anda** (biaya AI) dan
 > **keselamatan data** (backup), jadi jangan dilewati. Semuanya bisa dikerjakan **di alamat online** dengan **data asli** —
@@ -286,6 +287,29 @@ lama, tetapi tidak pernah ditampilkan — jadi jawabannya dulu tidak ada di laya
 4. Untuk panggilan yang terjadi **sebelum v1.102.0**, barisnya akan berbunyi **"biaya tidak tercatat"** — itu **bukan**
    kesalahan: entri lama memang tidak menyimpan biayanya. **MELESET** hanya bila panggilan **baru** (sesudah versi ini)
    juga berbunyi "biaya tidak tercatat", atau bila biaya tidak muncul sama sekali.
+
+### Butir 44 — nominal manual Anda tidak tertimpa saat sesinya dicatat
+
+**Kenapa diperiksa, dan kenapa butir ini penting:** perbaikan v1.103.0 menyentuh **uang**, dan ini justru hal yang
+**tidak bisa dibuktikan suite tes**: apakah angka yang **Anda isi sendiri** benar-benar angka yang tercatat. Bug yang
+diperbaiki dulu tidak terlihat dari layar — catatan bahwa nominalnya Anda isi tetap tersimpan, sementara **angka yang
+dipakai tagihan** diambil dari kolom lain.
+
+> **Aman dijalankan di alamat online**, tetapi **pakai sesi tiruan/percobaan**, bukan sesi murid sungguhan — langkah ini
+> mengubah nominal sebuah sesi. Kalau Anda tidak ingin menyentuh data asli, jalankan di server pengembangan di PC
+> (server yang sedang saya nyalakan), tempat datanya data contoh.
+
+1. Siapkan **satu sesi terjadwal** yang boleh Anda ubah (di data contoh sudah ada; kalau tidak ada, buat satu untuk
+   murid contoh di tanggal besok).
+2. Buka panel **Kelola sesi** untuk sesi itu, lalu **isi nominal manualnya** dengan angka yang **jelas berbeda** dari
+   tarif muridnya. Contoh: tarif murid 200.000 → isi **175.000**. Simpan.
+3. **Catat sesi itu** seperti biasa (alur Catat Sesi sampai selesai).
+4. Buka lagi sesi itu, dan periksa nominalnya.
+5. **LULUS** bila nominalnya tetap **angka yang Anda isi** (175.000) — bukan tarif muridnya (200.000).
+6. **Pemeriksaan kedua (perilaku lama tidak boleh berubah):** ambil sesi **lain yang tidak Anda beri nominal manual**,
+   lalu catat sesinya. Nominalnya harus **tetap** memakai tarif murid — kalau berubah jadi kosong atau nol, itu meleset.
+7. **MELESET** bila: nominal manual kembali ke tarif otomatis · atau sesi tanpa nominal manual jadi tidak punya nominal.
+   Kalau meleset, tulis tarif muridnya dan angka yang Anda isi di laporan — dua angka itu cukup untuk saya lacak.
 
 ---
 
@@ -409,6 +433,7 @@ Butir 40: LULUS
 Butir 41: LULUS
 Butir 42: LULUS
 Butir 43: LULUS
+Butir 44: LULUS
 ```
 
 Sertakan tangkapan layar bila ada yang meleset — itu paling cepat saya pakai. Untuk butir foto, tangkapan layar

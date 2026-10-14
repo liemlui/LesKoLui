@@ -11,6 +11,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.103.0",
+    date: "2026-10-14",
+    title: "Nominal yang Anda isi sendiri tidak lagi tertimpa saat sesinya dicatat",
+    items: [
+      "**Nominal manual Anda akhirnya dihormati sampai akhir.** Kalau Anda pernah mengisi nominal sendiri pada sesi yang masih terjadwal (mis. sesi dipotong, atau tarif khusus untuk pertemuan itu), lalu mencatat sesinya, **nominal itu dulu tertimpa hitungan otomatis** — tepat pada saat angkanya mulai dipakai untuk menagih. Sekarang yang tercatat adalah **angka yang Anda isi**, bukan angka hitungan mesin.",
+      "**Kenapa ini sulit terlihat sebelumnya.** Aplikasi tetap menyimpan catatan bahwa nominal itu Anda isi sendiri, tetapi **angka yang dipakai tagihan diambil dari kolom lain** — jadi layar pengaturan sesi tampak benar sementara tagihannya berbeda. Satu-satunya cara menemukannya adalah membandingkan angka tagihan dengan angka yang Anda isi.",
+      "**Perilaku lama tidak berubah untuk sesi tanpa nominal manual.** Sesi yang nominalnya memang dihitung dari tarif murid tetap dihitung ulang seperti biasa — termasuk murid per pertemuan yang memakai tarif flat, dan sesi yang durasinya diubah saat dicatat.",
+      "**Kalau Anda memang ingin melepas nominal manual**, caranya tetap sama: kosongkan kolom nominalnya, dan hitungan otomatis berlaku lagi dari tarif murid.",
+    ],
+  },
+  {
     version: "v1.102.0",
     date: "2026-10-14",
     title: "Backup manual bisa dipakai lagi — dan biaya AI terlihat sebelum tombolnya ditekan",

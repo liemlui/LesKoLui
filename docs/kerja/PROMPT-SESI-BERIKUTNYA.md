@@ -29,7 +29,7 @@ Lanjutkan proyek Les Ko Lui (jurnal les privat, PWA lokal-first) — Gelombang 3
    kalau ada dokumen menunjuk §0, §2.1–§2.3, §6.1–§6.4, atau §9, nomor itu sudah tidak ada
    (peta lama→baru di `docs/arsip/README.md` §6).
 2. `les-ko-lui/docs/kerja/PEKERJAAN.md` — SATU-SATUNYA daftar pekerjaan. Spesifikasi lengkap
-   G3-01…G3-10 ada di §3, pekerjaan tanpa dokumen tugas di §4, daftar periksa manual (**43 butir**)
+   G3-01…G3-10 ada di §3, pekerjaan tanpa dokumen tugas di §4, daftar periksa manual (**44 butir**)
    di §5.
 3. `les-ko-lui/docs/kerja/SERAH-TERIMA.md` — keadaan + batas kejujuran yang belum beres.
    Bagian 3 dan 4 saja.
@@ -41,9 +41,9 @@ Lanjutkan proyek Les Ko Lui (jurnal les privat, PWA lokal-first) — Gelombang 3
 
 | Hal | Nilai saat berkas ini ditulis |
 |---|---|
-| Versi | v1.102.0 |
-| Branch / HEAD | `main` (jalankan `git status -sb` untuk selisih dengan `origin/main`; putaran 2026-10-14 **belum push** — periksa sendiri) |
-| Suite | **1.406 lulus / 101 berkas · 0 gagal** (diukur 2026-10-14, `npm run test:sandbox`). Putaran itu menambah tes di `captureSessionHelpers.test.ts` (+4), `auditDisplay.test.ts` (+6), dan berkas alat ukur baru `topicGapCount.test.ts` (+1) |
+| Versi | v1.103.0 |
+| Branch / HEAD | `main` (jalankan `git status -sb` untuk selisih dengan `origin/main`; putaran 2026-10-14 sesudah v1.103.0 **periksa sendiri apakah sudah terdorong**) |
+| Suite | **1.409 lulus / 101 berkas · 0 gagal** (diukur 2026-10-14, `npm run test:sandbox`). Putaran itu menambah tes di `captureSessionHelpers.test.ts` (+4), `auditDisplay.test.ts` (+6), `sessionPricing.test.ts` (+3 untuk D2), dan berkas alat ukur baru `topicGapCount.test.ts` (+1) |
 | `tsc -b` · `eslint src` | bersih sesudah putaran 2026-10-14 (v1.102.0) |
 | `check:docs` | 0 rusak · 0 pelanggaran |
 | `e2e:uiux` | **64 lulus / 0 gagal** (5,8 menit, dijalankan 2026-10-14). **Artefak terukur layar yang berubah, dua viewport:** `/capture` → `h1` 1 · `h2` 1 · kontras 0 pelanggaran · kontrol <24 px 0 · emoji 0 · teks <12 px 0 · terpotong 0; `/settings` → sama, dengan `under44Count` 2 dan `truncCount` 1 yang **tidak diuji ambangnya** (kontrol sekunder boleh 24–36 px; elemen mana yang terpotong belum diperiksa satu per satu) |
@@ -106,14 +106,17 @@ Butuh izin sandbox penuh: `npm run e2e`, `npm run e2e:uiux`, `git push`.
    daftar periksa manual, karena hanya bisa dijalankan pemilik di server pengembangan — di alamat
    online tidak ada pemuat data contoh sehingga yang terhapus adalah data asli.
 
-**Menunggu mata pemilik (jangan dikerjakan agen) — kini 8 butir:** daftar periksa manual **34–35**
+**Menunggu mata pemilik (jangan dikerjakan agen) — kini 11 butir:** daftar periksa manual **34–35**
 (foto murid, ditambahkan 2026-10-11), **36–38** (panel desain laporan + perancang tema + tiga grafik
 Keuangan, ditambahkan 2026-10-11 bersama G3-08), **39** (jalur reset total + ajakan PIN baru,
-ditambahkan 2026-10-11 bersama G3-10 butir 3 — **wajib di server pengembangan**), dan **butir daftar
-periksa untuk layar Pengaturan yang belum dibuat** (v1.100.0 dan v1.101.0 sama-sama menyentuh layar itu
+ditambahkan 2026-10-11 bersama G3-10 butir 3 — **wajib di server pengembangan**), **40–43** (backup
+manual · biaya di kedua tombol AI · tombol Coba lagi · biaya di Riwayat Aktivitas, ditambahkan
+2026-10-14 bersama **v1.102.0**), **44** (nominal manual tidak tertimpa saat sesinya dicatat,
+ditambahkan 2026-10-14 bersama **v1.103.0** — **menyentuh uang, jangan dilewati**), dan **butir daftar
+periksa untuk layar Pengaturan yang belum dibuat** (v1.100.0–v1.103.0 sama-sama menyentuh layar itu
 tanpa punya butirnya sendiri). **Butir 1–23 masih terbuka.** Panduan langkah-demi-langkahnya ada di
-`PANDUAN-CEK-DI-HP.md`, yang 2026-10-11 diperluas supaya mencakup **seluruh** sisa butir (sebelumnya
-hanya 30–35), lengkap dengan tabel keadaan supaya tidak ada pemeriksaan yang diulang.
+`PANDUAN-CEK-DI-HP.md` **bagian F** (butir 40–44), lengkap dengan tabel keadaan supaya tidak ada
+pemeriksaan yang diulang.
 
 **Kemudian §4 PEKERJAAN.md (boleh kapan saja):**
 
@@ -122,7 +125,8 @@ hanya 30–35), lengkap dengan tabel keadaan supaya tidak ada pemeriksaan yang d
 - **Dua temuan baru 2026-10-08** (keduanya dari G3-05, dan keduanya menunggu keputusan atau penyelidikan, bukan sekadar kerja): (a) **`e2e` tidak pernah hijau di mesin ini** — sebelas kegagalan yang sudah ada sebelum G3-05, didominasi galat halaman `SchemaError: DexieError`; (b) **katalog tangkapan layar yang dilacak git tidak cocok lagi** dengan yang dihasilkan spec (19 PNG baru tak terlacak, nama lama dan folder `mobile-dark` masih terlacak).
 - **Pengukuran ulang G3-01 butir 9** — **SUDAH DIUKUR DAN DIKERJAKAN 2026-10-14 (v1.102.0).** Hasil pengukurannya: ketiga syaratnya **tidak satu pun** terpasang di HEAD, padahal penahannya (G3-04) sudah selesai sejak 2026-10-07. Sekarang label biaya ada di tombol AI (`labelBiayaAi()`), status diumumkan (`aria-live` + `role="alert"`), dan ada tombol **Coba lagi** untuk panggilan AI yang gagal. **Jangan diukur ulang.**
 - **Syarat "riwayat panggilan AI menampilkan waktu, fitur, dan biaya" (G3-04)** — **SUDAH DITUTUP 2026-10-14 (v1.102.0).** `auditAiDetail()` di `lib/auditDisplay.ts` menampilkan fitur + biaya di Riwayat Aktivitas; sebelum itu kolomnya ditulis tetapi tidak dibaca layar mana pun.
-- **D2 — perhitungan biaya saat sesi ditutup mengabaikan nominal manual.** Satu-satunya sisa yang menyentuh uang, dan sudah tercatat sebagai masalah nyata di `SERAH-TERIMA.md` §4.2.
+- **D2 — perhitungan biaya saat sesi ditutup mengabaikan nominal manual.** **SELESAI 2026-10-14 (v1.103.0).** `markSessionDone` tidak pernah memeriksa `costOverride`, sehingga nominal manual pada sesi terjadwal hilang tepat saat sesinya dicatat; dibuktikan sebagai tes merah lebih dulu, lalu dikunci tiga tes. **Tidak ada lagi sisa pekerjaan yang menyentuh uang** — kecuali temuan `rescheduleSession` di bawah, yang juga menyentuh uang tetapi **butuh keputusan pemilik** karena meneruskan nominal manualnya mengubah jumlah yang ditagih.
+- **Temuan baru 2026-10-14 (dari perbaikan D2): `rescheduleSession` membuang `costOverride`.** Sesi pengganti dibuat dengan hitungan otomatis (`sessionRepo.ts:517-531`), jadi menjadwalkan ulang sesi yang punya nominal manual membuat nominalnya kembali ke tarif **tanpa pemberitahuan**. Dua pilihan ada di `PEKERJAAN.md` §4; yang lebih kecil risikonya adalah **memberi tahu tutor di konfirmasi** bahwa nominal manual akan dilepas.
 - **D3** — **statusnya berubah 2026-10-14: dua kasus terjelasnya sudah benar di kode** (`resolveSubjectAliases("Informatika")` → `["informatika"]`, `("Penjaskes")` → `["penjaskes"]`), jadi barisnya tidak lagi "Belum". Yang tersisa: meninjau **seluruh** peta alias, dan itu **tidak bisa dimulai** sebelum daftar temuan lama dibangun ulang (skripnya hilang).
 - **Katalog topik** — **109 dari 167 pasangan punya katalog · 58 belum** (diukur 2026-10-14). **D5** — periksa katalog IB terhadap panduan silabus resmi; **butir ini sudah pernah "selesai" di kode tetapi belum pernah diverifikasi, jangan disebut terverifikasi.**
 - **D4** — **SUDAH SELESAI seluruhnya 2026-10-14.** Tab tagihan sudah dijaga entri `keuangan-tagihan`, dan "jejak perubahan warna/token" memang sudah dijalankan lewat riwayat 2026-10-03 · G3-08 · G3-09 · G3-10. **Tidak ada berkas "palet terkunci" yang perlu dibuat** — keputusan pemilik berbunyi "dicatat di bagian riwayat tugas dengan alasan dan tanggal", yaitu kewajiban pencatatan.
@@ -289,7 +293,7 @@ manusia, (2) perintah apa yang dijalankan dan hasilnya sekali saja, (3) apa yang
 
 ### Dua hal yang pemilik berikan izinnya pada 2026-10-07
 
-1. **Agen boleh mencentang daftar periksa manual** (§5 `PEKERJAAN.md`, kini **43 butir**) — izin eksplisit
+1. **Agen boleh mencentang daftar periksa manual** (§5 `PEKERJAAN.md`, kini **44 butir**) — izin eksplisit
    pemilik, menyimpang dari kalimat "hanya pemilik yang boleh mencentang" di berkas itu. Centang
    berdasarkan bukti terukur, dan sebutkan di laporan bukti apa yang dipakai.
 2. **Revisi boleh di-push ke `main`** setelah gate hijau dan rilis versi dinaikkan.

@@ -200,10 +200,26 @@ export async function markSessionDone(
   const perSession = await isPerSessionStudent(session.studentId);
   const tout = nowTimeWIB();
   const tin  = subtractHoursFromTime(tout, duration);
+  // ── Keputusan pemilik D2: nominal manual tidak boleh tertimpa otomatis ─────
+  //
+  // `costOverride` adalah koreksi yang **disadari** tutor (mis. sesi dipotong,
+  // tarif khusus, atau tambahan biaya). Sebelum ini baris `cost` di bawah selalu
+  // menulis hasil hitungan dari `rateSnapshot`, sehingga nominal manual yang
+  // diisi dari panel "Kelola sesi" hilang **tepat saat sesinya dicatat** — momen
+  // ketika angkanya mulai dipakai untuk menagih. Bug-nya tidak terlihat dari
+  // antarmuka: `costOverride` tetap tersimpan, hanya `cost` yang berbeda, dan
+  // yang dibaca tagihan adalah `cost`.
+  //
+  // Urutannya mengikat: nominal manual diperiksa **sebelum** hitungan otomatis.
+  // Perilaku lama untuk sesi tanpa nominal manual tidak berubah sama sekali.
+  const manual = session.costOverride;
+  const cost = typeof manual === "number" && manual > 0
+    ? manual
+    : sessionCost(session.rateSnapshot, duration, perSession);
   await db.sessions.update(id, {
     ...data,
     durationHours: duration,
-    cost: sessionCost(session.rateSnapshot, duration, perSession),
+    cost,
     timeIn:  session.timeIn  ?? tin,
     timeOut: session.timeOut ?? tout,
     status: "DONE",

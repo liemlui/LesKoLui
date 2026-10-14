@@ -310,6 +310,57 @@ describe("ubah jadwal tanpa menyentuh nominal", () => {
     expect(s.costOverride).toBe(175_000);
     expect(s.cost).toBe(175_000);
   });
+
+  /**
+   * Keputusan pemilik **D2**: "Nominal manual yang pernah diisi tutor adalah
+   * koreksi yang disadari dan tidak boleh tertimpa oleh perhitungan otomatis."
+   *
+   * Jalur yang dulu bocor: menutup sesi terjadwal (`markSessionDone`) menulis
+   * `cost: sessionCost(rateSnapshot, …)` **tanpa melihat `costOverride`**,
+   * sehingga nominal manual yang diisi tutor dari panel Kelola sesi hilang tepat
+   * saat sesinya dicatat — momen ketika angkanya mulai dipakai untuk menagih.
+   *
+   * Dua tes di bawah sengaja memakai murid **per pertemuan** (tarif flat) supaya
+   * nominal manual dan hitungan otomatisnya tidak mungkin kebetulan sama:
+   * dengan murid per jam, override 175.000 bisa sama dengan 1 jam × tarif, dan
+   * tes yang lulus karena kebetulan angka tidak membuktikan apa pun.
+   */
+  it("menutup sesi terjadwal TIDAK menghapus nominal manual tutor (D2)", async () => {
+    const sid = await createStudent(makeStudent("session_count"));
+    const sessionId = await scheduleSession({ studentId: sid, date: "2026-06-01", durationHours: 1.5 });
+    // Nominal manual diisi lebih dulu, persis seperti alur panel "Kelola sesi".
+    await updateSession(sessionId, { costOverride: 175_000 });
+
+    await markSessionDone(sessionId, { shortNote: "ok", durationHours: 2 });
+
+    const s = (await db.sessions.get(sessionId))!;
+    expect(s.status).toBe("DONE");
+    expect(s.costOverride).toBe(175_000);
+    expect(s.cost).toBe(175_000);
+  });
+
+  it("nominal manual bertahan juga saat durasinya tidak dikirim ke markSessionDone", async () => {
+    const sid = await createStudent(makeStudent("session_count"));
+    const sessionId = await scheduleSession({ studentId: sid, date: "2026-06-02", durationHours: 1.5 });
+    await updateSession(sessionId, { costOverride: 210_000 });
+
+    await markSessionDone(sessionId, { shortNote: "tanpa durasi" });
+
+    const s = (await db.sessions.get(sessionId))!;
+    expect(s.costOverride).toBe(210_000);
+    expect(s.cost).toBe(210_000);
+  });
+
+  it("tanpa nominal manual, menutup sesi tetap menghitung dari tarif (tidak ikut berubah)", async () => {
+    const sid = await createStudent(makeStudent("session_count"));
+    const sessionId = await scheduleSession({ studentId: sid, date: "2026-06-03", durationHours: 1.5 });
+
+    await markSessionDone(sessionId, { shortNote: "ok", durationHours: 2 });
+
+    const s = (await db.sessions.get(sessionId))!;
+    expect(s.costOverride).toBeUndefined();
+    expect(s.cost).toBe(RATE);
+  });
 });
 
 /**
