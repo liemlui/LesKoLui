@@ -39,6 +39,17 @@ export interface BackupSectionProps {
   jalur: JalurPemulihan;
   /** Pengubah jalur backup/restore (di luar komponen ini). */
   aksi: BackupHandlers;
+  /**
+   * Kata sandi enkripsi backup — **dipegang induk** (`Settings.tsx`), bukan di sini.
+   *
+   * Sebelumnya keadaan ini hidup di komponen ini sementara `aksi` dibuat di induk
+   * dengan `backupPass: ""`, sehingga setiap aksi yang lewat PIN selalu membaca
+   * sandi kosong (regresi v1.99.0). Sekarang satu keadaan saja: kolom di sini dan
+   * pengubah di induk membaca nilai yang sama.
+   */
+  backupPass: string;
+  /** Ubah kata sandi enkripsi (dipakai kolom isian + tombol "Generate"). */
+  setBackupPass: (v: string) => void;
   /** Ajukan aksi yang butuh PIN Keuangan. */
   mintaPin: (aksi: "exportBackup" | "exportCsv" | "restore" | "backupDrive" | "restoreDrive") => void;
   /** Notifikasi ringan. */
@@ -50,9 +61,8 @@ export interface BackupSectionProps {
 }
 
 export default function BackupSection({
-  form, jalur, aksi, mintaPin, toast,
+  form, jalur, aksi, backupPass, setBackupPass, mintaPin, toast,
 }: BackupSectionProps) {
-  const [backupPass, setBackupPass] = useState("");
   const [showBackupPass, setShowBackupPass] = useState(false);
   const [driveAuto, setDriveAuto] = useState(() => {
     try { return localStorage.getItem("leskolui_drive_auto") === "1"; } catch { return false; }

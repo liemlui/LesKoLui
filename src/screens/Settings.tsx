@@ -121,6 +121,23 @@ export default function SettingsPage() {
   const [pinAction,   setPinAction]   = useState<"exportBackup" | "restore" | "resetAll" | "backupDrive" | "restoreDrive" | "exportCsv" | null>(null);
 
   /**
+   * Kata sandi enkripsi backup — dipegang DI SINI, bukan di dalam `BackupSection`.
+   *
+   * **Ini perbaikan regresi v1.99.0 (G3-09 tahap 2).** Saat blok backup dipindah ke
+   * `settings/BackupSection.tsx`, keadaan ini ikut pindah ke sana sementara
+   * `buatBackupHandlers` di berkas ini tetap menerima `backupPass: ""` yang dikunci
+   * harfiah. Akibatnya SETIAP jalur yang lewat PIN — Backup ke File, Backup ke Drive,
+   * Restore dari File/Drive, dan Verifikasi Drive — selalu berhenti di pemeriksaan
+   * `!backupPass` dan menampilkan "Masukkan kata sandi backup!" / "Kata sandi enkripsi
+   * minimal 8 karakter!" walau kolomnya sudah diisi. Sebelum pemecahan itu, keadaan ini
+   * memang hidup di berkas ini dan closure-nya membaca nilai yang benar.
+   *
+   * Satu keadaan, dua pemakai (`aksiBackup` untuk logikanya, `BackupSection` untuk
+   * kolomnya) — supaya tidak mungkin lagi ada dua salinan yang bisa berbeda.
+   */
+  const [backupPass, setBackupPass] = useState("");
+
+  /**
    * Keadaan bersama jalur backup & pemulihan (G3-09 butir 5): satu jalur
    * berjalan = tombol lain nonaktif, dan tahapnya terlihat di layar.
    *
@@ -424,10 +441,14 @@ export default function SettingsPage() {
    * sana berarti membuat objek yang belum bisa dipakai. Objek baru setiap render
    * tidak merusak apa pun: `BackupSection` memakainya di dalam callback, bukan
    * sebagai dependensi efek.
+   *
+   * `backupPass` diteruskan dari keadaan di atas — **bukan lagi `""`**. Objek ini
+   * dibuat ulang setiap render, jadi closure-nya selalu memegang sandi terbaru
+   * yang diketik tutor (regresi v1.99.0: dulu dikunci `""`).
    */
   const aksiBackup = buatBackupHandlers({
     jalur,
-    backupPass: "",
+    backupPass,
     driveAuto: false,
     form,
     setForm,
@@ -529,6 +550,8 @@ export default function SettingsPage() {
         form={form}
         jalur={jalur}
         aksi={aksiBackup}
+        backupPass={backupPass}
+        setBackupPass={setBackupPass}
         mintaPin={(a) => requireFinancialPin(a)}
         toast={toastCtx}
       />
