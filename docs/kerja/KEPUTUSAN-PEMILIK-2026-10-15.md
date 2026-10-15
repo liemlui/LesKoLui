@@ -31,7 +31,7 @@
 | B7 | "oke" | Katalog tangkapan layar dirapikan (C-lanjutan) |
 | B8 | "selidiki di akhir" | Penyelidikan `SchemaError: DexieError` ditaruh di **akhir** antrean, bukan sekarang |
 | C1 | "setuju" | Tulis penjaga topik lintas mapel (dua mapel → topik keduanya muncul) |
-| C2 | **"nanti kita test"** | Perbaikan config Playwright (`uiux`, `sw`) **boleh diterapkan**, pengujiannya dijadwalkan pemilik — bukan tugas agen sekarang |
+| C2 | **"nanti kita test"** | Perbaikan config Playwright (`uiux`, `sw`) **boleh diterapkan**, pengujiannya dijadwalkan pemilik — bukan tugas agen sekarang. **Agen sudah mencoba menjalankannya 2026-10-15 dan tidak bisa:** `npx playwright test --config=playwright.uiux.config.ts` gagal `spawn EPERM` sebelum satu tes pun berjalan (sandbox melarang pipa antarproses; bahkan pembungkus `stdio: "inherit"` tidak menolong karena Playwright sendiri membuka pipa ke driver-nya). Jadi pengujiannya **tetap di tangan pemilik** — dan itu bukan kegagalan pekerjaan |
 | C3 | "kerjakan" | Katalog topik untuk mapel yang belum punya (58 pasang) |
 | C4 | "kerjakan" | Matikan `useWebWorker` pada pengecilan foto (3.270 ms → 325 ms, hasil identik byte-per-byte) |
 | C5 | "kerjakan" | Jejak audit untuk perubahan sesi |
