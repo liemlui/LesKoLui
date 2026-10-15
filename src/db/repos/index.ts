@@ -44,6 +44,7 @@ export {
   getLastDoneSession, getRecentDoneSessions,
   countSessionPhotos, pruneSessionPhotosBefore,
   shrinkSessionPhotosBefore, photoMaintenanceCutoff,
+  ringkasanPerubahanSesi,
 } from "./sessionRepo";
 export type { CancelMode, EditMode, PhotoShrinkResult } from "./sessionRepo";
 

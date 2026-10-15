@@ -336,6 +336,15 @@ export async function updateSession(id: string, patch: Partial<Session>): Promis
   }
 
   await db.sessions.update(id, finalPatch);
+
+  // ── Jejak audit (butir C5, keputusan pemilik 2026-10-15) ────────────────────
+  // Sebelum ini pembatalan, ketidakhadiran, penjadwalan ulang, dan penghapusan
+  // menulis jejak, sedangkan **mengubah** sesi tidak — padahal mengubah tanggal,
+  // jam, durasi, atau murid ikut menentukan apa yang ditagih. Yang dicatat hanya
+  // kolom yang benar-benar berubah, dan `logAudit` sendiri best-effort sehingga
+  // kegagalan menulis jejak tidak pernah menggagalkan penyimpanan sesi.
+  const jejak = ringkasanPerubahanSesi(session, finalPatch);
+  if (jejak) await logAudit("session.update", "session", id, jejak);
 }
 
 export async function listSessionsByStudent(studentId: string): Promise<Session[]> {
@@ -484,6 +493,42 @@ export async function listDoneSessionsForDate(date: string): Promise<Session[]> 
     .where("date").equals(date)
     .and((s) => s.status === "DONE")
     .toArray();
+}
+
+/** Kolom sesi yang perubahannya meninggalkan jejak audit (butir C5). */
+const KOLOM_JEJAK: ReadonlyArray<keyof Session> = [
+  "date", "time", "durationHours", "studentId", "subjects", "status", "cost", "costOverride", "topic",
+];
+
+/** Batas panjang satu nilai di dalam baris jejak — cukup untuk dibaca, tidak untuk mengopi catatan. */
+const JEJAK_MAKS = 40;
+
+function ringkasNilai(value: unknown): string {
+  if (value === undefined || value === null || value === "") return "—";
+  const teks = Array.isArray(value) ? value.join(", ") : String(value);
+  return teks.length > JEJAK_MAKS ? `${teks.slice(0, JEJAK_MAKS - 1)}…` : teks;
+}
+
+/**
+ * Ringkasan perubahan satu sesi untuk jejak audit — `date: 2026-10-01 → 2026-10-03 · jam: …`.
+ *
+ * Mengembalikan `undefined` bila tidak ada kolom yang benar-benar berubah, supaya
+ * penyimpanan yang tidak mengubah apa pun (mis. panel disimpan dua kali) tidak
+ * memenuhi Riwayat Aktivitas dengan baris kosong.
+ */
+export function ringkasanPerubahanSesi(
+  lama: Partial<Session> | undefined,
+  patch: Partial<Session>,
+): string | undefined {
+  const bagian: string[] = [];
+  for (const kolom of KOLOM_JEJAK) {
+    if (!(kolom in patch)) continue;
+    const sebelum = lama?.[kolom];
+    const sesudah = patch[kolom];
+    if (sebelum === sesudah) continue;
+    bagian.push(`${kolom}: ${ringkasNilai(sebelum)} → ${ringkasNilai(sesudah)}`);
+  }
+  return bagian.length > 0 ? bagian.join(" · ") : undefined;
 }
 
 export async function cancelSession(id: string, statusReason?: string): Promise<void> {

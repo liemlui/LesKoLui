@@ -173,7 +173,9 @@ export default function ReportTextsPanel({
               italic
               singleLine
             />
-            {tombolPerkuat("quote")}
+            {/* Tombol perkuat Kutipan sengaja TIDAK dipasang: keputusan pemilik
+                2026-10-15 (D11) membatasi tulisan AI ke Ringkasan · Catatan Guru ·
+                Rencana depan saja. Kutipan tetap bisa disunting tutor sendiri. */}
           </div>
         </div>
       )}

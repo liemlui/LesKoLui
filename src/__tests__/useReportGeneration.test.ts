@@ -28,8 +28,6 @@ vi.mock("../db/repos", () => ({
   updateSession: vi.fn(),
 }));
 
-import { AI_BATCH_MAX_SESSIONS } from "../lib/aiClient";
-import { sessionAiFingerprint } from "../lib/aiIncremental";
 import { useReportGeneration, type ReportGenerationDeps } from "../screens/monthlyReport/useReportGeneration";
 
 type Hook = ReturnType<typeof useReportGeneration>;
@@ -163,7 +161,15 @@ describe("useReportGeneration resilience", () => {
   });
 });
 
-describe("handleGenerateAll (satu tombol AI)", () => {
+/**
+ * Keputusan pemilik 2026-10-15 (D11) — bentuk "Isi Semua dengan AI" yang berlaku.
+ *
+ * Yang dijaga di sini bukan sekadar "isian terisi", melainkan **apa yang TIDAK
+ * boleh dilakukan tombol itu**: menulis ulang narasi/catatan sesi. Sebelum D11,
+ * tombol ini mengirim narasi per batch sesi lebih dulu — biayanya tumbuh
+ * mengikuti jumlah sesi, dan catatan yang sudah ditulis tutor ikut ditimpa.
+ */
+describe("handleGenerateAll (satu tombol AI) — D11: tiga isian saja", () => {
   beforeEach(() => {
     generateNarrativesMock.mockReset();
     generateReportSummaryMock.mockReset();
@@ -173,161 +179,132 @@ describe("handleGenerateAll (satu tombol AI)", () => {
     upsertReportMock.mockReset();
     applyAiNarrativeBatchMock.mockResolvedValue(undefined);
     upsertReportMock.mockResolvedValue("report-1");
-    // Perkuat per bagian (dipakai ringkasan bertahap untuk meringkas tiap batch).
-    generateReportFieldMock.mockImplementation(async (_field: string, input: NarrativesInput) => ({
-      summary: `Ringkasan bagian ${input.sessions.length} sesi`,
-    }));
+    // Jawaban mock mengikuti isian yang diminta — validator asli di `aiClient`
+    // memang menuntut kunci yang berbeda per isian.
+    generateReportFieldMock.mockImplementation(async (field: string) => {
+      if (field === "summaryText") return { summary: "Kesimpulan baru" };
+      if (field === "teacherNote") return { teacherNote: "Catatan guru baru" };
+      if (field === "nextMonthPlan") {
+        return { nextMonthPlan: { priorities: [{ target: "Latihan soal cerita", subject: "Matematika" }], parentSupport: "Dampingi 15 menit/hari" } };
+      }
+      return {};
+    });
     generateStagedSummaryMock.mockResolvedValue({ summary: "Kesimpulan dari ringkasan bagian" });
     vi.stubGlobal("navigator", { onLine: true });
   });
 
-  function echoBatch(input: NarrativesInput) {
-    return {
-      entries: input.sessions.map((session) => ({ id: session.id, narrative: `Narasi ${session.id}` })),
-      summary: "Ringkasan batch",
-    };
-  }
-
-  it("memecah sesi jadi batch kecil dan memanggil AI berurutan, bukan sekali untuk semua sesi", async () => {
+  it("TIDAK menulis ulang narasi sesi, dan hanya memanggil tiga isian", async () => {
     const sessions = makeDirtySessions(19);
-    const report = makeReport();
+    const report = { ...makeReport(), sessionIds: sessions.map((s) => s.id) };
     const messages: string[] = [];
     const hook = renderHook(makeDepsFor(sessions, report, messages));
-    generateNarrativesMock.mockImplementation(async (input: NarrativesInput) => echoBatch(input));
-    generateReportSummaryMock.mockResolvedValue({ summary: "Ringkasan baru", quote: "Kutipan baru" });
 
     await hook.handleGenerateAll();
 
-    const batchInputs = generateNarrativesMock.mock.calls.map((call) => call[0] as NarrativesInput);
-    expect(batchInputs.length).toBeGreaterThan(1);
-    for (const input of batchInputs) {
-      expect(input.sessions.length).toBeLessThanOrEqual(AI_BATCH_MAX_SESSIONS);
-      expect(input.sessions.length).toBeLessThan(sessions.length);
-    }
-    expect(batchInputs.map((input) => input.sessions.length)).toEqual([8, 8, 3]);
-    // Setiap batch sukses disimpan langsung — tidak menunggu akhir.
-    expect(applyAiNarrativeBatchMock).toHaveBeenCalledTimes(batchInputs.length);
-    expect(applyAiNarrativeBatchMock.mock.calls[0][1]).toHaveLength(8);
-    // Ringkasan TIDAK lagi satu panggilan atas seluruh sesi: laporan panjang
-    // memakai ringkasan bertahap (keputusan pemilik 2026-10-14), sehingga
-    // konteks panggilan terakhir tidak tumbuh mengikuti jumlah sesi.
-    expect(generateStagedSummaryMock).toHaveBeenCalledTimes(1);
-    const digests = (generateStagedSummaryMock.mock.calls[0][0] as { digests: string[]; sessionCount: number });
-    expect(digests.sessionCount).toBe(19);
-    expect(digests.digests).toHaveLength(3); // 8 + 8 + 3 sesi
-    // Ringkasan per bagian dijalankan sekali per batch, masing-masing kecil.
-    const batchSummaryCalls = generateReportFieldMock.mock.calls.filter((call) => call[0] === "summaryText");
-    expect(batchSummaryCalls).toHaveLength(3);
-    for (const call of batchSummaryCalls) {
-      expect((call[1] as NarrativesInput).sessions.length).toBeLessThanOrEqual(AI_BATCH_MAX_SESSIONS);
-    }
-    // Muatan panggilan terakhir adalah ringkasan bagian, bukan seluruh sesi —
-    // inilah yang membuat "konteks terlalu panjang" tidak terulang.
-    expect(digests.digests.every((digest) => typeof digest === "string" && digest.length > 0)).toBe(true);
-    expect((digests as unknown as { sessions?: unknown }).sessions).toBeUndefined();
-    expect(messages.at(-1)).toBe("Isi AI selesai ✓ 19 narasi + ringkasan, catatan guru & rencana depan terisi");
-  });
-
-  it("batch tengah yang gagal tidak menghapus batch yang sudah tersimpan", async () => {
-    const sessions = makeDirtySessions(19);
-    const report = makeReport();
-    const messages: string[] = [];
-    const hook = renderHook(makeDepsFor(sessions, report, messages));
-    let call = 0;
-    generateNarrativesMock.mockImplementation(async (input: NarrativesInput) => {
-      call += 1;
-      if (call === 2) throw new Error("AI timeout di batch 2");
-      return echoBatch(input);
-    });
-    generateReportSummaryMock.mockResolvedValue({ summary: "Ringkasan baru", quote: "Kutipan baru" });
-
-    await hook.handleGenerateAll();
-
-    expect(generateNarrativesMock).toHaveBeenCalledTimes(3);
-    // Batch 1 (8 sesi) dan batch 3 (3 sesi) tetap tersimpan.
-    expect(applyAiNarrativeBatchMock).toHaveBeenCalledTimes(2);
-    expect(applyAiNarrativeBatchMock.mock.calls[0][1]).toHaveLength(8);
-    expect(applyAiNarrativeBatchMock.mock.calls[1][1]).toHaveLength(3);
-    expect(messages.at(-1)).toContain("11 narasi tersimpan");
-    expect(messages.at(-1)).toContain("1 batch gagal (AI timeout di batch 2)");
-    expect(messages.at(-1)).toContain("ringkasan, catatan guru & rencana depan terisi");
-  });
-
-  it("tetap menulis ringkasan walau semua narasi sudah terbaru", async () => {
-    const session = makeSession();
-    session.narrative = "Narasi final";
-    session.aiNarrativeHash = sessionAiFingerprint(session);
-    const report = makeReport();
-    const messages: string[] = [];
-    const hook = renderHook(makeDepsFor([session], report, messages));
-    generateReportSummaryMock.mockResolvedValue({ summary: "Ringkasan baru", quote: "Kutipan baru" });
-
-    await hook.handleGenerateAll();
-
+    // Inilah inti D11: narasi sesi tidak disentuh sama sekali.
     expect(generateNarrativesMock).not.toHaveBeenCalled();
     expect(applyAiNarrativeBatchMock).not.toHaveBeenCalled();
-    expect(upsertReportMock).toHaveBeenCalledTimes(1);
-    expect(upsertReportMock.mock.calls[0][0]).toMatchObject({
-      summaryText: "Ringkasan baru", quote: "Kutipan baru",
-      summaryHash: expect.any(Number),
-    });
-    expect(messages.at(-1)).toContain("sudah terbaru");
+    for (const session of sessions) {
+      expect(session.narrative).toBeUndefined();
+      expect(session.aiNarrativeHash).toBeUndefined();
+    }
+    // Kutipan juga tidak ditulis AI lagi — bukan bagian dari tiga isian itu.
+    expect((upsertReportMock.mock.calls[0][0] as MonthlyReport).quote).toBe("Kutipan lama");
+    const written = upsertReportMock.mock.calls[0][0] as MonthlyReport;
+    // 19 sesi → kesimpulan datang dari ringkasan bertahap, bukan panggilan tunggal.
+    expect(written.summaryText).toBe("Kesimpulan dari ringkasan bagian");
+    expect(written.teacherNote).toBe("Catatan guru baru");
+    expect(written.nextMonthPlan?.priorities[0]?.target).toBe("Latihan soal cerita");
+    expect(messages.at(-1)).toBe("Isi AI selesai ✓ Ringkasan, Catatan Guru & Rencana depan terisi");
   });
 
-  // Regresi: tombol "Isi Semua dengan AI" sempat TIDAK mengisi kolom
-  // "Catatan Guru" karena catatan guru hanya berasal dari panggilan narasi,
-  // sementara field laporan hanya ditulis dari panggilan ringkasan.
-  it("mengisi Catatan Guru dan Rencana Depan, bukan hanya ringkasan & kutipan", async () => {
+  it("19 sesi tetap memakai ringkasan bertahap, dan panggilan isian tidak tumbuh mengikuti jumlah sesi", async () => {
+    const sessions = makeDirtySessions(19);
+    const report = { ...makeReport(), sessionIds: sessions.map((s) => s.id) };
+    const messages: string[] = [];
+    const hook = renderHook(makeDepsFor(sessions, report, messages));
+
+    await hook.handleGenerateAll();
+
+    expect(generateStagedSummaryMock).toHaveBeenCalledTimes(1);
+    const muatan = generateStagedSummaryMock.mock.calls[0][0] as { digests: string[]; sessionCount: number; sessions?: unknown };
+    expect(muatan.sessionCount).toBe(19);
+    expect(muatan.digests.length).toBeGreaterThan(1);
+    // Muatan terakhir hanya ringkasan bagian — bukan catatan sesi mentah.
+    expect(muatan.sessions).toBeUndefined();
+    // Dua isian lain dipanggil SEKALI masing-masing, berapa pun jumlah sesinya.
+    const perIsian = generateReportFieldMock.mock.calls.filter((call) => call[0] !== "summaryText");
+    expect(perIsian.map((call) => call[0])).toEqual(["teacherNote", "nextMonthPlan"]);
+  });
+
+  it("laporan kecil: satu panggilan kesimpulan, tanpa ringkasan bertahap", async () => {
     const session = makeSession();
     const report = makeReport();
     const messages: string[] = [];
     const hook = renderHook(makeDepsFor([session], report, messages));
-    generateNarrativesMock.mockImplementation(async (input: NarrativesInput) => ({
-      entries: input.sessions.map((s) => ({ id: s.id, narrative: "Narasi AI" })),
-      summary: "Ringkasan dari narasi",
-      teacherNote: "Catatan guru dari batch",
-      quote: "Kutipan dari batch",
-    }));
-    generateReportSummaryMock.mockResolvedValue({
-      summary: "Ringkasan periode",
-      teacherNote: "Kemajuan terbesar: aljabar; fokus berikutnya: soal cerita.",
-      quote: "Semangat, Murid!",
-      nextMonthPlan: { priorities: [{ target: "Selesaikan 10 soal cerita", subject: "Matematika" }], parentSupport: "Dampingi 15 menit/hari" },
-    });
 
-    await hook.handleGenerateAll(true);
+    await hook.handleGenerateAll();
 
-    expect(upsertReportMock).toHaveBeenCalledTimes(1);
-    const written = upsertReportMock.mock.calls[0][0] as MonthlyReport;
-    expect(written.teacherNote).toBe("Kemajuan terbesar: aljabar; fokus berikutnya: soal cerita.");
-    expect(written.summaryText).toBe("Ringkasan periode");
-    expect(written.quote).toBe("Semangat, Murid!");
-    expect(written.nextMonthPlan?.priorities[0]?.target).toBe("Selesaikan 10 soal cerita");
-    expect(written.nextMonthPlan?.parentSupport).toBe("Dampingi 15 menit/hari");
-    expect(messages.at(-1)).toContain("catatan guru");
+    expect(generateStagedSummaryMock).not.toHaveBeenCalled();
+    expect(generateReportFieldMock.mock.calls.map((call) => call[0]))
+      .toEqual(["summaryText", "teacherNote", "nextMonthPlan"]);
   });
 
-  it("memakai catatan guru & rencana dari batch penuh bila panggilan ringkasan gagal", async () => {
+  it("satu isian gagal tidak menjatuhkan isian lain — yang gagal disebut namanya", async () => {
     const session = makeSession();
     const report = makeReport();
     const messages: string[] = [];
     const hook = renderHook(makeDepsFor([session], report, messages));
-    generateNarrativesMock.mockImplementation(async (input: NarrativesInput) => ({
-      entries: input.sessions.map((s) => ({ id: s.id, narrative: "Narasi AI" })),
-      summary: "Ringkasan dari narasi",
-      teacherNote: "Catatan guru dari batch penuh",
-      quote: "Kutipan dari batch penuh",
-      nextMonthPlan: { priorities: [{ target: "Latihan tiap hari", subject: "Matematika" }] },
-    }));
-    generateReportSummaryMock.mockRejectedValue(new Error("AI timeout"));
+    generateReportFieldMock.mockImplementation(async (field: string) => {
+      if (field === "teacherNote") throw new Error("konteks terlalu panjang");
+      if (field === "summaryText") return { summary: "Kesimpulan baru" };
+      return { nextMonthPlan: { priorities: [{ target: "Latihan", subject: "Matematika" }] } };
+    });
 
-    await hook.handleGenerateAll(true);
+    await hook.handleGenerateAll();
 
     const written = upsertReportMock.mock.calls[0][0] as MonthlyReport;
-    expect(written.teacherNote).toBe("Catatan guru dari batch penuh");
-    expect(written.quote).toBe("Kutipan dari batch penuh");
-    expect(written.nextMonthPlan?.priorities[0]?.target).toBe("Latihan tiap hari");
-    expect(messages.at(-1)).toContain("catatan guru dari batch tetap disimpan");
+    expect(written.summaryText).toBe("Kesimpulan baru");
+    expect(written.teacherNote).toBe("Catatan lama"); // tidak dikosongkan
+    expect(written.nextMonthPlan?.priorities[0]?.target).toBe("Latihan");
+    // `hook` memegang hasil render PERTAMA (renderToStaticMarkup tidak
+    // me-render ulang), jadi keadaan `aiResult` dibaca lewat pesan yang
+    // dihasilkan putaran itu — bukan lewat objek hook.
+    expect(messages.at(-1)).toContain("Isi AI sebagian");
+    expect(messages.at(-1)).toContain("Catatan Guru");
+    expect(messages.at(-1)).toContain("gagal");
+  });
+
+  it("semua isian gagal: tidak ada penulisan, dan tutor diberi tahu sebabnya", async () => {
+    const session = makeSession();
+    const report = makeReport();
+    const messages: string[] = [];
+    const hook = renderHook(makeDepsFor([session], report, messages));
+    generateReportFieldMock.mockRejectedValue(new Error("AI timeout"));
+
+    await hook.handleGenerateAll();
+
+    expect(upsertReportMock).not.toHaveBeenCalled();
+    expect(messages.at(-1)).toContain("Gagal");
+    expect(messages.at(-1)).toContain("AI timeout");
+  });
+
+  it("retryFailedAi menjalankan ulang ketiga isian, bukan hanya yang gagal", async () => {
+    const session = makeSession();
+    const report = makeReport();
+    const messages: string[] = [];
+    const hook = renderHook(makeDepsFor([session], report, messages));
+    generateReportFieldMock.mockRejectedValueOnce(new Error("AI timeout"));
+
+    await hook.handleGenerateAll();
+    generateReportFieldMock.mockClear();
+    generateReportFieldMock.mockImplementation(async (field: string) =>
+      field === "teacherNote" ? { teacherNote: "Catatan guru baru" } : { summary: "Kesimpulan baru" });
+
+    await hook.retryFailedAi();
+
+    expect(generateReportFieldMock.mock.calls.map((call) => call[0]))
+      .toEqual(["summaryText", "teacherNote", "nextMonthPlan"]);
   });
 });
 

@@ -493,6 +493,13 @@ export interface StudyNote {
 export type AuditAction =
   | "session.delete"
   | "session.cancel"
+  /**
+   * Satu sesi **diubah** (bukan dibatalkan, bukan dihapus) — butir C5, keputusan
+   * pemilik 2026-10-15. Sebelum ini hanya pembatalan, ketidakhadiran,
+   * penjadwalan ulang, penghapusan, dan pembatalan seri yang meninggalkan jejak,
+   * padahal mengubah tanggal/jam/durasi/murid juga mengubah apa yang ditagih.
+   */
+  | "session.update"
   | "session.no_show"
   | "session.reschedule"
   | "session.reprice"

@@ -148,6 +148,22 @@ describe("ManageSessionSheet — panel dari bawah dengan aksi yang terlihat", ()
     // `hapus` ada di `⋯`, jadi kalimatnya menjelaskan bahwa ada langkah pastikan.
     expect(markup("terjadwal")).toContain("Aksi lain");
   });
+
+  it("membedakan akibat 'Batalkan sesi' dari 'Hapus' — keputusan pemilik 2026-10-15", () => {
+    // Keluhan pemilik apa adanya: "hapus jadwal dan batalkan sesi juga membuat
+    // binggung". Karena itu tiap aksi wajib menyebut akibatnya sendiri, dan
+    // kalimat `hapus` harus menyebut bedanya secara eksplisit.
+    const batal = aksiSesi({ kontek: "terjadwal", berseri: false });
+    const hapus = batal.find((aksi) => aksi.id === "hapus");
+    const batalkan = batal.find((aksi) => aksi.id === "batalkan-sesi");
+    expect(batalkan?.keterangan).toContain("tetap terlihat di riwayat murid");
+    expect(batalkan?.keterangan).toContain("tidak masuk tagihan");
+    expect(hapus?.label).toBe("Hapus permanen");
+    expect(hapus?.keterangan).toContain("Berbeda dari");
+    expect(hapus?.keterangan).toContain("tidak bisa dikembalikan");
+    // Dua aksi berbeda tidak boleh berbunyi sama persis — itulah sumber bingungnya.
+    expect(batalkan?.keterangan).not.toBe(hapus?.keterangan);
+  });
 });
 
 describe("ManageSessionSheet — yang tidak boleh hilang dari aksi terpilih", () => {

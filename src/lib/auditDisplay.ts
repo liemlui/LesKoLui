@@ -36,6 +36,7 @@ export function auditDayLabel(ts: string, now: Date = new Date()): string {
 export const AUDIT_LABEL: Record<AuditAction, string> = {
   "session.delete": "Hapus sesi",
   "session.cancel": "Batalkan sesi",
+  "session.update": "Ubah sesi",
   "session.no_show": "Tandai tidak hadir",
   "session.reschedule": "Jadwalkan ulang sesi",
   "session.reprice": "Ubah tarif sesi lama (retroaktif)",

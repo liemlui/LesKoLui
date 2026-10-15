@@ -31,7 +31,12 @@ export default defineConfig({
   ],
   webServer: {
     // Port dipin agar cocok dengan baseURL (vite default 5173).
-    command: "npm run dev -- --port 5174 --strictPort",
+    // **Bentuk `npx vite`, bukan `npm run dev --`** — keputusan D10 diperluas ke
+    // berkas ini 2026-10-15 (butir C2): npm menelan `--port`, sehingga Vite
+    // membaca `5174` sebagai root direktori dan membalas 404 di semua permintaan
+    // sambil tetap mencetak URL yang tampak benar. Perbaikannya menyamakan bentuk
+    // dengan `playwright.config.ts`; pengujiannya dijadwalkan pemilik.
+    command: "npx vite --port 5174 --strictPort",
     url: "http://localhost:5174",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

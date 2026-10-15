@@ -1,13 +1,13 @@
 {
   "name": "les-ko-lui",
   "private": true,
-  "version": "1.110.0",
+  "version": "1.111.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "check:docs": "node scripts/check-md-links.mjs && node scripts/check-docs.mjs",
+    "check:docs": "node scripts/check-docs-checklist.selftest.mjs && node scripts/check-docs-checklist.mjs && node scripts/check-md-links.mjs && node scripts/check-docs.mjs",
     "measure": "node scripts/measure.mjs",
     "test": "vitest run",
     "test:sandbox": "vitest run --pool=threads --maxWorkers=2",

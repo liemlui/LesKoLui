@@ -1,11 +1,27 @@
 import imageCompression from "browser-image-compression";
 import { PHOTO_MAX_PX } from "../db/types";
 
+/**
+ * **`useWebWorker: false` — keputusan pemilik 2026-10-15 (butir C4).**
+ *
+ * Diukur di Chromium lewat `.design-audit/g3-07/measure.mjs` pada gambar
+ * 3000×4000 px: dengan web worker **3.270 ms**, tanpa web worker **325 ms** —
+ * sepuluh kali lebih lambat, dengan hasil **identik byte-per-byte**
+ * (105.414 byte, 480×640, `image/jpeg`). Pengecilan tetap berjalan asinkron di
+ * jalur ini, jadi yang dibayar dengan worker adalah waktu tunggu tutor, bukan
+ * kelancaran layar.
+ *
+ * Angka itu diukur pada jalur **foto murid** (G3-07); `compressPhoto` dipakai
+ * tiga tempat — foto murid, foto sesi (`CaptureSession`, `SessionNoteEditModal`),
+ * dan logo di Pengaturan — sehingga satu perubahan di sini memperbaiki ketiganya.
+ * Yang perlu diperiksa manusia: pratinjau foto tetap tidak membekukan layar
+ * (masuk daftar periksa, bukan diklaim dari sini).
+ */
 export async function compressPhoto(file: File): Promise<Blob> {
   return imageCompression(file, {
     maxWidthOrHeight: PHOTO_MAX_PX,
     maxSizeMB: 0.15,
-    useWebWorker: true,
+    useWebWorker: false,
     fileType: "image/jpeg",
     initialQuality: 0.65,
   });
@@ -32,7 +48,9 @@ export async function shrinkPhotoBlob(blob: Blob): Promise<Blob | undefined> {
       {
         maxWidthOrHeight: SHRUNK_PHOTO_MAX_PX,
         maxSizeMB: SHRUNK_PHOTO_MAX_MB,
-        useWebWorker: true,
+        // Sama seperti `compressPhoto`: web worker 10× lebih lambat tanpa
+        // mengubah hasil (lihat catatan di atas).
+        useWebWorker: false,
         fileType: "image/jpeg",
         initialQuality: 0.6,
       },

@@ -158,6 +158,22 @@ Pertanyaan baru ke pemilik hanya sah untuk tiga hal: mengubah uang, mengubah per
 | D9 | **Memperbaiki durasi sesi tidak boleh menghapus nominal manual tutor.** Modal catatan sesi menampilkan catatan berisi kedua angka — nominal manual yang tetap dipakai dan perkiraan hitungan otomatis untuk durasi baru — beserta satu tombol untuk berpindah ke hitungan itu. | `updateSession` dan `updateSeriesSessions` menulis `cost` berpasangan dengan `costOverride` (bukan menghitung ulang lalu membuang nominalnya). Perilaku ini bertabrakan dengan perilaku lama W3/W7 di TASK-10 L1, yang karena itu **dicabut**: tes `sessionPricing.test.ts` yang dulu menuntut "durasi berubah → override dilepas" sekarang menuntut sebaliknya, dan sisi lainnya (sesi tanpa nominal manual tetap menghitung ulang) dijaga tes terpisah. Penjaga browser: `e2e/session-cost-manual.spec.ts`. |
 | D10 | **`playwright.config.ts` boleh diperbaiki pada bagian `webServer`.** | Perintahnya menjadi `npx vite --port 5174 --strictPort`. Bentuk lama `npm run dev -- --port 5174 --strictPort` tidak pernah bisa jalan: npm menelan `--port` sehingga Vite membaca `5174` sebagai root direktori dan membalas 404 di semua permintaan. Ini keputusan yang membuka larangan §3 untuk satu baris itu saja — bukan izin mengubah konfigurasi lain. |
 
+### 4.6 Keputusan pemilik 2026-10-15 (bentuk teks laporan + putusan atas temuan)
+
+> Bagian **baru di akhir §4**, bukan sisipan — nomor §4.1–§4.5 dan §5–§8 tidak bergeser (jebakan §7).
+
+| Nomor | Keputusan | Akibat yang mengikat |
+|---|---|---|
+| D11 | **"Isi Semua dengan AI" di laporan bulanan hanya menulis Ringkasan · Catatan Guru · Rencana depan — tidak menulis ulang catatan atau narasi sesi.** Alasan pemilik: *"orang tua juga males bacanya"*. | Tombol itu **tidak** memanggil `generateNarratives` lagi; narasi sesi tetap apa adanya. Tombol perkuat **Kutipan** dihapus dari layar. Batas panjang wajib: ringkasan **maks 4 kalimat**, catatan guru **maks 3 kalimat**, rencana **maks 3 prioritas**. |
+| D12 | **Prompt di `src/lib/aiClient.ts` boleh diubah untuk menegakkan batas panjang D11** — dan hanya untuk itu. | Ini keputusan yang membuka larangan §3 untuk berkas itu **pada bagian `PANDUAN_RINGKASAN`, `PANDUAN_CATATAN_GURU`, dan `PANDUAN_RENCANA`**. Bukan izin mengubah prompt fitur lain (draft catatan, poles WA, analisis keuangan) tanpa keputusan baru. |
+| D13 | **Satu butir daftar periksa manual = satu tanda.** Tanda yang sah hanya `✅` (ditutup dengan bukti) dan `⏭` (dilewati atas keputusan pemilik). | Tanda `⏳` **dihapus** dari daftar periksa. Kalimat penghitung ("dua puluh dua butir sudah bertanda") **dihapus** dari dokumen — penghitungnya mesin. Pemeriksa + self-test dipasang di `npm run check:docs`. |
+| D14 | Butir **39** (reset total) tetap **dilewati** atas keputusan pemilik, dan butir **42** tetap **tanpa tanda** karena bagian (b)-nya belum dibuktikan di perangkat. | Jangan menjalankan reset total, dan jangan mencentang butir 42. Keduanya **tidak boleh ditanyakan lagi**. |
+| D15 | Temuan **dua mapel → daftar topik** dinyatakan pemilik **sudah sesuai**; yang diminta tinggal penjaganya. | Yang dikerjakan adalah **tes penjaga** (dua mapel → topik kedua mapel ikut muncul), bukan perbaikan perilaku. |
+| D16 | **"Batalkan sesi" dan "Hapus" harus dibedakan jelas** di antarmuka — pemilik menyebut keduanya *"membinggungkan"*. | Teks akibat tiap aksi wajib menyebut bedanya: batalkan = tetap terlihat di riwayat, tidak masuk tagihan; hapus = hilang dari jadwal **dan** riwayat, tidak bisa dikembalikan. |
+| D17 | Jadwalkan ulang **tidak** meneruskan nominal manual, tetapi **memberi tahu tutor** bahwa nominalnya dilepas (pilihan (b) pemilik). | `rescheduleSession` tidak meneruskan `costOverride`; konfirmasi menyebutnya lebih dulu. Dilarang mengubah angka yang ditagih tanpa pemberitahuan. |
+
+**Putusan lengkap atas 25 butir temuan 2026-10-15** (A1–A8 · B1–B8 · C1–C9) beserta alasan dan keadaan pekerjaannya ada di [`KEPUTUSAN-PEMILIK-2026-10-15.md`](KEPUTUSAN-PEMILIK-2026-10-15.md). Berkas itu yang dibaca sebelum bertanya; bagian ini hanya menegaskan yang mengikat.
+
 ---
 
 ## 5. Fakta kode yang mengikat

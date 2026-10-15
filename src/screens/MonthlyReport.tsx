@@ -19,7 +19,7 @@ import {
   reportIdsWithInvoice,
 } from "../db/repos/helpers";
 import { pickTemplate } from "../lib/rotation";
-import { estimateReportSummaryCost, estimateNarrativesCost, estimateReportFieldCost, AI_BATCH_MAX_SESSIONS, type AiReportFieldKey } from "../lib/aiClient";
+import { estimateReportFieldCost, AI_BATCH_MAX_SESSIONS, type AiReportFieldKey } from "../lib/aiClient";
 import { formatIdrNumber } from "../lib/finance";
 import {
   resolveReportMutationTarget,
@@ -47,7 +47,6 @@ import { useReportData } from "./monthlyReport/useReportData";
 import Breadcrumb from "../components/Breadcrumb";
 import { clampPage, paginateItems } from "../lib/pagination";
 import { sessionEngagementScore, engagementAverage } from "../lib/engagement";
-import { pickDirtyNarrativeSessions } from "../lib/aiIncremental";
 import type {
   ReportOptions, CustomTheme, Theme,
 } from "../template/types";
@@ -73,6 +72,17 @@ import { EXPORT_STAGE_LABEL } from "./monthlyReport/useReportExport";
 
 /** Jumlah sesi per halaman bawaan — nilai ini ikut tersimpan ke laporan (butir 10). */
 const DEFAULT_ENTRIES_PER_PAGE = 3;
+
+/**
+ * Isian laporan yang diisi tombol "Isi Semua dengan AI" — **keputusan pemilik
+ * 2026-10-15 (D11)**: hanya ketiga isian ini, dan narasi/catatan sesi tidak
+ * ditulis ulang karena orang tua membaca versi ringkas.
+ *
+ * Daftar ini sengaja ditaruh di modul layar (bukan di `aiClient`) supaya
+ * perkiraan biaya yang ditampilkan tombol dihitung dari **isian yang benar-benar
+ * akan dipanggil** — kalau daftarnya berubah, angkanya ikut berubah sendiri.
+ */
+const ESTIMASI_ISIAN_LAPORAN: readonly AiReportFieldKey[] = ["summaryText", "teacherNote", "nextMonthPlan"];
 
 /**
  * MonthlyReportPage — halaman pembuatan laporan perkembangan per periode.
@@ -112,7 +122,8 @@ export default function MonthlyReportPage() {
   // Narasi yang sedang disunting + penyimpanan otomatisnya (G3-05 butir 9).
   // Draf ringkasan/catatan guru/kutipan hidup di dalam ReportTextsPanel.
   const [narrativeEdit, setNarrativeEdit] = useState<{ id: string; text: string } | null>(null);
-  const [forceNarratives, setForceNarratives] = useState(false);
+  // Catatan: `forceNarratives` dihapus 2026-10-15 (D11) — "Isi Semua dengan AI"
+  // tidak lagi menyentuh narasi sesi, jadi tidak ada lagi yang perlu dipaksa.
   // G3-04: satu jalur panggilan AI berbiaya. Modal biayanya datang dari hook ini.
   const ai = useAiAction();
   // Buka kunci laporan final → draft (konfirmasi → PIN → aksi).
@@ -512,7 +523,6 @@ export default function MonthlyReportPage() {
   // yang sedang tersaring. Cakupan penyaringnya ditampilkan sebagai chip.
   const sessionsWithNarrativeAll = reportSessions
     .filter((s) => Boolean(s.narrative?.trim() || s.shortNote?.trim())).length;
-  const narrativeDirtyCount = useMemo(() => pickDirtyNarrativeSessions(reportSessions).dirty.length, [reportSessions]);
   // Cakupan data kondisi (audit P3 #17): rata-rata skor WAJIB punya penyebut,
   // supaya "7/10" tidak dibaca sebagai penilaian atas SEMUA sesi padahal hanya
   // sebagian sesi yang mencatat kondisi. `sessionEngagementScore` mengembalikan
@@ -665,7 +675,7 @@ export default function MonthlyReportPage() {
   const {
     aiLoading, aiProgress, aiResult, clearAiResult, prevTexts, setPrevTexts, invalidateAiRequests,
     handleGenerateAll, handlePerkuatBagian,
-    pickFailedSessions, retryFailedAi,
+    retryFailedAi,
     handleGenerateLocalNarratives, handleGenerateLocalTexts,
   } = useReportGeneration({    student,
     report,
@@ -1274,30 +1284,24 @@ export default function MonthlyReportPage() {
                 onClick={() => {
                   // G3-04: perkiraan dihitung sekali di sini, lalu angka yang sama
                   // dipakai untuk modal sekaligus catatan biaya.
-                  const perkiraan = estimateNarrativesCost(forceNarratives ? reportSessions.length : narrativeDirtyCount)
-                    + estimateReportSummaryCost(reportSessions.length);
+                  // **Keputusan pemilik 2026-10-15 (D11):** yang diisi AI hanya tiga
+                  // isian laporan. Perkiraannya dijumlah dari ketiga isian itu, dan
+                  // angkanya tidak lagi tumbuh karena jumlah narasi sesi.
+                  const perkiraan = ESTIMASI_ISIAN_LAPORAN.reduce(
+                    (total, bagian) => total + estimateReportFieldCost(bagian, reportSessions.length),
+                    0,
+                  );
                   ai.jalankan({
                     title: "Isi Semua dengan AI",
                     fitur: "Ringkasan laporan",
                     estimatedIDR: perkiraan,
-                    description: `Narasi ${forceNarratives ? reportSessions.length : narrativeDirtyCount} sesi ditulis dalam batch kecil (maks 8 sesi per panggilan) supaya laporan panjang tidak lagi gagal karena batas token, lalu satu panggilan ringkasan mengisi ringkasan, catatan guru, kutipan & rencana depan untuk ${student?.name ?? "murid"}.${!forceNarratives && narrativeDirtyCount === 0 ? " Semua narasi sudah terbaru — ringkasan, catatan guru & rencana depan tetap diisi." : ""}`,
+                    description: `Mengisi Ringkasan, Catatan Guru, dan Rencana depan untuk ${student?.name ?? "murid"} — tiga panggilan kecil, satu per isian. Catatan dan narasi tiap sesi TIDAK ditulis ulang; keduanya tetap seperti yang sudah Anda tulis.`,
                     dataSent: "Nama dan level murid, periode laporan, serta ID, tanggal, mapel dan catatan sesi yang dipilih. Bila tersedia: mood, topik, area perhatian, prediksi dan nilai akhir, refleksi nilai, skor engagement, label perilaku dan respons, serta rata-rata engagement periode sebelumnya.",
-                    extraContent: (
-                      <label className="mt-3 flex cursor-pointer select-none items-start gap-2 text-xs text-[var(--ink-muted)]">
-                        <input
-                          type="checkbox"
-                          checked={forceNarratives}
-                          onChange={(e) => setForceNarratives(e.target.checked)}
-                          className="mt-0.5 h-4 w-4 accent-[var(--border-accent)]"
-                        />
-                        <span>Tulis ulang paksa semua narasi (lewati hemat token)</span>
-                      </label>
-                    ),
-                    aksi: () => handleGenerateAll(forceNarratives),
+                    aksi: () => handleGenerateAll(),
                   });
                 }}
                 disabled={aiLoading || !availability.ok || Boolean(ai.alasanNonaktif)}
-                title={ai.alasanNonaktif || "AI mengisi semua isian: narasi tiap sesi (per batch kecil) + ringkasan, catatan guru, kutipan & rencana depan"}
+                title={ai.alasanNonaktif || "AI mengisi Ringkasan, Catatan Guru, dan Rencana depan — tanpa menulis ulang narasi sesi"}
               >
                 {aiLoading ? `AI ${aiProgress?.step ?? "…"}` : "Isi Semua dengan AI"}
               </button>
@@ -1315,15 +1319,17 @@ export default function MonthlyReportPage() {
               retryDisabled={aiLoading || Boolean(ai.alasanNonaktif)}
               retryDisabledReason={ai.alasanNonaktif || undefined}
               onRetry={() => {
-                const targets = pickFailedSessions();
-                const summaryRetry = aiResult?.summary.ok === false;
+                // D11: yang diulang adalah ketiga isian laporan, bukan narasi sesi.
+                const perkiraan = ESTIMASI_ISIAN_LAPORAN.reduce(
+                  (total, bagian) => total + estimateReportFieldCost(bagian, reportSessions.length),
+                  0,
+                );
                 ai.jalankan({
-                  title: "Ulangi sesi yang gagal",
+                  title: "Ulangi Isi Laporan dengan AI",
                   fitur: "Ringkasan laporan",
-                  estimatedIDR: estimateNarrativesCost(targets.length)
-                    + (summaryRetry ? estimateReportSummaryCost(reportSessions.length) : 0),
-                  description: `Menulis ulang narasi ${targets.length} sesi yang gagal pada putaran terakhir${summaryRetry ? ", ditambah satu panggilan ringkasan yang juga gagal" : ""} untuk ${student?.name ?? "murid"}.`,
-                  dataSent: "Hanya sesi yang gagal pada putaran terakhir — tanggal, mapel, dan catatan sesinya.",
+                  estimatedIDR: perkiraan,
+                  description: `Mencoba ulang ketiga isian laporan untuk ${student?.name ?? "murid"}: Ringkasan, Catatan Guru, dan Rencana depan. Narasi sesi tidak disentuh.`,
+                  dataSent: "Nama dan level murid, periode laporan, serta tanggal, mapel, dan catatan seluruh sesi pada periode ini.",
                   aksi: () => retryFailedAi(),
                 });
               }}

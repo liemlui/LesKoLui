@@ -206,7 +206,7 @@ interface Metrics {
 }
 
 /* ---------- daftar layar yang dijaga ---------- */
-type ScreenId = "beranda" | "murid" | "detail-murid" | "catat-sesi" | "laporan" | "keuangan" | "keuangan-tagihan" | "pengaturan";
+type ScreenId = "beranda" | "murid" | "detail-murid" | "catat-sesi" | "laporan" | "keuangan" | "keuangan-tagihan" | "keuangan-ringkasan" | "pengaturan";
 
 const SCREENS: Array<{ id: ScreenId; title: string }> = [
   { id: "beranda", title: "Beranda (/)" },
@@ -222,6 +222,12 @@ const SCREENS: Array<{ id: ScreenId; title: string }> = [
   // Sub-layar tagihan masuk cakupan atas keputusan D4, dan panel filter
   // lanjutan (K-06) hidup di sini — sebelumnya tidak punya penjaga otomatis.
   { id: "keuangan-tagihan", title: "Keuangan — sub-layar Tagihan (/payments?tab=tagihan)" },
+  // Sub-layar analitik masuk cakupan 2026-10-15 (butir C6) atas keputusan pemilik.
+  // Alasannya regresi nyata, bukan kerapian: cacat urutan `yRange` pada `LineChart`
+  // (G3-08) menjatuhkan SELURUH sub-layar ini ke batas galat, dan lolos dari
+  // `tsc -b`, seluruh suite tes, DAN `e2e:uiux` — yang menemukannya tangkapan layar.
+  // Tiga grafik hidup di sini (tren kas, potensi per murid, donat pengeluaran).
+  { id: "keuangan-ringkasan", title: "Keuangan — sub-layar Analitik (/payments?tab=ringkasan)" },
   { id: "pengaturan", title: "Pengaturan (/settings)" },
 ];
 
@@ -302,6 +308,14 @@ async function openScreen(page: Page, id: ScreenId) {
       break;
     case "keuangan-tagihan":
       await page.goto("/payments?tab=tagihan");
+      await page.waitForTimeout(3000);
+      await dismissOverlays(page);
+      await openPin(page);
+      break;
+    case "keuangan-ringkasan":
+      // Sub-layar analitik: di sinilah tiga grafik hidup. Dibuka lewat parameter
+      // tab langsung supaya tidak bergantung pada tombol pintasan.
+      await page.goto("/payments?tab=ringkasan");
       await page.waitForTimeout(3000);
       await dismissOverlays(page);
       await openPin(page);

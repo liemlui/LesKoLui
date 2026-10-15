@@ -6,6 +6,12 @@
  * MANA yang gagal, jadi tidak bisa memperbaikinya satu per satu. Panel ini
  * menampilkan daftar berhasil/gagal, bilah kemajuan, pengumuman status, dan
  * tombol "Ulangi yang gagal".
+ *
+ * **Sejak keputusan pemilik 2026-10-15 (D11)** yang diisi AI tinggal tiga
+ * **isian laporan** (Ringkasan · Catatan Guru · Rencana depan), bukan narasi per
+ * sesi. Karena itu daftar di panel ini memuat nama isian, bukan nama sesi —
+ * bentuk panelnya sengaja tidak diubah supaya kegagalan satu isian tetap terlihat
+ * dan tetap bisa diulang.
  */
 
 import type { AiRunResult } from "./useReportGeneration";
@@ -33,8 +39,8 @@ export default function ReportAiResultPanel({
   const failedCount = result?.failed.length ?? 0;
   const summaryText = result
     ? [
-      `${okCount} sesi berhasil`,
-      failedCount > 0 ? `${failedCount} sesi gagal` : "tidak ada yang gagal",
+      `${okCount} isian berhasil`,
+      failedCount > 0 ? `${failedCount} isian gagal` : "tidak ada yang gagal",
       result.summary.ok ? "ringkasan terisi" : `ringkasan gagal${result.summary.error ? ` (${result.summary.error})` : ""}`,
     ].join(" · ")
     : "";
@@ -64,7 +70,7 @@ export default function ReportAiResultPanel({
           </p>
           <div
             role="progressbar"
-            aria-label="Kemajuan penulisan narasi AI"
+            aria-label="Kemajuan penulisan isian laporan"
             aria-valuemin={0}
             aria-valuemax={Math.max(1, progress.total)}
             aria-valuenow={Math.min(progress.done, progress.total)}

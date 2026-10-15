@@ -11,6 +11,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.111.0",
+    date: "2026-10-15",
+    title: "Tombol \"Isi Semua dengan AI\" tidak lagi menulis ulang catatan sesi — hanya Ringkasan, Catatan Guru, dan Rencana; beda \"Batalkan sesi\" dan \"Hapus\" kini tertulis",
+    items: [
+      "**Tombol \"Isi Semua dengan AI\" sekarang mengisi tiga bagian saja: Ringkasan, Catatan Guru, dan Rencana depan — catatan dan narasi tiap sesi TIDAK ditulis ulang.** Ini yang Anda putuskan setelah mencobanya: *\"Isi semua dengan AI masih gagal… tidak perlu tulis ulang catatan atau narasi sesi, cukup bagian Ringkasan, catatan guru dan Rencana depan aja.\"* Yang berubah: dulu tombol ini menulis ulang narasi **setiap** sesi lebih dulu (satu panggilan AI per kelompok 8 sesi), baru menyusun ringkasan — sehingga pekerjaan Anda menulis narasi di alur Catat Sesi ikut ditimpa, dan biayanya tumbuh mengikuti jumlah sesi. Sekarang yang dipanggil hanya tiga bagian, masing-masing satu panggilan kecil, dan **kegagalan satu bagian tidak lagi mengosongkan bagian lain** — bagian yang gagal disebut namanya dan bisa diulang.",
+      "**Tulisannya dibatasi panjangnya, karena yang membaca orang tua.** *\"Itu juga batasi jangan terlalu panjang, orang tua juga males bacanya.\"* Ringkasan maksimal **4 kalimat**, Catatan Guru maksimal **3 kalimat**, Rencana maksimal **3 prioritas** dengan tiap kolom satu frasa pendek. Tombol perkuat AI untuk **Kutipan** dihapus dari layar supaya tidak ada tulisan AI yang tumbuh tanpa Anda minta — Kutipan tetap bisa Anda tulis dan sunting sendiri.",
+      "**\"Batalkan sesi\" dan \"Hapus\" akhirnya dibedakan kata-katanya.** Anda menyebut keduanya membingungkan, dan memang kalimat akibatnya nyaris sama. Sekarang **Batalkan sesi** berbunyi: sesi ditandai \"Dibatalkan\", **tetap terlihat di riwayat murid**, tidak masuk tagihan, dan bisa dijadwalkan ulang kapan saja. Sedangkan tombol hapus kini bernama **Hapus permanen**: barisnya dibuang dari jadwal **dan** riwayat, tidak bisa dikembalikan.",
+      "**Setiap perubahan sesi kini meninggalkan jejak di Riwayat Aktivitas.** Sebelumnya membatalkan, menandai tidak hadir, menjadwalkan ulang, dan menghapus sudah tercatat — tetapi **mengubah** sesi (tanggal, jam, durasi, murid, nominal) tidak, padahal perubahan itu ikut menentukan apa yang ditagih. Sekarang ada entri **\"Ubah sesi\"** yang menyebut kolom apa saja yang berubah beserta nilai sebelum → sesudahnya. Penyimpanan yang tidak mengubah apa pun tidak mencatat apa-apa, supaya Riwayat Aktivitas tidak penuh baris kosong.",
+      "**Memperkecil foto jadi sepuluh kali lebih cepat.** Pada foto 3000×4000 px, pengecilannya terukur **3.270 ms** dengan web worker dan **325 ms** tanpanya — hasilnya identik byte-per-byte. Sekarang jalur cepat itu yang dipakai untuk ketiga tempat foto diperkecil (foto murid, foto sesi, dan logo di Pengaturan).",
+      "**Satu hal yang belum, dan saya sebut apa adanya:** bagian **Coba lagi** pada panggilan AI yang gagal baru bisa dinyatakan beres setelah Anda membuktikan sendiri bahwa percobaan ulangnya **berhasil** di perangkat — itu yang tinggal satu-satunya pada butir ini. Kalau masih gagal, kirimkan pesan galatnya apa adanya; jangan diulang berkali-kali karena setiap percobaan tetap berbiaya.",
+    ],
+  },
+  {
     version: "v1.110.0",
     date: "2026-10-15",
     title: "Pemilih gaya Draft AI (Rapikan · Perluas · Ringkas) sekarang terlihat dan benar-benar dipakai — plus verifikasi menyeluruh daftar periksa dari perangkat Anda",

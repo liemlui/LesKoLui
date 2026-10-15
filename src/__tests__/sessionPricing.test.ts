@@ -205,7 +205,12 @@ describe("repricing eksplisit (D1(c))", () => {
     expect((await db.sessions.get(plain))!.cost).toBe(NEW_RATE);
     expect((await db.sessions.get(overridden))!.cost).toBe(175_000);
     expect((await db.sessions.get(overridden))!.costOverride).toBe(175_000);
-    const details = JSON.parse((await db.auditLog.toArray())[0].details ?? "{}");
+    // Ambil entri **session.reprice**, bukan entri audit pertama: sejak
+    // 2026-10-15 `updateSession` juga menulis jejak `session.update` (butir C5),
+    // sehingga urutan entri tidak lagi bisa diandalkan untuk menebak jenisnya.
+    const reprice = (await db.auditLog.toArray()).filter((e) => e.action === "session.reprice");
+    expect(reprice).toHaveLength(1);
+    const details = JSON.parse(reprice[0].details ?? "{}");
     expect(details.count).toBe(1);
     expect(details.sessionIds).toEqual([plain]);
   });

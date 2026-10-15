@@ -52,7 +52,9 @@ export default function useTopicSelection({
    * yang satunya lagi. Tanpa mapel terpilih → tanpa bias juga, sebab menebak
    * dari profil murid adalah persis keluhan di atas.
    */
-  const topicSearchSubject = subjects.length === 1 ? subjects[0] : undefined;  /** Satu pintu masuk pencarian topik: selalu segarkan hasil + metanya.
+  const topicSearchSubject = subjects.length === 1 ? subjects[0] : undefined;
+
+  /** Satu pintu masuk pencarian topik: selalu segarkan hasil + metanya.
    *  Meta dipakai agar hasil di jenjang kurikulum lain tidak tampil seolah
    *  normal (cacat T-03). */
   const topicSearchOptions = {

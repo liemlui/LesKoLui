@@ -24,7 +24,9 @@ export default defineConfig({
     { name: "chrome-prod", use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: {
-    command: "npm run preview -- --port 4174 --strictPort",
+    // Bentuk `npx vite preview`, bukan `npm run preview --` — alasan yang sama
+    // dengan D10/C2 di `playwright.uiux.config.ts`: npm menelan `--port`.
+    command: "npx vite preview --port 4174 --strictPort",
     url: "http://localhost:4174",
     reuseExistingServer: false,
     timeout: 120_000,

@@ -84,7 +84,7 @@ const AKSI: Record<SesiAksi, Omit<AksiSesi, "utama">> = {
   "batal-les": {
     id: "batal-les",
     label: "Batalkan sesi",
-    keterangan: "Sesi ditandai “Dibatalkan”, tetap terlihat di riwayat murid, dan tidak masuk tagihan.",
+    keterangan: "Sesi ditandai “Dibatalkan”: tetap terlihat di riwayat murid, tidak masuk tagihan, dan bisa dijadwalkan ulang kapan saja.",
     merusak: true,
     butuhIsian: true,
     butuhCakupanSeri: true,
@@ -113,15 +113,15 @@ const AKSI: Record<SesiAksi, Omit<AksiSesi, "utama">> = {
   "batalkan-sesi": {
     id: "batalkan-sesi",
     label: "Batalkan sesi",
-    keterangan: "Sesi ditandai “Dibatalkan”, tetap terlihat di riwayat murid, dan tidak masuk tagihan.",
+    keterangan: "Sesi ditandai “Dibatalkan”: tetap terlihat di riwayat murid, tidak masuk tagihan, dan bisa dijadwalkan ulang kapan saja.",
     merusak: true,
     butuhIsian: true,
     butuhCakupanSeri: true,
   },
   "hapus": {
     id: "hapus",
-    label: "Hapus",
-    keterangan: "Barisnya dibuang dari jadwal dan riwayat — tidak bisa dikembalikan. Ditolak bila sesi sudah masuk tagihan paket.",
+    label: "Hapus permanen",
+    keterangan: "Berbeda dari “Batalkan sesi”: barisnya dibuang dari jadwal DAN riwayat — tidak bisa dikembalikan. Ditolak bila sesi sudah masuk tagihan paket.",
     merusak: true,
     butuhIsian: false,
     butuhCakupanSeri: false,
@@ -133,15 +133,18 @@ const AKSI: Record<SesiAksi, Omit<AksiSesi, "utama">> = {
  *
  * | Konteks | Aksi utama | Aksi di `⋯` |
  * |---|---|---|
- * | `terlewat` | `Catat` · `Batal les` · `Tidak hadir` | `Jadwalkan ulang` · `Hapus` |
- * | `terjadwal` | `Simpan perubahan` | `Batalkan sesi` · `Hapus` |
+ * | `terlewat` | `Catat` · `Batal les` · `Tidak hadir` | `Jadwalkan ulang` · `Hapus permanen` |
+ * | `terjadwal` | `Simpan perubahan` | `Batalkan sesi` · `Hapus permanen` |
  *
  * Catatan yang mengikat:
  * - **`Jadwalkan ulang` tetap ada**, hanya tidak lagi berebut perhatian. Ia
  *   memang **hanya** untuk konteks `terlewat`: jadwal pengganti dibuat dari sesi
  *   yang sudah lewat. Modal lama menawarkannya di konteks itu saja.
- * - **`Hapus` berlaku di kedua konteks** (`sessionRepo.deleteSession` sudah ada
- *   dengan penjagaan tagihan paket sendiri; jangan menulis repo baru).
+ * - **`Hapus permanen` berlaku di kedua konteks** (`sessionRepo.deleteSession` sudah ada
+ *   dengan penjagaan tagihan paket sendiri; jangan menulis repo baru). Namanya
+ *   diberi kata **"permanen"** pada 2026-10-15 atas keluhan pemilik bahwa
+ *   "batalkan sesi" dan "hapus" membingungkan: kata itu yang membedakannya dari
+ *   `Batalkan sesi` yang hanya menandai status.
  * - Urutan tidak bebas: aksi utama disusun menurut kegentingannya di konteks itu.
  */
 const TABEL: Record<SesiKontek, { utama: SesiAksi[]; lainnya: SesiAksi[] }> = {

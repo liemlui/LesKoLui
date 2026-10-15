@@ -12,7 +12,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import {
-  chunkSessionsForAi, generateReportField, generateReportSummary, generateNarratives,
+  generateNarratives, generateReportField, generateReportSummary,
   generateStagedSummary, ringkasanBertahap, type AiReportFieldKey,
 } from "../../lib/aiClient";
 import { buildReportAiInput } from "../../lib/reportSessionScope";
@@ -257,226 +257,141 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
     }
   };
   /**
-   * Inti "Isi Semua dengan AI" untuk sekumpulan sesi tertentu.
-   *  - Narasi sesi dikirim per batch kecil (maks 8 sesi / ~12rb karakter) dan
-   *    diproses BERURUTAN, supaya konteks tiap panggilan tetap kecil dan tidak
-   *    lagi gagal dengan "Respons AI terpotong karena batas token".
-   *  - Batch yang sukses langsung disimpan; batch yang gagal dilewati tanpa
-   *    membatalkan batch lain, dan sesinya dicatat untuk "ulangi yang gagal".
-   *  - Terakhir SATU panggilan ringkasan memakai seluruh sesi (konteks kecil,
-   *    tanpa narasi per sesi) untuk summary, kutipan, dan rencana depan. */
+   * Inti "Isi Semua dengan AI".
+   *
+   * **Bentuk yang berlaku sejak keputusan pemilik 2026-10-15 (D11).** Tombol ini
+   * mengisi **tiga isian laporan saja** — Ringkasan · Catatan Guru · Rencana depan —
+   * dan **tidak** menulis ulang narasi/catatan sesi. Alasan pemilik apa adanya:
+   * *"tidak perlu tulis ulang catatan atau narasi sesi, cukup bagian Ringkasan,
+   * catatan guru dan Rencana depan aja"*, dan panjangnya dibatasi karena
+   * *"orang tua juga males bacanya"*.
+   *
+   * **Yang berubah dari bentuk lama, dan kenapa.** Dulu fungsi ini mengirim narasi
+   * per batch sesi dulu, baru satu panggilan ringkasan — jadi biayanya tumbuh
+   * mengikuti jumlah sesi sekaligus menulis ulang catatan yang sudah ditulis tutor
+   * di alur Catat Sesi. Sekarang tiga panggilan kecil yang **tidak tumbuh** mengikuti
+   * jumlah sesi untuk catatan guru dan rencana (keduanya membaca ringkasan sesi yang
+   * sudah dipadatkan `buildReportAiInput`), sementara kesimpulan tetap membaca
+   * seluruh sesi lewat **ringkasan bertahap** bila sesinya banyak.
+   *
+   * **Kegagalan satu isian tidak menjatuhkan isian lain**: tiap isian punya
+   * `try` sendiri, yang gagal dicatat namanya dan bisa diulang lewat tombol
+   * "Ulangi yang gagal".
+   */
   const runAiForSessions = async (
-    requested: readonly Session[],
+    _requested: readonly Session[],
     opts: { withSummary: boolean },
   ) => {
-    const { student, reportSessions, prevAvgEngagement, periodStart, periodEnd, month, ensureReport, setMessage, setOpenNarasi, setOpenTeks, setOpenPlan } = deps;
+    const { student, reportSessions, prevAvgEngagement, periodStart, periodEnd, month, ensureReport, setMessage, setOpenTeks, setOpenPlan } = deps;
     if (!student) return;
     if (reportSessions.length === 0) { setMessage(AI_NO_SESSION_HINT); return; }
     if (!navigator.onLine) { setMessage(AI_OFFLINE_HINT); return; }
     const requestId = ++aiRequestRef.current;
-    const selectedSessions = reportSessions;
-    // Hanya sesi yang masih ada di cakupan sekarang yang boleh dikirim.
-    const inScope = new Set(selectedSessions.map((session) => session.id));
-    const targetSessions = requested.filter((session) => inScope.has(session.id));
-    const batches = chunkSessionsForAi(targetSessions);
+    const period = periodLabel(periodStart, periodEnd) || monthLabel(month);
+    const isian: readonly AiReportFieldKey[] = ["summaryText", "teacherNote", "nextMonthPlan"];
     setAiLoading(true);
-    setAiProgress({
-      done: 0,
-      total: targetSessions.length,
-      step: targetSessions.length === 0 ? "Menyusun ringkasan…" : `Narasi 0/${targetSessions.length} sesi…`,
-    });
-    const okSessions: AiSessionOutcome[] = [];
-    const failedSessions: Array<AiSessionOutcome & { error: string }> = [];
-    let narrativeSuccess = 0;
-    let failedBatches = 0;
+    setAiProgress({ done: 0, total: isian.length, step: "Menyusun kesimpulan…" });
     let firstError: string | undefined;
-    let summaryError: string | undefined;
-    let summaryOk = false;
     try {
       const draft = await ensureReport();
       if (!draft || requestId !== aiRequestRef.current) return;
-      // Snapshot untuk Undo — diambil SEBELUM ada field yang ditimpa.
+      // Snapshot untuk Undo — diambil SEBELUM ada isian yang ditimpa.
       const prevReport = {
         summaryText: draft.summaryText,
         teacherNote: draft.teacherNote,
         quote: draft.quote,
         nextMonthPlan: draft.nextMonthPlan,
       };
-      const period = periodLabel(periodStart, periodEnd) || monthLabel(month);
-      const sourceById = new Map(selectedSessions.map((s) => [s.id, s]));
-      const prevNarratives: Array<{ id: string; narrative?: string }> = [];
-      const overwritten = new Set<string>();
-      let processed = 0;
-      // Field laporan yang hanya boleh dipercaya bila batch itu memuat SEMUA sesi
-      // (kalau sebagian, ringkasan/catatan guru akan menilai data sepotong).
-      let batchTeacherNote: string | undefined;
-      let batchQuote: string | undefined;
-      let batchPlan: ReturnType<typeof normaliseAiPlan>;
-
-      // Narasi per batch — berurutan, satu panggilan AI per batch.
-      for (const batch of batches) {
-        if (requestId !== aiRequestRef.current) return;
-        setAiProgress({ done: processed, total: targetSessions.length, step: `Narasi ${processed}/${targetSessions.length} sesi…` });
-        try {
-          const out = await generateNarratives(buildReportAiInput(student, period, batch, prevAvgEngagement));
-          if (requestId !== aiRequestRef.current) return;
-          const validIds = new Set(batch.map((s) => s.id));
-          const updates: Array<{ id: string; narrative: string; aiNarrativeHash: number }> = [];
-          for (const entry of out.entries ?? []) {
-            if (!validIds.has(entry.id) || !entry.narrative?.trim()) continue;
-            const source = sourceById.get(entry.id);
-            if (!source) continue;
-            updates.push({
-              id: entry.id,
-              narrative: entry.narrative.trim(),
-              aiNarrativeHash: sessionAiFingerprint(source),
-            });
-          }
-          // Simpan batch ini sekarang juga — kegagalan batch lain tidak menghapus hasil ini.
-          await applyAiNarrativeBatch(draft, updates, {});
-          if (requestId !== aiRequestRef.current) return;
-          // Catatan guru/kutipan/rencana dari batch ini dipakai HANYA bila batch
-          // memuat seluruh sesi (batch tunggal penuh) — sama seperti perilaku
-          // lama yang menulis field laporan dari panggilan narasi penuh.
-          if (batch.length === selectedSessions.length) {
-            batchTeacherNote = out.teacherNote?.trim() || batchTeacherNote;
-            batchQuote = out.quote?.trim() || batchQuote;
-            batchPlan = normaliseAiPlan(out.nextMonthPlan) ?? batchPlan;
-          }
-          const updatedIds = new Set(updates.map((update) => update.id));
-          for (const update of updates) {
-            if (overwritten.has(update.id)) continue;
-            overwritten.add(update.id);
-            prevNarratives.push({ id: update.id, narrative: sourceById.get(update.id)?.narrative });
-          }
-          for (const session of batch) {
-            const label = sessionLabel(session);
-            if (updatedIds.has(session.id)) {
-              okSessions.push({ id: session.id, label });
-            } else {
-              failedSessions.push({ id: session.id, label, error: "AI tidak mengembalikan narasi untuk sesi ini" });
-            }
-          }
-          narrativeSuccess += updates.length;
-        } catch (e) {
-          // Batch gagal tidak membatalkan sisanya — catat error pertama lalu lanjut.
-          failedBatches += 1;
-          if (!firstError) firstError = (e as Error).message;
-          const error = (e as Error).message;
-          for (const session of batch) {
-            failedSessions.push({ id: session.id, label: sessionLabel(session), error });
-          }
-        }
-        processed += batch.length;
-      }
-
-      // Ringkasan periode: satu panggilan atas SELURUH sesi **bila sesinya masih
-      // sedikit** (perilaku lama, tidak berubah), atau **ringkasan bertahap** bila
-      // sesinya banyak — tiap batch diringkas dulu, lalu kesimpulan disusun dari
-      // ringkasan batch itu (keputusan pemilik 2026-10-14). Inilah yang membuat
-      // konteks panggilan terakhir tidak tumbuh mengikuti jumlah sesi.
-      let summaryText: string | undefined;
-      let teacherNote: string | undefined;
-      let quote: string | undefined;
-      let plan: ReturnType<typeof normaliseAiPlan>;
+      const input = buildReportAiInput(student, period, reportSessions, prevAvgEngagement);
+      const hasil: {
+        summaryText?: string;
+        teacherNote?: string;
+        nextMonthPlan?: NextMonthPlan;
+      } = {};
       if (opts.withSummary) {
-        setAiProgress({ done: targetSessions.length, total: targetSessions.length, step: "Menyusun ringkasan…" });
+        setAiProgress({ done: 0, total: isian.length, step: `Menyusun ${LABEL_BAGIAN.summaryText}…` });
         try {
-          const bertahap = await ringkasanBertahap(selectedSessions, {
-            ringkasBatch: async (bagan) => {
-              const out = await generateReportField("summaryText", buildReportAiInput(student, period, bagan, prevAvgEngagement));
-              return out.summary?.trim() ?? "";
-            },
-            susunAkhir: async (digests) => {
-              const skor = selectedSessions.map((s) => s.engagement?.score).filter((n): n is number => typeof n === "number");
-              const tanggal = selectedSessions.map((s) => s.date).filter(Boolean).sort();
-              const out = await generateStagedSummary({
-                student: { name: student.name, level: student.level },
-                month: period,
-                sessionCount: selectedSessions.length,
-                firstDate: tanggal[0],
-                lastDate: tanggal[tanggal.length - 1],
-                subjects: [...new Set(selectedSessions.flatMap((s) => s.subjects ?? []))],
-                avgEngagement: skor.length > 0 ? Math.round((skor.reduce((a, b) => a + b, 0) / skor.length) * 10) / 10 : undefined,
-                prevAvgEngagement,
-                digests: digests.filter(Boolean),
-              });
-              return out.summary.trim();
-            },
-          });
+          hasil.summaryText = await ringkasKesimpulanBertahap(
+            student, periodStart, periodEnd, month, reportSessions, prevAvgEngagement,
+          );
+        } catch (e) {
+          if (!firstError) firstError = (e as Error).message;
+        }
+        if (requestId !== aiRequestRef.current) return;
+        setAiProgress({ done: 1, total: isian.length, step: `Menyusun ${LABEL_BAGIAN.teacherNote}…` });
+      }
+      for (const bagian of ["teacherNote", "nextMonthPlan"] as const) {
+        if (bagian === "nextMonthPlan") {
+          setAiProgress({ done: 2, total: isian.length, step: `Menyusun ${LABEL_BAGIAN.nextMonthPlan}…` });
+        }
+        if (bagian === "teacherNote" && !opts.withSummary && requestId !== aiRequestRef.current) return;
+        try {
+          const out = await generateReportField(bagian, input);
           if (requestId !== aiRequestRef.current) return;
-          if (bertahap) {
-            // Catatan guru, kutipan, dan rencana tetap diisi dari batch narasi
-            // (sudah ada di atas) — panggilan besar ini tidak lagi diminta.
-            summaryText = bertahap.summary;
-            summaryOk = true;
+          if (bagian === "teacherNote") {
+            const teks = out.teacherNote?.trim();
+            if (teks) hasil.teacherNote = teks;
           } else {
-            const out = await generateReportSummary(buildReportAiInput(student, period, selectedSessions, prevAvgEngagement));
-            if (requestId !== aiRequestRef.current) return;
-            summaryText = out.summary ?? "";
-            teacherNote = out.teacherNote?.trim() || undefined;
-            quote = out.quote?.trim() || undefined;
-            plan = normaliseAiPlan(out.nextMonthPlan);
-            summaryOk = true;
+            const plan = normaliseAiPlan(out.nextMonthPlan);
+            if (plan) hasil.nextMonthPlan = plan;
           }
         } catch (e) {
-          summaryError = (e as Error).message;
+          if (!firstError) firstError = (e as Error).message;
         }
+        if (requestId !== aiRequestRef.current) return;
       }
 
-      // Tulis field laporan SEKALI saja — dengan cadangan dari batch penuh bila
-      // panggilan ringkasan gagal, supaya "Catatan Guru"/"Rencana Depan" tidak
-      // pernah kosong hanya karena satu panggilan gagal.
-      const finalTeacherNote = teacherNote ?? batchTeacherNote;
-      const finalQuote = quote ?? batchQuote;
-      const finalPlan = plan ?? batchPlan;
-      // Penanda per isian hanya untuk isian yang benar-benar diisi AI.
+      // Penanda "dibuat AI" hanya untuk isian yang benar-benar diisi AI.
+      const bagianRingkasan = hasil.summaryText?.trim();
+      const bagianCatatan = hasil.teacherNote?.trim();
       const written: Partial<Record<AiReportField, string>> = {};
-      if (summaryText?.trim()) written.summaryText = summaryText.trim();
-      if (finalTeacherNote) written.teacherNote = finalTeacherNote;
-      if (finalQuote) written.quote = finalQuote;
-      if (finalPlan) written.nextMonthPlan = planContent(finalPlan);
-      if (requestId !== aiRequestRef.current) return;
-      if (Object.keys(written).length > 0 || summaryOk) {
+      if (bagianRingkasan) written.summaryText = bagianRingkasan;
+      if (bagianCatatan) written.teacherNote = bagianCatatan;
+      // `markAiFields` menerima teks per isian; isi rencana dibandingkan lewat
+      // `planContent` yang sama seperti pembacanya (`isAiWritten`).
+      if (hasil.nextMonthPlan) written.nextMonthPlan = planContent(hasil.nextMonthPlan);
+
+      // Isian dianggap berhasil bila isinya benar-benar ada. Ditulis eksplisit per
+      // isian (bukan `Object.hasOwn`) supaya TypeScript ikut memeriksa bahwa
+      // setiap isian yang diminta memang punya tempatnya di `hasil`.
+      const berhasil = isian.filter((bagian) =>
+        bagian === "summaryText" ? Boolean(hasil.summaryText)
+          : bagian === "teacherNote" ? Boolean(hasil.teacherNote)
+            : Boolean(hasil.nextMonthPlan));
+      const gagal = isian.filter((bagian) => !berhasil.includes(bagian));
+      if (berhasil.length > 0) {
         await upsertReport({
           ...draft,
-          summaryText: summaryText?.trim() || draft.summaryText,
-          teacherNote: finalTeacherNote ?? draft.teacherNote,
-          quote: finalQuote ?? draft.quote,
-          nextMonthPlan: finalPlan ?? draft.nextMonthPlan,
-          ...(summaryOk ? { summaryHash: reportSummaryFingerprint(draft, selectedSessions) } : {}),
+          summaryText: bagianRingkasan || draft.summaryText,
+          teacherNote: bagianCatatan || draft.teacherNote,
+          nextMonthPlan: hasil.nextMonthPlan ?? draft.nextMonthPlan,
+          ...(bagianRingkasan ? { summaryHash: reportSummaryFingerprint(draft, reportSessions) } : {}),
           aiFieldHashes: markAiFields(draft.aiFieldHashes, written),
         });
       }
       if (requestId !== aiRequestRef.current) return;
-      if (finalTeacherNote || finalQuote || finalPlan) setOpenPlan(true);
+
       setAiResult({
-        ok: okSessions,
-        failed: failedSessions,
-        summary: summaryOk ? { ok: true } : { ok: false, error: summaryError ?? "ringkasan tidak dijalankan" },
+        ok: berhasil.map((bagian) => ({ id: bagian, label: LABEL_BAGIAN[bagian] })),
+        failed: gagal.map((bagian) => ({
+          id: bagian,
+          label: LABEL_BAGIAN[bagian],
+          error: firstError ?? "AI tidak mengembalikan isian ini",
+        })),
+        summary: { ok: Boolean(hasil.summaryText?.trim()), error: hasil.summaryText?.trim() ? undefined : firstError },
         finishedAt: new Date().toISOString(),
       });
 
-      if (narrativeSuccess === 0 && !summaryOk) {
-        setMessage("Gagal: " + (firstError ?? summaryError ?? "tidak ada hasil AI yang bisa disimpan."));
+      if (berhasil.length === 0) {
+        setMessage(`Gagal: ${firstError ?? "tidak ada isian yang bisa disimpan."}`);
         return;
       }
-      // Undo penuh tetap bekerja lewat tombol "↩ Undo Hasil AI" yang sudah ada.
-      setPrevTexts({ ...prevReport, narratives: prevNarratives });
-      if (narrativeSuccess === 0 && batches.length === 0) {
-        setMessage(`Semua ${selectedSessions.length} narasi sudah terbaru ✓ Ringkasan, catatan guru & rencana depan terisi`);
-      } else if (failedBatches === 0 && summaryOk) {
-        setMessage(`Isi AI selesai ✓ ${narrativeSuccess} narasi + ringkasan, catatan guru & rencana depan terisi`);
-      } else {
-        const parts = [`${narrativeSuccess} narasi tersimpan`];
-        if (failedBatches > 0) parts.push(`${failedBatches} batch gagal (${firstError}) dan dilewati`);
-        parts.push(summaryOk
-          ? "ringkasan, catatan guru & rencana depan terisi"
-          : `ringkasan gagal (${summaryError})${batchTeacherNote ? " — catatan guru dari batch tetap disimpan" : ""}`);
-        setMessage(`Isi AI sebagian ✓ ${parts.join(" · ")}`);
-      }
-      if (narrativeSuccess > 0) setOpenNarasi(true);
-      if (summaryOk) { setOpenTeks(true); setOpenPlan(true); }
+      setPrevTexts(prevReport);
+      setMessage(gagal.length === 0
+        ? "Isi AI selesai ✓ Ringkasan, Catatan Guru & Rencana depan terisi"
+        : `Isi AI sebagian ✓ ${berhasil.map((bagian) => LABEL_BAGIAN[bagian]).join(" & ")} terisi · gagal: ${gagal.map((bagian) => LABEL_BAGIAN[bagian]).join(" & ")}`);
+      setOpenTeks(true);
+      setOpenPlan(true);
     } catch (e) {
       if (requestId === aiRequestRef.current) setMessage("Gagal: " + (e as Error).message);
     } finally {
@@ -487,31 +402,22 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
     }
   };
 
-  /** SATU tombol AI: isi semua isian laporan (narasi + teks + rencana). */
-  const handleGenerateAll = async (force = false) => {
-    const selectedSessions = deps.reportSessions;
-    const { dirty } = pickDirtyNarrativeSessions(selectedSessions);
-    await runAiForSessions(force ? selectedSessions : dirty, { withSummary: true });
+  /** SATU tombol AI: mengisi Ringkasan, Catatan Guru, dan Rencana depan (D11). */
+  const handleGenerateAll = async () => {
+    await runAiForSessions(deps.reportSessions, { withSummary: true });
   };
 
-  /** Sesi yang gagal pada putaran AI terakhir dan masih ada di cakupan sekarang. */
-  const pickFailedSessions = useCallback(
-    () => {
-      const failedIds = new Set((aiResult?.failed ?? []).map((item) => item.id));
-      return deps.reportSessions.filter((session) => failedIds.has(session.id));
-    },
-    [aiResult, deps.reportSessions],
-  );
-
-  /** Ulangi hanya sesi yang gagal; ringkasan diulang bila panggilan ringkasan ikut gagal. */
+  /**
+   * Ulangi **isi laporan** yang gagal pada putaran terakhir.
+   *
+   * Sejak D11 (2026-10-15) yang diisi AI hanya tiga isian laporan, jadi "ulangi
+   * yang gagal" berarti menjalankan ulang ketiga isian itu — bukan menulis ulang
+   * narasi sesi. Isian yang sudah berhasil ditimpa dengan hasil baru; itu aman
+   * karena tombol "↩ Undo Hasil AI" memulihkan seluruhnya.
+   */
   const retryFailedAi = async () => {
-    const targets = pickFailedSessions();
-    if (targets.length === 0) {
-      setAiResult(null);
-      deps.setMessage("Tidak ada sesi gagal yang masih ada di periode ini — jalankan “Isi Semua dengan AI” untuk mencoba dari awal.");
-      return;
-    }
-    await runAiForSessions(targets, { withSummary: aiResult?.summary.ok === false });
+    setAiResult(null);
+    await runAiForSessions(deps.reportSessions, { withSummary: true });
   };
 
   /** Generate narasi sesi GRATIS dari data yang sudah ada (tanpa AI). */
@@ -706,7 +612,6 @@ export function useReportGeneration(deps: ReportGenerationDeps) {
     handleGenerateNarratives,
     handleGenerateAll,
     handlePerkuatBagian,
-    pickFailedSessions,
     retryFailedAi,
     handleGenerateLocalNarratives,
     handleGenerateLocalTexts,
