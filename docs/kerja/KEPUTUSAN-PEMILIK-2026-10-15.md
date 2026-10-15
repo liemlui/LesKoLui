@@ -31,7 +31,7 @@
 | B7 | "oke" | Katalog tangkapan layar dirapikan (C-lanjutan) |
 | B8 | "selidiki di akhir" | Penyelidikan `SchemaError: DexieError` ditaruh di **akhir** antrean, bukan sekarang |
 | C1 | "setuju" | Tulis penjaga topik lintas mapel (dua mapel → topik keduanya muncul) |
-| C2 | **"nanti kita test"** | Perbaikan config Playwright (`uiux`, `sw`) **boleh diterapkan**, pengujiannya dijadwalkan pemilik — bukan tugas agen sekarang. **Agen sudah mencoba menjalankannya 2026-10-15 dan tidak bisa:** `npx playwright test --config=playwright.uiux.config.ts` gagal `spawn EPERM` sebelum satu tes pun berjalan (sandbox melarang pipa antarproses; bahkan pembungkus `stdio: "inherit"` tidak menolong karena Playwright sendiri membuka pipa ke driver-nya). Jadi pengujiannya **tetap di tangan pemilik** — dan itu bukan kegagalan pekerjaan |
+| C2 | **"nanti kita test"** | **SELESAI DIUJI 2026-10-15** dengan izin sandbox penuh dari pemilik: `npm run e2e:uiux` **72 lulus / 0 gagal** memakai bentuk `npx vite --port 5174` yang baru — dan itu sekaligus **bukti perbaikannya benar-benar bekerja**, sebab bentuk lama (`npm run dev -- --port …`) akan membalas 404 di semua permintaan sehingga seluruh 72 tes gagal. `npm run e2e:pwa` juga sudah dijalankan: **1 lulus / 1 gagal**, dan kegagalannya (restore berkas `.jles`, `pwa-runtime.spec.ts:151`) **gagal identik pada baseline `bf5346b`**, jadi bukan akibat perubahan ini. **Jebakan yang terbukti:** `e2e` dan `e2e:uiux` memakai port 5174 yang sama — jalankan berurutan, jangan bersamaan |
 | C3 | "kerjakan" | Katalog topik untuk mapel yang belum punya (58 pasang) |
 | C4 | "kerjakan" | Matikan `useWebWorker` pada pengecilan foto (3.270 ms → 325 ms, hasil identik byte-per-byte) |
 | C5 | "kerjakan" | Jejak audit untuk perubahan sesi |
