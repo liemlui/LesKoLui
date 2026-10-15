@@ -12,7 +12,7 @@
 >
 > | Butir | Isi | Keadaan |
 > |---|---|---|
-> | 1–23 | layar lama (Catat Sesi · CSV · Beranda · Uang) | **terbuka** — panduan ringkasnya di bagian C. Pemilik menilai bagian ini *"terlalu rumit"* dan memilih memperbaiki bug-nya saat muncul saja |
+> | 1, 2, 3, dan 7–23 | layar lama (Catat Sesi · CSV · Beranda) | **terbuka** — panduan ringkasnya di bagian C. Pemilik menilai bagian ini *"terlalu rumit"* dan memilih memperbaiki bug-nya saat muncul saja. **Butir 4 · 5 · 6 sudah dicentang 2026-10-07** (pencarian murid · badge keterlambatan + nama hari Indonesia · panel filter lanjutan) dan tidak lagi termasuk bagian C |
 > | 24–29 | Uang tiga blok & Laporan | **sudah dicentang** 2026-10-07/08 — jangan diulang |
 > | 30–33 | tab Murid | **sudah dicentang** — 30–33 pada 2026-10-10 di HP, **diperiksa ulang 2026-10-14 di server dev** ("filter aman · aman · aman · aman dan ok") |
 > | 34–35 | foto murid | **sudah dicentang 2026-10-14** di server dev — "foto betul sesuai sampai simpan", "hapus foto berhasil, batal juga berhasil" |
@@ -24,7 +24,66 @@
 > | 43 | biaya di Riwayat Aktivitas | **sudah dicentang 2026-10-14** — "oke sudah baik" |
 > | 44 | nominal manual tidak tertimpa | **sudah dicentang 2026-10-14** — mengganti nominal sesi berhasil. Dua bug yang ditemukan saat itu (kolom tersangkut 0 · simpan 0 memakai nominal lama) sudah diperbaiki di v1.104.0 |
 >
-> **Layar Pengaturan belum punya butirnya sendiri** meskipun v1.100.0–v1.104.0 menyentuhnya. Itu tetap pekerjaan yang menunggu.
+> **Layar Pengaturan belum punya butirnya sendiri** meskipun v1.100.0–v1.109.0 menyentuhnya. Itu tetap pekerjaan yang menunggu.
+
+### 0.0 Daftar induk — 44 butir, satu halaman
+
+Ini **checklist lengkapnya**, dan ini satu-satunya tempat keempat puluh empat butir terkumpul dalam satu tabel.
+Keadaan yang tertulis di sini **potret 2026-10-15**; penandanya yang berlaku tetap di `PEKERJAAN.md` §5, dan
+kalau keduanya berbeda, yang menang adalah berkas itu. Kolom "Detail" menunjuk ke bagian di berkas ini —
+bagian yang kosong berarti langkahnya **tidak perlu ditulis ulang** karena ringkasan di kolom "Inti" sudah cukup.
+
+| Butir | Keadaan | Layar | Inti yang diperiksa | Detail |
+|---|---|---|---|---|
+| 1 | ⚠️ lulus, ada cacat lain | Catat Sesi — materi | Katalog topik sesuai jenjang murid — **katalognya sendiri sudah dinilai "oke"**; cacatnya di luar itu (lihat baris 3) | C |
+| 2 | ⚠️ lulus, ada cacat lain | Catat Sesi — materi | Daftar bab bisa dibuka; memilih topik menambah chip beserta nama babnya | C |
+| 3 | ❌ **MELESET 2026-10-15** | Catat Sesi — materi | Topik yang sama tidak menambah chip kedua (itu lulus) — **tetapi bila dua mapel dipilih, daftar topik hanya memuat mapel pertama**. Sudah masuk daftar pekerjaan | C |
+| 4 | ✅ 2026-10-07 | Catat Sesi — materi | Mapel tanpa katalog memunculkan kotak peringatan beserta dua pilihan | — |
+| 5 | ✅ 2026-10-07 | Catat Sesi — materi | Murid Nasional tidak pernah melihat hasil berlabel MYP | — |
+| 6 | ✅ 2026-10-07 | Catat Sesi — materi | Tidak ada hasil dari mapel lain (Global Politics tidak menarik Matematika) | — |
+| 7 | 🔧 **diminta dipetakan ulang** | Catat Sesi — kondisi | Tiga tombol kondisi + enam indikator; tombol "Seperti biasa" masih ada (catatan: butir lama menuntut "Biasa" dihapus — perlu diputuskan). Pemilik meminta langkah ini dipetakan ulang supaya lebih akurat & cepat dipahami | C |
+| 8 | 🔧 **diminta dipetakan ulang** | Catat Sesi — kondisi | Tanpa indikator: kartu skor menyatakan skor tidak dihitung | C |
+| 9 | 🔢 **diminta dihitung ulang** | Catat Sesi — detail | Dua indikator: skor muncul + keterangan data sebagian; tag mengubah angka di langkah yang sama. Pemilik: "tulisan skor coba dihitung lagi, apa sudah adil" | C |
+| 10 | ✅ 2026-10-15 | Murid → Sesi | Sesi tersimpan menampilkan semua indikator & tag; koreksi menyimpan dan mengubah skor | C |
+| 11 | ✅ 2026-10-15 | Murid → Nilai | Kartu keseriusan menyebut penyebut "rata-rata dari N sesi", panel cakupan, grafik | C |
+| 12 | ❓ belum ketemu 2026-10-15 | Pengaturan → Backup dan Restore | CSV punya kolom bab topik & sumber skor; kolom jenjang berbunyi "IGCSE kelas sepuluh". **Tombolnya bernama "Ekspor data ke CSV (terbaca)" dan ada DI DALAM bagian Backup dan Restore** | C |
+| 13 | ✅ 2026-10-15 | Catat Sesi — materi | Hapus chip bertanda bab → pita urungkan → topik kembali ke posisi semula | C |
+| 14 | ✅ 2026-10-15 | Catat Sesi — langkah 6 | Hapus tindak lanjut → urungkan → item kembali ke urutan semula | C |
+| 15 | ✅ 2026-10-15 | Catat Sesi — langkah 5 | Simpan Sesi tersedia di sebelah Lanjut; laporan sesi terbuka, sesi tersimpan tanpa foto | C |
+| 16 | ❓ belum ketemu 2026-10-15 | Catat Sesi — penunjuk langkah | Lingkaran merah berisi `!` di pojok bulatan langkah pada **penunjuk langkah paling atas**, hilang setelah diisi | C |
+| 17 | ✅ 2026-10-15 | Catat Sesi — gulir | Pindah langkah menggulir ke atas dan judul langkah berikutnya terlihat | C |
+| 18 | 🔧 **lulus, diminta diperkuat** | Catat Sesi — langkah 4 | Isian cepat menyala bersama chip kembarnya; panah/Home/End bekerja. Pemilik: "bisa tapi harus lebih detail, di perkuat" | C |
+| 19 | ✅ 2026-10-15 | Catat Sesi — bilah aksi | Tombol utama biru (1–5) / hijau (6) / lebih gelap saat menyimpan; teks putih nyaman dibaca ("semua warna ok") | C |
+| 20 | ✅ 2026-10-15 | Catat Sesi — draf | Keluar lalu kembali: isian & langkah pulih beserta keterangan draf tersimpan ("pulih dengan baik") | C |
+| 21 | ✅ 2026-10-15 | Beranda — Kelola sesi | Panel naik dengan kolom terisi; batalkan & hapus berbeda dan berkonfirmasi | C |
+| 22 | ✅ 2026-10-15 + perlu penjelasan | Beranda — sesi terlewat | Tiga aksi (catat · batalkan · tidak hadir); "tidak hadir" menawarkan gratis/tetap tagihkan. Pemilik meminta **beda "batalkan" dan "tidak hadir" dijelaskan di aplikasi** | C |
+| 23 | ✅ 2026-10-15 | Beranda — ganti murid/jam | Peringatan nominal muncul, konfirmasi ganti murid, nominal manual tidak hilang; ganti jam tanpa konfirmasi | C |
+| 24 | ✅ 2026-10-07 | Uang | Layar tiga blok tetap + pintasan; tiap sub-layar punya "← Kembali ke Uang" | — |
+| 25 | ✅ 2026-10-07 | Uang → Rekap | Tabel tiga kolom tanpa geser samping; CSV tahun sama seperti dulu | — |
+| 26 | ✅ 2026-10-08 | Laporan | Bilah aksi menempel + lima langkah; tombol ekspor dan Undo AI di bilah yang sama | — |
+| 27 | ✅ 2026-10-08 | Laporan | Murid tanpa sesi: tombol nonaktif beserta satu kalimat alasan di bawahnya | — |
+| 28 | ✅ 2026-10-08 | Laporan | Ekspor tidak otomatis menandai "sudah dibagikan" | — |
+| 29 | ✅ 2026-10-08 | Laporan — narasi | Status simpan otomatis + konfirmasi "Simpan & lanjut"; penanda ✨ AI hilang setelah disunting | — |
+| 30 | ✅ 2026-10-10 | Daftar Murid | Urutkan + tombol Butuh perhatian bekerja, baris keterangan menyebut urutannya | D |
+| 31 | ✅ 2026-10-10 | Daftar Murid | Kartu tiga baris; chip mapel dan nama orang tua tidak lagi di kartu | D |
+| 32 | ✅ 2026-10-10 | Tambah/Edit Murid | Urutan Identitas → Kontak → Tarif → Siklus; siklus terlipat saat menambah | D |
+| 33 | ✅ 2026-10-10 | Detail Murid | Empat tab Ringkas/Sesi/Progres/Proyek; non-IB melihat penjelasan di Proyek | D |
+| 34 | ✅ 2026-10-14 | Edit Murid — foto | Foto dari kamera tampil bulat di formulir, daftar, dan kepala detail | A |
+| 35 | ✅ 2026-10-14 | Edit Murid — foto | Batal benar-benar membatalkan; hapus baru berlaku setelah Simpan | A |
+| 36 | ✅ 2026-10-14 | Laporan — bilah desain | Tema dan Susunan terasa sebagai dua hal berbeda; kisi tema empat kolom | B |
+| 37 | ✅ 2026-10-14 | Laporan — tema kustom | Seluruh istilah Indonesia + contoh warna; tema kustom bertahan setelah ditutup | B |
+| 38 | ✅ 2026-10-14 | Uang → analitik | Tiga grafik terbaca di 390 px; legenda donat ada; keterangan muncul saat difokus | B |
+| 39 | ⏭️ **dilewati** | Pengaturan — Hapus Semua Data | **Diputuskan pemilik 2026-10-15: tidak perlu dijalankan** (jalur reset hampir tidak pernah dipakai). Bukan "lulus" — tidak ada bukti runtime bahwa jalurnya bekerja | B2 |
+| 40 | ✅ 2026-10-14 | Pengaturan — Backup | Backup ke File dan ke Drive tidak lagi menolak kata sandi. **Jangan** memulihkan berkasnya | F |
+| 41 | ✅ 2026-10-14 | Catat Sesi — tombol AI | Kedua tombol AI menyebut perkiraan biaya, dan modalnya menyebut angka yang sama | F |
+| 42 | ⏳ **belum** | Catat Sesi — galat AI | Yang ditunggu: percobaan ulangnya **berhasil** — bukan lagi tombolnya (itu sudah tertutup butir 41) | F |
+| 43 | ✅ 2026-10-14 | Pengaturan — Riwayat | Baris "Panggilan AI berbiaya" menyebut fitur + biayanya | F |
+| 44 | ✅ 2026-10-14 | Kelola sesi → catat sesi | Nominal manual Anda tetap angka yang Anda isi setelah sesinya dicatat | F |
+
+**Kalau Anda hanya punya waktu sedikit:** kerjakan **butir 42** (satu-satunya ⏳ yang tersisa — menutup temuan yang
+menyentuh uang), lalu **butir untuk layar Pengaturan yang belum dibuat**. Butir **1, 2, 3, dan 7–23** boleh kapan
+saja: pemilik sendiri sudah menilai bagian itu *"terlalu rumit"* dan memilih memperbaiki bug-nya saat muncul. Dua
+di antaranya sudah **dilaporkan lulus 2026-10-15** dan tidak perlu diulang — lihat catatan di bagian C.
 
 ---
 
@@ -67,7 +126,10 @@ Konsekuensinya, empat larangan untuk sesi pemeriksaan ini:
    tercampur dengan pemeriksaan lain.
 
 **0.4 Perkiraan waktu.** Bagian A ±5 menit (dua butir foto) · bagian B ±6 menit (panel desain + tiga grafik) ·
-bagian B2 ±5 menit (**hanya di server pengembangan**) · bagian C dan D arsip/opsional.
+bagian B2 ±5 menit (**hanya di server pengembangan**) · bagian F ±4 menit (butir 40–44) · **bagian C ±15–25 menit**
+bila dikerjakan per butir — tetapi bagian C **boleh dicicil atau dilewati**; kerjakan **per layar**, bukan per butir,
+dan cukup catat layar mana yang terasa aneh (pemilik sendiri sudah menilai bagian itu *"terlalu rumit"*). Bagian D
+adalah arsip yang sudah dicentang, tidak perlu dibuka lagi.
 
 ---
 
@@ -407,19 +469,181 @@ angka uang terlihat padahal uang sedang terkunci · menu **⋯** tidak menampilk
 
 ---
 
-## Bagian C — opsional: butir lama yang juga belum dicentang (1–23)
+## Bagian C — opsional: butir lama yang juga belum dicentang (1, 2, 3, dan 7–23)
 
-Butir-butir ini ditulis untuk layar yang sudah lama berubah, jadi kalau Anda ingin sekalian, lakukan per layar
-(bukan per butir) — dan cukup catat layar mana yang terasa aneh:
+> **Hasil pemeriksaan pemilik 2026-10-15 (satu putaran, perangkat pemilik) — dibaca sebelum mengerjakan bagian ini:**
+> **LULUS:** 10 · 11 · 13 · 14 · 15 · 17 · 19 ("semua warna ok") · 20 ("pulih dengan baik") · 21 · 23 ("muncul dengan
+> baik"). **LULUS dengan permintaan penguatan:** 18 ("langkah cepat bisa tapi harus lebih detail, di perkuat").
+> **Tidak lulus / ada cacat:** **1–3** — katalognya sendiri sudah "oke", tetapi **saat dua mapel dipilih, daftar topik
+> hanya memuat mapel pertama** (temuan baru, sudah masuk daftar pekerjaan); **7 dan 8** — bukan cacat, melainkan
+> permintaan pemilik untuk **memetakan ulang langkah kondisi** supaya lebih akurat dan lebih cepat dipahami;
+> **9** — permintaan **menghitung ulang keadilan skor**; **22** — perlu **penjelasan beda "batalkan" dan "tidak hadir"
+> di dalam aplikasi**; **12 dan 16** — pemilik tidak menemukan tempatnya, dan **petunjuk lokasinya sudah diperbaiki di
+> butir masing-masing di bawah**. Butir **4, 5, dan 6** tidak disebut dalam putaran itu (sudah dicentang 2026-10-07).
 
-| Layar | Butir | Inti yang dicek |
-|---|---|---|
-| Catat Sesi (wizard 6 langkah) | 1–10, 13–20 | Katalog topik sesuai jenjang murid · chip topik tidak berganda · undo hapus topik & tindak lanjut · tombol Simpan ada di langkah 5 dan 6 · tanda seru pada langkah wajib · halaman kembali ke atas saat pindah langkah · warna tombol utama nyaman dibaca · draf tersimpan saat keluar lalu kembali |
-| Ekspor CSV | 12 | Ada kolom bab topik dan sumber skor; kolom jenjang berbunyi seperti "IGCSE kelas sepuluh", bukan kode tingkat universitas |
-| Beranda — panel **Kelola sesi** | 21–23 | Enam aksi bekerja (simpan · batalkan · hapus · catat · tidak hadir · jadwalkan ulang) · pesan berbeda antara batalkan dan hapus · memindahkan sesi ke murid lain memunculkan peringatan nominal lalu konfirmasi, dan nominal manual tidak hilang |
-| Uang | 24–25 | Satu layar tiga blok (Ringkasan · Perlu ditagih · Bulan ini) · tiap sub-layar punya tombol "← Kembali ke Uang" · tabel Rekap tiga kolom nyaman dibaca tanpa geser samping, dan CSV-nya sama seperti dulu |
+Butir-butir ini ditulis untuk layar yang sudah lama berubah. Kerjakan **per layar**, bukan per butir: satu kali
+masuk ke Catat Sesi, kerjakan butir 1–3, 7–20 sekaligus. Tidak ada satu pun langkah di bagian ini yang menghapus
+data murid, tetapi butir 10 menyimpan perubahan pada sebuah sesi — pakai **sesi contoh/tiruan** bila ada.
 
-Butir **26–29** (layar Laporan) sudah dicentang 2026-10-08 dan tidak perlu diulang.
+> **Kotak centang di bagian ini untuk menandai langkah mana yang sudah Anda kerjakan di HP.** Yang menentukan
+> butirnya tertutup atau tidak tetap penanda di `PEKERJAAN.md` §5 — kotak di sini **bukan** penggantinya, dan
+> saya yang memindahkan hasilnya ke sana setelah Anda melapor.
+
+### Butir 1 — katalog topik mengikuti jenjang murid
+
+- [ ] Buka **Catat Sesi**, pilih **murid IGCSE** yang mapelnya berkode, lalu masuk sampai **langkah materi** (topik).
+- [ ] Ketik `algebra`.
+- [ ] **LULUS** bila muncul keterangan bahwa yang ditampilkan adalah topik jenjang **IGCSE** dan **hanya** topik IGCSE yang muncul.
+- [ ] **MELESET** bila topik jenjang lain (mis. MYP atau tingkat universitas) ikut tercampur, atau keterangan jenjangnya tidak muncul sama sekali.
+
+### Butir 2 — daftar bab bisa dibuka dan menambah chip bertanda bab
+
+- [ ] Masih di langkah materi, buka pilihan **dari daftar bab**.
+- [ ] **LULUS** bila daftar bab muncul, membuka satu bab menampilkan topiknya **dengan tanda centang**, dan memilih satu topik menambah **chip beserta nama babnya**.
+- [ ] **MELESET** bila bab terbuka tetapi isinya kosong, centang tidak muncul, atau chip yang masuk tidak menyebut babnya.
+
+### Butir 3 — topik yang sama tidak menambah chip kedua
+
+- [ ] Pilih satu topik **dari pencarian**, lalu pilih topik yang **sama** dari daftar bab.
+- [ ] **LULUS** bila chip-nya tetap **satu** (tidak berganda).
+- [ ] **MELESET** bila muncul dua chip untuk topik yang sama — ini membuat tutor mengira ada dua topik.
+
+### Butir 7 — tiga tombol kondisi dan enam indikator
+
+- [ ] Masuk **langkah kondisi** (sebelum langkah detail).
+- [ ] **LULUS** bila tampil **tiga tombol kondisi** dan **enam indikator**, tombol untuk membuka enam indikator lain bekerja, dan tombol **"Biasa"** sudah **tidak ada**.
+- [ ] **MELESET** bila tombol "Biasa" masih ada (tombol itu sudah dihapus dari desain), atau indikatornya tidak bisa dibuka.
+
+### Butir 8 — tanpa indikator, skor tidak dikarang
+
+- [ ] Ketuk **hanya** tombol "seperti biasa", lalu lanjut ke **langkah detail**.
+- [ ] **LULUS** bila kartu skor **menyatakan bahwa skor tidak dihitung**.
+- [ ] **MELESET** bila tetap muncul angka skor padahal tidak ada satu indikator pun yang diisi.
+
+### Butir 9 — skor muncul dengan keterangan data sebagian
+
+- [ ] Isi **dua indikator**, lalu masuk **langkah detail**.
+- [ ] **LULUS** bila skor muncul beserta keterangan **kelengkapan data sebagian**, dan setelah Anda memilih **tag respons**, angkanya **ikut berubah di langkah yang sama** (tidak perlu pindah langkah dulu).
+- [ ] **MELESET** bila skor tidak muncul, keterangan "sebagian" tidak ada, atau angkanya baru berubah setelah pindah langkah.
+
+### Butir 10 — sesi tersimpan menyimpan seluruh indikator dan tag
+
+- [ ] **Simpan sesi** itu seperti biasa, lalu buka detailnya dari **Murid → tab Sesi** (riwayat sesi).
+- [ ] **LULUS** bila **semua indikator dan tag** tampil di detailnya, dan **tombol koreksi** menyimpan perubahan **beserta skornya ikut berubah**.
+- [ ] **MELESET** bila ada indikator/tag yang hilang, atau skor tidak ikut berubah sesudah dikoreksi.
+
+### Butir 11 — kartu keseriusan menyebut penyebutnya
+
+- [ ] Buka **Murid → tab Nilai**.
+- [ ] **LULUS** bila kartu keseriusan belajar menampilkan **penyebut berupa rata-rata dari sekian sesi**, ada **panel cakupan data**, dan ada **grafik kualitas respons akademik**.
+- [ ] **MELESET** bila angkanya muncul tanpa menyebut dari berapa sesi, atau panel cakupan/grafiknya tidak ada.
+
+### Butir 12 — CSV: kolom baru dan jenjang yang terbaca manusia
+
+> **Lokasi yang benar (pemilik tidak menemukannya 2026-10-15, dan itu wajar):** ekspornya **bukan** menu bernama
+> "Ekspor" di Pengaturan. Namanya **"Ekspor data ke CSV (terbaca)"** dan tombolnya berada **di dalam bagian
+> "Backup dan Restore"**, di bawah kolom kata sandi enkripsi — keterangannya berbunyi "CSV terbaca tanpa app
+> (cadangan tambahan)". Jadi: **Pengaturan → Backup dan Restore → gulir ke bawah → Ekspor data ke CSV (terbaca)**.
+
+- [ ] Buka **Pengaturan → Backup dan Restore**, gulir ke bawah, tekan **Ekspor data ke CSV (terbaca)**.
+- [ ] **LULUS** bila ada kolom baru untuk **bab topik** dan **sumber skor**, dan kolom **jenjang** berisi label seperti **"IGCSE kelas sepuluh"** — bukan kode tingkat universitas.
+- [ ] **MELESET** bila kolomnya tidak ada, atau jenjangnya masih berbunyi seperti kode (mis. "Grade 10 IB" alih-alih label Indonesia).
+
+### Butir 13 — hapus chip topik bisa diurungkan
+
+- [ ] Di **langkah materi**, hapus **satu chip topik yang punya bab**.
+- [ ] **LULUS** bila muncul **pita pesan dengan tombol urungkan**, dan setelah ditekan topiknya **kembali ke posisi semula beserta label babnya**.
+- [ ] **MELESET** bila tidak ada tombol urungkan, atau topiknya kembali tetapi **tanpa** label bab dan di urutan yang berbeda.
+
+### Butir 14 — hapus tindak lanjut bisa diurungkan
+
+- [ ] Di **laporan sesi pada langkah enam**, hapus **satu tindak lanjut**.
+- [ ] **LULUS** bila muncul konfirmasi lebih dulu, dan setelah diurungkan itemnya **kembali ke urutan semula**.
+- [ ] **MELESET** bila tidak ada konfirmasi, atau itemnya kembali tetapi berpindah ke urutan paling bawah.
+
+### Butir 15 — Simpan Sesi tersedia di langkah lima
+
+- [ ] Di **langkah lima**, isi catatan.
+- [ ] **LULUS** bila tombol **Simpan Sesi** tersedia **di sebelah tombol Lanjut**, dan setelah ditekan **laporan sesi terbuka** serta **sesinya tersimpan tanpa foto dan tanda tangan**.
+- [ ] **MELESET** bila tombolnya tidak ada di langkah lima (harus pindah ke langkah enam dulu), atau sesinya tidak tersimpan.
+
+### Butir 16 — tanda seru pada langkah wajib yang belum lengkap
+
+> **Di mana melihatnya (pemilik menanyakan ini 2026-10-15):** tanda serunya adalah **lingkaran merah kecil berisi
+> `!`** yang menempel di **pojok kanan-atas bulatan langkah** pada **penunjuk langkah di bagian paling atas layar
+> Catat Sesi** — bukan di dalam isi halaman. Ia juga terbaca pembaca layar sebagai "…, belum lengkap"
+> (terbukti di snapshot browser: *"Langkah 1: Jadwal (saat ini), belum lengkap"*).
+
+- [ ] Di **langkah satu**, sebelum murid dipilih: **LULUS** bila lingkarannya bertanda **`!`**, dan tandanya **hilang** begitu murid dipilih.
+- [ ] **LULUS** juga bila **langkah lima** bertanda `!` selama catatannya masih kosong.
+- [ ] **MELESET** bila tidak ada tanda `!` sama sekali, atau tandanya tidak pernah hilang sehingga tidak lagi menunjuk apa pun.
+
+### Butir 17 — pindah langkah menggulir ke atas
+
+- [ ] Dari langkah satu, **gulir jauh ke bawah**, lalu ketuk **lanjut**.
+- [ ] **LULUS** bila halaman kembali ke atas dan **judul langkah berikutnya langsung terlihat**.
+- [ ] **MELESET** bila Anda mendarat di tengah halaman baru dan harus menggulir sendiri untuk tahu ada di langkah mana.
+
+### Butir 18 — isian cepat: satu pilihan, dua tempat, papan ketik jalan
+
+- [ ] Di **langkah empat**, ketuk **"lancar"** pada isian cepat.
+- [ ] **LULUS** bila tombol itu **menyala** dan **chip yang sama di daftar bawah ikut menyala** (satu pilihan, bukan dua).
+- [ ] Kalau Anda memakai papan ketik: tombol **Tab** masuk **sekali** ke dalam kelompok, **panah** memindahkan pilihan dan **membungkus di ujung**, **Home/End** menuju ujung, dan tombol **kosongkan** tetap terjangkau.
+- [ ] **MELESET** bila kedua tempat itu tidak sinkron, atau Tab masuk ke setiap tombol satu per satu (artinya perannya bukan satu kelompok pilihan).
+
+> **Permintaan pemilik 2026-10-15:** *"Langkah cepat bisa tapi harus lebih detail, di perkuat."* Artinya isian cepat
+> di langkah empat **bekerja**, tetapi dirasa terlalu ringkas untuk dipakai menilai kondisi — sudah masuk daftar
+> pekerjaan sebagai permintaan penguatan, bukan bug.
+
+### Butir 19 — warna tombol utama nyaman dibaca
+
+- [ ] Baca tombol utama di **bilah aksi** pada setiap keadaan: langkah satu sampai lima **biru**, langkah enam **hijau**, keadaan sedang menyimpan **lebih gelap**.
+- [ ] **LULUS** bila teks putihnya **nyaman dibaca** di ketiga keadaan itu. Periksa juga **kepala laporan sesi** supaya warnanya masih terlihat bagus.
+- [ ] **MELESET** bila ada keadaan yang teksnya pudar atau menyatu dengan latarnya — sebutkan yang mana.
+
+### Butir 20 — draf bertahan saat keluar lalu kembali
+
+- [ ] Isi satu catatan, tunggu sampai muncul keterangan **draf tersimpan**, keluar ke **Beranda** lewat navigasi bawah, lalu buka lagi halaman **Catat Sesi**.
+- [ ] **LULUS** bila **isian dan langkahnya kembali** seperti semula, dan muncul **baris keterangan bahwa isian tersimpan sebagai draf**.
+- [ ] **MELESET** bila isiannya kosong lagi, atau langkahnya kembali ke awal tanpa penjelasan.
+
+### Butir 21 — panel Kelola sesi untuk sesi hari ini / akan datang
+
+> **Catatan penting apa adanya:** panel ini **belum pernah diklik mesin maupun manusia**. Berkas test yang hijau
+> hanya membuktikan Beranda masih dirender, bukan bahwa keenam aksinya bekerja — jadi butir ini yang paling perlu
+> mata Anda.
+
+- [ ] Di **Beranda**, ketuk baris **sesi hari ini** atau **sesi yang akan datang**.
+- [ ] **LULUS** bila panel **Kelola sesi** naik dari bawah dengan kolom **murid, tanggal, jam mulai, dan durasi sudah terbuka**, dan aksi utamanya **simpan perubahan**.
+- [ ] Buka **menu aksi lain**: **Batalkan sesi** dan **Hapus** terlihat beserta **satu baris keterangan perbedaannya** di bawah tiap tombol, keduanya menampilkan **konfirmasi lebih dulu**, dan setelah dikonfirmasi sesinya **benar-benar hilang dari jadwal**.
+- [ ] **LULUS** juga bila **tidak ada tombol "tidak hadir"** di konteks ini (tidak hadir hanya untuk sesi terlewat — butir 22).
+- [ ] **MELESET** bila panel tidak naik, kolomnya kosong, salah satu aksi tidak berkonfirmasi, atau sesinya tidak hilang.
+
+### Butir 22 — panel untuk sesi terlewat
+
+- [ ] Di **Beranda**, buka **sesi yang terlewat** (baris kuning bertanda **terlewat**).
+- [ ] **LULUS** bila panel **Kelola sesi terlewat** menampilkan **tiga aksi di badannya: catat · batalkan sesi · tidak hadir**.
+- [ ] Pada **tidak hadir**: pilihan **gratis** atau **tetap tagihkan** muncul, dan **kalimat biayanya ikut berubah** saat Anda berganti pilihan.
+- [ ] Di **menu tambahan**: ada **jadwalkan ulang** dengan tanggal pengganti **mulai dari hari ini**, dan **hapus**.
+- [ ] **MELESET** bila hanya ada satu-dua aksi, kalimat biayanya tidak berubah, atau tanggal pengganti menawarkan tanggal yang sudah lewat.
+
+### Butir 23 — memindahkan sesi ke murid lain, dan mengganti jam
+
+- [ ] Di **Beranda**, buka sesi hari ini / akan datang, lalu **ubah kolom murid** ke murid lain.
+- [ ] **LULUS** bila muncul **peringatan di panel** yang menyebut nominal **dihitung ulang memakai tarif murid baru** — atau menyebut **nominal manual sesi ini tidak diubah** bila sesi itu punya nominal manual — dan **tanpa angka rupiah** di peringatan itu.
+- [ ] Setelah menyimpan, **muncul konfirmasi ganti murid**; setelah dikonfirmasi **sesinya pindah** ke murid itu.
+- [ ] Periksa di **layar Keuangan**: nominalnya memakai **tarif murid baru** dan masuk ke **tagihan murid baru**.
+- [ ] Ulangi dengan **hanya mengubah jam**: **tidak boleh ada konfirmasi**, dan **nominal manual yang pernah diisi tidak boleh hilang**.
+- [ ] **Sesi terlewat tetap tanpa pemilih murid** — itu benar, bukan cacat.
+- [ ] **MELESET** bila peringatan tidak muncul, nominalnya tetap tarif murid lama, atau nominal manual Anda hilang setelah jam diubah.
+
+> **Permintaan pemilik 2026-10-15:** *"Antara batalkan dan tidak hadir ini kasih info jelas bedanya apa."* Bedanya
+> sebenarnya sudah tercatat di kode dan sudah diuji, tetapi **belum pernah ditulis di dalam aplikasi**:
+> **Batalkan sesi** = sesi tidak jadi berlangsung dan **tidak menagih siapa pun** (dipakai untuk sesi yang batal,
+> mis. murid membatalkan lebih dulu). **Tidak hadir** = sesi tetap dihitung sebagai pertemuan yang **telah
+> disepakati**, dengan dua pilihan: **gratis** (tidak ditagih) atau **tetap tagihkan** (ditagih seperti sesi biasa).
+> Perbedaan inilah yang menentukan muncul atau tidaknya nominal di tagihan murid. Sudah masuk daftar pekerjaan sebagai
+> permintaan penjelasan di antarmuka.
 
 ---
 
@@ -428,18 +652,15 @@ Butir **26–29** (layar Laporan) sudah dicentang 2026-10-08 dan tidak perlu diu
 Cukup satu pesan, dengan bentuk seperti ini:
 
 ```
-Butir 34: LULUS  (atau: MELESET — <satu kalimat apa yang terlihat>)
-Butir 35: LULUS
-Butir 36: LULUS
-Butir 37: LULUS
-Butir 38: LULUS
-Butir 39: LULUS   (hanya kalau dijalankan di server pengembangan; kalau dilewati, tulis LEWAT)
-Butir 40: LULUS
-Butir 41: LULUS
-Butir 42: LULUS
-Butir 43: LULUS
+Butir 1: LULUS   (atau: MELESET — <satu kalimat apa yang terlihat>, atau: BELUM SAYA COBA)
+Butir 2: ...
+...
 Butir 44: LULUS
 ```
+
+Bagian C (butir 1, 2, 3, dan 7–23) **tidak wajib dilaporkan per butir** — cukup sebutkan **layar mana** yang terasa
+aneh, mis. *"Catat Sesi: bagian kondisi aman, tapi chip topik sempat berganda"*. Kalau sebuah butir Anda lewati,
+tulis **LEWAT** — jangan dikosongkan, supaya tidak terbaca sebagai lulus.
 
 Sertakan tangkapan layar bila ada yang meleset — itu paling cepat saya pakai. Untuk butir foto, tangkapan layar
 **daftar murid** (memperlihatkan murid berfoto dan murid berinisial berdampingan) dan **kepala halaman detail**
@@ -463,4 +684,6 @@ tangkapan layar yang paling berguna adalah **kotak ajakan "Pasang PIN Keuangan l
 | 2026-10-10 | Dibuat setelah rilis v1.97.0, untuk memeriksa tab Murid yang baru (butir 30–33) dari HP. Bagian 0 memuat syarat yang tidak boleh dilewati: nomor versi di jendela Catatan perubahan, dan peringatan bahwa di alamat online **tidak ada** pemuat data contoh sehingga yang diperiksa adalah data asli. |
 | 2026-10-10 | **Dipakai.** Pemilik memeriksa tab Murid dari HP dan melaporkan hasilnya sesuai rencana; butir 30–33 dicentang di `PEKERJAAN.md` §5 dengan jenis bukti "pernyataan pemilik" (satu pernyataan untuk keempat butir, bukan tangkapan layar atau pengukuran per butir). Status berkas ini berubah menjadi selesai — tetap dipakai lagi kalau layar Murid berubah. |
 | 2026-10-11 | **Dipakai lagi untuk foto murid (rilis v1.98.0, butir 34–35).** Judul, nomor versi, dan syarat di bagian 0 diperbarui ke **v1.98.0** (tanggal Catatan perubahan 2026-10-11 dan judul entrinya). Bagian A diganti dengan dua butir foto; panduan tab Murid yang lama **tidak dihapus** melainkan dipindah menjadi **Bagian A′** sebagai arsip yang mendasari centang butir 30–33. Ditambahkan satu larangan baru di bagian 0.3: untuk butir foto, pakai murid yang fotonya memang siap Anda hapus di akhir butir 35. Butir 35 sengaja memeriksa **dua kali Batal**, karena jalur batal itulah satu-satunya bagian G3-07 yang tidak bisa dibuktikan suite tes (repo ini tidak memasang jsdom sehingga formulir tidak bisa dirender di tes). |
+| 2026-10-15 | **Daftar induk 44 butir ditambahkan (§0.0), dan Bagian C akhirnya punya langkah per butir.** Sebelum ini panduan berkas ini memuat langkah rinci hanya untuk **butir 34–44** (sebelas butir); dua puluh butir sisanya — **1, 2, 3, dan 7–23** — hanya berupa satu tabel ringkas per layar, sehingga tidak ada satu tempat pun yang memuat keempat puluh empat butir sekaligus. Yang ditambahkan: (a) **§0.0 "Daftar induk — 44 butir, satu halaman"** berisi tabel lengkap (butir · keadaan · layar · inti · bagian detail) dengan keadaan **potret 2026-10-15** dan penegasan bahwa penanda yang berlaku tetap di `PEKERJAAN.md` §5, supaya tabel ini tidak menjadi sumber kebenaran kedua; (b) **Bagian C ditulis ulang per butir** dengan bentuk yang sama seperti Bagian A/B — langkah, **LULUS**, dan **MELESET** — untuk butir 1, 2, 3, dan 7–23, termasuk catatan apa adanya bahwa panel **Kelola sesi** (butir 21) belum pernah diklik mesin maupun manusia; kotak centang di Bagian C **bukan** pengganti penanda di `PEKERJAAN.md` §5. (c) Bagian E diperluas: format laporannya kini menyebut butir 1–44, ditambah opsi **LEWAT**, dan pelaporan Bagian C boleh per **layar**, bukan per butir. (d) Perkiraan waktu §0.4 diperbarui (Bagian C ±15–25 menit bila dikerjakan per butir, dan boleh dicicil). **Tidak ada langkah baru yang mengubah data**: tidak satu pun butir di Bagian C menghapus data murid; butir 10 menyimpan perubahan pada sebuah sesi, jadi pakai sesi contoh bila ada. |
+| 2026-10-15 | **Tabel keadaan diselaraskan dengan `PEKERJAAN.md` §5, dan dua barisnya dibetulkan.** Butir **4 · 5 · 6** dan **24 · 25** yang selama ini masih terdaftar "terbuka" di tabel ini ternyata **sudah dicentang pemilik 2026-10-07** — barisnya di `PEKERJAAN.md` §5 baru ikut ditandai pada hari ini, jadi panduan ini sempat menyuruh memeriksa ulang hal yang sudah tertutup. Yang berubah: baris "1–23" menjadi **"1, 2, 3, dan 7–23"** beserta alasan mengapa 4–6 keluar dari daftar, **Bagian C** mengikuti penomoran yang sama (dan baris Uang 24–25 dicoret sebagai sudah dicentang), nomor versi di baris "Layar Pengaturan" diperluas ke **v1.109.0**, dan sebagai konteks: **v1.109.0 menutup keluhan "pemilih gaya terasa tidak berpengaruh"** yang tercatat di baris butir 41 (v1.105.0 perkuat AI per bagian + narasi hanya-baca · v1.107.0 ringkasan sesi untuk AI · v1.109.0 pemilih gaya Draft AI). Larangan dan syarat di bagian 0 **tidak berubah**. |
 | 2026-10-11 | **Diperluas menjadi panduan seluruh sisa daftar periksa, dan nomor versinya diperbarui ke v1.101.0.** Sampai hari ini berkas ini hanya memuat butir 30–35, sementara `PEKERJAAN.md` §5 sudah sampai butir 39 dan **butir 1–23 tidak punya panduan sama sekali** — hanya satu tabel ringkas per layar. Yang ditambahkan: (a) **tabel keadaan butir** di kepala berkas, supaya tidak ada pemeriksaan yang diulang (24–29 dan 30–33 sudah dicentang, jangan diulang lagi); (b) **Bagian B** untuk butir 36–38 (panel desain laporan, perancang tema, tiga grafik Keuangan) dengan pertanyaan penilaian yang memang hanya bisa dijawab pemilik, mis. apakah contoh warna itu membantu atau justru menambah keramaian; (c) **Bagian B2** untuk butir 39 (jalur reset total + ajakan PIN baru) yang **dipisah dan diberi peringatan sendiri**, karena butir itu menghapus seluruh data dan **wajib dijalankan di server pengembangan** — di alamat online yang terhapus adalah data asli; (d) **larangan keempat** di bagian 0.3 untuk hal yang sama; (e) bagian arsip tab Murid diganti nama menjadi **Bagian D**, bagian laporan menjadi **Bagian E**, dan bagian lama 1–23 menjadi **Bagian C**, supaya urutannya mengikuti `PEKERJAAN.md` §5. Cara memastikan nomor versi juga ditambah satu jalan kedua lewat **Pengaturan → Aplikasi**, karena jendela Catatan perubahan hanya muncul sekali per versi sehingga tutor yang sudah menutupnya tidak punya cara memeriksa versi. |

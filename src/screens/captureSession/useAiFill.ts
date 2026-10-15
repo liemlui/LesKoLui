@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { draftShortNote, polishWhatsApp } from "../../lib/aiClient";
 import { generateRichNote } from "../../lib/sessionTemplates";
 import type { EngagementNarrativeInput, SessionType } from "../../lib/sessionTemplates";
 import type { AiFeature } from "../../lib/aiUsage";
-
-type AiNoteStyle = "rapikan" | "perluas" | "ringkas";
+import type { AiNoteStyle } from "./GayaPenulisanPicker";
 
 interface UseAiFillParams {
   student?: { name: string; level: string; grade?: string };
@@ -58,6 +57,12 @@ export default function useAiFill({
   const [aiNoteDraft, setAiNoteDraft] = useState<string | null>(null);
   const [aiNoteOriginal, setAiNoteOriginal] = useState("");
   const [aiNoteStyle, setAiNoteStyle] = useState<AiNoteStyle>("rapikan");
+  // Ref, bukan state: `aksi` modal biaya menangkap `onAiNoteConfirm` dari render
+  // saat tombol Draft AI ditekan. Tanpa ref, gaya yang dipilih di dalam modal
+  // tidak pernah sampai ke panggilan — itulah keluhan "klik tidak ada efek,
+  // OK tetap memakai gaya lama".
+  const aiNoteStyleRef = useRef(aiNoteStyle);
+  aiNoteStyleRef.current = aiNoteStyle;
   const [showAiContext, setShowAiContext] = useState(false);
 
   /**
@@ -121,7 +126,7 @@ export default function useAiFill({
         predictedGrade: predictedGrade.trim() || undefined, situasiNote: situasiNote.trim() || undefined,
         engagementScore: hasEngagementInput ? engagement.score : undefined, engagementLabels,
         behaviorLabels: behaviorLabels.length > 0 ? behaviorLabels : undefined, responseLabel,
-        previousNote, draftText: shortNote.trim() || undefined, style: aiNoteStyle,
+        previousNote, draftText: shortNote.trim() || undefined, style: aiNoteStyleRef.current,
         followUps, durationHours: duration,
       });
       if (res.note) setAiNoteDraft(res.note);

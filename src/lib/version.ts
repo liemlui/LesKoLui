@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.110.0",
+    date: "2026-10-15",
+    title: "Pemilih gaya Draft AI (Rapikan · Perluas · Ringkas) sekarang terlihat dan benar-benar dipakai — plus verifikasi menyeluruh daftar periksa dari perangkat Anda",
+    items: [
+      "**Tombol Rapikan · Perluas · Ringkas di modal Draft AI kini menyala saat ditekan, dan gaya yang dipilih itulah yang dikirim.** Sebelumnya menekan tombol gaya di dalam modal tidak mengubah highlight, dan OK tetap memakai gaya yang sudah terpasang saat modal dibuka — jadi pilihan baru terasa tidak berpengaruh. Sekarang tombol yang aktif terlihat, di bawahnya tertulis gaya yang akan dipakai, dan panggilan AI membaca pilihan terakhir — bukan pilihan saat modal baru terbuka.",
+      "**Bedanya ketiga gaya, supaya Anda tidak perlu menebak:** **Rapikan** memoles tata bahasa dan struktur tanpa mengubah panjang catatan; **Perluas** mengembangkan catatan menjadi lebih panjang dengan tambahan konteks topik, respons murid, dan rencana lanjutan; **Ringkas** memadatkannya menjadi fakta utama saja. Ketiganya tetap tidak pernah menghapus fakta atau istilah yang sudah Anda tulis.",
+      "**Verifikasi daftar periksa: bagian kondisi dan Beranda Anda nyatakan beres, dengan tiga catatan yang saya catat apa adanya.** Yang Anda nilai lulus — riwayat sesi menyimpan seluruh indikator dan tag, kartu keseriusan menyebut penyebutnya, urungkan hapus topik dan tindak lanjut, Simpan Sesi di langkah lima, gulir ke atas saat pindah langkah, warna tombol utama, draf yang pulih saat keluar lalu kembali, panel Kelola sesi, dan perpindahan sesi antar murid. Tiga catatan yang belum selesai: **(a)** saat sebuah sesi memuat **dua mapel**, daftar topik baru memuat mapel pertama — katalognya sendiri sudah benar, yang perlu dibetulkan penggabungan topiknya; **(b)** langkah **kondisi** Anda minta dipetakan ulang supaya lebih cepat dipahami — perlu Anda tahu bahwa tombol **'Kondisi les hari ini'** dan **'Suasana hati' tidak ikut menghitung skor** (keduanya hanya konteks), sedangkan yang menghitung adalah **'Yang menonjol hari ini'** dan observasi lanjutan; **(c)** hitungan skor fokus Anda minta ditinjau ulang keadilannya, dan saya sudah mengukur biasnya: penambahan berhenti di +5 sedangkan pengurangan bisa sampai −12, sehingga sesi buruk bisa jatuh lebih dalam daripada sesi baik bisa naik.",
+      "**Dua hal yang Anda cari dan tidak ketemu, jawabannya di sini — sekarang juga tertulis di panduan pemeriksaan.** **Ekspor CSV** bukan menu bernama 'Ekspor': tombolnya bernama **'Ekspor data ke CSV (terbaca)'** dan berada **di dalam bagian Backup dan Restore** di Pengaturan, di bawah kolom kata sandi enkripsi. Sedangkan **tanda seru langkah wajib** adalah **lingkaran merah kecil berisi `!`** di pojok kanan-atas bulatan langkah pada **penunjuk langkah paling atas** layar Catat Sesi — bukan di dalam isi halaman.",
+      "**Catatan nomor versi, disebut apa adanya supaya tidak ada yang membaca ini sebagai dua rilis.** Perbaikan pemilih gaya sebenarnya sudah disiapkan sebagai v1.109.0, tetapi **belum pernah sampai ke perangkat Anda** (versi terakhir yang terkirim adalah v1.108.0). Agar tidak ada nomor versi yang dilewati begitu saja, pekerjaan itu **digabung ke dalam rilis ini** dan entri lamanya diganti dengan yang ini.",
+    ],
+  },
+  {
     version: "v1.108.0",
     date: "2026-10-15",
     title: "Kolom Biaya berhenti mengisi ulang dirinya sendiri, dan nominal manual tidak lagi hilang saat durasi sesi diperbaiki",

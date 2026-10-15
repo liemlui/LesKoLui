@@ -34,6 +34,7 @@ import useStudentBrief from "./captureSession/useStudentBrief";
 import useCaptureDraft from "./captureSession/useCaptureDraft";
 import AiTagTooltip from "./captureSession/AiTagTooltip";
 import useAiFill from "./captureSession/useAiFill";
+import GayaPenulisanPicker from "./captureSession/GayaPenulisanPicker";
 import CloseOutSheet from "./captureSession/CloseOutSheet";
 import ConfirmSheet from "../components/ConfirmSheet";
 import ScheduleStep from "./captureSession/ScheduleStep";
@@ -1781,18 +1782,7 @@ export default function CaptureSession() {
                         : "Textbox kosong — AI akan membuat catatan baru.",
                       dataSent: "Nama, level dan kelas murid; mapel, topik, jenis dan durasi sesi, mood, area perhatian, prediksi nilai, Situasi Hari Ini, skor dan indikator engagement, label perilaku dan respons, catatan sesi lalu, tindak lanjut, isi textbox, dan gaya penulisan yang dipilih. Data opsional disertakan bila tersedia.",
                       extraContent: (
-                        <div>
-                          <label className="label">Gaya penulisan</label>
-                          <div className="grid grid-cols-3 gap-2">
-                            {(["rapikan", "perluas", "ringkas"] as const).map((gaya) => (
-                              <button key={gaya} type="button"
-                                onClick={() => setAiNoteStyle(gaya)}
-                                className={`py-2 rounded-xl text-xs font-bold border transition-colors ${aiNoteStyle === gaya ? "bg-[var(--accent-solid)] text-[var(--on-strong)] border-[var(--border-accent)]" : "bg-[var(--surface-strong)] text-[var(--ink-muted)] border-[var(--border)] hover:border-[var(--border-accent)]"}`}>
-                                {gaya === "rapikan" ? "Rapikan" : gaya === "perluas" ? "Perluas" : "Ringkas"}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
+                        <GayaPenulisanPicker nilaiAwal={aiNoteStyle} onGanti={setAiNoteStyle} />
                       ),
                       aksi: () => onAiNoteConfirm(est.idrCost),
                     });
@@ -1813,7 +1803,7 @@ export default function CaptureSession() {
             {aiNoteDraft && (
               <div className="mt-2 bg-[var(--accent-tint)] border border-[var(--border-accent)] rounded-xl p-3">
                 <div className="flex items-center justify-between mb-1.5">
-                  <p className="text-xs font-bold text-[var(--ink-accent)]">✨ Usulan AI ({aiNoteStyle})</p>
+                  <p className="text-xs font-bold text-[var(--ink-accent)]">✨ Usulan AI ({aiNoteStyle === "rapikan" ? "Rapikan" : aiNoteStyle === "perluas" ? "Perluas" : "Ringkas"})</p>
                   <button type="button" onClick={() => setAiNoteDraft(null)}
                     className="text-xs text-[var(--ink-accent)] hover:text-[var(--ink-accent)]">Tutup</button>
                 </div>

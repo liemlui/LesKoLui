@@ -106,15 +106,24 @@ Butuh izin sandbox penuh: `npm run e2e`, `npm run e2e:uiux`, `git push`.
    daftar periksa manual, karena hanya bisa dijalankan pemilik di server pengembangan — di alamat
    online tidak ada pemuat data contoh sehingga yang terhapus adalah data asli.
 
-**Menunggu mata pemilik (jangan dikerjakan agen) — kini 11 butir:** daftar periksa manual **34–35**
+**Menunggu mata pemilik (jangan dikerjakan agen) — kini 22 dari 44 butir belum bertanda ✅:** daftar periksa manual **34–35**
 (foto murid, ditambahkan 2026-10-11), **36–38** (panel desain laporan + perancang tema + tiga grafik
 Keuangan, ditambahkan 2026-10-11 bersama G3-08), **39** (jalur reset total + ajakan PIN baru,
 ditambahkan 2026-10-11 bersama G3-10 butir 3 — **wajib di server pengembangan**), **40–43** (backup
 manual · biaya di kedua tombol AI · tombol Coba lagi · biaya di Riwayat Aktivitas, ditambahkan
 2026-10-14 bersama **v1.102.0**), **44** (nominal manual tidak tertimpa saat sesinya dicatat,
 ditambahkan 2026-10-14 bersama **v1.103.0** — **menyentuh uang, jangan dilewati**), dan **butir daftar
-periksa untuk layar Pengaturan yang belum dibuat** (v1.100.0–v1.103.0 sama-sama menyentuh layar itu
-tanpa punya butirnya sendiri). **Butir 1–23 masih terbuka.** Panduan langkah-demi-langkahnya ada di
+periksa untuk layar Pengaturan yang belum dibuat** (v1.100.0–v1.109.0 sama-sama menyentuh layar itu
+tanpa punya butirnya sendiri).
+
+> **Yang sudah bertanda dan tidak perlu diulang** (jangan mengutip "1–23 terbuka" sebagai penghitung
+> sisa — 2026-10-15 tiga di antaranya dibetulkan): **4 · 5 · 6 · 24 · 25** ditutup pemilik 2026-10-07,
+> **26–29** pada 2026-10-08, **30–33** pada 2026-10-10 di HP, **34–38** pada 2026-10-14 di server dev,
+> dan **40 · 41 · 43 · 44** pada 2026-10-14. **Sisa yang benar: butir 1, 2, 3, dan 7–23** (dua puluh
+> butir, belum pernah dicentang) **+ butir 39 dan 42.** Untuk butir **42**, yang ditunggu bukan lagi
+> tombol "Coba lagi" (itu sudah tertutup bersama butir 41) melainkan bukti bahwa **percobaan ulangnya
+> berhasil** sesudah v1.105.0/v1.107.0 — pemilik mencobanya 2026-10-14 dan panggilan AI-nya masih gagal
+> karena konteks terlalu panjang. Panduan langkah-demi-langkahnya ada di
 `PANDUAN-CEK-DI-HP.md` **bagian F** (butir 40–44), lengkap dengan tabel keadaan supaya tidak ada
 pemeriksaan yang diulang.
 
