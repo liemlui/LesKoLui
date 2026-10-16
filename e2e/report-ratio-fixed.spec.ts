@@ -6,7 +6,7 @@
  * bukan lagi bentuk kotaknya, melainkan janji ke tutor: **tidak ada isi yang
  * terpotong** — dan ekspor tetap berhasil.
  */
-import { test, expect } from "./fixtures";
+import { test, expect, pilihMuridYangBisaDirekap } from "./fixtures";
 import { type Page } from "@playwright/test";
 
 async function closeChangelog(page: Page) {
@@ -62,10 +62,14 @@ test("catatan sesi panjang tidak terpotong (halaman bertinggi otomatis)", async 
   expect(narrativeApplied, "tidak ada sesi Andi Juni 2026 di seed").toBeGreaterThan(0);
 
   await page.locator("select").first().selectOption(andiId);
-  // Sejak G3-05 tombol laporan selalu tampil di bilah aksi tetap, jadi
-  // "siap dibuatkan laporan" ditandai tombolnya AKTIF.
-  await expect(page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }))
-    .toBeEnabled({ timeout: 5000 });
+  /**
+   * Berkas ini **sengaja memakai Andi**, bukan murid mana pun: narasi panjang
+   * ditulis ke sesi Andi Juni di atas, dan yang diuji adalah halaman laporan
+   * dengan narasi itu. Karena data seed sudah memuat laporan Juni milik Andi,
+   * memilih "murid yang belum punya laporan" justru menguji murid yang salah.
+   * Jadi yang ditunggu adalah tombolnya siap untuk murid yang sudah dipilih.
+   */
+  expect(await pilihMuridYangBisaDirekap(page)).toBe(true);
   await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).click();
   await expect(page.locator("[data-report-page]").first()).toBeVisible({ timeout: 10_000 });
 

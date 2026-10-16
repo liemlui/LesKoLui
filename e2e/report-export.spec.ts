@@ -2,7 +2,7 @@
  * E2E: alur laporan bulanan — buat laporan, pratinjau ter-render,
  * export JPG menghasilkan file (font embedding tidak boleh menggagalkan export).
  */
-import { test, expect } from "./fixtures";
+import { test, expect, muridYangBisaDirekap } from "./fixtures";
 import { type Page } from "@playwright/test";
 
 async function closeChangelog(page: Page) {
@@ -36,27 +36,14 @@ test("buat laporan lalu export JPG dan PDF berhasil tanpa error", async ({ page 
   // Seed berisi sesi Maret–Juni 2026 → pilih bulan Juni
   await page.locator('input[type="month"]').fill("2026-06");
 
-  // Pilih murid pertama yang punya sesi (coba tiap murid sampai stats muncul)
-  const select = page.locator("select").first();
-  const optionValues = await select.locator("option").evaluateAll(
-    (opts) => (opts as HTMLOptionElement[]).map((o) => o.value).filter(Boolean),
-  );
-  expect(optionValues.length).toBeGreaterThan(0);
-
-  let found = false;
-  for (const value of optionValues) {
-    await select.selectOption(value);
-    try {
-      // Sejak G3-05 tombol laporan selalu tampil di bilah aksi tetap dan mati
-      // bila periodenya belum bisa direkap — penanda "murid ini punya sesi
-      // bulan ini" adalah tombolnya AKTIF, bukan keberadaannya.
-      await expect(page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }))
-        .toBeEnabled({ timeout: 2500 });
-      found = true;
-      break;
-    } catch { /* murid ini tak punya sesi bulan ini — lanjut */ }
-  }
-  expect(found, "tidak ada murid dengan sesi bulan ini di seed").toBe(true);
+  // Pilih murid yang periodenya benar-benar bisa direkap. Kandidatnya ditentukan
+  // dari DATA (punya sesi selesai di bulan itu, belum punya laporan), bukan dari
+  // batas waktu UI — lihat catatan di `muridYangBisaDirekap`.
+  const muridId = await muridYangBisaDirekap(page, "2026-06");
+  expect(muridId, "tidak ada murid dengan periode yang bisa direkap di seed").toBeTruthy();
+  await page.locator("select").first().selectOption(muridId!);
+  await expect(page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).first())
+    .toBeEnabled({ timeout: 30_000 });
 
   // Buat / update laporan → pratinjau harus ter-render
   await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).click();
