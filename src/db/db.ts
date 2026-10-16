@@ -114,6 +114,32 @@ export class JurnalDB extends Dexie {
     this.version(15).stores({
       captureDrafts: "draftId, scopeKey, studentId, scheduleId, updatedAt",
     });
+    /**
+     * v16: indeks `action` pada `auditLog` — menutup `SchemaError` yang nyata.
+     *
+     * **Cacatnya.** `pemakaianAiBulanIni()` dan `biayaAiBulanIni()`
+     * (`src/lib/aiUsage.ts`) menghitung pemakaian AI dari catatan audit dengan
+     * `db.auditLog.where("action").equals("ai.call")`, sedangkan tabelnya
+     * didaftarkan tanpa indeks `action` (v9: `"id, timestamp, entityType"`).
+     * Dexie melempar `SchemaError: KeyPath action on object store auditLog is not
+     * indexed` sebagai **penolakan janji yang tidak tertangani**, dan itu terukur
+     * sebagai galat halaman di 12 tes Playwright (`report-unlock`,
+     * `report-export-ratio`, `capture-closeout-failure`, `finance`).
+     *
+     * **Kenapa baru terlihat sekarang.** Layar Pengaturan membaca pemakaian AI
+     * bulan ini sejak G3-04, jadi galat ini hidup sejak saat itu — yang berubah
+     * hanyalah ada tidaknya tes yang **menghitung** galat halaman
+     * (`report-unlock.spec.ts` menambah `expect(errors).toEqual([])` pada
+     * 2026-10-14). Sebelum itu ia lewat tanpa suara: angkanya memang tampil,
+     * karena Dexie jatuh ke pemindaian penuh saat indeksnya tidak ada.
+     *
+     * **Migrasi ini menambah indeks saja** — tidak ada data yang ditulis ulang,
+     * tidak ada bentuk baris yang berubah, dan `db.auditLog.clear()` di awal
+     * setiap tes membuat jalur upgrade-nya ikut teruji di suite.
+     */
+    this.version(16).stores({
+      auditLog: "id, timestamp, entityType, action",
+    });
   }
 }
 

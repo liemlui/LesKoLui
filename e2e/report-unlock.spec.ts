@@ -26,7 +26,18 @@ async function closeChangelog(page: Page) {
 test("buka kunci laporan final mengembalikannya menjadi draft (PIN-gated)", async ({ page }) => {
   test.setTimeout(90_000);
   const errors: string[] = [];
-  page.on("pageerror", (error) => errors.push(error.message));
+  // Galat halaman direkam **beserta isinya**. `pageerror` saja hanya memberi
+  // `DexieError` tanpa sebab; nama itu yang dulu membuat temuan ini bertahan
+  // lama — sebab sesungguhnya baru terbaca dari janji yang ditolak.
+  page.on("pageerror", (error) => errors.push(`${error.message}\n${error.stack ?? ""}`));
+  await page.addInitScript(() => {
+    (window as unknown as { __reject: string[] }).__reject = [];
+    window.addEventListener("unhandledrejection", (ev) => {
+      const r = ev.reason as { name?: string; message?: string } | undefined;
+      (window as unknown as { __reject: string[] }).__reject
+        .push(`${r?.name ?? "?"}: ${r?.message ?? String(ev.reason)}`);
+    });
+  });
 
   const seedDone = page.waitForEvent("console", {
     predicate: (message) => /berhasil dimasukkan|seed dilewati/.test(message.text()),
@@ -77,5 +88,12 @@ test("buka kunci laporan final mengembalikannya menjadi draft (PIN-gated)", asyn
 
   expect(audit).toHaveLength(1);
   expect(audit[0]).toMatchObject({ previousStatus: "confirmed", wasShared: false });
+  const ditolak = await page.evaluate(() => (window as unknown as { __reject: string[] }).__reject);
+  // Pesannya ikut dilaporkan: tanpa itu, kegagalan hanya berbunyi "DexieError" dan
+  // sebabnya harus dicari ulang dari nol (persis yang terjadi pada 2026-10-15).
+  if (errors.length > 0 || ditolak.length > 0) {
+    console.log("GALAT HALAMAN:\n" + errors.join("\n---\n") + "\nJANJI DITOLAK:\n" + JSON.stringify(ditolak, null, 1));
+  }
+  expect(ditolak).toEqual([]);
   expect(errors).toEqual([]);
 });
