@@ -2,7 +2,8 @@
  * E2E: alur laporan bulanan — buat laporan, pratinjau ter-render,
  * export JPG menghasilkan file (font embedding tidak boleh menggagalkan export).
  */
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "./fixtures";
+import { type Page } from "@playwright/test";
 
 async function closeChangelog(page: Page) {
   try {

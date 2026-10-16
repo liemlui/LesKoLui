@@ -6,7 +6,8 @@
  * bukan lagi bentuk kotaknya, melainkan janji ke tutor: **tidak ada isi yang
  * terpotong** — dan ekspor tetap berhasil.
  */
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "./fixtures";
+import { type Page } from "@playwright/test";
 
 async function closeChangelog(page: Page) {
   try {

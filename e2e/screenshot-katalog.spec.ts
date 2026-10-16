@@ -5,7 +5,8 @@
  * Jalankan khusus katalog: npx playwright test --config=playwright.config.ts e2e/screenshot-katalog.spec.ts
  */
 
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
+import { type Page } from "@playwright/test";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";

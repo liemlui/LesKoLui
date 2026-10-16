@@ -9,7 +9,8 @@
  * tombol kembali enabled (export selesai), tanpa pesan "Gagal ekspor", dan
  * tanpa pageerror (font-embed timeout / overflow detection tidak boleh crash).
  */
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "./fixtures";
+import { type Page } from "@playwright/test";
 
 async function closeChangelog(page: Page) {
   try {

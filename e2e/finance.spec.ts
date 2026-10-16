@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test.use({
   launchOptions: process.env.SYSTEM_CHROME_PATH
@@ -90,10 +90,11 @@ test("finance data stays connected across summary, expenses, and audit", async (
   await expect(page.getByText("Sisa kas", { exact: true }).first()).toBeVisible();
 
   // Tabel utama 3 kolom berlaku di semua lebar layar — inilah yang menggantikan
-  // kartu dua baris untuk layar sempit. `Sisa kas` dan `Piutang` sengaja diuji
-  // dengan `.first()`: keduanya muncul di tabel utama DAN di tabel penuh, jadi
-  // pencocokan tanpa `.first()` akan melanggar mode ketat Playwright.
-  await expect(page.getByRole("columnheader", { name: "Piutang", exact: true }).first()).toBeVisible();
+  // kartu dua baris untuk layar sempit. Judul kolom ketiganya **"Belum dibayar"**,
+  // bukan "Piutang": glosarium G3-08 mengganti istilah itu di antarmuka
+  // ("piutang" → "belum dibayar"), dan asersi ini tertinggal memakai kata lama —
+  // sebab itulah ia gagal begitu tesnya berjalan atas data yang bersih.
+  await expect(page.getByRole("columnheader", { name: "Belum dibayar", exact: true }).first()).toBeVisible();
 
   await page.getByRole("button", { name: /Lihat lengkap/ }).click();
   await expect(page.getByRole("columnheader", { name: "Pertemuan", exact: true })).toBeVisible();

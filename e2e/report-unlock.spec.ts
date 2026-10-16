@@ -5,7 +5,8 @@
  * laporan kembali draft + tercatat di audit. Seed dev membuat laporan Juni Andi
  * dalam keadaan final (tanpa field `status`, legacy) dan belum punya tagihan.
  */
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
+import { type Page } from "@playwright/test";
 
 test.use({
   launchOptions: process.env.SYSTEM_CHROME_PATH

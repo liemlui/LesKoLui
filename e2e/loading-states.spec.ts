@@ -17,7 +17,8 @@
  * describe): uji 2 memakai CDP, sehingga menjalankannya di `mobile` hanya
  * menggandakan biaya CI.
  */
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "./fixtures";
+import { type Page } from "@playwright/test";
 
 /**
  * Penanda "Pengaturan sudah selesai dimuat". Sejak G3-09 butir 4 judul bagiannya

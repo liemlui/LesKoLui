@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 
 test("tombol keluar di Pengaturan membuka konfirmasi tanpa memakai navigasi back", async ({ page }) => {
   await page.goto("/");

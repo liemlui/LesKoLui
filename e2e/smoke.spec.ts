@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "./fixtures";
+import { type Page } from "@playwright/test";
 
 // Smoke E2E: app shell memuat & navigasi bawah berfungsi (offline-first PWA).
 

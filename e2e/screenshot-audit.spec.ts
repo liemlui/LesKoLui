@@ -2,7 +2,8 @@
  * Screenshot audit — layar/tab/modal × mode (light/dark, mobile/desktop).
  * Output: e2e/screenshots/audit/<project>/*.png
  */
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
+import { type Page } from "@playwright/test";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";

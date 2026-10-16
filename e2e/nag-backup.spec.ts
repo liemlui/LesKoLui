@@ -15,7 +15,8 @@
  * Catatan lingkungan: setiap test Playwright mendapat konteks browser BARU
  * (localStorage & IndexedDB kosong), jadi kunci nag tidak perlu dibersihkan manual.
  */
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "./fixtures";
+import { type Page } from "@playwright/test";
 
 const SNOOZE_KEY = "leskolui_nag_snooze_until";
 const NAG = "[data-nag]";

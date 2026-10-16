@@ -10,7 +10,8 @@
  *
  * Jalankan: npx playwright test e2e/layout-review.spec.ts
  */
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
+import { type Page } from "@playwright/test";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
