@@ -22,6 +22,9 @@ import PinSection from "./settings/PinSection";
 import DangerZoneSection from "./settings/DangerZoneSection";
 import { jalankanResetSemuaData } from "./settings/dangerZoneActions";
 import { useJalurPemulihan } from "./settings/useBackupSection";
+import {
+  jalankanAksiPin, type PinAction, type PinActionHandlers, type PinActionState,
+} from "./settings/pinActions";
 import { lupakanPinBelumDibuat } from "../lib/pinReset";
 import BackupSection from "./settings/BackupSection";
 import AiSection from "./settings/AiSection";
@@ -118,7 +121,14 @@ export default function SettingsPage() {
   dirtyRef.current = dirty;
   savingRef.current = saving;
   const toastCtx = useToastCtx();
-  const [pinAction,   setPinAction]   = useState<"exportBackup" | "restore" | "resetAll" | "backupDrive" | "restoreDrive" | "exportCsv" | null>(null);
+  /**
+   * Aksi ber-PIN yang sedang diminta **beserta argumennya**.
+   *
+   * Bentuk `{ aksi, berkas }` dipilih supaya "restore" tidak pernah bisa diminta
+   * tanpa berkasnya — keadaan itulah yang dulu membuat jalur restore mustahil
+   * diselesaikan walau peruteannya sudah ada (lihat `settings/pinActions.ts`).
+   */
+  const [pinAction, setPinAction] = useState<PinActionState | null>(null);
 
   /**
    * Kata sandi enkripsi backup — dipegang DI SINI, bukan di dalam `BackupSection`.
@@ -421,13 +431,19 @@ export default function SettingsPage() {
     }
   };
 
-  const requireFinancialPin = (action: typeof pinAction) => {
-    if (!action) return;
+  const requireFinancialPin = (action: PinAction, berkas?: File) => {
     if (!form.financialPin) {
       toastCtx.info("Buat PIN Keuangan dulu sebelum menjalankan aksi ini.");
       return;
     }
-    setPinAction(action);
+    if (action === "restore") {
+      // Berkas wajib untuk restore. Tanpa ini, permintaannya ditolak **sekarang**
+      // dengan pesan yang terbaca — bukan ditutup diam-diam sesudah PIN.
+      if (!berkas) { toastCtx.info("Pilih file .jles dulu!"); return; }
+      setPinAction({ aksi: "restore", berkas });
+      return;
+    }
+    setPinAction({ aksi: action });
   };
 
   /**
@@ -459,16 +475,46 @@ export default function SettingsPage() {
     muatUlang: (ms) => setTimeout(() => location.reload(), ms),
   });
 
-  // Verifikasi backup Drive: unduh + dekripsi untuk pastikan file valid & terbaca.
+  /**
+   * Perutean aksi ber-PIN — **inilah tempat cacat "Restore dari File" bersembunyi.**
+   *
+   * Sebelumnya bentuknya rentetan `if` satu per aksi, dan cabang `restore` tidak
+   * pernah ditulis: PIN-nya menutup modal lalu tidak memanggil apa pun, tanpa
+   * galat dan tanpa pesan. Sekarang peruteannya satu peta bertipe
+   * {@link PinActionHandlers}, sehingga **TypeScript menolak** peta yang kehilangan
+   * satu aksi; dan bila keadaan yang tidak dikenal tetap lolos, fungsi peruteannya
+   * **melempar** alih-alih diam.
+   */
+  const pinHandlers: PinActionHandlers = {
+    exportBackup: () => aksiBackup.doExportBackup(),
+    // Cacat 2026-10-15: baris ini tidak ada, sehingga restore tidak pernah berjalan.
+    restore: (berkas) => aksiBackup.doRestore(berkas),
+    resetAll: () => doResetAll(),
+    backupDrive: () => aksiBackup.doDriveBackup(),
+    restoreDrive: () => aksiBackup.doDriveRestore(),
+    exportCsv: () => aksiBackup.doExportCsv(),
+  };
+
   const runPinAction = async () => {
-    if (!pinAction) return;
+    const diminta = pinAction;
+    if (!diminta) return;
+    /**
+     * **Modal PIN ditutup SEBELUM pekerjaannya dijalankan — dan itu disengaja.**
+     *
+     * Restore dari berkas adalah jalur terpanjang di aplikasi ini (dekripsi,
+     * validasi, decode media, cadangan pre-restore, tulis ulang seluruh tabel).
+     * Dulu modalnya baru ditutup SESUDAH pekerjaan itu selesai, sehingga:
+     * (a) tutor melihat modal yang tampak diam — persis keluhan "layar diam
+     * terbaca sebagai gagal" yang sudah tercatat di jalur ini; dan (b) indikator
+     * tahap yang sudah ada di bagian Backup **tertutup** oleh modalnya, jadi
+     * kemajuan yang sesungguhnya tidak terlihat sama sekali.
+     *
+     * Dengan ditutup lebih dulu, tahap yang berjalan terlihat di tempatnya dan
+     * tombol-tombol pemulihan mati lewat `jalur.busy` — bukan lewat modal.
+     */
+    setPinAction(null);
     try {
-      if (pinAction === "exportBackup") await aksiBackup?.doExportBackup();
-      if (pinAction === "resetAll") await doResetAll();
-      if (pinAction === "backupDrive") await aksiBackup?.doDriveBackup();
-      if (pinAction === "restoreDrive") await aksiBackup?.doDriveRestore();
-      if (pinAction === "exportCsv") await aksiBackup?.doExportCsv();
-      setPinAction(null);
+      await jalankanAksiPin(pinHandlers, diminta);
     } catch (e) {
       toastCtx.error("Gagal: " + ((e as Error).message || "terjadi kesalahan."));
     }
@@ -515,9 +561,9 @@ export default function SettingsPage() {
       {pinAction && form.financialPin && (
         <PinConfirmModal
           storedPin={form.financialPin}
-          title={pinModalCopy[pinAction].title}
-          description={pinModalCopy[pinAction].description}
-          confirmLabel={pinModalCopy[pinAction].confirmLabel}
+          title={pinModalCopy[pinAction.aksi].title}
+          description={pinModalCopy[pinAction.aksi].description}
+          confirmLabel={pinModalCopy[pinAction.aksi].confirmLabel}
           onCancel={() => setPinAction(null)}
           onConfirm={runPinAction}
         />
@@ -552,7 +598,7 @@ export default function SettingsPage() {
         aksi={aksiBackup}
         backupPass={backupPass}
         setBackupPass={setBackupPass}
-        mintaPin={(a) => requireFinancialPin(a)}
+        mintaPin={(a, berkas) => requireFinancialPin(a, berkas)}
         toast={toastCtx}
       />
 

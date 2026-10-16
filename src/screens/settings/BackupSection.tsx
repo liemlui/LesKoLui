@@ -50,8 +50,14 @@ export interface BackupSectionProps {
   backupPass: string;
   /** Ubah kata sandi enkripsi (dipakai kolom isian + tombol "Generate"). */
   setBackupPass: (v: string) => void;
-  /** Ajukan aksi yang butuh PIN Keuangan. */
-  mintaPin: (aksi: "exportBackup" | "exportCsv" | "restore" | "backupDrive" | "restoreDrive") => void;
+  /**
+   * Ajukan aksi yang butuh PIN Keuangan.
+   *
+   * `berkas` ikut dikirim untuk aksi **restore**: berkas yang dipilih hidup di
+   * komponen ini, sedangkan perutean PIN-nya ada di `Settings.tsx` — dan itulah
+   * bentuk yang dulu membuat restore tidak pernah bisa diselesaikan.
+   */
+  mintaPin: (aksi: "exportBackup" | "exportCsv" | "restore" | "backupDrive" | "restoreDrive", berkas?: File) => void;
   /** Notifikasi ringan. */
   toast: {
     info: (m: string) => void;
@@ -297,7 +303,7 @@ export default function BackupSection({
                   ],
                   labelLanjut: "Ya, pulihkan",
                   danger: true,
-                }, () => mintaPin("restore"));              }}>
+                }, () => mintaPin("restore", berkasTerpilih ?? undefined));              }}>
               <RefreshIcon size={13} className="mr-1 inline align-[-2px]" /> Restore dari File
             </button>
             {/* Pratinjau berkas tanpa menyentuh data: menjawab "berkasnya atau

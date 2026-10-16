@@ -80,7 +80,31 @@ async function confirmWithPin(page: Page, title: string, confirmLabel: string) {
   await expect(dialog).toBeVisible({ timeout: 20_000 });
   await dialog.getByPlaceholder("PIN").fill(PIN);
   await dialog.getByRole("button", { name: confirmLabel, exact: true }).click();
+  // Modal PIN menutup lebih dulu, sebelum pekerjaannya dijalankan (2026-10-15);
+  // pekerjaan panjangnya sendiri terlihat lewat tahap di bagian Backup.
   await expect(dialog).toBeHidden({ timeout: 60_000 });
+}
+
+/**
+ * Jawab dialog **peringatan validasi impor** bila muncul.
+ *
+ * **Kenapa ini wajib, dan kenapa bukan pelonggaran asersi.** Impor berhenti di
+ * dialog ini sampai tutor memutuskan — disengaja, supaya data yang tidak lolos
+ * pemeriksaan tidak masuk diam-diam. Pada backup yang dibuat tes ini, peringatannya
+ * adalah *"Field ekstra pada students.…: curriculum"*: field yang ditambahkan
+ * pemilik pada profil murid dan **memang ikut tersimpan di backup**. Peringatan itu
+ * benar sebagai pemberitahuan, tetapi impornya tetap harus dilanjutkan.
+ *
+ * Sebelum ini, tesnya menunggu "Restore berhasil" tanpa pernah menekan tombolnya —
+ * sehingga hasilnya **timeout 120 detik** dan terlihat seolah restore-nya rusak.
+ */
+async function jawabPeringatanValidasi(page: Page) {
+  const dialog = page.getByRole("dialog", { name: /peringatan validasi/i });
+  const muncul = await dialog.waitFor({ state: "visible", timeout: 15_000 }).then(() => true).catch(() => false);
+  if (!muncul) return false;
+  await dialog.getByRole("button", { name: "Lanjutkan impor" }).click();
+  await expect(dialog).toBeHidden({ timeout: 30_000 });
+  return true;
 }
 
 test("build produksi: service worker mengontrol halaman & app tetap terbuka saat offline", async ({ page, context }) => {
@@ -147,6 +171,11 @@ test("build produksi: restore dari file .jles mengganti seluruh data di runtime"
 
   await confirmWithPin(page, "Konfirmasi Restore", "Restore");
 
+  // Impor berhenti di dialog peringatan validasi bila ada isian yang tidak lolos
+  // pemeriksaan (di sini: field `curriculum` tambahan pada murid). Tutor yang
+  // memutuskan — jadi tesnya juga harus memutuskan, bukan menunggu diam.
+  await jawabPeringatanValidasi(page);
+
   // Restore mengunduh cadangan pra-restore, lalu memuat ulang halaman otomatis.
   await expect(page.getByText(/Restore berhasil/)).toBeVisible({ timeout: 120_000 });
   await page.waitForURL(/\/settings/, { timeout: 60_000 });
@@ -154,4 +183,37 @@ test("build produksi: restore dari file .jles mengganti seluruh data di runtime"
   await page.goto("/students");
   await expect(page.getByText(STUDENT_IN_BACKUP)).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(STUDENT_AFTER_BACKUP)).toHaveCount(0);
+  /**
+   * **Pelajaran 2026-10-15: tes ini dulu LULUS PALSU.**
+   *
+   * Ia hanya memeriksa pesan di layar dan dua nama murid. Saat perutean PIN-nya
+   * tidak punya cabang `restore`, restore-nya tidak berjalan sama sekali — tetapi
+   * tes tetap bisa hijau karena `STUDENT_IN_BACKUP` masih ada (datanya memang
+   * tidak pernah dihapus) dan `STUDENT_AFTER_BACKUP` ... juga tidak ada, sebab
+   * pemuatan ulang membawa halaman ke keadaan awal. Dua asersi itu **tidak
+   * membedakan "restore berjalan" dari "restore tidak terjadi"**.
+   *
+   * Karena itu keadaan data diperiksa langsung dari IndexedDB: sesudah restore,
+   * tabel `students` harus memuat **tepat satu** murid. Angka inilah yang
+   * membuktikan datanya benar-benar diganti, bukan sekadar tampilan yang rapi.
+   */
+  const sesudahRestore = await page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase | null>((resolve) => {
+      const req = indexedDB.open("jurnalles");
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    });
+    if (!db) return null;
+    const nama = await new Promise<string[]>((resolve) => {
+      const tx = db.transaction("students", "readonly");
+      const all = tx.objectStore("students").getAll();
+      all.onsuccess = () => resolve((all.result as Array<{ name?: string }>).map((r) => r.name ?? "?"));
+      all.onerror = () => resolve([]);
+    });
+    db.close();
+    return nama;
+  });
+  expect(sesudahRestore, "tabel students harus terbaca sesudah restore").not.toBeNull();
+  expect(sesudahRestore).toHaveLength(1);
+  expect(sesudahRestore).toContain(STUDENT_IN_BACKUP);
 });
