@@ -6,6 +6,7 @@ import {
   estimateAnalysisCost,
   estimateDraftNoteCost,
 } from "../lib/aiClient";
+import { AI_ESTIMATE_IDR_PER_USD } from "../lib/aiConfig";
 
 describe("AI cost estimators", () => {
   it("return positive finite IDR amounts", () => {
@@ -37,7 +38,9 @@ describe("AI cost estimators", () => {
     const e = estimateDraftNoteCost(["Math", "Physics"], "kinematika");
     expect(e.inputTokens).toBeGreaterThan(0);
     expect(e.outputTokens).toBeGreaterThan(0);
-    expect(e.idrCost).toBeCloseTo(e.usdCost * 16000, 5);
+    // Kurs dibandingkan dengan konstanta, bukan angka mati: yang diuji adalah
+    // konversinya, bukan nilai kursnya.
+    expect(e.idrCost).toBeCloseTo(e.usdCost * AI_ESTIMATE_IDR_PER_USD, 5);
   });
 
   it("draft-note estimate grows when the current textbox draft is sent", () => {

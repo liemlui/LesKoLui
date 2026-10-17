@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.113.0",
+    date: "2026-10-18",
+    title: "Tarif AI dan kurs dollar sekarang ditarik sendiri dari sumber resminya — dan kalkulator biaya akhirnya membedakan tarif peak/off-peak serta harga cache",
+    items: [
+      "**Ada satu angka yang selama ini salah tanpa ketahuan: kurs dollar.** Aplikasi memakai **Rp16.000/USD** sebagai patokan, sementara kurs pasar pada 18 Oktober 2026 adalah **Rp18.031** (Frankfurter/ECB) dan **Rp18.014,6** (exchangerate-api) — selisih **~11%**. Angka itu mengalikan **seluruh** biaya AI yang dicatat, jadi setiap laporan biaya selama ini terlalu rendah. Mulai versi ini kurs tidak ditanam lagi: ia ditarik, disimpan, dan ditampilkan beserta tanggal kursnya.",
+      "**Cara memakainya:** Pengaturan → **AI — DeepSeek** → **Kelola tarif AI** → **Perbarui Tarif & Kurs**. Modal menampilkan tarif dan kurs yang **sedang berlaku**, lalu — sebelum menimpa apa pun — daftar angka yang berubah (lama → baru). Tidak ada yang tersimpan sebelum Anda menekan **Terapkan angka baru**, dan modal juga menyebut kapan tarif berikutnya berganti peak/off-peak.",
+      "**Yang ikut diperbaiki di kalkulator:** tarif resmi DeepSeek punya tiga pos biaya (input cache hit, input cache miss, output) dan dua periode jam (peak/off-peak), sementara versi lama hanya mengenal satu harga input dan satu harga output untuk satu model. Sekarang kedua model terbaca — `deepseek-flash` (yang dipakai aplikasi) dan `deepseek-v4-pro` — dan jendela jam peak dibaca dari kalimat di halaman resminya, bukan ditanam di kode: 01:00–04:00 dan 06:00–10:00 UTC, Senin–Jumat.",
+      "**Kurs diambil dari dua sumber, bukan satu.** Sumber utama Frankfurter (acuan ECB), pembanding exchangerate-api; kalau keduanya berbeda lebih dari **2%**, modal menampilkan peringatan sebelum Anda memakainya. Kalau satu sumber mati, yang lain tetap dipakai dan modal mengatakan itu. Kalau keduanya mati, tarif dan kurs yang sudah tersimpan **tidak diubah** — tidak ada tebakan.",
+      "**Yang belum, dan saya sebut apa adanya.** (a) Ini **kurs pasar**, bukan kurs yang Anda bayar: kartu bank biasanya menambah 1–3%, jadi biaya nyata Anda masih sedikit lebih tinggi. (b) **Biaya yang sudah tercatat tidak dihitung ulang** — entri lama tetap memakai kurs saat dicatat; yang berubah hanya panggilan berikutnya. (c) **Libur nasional Tiongkok belum dikecualikan** karena halaman resminya tidak memuat daftarnya; akibatnya taksiran pada hari libur itu memakai tarif peak, yaitu **terlalu tinggi**, bukan terlalu rendah. (d) Aplikasi masih **belum membaca token nyata** dari respons API, jadi semua angka biaya tetap perkiraan — sekarang hanya lebih dekat.",
+    ],
+  },
+  {
     version: "v1.112.0",
     date: "2026-10-17",
     title: "Daftar topik akhirnya terisi untuk mapel Nasional dan AP — termasuk tujuh mapel yang selama ini daftarnya kosong; dan \"Jadwalkan ulang\" kini memberi tahu bahwa nominal manualnya dilepas",

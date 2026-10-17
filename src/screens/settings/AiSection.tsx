@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Section } from "./Section";
 import Toggle from "../../components/Toggle";
+import AiPricingModal from "../../components/AiPricingModal";
 import { RobotIcon } from "../../components/icons";
 import {
   DEEPSEEK_COST_NOTE, DEEPSEEK_DOCS_URL, DEEPSEEK_MODEL, DEEPSEEK_MODEL_LABEL, DEEPSEEK_PRICING_URL,
@@ -34,6 +36,10 @@ export interface AiSectionProps {
 }
 
 export default function AiSection({ form, updateAi, pemakaian, aiConfigured }: AiSectionProps) {
+  // Tarif AI dikelola di modalnya sendiri: ia data pihak ketiga yang bisa
+  // diperbarui, bukan setelan yang disimpan bersama formulir Pengaturan.
+  const [pricingOpen, setPricingOpen] = useState(false);
+
   return (
     <Section
       id="ai"
@@ -83,6 +89,13 @@ export default function AiSection({ form, updateAi, pemakaian, aiConfigured }: A
                 {" · "}
                 <a href={DEEPSEEK_PRICING_URL} target="_blank" rel="noopener noreferrer" className="text-[var(--ink-brand)] underline">Tarif resmi</a>
               </p>
+              <button
+                type="button"
+                onClick={() => setPricingOpen(true)}
+                className="mt-2 inline-flex min-h-11 items-center rounded-xl border border-[var(--border)] px-3 text-xs font-semibold text-[var(--ink-brand)]"
+              >
+                Kelola tarif AI
+              </button>
             </div>
 
             <div className="rounded-xl border border-[var(--border)] p-3 space-y-2">
@@ -140,6 +153,8 @@ export default function AiSection({ form, updateAi, pemakaian, aiConfigured }: A
             </div>
           </>
         )}
+
+        <AiPricingModal open={pricingOpen} onClose={() => setPricingOpen(false)} />
       </div>
     </Section>
   );

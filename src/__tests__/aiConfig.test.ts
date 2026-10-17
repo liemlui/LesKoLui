@@ -1,5 +1,5 @@
-﻿import { afterEach, describe, expect, it, vi } from "vitest";
-import { estimateDeepSeekUsd, getDeepSeekPricing } from "../lib/aiConfig";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { AI_ESTIMATE_IDR_PER_USD, estimateDeepSeekUsd, getDeepSeekPricing } from "../lib/aiConfig";
 import { estimateDraftNoteCost, estimateNarrativesCost } from "../lib/aiClient";
 
 afterEach(() => vi.useRealTimers());
@@ -26,7 +26,9 @@ describe("DeepSeek V4.1 pricing", () => {
     expect(estimateDeepSeekUsd(1_000_000, 1_000_000)).toBeCloseTo(0.75);
     const offPeakNarratives = estimateNarrativesCost(3);
     const offPeakDraft = estimateDraftNoteCost(["Math"], "Aljabar", "Latihan persamaan");
-    expect(offPeakDraft.idrCost).toBeCloseTo(offPeakDraft.usdCost * 16_000);
+    // Dibandingkan dengan konstanta kurs, bukan angka mati (dulu `* 16_000`):
+    // yang dijaga adalah hubungan USD→IDR, bukan nilai kursnya.
+    expect(offPeakDraft.idrCost).toBeCloseTo(offPeakDraft.usdCost * AI_ESTIMATE_IDR_PER_USD);
     vi.setSystemTime(new Date("2026-09-11T02:00:00Z"));
     expect(estimateDeepSeekUsd(1_000_000, 1_000_000)).toBeCloseTo(1.50);
     expect(estimateNarrativesCost(3)).toBeCloseTo(offPeakNarratives * 2);
