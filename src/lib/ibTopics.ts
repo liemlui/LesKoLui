@@ -2097,6 +2097,414 @@ export const IB_TOPICS: TopicEntry[] = [
   ]),
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // NASIONAL — mapel yang sebelumnya TIDAK punya katalog (C3, 2026-10-17)
+  //
+  // Delapan mapel di `NATIONAL_GROUPS` tidak punya satu pun entri: Sastra
+  // Indonesia · Sastra Inggris · Informatika · Pendidikan Agama · PKn / PPKN ·
+  // Seni Budaya · Penjaskes · BK. Akibatnya tombol "Pilih dari daftar bab" kosong
+  // untuk mapel-mapel itu, dan tutor harus mengetik topik dari nol.
+  //
+  // Penamaan unit mengikuti **capaian pembelajaran Kurikulum Merdeka** (Fase D
+  // untuk SMP, Fase E–F untuk SMA), bukan daftar bab satu penerbit — karena repo
+  // ini tidak punya hak untuk menyalin isi buku dan karena tutor memakai buku
+  // yang berbeda-beda. Isinya sengaja berupa **kemampuan/CP**, bukan halaman.
+  //
+  // Kode level memakai pola yang sudah ada (`SMP 7`…`SMA 12`) sehingga
+  // `curriculumLevelFilter("National")` menerimanya apa adanya.
+  // ═══════════════════════════════════════════════════════════════════════════
+  ...mk("Sastra Indonesia", "SMP 7", "Kelas 7 (SMP)", "Fase D — Teks & Apresiasi Sastra", [
+    "Hakikat karya sastra — fiksi & nonfiksi",
+    "Unsur intrinsik cerita pendek",
+    "Puisi — rima, irama, citraan",
+    "Pantun & puisi rakyat",
+    "Fabel & legenda",
+    "Menulis cerita berdasarkan pengalaman",
+  ]),
+  ...mk("Sastra Indonesia", "SMP 8", "Kelas 8 (SMP)", "Fase D — Jenis Karya Sastra", [
+    "Unsur intrinsik & ekstrinsik cerpen",
+    "Novel remaja — alur & tokoh",
+    "Puisi bebas & puisi lama",
+    "Drama — teks & pementasan sederhana",
+    "Resensi buku fiksi",
+    "Majas & gaya bahasa",
+  ]),
+  ...mk("Sastra Indonesia", "SMP 9", "Kelas 9 (SMP)", "Fase D — Analisis & Kritik Sederhana", [
+    "Analisis cerpen — tema & amanat",
+    "Analisis novel — konflik & penokohan",
+    "Membandingkan dua karya sastra",
+    "Musikalisasi puisi",
+    "Esai tanggapan terhadap karya",
+    "Pementasan drama kelas",
+  ]),
+  ...mk("Sastra Indonesia", "SMA 10", "Kelas 10 (SMA)", "Fase E — Genre Sastra", [
+    "Hikayat — ciri & nilai",
+    "Cerpen — unsur & analisis",
+    "Puisi — analisis struktur & makna",
+    "Syair & gurindam",
+    "Nilai moral dalam karya sastra",
+    "Menulis puisi & cerpen",
+  ]),
+  ...mk("Sastra Indonesia", "SMA 11", "Kelas 11 (SMA)", "Fase F — Analisis Karya", [
+    "Cerpen — analisis unsur pembangun",
+    "Puisi kontemporer",
+    "Novel Indonesia — alur, tokoh, latar",
+    "Drama — naskah & pementasan",
+    "Karya ilmiah populer tentang sastra",
+    "Resensi & kritik sastra",
+  ]),
+  ...mk("Sastra Indonesia", "SMA 12", "Kelas 12 (SMA)", "Fase F — Kritik & Esai", [
+    "Esai sastra — argumen & bukti",
+    "Kritik sastra sederhana",
+    "Surat pembaca tentang karya",
+    "Perbandingan karya lintas periode",
+    "Sastra & nilai kehidupan",
+    "Menulis naskah pendek",
+  ]),
+
+  ...mk("Sastra Inggris", "SMP 7", "Kelas 7 (SMP)", "Fase D — Literary Basics", [
+    "Narrative text — fable & folk tale",
+    "Poem — rhyme & imagery",
+    "Story elements — character, setting, plot",
+    "Vocabulary in literature",
+    "Reading aloud & expression",
+    "Simple book review",
+  ]),
+  ...mk("Sastra Inggris", "SMP 8", "Kelas 8 (SMP)", "Fase D — Short Fiction & Drama", [
+    "Short story — plot & conflict",
+    "Drama script — reading a scene",
+    "Poetry — figurative language",
+    "Character analysis",
+    "Book review — opinion & reason",
+    "Literary vocabulary",
+  ]),
+  ...mk("Sastra Inggris", "SMP 9", "Kelas 9 (SMP)", "Fase D — Comparative Reading", [
+    "Comparing two short stories",
+    "Theme & moral message",
+    "Poetry appreciation",
+    "Simple stage performance",
+    "Writing a short story",
+    "Summary & paraphrase of a text",
+  ]),
+  ...mk("Sastra Inggris", "SMA 10", "Kelas 10 (SMA)", "Fase E — Literary Genres", [
+    "Short story analysis — elements",
+    "Poetry — structure & meaning",
+    "Narrative text — legend & myth",
+    "Literary devices — simile, metaphor, personification",
+    "Book review & recommendation",
+    "Writing a personal narrative",
+  ]),
+  ...mk("Sastra Inggris", "SMA 11", "Kelas 11 (SMA)", "Fase F — Analysis & Interpretation", [
+    "Analytical reading of fiction",
+    "Poetry interpretation",
+    "Drama — script analysis",
+    "Comparative essay on two texts",
+    "Author's purpose & tone",
+    "Review essay",
+  ]),
+  ...mk("Sastra Inggris", "SMA 12", "Kelas 12 (SMA)", "Fase F — Critical Response", [
+    "Critical essay — thesis & evidence",
+    "Literature & social context",
+    "Comparative literature study",
+    "Creative writing — short fiction",
+    "Presentation of a literary work",
+    "Reflection on reading",
+  ]),
+
+  ...mk("Informatika", "SMP 7", "Kelas 7 (SMP)", "Fase D — Berpikir Komputasional", [
+    "Berpikir komputasional — dekomposisi & pola",
+    "Algoritma & flowchart",
+    "Pengenalan pemrograman blok",
+    "Representasi data — biner & teks",
+    "Kolaborasi & etika digital",
+    "Perangkat keras & lunak",
+  ]),
+  ...mk("Informatika", "SMP 8", "Kelas 8 (SMP)", "Fase D — Algoritma & Data", [
+    "Variabel & tipe data",
+    "Percabangan & perulangan",
+    "Struktur data dasar — larik",
+    "Pengolahan data spreadsheet",
+    "Keamanan data & password",
+    "Jejak digital & privasi",
+  ]),
+  ...mk("Informatika", "SMP 9", "Kelas 9 (SMP)", "Fase D — Sistem & Jaringan", [
+    "Sistem komputer — CPU, memori, penyimpanan",
+    "Jaringan & internet",
+    "Pencarian informasi yang efektif",
+    "Dampak sosial teknologi",
+    "Dokumentasi & presentasi program",
+    "Proyek pemrograman sederhana",
+  ]),
+  ...mk("Informatika", "SMA 10", "Kelas 10 (SMA)", "Fase E — Pemrograman & Sistem", [
+    "Algoritma & pseudocode",
+    "Pemrograman teks — Python/JS dasar",
+    "Sistem bilangan & enkoding",
+    "Jaringan komputer & protokol",
+    "Etika & hukum teknologi informasi",
+    "Proyek mini berbasis program",
+  ]),
+  ...mk("Informatika", "SMA 11", "Kelas 11 (SMA)", "Fase F — Basis Data & Analisis", [
+    "Basis data relasional & SQL",
+    "Struktur data — stack, queue, list",
+    "Analisis data & visualisasi",
+    "Keamanan siber dasar",
+    "Rekayasa perangkat lunak — dasar",
+    "Kolaborasi proyek digital",
+  ]),
+  ...mk("Informatika", "SMA 12", "Kelas 12 (SMA)", "Fase F — Kecerdasan Artifisial & Proyek", [
+    "Kecerdasan artifisial — konsep dasar",
+    "Pembelajaran mesin — gambaran besar",
+    "Komputasi awan & layanan digital",
+    "Pengembangan aplikasi sederhana",
+    "Literasi data & interpretasi hasil",
+    "Proyek akhir informatika",
+  ]),
+
+  ...mk("Pendidikan Agama", "SMP 7", "Kelas 7 (SMP)", "Fase D — Iman & Akhlak", [
+    "Iman kepada Allah — dalil & makna",
+    "Al-Qur'an — tilawah & tajwid dasar",
+    "Akhlak terpuji dalam pergaulan",
+    "Figur teladan — sifat Rasul",
+    "Sejarah Islam awal",
+    "Hikmah ibadah harian",
+  ]),
+  ...mk("Pendidikan Agama", "SMP 8", "Kelas 8 (SMP)", "Fase D — Ibadah & Muamalah", [
+    "Ibadah praktis — taharah & salat",
+    "Puasa & zakat — ketentuan",
+    "Muamalah sederhana",
+    "Adab terhadap orang tua & guru",
+    "Sejarah Islam Nusantara",
+    "Hikmah hari besar Islam",
+  ]),
+  ...mk("Pendidikan Agama", "SMP 9", "Kelas 9 (SMP)", "Fase D — Ihsan & Kehidupan", [
+    "Ihsan & muhasabah",
+    "Akhlak sosial — menahan diri",
+    "Sejarah Islam — khulafaur rasyidin",
+    "Hukum Islam — asas & tujuan",
+    "Toleransi & kerukunan",
+    "Penerapan ajaran dalam kehidupan",
+  ]),
+  ...mk("Pendidikan Agama", "SMA 10", "Kelas 10 (SMA)", "Fase E — Aksidah & Syariah", [
+    "Aqidah Islam — asas keimanan",
+    "Sumber hukum Islam — Al-Qur'an & hadis",
+    "Akhlak mulia & karakter",
+    "Sejarah peradaban Islam",
+    "Ibadah & muamalah",
+    "Kajian ayat & hadis pilihan",
+  ]),
+  ...mk("Pendidikan Agama", "SMA 11", "Kelas 11 (SMA)", "Fase F — Pemikiran & Peradaban", [
+    "Pemikiran Islam — fikih & ushul Fikih",
+    "Akhlak & etika profesi",
+    "Periode pertengahan & abad cemas",
+    "Penyebaran Islam dan budaya",
+    "Hukum Islam & isu kontemporer",
+    "Tafsir & tadabbur",
+  ]),
+  ...mk("Pendidikan Agama", "SMA 12", "Kelas 12 (SMA)", "Fase F — Kontemporer & Aplikatif", [
+    "Islam & ilmu pengetahuan",
+    "Kontribusi Islam pada sains",
+    "Persoalan sosial kontemporer",
+    "Kehidupan Islam di era digital",
+    "Presentasi kajian keislaman",
+    "Hikmah & amal lainnya",
+  ]),
+
+  ...mk("PKn / PPKN", "SMP 7", "Kelas 7 (SMP)", "Fase D — Kesadaran Berbangsa", [
+    "Pancasila — kedudukan & fungsi",
+    "Sejarah perumusan Pancasila",
+    "Norma dalam masyarakat",
+    "Semboyan Bhinneka Tunggal Ika",
+    "Integrasi nasional",
+    "Gotong royong",
+  ]),
+  ...mk("PKn / PPKN", "SMP 8", "Kelas 8 (SMP)", "Fase D — Konstitusi & Kelembagaan", [
+    "UUD NRI 1945 — kedudukan & struktur",
+    "Amandemen & perubahan konstitusi",
+    "Lembaga negara & tugasnya",
+    "Pembagian kekuasaan",
+    "Karakter selaras Pancasila",
+    "Budaya demokrasi di sekolah",
+  ]),
+  ...mk("PKn / PPKN", "SMP 9", "Kelas 9 (SMP)", "Fase D — Negara & Masyarakat", [
+    "Kedaulatan Negara Kesatuan RI",
+    "Wawasan nusantara",
+    "Ketahanan nasional",
+    "Hak & kewajiban warga negara",
+    "Perlindungan hukum & HAM",
+    "Persatuan dalam keberagaman",
+  ]),
+  ...mk("PKn / PPKN", "SMA 10", "Kelas 10 (SMA)", "Fase E — Pancasila & Konstitusi", [
+    "Pancasila sebagai dasar negara & ideologi",
+    "Konstitusi UUD NRI 1945",
+    "Struktur lembaga negara",
+    "Sistem pembagian kekuasaan",
+    "Demokrasi & partisipasi warga",
+    "Kasus pelanggaran hak & upaya perlindungan",
+  ]),
+  ...mk("PKn / PPKN", "SMA 11", "Kelas 11 (SMA)", "Fase F — Tatanan Hukum & Kewarganegaraan", [
+    "Peraturan perundang-undangan",
+    "Hukum & peradilan di Indonesia",
+    "Kewarganegaraan & status warga",
+    "Hak asasi manusia di Indonesia",
+    "Kerjasama internasional & nasional",
+    "Kasus aktual tata negara",
+  ]),
+  ...mk("PKn / PPKN", "SMA 12", "Kelas 12 (SMA)", "Fase F — Manusia & Globalisasi", [
+    "Hakikat manusia & masyarakat",
+    "Globalisasi & identitas bangsa",
+    "Kebijakan publik & partisipasi",
+    "Keadilan sosial & kesejahteraan",
+    "Upaya membangun harmoni sosial",
+    "Proyek kewargaan",
+  ]),
+
+  ...mk("Seni Budaya", "SMP 7", "Kelas 7 (SMP)", "Fase D — Apresiasi Seni", [
+    "Unsur & prinsip seni rupa",
+    "Seni musik — nada & ritme",
+    "Seni tari — gerak & pola lantai",
+    "Seni teater — dasar akting",
+    "Apresiasi karya seni",
+    "Kreativitas & imajinasi",
+  ]),
+  ...mk("Seni Budaya", "SMP 8", "Kelas 8 (SMP)", "Fase D —Media & Teknik", [
+    "Menggambar bentuk & perspektif",
+    "Warna — harmoni & psikologi",
+    "Alat musik daerah",
+    "Koreografi sederhana",
+    "Naskah sketsa drama",
+    "Pameran seni sederhana",
+  ]),
+  ...mk("Seni Budaya", "SMP 9", "Kelas 9 (SMP)", "Fase D — Karya & Pertunjukan", [
+    "Seni grafis sederhana",
+    "Musik tradisional Nusantara",
+    "Tari kreasi",
+    "Pementasan drama",
+    "Kritik karya seni",
+    "Pengalaman berkarya",
+  ]),
+  ...mk("Seni Budaya", "SMA 10", "Kelas 10 (SMA)", "Fase E — Dasar Seni", [
+    "Seni rupa dua & tiga dimensi",
+    "Desain & komposisi",
+    "Musik — tangga nada & akor",
+    "Tari — wiraga, wirama, wirasa",
+    "Teater — badan & suara",
+    "Apresiasi & pameran",
+  ]),
+  ...mk("Seni Budaya", "SMA 11", "Kelas 11 (SMA)", "Fase F — Teknik & Ekspresi", [
+    "Teknik melukis & media",
+    "Fotografi & seni digital",
+    "Aransemen musik",
+    "Koreografi kelompok",
+    "Penyutradaraan karya sederhana",
+    "Kurasi pameran sekolah",
+  ]),
+  ...mk("Seni Budaya", "SMA 12", "Kelas 12 (SMA)", "Fase F — Karya & Presentasi", [
+    "Karya seni rupa final & pameran",
+    "Presentasi pertunjukan musik",
+    "Karya tari & pertunjukan",
+    "Produksi teater akhir",
+    "Penulisan kritik seni",
+    "Portofolio seni",
+  ]),
+
+  ...mk("Penjaskes", "SMP 7", "Kelas 7 (SMP)", "Fase D — Gerak & Kebugaran", [
+    "Permainan bola besar (sepak bola, bola voli, basket)",
+    "Permainan bola kecil (bulu tangkis, tenis meja)",
+    "Atletik — lari, lompat, lempar",
+    "Kebugaran jasmani",
+    "Senam dasar",
+    "Kesehatan & pola hidup bersih",
+  ]),
+  ...mk("Penjaskes", "SMP 8", "Kelas 8 (SMP)", "Fase D — Keterampilan & Sikap", [
+    "Teknik dasar permainan bola besar",
+    "Teknik dasar permainan bola kecil",
+    "Atletik — nomor lanjutan",
+    "Senam lantai",
+    "Pola makan sehat & gizi",
+    "Sportivitas & kerja sama",
+  ]),
+  ...mk("Penjaskes", "SMP 9", "Kelas 9 (SMP)", "Fase D — Aktivitas & Kesehatan", [
+    "Strategi permainan bola besar",
+    "Smash & servis dalam bulu tangkis",
+    "Kebugaran & latihan sirkuit",
+    "Seni bela diri dasar",
+    "Kesehatan reproduksi & NAPZA",
+    "Pertolongan pertama sederhana",
+  ]),
+  ...mk("Penjaskes", "SMA 10", "Kelas 10 (SMA)", "Fase E — Keterampilan & Analisis", [
+    "Analisis teknik permainan bola besar",
+    "Peraturan & taktik permainan",
+    "Atletik — nomor lapangan",
+    "Kebugaran jasmani — tes",
+    "Senam & aktivitas ritmis",
+    "Pola hidup sehat",
+  ]),
+  ...mk("Penjaskes", "SMA 11", "Kelas 11 (SMA)", "Fase F — Program & Aplikasi", [
+    "Program latihan kebugaran",
+    "Permainan & strategi tim",
+    "Senam lantai & alat",
+    "Aktivitas air / alternatif",
+    "Penyakit & pencegahan",
+    "Tes kebugaran & analisis",
+  ]),
+  ...mk("Penjaskes", "SMA 12", "Kelas 12 (SMA)", "Fase F — Kesehatan & Prestasi", [
+    "Latihan kekuatan & daya tahan",
+    "Permainan lanjut & turnamen mini",
+    "Kesehatan mental & stres",
+    "Doping & etika olahraga",
+    "Organisasi olahraga & manajemen",
+    "Presentasi program kebugaran",
+  ]),
+
+  ...mk("BK", "SMP 7", "Kelas 7 (SMP)", "Fase D — Diri & Belajar", [
+    "Pengenalan diri & potensi",
+    "Adaptasi ke sekolah baru",
+    "Cara belajar efektif",
+    "Manajemen waktu sederhana",
+    "Pergaulan sehat",
+    "Motivasi belajar",
+  ]),
+  ...mk("BK", "SMP 8", "Kelas 8 (SMP)", "Fase D — Sosial & Karier Awal", [
+    "Konsep diri & kepercayaan diri",
+    "Komunikasi & menyelesaikan konflik",
+    "Tanpa perundungan — bullying",
+    "Literasi karier dasar",
+    "Mengelola emosi",
+    "Kebiasaan belajar",
+  ]),
+  ...mk("BK", "SMP 9", "Kelas 9 (SMP)", "Fase D — Pilihan & Kesiapan", [
+    "Memilih sekolah lanjutan",
+    "Mengenal minat & bakat",
+    "Kesiapan mental ujian",
+    "Belajar dari kegagalan",
+    "Etika pergaulan remaja",
+    "Perencanaan diri",
+  ]),
+  ...mk("BK", "SMA 10", "Kelas 10 (SMA)", "Fase E — Penyesuaian & Arah", [
+    "Kenali bakat & minat",
+    "Adaptasi ke jenjang SMA",
+    "Strategi belajar mandiri",
+    "Persahabatan & toleransi",
+    "Kesehatan mental remaja",
+    "Pengantar pemilihan jurusan",
+  ]),
+  ...mk("BK", "SMA 11", "Kelas 11 (SMA)", "Fase F — Perencanaan Masa Depan", [
+    "Eksplorasi jurusan & karier",
+    "Persiapan tes masuk perguruan tinggi",
+    "Manajemen stres akademik",
+    "Keterampilan mengambil keputusan",
+    "Pergaulan & batas diri",
+    "Kegagalan & bangkit",
+  ]),
+  ...mk("BK", "SMA 12", "Kelas 12 (SMA)", "Fase F — Keputusan & Kematangan", [
+    "Finalisasi perencanaan pendidikan lanjut",
+    "Persiapan seleksi masuk & beasiswa",
+    "Kesiapan kerja awal",
+    "Menyusun CV & surat lamaran",
+    "Keseimbangan hidup & belajar",
+    "Refleksi & perencanaan pribadi",
+  ]),
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // PENGUATAN MYP/DP — Sciences MYP 2 & 5, DP Humanities & Languages
   // ═══════════════════════════════════════════════════════════════════════════
   ...mk("Sciences", "MYP 2", "MYP 2 / Grade 7", "Biology & Chemistry Foundations", [
@@ -2314,6 +2722,139 @@ export const IB_TOPICS: TopicEntry[] = [
     "Methods & recursion",
     "Inheritance & polymorphism",
     "Searching & sorting algorithms",
+  ]),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AP — mapel yang sebelumnya TIDAK punya katalog (C3, 2026-10-17)
+  //
+  // Sepuluh mapel AP tidak punya satu pun entri: empat bahasa (Spanish · French ·
+  // Japanese · Latin), dua seni (Art History · Music Theory), dua desain
+  // (2-D · 3-D Art & Design), dan dua wajib riset (Seminar · Research).
+  //
+  // Unit di bawah mengikuti **kerangka kursus College Board** (course framework):
+  // untuk mata pelajaran bahasa, enam tema AP; untuk seni & desain, tiga
+  // komponen portofolio; untuk Seminar & Research, komponen tugas (task). Itu
+  // kerangka yang dipakai guru dan yang tercetak di panduan resmi, bukan daftar
+  // bab buku tertentu.
+  // ═══════════════════════════════════════════════════════════════════════════
+  ...mk("AP Spanish Language", "AP", "AP", "Six Themes & Language Skills", [
+    "Families & communities",
+    "Personal & public identities",
+    "Beauty & aesthetics",
+    "Contemporary life",
+    "Science & technology",
+    "Global challenges",
+    "Interpretive reading & listening",
+    "Interpersonal & presentational writing",
+  ]),
+  ...mk("AP French Language", "AP", "AP", "Six Themes & Language Skills", [
+    "Families & communities",
+    "Personal & public identities",
+    "Beauty & aesthetics",
+    "Contemporary life",
+    "Science & technology",
+    "Global challenges",
+    "Interpretive reading & listening",
+    "Conversation & culture comparison",
+  ]),
+  ...mk("AP Japanese Language", "AP", "AP", "Six Themes & Language Skills", [
+    "Families & communities",
+    "Personal & public identities",
+    "Beauty & aesthetics",
+    "Contemporary life",
+    "Science & technology",
+    "Global challenges",
+    "Kanji, kana & vocabulary",
+    "Keigo & interaction",
+  ]),
+  ...mk("AP Latin", "AP", "AP", "Vergil & Caesar", [
+    "Reading Vergil's Aeneid — comprehension",
+    "Reading Caesar's Gallic War — comprehension",
+    "Translation — English literal",
+    "Analysis of poetic & rhetorical devices",
+    "Scanning dactylic hexameter",
+    "Classical culture & historical context",
+    "Vocabulary & grammar in context",
+  ]),
+  ...mk("AP Art History", "AP", "AP", "Global & Thematic Art History", [
+    "Themes & functions of art",
+    "Form, materials & technique",
+    "Required works — global prehistory & ancient Mediterranean",
+    "Required works — Asia & the Americas",
+    "Required works — Europe 1300–1800",
+    "Required works — Europe & America 1800–1980",
+    "Global contemporary art",
+    "Visual analysis & contextual analysis",
+  ]),
+  ...mk("AP Music Theory", "AP", "AP", "Pitch, Harmony & Form", [
+    "Pitch — notation, key & scale",
+    "Rhythm & meter",
+    "Intervals & chords",
+    "Voice leading & harmony",
+    "Cadences & phrase structure",
+    "Form — binary, ternary, sonata",
+    "Sight-singing & dictation",
+    "Melodic & harmonic analysis",
+  ]),
+  ...mk("AP 2-D Art & Design", "AP", "AP", "Portfolio — Elements & Sustained Investigation", [
+    "Elements of 2-D art — line, shape, colour",
+    "Principles of design",
+    "Sustained investigation — inquiry question",
+    "Materials & technical processes",
+    "Selected works — skill & decision-making",
+    "Written evidence & documentation",
+    "Portfolio presentation",
+  ]),
+  ...mk("AP 3-D Art & Design", "AP", "AP", "Portfolio — Form & Sustained Investigation", [
+    "Elements of 3-D art — form, mass, space",
+    "Materials & sculptural processes",
+    "Sustained investigation — inquiry question",
+    "Selected works — skill & decision-making",
+    "Spatial relationships & installation",
+    "Written evidence & documentation",
+    "Portfolio presentation",
+  ]),
+  ...mk("AP Seminar", "AP", "AP", "Task 1 — Individual Research Report", [
+    "Question & explore — building a research question",
+    "Credibility of sources & evidence",
+    "Argument & reasoning",
+    "Team, transform & transmit",
+    "Individual research report",
+    "Individual multimedia presentation",
+    "End-of-course exam — reading & argumentation",
+  ]),
+  ...mk("AP Research", "AP", "AP", "Academic Research & Portfolio", [
+    "Choosing a research question",
+    "Literature review & synthesis",
+    "Research methods & data",
+    "Ethics & academic integrity",
+    "Academic paper",
+    "Poster & presentation",
+    "Reflection on the research process",
+  ]),
+  // Ditambahkan 2026-10-17 bersama sepuluh mapel AP lain. Sebelumnya mapel ini
+  // lolos penjaga cakupan **hanya karena** tertaut sebagai alias `AP Biology` —
+  // artinya murid AP Environmental Science mendapat unit Biologi AP, bukan
+  // kerangka kursusnya sendiri. Kerangka Environmental Science punya tema yang
+  // berbeda (living world, populations, earth systems, land & water, energy,
+  // pollution, global change).
+  ...mk("AP Environmental Science", "AP", "AP", "The Living World & Populations", [
+    "Ecosystems — energy flow & matter cycling",
+    "Biodiversity & ecosystem services",
+    "Population ecology & carrying capacity",
+    "Human population & demography",
+  ]),
+  ...mk("AP Environmental Science", "AP", "AP", "Earth Systems, Land & Water", [
+    "Earth systems & plate tectonics",
+    "Soil formation, erosion & conservation",
+    "Agriculture & pest management",
+    "Freshwater & ocean systems",
+  ]),
+  ...mk("AP Environmental Science", "AP", "AP", "Energy, Pollution & Global Change", [
+    "Energy resources & consumption",
+    "Atmospheric pollution",
+    "Water & solid waste pollution",
+    "Global climate change — causes & responses",
   ]),
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -3303,17 +3844,20 @@ const TOPIC_SUBJECT_ALIASES: ReadonlyArray<{ key: string; aka: readonly string[]
   // Nasional dapat topik "Mathematics · MYP 1").
   { key: "Matematika", aka: ["Matematika Nasional", "Matematika SMA", "Matematika SMP"] },
   { key: "Sciences", aka: ["Science", "IPA", "Combined Science", "Coordinated Sciences", "Physical Science", "General Science"] },
-  { key: "Biology", aka: ["Biologi", "Biology SL", "Biology HL"] },
-  { key: "Chemistry", aka: ["Kimia", "Chemistry SL", "Chemistry HL"] },
-  { key: "Physics", aka: ["Fisika", "Physics SL", "Physics HL"] },
-  { key: "Economics", aka: ["Ekonomi"] },
+  // Alias nama Indonesia untuk Fisika/Kimia/Biologi/Ekonomi/Geografi/Sejarah/
+  // Informatika SENGAJA TIDAK ada di sini — ketujuhnya punya kunci indeks sendiri
+  // di blok "Nasional" di bawah. Lihat catatan di sana.
+  { key: "Biology", aka: ["Biology SL", "Biology HL"] },
+  { key: "Chemistry", aka: ["Chemistry SL", "Chemistry HL"] },
+  { key: "Physics", aka: ["Physics SL", "Physics HL"] },
+  { key: "Economics", aka: [] },
   { key: "Akuntansi", aka: ["Accounting"] },
   { key: "Business Management", aka: ["Business", "Business Studies", "Business and Management", "Business Management SL", "Business Management HL"] },
-  { key: "History", aka: ["Sejarah"] },
-  { key: "Geography", aka: ["Geografi"] },
+  { key: "History", aka: [] },
+  { key: "Geography", aka: [] },
   { key: "Sosiologi", aka: ["Sociology"] },
   { key: "Psychology", aka: ["Psikologi", "Psychology SL", "Psychology HL"] },
-  { key: "Computer Science", aka: ["Informatika", "ICT", "Information Technology", "Information and Communication Technology", "Computer Science SL", "Computer Science HL"] },
+  { key: "Computer Science", aka: ["ICT", "Information Technology", "Information and Communication Technology", "Computer Science SL", "Computer Science HL"] },
   { key: "Environmental Systems & Societies", aka: ["ESS", "Environmental Management"] },
   { key: "Theory of Knowledge", aka: ["TOK", "Global Perspectives", "Global Perspectives and Research", "Thinking Skills"] },
   { key: "Extended Essay", aka: ["EE"] },
@@ -3390,6 +3934,34 @@ const TOPIC_SUBJECT_ALIASES: ReadonlyArray<{ key: string; aka: readonly string[]
   { key: "AP English Language & Composition", aka: ["AP English Literature and Composition"] },
   { key: "AP Biology", aka: ["AP Environmental Science"] },
   { key: "AP Computer Science A", aka: ["AP Computer Science Principles"] },
+  // ── Nasional: kunci indeks SENDIRI untuk tujuh mapel (C3, 2026-10-17) ───────
+  //
+  // **Cacat yang ditutup, dan kenapa tidak terlihat selama ini.** Tujuh mapel
+  // Nasional — Fisika · Kimia · Biologi · Ekonomi · Geografi · Sejarah ·
+  // Informatika — dulu HANYA terdaftar sebagai alias nama Inggrisnya
+  // (`Fisika` → `Physics`, `Sejarah` → `History`, `Informatika` →
+  // `Computer Science`, dst). Akibatnya pencarian topik untuk murid Nasional
+  // menghasilkan himpunan {Physics}, lalu `curriculumLevelFilter("National")`
+  // menolak seluruh entri berlevel MYP/DP/IGCSE — sehingga daftarnya **kosong**,
+  // padahal katalog Nasional untuk ketujuh mapel itu sempat bertambah.
+  //
+  // Pola kegagalan ini sudah tercatat di berkas ini untuk "Matematika" (lihat
+  // catatan di blok atas dan audit P0): nama Indonesia yang ditautkan ke mapel
+  // internasional membuat murid Nasional menerima topik MYP, ATAU — sesudah
+  // filter kurikulum diperketat — tidak menerima apa pun. Keduanya salah.
+  //
+  // Karena itu ketujuhnya sekarang punya `key` sendiri, persis seperti
+  // "Matematika" dan "Sosiologi" yang sudah begitu. Alias Indonesia pada mapel
+  // internasional di atas **dihapus** supaya tidak ada dua jalan yang bersaing;
+  // "Biology SL/HL" dan "Physics SL/HL" tetap ada, jadi pencarian dengan nama
+  // resmi DP tidak terpengaruh.
+  { key: "Fisika", aka: [] },
+  { key: "Kimia", aka: [] },
+  { key: "Biologi", aka: [] },
+  { key: "Ekonomi", aka: [] },
+  { key: "Geografi", aka: [] },
+  { key: "Sejarah", aka: [] },
+  { key: "Fisika", aka: [] },
 ];
 
 /**

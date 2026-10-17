@@ -50,6 +50,12 @@ leskolui-data-*.csv
 # repo. Baris ini hanya jaring pengaman bila kelak OUT_DIR dipindah ke dalam.
 .design-audit/
 
+# Konfigurasi PROBE untuk spec sementara di `.design-audit/e2e-probe/`.
+# `ATURAN-AI.md` §3 melarang mengubah `playwright.config.ts`; probe karena itu
+# memakai berkas konfigurasi sendiri, dan berkas itu **tidak** ikut dilacak supaya
+# tidak ada dua konfigurasi resmi yang bisa saling bertentangan.
+playwright.probe.config.ts
+
 # Folder kerja sementara DSH (profil Chrome, log, dan bukti tangkapan layar dari
 # pemeriksaan manual). Bukan bagian aplikasi; ditaruh di sini supaya `git status`
 # tetap bersih dan tidak ada artefak yang ikut terkirim tanpa sengaja.

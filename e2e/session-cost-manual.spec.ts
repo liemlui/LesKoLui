@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures";
+import { test, expect, rekamKonsol, ringkasKonsol, tungguSeedSelesai } from "./fixtures";
 import { type Page, type Locator } from "@playwright/test";
 
 test.use({
@@ -48,7 +48,6 @@ test.beforeEach(async ({ page }) => {
 const MURID_BULANAN = "Andi Pratama";
 const MURID_PAKET = "Citra Dewanti";
 const PIN_KEUANGAN = "123456";
-const PESAN_SEED_SELESAI = "Data dummy berhasil dimasukkan";
 
 interface BarisSesi {
   id: string;
@@ -61,18 +60,27 @@ interface BarisSesi {
 
 /** Buka aplikasi sambil merekam console — sinyal selesai seeder berasal dari sana. */
 async function bukaAplikasi(page: Page): Promise<string[]> {
-  const pesan: string[] = [];
-  page.on("console", (m) => pesan.push(m.text()));
+  const pesan = rekamKonsol(page);
   await page.goto("/", { waitUntil: "domcontentloaded" });
   return pesan;
 }
 
-/** Tunggu seeder selesai, lalu pastikan murid target benar-benar punya sesi DONE. */
+/**
+ * Tunggu seeder selesai, lalu pastikan murid target benar-benar punya sesi DONE.
+ *
+ * **Kenapa tidak lagi menunggu satu event konsol dengan batas 60 dtk.** Terukur
+ * pada suite penuh (2 pekerja, dua project): panggilan pertama di berkas ini
+ * pernah gagal dengan *"seed DEV tidak selesai dalam 60 dtk"* padahal berkas yang
+ * sama **lulus 6/6 sendirian** — jadi syaratnya memang sensitif beban, bukan
+ * rusak. Dua hal diperbaiki bersamaan, dan keduanya soal **sebab**, bukan
+ * kesabaran: batasnya dinaikkan ke nilai yang dipakai helper bersama
+ * (`tungguSeedSelesai`, 120 dtk) dan pesan kegagalannya kini **memuat jejak
+ * konsol terakhir**, sehingga kegagalan berikutnya bisa dibedakan antara "halaman
+ * belum jalan" dan "seeder melempar galat" tanpa mengulang penyelidikan.
+ */
 async function tungguSeed(page: Page, pesan: string[], nama: string) {
-  await expect.poll(
-    () => pesan.some((t) => t.includes(PESAN_SEED_SELESAI)),
-    { timeout: 60_000, message: "seed DEV tidak selesai dalam 60 dtk" },
-  ).toBe(true);
+  const selesai = await tungguSeedSelesai(page, pesan);
+  expect(selesai, `seed DEV tidak selesai. Jejak konsol terakhir: ${ringkasKonsol(pesan)}`).toBe(true);
   await expect.poll(() => muridSiap(page, nama), { timeout: 30_000 }).toBe(true);
 }
 

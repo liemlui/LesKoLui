@@ -220,13 +220,27 @@ export default function ManageSessionSheet({
     await jalankanSimpan(aksi);
   };
 
-  /** Aksi merusak: dipanggil `ConfirmSheet` sesudah tutor benar-benar setuju. */
+  /**
+   * Aksi merusak: dipanggil `ConfirmSheet` sesudah tutor benar-benar setuju.
+   *
+   * **Dua aksi memakai jalur simpan, bukan jalur batal** — dan keduanya harus
+   * disebut di sini lebih dulu:
+   *
+   * - `simpan-perubahan` (konfirmasi hanya saat muridnya berganti): pergantian
+   *   murid memindahkan tagihan, bukan membatalkan sesi.
+   * - `jadwalkan-ulang` (konfirmasi sejak 2026-10-15, keputusan B1): muncul
+   *   **hanya** saat sesinya punya nominal manual, dan yang dikonfirmasi adalah
+   *   **pelepasan nominal itu** — sesinya tetap dijadwalkan ulang.
+   *
+   * Tanpa daftar ini, `jadwalkan-ulang` yang dikonfirmasi akan jatuh ke cabang
+   * `else` di bawah dan **membatalkan seri sesinya**: tutor menekan "Ya,
+   * jadwalkan ulang" lalu sesinya hilang dari jadwal. Itu sebabnya keduanya
+   * ditangani sebelum percabangan merusak, bukan di dalamnya.
+   */
   const jalankanKonfirmasi = async () => {
     const aksi = konfirmasi;
     if (!aksi) return;
-    // Ganti murid bukan aksi merusak: sesudah tutor setuju, jalurnya sama dengan
-    // `simpan()` — logika penyimpanan tidak digandakan.
-    if (aksi === "simpan-perubahan") {
+    if (aksi === "simpan-perubahan" || aksi === "jadwalkan-ulang") {
       setKonfirmasi(null);
       await jalankanSimpan(aksi);
       return;

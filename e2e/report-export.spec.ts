@@ -2,7 +2,9 @@
  * E2E: alur laporan bulanan — buat laporan, pratinjau ter-render,
  * export JPG menghasilkan file (font embedding tidak boleh menggagalkan export).
  */
-import { test, expect, muridYangBisaDirekap } from "./fixtures";
+import {
+  test, expect, muridYangBisaDirekap, pilihMuridDanTungguSiap, bukaDenganDataBersih, ringkasKonsol,
+} from "./fixtures";
 import { type Page } from "@playwright/test";
 
 async function closeChangelog(page: Page) {
@@ -18,17 +20,18 @@ async function closeChangelog(page: Page) {
 test("buat laporan lalu export JPG dan PDF berhasil tanpa error", async ({ page }) => {
   test.slow(); // rasterisasi + embed font butuh waktu
 
-  await page.goto("/");
-  await page.waitForTimeout(4000); // tunggu startup + auto-seed dev
-
-  // Pastikan data dummy ada
-  const seeded = await page.evaluate(async () => {
-    const fn = (window as unknown as { seedDummy?: (force?: boolean) => Promise<unknown> }).seedDummy;
-    if (typeof fn === "function") { await fn(); return true; }
-    return false;
-  });
-  expect(seeded).toBe(true);
-  await page.waitForTimeout(1000);
+  /**
+   * **Menunggu sinyal seed, bukan tidur 4 detik.**
+   *
+   * Versi sebelumnya membuka `/`, menunggu 4 detik, lalu memanggil `seedDummy()`.
+   * Itu dua risiko sekaligus: (a) bila seed otomatis belum selesai, panggilan
+   * `seedDummy()` **tidak melakukan apa pun** karena seeder punya penjaga
+   * anti-pemanggilan-ganda, sehingga tes bekerja di atas data setengah jadi;
+   * (b) saat mesin sibuk (suite penuh) 4 detik tidak cukup, dan kegagalannya
+   * muncul di tempat lain sebagai "tombol tidak siap".
+   */
+  const { pesan, selesai } = await bukaDenganDataBersih(page, { paksa: true });
+  expect(selesai, `seed DEV tidak selesai. Jejak konsol terakhir: ${ringkasKonsol(pesan)}`).toBe(true);
 
   await page.goto("/report");
   await closeChangelog(page);
@@ -41,9 +44,7 @@ test("buat laporan lalu export JPG dan PDF berhasil tanpa error", async ({ page 
   // batas waktu UI — lihat catatan di `muridYangBisaDirekap`.
   const muridId = await muridYangBisaDirekap(page, "2026-06");
   expect(muridId, "tidak ada murid dengan periode yang bisa direkap di seed").toBeTruthy();
-  await page.locator("select").first().selectOption(muridId!);
-  await expect(page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).first())
-    .toBeEnabled({ timeout: 30_000 });
+  await pilihMuridDanTungguSiap(page, muridId!);
 
   // Buat / update laporan → pratinjau harus ter-render
   await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).click();
@@ -75,28 +76,26 @@ test("buat laporan lalu export JPG dan PDF berhasil tanpa error", async ({ page 
 });
 
 test("rencana bulan depan tersimpan dan ikut tampil di pratinjau", async ({ page }) => {
-  await page.goto("/");
-  await page.waitForTimeout(4000);
-  await page.evaluate(async () => {
-    const fn = (window as unknown as { seedDummy?: (force?: boolean) => Promise<unknown> }).seedDummy;
-    if (typeof fn === "function") await fn(true);
-  });
+  // Sama seperti tes pertama: tunggu sinyal seed, bukan tidur.
+  const { pesan, selesai } = await bukaDenganDataBersih(page, { paksa: true });
+  expect(selesai, `seed DEV tidak selesai. Jejak konsol terakhir: ${ringkasKonsol(pesan)}`).toBe(true);
   await page.goto("/report");
   await closeChangelog(page);
   await page.locator('input[type="month"]').fill("2026-06");
 
-  const select = page.locator("select").first();
-  const optionValues = await select.locator("option").evaluateAll(
-    (opts) => (opts as HTMLOptionElement[]).map((option) => option.value).filter(Boolean),
-  );
-  for (const value of optionValues) {
-    await select.selectOption(value);
-    try {
-      await expect(page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }))
-        .toBeEnabled({ timeout: 2500 });
-      break;
-    } catch { /* murid ini tak punya sesi bulan ini — lanjut */ }
-  }
+  /**
+   * **Kandidat ditentukan dari data, bukan dengan mencoba opsi di layar.**
+   *
+   * Versi sebelumnya — yang ada di sini sampai 2026-10-17 — mencoba tiap murid
+   * dengan `toBeEnabled({ timeout: 2500 })`. Pola itu tidak bisa membedakan
+   * "belum siap" dari "memang tidak bisa direkap", dan pada suite penuh ia gagal
+   * di tempat yang menyesatkan. Kandidatnya juga tidak perlu ditebak: syarat yang
+   * dipakai aplikasi (punya sesi selesai di bulan itu, belum punya laporan)
+   * dibaca langsung dari sumber yang sama lewat `muridYangBisaDirekap`.
+   */
+  const muridId = await muridYangBisaDirekap(page, "2026-06");
+  expect(muridId, "tidak ada murid dengan periode yang bisa direkap di seed").toBeTruthy();
+  await pilihMuridDanTungguSiap(page, muridId!);
 
   await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).click();
   await expect(page.locator("[data-report-page]").first()).toBeVisible({ timeout: 10_000 });

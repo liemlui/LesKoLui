@@ -6,7 +6,7 @@
  * bukan lagi bentuk kotaknya, melainkan janji ke tutor: **tidak ada isi yang
  * terpotong** — dan ekspor tetap berhasil.
  */
-import { test, expect, pilihMuridYangBisaDirekap } from "./fixtures";
+import { test, expect, pilihMuridDanTungguSiap, bukaDenganDataBersih, ringkasKonsol } from "./fixtures";
 import { type Page } from "@playwright/test";
 
 async function closeChangelog(page: Page) {
@@ -22,12 +22,12 @@ async function closeChangelog(page: Page) {
 test("catatan sesi panjang tidak terpotong (halaman bertinggi otomatis)", async ({ page }) => {
   test.setTimeout(120_000);
 
-  await page.goto("/");
-  await page.waitForTimeout(4000); // startup + auto-seed dev
+  // Tunggu **sinyal** seed, bukan tidur 4 detik: pada mesin sibuk 4 detik tidak
+  // cukup, dan kegagalannya muncul jauh dari sebabnya (lihat `bukaDenganDataBersih`).
+  const { pesan, selesai } = await bukaDenganDataBersih(page, { paksa: true });
+  expect(selesai, `seed DEV tidak selesai. Jejak konsol terakhir: ${ringkasKonsol(pesan)}`).toBe(true);
 
   const andiId = await page.evaluate(async () => {
-    const fn = (window as unknown as { seedDummy?: (force?: boolean) => Promise<unknown> }).seedDummy;
-    if (typeof fn === "function") { await fn(true); }
     const mod = await import("/src/db/repos.ts");
     const students = await mod.listStudents();
     const andi = students.find((s: { name: string }) => s.name === "Andi Pratama");
@@ -67,9 +67,13 @@ test("catatan sesi panjang tidak terpotong (halaman bertinggi otomatis)", async 
    * ditulis ke sesi Andi Juni di atas, dan yang diuji adalah halaman laporan
    * dengan narasi itu. Karena data seed sudah memuat laporan Juni milik Andi,
    * memilih "murid yang belum punya laporan" justru menguji murid yang salah.
-   * Jadi yang ditunggu adalah tombolnya siap untuk murid yang sudah dipilih.
+   *
+   * Sebelumnya baris ini memanggil `pilihMuridYangBisaDirekap(page)`, yang
+   * **berpindah ke murid lain** begitu tombol Andi belum siap — sehingga yang
+   * diuji bukan lagi narasi panjang di sesi Andi. Sekarang yang ditunggu adalah
+   * tombol untuk **Andi sendiri**, beserta jejak sebabnya bila tidak siap.
    */
-  expect(await pilihMuridYangBisaDirekap(page)).toBe(true);
+  await pilihMuridDanTungguSiap(page, andiId);
   await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).click();
   await expect(page.locator("[data-report-page]").first()).toBeVisible({ timeout: 10_000 });
 

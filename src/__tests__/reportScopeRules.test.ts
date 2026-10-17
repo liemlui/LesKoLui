@@ -12,7 +12,9 @@ import {
   type ReportStepState,
 } from "../screens/monthlyReport/helpers";
 import { isAiWritten, markAiFields, narrativeIsAiWritten, planContent } from "../screens/monthlyReport/aiFieldMarks";
-import { reportAvailabilityOf } from "../screens/monthlyReport/reportAvailability";
+import {
+  reportAvailabilityOf, jejakKetersediaanLaporan, type ReportAvailabilityInput,
+} from "../screens/monthlyReport/reportAvailability";
 import { narrativeSavedLabel } from "../screens/monthlyReport/useNarrativeAutosave";
 import { sessionAiFingerprint, contentFingerprint } from "../lib/aiIncremental";
 import type { MonthlyReport, Session, Student } from "../db/types";
@@ -260,6 +262,115 @@ describe("Aturan ketersediaan periode (G3-05 butir 4)", () => {
 
   it("periode bersih boleh dibuatkan laporan", () => {
     expect(availability()).toEqual({ ok: true, reason: "" });
+  });
+});
+
+/**
+ * Jejak diagnosis harus **menunjuk cabang yang benar**. Kalau tidak, ia lebih
+ * berbahaya daripada tidak ada: kegagalan `e2e` yang sebenarnya "data belum
+ * siap" bisa terbaca sebagai "periode tidak bisa direkap", lalu orang menaikkan
+ * batas waktu untuk sebab yang salah — persis kesalahan yang sudah berulang
+ * tiga kali (2,5 → 5 → 30 detik).
+ *
+ * Tes ini mengikat **setiap cabang** `reportAvailabilityOf` ke kode jejaknya,
+ * sehingga menambah cabang penolakan baru atau memindahkan urutannya tidak bisa
+ * lolos tanpa memperbarui peta kode.
+ */
+describe("Jejak ketersediaan laporan (instrumentasi diagnosis)", () => {
+  const kasus: Array<{ kode: string; input: Partial<ReportAvailabilityInput> }> = [
+    { kode: "tanpa-siswa", input: { studentId: "" } },
+    { kode: "tautan-laporan", input: { invalidReportLink: true } },
+    { kode: "data-belum-siap", input: { dataReady: false } },
+    { kode: "rentang-terbalik", input: { mode: "range", rangeStart: "2026-09-30", rangeEnd: "2026-09-01" } },
+    {
+      kode: "rentang-terkunci",
+      input: {
+        report: makeReport({ status: "confirmed" }),
+        scopeHasProtectedInvoice: true,
+        periodStart: "2026-09-02",
+      },
+    },
+    {
+      kode: "paket-jumlah-tidak-cocok",
+      input: {
+        mode: "jumlah",
+        student: makeStudent({ billingPolicy: "session_count", billingSessionCount: 8 }),
+        reportSessionsCount: 5,
+        reportTargetCount: 8,
+      },
+    },
+    {
+      kode: "paket-dari-keuangan",
+      input: {
+        mode: "bulan",
+        student: makeStudent({ billingPolicy: "session_count", billingSessionCount: 8 }),
+      },
+    },
+    // Cabang "paket lama non-paket" **tidak** bisa dicapai selama muridnya masih
+    // berpaket `session_count`: cabang `paket-dari-keuangan` sudah menangkapnya
+    // lebih dulu. Karena itu ia tidak diuji di sini — tes yang memaksanya akan
+    // menguji keadaan yang tidak mungkin ada di aplikasi.
+    { kode: "tumpang-tindih", input: { blockingConfirmedReports: [makeReport({ id: "report-old", sessionIds: ["s2"] })] } },
+    { kode: "ok", input: {} },
+  ];
+
+  for (const { kode, input } of kasus) {
+    it(`menandai cabang "${kode}" — dan setuju dengan keputusan aslinya`, () => {
+      const lengkap = {
+        studentId: "student-1",
+        periodStart: "2026-09-01",
+        periodEnd: "2026-09-30",
+        mode: "bulan" as const,
+        rangeStart: "2026-09-01",
+        rangeEnd: "2026-09-30",
+        invalidReportLink: false,
+        dataReady: true,
+        scopeHasProtectedInvoice: false,
+        reportSessionsCount: 3,
+        reportTargetCount: 3,
+        reportSessionIds: ["s1", "s2", "s3"],
+        blockingConfirmedReports: [],
+        sessionWindowIds: new Set(["s1", "s2", "s3"]),
+        ...input,
+      };
+      const jejak = jejakKetersediaanLaporan(lengkap);
+      expect(jejak.kode).toBe(kode);
+      // Jejak tidak boleh berbeda pendapat dengan keputusan yang benar-benar dipakai.
+      expect(jejak.ok).toBe(reportAvailabilityOf(lengkap).ok);
+      expect(jejak.alasan).toBe(reportAvailabilityOf(lengkap).reason);
+      // "bisa dibuat" menuntut ok DAN ada sesi — tombolnya butuh keduanya.
+      expect(jejak.bisaDibuat).toBe(reportAvailabilityOf(lengkap).ok && lengkap.reportSessionsCount > 0);
+    });
+  }
+
+  it("kode tak dikenal tidak mungkin lolos diam-diam: semua cabang terdaftar", () => {
+    // Sembilan cabang di atas = delapan penolakan + satu `ok`, sama dengan
+    // jumlah `return` di `reportAvailabilityOf`.
+    expect(new Set(kasus.map((k) => k.kode)).size).toBe(kasus.length);
+  });
+
+  it("tidak mencatat nama murid maupun nominal uang", () => {
+    const jejak = jejakKetersediaanLaporan({
+      studentId: "student-1",
+      periodStart: "2026-09-01",
+      periodEnd: "2026-09-30",
+      mode: "bulan",
+      rangeStart: "2026-09-01",
+      rangeEnd: "2026-09-30",
+      invalidReportLink: false,
+      dataReady: true,
+      student: makeStudent({ name: "Marcia" }),
+      scopeHasProtectedInvoice: false,
+      reportSessionsCount: 3,
+      reportTargetCount: 3,
+      reportSessionIds: ["s1", "s2", "s3"],
+      blockingConfirmedReports: [],
+      sessionWindowIds: new Set(["s1", "s2", "s3"]),
+    });
+    const teks = JSON.stringify(jejak);
+    expect(teks).not.toContain("Marcia");
+    expect(teks).not.toContain("student-1");
+    expect(teks).not.toContain("100000");
   });
 });
 

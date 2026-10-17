@@ -9,7 +9,9 @@
  * tombol kembali enabled (export selesai), tanpa pesan "Gagal ekspor", dan
  * tanpa pageerror (font-embed timeout / overflow detection tidak boleh crash).
  */
-import { test, expect, pilihMuridYangBisaDirekap } from "./fixtures";
+import {
+  test, expect, pilihMuridDanTungguSiap, bukaDenganDataBersih, ringkasKonsol,
+} from "./fixtures";
 import { type Page } from "@playwright/test";
 
 async function closeChangelog(page: Page) {
@@ -68,15 +70,9 @@ for (const layoutName of REPRESENTATIVE_LAYOUTS) {
     page.on("pageerror", (err) => pageErrors.push(String(err)));
 
     // ── Seed dummy & buka halaman laporan ────────────────────────────────
-    await page.goto("/");
-    await page.waitForTimeout(4000); // startup + auto-seed dev
-    const seeded = await page.evaluate(async () => {
-      const fn = (window as unknown as { seedDummy?: (force?: boolean) => Promise<unknown> }).seedDummy;
-      if (typeof fn === "function") { await fn(true); return true; }
-      return false;
-    });
-    expect(seeded).toBe(true);
-    await page.waitForTimeout(1000);
+    // Tunggu **sinyal** seed, bukan tidur 4 detik (lihat `bukaDenganDataBersih`).
+    const { pesan, selesai } = await bukaDenganDataBersih(page, { paksa: true });
+    expect(selesai, `seed DEV tidak selesai. Jejak konsol terakhir: ${ringkasKonsol(pesan)}`).toBe(true);
 
     const andiId = await page.evaluate(async () => {
       const mod = await import("/src/db/repos.ts");
@@ -93,7 +89,13 @@ for (const layoutName of REPRESENTATIVE_LAYOUTS) {
     // **Sengaja memakai Andi**: data seed memuat laporan Juni miliknya, dan yang
     // diuji adalah mengganti layout laporan itu. Menunggu tombolnya siap untuk
     // murid yang sudah dipilih — bukan mencari murid lain.
-    expect(await pilihMuridYangBisaDirekap(page)).toBe(true);
+    //
+    // Sebelumnya baris ini memanggil `pilihMuridYangBisaDirekap(page)`, yang
+    // berpindah ke murid pertama yang tombolnya menyala (mis. Bella) sehingga
+    // layout diuji pada laporan murid yang salah, dan hasilnya bergantung pada
+    // urutan murid. Sekarang muridnya tetap Andi, dan bila tombolnya tidak siap
+    // pesan gagalnya menyebut kode keputusan dari jejak layar Laporan.
+    await pilihMuridDanTungguSiap(page, andiId);
     await page.getByRole("button", { name: /Buat Laporan|Update Laporan/ }).click();
     await expect(page.locator("[data-report-page]").first()).toBeVisible({ timeout: 10_000 });
 

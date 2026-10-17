@@ -107,28 +107,18 @@ const KNOWN_TOPIcless: ReadonlyArray<readonly [string, string]> = [
   ["Cambridge AS/A Level", "Drama (9482)"],
   ["Cambridge AS/A Level", "Media Studies (9607)"],
   // ── AP ──
-  // Mapel bahasa AP tidak punya topik level AP di indeks; katalog bahasa yang ada
-  // (French B, Spanish B) berada di level DP.
-  ["AP", "AP Environmental Science"],
-  ["AP", "AP Spanish Language"],
-  ["AP", "AP French Language"],
-  ["AP", "AP Japanese Language"],
-  ["AP", "AP Latin"],
-  ["AP", "AP Music Theory"],
-  ["AP", "AP Art History"],
-  ["AP", "AP Seminar"],
-  ["AP", "AP Research"],
-  ["AP", "AP 2-D Art & Design"],
-  ["AP", "AP 3-D Art & Design"],
+  // (Seluruh mapel AP — termasuk AP Environmental Science, empat bahasa AP, dua
+  //  seni AP, dua desain AP, dan Seminar/Research — DIHAPUS dari daftar ini
+  //  2026-10-17 bersama butir C3, karena katalognya sudah ada di `IB_TOPICS`.
+  //  Sebelumnya mereka "lolos" lewat dua jalan yang menyesatkan: alias ke mapel
+  //  AP lain (mis. AP Environmental Science ⇸ AP Biology), atau memang belum
+  //  punya katalog sama sekali.)
   // ── National ──
-  ["National", "Sastra Indonesia"],
-  ["National", "Sastra Inggris"],
-  ["National", "Informatika"],
-  ["National", "Pendidikan Agama"],
-  ["National", "PKn / PPKN"],
-  ["National", "Seni Budaya"],
-  ["National", "Penjaskes"],
-  ["National", "BK"],
+  // (Delapan mapel Nasional — Sastra Indonesia · Sastra Inggris · Informatika ·
+  //  Pendidikan Agama · PKn / PPKN · Seni Budaya · Penjaskes · BK — DIHAPUS dari
+  //  daftar ini 2026-10-17 karena katalognya sudah ada. Penjaganya sekarang di
+  //  `topicCatalogNationalAp.test.ts`, yang menguji keterjangkauan lewat filter
+  //  kurikulum — bukan sekadar keberadaan entri.)
 ];
 
 const knownSet = new Set(KNOWN_TOPIcless.map(([c, s]) => `${c} :: ${s}`));

@@ -67,7 +67,7 @@ import DesignToolbar from "./monthlyReport/DesignToolbar";
 import ReportNarrativePanel from "./monthlyReport/ReportNarrativePanel";
 import ReportTextsPanel from "./monthlyReport/ReportTextsPanel";
 import ReportPlanPanel from "./monthlyReport/ReportPlanPanel";
-import { reportAvailabilityOf, type ReportAvailability } from "./monthlyReport/reportAvailability";
+import { reportAvailabilityOf, catatJejakKetersediaanLaporan, type ReportAvailability } from "./monthlyReport/reportAvailability";
 import { EXPORT_STAGE_LABEL } from "./monthlyReport/useReportExport";
 
 /** Jumlah sesi per halaman bawaan — nilai ini ikut tersimpan ke laporan (butir 10). */
@@ -469,13 +469,19 @@ export default function MonthlyReportPage() {
       && (!useStoredEditingSnapshot || editingReportSessionsReady)
     ));
 
-  const availability = useMemo<ReportAvailability>(() => reportAvailabilityOf({
-    studentId, periodStart, periodEnd, mode, rangeStart, rangeEnd,
-    invalidReportLink, dataReady: reportScopeDataReady, report,
-    scopeHasProtectedInvoice, reportSessionsCount: reportSessions.length,
-    reportTargetCount, reportSessionIds, student,
-    blockingConfirmedReports, sessionWindowIds,
-  }), [
+  const availability = useMemo<ReportAvailability>(() => {
+    const masukan = {
+      studentId, periodStart, periodEnd, mode, rangeStart, rangeEnd,
+      invalidReportLink, dataReady: reportScopeDataReady, report,
+      scopeHasProtectedInvoice, reportSessionsCount: reportSessions.length,
+      reportTargetCount, reportSessionIds, student,
+      blockingConfirmedReports, sessionWindowIds,
+    };
+    // Jejak diagnosis (hanya di DEV, hanya bila fixture e2e menyalakannya):
+    // memisahkan "data belum siap" dari "periode memang tidak bisa direkap".
+    catatJejakKetersediaanLaporan(masukan);
+    return reportAvailabilityOf(masukan);
+  }, [
     studentId, periodStart, periodEnd, mode, rangeStart, rangeEnd,
     invalidReportLink, reportScopeDataReady, report, scopeHasProtectedInvoice,
     reportSessions.length, reportTargetCount, reportSessionIds, student,

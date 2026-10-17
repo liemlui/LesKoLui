@@ -229,6 +229,27 @@ export function konfirmasiUntuk(
         message: "Sesi dihapus dari jadwal dan riwayat.",
         confirmLabel: "Ya, hapus",
       };
+    case "jadwalkan-ulang":
+      /**
+       * **Keputusan pemilik 2026-10-15 (B1, pilihan (b)):** nominal manual
+       * **tidak** diteruskan ke jadwal pengganti, tetapi tutor **diberi tahu
+       * lebih dulu**. Dilarang mengubah angka yang ditagih tanpa pemberitahuan.
+       *
+       * Konfirmasi ini muncul **hanya bila sesinya memang punya nominal manual**.
+       * Alasannya: kalau tidak ada nominal manual, tidak ada yang dilepas —
+       * konfirmasi yang selalu muncul untuk hal yang tidak terjadi akan berhenti
+       * dibaca, dan itu melemahkan konfirmasi lain di sheet yang sama.
+       *
+       * Kalimatnya menyebut akibatnya lebih dulu, baru jalan keluarnya, sama
+       * seperti cabang lain: yang berubah adalah **jumlah yang ditagih**, dan
+       * sesi asal tetap tercatat apa adanya (tidak ada data yang hilang).
+       */
+      if (!ctx.adaNominalManual) return null;
+      return {
+        title: "Nominal manual dilepas, lanjut jadwalkan ulang?",
+        message: `${ctx.studentName} — nominal manual sesi ini dilepas pada jadwal penggantinya, dan sesi pengganti dihitung dari tarif murid. Sesi asal tetap tercatat dengan nominal manualnya, tetapi yang ditagihkan adalah sesi pengganti.`,
+        confirmLabel: "Ya, jadwalkan ulang",
+      };
     case "simpan-perubahan": {
       // Tidak ada pergantian murid → tidak ada yang perlu dikonfirmasi (perilaku lama).
       if (!ctx.muridLama || !ctx.muridBaru || ctx.muridLama === ctx.muridBaru) return null;

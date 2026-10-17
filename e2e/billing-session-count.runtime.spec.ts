@@ -17,14 +17,45 @@ async function closeChangelog(page: Page) {
   const dialog = page.getByRole("dialog", { name: "Catatan perubahan" });
   const closeButton = dialog.getByRole("button", { name: /Mengerti/ });
   if (await closeButton.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await closeButton.click({ force: true });
+    /**
+     * Klik lewat DOM, **bukan** `click({ force: true })`.
+     *
+     * Terukur 2026-10-17 pada run suite penuh project `mobile`: catatan perubahan
+     * itu panjang, sehingga tombol "Mengerti" berada **di luar viewport** dan
+     * `force: true` tidak menolong — Playwright tetap gagal dengan *"Element is
+     * outside of the viewport"*, padahal spec yang sama lulus saat dijalankan
+     * sendirian. Pola `el.click()` ini yang sudah dipakai
+     * `session-cost-manual.spec.ts` dan tercatat di `ATURAN-AI.md` §7.
+     */
+    await closeButton.evaluate((el: HTMLElement) => el.click());
   }
   await expect(dialog).toBeHidden({ timeout: 5000 });
 }
 
 async function closeBackupNag(page: Page) {
   const later = page.getByRole("button", { name: "Nanti", exact: true });
-  if (await later.isVisible({ timeout: 2000 }).catch(() => false)) await later.click({ force: true });
+  if (await later.isVisible({ timeout: 2000 }).catch(() => false)) {
+    // Alasan sama dengan tombol "Mengerti" di atas: spanduk ini menempel di atas
+    // dan bisa berada di luar viewport pada layar pendek.
+    await later.evaluate((el: HTMLElement) => el.click());
+  }
+}
+
+/**
+ * Banner hasil aksi, **terlingkup pada teks yang ditunggu**.
+ *
+ * **Kenapa tidak `page.getByRole("status")` lagi (terukur 2026-10-17).** Layar
+ * ini merender lebih dari satu region `status`: `App.tsx` punya banner kilat
+ * (terbukti muncul sebagai *"1 foto lama diperkecil · hemat ±1 KB"* — perawatan
+ * foto latar belakang) di samping banner hasil tagihan. Pencarian tanpa lingkup
+ * karena itu gagal dengan *"strict mode violation: resolved to 2 elements"*,
+ * dan kegagalannya terbaca seperti produk rusak padahal banner tagihannya benar.
+ * Kelas kerusakan yang sama pernah tercatat 2026-10-07 (dua live region di satu
+ * layar mematahkan `getByRole("status")`); yang belum diperbaiki adalah locator
+ * tesnya, bukan komponennya.
+ */
+function bannerStatus(page: Page, teks: RegExp) {
+  return page.getByRole("status").filter({ hasText: teks });
 }
 
 async function unlockFinance(page: Page) {
@@ -96,7 +127,7 @@ test("menerbitkan, melihat, dan membatalkan invoice tepat N", async ({ page }) =
   await expect(queueCard.getByRole("progressbar")).toHaveAttribute("aria-valuemax", "2");
   await queueCard.getByRole("button", { name: /Terbitkan paket 2 pertemuan untuk Citra Dewanti/i }).click();
   await page.getByRole("dialog", { name: "Terbitkan Tagihan Paket" }).getByRole("button", { name: "Terbitkan", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("berhasil diterbitkan");
+  await expect(bannerStatus(page, /berhasil diterbitkan/)).toBeVisible({ timeout: 10_000 });
   // Baris invoice yang baru terbit: nama aksesibelnya memuat asal "Paket" dan
   // cakupan "2 pertemuan". Chip "Paket 2 pertemuan" sendiri baru dirender di
   // dalam baris setelah baris dibuka (lihat InvoiceRow).
@@ -134,7 +165,7 @@ test("menerbitkan, melihat, dan membatalkan invoice tepat N", async ({ page }) =
   const pinDialog = page.getByRole("dialog", { name: "Batalkan tagihan paket?" });
   await pinDialog.getByPlaceholder("PIN", { exact: true }).fill("123456");
   await pinDialog.getByRole("button", { name: "Batalkan", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("dikembalikan ke antrean");
+  await expect(bannerStatus(page, /dikembalikan ke antrean/)).toBeVisible({ timeout: 10_000 });
   await expect(queueCard).toContainText("Paket siap");
   expect(errors).toEqual([]);
 });

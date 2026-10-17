@@ -35,7 +35,7 @@ Baca **berurutan**, berhenti begitu cukup:
 3. `les-ko-lui/docs/kerja/SERAH-TERIMA.md` §5 — keadaan terakhir dan langkah berikutnya.
 4. `les-ko-lui/docs/kerja/PEKERJAAN.md` §4 — daftar pekerjaan di luar gelombang (di situ
    keempat butir yang **belum** dikerjakan dicatat beserta alasannya).
-5. `les-ko-lui/docs/RIWAYAT-RILIS.md` (entri **v1.111.0**, paling atas) — apa yang sudah
+5. `les-ko-lui/docs/RIWAYAT-RILIS.md` (entri **v1.112.0**, paling atas) — apa yang sudah
    dirilis dan apa yang belum diverifikasi mata.
 
 ### WAJIB SEBELUM LANGKAH PERTAMA: goal + todos

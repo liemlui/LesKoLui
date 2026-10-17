@@ -19,6 +19,11 @@
  */
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
+// Berkas sumber dibaca lewat `?raw` — pola yang sama dengan
+// `reportSessionUiContract.test.ts` dan `pinResetInvite.test.ts`. Sengaja BUKAN
+// `node:fs`: tes di `src/` dikompilasi dengan `tsconfig.app.json` yang tidak
+// memuat tipe Node, sehingga `node:fs` ditolak `tsc -b` (terbukti).
+import teksSheet from "../screens/home/ManageSessionSheet.tsx?raw";
 import { describe, expect, it } from "vitest";
 import ManageSessionSheet from "../screens/home/ManageSessionSheet";
 import { aksiSesi } from "../screens/home/manageSession";
@@ -228,6 +233,51 @@ describe("Aksi merusak wajib dikonfirmasi", () => {
     expect(konfirmasiUntuk("tidak-hadir", ctx)).toBeNull();
     expect(konfirmasiUntuk("catat", ctx)).toBeNull();
     expect(konfirmasiUntuk("jadwalkan-ulang", ctx)).toBeNull();
+  });
+
+  /**
+   * Keputusan pemilik 2026-10-15 (B1, pilihan (b)): nominal manual **tidak**
+   * diteruskan ke jadwal pengganti, tetapi tutor diberi tahu lebih dulu.
+   *
+   * Dijaga di sini karena tiga hal berbeda sekaligus:
+   * (a) konfirmasinya **hanya** muncul bila nominal manualnya memang ada —
+   *     konfirmasi yang selalu muncul untuk hal yang tidak terjadi akan berhenti
+   *     dibaca;
+   * (b) kalimatnya menyebut **pelepasan nominal**, bukan sekadar "jadwalkan
+   *     ulang?" — tanpa itu tutor kehilangan nominalnya tanpa pemberitahuan;
+   * (c) jumlah yang ditagih **tidak** berubah oleh perubahan ini: fungsinya hanya
+   *     mengembalikan kalimat, tidak menyentuh `costOverride` maupun `cost`.
+   */
+  it("jadwalkan ulang memberi tahu bahwa nominal manual dilepas (B1)", () => {
+    const info = konfirmasiUntuk("jadwalkan-ulang", { ...ctx, adaNominalManual: true });
+    expect(info).not.toBeNull();
+    expect(info?.message).toContain("nominal manual");
+    expect(info?.message).toMatch(/dilepas/i);
+    expect(info?.message).toContain("tarif murid");
+    // Sesi asalnya tidak diklaim hilang — yang berubah hanya nominal penggantinya.
+    expect(info?.message).toContain("tetap tercatat");
+    expect(info?.confirmLabel).toBe("Ya, jadwalkan ulang");
+    // Tetap aksi yang sama, bukan aksi merusak: judulnya tidak menyebut pembatalan.
+    expect(info?.title).not.toMatch(/batalkan|hapus/i);
+  });
+
+  it("jadwalkan ulang tanpa nominal manual tidak dikonfirmasi (perilaku lama tetap)", () => {
+    expect(konfirmasiUntuk("jadwalkan-ulang", { ...ctx, adaNominalManual: false })).toBeNull();
+    expect(konfirmasiUntuk("jadwalkan-ulang", ctx)).toBeNull();
+  });
+
+  it("setiap aksi yang bisa dikonfirmasi punya jalur simpan/batal yang jelas di sheet", () => {
+    // Penjaga sumber: `jalankanKonfirmasi` di sheet memutuskan lewat daftar aksi
+    // yang memakai jalur SIMPAN. Aksi berkonfirmasi yang tidak ada di daftar itu
+    // jatuh ke cabang pembatalan — dan `jadwalkan-ulang` yang salah cabang akan
+    // MENGHILANGKAN sesi, bukan menjadwalkannya ulang.
+    const jalurSimpan = /aksi === "simpan-perubahan" \|\| aksi === "jadwalkan-ulang"/;
+    expect(teksSheet).toMatch(jalurSimpan);
+    // Keduanya harus berada SEBELUM cabang `hapus`, supaya tidak tertutup.
+    const posisiJalurSimpan = teksSheet.search(jalurSimpan);
+    const posisiHapus = teksSheet.indexOf('if (aksi === "hapus")');
+    expect(posisiJalurSimpan).toBeGreaterThan(-1);
+    expect(posisiHapus).toBeGreaterThan(posisiJalurSimpan);
   });
 
   it("konfirmasi sesi berseri menyebut cakupan yang akan dipakai", () => {
