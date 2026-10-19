@@ -11,6 +11,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.115.0",
+    date: "2026-10-19",
+    title: "Invoice paket pertemuan tidak lagi menampilkan durasi — harga per pertemuan tidak bergantung pada lama les",
+    items: [
+      "**Invoice murid paket sekarang tidak menampilkan durasi.** Tabel pertemuan hanya memuat **Tanggal · Jam · Mapel**, dan baris totalnya berbunyi **Total N pertemuan** tanpa jumlah jam. Alasannya: murid paket ditagih **tarif tetap per pertemuan**, jadi angka jam di invoice bisa membuat orang tua mengira tagihannya dihitung dari lama les.",
+      "**Invoice murid per jam tidak berubah:** kolom **Durasi** dan total jam tetap ada, karena di situlah dasar tagihannya.",
+      "**Nominal tidak berubah sama sekali** — yang dihapus hanya tampilan durasi pada tipe paket, bukan perhitungan atau angka yang ditagih.",
+      "**Catatan pemeriksaan:** `npx tsc -b`, suite tes (**1616 lulus / 114 berkas**), `npm run build`, dan `npm run check:docs` (0 pelanggaran) lulus; `npm run e2e` tidak dijalankan dan tampilan invoice paket belum dilihat mata.",
+    ],
+  },
+  {
     version: "v1.114.0",
     date: "2026-10-19",
     title: "Invoice profesional kini hanya memuat info pertemuan dan bisa diunduh sebagai JPG — dan Kutipan di laporan bulanan bisa diperkuat AI lagi",

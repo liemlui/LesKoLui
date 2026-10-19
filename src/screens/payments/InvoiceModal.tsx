@@ -140,7 +140,7 @@ function InvoiceContent({
     if (totalPertemuan === 0 || tarif == null) return "Tanpa rincian pertemuan";
     if (!tarifSeragam) {
       return tagihanPerPaket
-        ? `${totalPertemuan} pertemuan · ${totalHours} jam`
+        ? `${totalPertemuan} pertemuan`
         : `${totalHours} jam pertemuan`;
     }
     if (tagihanPerPaket && Math.round(totalPertemuan * tarif) === payment.totalCost) {
@@ -232,27 +232,37 @@ function InvoiceContent({
                 <th style={{ padding: "6px 6px", textAlign: "left", fontSize: 10, color: "#1e40af", fontWeight: 700 }}>Tanggal</th>
                 <th style={{ padding: "6px 6px", textAlign: "left", fontSize: 10, color: "#1e40af", fontWeight: 700 }}>Jam</th>
                 <th style={{ padding: "6px 6px", textAlign: "left", fontSize: 10, color: "#1e40af", fontWeight: 700 }}>Mapel</th>
-                <th style={{ padding: "6px 6px", textAlign: "right", fontSize: 10, color: "#1e40af", fontWeight: 700 }}>Durasi</th>
+                {!tagihanPerPaket && (
+                  <th style={{ padding: "6px 6px", textAlign: "right", fontSize: 10, color: "#1e40af", fontWeight: 700 }}>Durasi</th>
+                )}
               </tr>
             </thead>
             <tbody>
               {sessions.length === 0 ? (
-                <tr><td colSpan={4} style={{ padding: "10px 8px", color: "#9ca3af", textAlign: "center", fontSize: 11 }}>Sesi laporan tidak tersedia</td></tr>
+                <tr><td colSpan={tagihanPerPaket ? 3 : 4} style={{ padding: "10px 8px", color: "#9ca3af", textAlign: "center", fontSize: 11 }}>Sesi laporan tidak tersedia</td></tr>
               ) : (
                 sessions.map((s, i) => (
                   <tr key={s.id} style={{ background: i % 2 === 0 ? "#fff" : "#f9fafb", borderBottom: "1px solid #f3f4f6" }}>
                     <td style={{ padding: "5px 6px", whiteSpace: "nowrap" }}>{formatTanggalSesi(s.date)}</td>
                     <td style={{ padding: "5px 6px", whiteSpace: "nowrap" }}>{s.time || s.timeIn || "—"}</td>
                     <td style={{ padding: "5px 6px" }}>{s.status === "NO_SHOW" ? "Tidak hadir" : s.subjects.join(", ") || "—"}</td>
-                    <td style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap" }}>{s.durationHours} jam</td>
+                    {!tagihanPerPaket && (
+                      <td style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap" }}>{s.durationHours} jam</td>
+                    )}
                   </tr>
                 ))
               )}
             </tbody>
             <tfoot>
               <tr style={{ borderTop: "2px solid #e5e7eb" }}>
-                <td colSpan={2} style={{ padding: "8px 6px", fontWeight: 700 }}>Total {totalPertemuan} pertemuan</td>
-                <td colSpan={2} style={{ padding: "8px 6px", textAlign: "right", fontWeight: 700 }}>{totalHours} jam</td>
+                {tagihanPerPaket ? (
+                  <td colSpan={3} style={{ padding: "8px 6px", fontWeight: 700 }}>Total {totalPertemuan} pertemuan</td>
+                ) : (
+                  <>
+                    <td colSpan={2} style={{ padding: "8px 6px", fontWeight: 700 }}>Total {totalPertemuan} pertemuan</td>
+                    <td colSpan={2} style={{ padding: "8px 6px", textAlign: "right", fontWeight: 700 }}>{totalHours} jam</td>
+                  </>
+                )}
               </tr>
             </tfoot>
           </table>
