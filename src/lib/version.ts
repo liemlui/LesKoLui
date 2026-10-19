@@ -11,6 +11,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.116.0",
+    date: "2026-10-19",
+    title: "Berkas PDF dan JPG invoice kini satu lembar lanskap dua kolom — tidak lagi potret panjang",
+    items: [
+      "**Ekspor invoice (PDF dan JPG) sekarang lanskap dua kolom.** Kolom kiri memuat identitas, informasi tagihan, nama murid, dan rekening; kolom kanan memuat rincian pertemuan beserta total. Untuk invoice dua pertemuan, berkasnya kini sekitar **720×416** — sebelumnya **360×620 potret** — sehingga seluruh invoice terlihat sekaligus tanpa harus menggulir jauh.",
+      "**Pratinjau di layar tetap potret.** Itu disengaja: pada lebar HP 320–448 px, lembar lanskap akan mengecil dan justru sulit dibaca. Yang lanskap adalah **berkas yang diekspor**, dan modal menyebutkan hal itu di bawah pratinjau.",
+      "**Isi dan nominal tidak berubah.** Pratinjau dan berkas ekspor memakai satu fungsi hitung yang sama, jadi angkanya tidak mungkin berbeda; yang berbeda hanya susunan kolom.",
+      "**Catatan pemeriksaan:** `npx tsc -b`, suite (**1616 lulus / 114 berkas**), `npm run build`, dan `npm run check:docs` lulus; contoh JPG invoice paket dua pertemuan sudah dibuat lewat peramban dan diperiksa. `npm run e2e` penuh tidak dijalankan.",
+    ],
+  },
+  {
     version: "v1.115.0",
     date: "2026-10-19",
     title: "Invoice paket pertemuan tidak lagi menampilkan durasi — harga per pertemuan tidak bergantung pada lama les",

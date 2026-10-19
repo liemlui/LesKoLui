@@ -43,6 +43,51 @@ function formatTanggalSesi(date: string): string {
   return `${d}/${m}/${y}`;
 }
 
+interface RingkasanInvoice {
+  totalHours: number;
+  totalPertemuan: number;
+  basisTagihan: string;
+  tagihanPerPaket: boolean;
+  rincianTagihan: string;
+}
+
+/**
+ * Angka dan label yang dipakai **dua** tata letak: pratinjau potret di layar dan
+ * berkas ekspor lanskap. Satu tempat, supaya keduanya tidak pernah berbeda
+ * hitungan ketika salah satu diubah.
+ *
+ * Perkalian tarif hanya dicetak bila hasilnya benar-benar sama dengan nominal
+ * tersimpan; sesi bertarif berbeda atau bernominal manual tetap ditampilkan
+ * sebagai jumlah jam, tanpa angka hasil hitung ulang.
+ * (D2/D9: nominal manual tutor tidak boleh dihitung ulang oleh mesin.)
+ */
+function ringkasInvoice(
+  payment: Payment, report: MonthlyReport | undefined, sessions: Session[],
+): RingkasanInvoice {
+  const totalHours = sessions.reduce((total, session) => total + session.durationHours, 0);
+  const totalPertemuan = sessions.length;
+  const basisTagihan = billingBasisLabel(payment, report, totalPertemuan);
+  const tagihanPerPaket = basisTagihan.startsWith("Paket");
+  const tarif = sessions[0]?.rateSnapshot;
+  const tarifSeragam = totalPertemuan > 0
+    && sessions.every((s) => s.rateSnapshot === tarif && s.costOverride == null);
+
+  let rincianTagihan: string;
+  if (totalPertemuan === 0 || tarif == null) {
+    rincianTagihan = "Tanpa rincian pertemuan";
+  } else if (!tarifSeragam) {
+    rincianTagihan = tagihanPerPaket ? `${totalPertemuan} pertemuan` : `${totalHours} jam pertemuan`;
+  } else if (tagihanPerPaket && Math.round(totalPertemuan * tarif) === payment.totalCost) {
+    rincianTagihan = `${totalPertemuan} pertemuan × ${formatRupiah(tarif)}`;
+  } else if (!tagihanPerPaket && Math.round(totalHours * tarif) === payment.totalCost) {
+    rincianTagihan = `${totalHours} jam × ${formatRupiah(tarif)}/jam`;
+  } else {
+    rincianTagihan = tagihanPerPaket ? `${totalPertemuan} pertemuan` : `${totalHours} jam pertemuan`;
+  }
+
+  return { totalHours, totalPertemuan, basisTagihan, tagihanPerPaket, rincianTagihan };
+}
+
 const REPORT_STATUS_LABEL: Record<ReturnType<typeof reportDisplayStatus>, string> = {
   draft: "Draft",
   final: "Final",
@@ -73,10 +118,12 @@ export default function InvoiceModal({
           <h3 className="min-w-0 truncate font-bold text-base">Invoice Profesional</h3>
           <div className="flex shrink-0 items-center gap-2">
             <button onClick={onExport} disabled={exporting || jpgExporting || sessionsLoading}
+              title="Ekspor PDF (lanskap)"
               className="bg-[var(--accent-solid)] text-[var(--on-strong)] text-xs font-semibold px-2 py-1.5 rounded-lg disabled:opacity-50">
               {sessionsLoading ? "Memuat..." : exporting ? "Ekspor..." : "PDF"}
             </button>
             <button onClick={onExportJpg} disabled={exporting || jpgExporting || sessionsLoading}
+              title="Ekspor JPG (lanskap)"
               className="border border-[var(--accent-solid)] text-[var(--accent-solid)] text-xs font-semibold px-2 py-1.5 rounded-lg disabled:opacity-50">
               {jpgExporting ? "Ekspor..." : "JPG"}
             </button>
@@ -90,7 +137,7 @@ export default function InvoiceModal({
           ) : (
             <>
               <div style={{ position: "absolute", left: -9999, top: 0, pointerEvents: "none" }}>
-                <InvoiceContent
+                <InvoiceExportContent
                   refProp={invoiceRef}
                   payment={payment} student={student} sessions={sessions}
                   tutor={tutor} bank={bank} monthStr={monthStr} report={report} />
@@ -99,6 +146,9 @@ export default function InvoiceModal({
                 payment={payment} student={student} sessions={sessions}
                 tutor={tutor} bank={bank} monthStr={monthStr} report={report}
                 onOpenReport={onOpenReport} showReportActions responsive />
+              <p className="mt-2 text-center text-[11px] text-[var(--ink-muted)]">
+                PDF &amp; JPG diekspor sebagai lembar lanskap dua kolom.
+              </p>
             </>
           )}
         </div>
@@ -122,35 +172,8 @@ function InvoiceContent({
   showReportActions?: boolean;
   responsive?: boolean;
 }) {
-  const totalHours = sessions.reduce((s, x) => s + x.durationHours, 0);
-  const totalPertemuan = sessions.length;
-  const basisTagihan = billingBasisLabel(payment, report, totalPertemuan);
-  const tagihanPerPaket = basisTagihan.startsWith("Paket");
-  const tarifPertama = sessions[0]?.rateSnapshot;
-  const tarifSeragam = totalPertemuan > 0
-    && sessions.every((s) => s.rateSnapshot === tarifPertama && s.costOverride == null);
-  /**
-   * Satu baris dasar tagihan. Perkalian hanya dicetak kalau hasilnya benar-benar
-   * sama dengan nominal yang tersimpan; sesi bertarif berbeda atau bernominal
-   * manual tetap ditampilkan sebagai jumlah jam, tanpa angka hasil hitung ulang.
-   * (D2/D9: nominal manual tutor tidak boleh dihitung ulang oleh mesin.)
-   */
-  const rincianTagihan = (() => {
-    const tarif = tarifPertama;
-    if (totalPertemuan === 0 || tarif == null) return "Tanpa rincian pertemuan";
-    if (!tarifSeragam) {
-      return tagihanPerPaket
-        ? `${totalPertemuan} pertemuan`
-        : `${totalHours} jam pertemuan`;
-    }
-    if (tagihanPerPaket && Math.round(totalPertemuan * tarif) === payment.totalCost) {
-      return `${totalPertemuan} pertemuan × ${formatRupiah(tarif)}`;
-    }
-    if (!tagihanPerPaket && Math.round(totalHours * tarif) === payment.totalCost) {
-      return `${totalHours} jam × ${formatRupiah(tarif)}/jam`;
-    }
-    return tagihanPerPaket ? `${totalPertemuan} pertemuan` : `${totalHours} jam pertemuan`;
-  })();
+  const { totalHours, totalPertemuan, basisTagihan, tagihanPerPaket, rincianTagihan } =
+    ringkasInvoice(payment, report, sessions);
   const standaloneManual = payment.source === "manual" && !payment.reportId;
   const periodLbl = payment.periodStart && payment.periodEnd ? periodLabel(payment.periodStart, payment.periodEnd) : "";
 
@@ -301,6 +324,168 @@ function InvoiceContent({
       )}
 
       <p style={{ textAlign: "center", color: "#9ca3af", fontSize: 10, marginTop: 16 }}>Thank you 😇</p>
+    </div>
+  );
+}
+
+/**
+ * Tata letak **ekspor** (PDF dan JPG): satu lembar lanskap dua kolom.
+ *
+ * Kenapa terpisah dari pratinjau: pratinjau di layar harus tetap terbaca pada
+ * lebar 320–448 px, sedangkan berkas yang dikirim ke orang tua lebih enak
+ * dibaca sebagai lembar lanskap yang pendek. Isinya sama; angkanya dihitung
+ * oleh `ringkasInvoice` yang sama, jadi kedua tata letak tidak bisa berbeda
+ * hitungan.
+ */
+function InvoiceExportContent({
+  payment, student, sessions, tutor, bank, monthStr, report, refProp,
+}: {
+  payment: Payment;
+  student: Student;
+  sessions: Session[];
+  tutor: Settings["tutorProfile"];
+  bank: Settings["bankAccounts"];
+  monthStr: string;
+  report?: MonthlyReport;
+  refProp: RefObject<HTMLDivElement | null>;
+}) {
+  const { totalHours, totalPertemuan, basisTagihan, tagihanPerPaket, rincianTagihan } =
+    ringkasInvoice(payment, report, sessions);
+  const standaloneManual = payment.source === "manual" && !payment.reportId;
+  const periodLbl = payment.periodStart && payment.periodEnd ? periodLabel(payment.periodStart, payment.periodEnd) : "";
+  const paid = payment.status === "PAID";
+  const labelGaya = { fontSize: 10, color: "#9ca3af", fontWeight: 700, letterSpacing: 1, margin: "0 0 4px" } as const;
+
+  return (
+    <div ref={refProp} style={{ width: 720, boxSizing: "border-box", background: "#fff", padding: "28px 32px", fontFamily: "sans-serif", fontSize: 12, color: "#111827" }}>
+      <div style={{ display: "flex", gap: 28, alignItems: "flex-start" }}>
+        <div style={{ width: 280, flexShrink: 0 }}>
+          <div style={{ borderBottom: "2px solid #1e40af", paddingBottom: 10, marginBottom: 12 }}>
+            <p style={{ fontSize: 20, fontWeight: 800, color: "#1e40af", margin: 0 }}>LES KO LUI</p>
+            <p style={{ fontSize: 12, color: "#6b7280", margin: "2px 0 0" }}>{monthStr}</p>
+            {tutor.name && <p style={{ fontSize: 12, fontWeight: 700, margin: "6px 0 0" }}>{tutor.name}</p>}
+            {tutor.phone && <p style={{ fontSize: 11, color: "#6b7280", margin: 0 }}>{tutor.phone}</p>}
+            {tutor.email && <p style={{ fontSize: 11, color: "#6b7280", margin: 0 }}>{tutor.email}</p>}
+          </div>
+
+          <div style={{ marginBottom: 12 }}>
+            <p style={labelGaya}>INFORMASI TAGIHAN</p>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+              <tbody>
+                <tr>
+                  <td style={{ padding: "2px 0", color: "#6b7280" }}>Sistem tagihan</td>
+                  <td style={{ padding: "2px 0", textAlign: "right", fontWeight: 700 }}>{basisTagihan}</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: "2px 0", color: "#6b7280" }}>Periode sesi</td>
+                  <td style={{ padding: "2px 0", textAlign: "right", fontWeight: 700 }}>{periodLbl || "Tanpa sesi"}</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: "2px 0", color: "#6b7280" }}>Bulan tagihan</td>
+                  <td style={{ padding: "2px 0", textAlign: "right", fontWeight: 700 }}>{monthLabel(payment.month)}</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: "2px 0", color: "#6b7280" }}>Status laporan</td>
+                  <td style={{ padding: "2px 0", textAlign: "right", fontWeight: 700 }}>
+                    {report ? REPORT_STATUS_LABEL[reportDisplayStatus(report)] : "Belum dibuat"}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ marginBottom: 12 }}>
+            <p style={labelGaya}>NAMA MURID</p>
+            <p style={{ fontWeight: 700, margin: 0 }}>{student.name}</p>
+            {student.school && <p style={{ color: "#6b7280", margin: "2px 0 0" }}>{student.school}</p>}
+          </div>
+
+          {bank && (bank.bca || bank.cimb || bank.bri || bank.mandiri || bank.bsi || bank.ewallet) && (
+            <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 10 }}>
+              {bank.bca     && <p style={{ margin: "2px 0", fontSize: 11 }}>BCA {bank.bca}</p>}
+              {bank.cimb    && <p style={{ margin: "2px 0", fontSize: 11 }}>CIMB {bank.cimb}</p>}
+              {bank.bri     && <p style={{ margin: "2px 0", fontSize: 11 }}>BRI {bank.bri}</p>}
+              {bank.mandiri && <p style={{ margin: "2px 0", fontSize: 11 }}>Mandiri {bank.mandiri}</p>}
+              {bank.bsi     && <p style={{ margin: "2px 0", fontSize: 11 }}>BSI {bank.bsi}</p>}
+              {bank.ewallet && <p style={{ margin: "2px 0", fontSize: 11 }}>E-wallet {bank.ewallet}</p>}
+              {bank.accountName && <p style={{ margin: "2px 0", fontSize: 11, color: "#9ca3af" }}>a.n. {bank.accountName}</p>}
+            </div>
+          )}
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {standaloneManual ? (
+            <div style={{ border: "1px solid #dbeafe", borderRadius: 8, background: "#eff6ff", padding: "12px 14px" }}>
+              <p style={{ margin: 0, fontSize: 10, fontWeight: 700, letterSpacing: 0.7, color: "#1e40af" }}>TAGIHAN MANUAL</p>
+              <p style={{ margin: "4px 0 0", color: "#4b5563", fontSize: 11 }}>Tanpa sesi atau laporan perkembangan</p>
+              <p style={{ margin: "10px 0 0", textAlign: "right", fontSize: 15, fontWeight: 800, color: "#1e40af" }}>{formatRupiah(payment.totalCost)}</p>
+            </div>
+          ) : (
+            <>
+              <p style={labelGaya}>RINCIAN PERTEMUAN</p>
+              <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 12 }}>
+                <thead>
+                  <tr style={{ background: "#eff6ff" }}>
+                    <th style={{ padding: "6px 8px", textAlign: "left", fontSize: 10, color: "#1e40af", fontWeight: 700 }}>Tanggal</th>
+                    <th style={{ padding: "6px 8px", textAlign: "left", fontSize: 10, color: "#1e40af", fontWeight: 700 }}>Jam</th>
+                    <th style={{ padding: "6px 8px", textAlign: "left", fontSize: 10, color: "#1e40af", fontWeight: 700 }}>Mapel</th>
+                    {!tagihanPerPaket && (
+                      <th style={{ padding: "6px 8px", textAlign: "right", fontSize: 10, color: "#1e40af", fontWeight: 700 }}>Durasi</th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sessions.length === 0 ? (
+                    <tr><td colSpan={tagihanPerPaket ? 3 : 4} style={{ padding: "10px 8px", color: "#9ca3af", textAlign: "center", fontSize: 11 }}>Sesi laporan tidak tersedia</td></tr>
+                  ) : (
+                    sessions.map((s, i) => (
+                      <tr key={s.id} style={{ background: i % 2 === 0 ? "#fff" : "#f9fafb", borderBottom: "1px solid #f3f4f6" }}>
+                        <td style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>{formatTanggalSesi(s.date)}</td>
+                        <td style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>{s.time || s.timeIn || "—"}</td>
+                        <td style={{ padding: "6px 8px" }}>{s.status === "NO_SHOW" ? "Tidak hadir" : s.subjects.join(", ") || "—"}</td>
+                        {!tagihanPerPaket && (
+                          <td style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>{s.durationHours} jam</td>
+                        )}
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+                <tfoot>
+                  <tr style={{ borderTop: "2px solid #e5e7eb" }}>
+                    {tagihanPerPaket ? (
+                      <td colSpan={3} style={{ padding: "8px 8px", fontWeight: 700 }}>Total {totalPertemuan} pertemuan</td>
+                    ) : (
+                      <>
+                        <td colSpan={2} style={{ padding: "8px 8px", fontWeight: 700 }}>Total {totalPertemuan} pertemuan</td>
+                        <td colSpan={2} style={{ padding: "8px 8px", textAlign: "right", fontWeight: 700 }}>{totalHours} jam</td>
+                      </>
+                    )}
+                  </tr>
+                </tfoot>
+              </table>
+
+              <div style={{ border: "1px solid #dbeafe", borderRadius: 8, background: "#eff6ff", padding: "10px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                <div>
+                  <p style={{ margin: 0, fontSize: 10, fontWeight: 700, letterSpacing: 0.7, color: "#1e40af" }}>TAGIHAN</p>
+                  <p style={{ margin: "2px 0 0", fontSize: 11, color: "#4b5563" }}>{rincianTagihan}</p>
+                </div>
+                <p style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#1e40af", whiteSpace: "nowrap" }}>{formatRupiah(payment.totalCost)}</p>
+              </div>
+            </>
+          )}
+
+          <div style={{ background: paid ? "#f0fdf4" : "#fffbeb", borderRadius: 8, padding: "10px 12px", marginTop: 12 }}>
+            <p style={{ fontWeight: 700, color: paid ? "#16a34a" : "#d97706", margin: 0 }}>
+              Status: {paid ? "✓ Lunas" : "Menunggu Pembayaran"}
+            </p>
+            {paid && payment.paidAt && (
+              <p style={{ color: "#6b7280", margin: "3px 0 0", fontSize: 11 }}>Dibayar {payment.paidAt} via {payment.method ?? "—"}</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <p style={{ textAlign: "center", color: "#9ca3af", fontSize: 10, margin: "18px 0 0" }}>Thank you 😇</p>
     </div>
   );
 }
