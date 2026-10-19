@@ -56,8 +56,8 @@ export function buildManualBillingText(student: Student, payment: Payment, setti
     "",
     monthLabel(payment.month),
     "",
-    "TAGIHAN MANUAL (TANPA SESI)",
-    `Total Tagihan — ${formatRupiah(payment.totalCost)}`,
+    "BIAYA LES (TANPA SESI)",
+    `Total Biaya Les — ${formatRupiah(payment.totalCost)}`,
   ];
 
   lines.push("", "Thank you 😇", settings.tutorProfile?.name || "Ko Lui");

@@ -148,7 +148,7 @@ test("menerbitkan, melihat, dan membatalkan invoice tepat N", async ({ page }) =
   // dulu ada tombol pintas "📄 Invoice".
   await invoiceRow.getByRole("button", { name: /Citra Dewanti/ }).click();
   await invoiceRow.getByRole("button", { name: "Unduh invoice PDF" }).click();
-  await expect(page.getByRole("dialog", { name: "Invoice Profesional" })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Rincian Les" })).toBeVisible();
   const invoiceMetrics = await page.evaluate(() => ({
     viewport: document.documentElement.clientWidth,
     body: document.body.scrollWidth,

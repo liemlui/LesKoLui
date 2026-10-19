@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.117.0",
+    date: "2026-10-19",
+    title: "Dokumen untuk orang tua memakai istilah yang lebih hangat — \"Rincian Les\" dan \"Biaya Les\", bukan \"tagihan\"",
+    items: [
+      "**Lembar invoice (PDF/JPG) kini berjudul \"Rincian Les\".** \"INFORMASI TAGIHAN\" menjadi \"KETERANGAN\", \"Sistem tagihan\" menjadi \"Cara hitung\", \"Bulan tagihan\" menjadi \"Bulan les\", dan blok nominal menjadi \"BIAYA LES\". Status \"Menunggu Pembayaran\" diganti \"Belum dibayar\" supaya tidak terasa menagih.",
+      "**Pesan WA untuk biaya tanpa sesi ikut berubah:** \"TAGIHAN MANUAL (TANPA SESI)\" menjadi \"BIAYA LES (TANPA SESI)\", dan \"Total Tagihan\" menjadi \"Total Biaya Les\".",
+      "**Nama berkas unduhan** menjadi `rincian-les-<nama>-<bulan>.pdf` / `.jpg`.",
+      "**Layar internal tidak berubah** — filter, papan pipeline, dan tombol \"Batalkan tagihan paket\" tetap memakai kata \"tagihan\" karena hanya Anda yang melihatnya. Nominal dan perhitungan tidak disentuh.",
+      "**Catatan pemeriksaan:** `npx tsc -b`, suite (**1616 lulus / 114 berkas**), `npm run build`, dan `npm run check:docs` lulus; penjaga `e2e` yang menyebut nama dialog ikut disesuaikan, tetapi `e2e` penuh tidak dijalankan pada rilis ini.",
+    ],
+  },
+  {
     version: "v1.116.0",
     date: "2026-10-19",
     title: "Berkas PDF dan JPG invoice kini satu lembar lanskap dua kolom — tidak lagi potret panjang",

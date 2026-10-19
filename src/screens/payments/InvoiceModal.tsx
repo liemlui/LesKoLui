@@ -112,10 +112,10 @@ export default function InvoiceModal({
   const monthStr = periodLbl || `${MONTH_NAMES[mo - 1]} ${y}`;
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Invoice Profesional" className={`fixed inset-0 bg-[var(--scrim)]/60 ${Z.invoice} flex items-end justify-center px-0`}>
+    <div role="dialog" aria-modal="true" aria-label="Rincian Les" className={`fixed inset-0 bg-[var(--scrim)]/60 ${Z.invoice} flex items-end justify-center px-0`}>
       <div className="w-full max-w-md bg-[var(--surface-strong)] rounded-t-2xl overflow-hidden">
         <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-[var(--border)]">
-          <h3 className="min-w-0 truncate font-bold text-base">Invoice Profesional</h3>
+          <h3 className="min-w-0 truncate font-bold text-base">Rincian Les</h3>
           <div className="flex shrink-0 items-center gap-2">
             <button onClick={onExport} disabled={exporting || jpgExporting || sessionsLoading}
               title="Ekspor PDF (lanskap)"
@@ -188,11 +188,11 @@ function InvoiceContent({
       </div>
 
       <div style={{ marginBottom: 14 }}>
-        <p style={{ fontSize: 10, color: "#9ca3af", fontWeight: 700, letterSpacing: 1, margin: "0 0 4px" }}>INFORMASI TAGIHAN</p>
+        <p style={{ fontSize: 10, color: "#9ca3af", fontWeight: 700, letterSpacing: 1, margin: "0 0 4px" }}>KETERANGAN</p>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
           <tbody>
             <tr>
-              <td style={{ padding: "2px 0", color: "#6b7280" }}>Sistem tagihan</td>
+              <td style={{ padding: "2px 0", color: "#6b7280" }}>Cara hitung</td>
               <td style={{ padding: "2px 0", textAlign: "right", fontWeight: 700 }}>{basisTagihan}</td>
             </tr>
             <tr>
@@ -200,7 +200,7 @@ function InvoiceContent({
               <td style={{ padding: "2px 0", textAlign: "right", fontWeight: 700 }}>{periodLbl || "Tanpa sesi"}</td>
             </tr>
             <tr>
-              <td style={{ padding: "2px 0", color: "#6b7280" }}>Bulan tagihan</td>
+              <td style={{ padding: "2px 0", color: "#6b7280" }}>Bulan les</td>
               <td style={{ padding: "2px 0", textAlign: "right", fontWeight: 700 }}>{monthLabel(payment.month)}</td>
             </tr>
             <tr>
@@ -242,7 +242,7 @@ function InvoiceContent({
 
       {standaloneManual ? (
         <div style={{ marginBottom: 12, border: "1px solid #dbeafe", borderRadius: 8, background: "#eff6ff", padding: "12px 14px" }}>
-          <p style={{ margin: 0, fontSize: 10, fontWeight: 700, letterSpacing: 0.7, color: "#1e40af" }}>TAGIHAN MANUAL</p>
+          <p style={{ margin: 0, fontSize: 10, fontWeight: 700, letterSpacing: 0.7, color: "#1e40af" }}>BIAYA LES · TANPA SESI</p>
           <p style={{ margin: "4px 0 0", color: "#4b5563", fontSize: 11 }}>Tanpa sesi atau laporan perkembangan</p>
           <p style={{ margin: "10px 0 0", textAlign: "right", fontSize: 15, fontWeight: 800, color: "#1e40af" }}>{formatRupiah(payment.totalCost)}</p>
         </div>
@@ -295,7 +295,7 @@ function InvoiceContent({
       {!standaloneManual && (
         <div style={{ border: "1px solid #dbeafe", borderRadius: 8, background: "#eff6ff", padding: "10px 12px", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
           <div>
-            <p style={{ margin: 0, fontSize: 10, fontWeight: 700, letterSpacing: 0.7, color: "#1e40af" }}>TAGIHAN</p>
+            <p style={{ margin: 0, fontSize: 10, fontWeight: 700, letterSpacing: 0.7, color: "#1e40af" }}>BIAYA LES</p>
             <p style={{ margin: "2px 0 0", fontSize: 11, color: "#4b5563" }}>{rincianTagihan}</p>
           </div>
           <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#1e40af", whiteSpace: "nowrap" }}>{formatRupiah(payment.totalCost)}</p>
@@ -304,7 +304,7 @@ function InvoiceContent({
 
       <div style={{ background: payment.status === "PAID" ? "#f0fdf4" : "#fffbeb", borderRadius: 8, padding: "10px 12px", marginBottom: 14 }}>
         <p style={{ fontWeight: 700, color: payment.status === "PAID" ? "#16a34a" : "#d97706", margin: 0 }}>
-          Status: {payment.status === "PAID" ? "✓ Lunas" : "Menunggu Pembayaran"}
+          Status: {payment.status === "PAID" ? "✓ Lunas" : "Belum dibayar"}
         </p>
         {payment.status === "PAID" && payment.paidAt && (
           <p style={{ color: "#6b7280", margin: "3px 0 0", fontSize: 11 }}>Dibayar {payment.paidAt} via {payment.method ?? "—"}</p>
@@ -369,11 +369,11 @@ function InvoiceExportContent({
           </div>
 
           <div style={{ marginBottom: 12 }}>
-            <p style={labelGaya}>INFORMASI TAGIHAN</p>
+            <p style={labelGaya}>KETERANGAN</p>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
               <tbody>
                 <tr>
-                  <td style={{ padding: "2px 0", color: "#6b7280" }}>Sistem tagihan</td>
+                  <td style={{ padding: "2px 0", color: "#6b7280" }}>Cara hitung</td>
                   <td style={{ padding: "2px 0", textAlign: "right", fontWeight: 700 }}>{basisTagihan}</td>
                 </tr>
                 <tr>
@@ -381,7 +381,7 @@ function InvoiceExportContent({
                   <td style={{ padding: "2px 0", textAlign: "right", fontWeight: 700 }}>{periodLbl || "Tanpa sesi"}</td>
                 </tr>
                 <tr>
-                  <td style={{ padding: "2px 0", color: "#6b7280" }}>Bulan tagihan</td>
+                  <td style={{ padding: "2px 0", color: "#6b7280" }}>Bulan les</td>
                   <td style={{ padding: "2px 0", textAlign: "right", fontWeight: 700 }}>{monthLabel(payment.month)}</td>
                 </tr>
                 <tr>
@@ -416,7 +416,7 @@ function InvoiceExportContent({
         <div style={{ flex: 1, minWidth: 0 }}>
           {standaloneManual ? (
             <div style={{ border: "1px solid #dbeafe", borderRadius: 8, background: "#eff6ff", padding: "12px 14px" }}>
-              <p style={{ margin: 0, fontSize: 10, fontWeight: 700, letterSpacing: 0.7, color: "#1e40af" }}>TAGIHAN MANUAL</p>
+              <p style={{ margin: 0, fontSize: 10, fontWeight: 700, letterSpacing: 0.7, color: "#1e40af" }}>BIAYA LES · TANPA SESI</p>
               <p style={{ margin: "4px 0 0", color: "#4b5563", fontSize: 11 }}>Tanpa sesi atau laporan perkembangan</p>
               <p style={{ margin: "10px 0 0", textAlign: "right", fontSize: 15, fontWeight: 800, color: "#1e40af" }}>{formatRupiah(payment.totalCost)}</p>
             </div>
@@ -466,7 +466,7 @@ function InvoiceExportContent({
 
               <div style={{ border: "1px solid #dbeafe", borderRadius: 8, background: "#eff6ff", padding: "10px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                 <div>
-                  <p style={{ margin: 0, fontSize: 10, fontWeight: 700, letterSpacing: 0.7, color: "#1e40af" }}>TAGIHAN</p>
+                  <p style={{ margin: 0, fontSize: 10, fontWeight: 700, letterSpacing: 0.7, color: "#1e40af" }}>BIAYA LES</p>
                   <p style={{ margin: "2px 0 0", fontSize: 11, color: "#4b5563" }}>{rincianTagihan}</p>
                 </div>
                 <p style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#1e40af", whiteSpace: "nowrap" }}>{formatRupiah(payment.totalCost)}</p>
@@ -476,7 +476,7 @@ function InvoiceExportContent({
 
           <div style={{ background: paid ? "#f0fdf4" : "#fffbeb", borderRadius: 8, padding: "10px 12px", marginTop: 12 }}>
             <p style={{ fontWeight: 700, color: paid ? "#16a34a" : "#d97706", margin: 0 }}>
-              Status: {paid ? "✓ Lunas" : "Menunggu Pembayaran"}
+              Status: {paid ? "✓ Lunas" : "Belum dibayar"}
             </p>
             {paid && payment.paidAt && (
               <p style={{ color: "#6b7280", margin: "3px 0 0", fontSize: 11 }}>Dibayar {payment.paidAt} via {payment.method ?? "—"}</p>

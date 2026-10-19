@@ -11,9 +11,9 @@ import { INVOICE_ORIGIN_LABEL, invoiceOriginOf } from "../../lib/invoicePresenta
 import type { MessageSetter } from "./useSessionCountBilling";
 import type { BillRow } from "./useInvoiceFilters";
 
-/** Nama berkas invoice — PDF dan JPG memakai pola yang sama. */
-function invoiceFileName(target: { payment: Payment; student: Student }, ext: string): string {
-  return `invoice-${target.student.name.replace(/\s+/g, "-")}-${target.payment.month}.${ext}`;
+/** Nama berkas "Rincian Les" — PDF dan JPG memakai pola yang sama. */
+function rincianLesFileName(target: { payment: Payment; student: Student }, ext: string): string {
+  return `rincian-les-${target.student.name.replace(/\s+/g, "-")}-${target.payment.month}.${ext}`;
 }
 
 interface UseInvoiceExportsArgs {
@@ -56,7 +56,7 @@ export function useInvoiceExports({
       const pdf = new jsPDF({ orientation: "p", unit: "px", format: [w, h] });
       pdf.addImage(dataUrl, "PNG", 0, 0, w, h);
       const blob = pdf.output("blob");
-      downloadBlob(blob, invoiceFileName(invoiceTarget, "pdf"));
+      downloadBlob(blob, rincianLesFileName(invoiceTarget, "pdf"));
     } catch (e) { setMessage("Gagal ekspor: " + (e as Error).message); }
     finally { setInvoiceExporting(false); }
   };
@@ -85,7 +85,7 @@ export function useInvoiceExports({
       });
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.95));
       if (!blob) throw new Error("kanvas tidak menghasilkan gambar");
-      downloadBlob(blob, invoiceFileName(invoiceTarget, "jpg"));
+      downloadBlob(blob, rincianLesFileName(invoiceTarget, "jpg"));
     } catch (e) { setMessage("Gagal ekspor JPG: " + (e as Error).message); }
     finally { setInvoiceJpgExporting(false); }
   };

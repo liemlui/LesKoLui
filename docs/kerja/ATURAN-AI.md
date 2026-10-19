@@ -182,6 +182,14 @@ Pertanyaan baru ke pemilik hanya sah untuk tiga hal: mengubah uang, mengubah per
 |---|---|---|
 | D18 | **Tombol "Perkuat AI" untuk Kutipan dipasang kembali** di panel Teks Laporan. Permintaan pemilik 2026-10-19: *"Perkuat kutipan di laporan bulanan. Atau isian tanpa ai."* Keputusan ini **menggantikan bagian D11 yang menghapus tombol Kutipan**; sisa D11 tetap berlaku. | Kutipan kembali punya tombol perkuat sendiri (satu panggilan kecil; keluarannya satu kalimat), di samping isian manual tanpa AI yang memang sudah ada. **"Isi Semua dengan AI" tetap tidak menulis kutipan**, dan batas panjang D11 (ringkasan maksimal 4 kalimat, catatan guru maksimal 3 kalimat, rencana maksimal 3 prioritas) tidak berubah. Penjaga `reportSessionUiContract.test.ts` dibalik: yang dijaga sekarang **adanya** tombol Kutipan, bukan ketiadaannya. |
 
+### 4.8 Keputusan pemilik 2026-10-19 (istilah dokumen orang tua)
+
+> Bagian **baru di akhir §4**, bukan sisipan — nomor §4.1–§4.7 dan §5–§8 tidak bergeser (jebakan §7).
+
+| Nomor | Keputusan | Akibat yang mengikat |
+|---|---|---|
+| D19 | **Kata "tagihan" pada dokumen yang dilihat orang tua diganti** supaya tidak terasa seperti penagih pajak. Permintaan pemilik 2026-10-19: *"Biar lebih humanis, kata tagihan bisa di ganti jadi apa? saya tidak ingin semacam penagih pajak."* Keputusan ini **membuka larangan §3 untuk `src/lib/invoicePresentation.ts` pada `buildManualBillingText` saja** (dua baris: judul dan total). | Judul lembar/modal menjadi **"Rincian Les"**; "INFORMASI TAGIHAN" → **"KETERANGAN"**; "Sistem tagihan" → **"Cara hitung"**; "Bulan tagihan" → **"Bulan les"**; blok **"BIAYA LES"**; "TAGIHAN MANUAL" → **"BIAYA LES · TANPA SESI"**; status **"Belum dibayar"**; nama berkas ekspor **`rincian-les-…`**. **Layar internal tetap memakai "Tagihan"** (filter, pipeline, tombol batal paket). `waBilling.ts` tidak berubah — teks yang dikirimnya tidak memuat kata itu. Nominal dan perhitungan tidak disentuh. |
+
 ---
 
 ## 5. Fakta kode yang mengikat
