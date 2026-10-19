@@ -1,5 +1,6 @@
 /**
- * Kontrak DOM untuk bentuk baru laporan & sesi — keputusan pemilik 2026-10-15.
+ * Kontrak DOM untuk bentuk baru laporan & sesi — keputusan pemilik 2026-10-15,
+ * ditambah D18 (2026-10-19) yang memasang kembali tombol perkuat Kutipan.
  *
  * **Kenapa tes ini ada, padahal sudah ada tes lain.** Perubahan D11 (tombol "Isi
  * Semua dengan AI" berhenti menulis ulang narasi sesi) dan D16 ("Batalkan sesi"
@@ -10,8 +11,8 @@
  * (pola yang sama dengan `manageSessionSheet.test.tsx` dan
  * `subjectPickerInline.test.tsx`).
  *
- * **Batas kejujuran.** Tes ini membuktikan **tidak adanya tombol/kalimat yang
- * salah** dan **adanya kalimat yang benar** pada markup satu kali render. Ia tidak
+ * **Batas kejujuran.** Tes ini membuktikan **ada/tidaknya** tombol atau kalimat
+ * tertentu pada markup satu kali render. Ia tidak
  * membuktikan klik, fokus, dan ukuran sentuh — itu wilayah `e2e-uiux`.
  */
 import { describe, expect, it } from "vitest";
@@ -24,16 +25,15 @@ import teksLaporan from "../screens/MonthlyReport.tsx?raw";
 import teksHook from "../screens/monthlyReport/useReportGeneration.ts?raw";
 import teksSesi from "../screens/home/manageSession.ts?raw";
 
-describe("D11 — tombol perkuat Kutipan tidak lagi ada", () => {
-  it("Kutipan dirender tanpa tombol perkuat, dua isian lain tetap punya", () => {
+describe("D18 — tombol perkuat Kutipan dipasang kembali (2026-10-19)", () => {
+  it("Kutipan punya tombol perkuat sendiri, seperti Ringkasan dan Catatan Guru", () => {
     // Hitung pemakaian `tombolPerkuat(` di dalam JSX (bukan definisinya).
     const pemakaian = [...teksPanel.matchAll(/\{tombolPerkuat\("(\w+)"\)\}/g)].map((m) => m[1]);
-    expect(pemakaian).toEqual(["summaryText", "teacherNote"]);
-    expect(pemakaian).not.toContain("quote");
+    expect(pemakaian).toEqual(["summaryText", "teacherNote", "quote"]);
   });
 
-  it("ada catatan yang menyebut sebab Kutipan tidak diperkuat lagi", () => {
-    expect(teksPanel).toContain("Tombol perkuat Kutipan sengaja TIDAK dipasang");
+  it("catatan lama yang menyebut Kutipan sengaja tidak diperkuat sudah tidak ada", () => {
+    expect(teksPanel).not.toContain("Tombol perkuat Kutipan sengaja TIDAK dipasang");
   });
 });
 

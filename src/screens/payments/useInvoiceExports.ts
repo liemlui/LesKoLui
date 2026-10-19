@@ -1,5 +1,5 @@
 /**
- * Hook ekspor tagihan (CSV, PDF rekap, PDF invoice tunggal) — diekstraksi
+ * Hook ekspor tagihan (CSV, PDF rekap, PDF/JPG invoice tunggal) — diekstraksi
  * dari TagihanTab.tsx. Dynamic import html-to-image/jsPDF tetap lazy.
  */
 import { useRef, useState } from "react";
@@ -10,6 +10,11 @@ import { escapeCsvCell } from "../../lib/csv";
 import { INVOICE_ORIGIN_LABEL, invoiceOriginOf } from "../../lib/invoicePresentation";
 import type { MessageSetter } from "./useSessionCountBilling";
 import type { BillRow } from "./useInvoiceFilters";
+
+/** Nama berkas invoice — PDF dan JPG memakai pola yang sama. */
+function invoiceFileName(target: { payment: Payment; student: Student }, ext: string): string {
+  return `invoice-${target.student.name.replace(/\s+/g, "-")}-${target.payment.month}.${ext}`;
+}
 
 interface UseInvoiceExportsArgs {
   studentMap: Map<string, Student>;
@@ -25,6 +30,7 @@ export function useInvoiceExports({
   const [pdfExporting, setPdfExporting] = useState(false);
   const [invoiceTarget, setInvoiceTarget] = useState<{ payment: Payment; student: Student } | null>(null);
   const [invoiceExporting, setInvoiceExporting] = useState(false);
+  const [invoiceJpgExporting, setInvoiceJpgExporting] = useState(false);
   const invoiceRef = useRef<HTMLDivElement>(null);
 
   /**
@@ -50,9 +56,38 @@ export function useInvoiceExports({
       const pdf = new jsPDF({ orientation: "p", unit: "px", format: [w, h] });
       pdf.addImage(dataUrl, "PNG", 0, 0, w, h);
       const blob = pdf.output("blob");
-      downloadBlob(blob, `invoice-${invoiceTarget.student.name.replace(/\s+/g, "-")}-${invoiceTarget.payment.month}.pdf`);
+      downloadBlob(blob, invoiceFileName(invoiceTarget, "pdf"));
     } catch (e) { setMessage("Gagal ekspor: " + (e as Error).message); }
     finally { setInvoiceExporting(false); }
+  };
+
+  /**
+   * Ekspor invoice sebagai JPG — potret elemen yang sama dengan PDF, tanpa jsPDF.
+   * Latar putih dipaksa karena JPEG tidak punya kanal transparan. Berlaku untuk
+   * tagihan belum lunas maupun sudah lunas; blok status ikut terpotret
+   * ("Menunggu Pembayaran" atau "✓ Lunas").
+   *
+   * Sengaja lewat kanvas + `canvas.toBlob`, bukan `toJpeg` lalu `fetch(data:)`:
+   * CSP produksi (`vercel.json`) hanya mengizinkan `connect-src 'self' blob:`,
+   * sehingga `fetch` atas data URL akan ditolak di alamat online.
+   */
+  const handleExportInvoiceJpg = async () => {
+    if (!invoiceRef.current || !invoiceTarget) return;
+    setInvoiceJpgExporting(true);
+    try {
+      const { toCanvas } = await loadHtmlToImage();
+      await document.fonts.ready;
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(null))));
+      const el = invoiceRef.current;
+      el.scrollIntoView({ block: "nearest" });
+      const canvas = await toCanvas(el, {
+        pixelRatio: 2, backgroundColor: "#ffffff", cacheBust: true, style: { overflow: "visible" },
+      });
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.95));
+      if (!blob) throw new Error("kanvas tidak menghasilkan gambar");
+      downloadBlob(blob, invoiceFileName(invoiceTarget, "jpg"));
+    } catch (e) { setMessage("Gagal ekspor JPG: " + (e as Error).message); }
+    finally { setInvoiceJpgExporting(false); }
   };
 
   const handleExportCsv = () => {
@@ -107,8 +142,10 @@ export function useInvoiceExports({
     invoiceTarget,
     setInvoiceTarget,
     invoiceExporting,
+    invoiceJpgExporting,
     invoiceRef,
     handleExportInvoicePdf,
+    handleExportInvoiceJpg,
     handleExportCsv,
     handleExportPdf,
   };

@@ -265,8 +265,8 @@ export default function TagihanTab({
     setMessage,
   });
   const {
-    pdfExporting, invoiceTarget, setInvoiceTarget, invoiceExporting, invoiceRef,
-    handleExportInvoicePdf, handleExportCsv, handleExportPdf,
+    pdfExporting, invoiceTarget, setInvoiceTarget, invoiceExporting, invoiceJpgExporting, invoiceRef,
+    handleExportInvoicePdf, handleExportInvoiceJpg, handleExportCsv, handleExportPdf,
   } = exports;
 
   const selectCollectionStage = (filter: typeof invoiceStatusFilter) => {
@@ -968,7 +968,9 @@ export default function TagihanTab({
             : undefined}
           invoiceRef={invoiceRef}
           exporting={invoiceExporting}
+          jpgExporting={invoiceJpgExporting}
           onExport={handleExportInvoicePdf}
+          onExportJpg={handleExportInvoiceJpg}
           onOpenReport={() => {
             const payment = invoiceTarget.payment;
             setInvoiceTarget(null);

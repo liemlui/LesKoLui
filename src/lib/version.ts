@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.114.0",
+    date: "2026-10-19",
+    title: "Invoice profesional kini hanya memuat info pertemuan dan bisa diunduh sebagai JPG — dan Kutipan di laporan bulanan bisa diperkuat AI lagi",
+    items: [
+      "**Rincian invoice profesional sekarang hanya berisi info pertemuan.** Tabelnya memuat **Tanggal · Jam · Mapel · Durasi**; kolom nominal per sesi dihapus, karena yang perlu diperiksa orang tua adalah pertemuannya. Dasar tagihan ditulis **\"Jam pertemuan\"** (murid paket tetap \"Paket N pertemuan\"), dan ringkasan tagihan menampilkan **X jam × Rp…/jam** hanya bila hasilnya **persis sama** dengan nominal yang tersimpan — bila tarifnya berbeda atau ada nominal manual, yang tampil hanya jumlah jamnya. **Nominal yang ditagih tidak berubah sama sekali.**",
+      "**Tanggal dan jam invoice dibetulkan.** Dulu tanggal tampil gaya Amerika (06/24) dan kolom berjudul \"Jam\" isinya durasi. Sekarang tanggal **DD/MM/YYYY**, kolom **Jam** berisi jam mulai pertemuan, dan **Durasi** punya kolomnya sendiri.",
+      "**Invoice bisa diunduh sebagai JPG, bukan hanya PDF.** Tombol **JPG** ada di samping **PDF**, dan berlaku untuk tagihan **belum lunas** maupun **sudah lunas** — blok status (\"Menunggu Pembayaran\" atau \"✓ Lunas\") ikut tercetak, jadi gambarnya bisa langsung dikirim ke orang tua. Latar putih, resolusi 2×.",
+      "**Kutipan di laporan bulanan bisa diperkuat AI lagi.** Tombol **Perkuat AI** untuk Kutipan dikembalikan: letaknya di bagian Kutipan sendiri seperti Ringkasan dan Catatan Guru, dan menyebut perkiraan biayanya sebelum dijalankan. **Isian tanpa AI tetap terbuka** — kutipan boleh Anda tulis sendiri, dan **Generate Teks Gratis** tetap mengisi kutipan dari data sesi tanpa biaya. \"Isi Semua dengan AI\" tetap **tidak** menulis kutipan.",
+      "**Satu catatan jujur tentang pemeriksaan versi ini.** `npx tsc -b`, suite tes (**1616 lulus / 114 berkas**), `npm run build`, dan `npm run check:docs` (0 pelanggaran) sudah dijalankan dan lulus. Yang **belum**: `npm run e2e` tidak dijalankan pada rilis ini, dan tampilan invoice — terutama di lebar layar 320 px — serta hasil ekspor JPG-nya belum dilihat mata.",
+    ],
+  },
+  {
     version: "v1.113.0",
     date: "2026-10-18",
     title: "Tarif AI dan kurs dollar sekarang ditarik sendiri dari sumber resminya — dan kalkulator biaya akhirnya membedakan tarif peak/off-peak serta harga cache",
