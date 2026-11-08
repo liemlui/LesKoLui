@@ -49,6 +49,25 @@ export function billingPolicyOf(
   return student.billingPolicy ?? "monthly";
 }
 
+/**
+ * Nominal manual yang benar-benar diset tutor, atau `undefined` bila biaya
+ * seharusnya dihitung otomatis.
+ *
+ * Kontrak kolom `costOverride` di `Session` menyebut `undefined` **dan** `null`
+ * sama-sama berarti otomatis. `0`, NaN, dan nilai tak hingga juga tidak mungkin
+ * menjadi nominal manual yang sah (validasi uang menolaknya), sehingga semuanya
+ * diperlakukan sebagai otomatis. Satu predikat ini dipakai repository dan
+ * antarmuka supaya `null` tidak pernah lagi terbaca sebagai nominal manual.
+ */
+export function manualSessionCost(
+  session: Pick<Session, "costOverride">,
+): number | undefined {
+  const value = session.costOverride;
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? value
+    : undefined;
+}
+
 /** Status finalisasi laporan. Draft belum mengunci periode; confirmed berarti
  *  laporan sudah final. Status ini tidak menyatakan invoice sudah diterbitkan
  *  dan tidak menyatakan laporan sudah dikirim/dibagikan.

@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { Session, Student } from "../../db/types";
+import { manualSessionCost, type Session, type Student } from "../../db/types";
 import {
   cancelSeriesSessions,
   deleteSession,
@@ -32,6 +32,7 @@ import {
   sesiFormAwal,
   tampilkanPemilihMurid,
   validasiReschedule,
+  type FormUbahJadwal,
 } from "./manageSessionForm";
 
 interface ManageSessionSheetProps {
@@ -50,6 +51,11 @@ const TOMBOL_BAHAYA =
   "w-full min-h-[44px] rounded-[var(--radius-card)] border border-[var(--border-danger)] bg-[var(--bg-danger)] px-4 text-sm font-semibold text-[var(--ink-danger)] transition-colors";
 const TOMBOL_NETRAL =
   "w-full min-h-[44px] rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface-strong)] px-4 text-sm font-semibold text-[var(--ink-strong)] transition-colors";
+
+interface FormKelolaSesi extends FormUbahJadwal {
+  alasan: string;
+  billable: boolean;
+}
 
 /**
  * Satu sheet untuk semua pengelolaan sesi dari Beranda (G3-01 L4).
@@ -91,7 +97,7 @@ export default function ManageSessionSheet({
   const [menuTerbuka, setMenuTerbuka] = useState(false);
   const [konfirmasi, setKonfirmasi] = useState<SesiAksi | null>(null);
   const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState(() => {
+  const [form, setForm] = useState<FormKelolaSesi>(() => {
     const awal = sesiFormAwal(session);
     return {
       muridId: awal.studentId,
@@ -101,6 +107,7 @@ export default function ManageSessionSheet({
       cakupan: awal.mode,
       alasan: awal.reason,
       billable: false,
+      kebijakanNominal: "tarif-baru",
     };
   });
   // Tanggal sesi asal dipakai untuk memutuskan apakah perubahan tanggal perlu
@@ -115,16 +122,30 @@ export default function ManageSessionSheet({
 
   // ── Ganti murid (2026-10-05): peringatan di sheet + konfirmasi sebelum simpan ──
   // `studentName` dari Beranda = pemilik sesi **sekarang**; `muridBaru` = pilihan di
-  // kolom "Murid". Nama (bukan id) yang dipakai karena pesannya dibaca tutor.
+  // kolom "Murid". Nama dipakai di pesan; ID dipakai untuk mendeteksi perpindahan.
   const muridBaru = students.find((s) => s.id === form.muridId)?.name ?? studentName;
-  /** Nominal manual yang pernah diisi tutor → jumlahnya tidak boleh dihitung ulang. */
-  const adaNominalManual = session.costOverride !== undefined;
+  const muridBerubah = Boolean(form.muridId) && form.muridId !== session.studentId;
+  /** Hanya nominal positif yang merupakan pernyataan manual tutor; null/0 otomatis. */
+  const adaNominalManual = manualSessionCost(session) !== undefined;
+  /**
+   * Pilihan nominal muncul saat pemilik berganti dan ada nominal manual pada sesi
+   * ini. Untuk seri, pilihan juga muncul ketika cakupannya mencakup sesi lain —
+   * sesi lain itu mungkin membawa nominal manual yang tidak terlihat dari baris
+   * yang sedang dibuka, dan melepasnya diam-diam dilarang.
+   */
+  const tampilkanPilihanNominal = muridBerubah
+    && (adaNominalManual || (berseri && form.cakupan !== "this"));
   const peringatanMurid = peringatanGantiMurid({
-    muridLama: studentName, muridBaru, berseri, cakupan: form.cakupan, adaNominalManual,
+    muridLama: studentName, muridBaru,
+    muridLamaId: session.studentId, muridBaruId: form.muridId,
+    berseri, cakupan: form.cakupan,
+    adaNominalManual, kebijakanNominal: form.kebijakanNominal,
   });
   /** Satu konteks untuk gerbang konfirmasi **dan** pesan yang tampil, supaya keduanya tidak bisa berbeda. */
   const konteksKonfirmasi = {
-    studentName, berseri, muridLama: studentName, muridBaru, adaNominalManual,
+    studentName, berseri, muridLama: studentName, muridBaru,
+    muridLamaId: session.studentId, muridBaruId: form.muridId,
+    adaNominalManual, kebijakanNominal: form.kebijakanNominal,
   };
 
   const buka = (aksi: SesiAksi) => {
@@ -137,6 +158,7 @@ export default function ManageSessionSheet({
       cakupan: awal.mode,
       alasan: awal.reason,
       billable: false,
+      kebijakanNominal: "tarif-baru",
     });
     setMenuTerbuka(false);
     setAksiId(aksi);
@@ -367,6 +389,49 @@ export default function ManageSessionSheet({
                     <p className="mt-[var(--space-2)] rounded-[var(--radius-card)] border border-[var(--border-attention)] bg-[var(--bg-attention)] p-[var(--space-2)] text-xs text-[var(--ink-attention)] m-0">
                       {peringatanMurid}
                     </p>
+                  )}
+                  {tampilkanPilihanNominal && (
+                    <fieldset className="mt-[var(--space-2)] rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface-strong)] p-[var(--space-2)]">
+                      <legend className="px-1 text-xs font-semibold text-[var(--ink-strong)]">
+                        Nominal sesi setelah pindah
+                      </legend>
+                      <label className="flex min-h-[44px] cursor-pointer items-start gap-2 rounded-lg px-2 py-2 hover:bg-[var(--surface-soft)]">
+                        <input
+                          type="radio"
+                          name="msm-kebijakan-nominal"
+                          value="tarif-baru"
+                          checked={form.kebijakanNominal === "tarif-baru"}
+                          onChange={() => setForm((f) => ({ ...f, kebijakanNominal: "tarif-baru" }))}
+                          className="mt-0.5 h-4 w-4 accent-[var(--brand-solid)]"
+                        />
+                        <span>
+                          <span className="block text-sm font-semibold text-[var(--ink-strong)]">Pakai tarif murid baru</span>
+                          <span className="block text-xs text-[var(--text-muted)]">
+                            {berseri && form.cakupan !== "this"
+                              ? "Semua sesi dalam cakupan memakai tarif murid baru; nominal manual dilepas."
+                              : "Nominal dihitung ulang memakai tarif murid baru."}
+                          </span>
+                        </span>
+                      </label>
+                      <label className="flex min-h-[44px] cursor-pointer items-start gap-2 rounded-lg px-2 py-2 hover:bg-[var(--surface-soft)]">
+                        <input
+                          type="radio"
+                          name="msm-kebijakan-nominal"
+                          value="manual"
+                          checked={form.kebijakanNominal === "manual"}
+                          onChange={() => setForm((f) => ({ ...f, kebijakanNominal: "manual" }))}
+                          className="mt-0.5 h-4 w-4 accent-[var(--brand-solid)]"
+                        />
+                        <span>
+                          <span className="block text-sm font-semibold text-[var(--ink-strong)]">Pertahankan nominal manual</span>
+                          <span className="block text-xs text-[var(--text-muted)]">
+                            {berseri && form.cakupan !== "this"
+                              ? "Nominal manual yang ada dipertahankan; sesi tanpa nominal manual tetap memakai tarif murid baru."
+                              : "Nominal manual sesi ini tidak diubah."}
+                          </span>
+                        </span>
+                      </label>
+                    </fieldset>
                   )}
                 </div>
               )}

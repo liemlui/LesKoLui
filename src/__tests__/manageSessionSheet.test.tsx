@@ -89,6 +89,20 @@ function markup(kontek: "terjadwal" | "terlewat", s: Session = session(), extra:
   );
 }
 
+describe("Pilihan nominal saat pindah murid terpasang di sheet", () => {
+  it("menampilkan dua pilihan dan memilih tarif murid baru sebagai bawaan", () => {
+    expect(teksSheet).toContain("Nominal sesi setelah pindah");
+    expect(teksSheet).toContain("Pakai tarif murid baru");
+    expect(teksSheet).toContain("Pertahankan nominal manual");
+    expect(teksSheet).toContain('kebijakanNominal: "tarif-baru"');
+  });
+
+  it("membedakan nominal manual positif dari null/otomatis lewat predikat domain", () => {
+    expect(teksSheet).toContain("manualSessionCost(session)");
+    expect(teksSheet).not.toContain("session.costOverride !== undefined");
+  });
+});
+
 describe("ManageSessionSheet — panel dari bawah dengan aksi yang terlihat", () => {
   it("dirender sebagai sheet dialog dengan judul sesuai konteks", () => {
     const lewat = markup("terlewat");
@@ -314,7 +328,8 @@ describe("validasiReschedule — pesan yang bisa dibaca tutor, sebelum menyentuh
  */
 describe("Ubah jadwal: durasi hanya dikirim bila berubah (a)", () => {
   const formUbah = (over: Partial<FormUbahJadwal> = {}): FormUbahJadwal => ({
-    muridId: "s-1", tanggal: "2026-10-01", jam: "15:30", durasi: 1.5, cakupan: "this", ...over,
+    muridId: "s-1", tanggal: "2026-10-01", jam: "15:30", durasi: 1.5, cakupan: "this",
+    kebijakanNominal: "tarif-baru", ...over,
   });
 
   it("durasi tidak ikut dikirim bila tidak berubah — nominal manual tidak boleh terhapus", () => {
@@ -344,6 +359,24 @@ describe("Ubah jadwal: durasi hanya dikirim bila berubah (a)", () => {
   it("tanggal yang sama tidak dikirim walau cakupannya 'Sesi ini'", () => {
     expect(patchUbahJadwal(session(), formUbah(), "2026-10-01").date).toBeUndefined();
   });
+
+  it("pindah murid dengan pilihan bawaan melepas nominal manual secara eksplisit", () => {
+    const patch = patchUbahJadwal(session(), formUbah({ muridId: "s-2" }), "2026-10-01");
+    expect(patch.studentId).toBe("s-2");
+    expect(patch.costOverride).toBeNull();
+  });
+
+  it("pilihan 'Pertahankan nominal manual' tidak mengirim pelepasan", () => {
+    const patch = patchUbahJadwal(session(), formUbah({
+      muridId: "s-2", kebijakanNominal: "manual",
+    }), "2026-10-01");
+    expect("costOverride" in patch).toBe(false);
+  });
+
+  it("mengubah jam tanpa pindah murid tidak pernah melepas nominal manual", () => {
+    const patch = patchUbahJadwal(session(), formUbah({ jam: "16:00" }), "2026-10-01");
+    expect("costOverride" in patch).toBe(false);
+  });
 });
 
 describe("Ganti murid: peringatan di sheet + konfirmasi sebelum simpan (b)", () => {
@@ -363,12 +396,40 @@ describe("Ganti murid: peringatan di sheet + konfirmasi sebelum simpan (b)", () 
     expect(teks).toContain("tagihan");
   });
 
-  it("dengan nominal manual: peringatan menyebut jumlahnya TIDAK diubah", () => {
+  it("dengan nominal manual: pilihan pertahankan menyebut jumlahnya TIDAK diubah", () => {
     const teks = peringatanGantiMurid({
-      muridLama: "Sari", muridBaru: "Budi", berseri: false, cakupan: "this", adaNominalManual: true,
+      muridLama: "Sari", muridBaru: "Budi", berseri: false, cakupan: "this",
+      adaNominalManual: true, kebijakanNominal: "manual",
     })!;
     expect(teks).toContain("Nominal manual sesi ini tidak diubah");
     expect(teks).not.toContain("dihitung ulang");
+  });
+
+  it("dengan nominal manual: pilihan tarif baru menyebut nominal dilepas dan dihitung ulang", () => {
+    const teks = peringatanGantiMurid({
+      muridLama: "Sari", muridBaru: "Budi", berseri: false, cakupan: "this",
+      adaNominalManual: true, kebijakanNominal: "tarif-baru",
+    })!;
+    expect(teks).toContain("Nominal manual dilepas");
+    expect(teks).toContain("dihitung ulang memakai tarif Budi");
+  });
+
+  it("konfirmasi menjelaskan pelepasan nominal manual saat pilihan tarif baru", () => {
+    const info = konfirmasiUntuk("simpan-perubahan", {
+      studentName: "Sari", berseri: false, muridLama: "Sari", muridBaru: "Budi",
+      adaNominalManual: true, kebijakanNominal: "tarif-baru",
+    })!;
+    expect(info.title).toContain("lepas nominal manual");
+    expect(info.message).toContain("Nominal manual dilepas");
+    expect(info.message).not.toContain("Rp");
+  });
+
+  it("konfirmasi mempertahankan nominal hanya saat pilihan manual", () => {
+    const info = konfirmasiUntuk("simpan-perubahan", {
+      studentName: "Sari", berseri: false, muridLama: "Sari", muridBaru: "Budi",
+      adaNominalManual: true, kebijakanNominal: "manual",
+    })!;
+    expect(info.message).toContain("Nominal manual sesi ini tidak diubah");
   });
 
   it("peringatan tidak memuat angka rupiah — Beranda dilarang menampilkan uang (K3/B1)", () => {
@@ -401,6 +462,28 @@ describe("Ganti murid: peringatan di sheet + konfirmasi sebelum simpan (b)", () 
     expect(info.message).toContain("Sari");
     expect(info.message).toContain("dihitung ulang memakai tarif Budi");
     expect(info.message).not.toMatch(/\d/);
+  });
+
+  it("konfirmasi tetap muncul bila ID murid berubah meski namanya sama", () => {
+    const ctx = {
+      studentName: "Sari", berseri: false, muridLama: "Sari", muridBaru: "Sari",
+      muridLamaId: "murid-1", muridBaruId: "murid-2",
+    };
+    const info = konfirmasiUntuk("simpan-perubahan", ctx)!;
+    expect(info.confirmLabel).toBe("Ya, ganti murid");
+    expect(info.message).toContain("murid lain bernama Sari");
+
+    expect(peringatanGantiMurid({
+      muridLama: "Sari", muridBaru: "Sari", muridLamaId: "murid-1", muridBaruId: "murid-2",
+      berseri: false, cakupan: "this", adaNominalManual: false,
+    })).toContain("murid lain bernama Sari");
+  });
+
+  it("nama sama dengan ID yang sama tidak memicu konfirmasi", () => {
+    expect(konfirmasiUntuk("simpan-perubahan", {
+      studentName: "Sari", berseri: false, muridLama: "Sari", muridBaru: "Sari",
+      muridLamaId: "murid-1", muridBaruId: "murid-1",
+    })).toBeNull();
   });
 
   it("konfirmasi menyebut nominal manual TIDAK diubah bila sesinya punya nominal manual", () => {
@@ -467,4 +550,3 @@ describe("Sumber tidak memuat teks ter-encode ganda", () => {
     });
   }
 });
-

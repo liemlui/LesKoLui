@@ -87,8 +87,20 @@ export function modeEfektif(berseri: boolean, mode: EditMode): EditMode {
   return berseri ? mode : "this";
 }
 
+/**
+ * Pilihan tutor saat pemilik sesi berganti.
+ *
+ * `tarif-baru` melepas nominal manual secara eksplisit lalu menghitung ulang
+ * memakai tarif murid baru. `manual` mempertahankan nominal yang pernah
+ * ditetapkan tutor. Pilihan ini hanya berlaku saat `studentId` benar-benar
+ * berubah; mengganti jam/tanggal tidak boleh melepas nominal manual.
+ */
+export type NominalMovePolicy = "tarif-baru" | "manual";
+
 /** Bentuk patch yang dikirim ke `updateSeriesSessions` untuk jalur ubah jadwal. */
-export type PatchUbahJadwal = Partial<Pick<Session, "time" | "durationHours" | "studentId" | "date">>;
+export type PatchUbahJadwal =
+  Partial<Pick<Session, "time" | "durationHours" | "studentId" | "date">>
+  & { costOverride?: null };
 
 /** Kolom isian yang ikut menentukan patch ubah jadwal. */
 export interface FormUbahJadwal {
@@ -97,6 +109,7 @@ export interface FormUbahJadwal {
   jam: string;
   durasi: number;
   cakupan: EditMode;
+  kebijakanNominal: NominalMovePolicy;
 }
 
 /**
@@ -117,10 +130,16 @@ export function patchUbahJadwal(
   form: FormUbahJadwal,
   tanggalAsal: string,
 ): PatchUbahJadwal {
+  const studentId = form.muridId || session.studentId;
   const patch: PatchUbahJadwal = {
-    studentId: form.muridId || session.studentId,
+    studentId,
     time: form.jam,
   };
+  // Hanya perpindahan pemilik yang boleh menyentuh kebijakan nominal. Mengubah
+  // jam/tanggal dengan murid yang sama tidak boleh melepas nominal manual.
+  if (studentId !== session.studentId && form.kebijakanNominal === "tarif-baru") {
+    patch.costOverride = null;
+  }
   if (form.durasi !== session.durationHours) patch.durationHours = form.durasi;
   if (form.cakupan === "this" && form.tanggal !== tanggalAsal) patch.date = form.tanggal;
   return patch;
@@ -198,15 +217,47 @@ export interface KonfirmasiAksi {
 export interface KonteksKonfirmasi {
   studentName: string;
   berseri: boolean;
-  /** Nama murid yang sekarang memiliki sesi — pembanding untuk mendeteksi pergantian. */
+  /** Nama murid yang sekarang memiliki sesi — dipakai pada teks konfirmasi. */
   muridLama?: string;
   /** Nama murid yang dipilih di kolom "Murid". */
   muridBaru?: string;
-  /**
-   * Sesi ini punya nominal manual (`costOverride`). Kalau ya, jumlahnya **tidak**
-   * dihitung ulang — hanya tarif dasarnya yang mengikuti pemilik baru.
-   */
+  /** ID dipakai untuk mendeteksi pergantian ketika nama murid tidak unik. */
+  muridLamaId?: string;
+  muridBaruId?: string;
+  /** Sesi ini benar-benar punya nominal manual positif. */
   adaNominalManual?: boolean;
+  /**
+   * Pilihan tutor saat pemilik berganti. Bawaan `manual` hanya untuk kompatibilitas
+   * pemanggil lama; sheet selalu mengirim pilihan yang terlihat oleh tutor.
+   */
+  kebijakanNominal?: NominalMovePolicy;
+}
+
+function pemilikBerubah(ctx: {
+  muridLama?: string;
+  muridBaru?: string;
+  muridLamaId?: string;
+  muridBaruId?: string;
+}): boolean {
+  if (ctx.muridLamaId !== undefined && ctx.muridBaruId !== undefined) {
+    return ctx.muridLamaId !== ctx.muridBaruId;
+  }
+  return ctx.muridLama !== undefined
+    && ctx.muridBaru !== undefined
+    && ctx.muridLama !== ctx.muridBaru;
+}
+
+function sebutanMuridBaru(ctx: {
+  muridLama?: string;
+  muridBaru?: string;
+  muridLamaId?: string;
+  muridBaruId?: string;
+}): string {
+  return ctx.muridLama !== undefined
+    && ctx.muridLama === ctx.muridBaru
+    && pemilikBerubah(ctx)
+    ? `murid lain bernama ${ctx.muridBaru}`
+    : ctx.muridBaru ?? "";
 }
 
 export function konfirmasiUntuk(
@@ -252,12 +303,27 @@ export function konfirmasiUntuk(
       };
     case "simpan-perubahan": {
       // Tidak ada pergantian murid → tidak ada yang perlu dikonfirmasi (perilaku lama).
-      if (!ctx.muridLama || !ctx.muridBaru || ctx.muridLama === ctx.muridBaru) return null;
+      if (!ctx.muridLama || !ctx.muridBaru || !pemilikBerubah(ctx)) return null;
+      const sebutanBaru = sebutanMuridBaru(ctx);
+      const kebijakan = ctx.kebijakanNominal ?? (ctx.adaNominalManual ? "manual" : "tarif-baru");
+      const cakupan = ctx.berseri ? " Seluruh sesi dalam cakupan yang dipilih ikut aturan ini." : "";
+      if (ctx.adaNominalManual && kebijakan === "manual") {
+        return {
+          title: "Ganti murid sesi ini?",
+          message: `${sebutanBaru} akan menjadi pemilik sesi ini. Nominal manual sesi ini tidak diubah, dan tagihannya berpindah ke ${ctx.muridBaru}.${cakupan}`,
+          confirmLabel: "Ya, ganti murid",
+        };
+      }
+      if (ctx.adaNominalManual) {
+        return {
+          title: "Ganti murid dan lepas nominal manual?",
+          message: `${sebutanBaru} akan menjadi pemilik sesi ini. Nominal manual dilepas dan nominal dihitung ulang memakai tarif ${ctx.muridBaru} — tarif ${ctx.muridLama} tidak lagi dipakai.${cakupan}`,
+          confirmLabel: "Ya, pakai tarif baru",
+        };
+      }
       return {
         title: "Ganti murid sesi ini?",
-        message: ctx.adaNominalManual
-          ? `${ctx.muridBaru} akan menjadi pemilik sesi ini. Nominal manual sesi ini tidak diubah, dan tagihannya berpindah ke ${ctx.muridBaru}.`
-          : `${ctx.muridBaru} akan menjadi pemilik sesi ini. Nominal sesi dihitung ulang memakai tarif ${ctx.muridBaru} — tarif ${ctx.muridLama} tidak lagi dipakai — dan tagihannya berpindah ke ${ctx.muridBaru}.`,
+        message: `${sebutanBaru} akan menjadi pemilik sesi ini. Nominal sesi dihitung ulang memakai tarif ${ctx.muridBaru} — tarif ${ctx.muridLama} tidak lagi dipakai — dan tagihannya berpindah ke ${ctx.muridBaru}.${cakupan}`,
         confirmLabel: "Ya, ganti murid",
       };
     }
@@ -270,10 +336,15 @@ export function konfirmasiUntuk(
 export interface KonteksGantiMurid {
   muridLama: string;
   muridBaru: string;
+  /** ID dipakai untuk mendeteksi pergantian ketika nama murid tidak unik. */
+  muridLamaId?: string;
+  muridBaruId?: string;
   berseri: boolean;
   cakupan: EditMode;
-  /** Sesi punya nominal manual → jumlahnya tidak dihitung ulang (lihat `KonteksKonfirmasi`). */
+  /** Sesi punya nominal manual positif (lihat `KonteksKonfirmasi`). */
   adaNominalManual: boolean;
+  /** Pilihan terlihat tutor; `undefined` mempertahankan perilaku lama. */
+  kebijakanNominal?: NominalMovePolicy;
 }
 
 /**
@@ -286,14 +357,20 @@ export interface KonteksGantiMurid {
  * dibaca.
  */
 export function peringatanGantiMurid({
-  muridLama, muridBaru, berseri, cakupan, adaNominalManual,
+  muridLama, muridBaru, muridLamaId, muridBaruId, berseri, cakupan,
+  adaNominalManual, kebijakanNominal,
 }: KonteksGantiMurid): string | null {
-  if (muridLama === muridBaru) return null;
-  const akibat = adaNominalManual
+  const ctx = { muridLama, muridBaru, muridLamaId, muridBaruId };
+  if (!pemilikBerubah(ctx)) return null;
+  const sebutanBaru = sebutanMuridBaru(ctx);
+  const kebijakan = kebijakanNominal ?? (adaNominalManual ? "manual" : "tarif-baru");
+  const akibat = adaNominalManual && kebijakan === "manual"
     ? `Nominal manual sesi ini tidak diubah, dan sesi ini akan ikut tagihan ${muridBaru}.`
-    : `Nominal sesi ini dihitung ulang memakai tarif ${muridBaru}, dan sesi ini akan ikut tagihan ${muridBaru}.`;
+    : adaNominalManual
+      ? `Nominal manual dilepas; nominal dihitung ulang memakai tarif ${muridBaru}, dan sesi ini akan ikut tagihan ${muridBaru}.`
+      : `Nominal sesi ini dihitung ulang memakai tarif ${muridBaru}, dan sesi ini akan ikut tagihan ${muridBaru}.`;
   if (berseri && cakupan !== "this") {
-    return `Murid diganti dari ${muridLama} ke ${muridBaru} — berlaku juga untuk sesi berikutnya dalam seri ini. ${akibat}`;
+    return `Murid diganti dari ${muridLama} ke ${sebutanBaru} — berlaku juga untuk sesi berikutnya dalam seri ini. ${akibat}`;
   }
-  return `Murid diganti dari ${muridLama} ke ${muridBaru}. ${akibat}`;
+  return `Murid diganti dari ${muridLama} ke ${sebutanBaru}. ${akibat}`;
 }

@@ -190,6 +190,14 @@ Pertanyaan baru ke pemilik hanya sah untuk tiga hal: mengubah uang, mengubah per
 |---|---|---|
 | D19 | **Kata "tagihan" pada dokumen yang dilihat orang tua diganti** supaya tidak terasa seperti penagih pajak. Permintaan pemilik 2026-10-19: *"Biar lebih humanis, kata tagihan bisa di ganti jadi apa? saya tidak ingin semacam penagih pajak."* Keputusan ini **membuka larangan §3 untuk `src/lib/invoicePresentation.ts` pada `buildManualBillingText` saja** (dua baris: judul dan total). | Judul lembar/modal menjadi **"Rincian Les"**; "INFORMASI TAGIHAN" → **"KETERANGAN"**; "Sistem tagihan" → **"Cara hitung"**; "Bulan tagihan" → **"Bulan les"**; blok **"BIAYA LES"**; "TAGIHAN MANUAL" → **"BIAYA LES · TANPA SESI"**; status **"Belum dibayar"**; nama berkas ekspor **`rincian-les-…`**. **Layar internal tetap memakai "Tagihan"** (filter, pipeline, tombol batal paket). `waBilling.ts` tidak berubah — teks yang dikirimnya tidak memuat kata itu. Nominal dan perhitungan tidak disentuh. |
 
+### 4.9 Keputusan pemilik 2026-11-06 (nominal saat jadwal pindah murid)
+
+> Bagian **baru di akhir §4**, bukan sisipan — nomor §4.1–§4.8 dan §5–§8 tidak bergeser.
+
+| Nomor | Keputusan | Akibat yang mengikat |
+|---|---|---|
+| D20 | **Saat jadwal dipindah ke murid lain, tutor memilih nominal sesi: "Pakai tarif murid baru" (bawaan) atau "Pertahankan nominal manual".** Pemilik melaporkan sesi sudah pindah tetapi nominalnya masih memakai angka murid lama. | Pilihan **hanya muncul saat `studentId` benar-benar berubah** dan hanya menyentuh nominal bila tutor menyimpan. `costOverride` positif dipertahankan hanya lewat pilihan eksplisit "Pertahankan nominal manual"; pilihan tarif baru mengirim `costOverride: null` agar mesin menghitung ulang dari tarif pemilik baru. `null`, `undefined`, dan `0` **selalu berarti otomatis** — bukan nominal manual. Tidak ada perhitungan ulang massal atas data historis; invoice final/lunas tetap memakai mekanisme koreksi yang sudah ada. |
+
 ---
 
 ## 5. Fakta kode yang mengikat
@@ -197,7 +205,7 @@ Pertanyaan baru ke pemilik hanya sah untuk tiga hal: mengubah uang, mengubah per
 - Skor sesi dihitung dari indikator yang terisi, dan penyebutnya disebutkan di antarmuka. Sesi tanpa indikator tidak dihitung.
 - Uang tidak pernah ditampilkan di Beranda. Bukan disamarkan, tetapi tidak ada barisnya.
 - Perhitungan tagihan, ekspor CSV, dan total laporan yang sudah difinalkan dibekukan. Perubahan tampilan tidak boleh mengubah angkanya.
-- `costOverride` adalah pernyataan eksplisit tutor dan tidak boleh dihitung ulang oleh mesin — **termasuk saat durasi sesi diubah.** `updateSession` dan `updateSeriesSessions` mempertahankan nominal manual dan menulis `cost` berpasangan dengannya; yang dilepas hanya sesi yang memang tidak punya nominal manual. Untuk kembali ke hitungan otomatis, tutor melepasnya sendiri lewat `costOverride: null` (tombol "↺ Pakai hitungan otomatis" di modal catatan sesi).
+- `costOverride` adalah pernyataan eksplisit tutor dan tidak boleh dihitung ulang oleh mesin — **termasuk saat durasi sesi diubah.** `updateSession` dan `updateSeriesSessions` mempertahankan nominal manual dan menulis `cost` berpasangan dengannya; yang dilepas hanya sesi yang memang tidak punya nominal manual. Untuk kembali ke hitungan otomatis, tutor melepasnya sendiri lewat `costOverride: null` (tombol "↺ Pakai hitungan otomatis" di modal catatan sesi). **Saat pemilik sesi berganti**, pilihan eksplisit D20 menentukan: tarif murid baru (bawaan) melepas override, sedangkan "Pertahankan nominal manual" membiarkannya. `null`/`undefined`/`0` tidak pernah dianggap nominal manual.
 - `rateSnapshot` adalah tarif yang menempel pada sesi dan menentukan angka akhir saat sesi ditutup.
 - Versi aplikasi dibaca dari `package.json`. Catatan perubahan dibaca dari `src/lib/version.ts`.
 

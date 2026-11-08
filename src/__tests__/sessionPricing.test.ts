@@ -3,7 +3,7 @@ import { db } from "../db/db";
 import { createStudent, updateStudent } from "../db/repos/studentRepo";
 import { createSession, scheduleSession, markSessionDone, updateSession, scheduleBatch, updateSeriesSessions } from "../db/repos/sessionRepo";
 import { createSessionCountInvoice } from "../db/repos/paymentRepo";
-import type { Student } from "../db/types";
+import { manualSessionCost, type Student } from "../db/types";
 
 const RATE = 200_000;
 
@@ -424,6 +424,7 @@ describe("ganti murid → nominal memakai tarif murid baru", () => {
     await updateSession(sid, { studentId: muridB });
 
     const s = (await db.sessions.get(sid))!;
+    expect(s.studentId).toBe(muridB);
     expect(s.rateSnapshot).toBe(RATE_B);
     expect(s.cost).toBe(2 * RATE_B);
   });
@@ -441,6 +442,7 @@ describe("ganti murid → nominal memakai tarif murid baru", () => {
     await updateSession(sid, { studentId: muridPaket });
 
     const s = (await db.sessions.get(sid))!;
+    expect(s.studentId).toBe(muridPaket);
     expect(s.rateSnapshot).toBe(RATE_B);
     expect(s.cost).toBe(RATE_B); // flat per pertemuan, bukan 2 × RATE_B
   });
@@ -481,6 +483,140 @@ describe("ganti murid → nominal memakai tarif murid baru", () => {
       expect(s.studentId).toBe(muridB);
       expect(s.rateSnapshot).toBe(RATE_B);
       expect(s.cost).toBe(RATE_B);
+    }
+  });
+});
+
+/**
+ * Regresi laporan pemilik 2026-11-06: sesi berpindah murid, tetapi nominalnya
+ * masih memakai angka murid lama. Penyebabnya `null` (yang berarti otomatis)
+ * dibedakan dari `undefined`, sehingga cabang "pertahankan nominal manual"
+ * terpilih tanpa ada nominal manual.
+ */
+describe("pindah murid — null/0 berarti otomatis, bukan nominal manual", () => {
+  const RATE_B = 300_000;
+
+  async function duaMurid() {
+    const muridA = await createStudent(makeStudent("monthly"));
+    const muridB = await createStudent({ ...makeStudent("monthly"), name: "Murid Baru", hourlyRate: RATE_B });
+    return { muridA, muridB };
+  }
+
+  it("manualSessionCost hanya menerima nominal positif dan finite", () => {
+    expect(manualSessionCost({ costOverride: 175_000 })).toBe(175_000);
+    expect(manualSessionCost({ costOverride: null })).toBeUndefined();
+    expect(manualSessionCost({ costOverride: undefined })).toBeUndefined();
+    expect(manualSessionCost({ costOverride: 0 })).toBeUndefined();
+    expect(manualSessionCost({ costOverride: Number.NaN })).toBeUndefined();
+    expect(manualSessionCost({ costOverride: Number.POSITIVE_INFINITY })).toBeUndefined();
+  });
+
+  it.each([
+    ["null", null],
+    ["undefined", undefined],
+    ["nol", 0],
+  ] as const)("override %s tidak mempertahankan biaya murid lama", async (_label, override) => {
+    const { muridA, muridB } = await duaMurid();
+    const sid = await createSession({
+      studentId: muridA, date: "2026-05-20", durationHours: 2,
+      subjects: ["Math"], shortNote: "", status: "SCHEDULED",
+    });
+    await db.sessions.update(sid, { costOverride: override });
+
+    await updateSession(sid, { studentId: muridB });
+
+    const s = (await db.sessions.get(sid))!;
+    expect(s.studentId).toBe(muridB);
+    expect(s.rateSnapshot).toBe(RATE_B);
+    expect(s.cost).toBe(2 * RATE_B);
+    expect(s.costOverride).toBeUndefined();
+  });
+
+  it("pilihan eksplisit tarif baru melepas nominal manual positif", async () => {
+    const { muridA, muridB } = await duaMurid();
+    const sid = await createSession({
+      studentId: muridA, date: "2026-05-20", durationHours: 2,
+      subjects: ["Math"], shortNote: "", status: "SCHEDULED",
+    });
+    await updateSession(sid, { costOverride: 175_000 });
+
+    await updateSession(sid, { studentId: muridB, costOverride: null });
+
+    const s = (await db.sessions.get(sid))!;
+    expect(s.studentId).toBe(muridB);
+    expect(s.rateSnapshot).toBe(RATE_B);
+    expect(s.cost).toBe(2 * RATE_B);
+    expect(s.costOverride).toBeUndefined();
+  });
+
+  it("setelah pindah, menutup sesi memakai tarif murid baru", async () => {
+    const { muridA, muridB } = await duaMurid();
+    const sid = await createSession({
+      studentId: muridA, date: "2026-05-20", durationHours: 2,
+      subjects: ["Math"], shortNote: "", status: "SCHEDULED",
+    });
+    await db.sessions.update(sid, { costOverride: null });
+
+    await updateSession(sid, { studentId: muridB });
+    await markSessionDone(sid, { shortNote: "selesai" });
+
+    const s = (await db.sessions.get(sid))!;
+    expect(s.studentId).toBe(muridB);
+    expect(s.rateSnapshot).toBe(RATE_B);
+    expect(s.cost).toBe(2 * RATE_B);
+  });
+
+  it("seri: pilihan tarif baru melepas nominal manual pada semua sesi", async () => {
+    const { muridA, muridB } = await duaMurid();
+    const ids: string[] = [];
+    for (const date of ["2026-05-20", "2026-05-27"]) {
+      const id = await createSession({
+        studentId: muridA, date, durationHours: 1,
+        subjects: ["Math"], shortNote: "", status: "SCHEDULED",
+      });
+      await db.sessions.update(id, { seriesId: "seri-nominal", costOverride: 175_000, cost: 175_000 });
+      ids.push(id);
+    }
+
+    await updateSeriesSessions(
+      { id: ids[0], seriesId: "seri-nominal", date: "2026-05-20" },
+      { studentId: muridB, costOverride: null },
+      "all",
+    );
+
+    for (const id of ids) {
+      const s = (await db.sessions.get(id))!;
+      expect(s.studentId).toBe(muridB);
+      expect(s.rateSnapshot).toBe(RATE_B);
+      expect(s.cost).toBe(RATE_B);
+      expect(s.costOverride).toBeUndefined();
+    }
+  });
+
+  it("seri: pilihan pertahankan tidak menyentuh nominal manual", async () => {
+    const { muridA, muridB } = await duaMurid();
+    const ids: string[] = [];
+    for (const date of ["2026-05-20", "2026-05-27"]) {
+      const id = await createSession({
+        studentId: muridA, date, durationHours: 1,
+        subjects: ["Math"], shortNote: "", status: "SCHEDULED",
+      });
+      await db.sessions.update(id, { seriesId: "seri-manual", costOverride: 175_000, cost: 175_000 });
+      ids.push(id);
+    }
+
+    await updateSeriesSessions(
+      { id: ids[0], seriesId: "seri-manual", date: "2026-05-20" },
+      { studentId: muridB },
+      "all",
+    );
+
+    for (const id of ids) {
+      const s = (await db.sessions.get(id))!;
+      expect(s.studentId).toBe(muridB);
+      expect(s.rateSnapshot).toBe(RATE_B);
+      expect(s.cost).toBe(175_000);
+      expect(s.costOverride).toBe(175_000);
     }
   });
 });

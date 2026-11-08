@@ -11,6 +11,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v1.118.0",
+    date: "2026-11-08",
+    title: "Jadwal pindah murid mengikuti pilihan nominal dan konfirmasi tetap muncul untuk nama yang sama",
+    items: [
+      "**Saat jadwal dipindah ke murid lain, tutor memilih nominalnya.** Pilihan bawaan memakai tarif murid baru dan menghitung ulang biaya; alternatifnya mempertahankan nominal manual. Pilihan ini berlaku pada sesi yang dicakup, dan `null`, `undefined`, atau nol tetap berarti hitungan otomatis.",
+      "**Konfirmasi pindah murid kini membandingkan ID, bukan hanya nama.** Jika dua murid berbeda memiliki nama sama, peringatan dan konfirmasi tetap muncul serta menyebut bahwa sesi berpindah ke murid lain bernama sama.",
+      "**Pemeriksaan:** `npx tsc -b` lulus · suite **1634 tes / 114 berkas** lulus · `npx eslint .` 0 error (1 warning lama di `.design-audit`) · `npm run build` lulus · `npm run check:docs` 0 pelanggaran · spec `e2e/session-transfer-pricing.spec.ts` **8 lulus** di Chromium dan mobile. Suite Playwright penuh belum lulus: satu tes `ai-pricing-modal` gagal saat percobaan penuh dan suite dihentikan.",
+    ],
+  },
+  {
     version: "v1.117.0",
     date: "2026-10-19",
     title: "Dokumen untuk orang tua memakai istilah yang lebih hangat — \"Rincian Les\" dan \"Biaya Les\", bukan \"tagihan\"",
